@@ -83,6 +83,17 @@ else
     log_warn "AGENT.md already exists, skipping"
 fi
 
+# Create AGENTS.md symlink for Codex compatibility
+# Codex CLI looks for AGENTS.md in the project root
+if [[ ! -f "AGENTS.md" && ! -L "AGENTS.md" ]]; then
+    ln -s AGENT.md AGENTS.md
+    log_success "Created AGENTS.md symlink (for Codex compatibility)"
+elif [[ -L "AGENTS.md" ]]; then
+    log_warn "AGENTS.md symlink already exists, skipping"
+else
+    log_warn "AGENTS.md already exists as file, skipping symlink"
+fi
+
 # Create progress.txt
 if [[ ! -f "progress.txt" ]]; then
     cat > progress.txt <<EOF
@@ -152,8 +163,9 @@ echo "  4. Run 'curb --status' to see task summary"
 echo "  5. Run 'curb' to start the autonomous loop"
 echo ""
 echo "Useful commands:"
-echo "  curb --status   Show task progress"
-echo "  curb --ready    Show ready tasks"
-echo "  curb --once     Run single iteration"
-echo "  curb --plan     Run planning mode"
+echo "  curb --status        Show task progress"
+echo "  curb --ready         Show ready tasks"
+echo "  curb --once          Run single iteration"
+echo "  curb --plan          Run planning mode"
+echo "  curb --llm codex     Use OpenAI Codex instead of Claude"
 echo ""
