@@ -20,6 +20,8 @@ PROJECT_DIR="${CURB_PROJECT_DIR:-$(pwd)}"
 
 # Source task management library
 source "${CURB_DIR}/lib/tasks.sh"
+# Source harness abstraction layer
+source "${CURB_DIR}/lib/harness.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,6 +39,9 @@ STREAM="${CURB_STREAM:-false}"
 # Backend mode (set via --backend flag or CURB_BACKEND env)
 # Values: "auto", "beads", "json"
 BACKEND="${CURB_BACKEND:-auto}"
+# Harness (set via --harness flag or HARNESS env)
+# Values: "auto", "claude", "codex"
+HARNESS="${HARNESS:-auto}"
 
 log_info() { echo -e "${BLUE}[curb]${NC} $1"; }
 log_success() { echo -e "${GREEN}[curb]${NC} $1"; }
@@ -48,61 +53,23 @@ log_debug() {
     fi
 }
 
-# Parse stream-json output into human-readable format
-parse_stream() {
-    while IFS= read -r line; do
-        # Skip empty lines
-        [[ -z "$line" ]] && continue
-
-        # Parse JSON and extract relevant info
-        local msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
-
-        case "$msg_type" in
-            "assistant")
-                # Assistant text response
-                local content=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
-                [[ -n "$content" ]] && echo -e "${content}"
-                ;;
-            "content_block_start")
-                local block_type=$(echo "$line" | jq -r '.content_block.type // empty' 2>/dev/null)
-                if [[ "$block_type" == "tool_use" ]]; then
-                    local tool_name=$(echo "$line" | jq -r '.content_block.name // empty' 2>/dev/null)
-                    echo -e "${YELLOW}▶ Tool: ${tool_name}${NC}"
-                fi
-                ;;
-            "content_block_delta")
-                local delta_type=$(echo "$line" | jq -r '.delta.type // empty' 2>/dev/null)
-                if [[ "$delta_type" == "text_delta" ]]; then
-                    local text=$(echo "$line" | jq -r '.delta.text // empty' 2>/dev/null)
-                    printf "%s" "$text"
-                elif [[ "$delta_type" == "input_json_delta" ]]; then
-                    : # Skip JSON input deltas (tool arguments building up)
-                fi
-                ;;
-            "result")
-                local result=$(echo "$line" | jq -r '.result // empty' 2>/dev/null)
-                [[ -n "$result" ]] && echo -e "\n${GREEN}✓ Result: ${result:0:200}${NC}"
-                local cost=$(echo "$line" | jq -r '.cost_usd // empty' 2>/dev/null)
-                [[ -n "$cost" && "$cost" != "null" ]] && echo -e "${DIM}  Cost: \$${cost}${NC}"
-                ;;
-            "system")
-                local sys_msg=$(echo "$line" | jq -r '.message // empty' 2>/dev/null)
-                [[ -n "$sys_msg" ]] && echo -e "${DIM}[system] ${sys_msg}${NC}"
-                ;;
-        esac
-    done
-}
-
 # Check dependencies
 check_deps() {
     local missing=()
     command -v jq >/dev/null 2>&1 || missing+=("jq")
-    command -v claude >/dev/null 2>&1 || missing+=("claude (Claude Code CLI)")
+
+    # Check for at least one harness
+    if ! harness_available; then
+        missing+=("harness (claude or codex)")
+    fi
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         log_error "Missing dependencies: ${missing[*]}"
         exit 1
     fi
+
+    # Log which harness is active
+    log_debug "Harness: $(harness_get)"
 }
 
 # Validate project structure
@@ -315,19 +282,19 @@ run_iteration() {
         echo ""
     fi
 
-    log_info "Running Claude Code..."
+    local harness=$(harness_get)
+    log_info "Running ${harness}..."
     echo ""
 
     if [[ "$DEBUG" == "true" ]]; then
         # Pre-flight check
-        log_debug "Pre-flight: claude --version"
+        log_debug "Pre-flight: ${harness} version"
         local version_output
-        version_output=$(claude --version 2>&1) && log_debug "Version: ${version_output}" || log_debug "WARNING: --version failed"
-        log_debug "Binary: $(which claude)"
+        version_output=$(harness_version 2>&1) && log_debug "Version: ${version_output}" || log_debug "WARNING: version check failed"
+        log_debug "Binary: $(which ${harness})"
     fi
 
-    # Run claude code with the prompt
-    # Using -p flag with --append-system-prompt to keep stdin small
+    # Run harness with the prompt via abstraction layer
     local start_time=$(date +%s)
     local exit_code=0
     log_debug "Execution start: $(date)"
@@ -340,34 +307,23 @@ run_iteration() {
         echo "$task_prompt" > "$tmp_task"
         log_debug "System prompt: ${tmp_sys}"
         log_debug "Task prompt: ${tmp_task}"
-        log_debug ">>> To manually test:"
-        log_debug ">>>   claude -p --append-system-prompt \"\$(cat ${tmp_sys})\" < ${tmp_task}"
+        log_debug ">>> Prompts saved for debugging"
         log_debug ""
-        log_debug "--- CLAUDE START ---"
+        log_debug "--- HARNESS START (${harness}) ---"
     fi
 
-    # Use --append-system-prompt for the bulk, stdin just for task
-    # --dangerously-skip-permissions allows all tools without prompting
+    # Invoke harness via abstraction layer
     if [[ "$STREAM" == "true" ]]; then
-        log_info "Streaming Claude output..."
-        if [[ "$DEBUG" == "true" ]]; then
-            echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions --debug --verbose --output-format stream-json | parse_stream
-        else
-            echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions --verbose --output-format stream-json | parse_stream
-        fi
-        # Get claude's exit code from PIPESTATUS (index 1 is claude in the pipe chain)
-        exit_code=${PIPESTATUS[1]}
-    elif [[ "$DEBUG" == "true" ]]; then
-        log_debug "Running with --debug flag"
-        echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions --debug
+        log_info "Streaming ${harness} output..."
+        harness_invoke_streaming "$system_prompt" "$task_prompt" "$DEBUG"
         exit_code=$?
     else
-        echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions
+        harness_invoke "$system_prompt" "$task_prompt" "$DEBUG"
         exit_code=$?
     fi
 
     if [[ "$DEBUG" == "true" ]]; then
-        log_debug "--- CLAUDE END ---"
+        log_debug "--- HARNESS END (${harness}) ---"
 
         # Cleanup on success, keep on failure
         if [[ $exit_code -eq 0 ]]; then
@@ -505,7 +461,7 @@ main() {
             log_debug "Date: $(date)"
         elif [[ "$arg" == "--stream" ]]; then
             STREAM="true"
-            log_info "Stream mode enabled - showing Claude's activity"
+            log_info "Stream mode enabled - showing harness activity"
         elif [[ "$arg" == "--backend="* ]]; then
             BACKEND="${arg#--backend=}"
             export CURB_BACKEND="$BACKEND"
@@ -517,14 +473,26 @@ main() {
             BACKEND="$arg"
             export CURB_BACKEND="$BACKEND"
             _next_is_backend=false
+        elif [[ "$arg" == "--harness="* ]]; then
+            HARNESS="${arg#--harness=}"
+            export HARNESS
+        elif [[ "$arg" == "--harness" ]]; then
+            # Next arg is the harness value - handle in next iteration
+            _next_is_harness=true
+            continue
+        elif [[ "${_next_is_harness:-}" == "true" ]]; then
+            HARNESS="$arg"
+            export HARNESS
+            _next_is_harness=false
         else
             args+=("$arg")
         fi
     done
     unset _next_is_backend
+    unset _next_is_harness
 
     check_deps
-    log_debug "Dependencies checked: jq and claude found"
+    log_debug "Dependencies checked: jq and harness found"
 
     case "${args[0]:-}" in
         --status|-s)
@@ -622,7 +590,8 @@ Say 'curb test successful' and nothing else."
             cat <<EOF
 curb - Claude Under Ralph + Beads
 
-Autonomous AI coding agent harness that drives Claude Code in a loop.
+Autonomous AI coding agent that drives coding harnesses (Claude Code or OpenAI
+Codex) in a loop.
 
 Usage:
   curb              Run loop until all tasks complete
@@ -630,21 +599,22 @@ Usage:
   curb --status     Show current task status
   curb --ready      Show ready tasks
   curb --plan       Run in planning mode
-  curb --test       Test Claude Code invocation with simple prompts
+  curb --test       Test harness invocation with simple prompts
   curb --dump-prompt  Dump the actual prompt to a file for inspection
   curb --migrate-to-beads      Migrate tasks from prd.json to beads
   curb --migrate-to-beads-dry-run  Preview migration without making changes
   curb --debug      Enable debug logging (can combine with other flags)
-  curb --stream     Stream Claude's activity in real-time (can combine)
-  curb --backend X  Force backend: "beads" or "json" (default: auto-detect)
+  curb --stream     Stream harness activity in real-time (can combine)
+  curb --backend X  Force task backend: "beads" or "json" (default: auto-detect)
+  curb --harness X  Force harness: "claude" or "codex" (default: auto-detect)
 
 Flags:
   --debug, -d       Enable verbose debug output including:
-                    - Full prompt being sent to Claude Code
+                    - Full prompt being sent to harness
                     - Task selection details and JSON
                     - Timing information
-                    - Saves prompt to temp file for manual testing
-  --stream          Stream Claude's activity showing:
+                    - Saves prompt to temp file for debugging
+  --stream          Stream harness activity showing:
                     - Tool calls as they happen
                     - Text responses in real-time
                     - Final result and cost
@@ -652,18 +622,25 @@ Flags:
                     - auto: use beads if available, else json (default)
                     - beads: use beads CLI (bd) for task management
                     - json: use prd.json file directly
+  --harness <name>  Harness selection:
+                    - auto: prefer claude, fall back to codex (default)
+                    - claude: use Claude Code CLI
+                    - codex: use OpenAI Codex CLI
 
 Environment:
   CURB_PROJECT_DIR     Project directory (default: pwd)
   CURB_MAX_ITERATIONS  Max loop iterations (default: 100)
   CURB_DEBUG           Enable debug mode (set to "true")
   CURB_BACKEND         Task backend: "auto", "beads", or "json"
+  HARNESS              Harness: "auto", "claude", or "codex"
+  CLAUDE_FLAGS         Extra flags for Claude Code CLI
+  CODEX_FLAGS          Extra flags for OpenAI Codex CLI
 
 Files expected in project:
   .beads/        Beads data directory (if using beads backend)
   prd.json       Task backlog JSON (if using json backend)
   PROMPT.md      Loop prompt template
-  AGENT.md       Agent build instructions
+  AGENT.md       Agent build instructions (AGENTS.md also supported for Codex)
   specs/         Specification files
   progress.txt   Progress log (created automatically)
 
