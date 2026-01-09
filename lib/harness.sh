@@ -233,55 +233,8 @@ codex_invoke_streaming() {
     local task_prompt="$2"
     local debug="${3:-false}"
 
-    local combined_prompt="${system_prompt}
-
----
-
-${task_prompt}"
-
-    local flags="--full-auto --json"
-
-    # Add any extra flags from environment
-    [[ -n "${CODEX_FLAGS:-}" ]] && flags="$flags $CODEX_FLAGS"
-
-    echo "$combined_prompt" | codex exec $flags - | codex_parse_stream
-    return ${PIPESTATUS[1]}
-}
-
-# Parse Codex's JSONL output
-# Note: Exact schema may need adjustment based on actual codex output
-codex_parse_stream() {
-    while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-
-        local event_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
-
-        case "$event_type" in
-            "message"|"text")
-                local content=$(echo "$line" | jq -r '.content // .text // empty' 2>/dev/null)
-                [[ -n "$content" ]] && echo -e "${content}"
-                ;;
-            "function_call"|"tool_call")
-                local tool_name=$(echo "$line" | jq -r '.name // .function.name // empty' 2>/dev/null)
-                [[ -n "$tool_name" ]] && echo -e "${YELLOW}▶ Tool: ${tool_name}${NC}"
-                ;;
-            "function_result"|"tool_result")
-                local result=$(echo "$line" | jq -r '.result // .output // empty' 2>/dev/null)
-                [[ -n "$result" ]] && echo -e "${GREEN}✓ Result: ${result:0:200}${NC}"
-                ;;
-            "error")
-                local error=$(echo "$line" | jq -r '.message // .error // empty' 2>/dev/null)
-                [[ -n "$error" ]] && echo -e "${RED}Error: ${error}${NC}" >&2
-                ;;
-            "done"|"complete"|"end")
-                local cost=$(echo "$line" | jq -r '.usage.cost // .cost // empty' 2>/dev/null)
-                [[ -n "$cost" && "$cost" != "null" ]] && echo -e "${DIM}  Cost: \$${cost}${NC}"
-                ;;
-            *)
-                # For unknown types, try to extract any content
-                local content=$(echo "$line" | jq -r '.content // .text // .message // empty' 2>/dev/null)
-                [[ -n "$content" ]] && printf "%s" "$content"
-                ;;
-        esac
-    done
+    # Codex exec doesn't have a JSON streaming mode like Claude Code's --output-format stream-json
+    # For now, streaming mode just runs the same as non-streaming and passes through output
+    # TODO: Investigate codex proto command for structured streaming
+    codex_invoke "$system_prompt" "$task_prompt" "$debug"
 }
