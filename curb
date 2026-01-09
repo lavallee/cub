@@ -341,13 +341,16 @@ run_iteration() {
         else
             echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions --verbose --output-format stream-json | parse_stream
         fi
+        # Get claude's exit code from PIPESTATUS (index 1 is claude in the pipe chain)
+        exit_code=${PIPESTATUS[1]}
     elif [[ "$DEBUG" == "true" ]]; then
         log_debug "Running with --debug flag"
         echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions --debug
+        exit_code=$?
     else
         echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" --dangerously-skip-permissions
+        exit_code=$?
     fi
-    exit_code=$?
 
     if [[ "$DEBUG" == "true" ]]; then
         log_debug "--- CLAUDE END ---"
