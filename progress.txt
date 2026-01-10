@@ -4119,3 +4119,88 @@ None for Phase 3 git workflow. The 6 failing tests are related to backend detect
 
 ### Next Steps:
 Phase 3 is complete and verified. Ready to move to Phase 4 (Guardrails) or implement --push (curb-025) if desired.
+
+---
+
+## Session: curb-025 - Add --push flag and git_push_branch
+
+### Task: Add --push flag and git_push_branch (explicit opt-in)
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+- **Task ID**: curb-025
+
+### What was implemented:
+1. **Flag Parsing**: Added --push flag recognition in cmd_run function
+   - Follows existing pattern used by other flags like --require-clean
+   - Sets cmd_push local variable, then updates PUSH global variable
+   - Default value is false (safe default - never auto-push)
+
+2. **Global Variable**: Added PUSH global variable in curb script
+   - Defined at line ~950 alongside other global flags
+   - Can be set via CURB_PUSH environment variable
+   - Pattern: PUSH="${CURB_PUSH:-false}"
+
+3. **git_push_branch() Function**: Implemented in lib/git.sh
+   - Pushes current branch to origin with upstream tracking (-u flag)
+   - Optional --force flag for force push:
+     - Requires explicit "yes" confirmation
+     - Uses --force-with-lease (safer than --force)
+   - Clear error messages and logging throughout
+   - Returns 0 on success, 1 on error
+   - Validates: git repo, current branch, remote exists
+
+4. **Integration**: Called in run_iteration after successful commit
+   - Only executes when PUSH="true" (--push flag set)
+   - Logs push operations clearly (success/failure)
+   - Does not fail the task if push fails (just warns)
+
+### Test Results:
+- All 565 tests executed successfully
+- 6 pre-existing failures (unrelated to this task, related to beads backend):
+  - curb --status tests (181-185, 187)
+- No git-related test failures
+- No new test failures introduced
+
+### Key Design Decisions:
+1. **Safety First**: Push requires explicit --push flag
+   - Never auto-push (avoids accidental remote operations)
+   - Clear in help text and behavior
+   
+2. **Force Push Protection**: --force flag requires:
+   - Explicit parameter to git_push_branch
+   - Interactive confirmation ("yes" required)
+   - Uses --force-with-lease instead of --force
+   
+3. **Error Handling**: Push failures don't fail the task
+   - Commit succeeds even if push fails
+   - User gets clear warning message
+   - Allows retry or manual push
+
+4. **Logging**: Clear logging at every step
+   - "Pushing branch to remote..."
+   - "Successfully pushed branch 'X' to origin"
+   - "Failed to push branch to remote"
+   - Debug log when push skipped
+
+### Files Modified:
+- curb (lines 502, 514-516, 604, 949-951, 1633-1643)
+- lib/git.sh (lines 416-493, added git_push_branch function)
+- .beads/issues.jsonl (task status updated to closed)
+
+### Implementation Pattern Learned:
+This task follows curb's established patterns:
+1. Global flag variables defined at script start (~line 924-950)
+2. Local cmd_* variables in cmd_run for parsing (~line 496-502)
+3. Update global variables after parsing (~line 599-607)
+4. Use in run_iteration to control behavior (~line 1628-1643)
+
+### Acceptance Criteria Verified:
+- [x] --push flag recognized by curb run
+- [x] git_push_branch pushes to origin with upstream tracking
+- [x] Without --push, no push occurs (safe default)
+- [x] Push success/failure logged clearly
+- [x] Force push requires explicit --force flag (with confirmation)
+
+### Next Steps:
+- curb-027: Write BATS tests for lib/git.sh (git_push_branch not yet tested)
+- Could add tests to verify --push flag behavior in integration tests
