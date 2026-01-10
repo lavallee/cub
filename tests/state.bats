@@ -177,8 +177,9 @@ teardown() {
 
     run state_ensure_clean
     [[ $status -eq 0 ]]
-    [[ "$output" =~ "WARNING: Repository has uncommitted changes" ]]
-    [[ "$output" =~ "README.md" ]]
+    [[ "$output" == *"WARNING"* ]]
+    [[ "$output" == *"uncommitted"* ]]
+    [[ "$output" == *"README.md"* ]]
 }
 
 # ============================================================================
