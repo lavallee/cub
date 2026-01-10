@@ -42,6 +42,12 @@ source "${CURB_DIR}/lib/hooks.sh"
 # Load configuration early
 config_load
 
+# Version subcommand
+cmd_version() {
+    echo "curb v${CURB_VERSION}"
+    return 0
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -796,6 +802,14 @@ main() {
             log_warn "Failed to initialize budget with value: ${budget_limit}"
         fi
     fi
+
+    # Subcommand dispatcher (check for subcommands before flags)
+    case "${args[0]:-}" in
+        version)
+            cmd_version
+            return $?
+            ;;
+    esac
 
     case "${args[0]:-}" in
         --status|-s)
