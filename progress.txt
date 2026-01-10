@@ -1187,3 +1187,55 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 1. Add budget enforcement to main loop (curb-rvl)
 2. Add budget warning at threshold (curb-iji)
 
+
+## Session N: Add --budget Flag to CLI (curb-0ub)
+
+### Task: Add --budget flag to curb CLI
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Added `lib/budget.sh` source line to main script (curb)
+2. Added BUDGET variable initialization after config_load with environment variable support
+3. Implemented flag parsing in main() function:
+   - Supports both `--budget=1000000` and `--budget 1000000` syntax
+   - Exports CURB_BUDGET environment variable for subshells
+   - Follows established pattern used by --model, --epic, --label flags
+4. Added budget_init() call after dependency check:
+   - Uses CLI flag value if provided
+   - Falls back to environment variable CURB_BUDGET
+   - Falls back to config file value at `budget.limit`
+   - Logs initialization or warning on failure
+5. Updated --help documentation:
+   - Added usage example: `curb --budget X`
+   - Added flag description with token parameter
+   - Added CURB_BUDGET to environment variables section
+
+### Test Results:
+- All 263 BATS tests continue to PASS
+- Budget functionality tests already passing from previous implementation
+- Flag parsing verified with manual tests (both syntax variants work)
+- Help output verified with correct documentation
+
+### Acceptance Criteria Verification:
+- [x] curb --budget 1000000 sets budget (verified with manual test)
+- [x] Default from config if no flag (integrated config_get fallback)
+- [x] Shows in --help (added to usage and flags sections)
+
+### Implementation Details:
+- Used file-based state files for budget tracking (inherited from budget.sh)
+- Budget limit persists across loop iterations in same session
+- Integrated with existing config precedence: CLI > env > config > default
+- No new dependencies added - all functionality from existing lib/budget.sh
+- Pattern consistency: matches --model, --epic, --label flag handling
+
+### Files Modified:
+- curb: Added budget integration (32 insertions across 2 locations)
+
+### Key Learnings:
+- **Flag parsing pattern**: This project consistently uses loop-based getopts with lookahead for handling both `--flag=value` and `--flag value` syntax
+- **Config integration**: Always use `config_get_or` with fallback default to handle cases where config key doesn't exist
+- **Environment variable support**: Export variables (CURB_BUDGET) to make them available in subshells
+- **Documentation synchronization**: Update both usage comment at top AND detailed --help section
+- **Budget module is already complete**: lib/budget.sh had all necessary functionality including budget_init, budget_check, budget_record
+- **Beads CLI**: This project uses beads (bd) for task management instead of prd.json JSON files. Use `bd close <id> -r "reason"` to mark tasks complete.
