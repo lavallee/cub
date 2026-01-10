@@ -60,8 +60,147 @@ cmd_init() {
 
 # Run subcommand - run the main loop
 cmd_run() {
+    # Parse run-specific flags
+    local args=()
+    local run_once=false
+    local run_plan=false
+    local run_ready=false
+
+    # Local copies of flag variables (can be overridden per-run)
+    local cmd_epic="${EPIC}"
+    local cmd_label="${LABEL}"
+    local cmd_model="${MODEL}"
+    local cmd_budget="${BUDGET}"
+    local cmd_require_clean="${REQUIRE_CLEAN}"
+    local cmd_session_name="${SESSION_NAME}"
+
+    for arg in "$@"; do
+        case "$arg" in
+            --once|-1)
+                run_once=true
+                ;;
+            --plan|-p)
+                run_plan=true
+                ;;
+            --ready|-r)
+                run_ready=true
+                ;;
+            --push)
+                # Future: handle push flag
+                log_warn "Push flag not yet implemented"
+                ;;
+            --require-clean)
+                cmd_require_clean="true"
+                export CURB_REQUIRE_CLEAN="true"
+                log_info "Clean state enforcement enabled via CLI flag"
+                ;;
+            --no-require-clean)
+                cmd_require_clean="false"
+                export CURB_REQUIRE_CLEAN="false"
+                log_info "Clean state enforcement disabled via CLI flag"
+                ;;
+            --model=*)
+                cmd_model="${arg#--model=}"
+                export CURB_MODEL="$cmd_model"
+                ;;
+            --model)
+                _next_is_model=true
+                ;;
+            --epic=*)
+                cmd_epic="${arg#--epic=}"
+                export CURB_EPIC="$cmd_epic"
+                ;;
+            --epic)
+                _next_is_epic=true
+                ;;
+            --label=*)
+                cmd_label="${arg#--label=}"
+                export CURB_LABEL="$cmd_label"
+                ;;
+            --label)
+                _next_is_label=true
+                ;;
+            --budget=*)
+                cmd_budget="${arg#--budget=}"
+                export CURB_BUDGET="$cmd_budget"
+                ;;
+            --budget)
+                _next_is_budget=true
+                ;;
+            --name=*)
+                cmd_session_name="${arg#--name=}"
+                export CURB_SESSION_NAME="$cmd_session_name"
+                ;;
+            --name)
+                _next_is_name=true
+                ;;
+            *)
+                # Handle deferred flag values
+                if [[ "${_next_is_model:-}" == "true" ]]; then
+                    cmd_model="$arg"
+                    export CURB_MODEL="$cmd_model"
+                    _next_is_model=false
+                elif [[ "${_next_is_epic:-}" == "true" ]]; then
+                    cmd_epic="$arg"
+                    export CURB_EPIC="$cmd_epic"
+                    _next_is_epic=false
+                elif [[ "${_next_is_label:-}" == "true" ]]; then
+                    cmd_label="$arg"
+                    export CURB_LABEL="$cmd_label"
+                    _next_is_label=false
+                elif [[ "${_next_is_budget:-}" == "true" ]]; then
+                    cmd_budget="$arg"
+                    export CURB_BUDGET="$cmd_budget"
+                    _next_is_budget=false
+                elif [[ "${_next_is_name:-}" == "true" ]]; then
+                    cmd_session_name="$arg"
+                    export CURB_SESSION_NAME="$cmd_session_name"
+                    _next_is_name=false
+                else
+                    args+=("$arg")
+                fi
+                ;;
+        esac
+    done
+
+    # Clean up flag parsing state
+    unset _next_is_model
+    unset _next_is_epic
+    unset _next_is_label
+    unset _next_is_budget
+    unset _next_is_name
+
+    # Update global variables if they were set via cmd_run flags
+    EPIC="$cmd_epic"
+    LABEL="$cmd_label"
+    MODEL="$cmd_model"
+    BUDGET="$cmd_budget"
+    REQUIRE_CLEAN="$cmd_require_clean"
+    SESSION_NAME="$cmd_session_name"
+
+    # Initialize budget if provided via CLI, environment, or config
+    # Get budget from: CLI flag > environment > config file
+    local budget_limit="${BUDGET:-$(config_get_or "budget.limit" "")}"
+    if [[ -n "$budget_limit" ]]; then
+        if budget_init "$budget_limit"; then
+            log_info "Budget initialized: ${budget_limit} tokens"
+        else
+            log_warn "Failed to initialize budget with value: ${budget_limit}"
+        fi
+    fi
+
     validate_project
-    run_loop
+
+    # Execute based on mode
+    if [[ "$run_ready" == "true" ]]; then
+        show_ready
+    elif [[ "$run_plan" == "true" ]]; then
+        run_planning
+    elif [[ "$run_once" == "true" ]]; then
+        run_iteration
+    else
+        run_loop
+    fi
 }
 
 # Status subcommand - show task status
@@ -928,7 +1067,7 @@ run_loop() {
 
 # Main entry point
 main() {
-    # Parse flags first (can be combined with other flags)
+    # Parse global flags (affect entire system) and separate run-specific flags
     local args=()
     for arg in "$@"; do
         if [[ "$arg" == "--debug" || "$arg" == "-d" ]]; then
@@ -941,14 +1080,6 @@ main() {
         elif [[ "$arg" == "--stream" ]]; then
             STREAM="true"
             log_info "Stream mode enabled - showing harness activity"
-        elif [[ "$arg" == "--require-clean" ]]; then
-            REQUIRE_CLEAN="true"
-            export CURB_REQUIRE_CLEAN="true"
-            log_info "Clean state enforcement enabled via CLI flag"
-        elif [[ "$arg" == "--no-require-clean" ]]; then
-            REQUIRE_CLEAN="false"
-            export CURB_REQUIRE_CLEAN="false"
-            log_info "Clean state enforcement disabled via CLI flag"
         elif [[ "$arg" == "--backend="* ]]; then
             BACKEND="${arg#--backend=}"
             export CURB_BACKEND="$BACKEND"
@@ -971,84 +1102,16 @@ main() {
             HARNESS="$arg"
             export HARNESS
             _next_is_harness=false
-        elif [[ "$arg" == "--model="* ]]; then
-            MODEL="${arg#--model=}"
-            export CURB_MODEL="$MODEL"
-        elif [[ "$arg" == "--model" ]]; then
-            # Next arg is the model value - handle in next iteration
-            _next_is_model=true
-            continue
-        elif [[ "${_next_is_model:-}" == "true" ]]; then
-            MODEL="$arg"
-            export CURB_MODEL="$MODEL"
-            _next_is_model=false
-        elif [[ "$arg" == "--epic="* ]]; then
-            EPIC="${arg#--epic=}"
-            export CURB_EPIC="$EPIC"
-        elif [[ "$arg" == "--epic" ]]; then
-            _next_is_epic=true
-            continue
-        elif [[ "${_next_is_epic:-}" == "true" ]]; then
-            EPIC="$arg"
-            export CURB_EPIC="$EPIC"
-            _next_is_epic=false
-        elif [[ "$arg" == "--label="* ]]; then
-            LABEL="${arg#--label=}"
-            export CURB_LABEL="$LABEL"
-        elif [[ "$arg" == "--label" ]]; then
-            _next_is_label=true
-            continue
-        elif [[ "${_next_is_label:-}" == "true" ]]; then
-            LABEL="$arg"
-            export CURB_LABEL="$LABEL"
-            _next_is_label=false
-        elif [[ "$arg" == "--budget="* ]]; then
-            BUDGET="${arg#--budget=}"
-            export CURB_BUDGET="$BUDGET"
-        elif [[ "$arg" == "--budget" ]]; then
-            # Next arg is the budget value - handle in next iteration
-            _next_is_budget=true
-            continue
-        elif [[ "${_next_is_budget:-}" == "true" ]]; then
-            BUDGET="$arg"
-            export CURB_BUDGET="$BUDGET"
-            _next_is_budget=false
-        elif [[ "$arg" == "--name="* ]]; then
-            SESSION_NAME="${arg#--name=}"
-            export CURB_SESSION_NAME="$SESSION_NAME"
-        elif [[ "$arg" == "--name" ]]; then
-            # Next arg is the session name value - handle in next iteration
-            _next_is_name=true
-            continue
-        elif [[ "${_next_is_name:-}" == "true" ]]; then
-            SESSION_NAME="$arg"
-            export CURB_SESSION_NAME="$SESSION_NAME"
-            _next_is_name=false
         else
+            # Pass all other args through (including run-specific flags)
             args+=("$arg")
         fi
     done
     unset _next_is_backend
     unset _next_is_harness
-    unset _next_is_model
-    unset _next_is_epic
-    unset _next_is_label
-    unset _next_is_budget
-    unset _next_is_name
 
     check_deps
     log_debug "Dependencies checked: jq and harness found"
-
-    # Initialize budget if provided via CLI or environment
-    # Get budget from: CLI flag > environment > config file
-    local budget_limit="${BUDGET:-$(config_get_or "budget.limit" "")}"
-    if [[ -n "$budget_limit" ]]; then
-        if budget_init "$budget_limit"; then
-            log_info "Budget initialized: ${budget_limit} tokens"
-        else
-            log_warn "Failed to initialize budget with value: ${budget_limit}"
-        fi
-    fi
 
     # Subcommand dispatcher (check for subcommands before legacy flags)
     # Process first non-flag argument as potential subcommand
@@ -1063,8 +1126,8 @@ main() {
                 return $?
                 ;;
             run)
-                # Run the main loop
-                cmd_run
+                # Run the main loop with remaining args
+                cmd_run "${args[@]:1}"
                 return $?
                 ;;
             status)
@@ -1105,20 +1168,16 @@ main() {
     # Legacy flag parsing (for backwards compatibility)
     case "${args[0]:-}" in
         --status|-s)
-            validate_project
-            show_status
+            cmd_status
             ;;
         --ready|-r)
-            validate_project
-            show_ready
+            cmd_run --ready "${args[@]:1}"
             ;;
         --once|-1)
-            validate_project
-            run_iteration
+            cmd_run --once "${args[@]:1}"
             ;;
         --plan|-p)
-            validate_project
-            run_planning
+            cmd_run --plan "${args[@]:1}"
             ;;
         --test|-t)
             log_info "Testing Claude Code invocation..."
@@ -1302,8 +1361,8 @@ EOF
             echo "curb v${CURB_VERSION}"
             ;;
         *)
-            validate_project
-            run_loop
+            # Default: run the main loop with all args
+            cmd_run "${args[@]}"
             ;;
     esac
 }
