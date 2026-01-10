@@ -42,6 +42,9 @@ BACKEND="${CURB_BACKEND:-auto}"
 # Harness (set via --harness flag or HARNESS env)
 # Values: "auto", "claude", "codex"
 HARNESS="${HARNESS:-auto}"
+# Model (set via --model flag or CURB_MODEL env)
+# Values: "opus", "sonnet", "haiku" (only applies to claude harness)
+MODEL="${CURB_MODEL:-}"
 
 log_info() { echo -e "${BLUE}[curb]${NC} $1"; }
 log_success() { echo -e "${GREEN}[curb]${NC} $1"; }
@@ -496,12 +499,24 @@ main() {
             HARNESS="$arg"
             export HARNESS
             _next_is_harness=false
+        elif [[ "$arg" == "--model="* ]]; then
+            MODEL="${arg#--model=}"
+            export CURB_MODEL="$MODEL"
+        elif [[ "$arg" == "--model" ]]; then
+            # Next arg is the model value - handle in next iteration
+            _next_is_model=true
+            continue
+        elif [[ "${_next_is_model:-}" == "true" ]]; then
+            MODEL="$arg"
+            export CURB_MODEL="$MODEL"
+            _next_is_model=false
         else
             args+=("$arg")
         fi
     done
     unset _next_is_backend
     unset _next_is_harness
+    unset _next_is_model
 
     check_deps
     log_debug "Dependencies checked: jq and harness found"
@@ -619,6 +634,7 @@ Usage:
   curb --stream     Stream harness activity in real-time (can combine)
   curb --backend X  Force task backend: "beads" or "json" (default: auto-detect)
   curb --harness X  Force harness: "claude" or "codex" (default: auto-detect)
+  curb --model X    Set Claude model: "opus", "sonnet", or "haiku"
 
 Flags:
   --debug, -d       Enable verbose debug output including:
@@ -638,6 +654,10 @@ Flags:
                     - auto: prefer claude, fall back to codex (default)
                     - claude: use Claude Code CLI
                     - codex: use OpenAI Codex CLI
+  --model <name>    Claude model selection (only applies to claude harness):
+                    - opus: Claude Opus (most capable)
+                    - sonnet: Claude Sonnet (balanced)
+                    - haiku: Claude Haiku (fastest)
 
 Environment:
   CURB_PROJECT_DIR     Project directory (default: pwd)
@@ -645,6 +665,7 @@ Environment:
   CURB_DEBUG           Enable debug mode (set to "true")
   CURB_BACKEND         Task backend: "auto", "beads", or "json"
   HARNESS              Harness: "auto", "claude", or "codex"
+  CURB_MODEL           Claude model: "opus", "sonnet", or "haiku"
   CLAUDE_FLAGS         Extra flags for Claude Code CLI
   CODEX_FLAGS          Extra flags for OpenAI Codex CLI
 

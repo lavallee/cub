@@ -136,6 +136,9 @@ claude_invoke() {
     local flags="--dangerously-skip-permissions"
     [[ "$debug" == "true" ]] && flags="$flags --debug"
 
+    # Add model flag if specified
+    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags --model $CURB_MODEL"
+
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
 
@@ -149,6 +152,9 @@ claude_invoke_streaming() {
 
     local flags="--dangerously-skip-permissions --verbose --output-format stream-json"
     [[ "$debug" == "true" ]] && flags="$flags --debug"
+
+    # Add model flag if specified
+    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags --model $CURB_MODEL"
 
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
