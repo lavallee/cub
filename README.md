@@ -237,11 +237,46 @@ export HARNESS=codex
 
 Uses Codex's `--full-auto` mode with combined prompts.
 
+### Google Gemini
+
+```bash
+curb --harness gemini
+# or
+export HARNESS=gemini
+```
+
+Uses Gemini CLI's `-y` (YOLO mode) for autonomous operation.
+
+### OpenCode
+
+```bash
+curb --harness opencode
+# or
+export HARNESS=opencode
+```
+
+Uses OpenCode's `run` subcommand with JSON output for token tracking.
+
 ### Auto-Detection
 
-By default, curb auto-detects available harnesses:
-1. Prefers `claude` if installed
-2. Falls back to `codex` if claude unavailable
+By default, curb auto-detects available harnesses using this priority order:
+1. **Explicit HARNESS setting** (CLI flag `--harness` or env var `HARNESS`)
+2. **Config priority array** (`harness.priority` in config file)
+3. **Default detection order**: claude > opencode > codex > gemini
+
+#### Configuration Example
+
+You can customize the harness priority in `.curb.json` or global config:
+
+```json
+{
+  "harness": {
+    "priority": ["gemini", "claude", "codex", "opencode"]
+  }
+}
+```
+
+Curb will try each harness in order and use the first one available. If none are found, it falls back to the default order.
 
 ## Environment Variables
 
@@ -256,9 +291,11 @@ By default, curb auto-detects available harnesses:
 | `CURB_LABEL` | | Filter to tasks with this label |
 | `CURB_MODEL` | | Override model for Claude harness |
 | `CURB_BUDGET` | | Override token budget (overrides config) |
-| `HARNESS` | `auto` | AI harness: `auto`, `claude`, `codex` |
+| `HARNESS` | `auto` | AI harness: `auto`, `claude`, `codex`, `opencode`, `gemini` |
 | `CLAUDE_FLAGS` | | Extra flags for Claude Code |
 | `CODEX_FLAGS` | | Extra flags for Codex CLI |
+| `GEMINI_FLAGS` | | Extra flags for Gemini CLI |
+| `OPENCODE_FLAGS` | | Extra flags for OpenCode CLI |
 
 ## Configuration
 

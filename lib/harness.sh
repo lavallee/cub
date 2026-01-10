@@ -256,16 +256,37 @@ harness_get_total_tokens() {
 # ============================================================================
 
 # Detect available harness
-# Priority: explicit HARNESS setting > claude > opencode > codex > gemini
+# Priority: explicit HARNESS setting > config priority list > default detection order
 harness_detect() {
-    # If explicitly set, use that
+    # If explicitly set and not "auto", use that
     if [[ -n "${HARNESS:-}" && "$HARNESS" != "auto" ]]; then
         _HARNESS="$HARNESS"
         echo "$_HARNESS"
         return 0
     fi
 
-    # Auto-detect: prefer claude, then opencode, fallback to codex, then gemini
+    # Try to read priority from config
+    local priority_json
+    priority_json=$(config_get "harness.priority" 2>/dev/null || echo "")
+
+    # If priority is configured, use it
+    if [[ -n "$priority_json" ]]; then
+        # Extract priorities from JSON array and try each one in order
+        local priority_list
+        priority_list=$(echo "$priority_json" | jq -r '.[]?' 2>/dev/null)
+
+        # Try each harness in priority order
+        while IFS= read -r harness; do
+            if [[ -n "$harness" ]] && command -v "$harness" >/dev/null 2>&1; then
+                _HARNESS="$harness"
+                echo "$_HARNESS"
+                return 0
+            fi
+        done <<< "$priority_list"
+        # If we get here, no harness from priority list was found
+    fi
+
+    # Fallback to default detection order: claude > opencode > codex > gemini
     if command -v claude >/dev/null 2>&1; then
         _HARNESS="claude"
     elif command -v opencode >/dev/null 2>&1; then

@@ -14,6 +14,8 @@ setup() {
     unset CLAUDE_FLAGS
     unset CODEX_FLAGS
 
+    # Source config first (needed for harness priority detection)
+    source "$LIB_DIR/config.sh"
     # Source the library under test
     source "$LIB_DIR/harness.sh"
 }
@@ -538,4 +540,203 @@ EOF
     else
         false
     fi
+}
+
+# =============================================================================
+# Priority-based Harness Detection Tests (NEW FEATURE)
+# =============================================================================
+
+@test "harness_detect respects config harness.priority array" {
+    # Set up config with priority list where claude is removed and bash is added
+    # This ensures we can test priority-based selection without relying on installed harnesses
+    echo '{"harness": {"priority": ["nonexistent_harness", "bash"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config from this test directory
+    config_clear_cache
+    config_load
+
+    # Reset harness cache and rescan
+    _HARNESS=""
+    unset HARNESS
+
+    # Call harness_detect which should read the config
+    run harness_detect
+    [ "$status" -eq 0 ]
+    # Should find bash since it's in priority list and available
+    [ "$output" = "bash" ]
+}
+
+@test "harness_detect tries each priority in order until found" {
+    # Set config with multiple unavailable harnesses before bash
+    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2", "bash"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should skip first two unavailable harnesses and find bash
+    run harness_detect
+    [ "$status" -eq 0 ]
+    [ "$output" = "bash" ]
+}
+
+@test "harness_detect falls back to default order if no config priority" {
+    # Ensure no priority config
+    echo '{}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should use default detection order (but find claude from mock)
+    run harness_detect
+    [ "$status" -eq 0 ]
+    # Should find something
+    [ -n "$output" ]
+}
+
+@test "harness_detect falls back to default if all priorities unavailable" {
+    # Set priority list with only unavailable harnesses
+    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should fall back to default detection order (finds mock claude)
+    run harness_detect
+    [ "$status" -eq 0 ]
+    # Should find something
+    [ -n "$output" ]
+}
+
+@test "harness_detect prefers explicit HARNESS over config priority" {
+    # Set config with priority
+    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset and set explicit HARNESS
+    _HARNESS=""
+    export HARNESS="nonexistent"
+
+    # Should use explicit HARNESS even though it doesn't exist
+    run harness_detect
+    [ "$status" -eq 0 ]
+    [ "$output" = "nonexistent" ]
+
+    # Clean up
+    unset HARNESS
+}
+
+@test "harness_detect accepts HARNESS=auto and ignores to use config/default" {
+    # Set config with priority
+    echo '{"harness": {"priority": ["bash"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset and set HARNESS=auto
+    _HARNESS=""
+    export HARNESS="auto"
+
+    # Should treat auto as "not set" and use config priority
+    run harness_detect
+    [ "$status" -eq 0 ]
+    [ "$output" = "bash" ]
+
+    # Clean up
+    unset HARNESS
+}
+
+@test "config priority can specify gemini, opencode, codex, claude" {
+    # Verify the array is properly parsed for all known harnesses
+    echo '{"harness": {"priority": ["gemini", "opencode", "codex", "claude"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Get the priority array
+    result=$(config_get "harness.priority")
+
+    # Verify all values are in the array
+    [[ "$result" == *"gemini"* ]]
+    [[ "$result" == *"opencode"* ]]
+    [[ "$result" == *"codex"* ]]
+    [[ "$result" == *"claude"* ]]
+}
+
+# =============================================================================
+# Acceptance Criteria Tests for Priority Feature
+# =============================================================================
+
+@test "ACCEPTANCE: Config priority respected - can configure preferred harness order" {
+    # Set up test with specific priority order
+    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should detect bash first because it's prioritized
+    run harness_detect
+    [ "$status" -eq 0 ]
+    [ "$output" = "bash" ]
+}
+
+@test "ACCEPTANCE: Falls through list until one is available" {
+    # Test with mostly unavailable harnesses, one at the end
+    echo '{"harness": {"priority": ["unavailable1", "unavailable2", "unavailable3", "bash"]}}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should skip first 3 and find bash at position 4
+    run harness_detect
+    [ "$status" -eq 0 ]
+    [ "$output" = "bash" ]
+}
+
+@test "ACCEPTANCE: Default priority if not configured" {
+    # No priority config
+    echo '{}' > "$TEST_DIR/.curb.json"
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Reset harness cache
+    _HARNESS=""
+    unset HARNESS
+
+    # Should use default detection order (finds mock claude)
+    run harness_detect
+    [ "$status" -eq 0 ]
+    # Should return something
+    [ -n "$output" ]
 }

@@ -56,8 +56,8 @@ STREAM="${CURB_STREAM:-false}"
 # Values: "auto", "beads", "json"
 BACKEND="${CURB_BACKEND:-auto}"
 # Harness (set via --harness flag, HARNESS env, or config file)
-# Values: "auto", "claude", "codex"
-# Priority: CLI flag > env var > config file > default
+# Values: "auto", "claude", "codex", "opencode", "gemini"
+# Priority: CLI flag > env var > config harness.priority > default (claude > opencode > codex > gemini)
 HARNESS="${HARNESS:-$(config_get_or "harness.default" "auto")}"
 # Model (set via --model flag or CURB_MODEL env)
 # Values: "opus", "sonnet", "haiku" (only applies to claude harness)

@@ -102,7 +102,7 @@ if [[ "$GLOBAL_INIT" == "true" ]]; then
 {
   "harness": {
     "default": "auto",
-    "priority": ["claude", "codex"]
+    "priority": ["claude", "gemini", "codex", "opencode"]
   },
   "budget": {
     "default": 1000000,
