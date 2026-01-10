@@ -2986,3 +2986,52 @@ Migration guides are often the difference between happy users and frustrated use
   ✓ Structured logging
   ✓ Clean state checking
   ✓ Dependency resolution
+
+## Task: curb-2d6 - Improve --help output (Completed 2026-01-10)
+
+### What was done
+Completely reorganized and enhanced the --help output for the curb CLI tool:
+
+**Key improvements:**
+1. **Reorganized sections** with clear hierarchy:
+   - QUICK START - Most common commands first
+   - CORE FLAGS - Essential configuration options (harness, model, backend, budget)
+   - RELIABILITY & SAFETY FLAGS - State management (--require-clean, --once)
+   - DEBUG & TROUBLESHOOTING FLAGS - Development helpers (--debug, --stream, --plan)
+   - FILTERING FLAGS - Task filtering (--epic, --label)
+   - UTILITY FLAGS - Maintenance commands (--test, --dump-prompt, --migrate-to-beads)
+
+2. **Added missing flags:**
+   - --budget flag now prominent with clear description and example token count
+   - --require-clean and --no-require-clean flags fully documented
+   - All new flags from recent iterations are now visible
+
+3. **Added comprehensive EXAMPLES section:**
+   - 7 practical examples showing real-world usage patterns
+   - Examples demonstrate feature combinations: budget + debug, filtering + streaming, etc.
+   - Each example includes a comment explaining what it does
+
+4. **Improved documentation:**
+   - Environment variables section clearly lists all CURB_* env vars
+   - Each flag has concrete usage information (e.g., "budget 5000000")
+   - Added LEARN MORE section pointing to README.md, CONFIG.md, CONTRIBUTING.md
+
+### Acceptance Criteria Met
+- [x] All new flags in --help (--budget, --require-clean)
+- [x] Grouped logically (7 flag categories)
+- [x] Examples helpful (7 practical examples with clear descriptions)
+
+### Test Results
+- Existing BATS test suite still passes (341 tests)
+- --help output verified to render correctly
+- No breaking changes to existing functionality
+
+### Files Modified
+- `curb` - Rewrote --help/-h section (lines 889-968), replaced with 100+ lines of better-organized documentation
+
+### Key Learnings
+1. Good help text has structure: quick start, core features, safety options, then advanced/utility flags
+2. Examples are critical for discoverability - they show HOW to combine flags, not just what they do
+3. Organizing flags by category (Core, Reliability, Debug) makes it easier for users to find what they need
+4. Including "LEARN MORE" section with links to docs reduces support burden
+5. Concrete examples (e.g., 5000000 tokens) are more helpful than abstract descriptions
