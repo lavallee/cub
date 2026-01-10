@@ -1324,3 +1324,50 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 ### Next Steps:
 Budget enforcement is complete. Next task:
 - curb-iji: Add budget warning at threshold (warn at 80% usage)
+
+## Session: Budget Warning Implementation (curb-iji)
+
+### Task: Add budget warning at threshold
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Added `budget_check_warning()` function to `lib/budget.sh`
+   - Checks if usage exceeds warn_at threshold (default 80%)
+   - Uses file-based state tracking (_BUDGET_WARNED_FILE)
+   - Warning shown only once per run
+   - Takes optional threshold parameter
+
+2. Added _BUDGET_WARNED_FILE tracking in budget.sh
+   - Tracks whether warning has been shown in current session
+   - Cleaned up properly on exit
+
+3. Integrated warning into main loop in curb script
+   - Reads warn_at config with config_get_or (default 80%)
+   - Calls budget_check_warning after budget_record
+   - Logs warning message with percentage used and tokens remaining
+
+4. Comprehensive test coverage
+   - Tests for uninitialized budget
+   - Tests for threshold behavior (under, at, over)
+   - Tests for single warning per run
+   - Tests for configurable threshold
+
+### Test Results:
+- All 31 budget tests PASS (7 new warning tests added)
+- All 273 total tests PASS
+- No regressions
+
+### Learnings:
+- File-based state tracking consistent with existing budget pattern
+- Config system works well with config_get_or for defaults
+- Warning flag file properly cleaned up in trap EXIT
+- Budget threshold calculated as: percentage = (used * 100 / limit)
+- For percentage-based thresholds, integer math works correctly
+- Test cleanup with budget_clear properly removes all state files
+
+### Design Decisions:
+- Used simple flag file approach rather than variables (consistent with budget.sh pattern)
+- Kept warning message in main script loop for better integration with logging
+- Made threshold configurable via budget.warn_at config
+- Default 80% threshold aligns with acceptance criteria
