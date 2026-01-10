@@ -120,36 +120,31 @@ validate_project() {
 # Show task status summary
 show_status() {
     local prd="${PROJECT_DIR}/prd.json"
+    local backend=$(get_backend)
 
-    # Validate JSON before processing
-    if ! jq empty "$prd" 2>/dev/null; then
-        log_error "Invalid JSON in prd.json"
-        return 1
+    # Validate JSON before processing (only for json backend)
+    if [[ "$backend" == "json" ]]; then
+        if ! jq empty "$prd" 2>/dev/null; then
+            log_error "Invalid JSON in prd.json"
+            return 1
+        fi
     fi
 
     echo ""
     log_info "Task Status Summary"
     echo "===================="
 
-    local total=$(jq '.tasks | length' "$prd")
-    local closed=$(jq '[.tasks[] | select(.status == "closed")] | length' "$prd")
-    local in_progress=$(jq '[.tasks[] | select(.status == "in_progress")] | length' "$prd")
-    local open=$(jq '[.tasks[] | select(.status == "open")] | length' "$prd")
+    local counts
+    counts=$(get_task_counts "$prd")
+    local total=$(echo "$counts" | jq -r '.total')
+    local closed=$(echo "$counts" | jq -r '.closed')
+    local in_progress=$(echo "$counts" | jq -r '.in_progress')
+    local open=$(echo "$counts" | jq -r '.open')
 
     echo -e "Total:       ${total}"
     echo -e "Closed:      ${GREEN}${closed}${NC}"
     echo -e "In Progress: ${YELLOW}${in_progress}${NC}"
     echo -e "Open:        ${open}"
-    echo ""
-
-    # Show by priority
-    log_info "By Priority"
-    for p in P0 P1 P2 P3 P4; do
-        local count=$(jq --arg p "$p" '[.tasks[] | select(.priority == $p and .status != "closed")] | length' "$prd")
-        if [[ "$count" -gt 0 ]]; then
-            echo "  ${p}: ${count} remaining"
-        fi
-    done
     echo ""
 
     # Progress bar
@@ -261,7 +256,7 @@ run_iteration() {
 
         if [[ -z "$ready_tasks" || "$ready_tasks" == "[]" ]]; then
             # Check if we're done
-            local open_count=$(jq '[.tasks[] | select(.status != "closed")] | length' "$prd")
+            local open_count=$(get_remaining_count "$prd")
             log_debug "Open task count: ${open_count}"
             if [[ "$open_count" -eq 0 ]]; then
                 log_success "All tasks complete!"
@@ -455,7 +450,7 @@ run_loop() {
         # Check if all tasks complete
         local prd="${PROJECT_DIR}/prd.json"
         log_debug "Querying remaining tasks..."
-        local remaining=$(jq '[.tasks[] | select(.status != "closed")] | length' "$prd")
+        local remaining=$(get_remaining_count "$prd")
         log_debug "Remaining tasks: ${remaining}"
 
         if [[ "$remaining" -eq 0 ]]; then
@@ -641,8 +636,8 @@ Say 'curb test successful' and nothing else."
             validate_project
             local prd="${PROJECT_DIR}/prd.json"
             local current_task
-            current_task=$(jq '[.tasks[] | select(.status == "in_progress")] | first' "$prd")
-            if [[ "$current_task" == "null" || -z "$current_task" ]]; then
+            current_task=$(get_in_progress_task "$prd")
+            if [[ -z "$current_task" || "$current_task" == "null" ]]; then
                 current_task=$(get_ready_tasks "$prd" | jq 'first')
             fi
             if [[ "$current_task" == "null" || -z "$current_task" ]]; then

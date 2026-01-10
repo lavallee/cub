@@ -159,6 +159,11 @@ beads_all_tasks_complete() {
     [[ "$remaining" -eq 0 ]]
 }
 
+# Get count of remaining (non-closed) tasks
+beads_get_remaining_count() {
+    bd list --json 2>/dev/null | jq '[.[] | select(.status != "closed")] | length'
+}
+
 # Get blocked tasks
 beads_get_blocked_tasks() {
     bd list --json 2>/dev/null | jq '

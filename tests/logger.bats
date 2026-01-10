@@ -370,3 +370,412 @@ teardown() {
 
     [[ "$first_msg" == "first" ]]
 }
+
+# ============================================================================
+# log_task_start tests
+# ============================================================================
+
+@test "log_task_start creates task_start event with all metadata" {
+    logger_init "testproject" "session123"
+    log_task_start "curb-123" "Test Task" "claude"
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify event type
+    local event_type
+    event_type=$(jq -r '.event_type' "$log_file")
+    [[ "$event_type" == "task_start" ]]
+
+    # Verify all metadata fields
+    local task_id
+    local task_title
+    local harness
+    task_id=$(jq -r '.data.task_id' "$log_file")
+    task_title=$(jq -r '.data.task_title' "$log_file")
+    harness=$(jq -r '.data.harness' "$log_file")
+
+    [[ "$task_id" == "curb-123" ]]
+    [[ "$task_title" == "Test Task" ]]
+    [[ "$harness" == "claude" ]]
+}
+
+@test "log_task_start fails without task_id" {
+    logger_init "testproject" "session123"
+
+    run log_task_start "" "Test Task" "claude"
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "log_task_start fails without task_title" {
+    logger_init "testproject" "session123"
+
+    run log_task_start "curb-123" "" "claude"
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: task_title is required" ]]
+}
+
+@test "log_task_start fails without harness" {
+    logger_init "testproject" "session123"
+
+    run log_task_start "curb-123" "Test Task" ""
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: harness is required" ]]
+}
+
+@test "log_task_start handles special characters in title" {
+    logger_init "testproject" "session123"
+    log_task_start "curb-123" "Task with \"quotes\" and 'apostrophes'" "claude"
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local task_title
+    task_title=$(jq -r '.data.task_title' "$log_file")
+
+    [[ "$task_title" == "Task with \"quotes\" and 'apostrophes'" ]]
+}
+
+# ============================================================================
+# log_task_end tests
+# ============================================================================
+
+@test "log_task_end creates task_end event with all metadata" {
+    logger_init "testproject" "session123"
+    log_task_end "curb-123" 0 42 1500
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify event type
+    local event_type
+    event_type=$(jq -r '.event_type' "$log_file")
+    [[ "$event_type" == "task_end" ]]
+
+    # Verify all metadata fields
+    local task_id
+    local exit_code
+    local duration_sec
+    local tokens_used
+    local git_sha
+    task_id=$(jq -r '.data.task_id' "$log_file")
+    exit_code=$(jq -r '.data.exit_code' "$log_file")
+    duration_sec=$(jq -r '.data.duration_sec' "$log_file")
+    tokens_used=$(jq -r '.data.tokens_used' "$log_file")
+    git_sha=$(jq -r '.data.git_sha' "$log_file")
+
+    [[ "$task_id" == "curb-123" ]]
+    [[ "$exit_code" == "0" ]]
+    [[ "$duration_sec" == "42" ]]
+    [[ "$tokens_used" == "1500" ]]
+    [[ -n "$git_sha" ]]  # Should have some value
+}
+
+@test "log_task_end captures current git SHA" {
+    logger_init "testproject" "session123"
+    log_task_end "curb-123" 0 10 100
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local git_sha
+    git_sha=$(jq -r '.data.git_sha' "$log_file")
+
+    # Should be a valid SHA (40 hex chars) or "unknown"
+    [[ "$git_sha" =~ ^[0-9a-f]{40}$ ]] || [[ "$git_sha" == "unknown" ]]
+}
+
+@test "log_task_end defaults tokens_used to 0 when omitted" {
+    logger_init "testproject" "session123"
+    log_task_end "curb-123" 0 10
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local tokens_used
+    tokens_used=$(jq -r '.data.tokens_used' "$log_file")
+
+    [[ "$tokens_used" == "0" ]]
+}
+
+@test "log_task_end fails without task_id" {
+    logger_init "testproject" "session123"
+
+    run log_task_end "" 0 10 100
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "log_task_end fails without exit_code" {
+    logger_init "testproject" "session123"
+
+    run log_task_end "curb-123" "" 10 100
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: exit_code is required" ]]
+}
+
+@test "log_task_end fails without duration_sec" {
+    logger_init "testproject" "session123"
+
+    run log_task_end "curb-123" 0 "" 100
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: duration_sec is required" ]]
+}
+
+@test "log_task_end handles non-zero exit codes" {
+    logger_init "testproject" "session123"
+    log_task_end "curb-123" 1 30 500
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local exit_code
+    exit_code=$(jq -r '.data.exit_code' "$log_file")
+
+    [[ "$exit_code" == "1" ]]
+}
+
+# ============================================================================
+# log_error tests
+# ============================================================================
+
+@test "log_error creates error event with message" {
+    logger_init "testproject" "session123"
+    log_error "Something went wrong"
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify event type
+    local event_type
+    event_type=$(jq -r '.event_type' "$log_file")
+    [[ "$event_type" == "error" ]]
+
+    # Verify message
+    local message
+    message=$(jq -r '.data.message' "$log_file")
+    [[ "$message" == "Something went wrong" ]]
+
+    # Verify context defaults to empty object
+    local context
+    context=$(jq -c '.data.context' "$log_file")
+    [[ "$context" == "{}" ]]
+}
+
+@test "log_error includes context when provided" {
+    logger_init "testproject" "session123"
+    log_error "Task failed" '{"task_id": "curb-123", "reason": "timeout"}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify message
+    local message
+    message=$(jq -r '.data.message' "$log_file")
+    [[ "$message" == "Task failed" ]]
+
+    # Verify context fields
+    local task_id
+    local reason
+    task_id=$(jq -r '.data.context.task_id' "$log_file")
+    reason=$(jq -r '.data.context.reason' "$log_file")
+
+    [[ "$task_id" == "curb-123" ]]
+    [[ "$reason" == "timeout" ]]
+}
+
+@test "log_error fails without message" {
+    logger_init "testproject" "session123"
+
+    run log_error ""
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: message is required" ]]
+}
+
+@test "log_error fails with invalid JSON context" {
+    logger_init "testproject" "session123"
+
+    run log_error "Test error" "not valid json"
+
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "ERROR: context is not valid JSON" ]]
+}
+
+@test "log_error handles complex context objects" {
+    logger_init "testproject" "session123"
+    log_error "Complex error" '{"level": "critical", "details": {"code": 500, "message": "Internal error"}}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local level
+    local code
+    level=$(jq -r '.data.context.level' "$log_file")
+    code=$(jq -r '.data.context.details.code' "$log_file")
+
+    [[ "$level" == "critical" ]]
+    [[ "$code" == "500" ]]
+}
+
+# ============================================================================
+# Integration tests for task logging
+# ============================================================================
+
+@test "integration: full task lifecycle logging" {
+    logger_init "testproject" "session123"
+
+    # Log task start
+    log_task_start "curb-456" "Integration Test Task" "claude"
+
+    # Simulate some work (in real usage, would use $SECONDS)
+    sleep 1
+
+    # Log task end
+    log_task_end "curb-456" 0 1 2500
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify we have 2 log entries
+    local line_count
+    line_count=$(wc -l < "$log_file" | tr -d ' ')
+    [[ "$line_count" == "2" ]]
+
+    # Verify first entry is task_start
+    local start_event
+    local start_task_id
+    start_event=$(sed -n '1p' "$log_file" | jq -r '.event_type')
+    start_task_id=$(sed -n '1p' "$log_file" | jq -r '.data.task_id')
+
+    [[ "$start_event" == "task_start" ]]
+    [[ "$start_task_id" == "curb-456" ]]
+
+    # Verify second entry is task_end
+    local end_event
+    local end_task_id
+    end_event=$(sed -n '2p' "$log_file" | jq -r '.event_type')
+    end_task_id=$(sed -n '2p' "$log_file" | jq -r '.data.task_id')
+
+    [[ "$end_event" == "task_end" ]]
+    [[ "$end_task_id" == "curb-456" ]]
+}
+
+@test "integration: task with error logging" {
+    logger_init "testproject" "session123"
+
+    # Log task start
+    log_task_start "curb-789" "Failing Task" "claude"
+
+    # Log error
+    log_error "Task encountered an error" '{"task_id": "curb-789", "phase": "execution"}'
+
+    # Log task end with failure exit code
+    log_task_end "curb-789" 1 5 100
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Verify we have 3 log entries
+    local line_count
+    line_count=$(wc -l < "$log_file" | tr -d ' ')
+    [[ "$line_count" == "3" ]]
+
+    # Verify error entry is in the middle
+    local error_event
+    local error_msg
+    error_event=$(sed -n '2p' "$log_file" | jq -r '.event_type')
+    error_msg=$(sed -n '2p' "$log_file" | jq -r '.data.message')
+
+    [[ "$error_event" == "error" ]]
+    [[ "$error_msg" == "Task encountered an error" ]]
+
+    # Verify task_end has non-zero exit code
+    local exit_code
+    exit_code=$(sed -n '3p' "$log_file" | jq -r '.data.exit_code')
+    [[ "$exit_code" == "1" ]]
+}
+
+# ============================================================================
+# Acceptance criteria tests
+# ============================================================================
+
+@test "acceptance: task_start event logged with task_id, title, harness" {
+    logger_init "testproject" "session123"
+    log_task_start "curb-abc" "Acceptance Test" "opencode"
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local event_type
+    local task_id
+    local task_title
+    local harness
+    event_type=$(jq -r '.event_type' "$log_file")
+    task_id=$(jq -r '.data.task_id' "$log_file")
+    task_title=$(jq -r '.data.task_title' "$log_file")
+    harness=$(jq -r '.data.harness' "$log_file")
+
+    [[ "$event_type" == "task_start" ]]
+    [[ "$task_id" == "curb-abc" ]]
+    [[ "$task_title" == "Acceptance Test" ]]
+    [[ "$harness" == "opencode" ]]
+}
+
+@test "acceptance: task_end event logged with duration, exit_code, tokens, git_sha" {
+    logger_init "testproject" "session123"
+    log_task_end "curb-def" 0 123 4567
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local event_type
+    local task_id
+    local exit_code
+    local duration_sec
+    local tokens_used
+    local git_sha
+    event_type=$(jq -r '.event_type' "$log_file")
+    task_id=$(jq -r '.data.task_id' "$log_file")
+    exit_code=$(jq -r '.data.exit_code' "$log_file")
+    duration_sec=$(jq -r '.data.duration_sec' "$log_file")
+    tokens_used=$(jq -r '.data.tokens_used' "$log_file")
+    git_sha=$(jq -r '.data.git_sha' "$log_file")
+
+    [[ "$event_type" == "task_end" ]]
+    [[ "$task_id" == "curb-def" ]]
+    [[ "$exit_code" == "0" ]]
+    [[ "$duration_sec" == "123" ]]
+    [[ "$tokens_used" == "4567" ]]
+    [[ -n "$git_sha" ]]
+    [[ "$git_sha" != "null" ]]
+}
+
+@test "acceptance: errors logged with context" {
+    logger_init "testproject" "session123"
+    log_error "Critical failure" '{"component": "harness", "details": "connection timeout"}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    local event_type
+    local message
+    local component
+    local details
+    event_type=$(jq -r '.event_type' "$log_file")
+    message=$(jq -r '.data.message' "$log_file")
+    component=$(jq -r '.data.context.component' "$log_file")
+    details=$(jq -r '.data.context.details' "$log_file")
+
+    [[ "$event_type" == "error" ]]
+    [[ "$message" == "Critical failure" ]]
+    [[ "$component" == "harness" ]]
+    [[ "$details" == "connection timeout" ]]
+}

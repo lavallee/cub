@@ -150,3 +150,162 @@ logger_clear() {
     _LOG_FILE=""
     return 0
 }
+
+# Log task start event with metadata
+# Records task_id, title, harness, and timestamp
+#
+# Args:
+#   $1 - task_id: Unique task identifier (e.g., "curb-123")
+#   $2 - task_title: Human-readable task title
+#   $3 - harness: Harness being used (e.g., "claude", "opencode")
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   log_task_start "curb-123" "Implement feature X" "claude"
+log_task_start() {
+    local task_id="$1"
+    local task_title="$2"
+    local harness="$3"
+
+    # Validate required arguments
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_title" ]]; then
+        echo "ERROR: task_title is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$harness" ]]; then
+        echo "ERROR: harness is required" >&2
+        return 1
+    fi
+
+    # Build JSON data using jq for safe construction
+    local data_json
+    data_json=$(jq -cn \
+        --arg task_id "$task_id" \
+        --arg task_title "$task_title" \
+        --arg harness "$harness" \
+        '{task_id: $task_id, task_title: $task_title, harness: $harness}')
+
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to construct task_start JSON" >&2
+        return 1
+    fi
+
+    # Write log entry
+    logger_write "task_start" "$data_json"
+}
+
+# Log task end event with metadata
+# Records task_id, exit_code, duration, tokens used, and git SHA
+#
+# Args:
+#   $1 - task_id: Unique task identifier (e.g., "curb-123")
+#   $2 - exit_code: Exit code from task execution
+#   $3 - duration_sec: Duration in seconds
+#   $4 - tokens_used: Number of tokens used (optional, defaults to 0)
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   log_task_end "curb-123" 0 42 1500
+log_task_end() {
+    local task_id="$1"
+    local exit_code="$2"
+    local duration_sec="$3"
+    local tokens_used="${4:-0}"
+
+    # Validate required arguments
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$duration_sec" ]]; then
+        echo "ERROR: duration_sec is required" >&2
+        return 1
+    fi
+
+    # Capture git SHA for traceability
+    local git_sha
+    git_sha=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+
+    # Build JSON data using jq for safe construction
+    local data_json
+    data_json=$(jq -cn \
+        --arg task_id "$task_id" \
+        --argjson exit_code "$exit_code" \
+        --argjson duration_sec "$duration_sec" \
+        --argjson tokens_used "$tokens_used" \
+        --arg git_sha "$git_sha" \
+        '{task_id: $task_id, exit_code: $exit_code, duration_sec: $duration_sec, tokens_used: $tokens_used, git_sha: $git_sha}')
+
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to construct task_end JSON" >&2
+        return 1
+    fi
+
+    # Write log entry
+    logger_write "task_end" "$data_json"
+}
+
+# Log error event with message and context
+# Records error message and optional context object
+#
+# Args:
+#   $1 - message: Error message
+#   $2 - context: JSON object with additional context (optional)
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   log_error "Task failed" '{"task_id": "curb-123", "reason": "timeout"}'
+#   log_error "Configuration error"
+log_error() {
+    local message="$1"
+    local context="$2"
+
+    # Validate required arguments
+    if [[ -z "$message" ]]; then
+        echo "ERROR: message is required" >&2
+        return 1
+    fi
+
+    # Set default context if not provided
+    if [[ -z "$context" ]]; then
+        context="{}"
+    fi
+
+    # Validate context is valid JSON
+    if ! echo "$context" | jq -e '.' > /dev/null 2>&1; then
+        echo "ERROR: context is not valid JSON: $context" >&2
+        return 1
+    fi
+
+    # Build JSON data using jq for safe construction
+    local data_json
+    data_json=$(echo "$context" | jq -c \
+        --arg message "$message" \
+        '{message: $message, context: .}')
+
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to construct error JSON" >&2
+        return 1
+    fi
+
+    # Write log entry
+    logger_write "error" "$data_json"
+}

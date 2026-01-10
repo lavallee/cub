@@ -179,6 +179,17 @@ all_tasks_complete() {
     fi
 }
 
+# Get count of remaining (non-closed) tasks
+get_remaining_count() {
+    local prd="$1"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        beads_get_remaining_count
+    else
+        json_get_remaining_count "$prd"
+    fi
+}
+
 # Get blocked tasks
 get_blocked_tasks() {
     local prd="$1"
@@ -322,6 +333,13 @@ json_all_tasks_complete() {
 
     local remaining=$(jq '[.tasks[] | select(.status != "closed")] | length' "$prd")
     [[ "$remaining" -eq 0 ]]
+}
+
+# Get count of remaining (non-closed) tasks from prd.json
+json_get_remaining_count() {
+    local prd="$1"
+
+    jq '[.tasks[] | select(.status != "closed")] | length' "$prd"
 }
 
 # Get blocked tasks from prd.json
