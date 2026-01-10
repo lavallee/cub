@@ -34,18 +34,46 @@ beads_init() {
     fi
 }
 
+# Get in-progress task (if any)
+# Returns single task JSON or empty
+beads_get_in_progress_task() {
+    bd list --status in_progress --limit 1 --json 2>/dev/null | jq '.[0] // empty | {
+        id: .id,
+        title: .title,
+        type: (.issue_type // .type // "task"),
+        status: .status,
+        priority: ("P" + ((.priority // 2) | tostring)),
+        description: (.description // ""),
+        labels: (.labels // []),
+        dependsOn: (.blocks // [])
+    }'
+}
+
 # Get all ready tasks (no open blockers)
 # Returns JSON array sorted by priority
+# Optional filters: epic (parent ID), label (label name)
 beads_get_ready_tasks() {
-    bd ready --json 2>/dev/null | jq '
+    local epic="${1:-}"
+    local label="${2:-}"
+    local flags=""
+
+    if [[ -n "$epic" ]]; then
+        flags="${flags} --parent ${epic}"
+    fi
+    if [[ -n "$label" ]]; then
+        flags="${flags} --label ${label}"
+    fi
+
+    bd ready ${flags} --json 2>/dev/null | jq '
         # Transform beads output to match prd.json format
         [.[] | {
             id: .id,
             title: .title,
-            type: (.type // "task"),
+            type: (.issue_type // .type // "task"),
             status: .status,
             priority: ("P" + ((.priority // 2) | tostring)),
             description: (.description // ""),
+            labels: (.labels // []),
             dependsOn: (.blocks // [])
         }]
         | sort_by(.priority)
@@ -56,13 +84,14 @@ beads_get_ready_tasks() {
 beads_get_task() {
     local task_id="$1"
 
-    bd show "$task_id" --json 2>/dev/null | jq '{
+    bd show "$task_id" --json 2>/dev/null | jq '.[0] | {
         id: .id,
         title: .title,
-        type: (.type // "task"),
+        type: (.issue_type // .type // "task"),
         status: .status,
         priority: ("P" + ((.priority // 2) | tostring)),
         description: (.description // ""),
+        labels: (.labels // []),
         acceptanceCriteria: (.acceptance_criteria // []),
         dependsOn: (.blocks // [])
     }'

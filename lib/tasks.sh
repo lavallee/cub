@@ -80,15 +80,30 @@ get_backend() {
 # ============================================================================
 #
 
-# Get all ready tasks (status=open, all dependencies closed)
-# Returns JSON array sorted by priority
-get_ready_tasks() {
+# Get in-progress task (if any)
+# Returns single task JSON or empty
+get_in_progress_task() {
     local prd="$1"
 
     if [[ "$(get_backend)" == "beads" ]]; then
-        beads_get_ready_tasks
+        beads_get_in_progress_task
     else
-        json_get_ready_tasks "$prd"
+        json_get_in_progress_task "$prd"
+    fi
+}
+
+# Get all ready tasks (status=open, all dependencies closed)
+# Returns JSON array sorted by priority
+# Optional filters: epic (parent ID), label (label name)
+get_ready_tasks() {
+    local prd="$1"
+    local epic="${2:-}"   # Optional epic/parent filter
+    local label="${3:-}"  # Optional label filter
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        beads_get_ready_tasks "$epic" "$label"
+    else
+        json_get_ready_tasks "$prd" "$epic" "$label"
     fi
 }
 
@@ -181,11 +196,21 @@ get_blocked_tasks() {
 # ============================================================================
 #
 
-# Get all ready tasks from prd.json
-json_get_ready_tasks() {
+# Get in-progress task from prd.json
+json_get_in_progress_task() {
     local prd="$1"
 
-    jq '
+    jq '[.tasks[] | select(.status == "in_progress")] | first // empty' "$prd"
+}
+
+# Get all ready tasks from prd.json
+# Optional filters: epic (parent ID), label (label name)
+json_get_ready_tasks() {
+    local prd="$1"
+    local epic="${2:-}"
+    local label="${3:-}"
+
+    jq --arg epic "$epic" --arg label "$label" '
         # Build a set of closed task IDs
         (.tasks | map(select(.status == "closed") | .id)) as $closed |
 
@@ -196,6 +221,10 @@ json_get_ready_tasks() {
             | select(
                 (.dependsOn // []) | all(. as $dep | $closed | contains([$dep]))
             )
+            # Apply epic filter if specified
+            | if $epic != "" then select(.parent == $epic) else . end
+            # Apply label filter if specified
+            | if $label != "" then select((.labels // []) | any(. == $label)) else . end
         ]
         # Sort by priority (P0 < P1 < P2 < P3 < P4)
         | sort_by(.priority)

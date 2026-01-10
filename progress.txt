@@ -1,0 +1,39 @@
+# Curb Development Progress
+
+## Session 1: XDG Directory Structure Implementation (curb-iwv)
+
+### Task: Create XDG directory structure and helpers
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Created `lib/xdg.sh` with full XDG Base Directory Specification compliance
+   - `xdg_config_home()` - Returns ~/.config or $XDG_CONFIG_HOME
+   - `xdg_data_home()` - Returns ~/.local/share or $XDG_DATA_HOME
+   - `xdg_cache_home()` - Returns ~/.cache or $XDG_CACHE_HOME
+   - `curb_ensure_dirs()` - Creates standard curb directories
+   - Helper functions for curb-specific directory paths
+
+2. Updated main `curb` script to source the new xdg.sh library
+
+3. Created comprehensive test suite in `tests/xdg.bats`
+   - 14 tests covering all XDG functions
+   - Tests for default behavior and environment variable overrides
+   - Tests for directory creation
+
+### Test Results:
+- All 14 XDG-specific tests PASS
+- All 101 existing tests continue to PASS
+- Total: 115 tests passing
+
+### Learnings:
+- BATS test framework uses `load test_helper` to source common setup
+- Tests should use `PROJECT_ROOT` (set by test_helper) rather than `CURB_DIR`
+- Test temp directories should use `${BATS_TMPDIR}` for isolation
+- All functions in bash libraries should have clear comments explaining behavior
+- XDG spec provides good standard for directory structure
+
+### Dependencies & Next Tasks:
+- curb-iwv is now complete and unblocks:
+  - curb-et7: Implement logger.sh (depends on xdg.sh)
+  - curb-1l6: Implement config.sh (depends on xdg.sh)
