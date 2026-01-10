@@ -677,6 +677,19 @@ log_debug() {
     fi
 }
 
+# Deprecation warning helper
+warn_deprecated_flag() {
+    local old_flag="$1"
+    local new_syntax="$2"
+
+    # Check if deprecation warnings are suppressed
+    if [[ "${CURB_NO_DEPRECATION_WARNINGS:-}" == "1" ]]; then
+        return 0
+    fi
+
+    echo -e "${YELLOW}[curb]${NC} Warning: ${old_flag} is deprecated, use: ${new_syntax}" >&2
+}
+
 # Check dependencies
 check_deps() {
     local missing=()
@@ -1533,7 +1546,7 @@ main() {
     local first_arg="${args[0]:-}"
 
     # Check if first arg is a subcommand (not a flag)
-    if [[ -n "$first_arg" && ! "$first_arg" =~ ^-- ]]; then
+    if [[ -n "$first_arg" && ! "$first_arg" =~ ^- ]]; then
         case "$first_arg" in
             init)
                 # Pass remaining args to cmd_init
@@ -1571,7 +1584,8 @@ main() {
                 ;;
             *)
                 # Unknown subcommand - show error and help
-                if [[ "$first_arg" != --* ]]; then
+                # (only show error for non-flag arguments)
+                if [[ ! "$first_arg" =~ ^- ]]; then
                     _log_error_console "Unknown subcommand: ${first_arg}"
                     echo ""
                     args=("--help")
@@ -1583,15 +1597,19 @@ main() {
     # Legacy flag parsing (for backwards compatibility)
     case "${args[0]:-}" in
         --status|-s)
+            warn_deprecated_flag "--status" "curb status"
             cmd_status "${args[@]:1}"
             ;;
         --ready|-r)
+            warn_deprecated_flag "--ready" "curb run --ready"
             cmd_run --ready "${args[@]:1}"
             ;;
         --once|-1)
+            warn_deprecated_flag "--once" "curb run --once"
             cmd_run --once "${args[@]:1}"
             ;;
         --plan|-p)
+            warn_deprecated_flag "--plan" "curb run --plan"
             cmd_run --plan "${args[@]:1}"
             ;;
         --test|-t)
