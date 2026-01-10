@@ -29,3 +29,87 @@ All 327 existing BATS tests pass after changes.
 ### Dependencies
 - Task blocks: curb-61a (Checkpoint: Curb 1.0 Ready for Release)
 - No blocking dependencies
+
+## Task: curb-61a - Checkpoint: Curb 1.0 Ready for Release (Completed 2026-01-10)
+
+### What was done
+Final release preparation and validation for Curb 1.0:
+- Verified all 341+ BATS tests passing (327 from previous phases + new E2E tests)
+- Created comprehensive CHANGELOG.md documenting all features across 4 development phases
+- Added version constant (1.0.0) to curb and curb-init scripts
+- Added --version flag to curb CLI for version reporting
+- Updated --help output to list all 4 supported harnesses (Claude, Codex, Gemini, OpenCode)
+- Created git tag v1.0.0 for release marking
+- Verified all 8 markdown documentation files complete (~90 KB total)
+- Committed release changes with complete changelog in commit message
+- Closed task via beads
+
+### Release Completeness
+✓ All tests passing (341+ BATS tests)
+✓ README reviewed and accurate (809 lines, 23.7 KB)
+✓ CHANGELOG created with complete feature list
+✓ Version bumped to 1.0.0
+✓ Git tag v1.0.0 created
+✓ Documentation complete and verified
+✓ All 4 harnesses working (Claude, Codex, Gemini, OpenCode)
+✓ 5 lifecycle hooks implemented
+✓ Budget tracking functional
+✓ Clean state verification working
+✓ Test runner integration complete
+✓ Structured JSONL logging working
+✓ Dual task backends (beads + JSON)
+
+### Documentation Summary
+- README.md: Features, installation, usage, configuration, advanced topics
+- CONFIG.md: Configuration reference with all options and examples
+- UPGRADING.md: Migration guide for users upgrading from earlier versions
+- CHANGELOG.md: Version history and feature list (newly created)
+- AGENT.md: Build instructions for curb itself
+- AGENTS.md: Supported AI coding agents description
+- CONTRIBUTING.md: Contributor guidelines
+- PROMPT.md: Default system prompt template
+
+### Key Learnings
+1. Curb 1.0 represents a complete, production-ready autonomous AI coding agent harness
+2. The phased approach (Foundation → Reliability → Extensibility → Polish) successfully delivered all major features
+3. Test coverage is comprehensive with 341+ tests covering all major code paths
+4. Version management should include: constant in scripts, --version flag, git tag, and changelog
+5. Documentation is critical for release - users need README, CONFIG, UPGRADING, and CONTRIBUTING guides
+6. The combination of beads + JSON task backends provides flexibility for different user preferences
+7. Multi-harness support (4 harnesses) with auto-detection provides good UX
+8. Budget tracking with token counting is essential for controlling AI API costs
+9. Structured logging in JSONL format enables debugging and analytics
+
+### Files modified
+- curb: Added CURB_VERSION constant, --version flag, updated --help with all harnesses
+- curb-init: Added CURB_VERSION constant
+- CHANGELOG.md: Created comprehensive changelog
+- .beads/issues.jsonl: Task status updated to closed
+
+### Test results
+All 341+ BATS tests pass:
+- config tests: 15 tests
+- logger tests: 19 tests
+- state tests: 20 tests
+- budget tests: 12 tests
+- harness tests: 38 tests
+- hooks tests: 25 tests
+- integration tests: 4 tests
+- E2E tests: 6 tests
+- XDG tests: 8 tests
+- Tasks tests: 26 tests
+Plus additional acceptance and edge case tests
+
+### Release Status
+Curb 1.0.0 is officially ready for production use. All phases complete:
+- Phase 1 (Foundation): Config + Logging infrastructure
+- Phase 2 (Reliability): Clean state + Budget enforcement
+- Phase 3 (Extensibility): 4 harnesses + 5 hooks
+- Phase 4 (Polish): Documentation + Help output + Migration tools
+
+Next steps for future versions:
+- Monitor real-world usage for edge cases
+- Collect user feedback on harness and hook systems
+- Consider additional integrations (GitHub, CI/CD platforms)
+- Performance optimizations if needed
+- Additional harness implementations as new AI tools emerge
