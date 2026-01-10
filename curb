@@ -32,6 +32,8 @@ source "${CURB_DIR}/lib/xdg.sh"
 source "${CURB_DIR}/lib/config.sh"
 # Source logger
 source "${CURB_DIR}/lib/logger.sh"
+# Source git operations
+source "${CURB_DIR}/lib/git.sh"
 # Source state verification
 source "${CURB_DIR}/lib/state.sh"
 # Source budget tracking
@@ -497,6 +499,7 @@ cmd_run() {
     local cmd_budget="${BUDGET}"
     local cmd_require_clean="${REQUIRE_CLEAN}"
     local cmd_session_name="${SESSION_NAME}"
+    local cmd_push=false
 
     for arg in "$@"; do
         case "$arg" in
@@ -510,8 +513,7 @@ cmd_run() {
                 run_ready=true
                 ;;
             --push)
-                # Future: handle push flag
-                log_warn "Push flag not yet implemented"
+                cmd_push=true
                 ;;
             --require-clean)
                 cmd_require_clean="true"
@@ -601,6 +603,7 @@ cmd_run() {
     BUDGET="$cmd_budget"
     REQUIRE_CLEAN="$cmd_require_clean"
     SESSION_NAME="$cmd_session_name"
+    PUSH="$cmd_push"
 
     # Initialize budget if provided via CLI, environment, or config
     # Get budget from: CLI flag > environment > config file
@@ -944,6 +947,9 @@ BUDGET="${CURB_BUDGET:-}"
 REQUIRE_CLEAN="${CURB_REQUIRE_CLEAN:-}"
 # Session name (set via --name flag or CURB_SESSION_NAME env)
 SESSION_NAME="${CURB_SESSION_NAME:-}"
+# Push flag (set via --push flag)
+# Values: "true" or "false"
+PUSH="${CURB_PUSH:-false}"
 
 log_info() { echo -e "${BLUE}[curb]${NC} $1"; }
 log_success() { echo -e "${GREEN}[curb]${NC} $1"; }
@@ -1315,6 +1321,26 @@ run_iteration() {
         fi
     fi
 
+    # Initialize git run branch if in a git repository (only if not already initialized)
+    if git_in_repo; then
+        local current_branch
+        current_branch=$(git_get_run_branch 2>/dev/null)
+        if [[ -z "$current_branch" ]]; then
+            log_debug "Initializing git run branch..."
+            local session_name
+            session_name=$(session_get_name)
+            if git_init_run_branch "$session_name"; then
+                local branch_name
+                branch_name=$(git_get_run_branch)
+                log_info "Git branch: ${branch_name}"
+            else
+                log_warn "Failed to initialize git run branch"
+            fi
+        fi
+    else
+        log_debug "Not in a git repository, skipping git operations"
+    fi
+
     # Check for in-progress tasks first (resume interrupted work)
     # Respects --epic and --label filters
     local current_task
@@ -1604,6 +1630,28 @@ run_iteration() {
         fi
     fi
 
+    # Commit changes if task was successful and we're in a git repository
+    if [[ $exit_code -eq 0 ]] && git_in_repo; then
+        log_debug "Committing task changes..."
+        if git_commit_task "$task_id" "$task_title" "$summary_text"; then
+            log_info "Changes committed to git"
+
+            # Push to remote if --push flag was set
+            if [[ "$PUSH" == "true" ]]; then
+                log_debug "Pushing branch to remote..."
+                if git_push_branch; then
+                    log_info "Branch pushed to remote"
+                else
+                    log_warn "Failed to push branch to remote"
+                fi
+            else
+                log_debug "Skipping push (--push flag not set)"
+            fi
+        else
+            log_warn "Failed to commit changes (this is not an error if there were no changes)"
+        fi
+    fi
+
     return $exit_code
 }
 
@@ -1693,6 +1741,22 @@ run_loop() {
         log_debug "Artifacts initialized: ${artifacts_path}"
     else
         log_warn "Failed to initialize artifacts"
+    fi
+
+    # Initialize git run branch if in a git repository
+    if git_in_repo; then
+        log_debug "Initializing git run branch..."
+        local session_name
+        session_name=$(session_get_name)
+        if git_init_run_branch "$session_name"; then
+            local branch_name
+            branch_name=$(git_get_run_branch)
+            log_info "Git branch: ${branch_name}"
+        else
+            log_warn "Failed to initialize git run branch"
+        fi
+    else
+        log_debug "Not in a git repository, skipping git operations"
     fi
 
     log_info "Starting curb loop (max ${max_iterations} iterations)"

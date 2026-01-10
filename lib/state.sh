@@ -13,6 +13,11 @@
 # Source dependencies
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Source git.sh if not already loaded
+if ! type git_is_clean &>/dev/null; then
+    source "${SCRIPT_DIR}/git.sh"
+fi
+
 # Source config.sh if not already loaded
 if ! type config_get &>/dev/null; then
     source "${SCRIPT_DIR}/config.sh"
@@ -26,6 +31,8 @@ fi
 # Check if the repository has uncommitted changes
 # Uses both git diff (working tree) and git diff --cached (staged changes)
 #
+# This is a wrapper around git_is_clean() from git.sh for backward compatibility.
+#
 # Returns:
 #   0 if repository is clean (no uncommitted changes)
 #   1 if there are uncommitted changes (modified, added, or deleted files)
@@ -37,25 +44,7 @@ fi
 #     echo "Uncommitted changes detected"
 #   fi
 state_is_clean() {
-    # Check for uncommitted changes in working tree
-    if ! git diff --quiet HEAD 2>/dev/null; then
-        return 1
-    fi
-
-    # Check for staged but uncommitted changes
-    if ! git diff --cached --quiet HEAD 2>/dev/null; then
-        return 1
-    fi
-
-    # Check for untracked files (files not in .gitignore)
-    local untracked
-    untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
-    if [[ -n "$untracked" ]]; then
-        return 1
-    fi
-
-    # Repository is clean
-    return 0
+    git_is_clean
 }
 
 # Ensure the repository is in a clean state, taking action based on config

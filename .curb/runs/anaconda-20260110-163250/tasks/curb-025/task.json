@@ -1,0 +1,10 @@
+{
+  "task_id": "curb-025",
+  "title": "Add --push flag and git_push_branch (explicit opt-in)",
+  "priority": "P1",
+  "status": "failed",
+  "started_at": "2026-01-10T22:30:00Z",
+  "iterations": 1,
+  "completed_at": "2026-01-10T22:38:03Z",
+  "exit_code": 1
+}

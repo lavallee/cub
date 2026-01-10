@@ -1,0 +1,31 @@
+{
+  "run_id": "anaconda-20260110-163250",
+  "session_name": "anaconda",
+  "started_at": "2026-01-10T21:32:50Z",
+  "status": "in_progress",
+  "config": {
+    "harness": {
+      "default": "auto",
+      "priority": [
+        "claude",
+        "codex"
+      ]
+    },
+    "budget": {
+      "default": 1000000,
+      "warn_at": 0.8
+    },
+    "loop": {
+      "max_iterations": 100
+    },
+    "clean_state": {
+      "require_commit": true,
+      "require_tests": false
+    },
+    "hooks": {
+      "enabled": true
+    }
+  },
+  "tasks_failed": 7,
+  "tasks_completed": 1
+}

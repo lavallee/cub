@@ -1,0 +1,10 @@
+{
+  "task_id": "curb-023",
+  "title": "Implement git_commit_task with structured message format",
+  "priority": "P0",
+  "status": "failed",
+  "started_at": "2026-01-10T21:49:52Z",
+  "iterations": 1,
+  "completed_at": "2026-01-10T21:56:36Z",
+  "exit_code": 1
+}
