@@ -38,6 +38,10 @@ source "${CURB_DIR}/lib/state.sh"
 source "${CURB_DIR}/lib/budget.sh"
 # Source hooks framework
 source "${CURB_DIR}/lib/hooks.sh"
+# Source session management
+source "${CURB_DIR}/lib/session.sh"
+# Source artifacts management
+source "${CURB_DIR}/lib/artifacts.sh"
 
 # Load configuration early
 config_load
@@ -80,6 +84,8 @@ BUDGET="${CURB_BUDGET:-}"
 # Require clean state (set via --require-clean flag or config)
 # Empty means use config default, "true"/"false" overrides config
 REQUIRE_CLEAN="${CURB_REQUIRE_CLEAN:-}"
+# Session name (set via --name flag or CURB_SESSION_NAME env)
+SESSION_NAME="${CURB_SESSION_NAME:-}"
 
 log_info() { echo -e "${BLUE}[curb]${NC} $1"; }
 log_success() { echo -e "${GREEN}[curb]${NC} $1"; }
@@ -414,6 +420,19 @@ run_iteration() {
     # Extract task details for logging
     local task_id=$(echo "$current_task" | jq -r '.id')
     local task_title=$(echo "$current_task" | jq -r '.title')
+    local task_priority=$(echo "$current_task" | jq -r '.priority // "normal"')
+
+    # Start task artifacts
+    if session_is_initialized; then
+        log_debug "Starting task artifacts for ${task_id}..."
+        if artifacts_start_task "$task_id" "$task_title" "$task_priority"; then
+            local artifacts_path
+            artifacts_path=$(artifacts_get_path "$task_id")
+            log_debug "Task artifacts: ${artifacts_path}"
+        else
+            log_warn "Failed to start task artifacts"
+        fi
+    fi
 
     # Log task start
     log_task_start "$task_id" "$task_title" "$harness"
@@ -550,6 +569,35 @@ run_iteration() {
     hooks_run "post-task"
     log_debug "Post-task hooks complete"
 
+    # Capture artifacts after task completion
+    if session_is_initialized; then
+        log_debug "Capturing task artifacts..."
+
+        # Capture git diff
+        if artifacts_capture_diff "$task_id"; then
+            log_debug "Captured git diff to changes.patch"
+        else
+            log_warn "Failed to capture git diff"
+        fi
+
+        # Finalize task with status and summary
+        local task_status
+        if [[ $exit_code -eq 0 ]]; then
+            task_status="completed"
+        else
+            task_status="failed"
+        fi
+
+        local summary_text="Task execution completed with exit code ${exit_code}. Duration: ${duration}s. Tokens used: ${tokens_used}."
+        if artifacts_finalize_task "$task_id" "$task_status" "$exit_code" "$summary_text"; then
+            local artifacts_path
+            artifacts_path=$(artifacts_get_path "$task_id")
+            log_info "Artifacts saved: ${artifacts_path}"
+        else
+            log_warn "Failed to finalize task artifacts"
+        fi
+    fi
+
     return $exit_code
 }
 
@@ -603,16 +651,42 @@ run_loop() {
     local max_iterations="${CURB_MAX_ITERATIONS:-$(config_get_or "loop.max_iterations" "100")}"
     local iteration=0
 
+    # Initialize session with optional name override
+    if [[ -n "$SESSION_NAME" ]]; then
+        session_init --name "$SESSION_NAME"
+    else
+        session_init
+    fi
+
+    if [[ $? -ne 0 ]]; then
+        log_warn "Failed to initialize session"
+    else
+        local session_name
+        session_name=$(session_get_name)
+        local session_id
+        session_id=$(session_get_id)
+        log_info "Session: ${session_name} (${session_id})"
+    fi
+
     # Initialize logger with project name and session ID
     local project_name
     project_name=$(basename "$PROJECT_DIR")
     local session_id
-    session_id=$(date +"%Y%m%d-%H%M%S")
+    session_id=$(session_get_id)
 
     if logger_init "$project_name" "$session_id"; then
         log_debug "Logger initialized: $(logger_get_file)"
     else
         log_warn "Failed to initialize logger"
+    fi
+
+    # Initialize artifacts for this run
+    if artifacts_init_run; then
+        local artifacts_path
+        artifacts_path=$(artifacts_get_run_dir)
+        log_debug "Artifacts initialized: ${artifacts_path}"
+    else
+        log_warn "Failed to initialize artifacts"
     fi
 
     log_info "Starting curb loop (max ${max_iterations} iterations)"
@@ -778,6 +852,17 @@ main() {
             BUDGET="$arg"
             export CURB_BUDGET="$BUDGET"
             _next_is_budget=false
+        elif [[ "$arg" == "--name="* ]]; then
+            SESSION_NAME="${arg#--name=}"
+            export CURB_SESSION_NAME="$SESSION_NAME"
+        elif [[ "$arg" == "--name" ]]; then
+            # Next arg is the session name value - handle in next iteration
+            _next_is_name=true
+            continue
+        elif [[ "${_next_is_name:-}" == "true" ]]; then
+            SESSION_NAME="$arg"
+            export CURB_SESSION_NAME="$SESSION_NAME"
+            _next_is_name=false
         else
             args+=("$arg")
         fi
@@ -788,6 +873,7 @@ main() {
     unset _next_is_epic
     unset _next_is_label
     unset _next_is_budget
+    unset _next_is_name
 
     check_deps
     log_debug "Dependencies checked: jq and harness found"
