@@ -197,3 +197,79 @@ The implementation was already present in the repository and working correctly. 
 ✓ Each line is valid JSON
 ✓ Timestamps in ISO 8601 format
 ✓ Log file is append-only
+
+## Session 5: Task Logging Functions (curb-ohp)
+
+### Task: Add log_task_start/end functions with metadata
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Added `log_task_start(task_id, task_title, harness)` to `lib/logger.sh`
+   - Validates all required parameters
+   - Logs task_start event with task_id, task_title, and harness fields
+   - Uses jq for safe JSON construction
+
+2. Added `log_task_end(task_id, exit_code, duration_sec, tokens_used)` to `lib/logger.sh`
+   - Validates required parameters (tokens_used is optional, defaults to 0)
+   - Captures current git SHA for traceability using `git rev-parse HEAD`
+   - Falls back to "unknown" if git command fails
+   - Logs task_end event with exit_code, duration, tokens, and git_sha
+
+3. Added `log_error(message, context)` to `lib/logger.sh`
+   - Validates message is provided
+   - Context is optional JSON object (defaults to {})
+   - Validates context JSON before writing
+   - Logs error event with message and context fields
+
+4. Created comprehensive test suite with 22 new tests in `tests/logger.bats`
+   - Tests for all three new functions
+   - Error handling tests (missing parameters, invalid JSON)
+   - Integration tests (full task lifecycle, task with errors)
+   - Acceptance criteria tests
+
+### Test Results:
+- All 22 new task logging tests PASS
+- All 167 existing tests continue to PASS
+- Total: 189 tests passing
+
+### Learnings:
+- **Default parameters with bash 3.2**: Use explicit parameter default handling for optional arguments
+  - `local tokens_used="${4:-0}"` works correctly in bash 3.2
+  - This is different from the bash 3.2 bug with curly braces in `${2:-{}}`
+  - The bug only affects default values that contain braces, not the expansion syntax itself
+
+- **jq numeric parameters**: Use `--argjson` for numeric values to preserve type
+  - `--argjson exit_code "$exit_code"` keeps numbers as JSON numbers
+  - `--arg exit_code "$exit_code"` would make them strings
+  - Important for downstream consumers parsing the JSONL logs
+
+- **Git SHA capture**: Use `git rev-parse HEAD` with fallback
+  - `git_sha=$(git rev-parse HEAD 2>/dev/null || echo "unknown")`
+  - Redirects stderr to avoid polluting logs if not in git repo
+  - Provides fallback value for non-git environments
+
+- **Structured logging patterns**: Three-tier event structure
+  - `task_start` - Marks beginning with identifiers and context
+  - `error` - Optional intermediate events for failures
+  - `task_end` - Marks completion with results and traceability
+  - This pattern enables end-to-end task tracking and debugging
+
+- **Test organization**: Group tests by function, then add integration tests
+  - Unit tests for each function first
+  - Integration tests showing realistic workflows
+  - Acceptance tests directly matching spec criteria
+  - Makes it easy to identify which function has issues if tests fail
+
+### Implementation Details:
+- All three functions use `logger_write()` internally for consistency
+- Functions follow same validation pattern as existing logger functions
+- Error messages go to stderr for troubleshooting
+- Functions return exit code 1 on failure, 0 on success
+- Git SHA is 40-char hex string or "unknown"
+- Duration tracking will use bash `$SECONDS` variable in main loop
+
+### Acceptance Criteria Met:
+✓ task_start event logged with task_id, title, harness
+✓ task_end event logged with duration, exit_code, tokens, git_sha
+✓ Errors logged with context
