@@ -395,6 +395,109 @@ jq 'select(.event_type=="task_end" and .data.exit_code != 0)' logs/*.jsonl
 jq -s '[.[].data.duration // 0] | add' logs/*.jsonl
 ```
 
+## Hooks
+
+Curb provides a flexible hook system to integrate with external services and tools. Hooks are executable scripts that run at specific points in the curb lifecycle.
+
+### Hook Points
+
+Curb supports five hook points:
+
+| Hook | When It Runs | Use Cases |
+|------|--------------|-----------|
+| `pre-loop` | Before starting the main loop | Setup, initialization, cleanup from previous run |
+| `pre-task` | Before each task execution | Prepare environment, start timers |
+| `post-task` | After each task (success or failure) | Notifications, metrics, logging |
+| `on-error` | When a task fails | Alerts, incident creation, diagnostics |
+| `post-loop` | After the main loop completes | Cleanup, final notifications, reports |
+
+### Hook Locations
+
+Hooks are discovered from two locations (in order):
+
+1. **Global hooks**: `~/.config/curb/hooks/{hook-name}.d/` - Available to all projects
+2. **Project hooks**: `./.curb/hooks/{hook-name}.d/` - Specific to a project
+
+All executable files in these directories are run in sorted order (alphabetically).
+
+### Context Variables
+
+All hooks receive context via environment variables:
+
+| Variable | Available In | Description |
+|----------|--------------|-------------|
+| `CURB_HOOK_NAME` | All | Name of the hook being executed |
+| `CURB_PROJECT_DIR` | All | Project directory |
+| `CURB_SESSION_ID` | pre-loop, post-loop | Unique session identifier |
+| `CURB_HARNESS` | pre-loop, post-loop | Harness in use (claude, codex, etc.) |
+| `CURB_TASK_ID` | pre-task, post-task, on-error | ID of the current task |
+| `CURB_TASK_TITLE` | pre-task, post-task, on-error | Title of the current task |
+| `CURB_EXIT_CODE` | post-task, on-error | Exit code from task execution (0 = success) |
+
+### Example Hooks
+
+Curb includes example hooks for common integrations:
+
+- **`examples/hooks/post-task/slack-notify.sh`** - Posts task completion to Slack
+- **`examples/hooks/post-loop/datadog-metric.sh`** - Sends metrics to Datadog
+- **`examples/hooks/on-error/pagerduty-alert.sh`** - Creates PagerDuty incidents on failure
+
+**To install an example hook:**
+
+```bash
+# Copy to global hooks directory
+mkdir -p ~/.config/curb/hooks/{post-task,post-loop,on-error}.d
+cp examples/hooks/post-task/slack-notify.sh ~/.config/curb/hooks/post-task.d/01-slack.sh
+chmod +x ~/.config/curb/hooks/post-task.d/01-slack.sh
+
+# Or to project-specific hooks
+mkdir -p .curb/hooks/post-task.d
+cp examples/hooks/post-task/slack-notify.sh .curb/hooks/post-task.d/01-slack.sh
+chmod +x .curb/hooks/post-task.d/01-slack.sh
+```
+
+Each example script includes detailed installation and configuration instructions.
+
+### Writing Custom Hooks
+
+Creating a hook is simple - just write a bash script:
+
+```bash
+#!/usr/bin/env bash
+# Example hook script
+
+# Hooks receive context as environment variables
+echo "Task $CURB_TASK_ID completed with exit code $CURB_EXIT_CODE"
+
+# Exit with 0 for success, non-zero for failure
+exit 0
+```
+
+**Requirements:**
+
+- Script must be executable (`chmod +x`)
+- Script must exit with status 0 (success) or non-zero (failure)
+- Script should handle missing environment variables gracefully
+- Hook failures are logged but don't stop the loop by default (unless `hooks.fail_fast` is enabled in config)
+
+### Configuration
+
+Hook behavior is controlled in your config file:
+
+```json
+{
+  "hooks": {
+    "enabled": true,
+    "fail_fast": false
+  }
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `hooks.enabled` | `true` | Enable/disable all hooks |
+| `hooks.fail_fast` | `false` | Stop loop if a hook fails (true) or continue (false) |
+
 ## How It Works
 
 ### The Loop
