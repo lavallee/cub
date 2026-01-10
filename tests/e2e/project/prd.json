@@ -1,0 +1,30 @@
+{
+  "prefix": "e2e",
+  "tasks": [
+    {
+      "id": "e2e-001",
+      "title": "Create hello.txt",
+      "type": "task",
+      "status": "open",
+      "priority": "P1",
+      "description": "Create a file called hello.txt with the text 'Hello from task 1'"
+    },
+    {
+      "id": "e2e-002",
+      "title": "Create world.txt",
+      "type": "task",
+      "status": "open",
+      "priority": "P1",
+      "description": "Create a file called world.txt with the text 'World from task 2'"
+    },
+    {
+      "id": "e2e-003",
+      "title": "Merge files",
+      "type": "task",
+      "status": "open",
+      "priority": "P2",
+      "description": "Create merged.txt by combining hello.txt and world.txt",
+      "dependsOn": ["e2e-001", "e2e-002"]
+    }
+  ]
+}
