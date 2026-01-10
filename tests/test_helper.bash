@@ -17,6 +17,19 @@ setup_test_dir() {
     # Reset backend state
     unset CURB_BACKEND
     export _TASK_BACKEND=""
+
+    # Create mock harness (claude) for tests that don't actually invoke it
+    # This satisfies the dependency check in curb
+    MOCK_BIN_DIR="$TEST_DIR/bin"
+    mkdir -p "$MOCK_BIN_DIR"
+    cat > "$MOCK_BIN_DIR/claude" << 'MOCK_EOF'
+#!/usr/bin/env bash
+# Mock claude harness for testing
+echo "Mock claude: $*"
+exit 0
+MOCK_EOF
+    chmod +x "$MOCK_BIN_DIR/claude"
+    export PATH="$MOCK_BIN_DIR:$PATH"
 }
 
 # Teardown function to clean up after tests
