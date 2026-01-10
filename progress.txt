@@ -3774,3 +3774,42 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 - curb-019 is now complete
 - CLI routing and dispatcher are fully tested
 - Test coverage ensures refactoring safety for future CLI changes
+
+## Session: Git Module Extraction (curb-021)
+
+### Task: Create lib/git.sh and extract git functions from state.sh
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Created `lib/git.sh` as a dedicated git operations module
+   - `git_in_repo()` - Check if current directory is in a git repository
+   - `git_get_current_branch()` - Get the current branch name
+   - `git_is_clean()` - Check if repository has uncommitted changes (extracted from state.sh)
+
+2. Updated `lib/state.sh` to use git.sh
+   - Added source for git.sh with conditional loading
+   - Converted state_is_clean() to a wrapper function calling git_is_clean()
+   - Maintained full backward compatibility
+
+3. Updated main `curb` script
+   - Added git.sh sourcing before state.sh (dependency order)
+
+### Test Results:
+- All 41 state.sh tests PASS (including git clean state tests)
+- All artifacts, budget, config, and logger tests PASS
+- No behavior changes to existing functionality
+- Integration tests confirm all new git functions work correctly
+
+### Learnings:
+- When refactoring, extract implementation but keep wrapper functions for backward compatibility
+- Source order matters: git.sh must be sourced before state.sh since state.sh depends on it
+- Test suites should continue to test the public API (state_is_clean) even when implementation is delegated
+- Some pre-existing tests fail (prd.json-related), but these are unrelated to git changes
+- Use `git stash` to temporarily revert changes to verify test failures are pre-existing
+
+### Module Structure:
+- lib/git.sh: Low-level git operations (repository checks, branch info, clean state)
+- lib/state.sh: Higher-level state verification (wraps git.sh, adds config-based logic)
+- This separation enables future git workflow features while keeping state checks simple
+
