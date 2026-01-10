@@ -49,9 +49,44 @@ jobs:
           cat "$hook_dir/test.sh"
           echo "Running hook:"
           "$hook_dir/test.sh"
-          echo "=== Running hooks.bats test 2 in isolation ==="
+          echo "=== Creating minimal test ==="
           cd "$GITHUB_WORKSPACE"
-          bats --trace --filter "hooks_run executes script in global directory" tests/hooks.bats 2>&1 || echo "Test failed with exit code $?"
+          cat > /tmp/minimal.bats << 'TESTEOF'
+#!/usr/bin/env bats
+
+setup() {
+    TEST_DIR=$(mktemp -d)
+    cd "$TEST_DIR"
+    curb_config_dir() { echo "$TEST_DIR/.config/curb"; }
+    export -f curb_config_dir
+    mkdir -p "$(curb_config_dir)"
+}
+
+teardown() {
+    rm -rf "$TEST_DIR"
+}
+
+@test "simple test without create_hook" {
+    [ 1 -eq 1 ]
+}
+
+@test "test with function call" {
+    echo "config dir: $(curb_config_dir)"
+    [ -d "$(curb_config_dir)" ]
+}
+
+@test "test creating hook manually" {
+    hook_dir="$(curb_config_dir)/hooks/pre-task.d"
+    mkdir -p "$hook_dir"
+    printf '#!/bin/bash\necho "test"\n' > "$hook_dir/test.sh"
+    chmod +x "$hook_dir/test.sh"
+    run "$hook_dir/test.sh"
+    [ "$status" -eq 0 ]
+    [[ "$output" == "test" ]]
+}
+TESTEOF
+          echo "Running minimal test:"
+          bats --trace /tmp/minimal.bats 2>&1 || echo "Minimal test failed with exit code $?"
 
       - name: Run tests
         run: bats tests/
