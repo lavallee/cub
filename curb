@@ -446,13 +446,15 @@ run_iteration() {
         # Check if warning threshold has been crossed
         local warn_at
         warn_at=$(config_get_or "budget.warn_at" "80")
-        budget_check_warning "$warn_at"
-
-        # Log warning if threshold crossed
-        if [[ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]]; then
-            local used=$(budget_get_used)
-            local percentage=$((used * 100 / budget_total))
-            log_warn "Budget warning: approaching limit (${percentage}% used, ${budget_remaining} tokens remaining)"
+        if budget_check_warning "$warn_at"; then
+            : # No warning triggered
+        else
+            # Warning was just triggered - log it once
+            if [[ "$budget_total" -gt 0 ]]; then
+                local used=$(budget_get_used)
+                local percentage=$((used * 100 / budget_total))
+                log_warn "Budget warning: approaching limit (${percentage}% used, ${budget_remaining} tokens remaining)"
+            fi
         fi
     fi
 

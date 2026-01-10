@@ -209,6 +209,11 @@ budget_check_warning() {
     local limit=$(cat "$_BUDGET_LIMIT_FILE")
     local used=$(cat "$_BUDGET_USED_FILE" 2>/dev/null || echo "0")
 
+    # Guard against division by zero
+    if [[ "$limit" -eq 0 ]]; then
+        return 0
+    fi
+
     # Calculate percentage used
     local percentage=$((used * 100 / limit))
 
@@ -216,7 +221,8 @@ budget_check_warning() {
     if [[ "$percentage" -ge "$warn_at" ]]; then
         # Mark that warning has been shown
         echo "1" > "$_BUDGET_WARNED_FILE"
-        return 0
+        # Return 1 to indicate warning was just triggered
+        return 1
     fi
 
     return 0
