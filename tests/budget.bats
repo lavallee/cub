@@ -382,3 +382,295 @@ teardown() {
     [ "$status" -eq 0 ]
     [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
 }
+
+# ========================================
+# Iteration tracking tests
+# ========================================
+
+@test "budget_set_max_task_iterations sets limit correctly" {
+    run budget_set_max_task_iterations 5
+    [ "$status" -eq 0 ]
+
+    # Verify limit was set
+    max=$(budget_get_max_task_iterations)
+    [ "$max" -eq 5 ]
+}
+
+@test "budget_set_max_task_iterations fails without parameter" {
+    run budget_set_max_task_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires max_iterations parameter" ]]
+}
+
+@test "budget_set_max_task_iterations fails with non-numeric value" {
+    run budget_set_max_task_iterations "abc"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "must be a positive integer" ]]
+}
+
+@test "budget_set_max_run_iterations sets limit correctly" {
+    run budget_set_max_run_iterations 100
+    [ "$status" -eq 0 ]
+
+    # Verify limit was set
+    max=$(budget_get_max_run_iterations)
+    [ "$max" -eq 100 ]
+}
+
+@test "budget_set_max_run_iterations fails without parameter" {
+    run budget_set_max_run_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires max_iterations parameter" ]]
+}
+
+@test "budget_set_max_run_iterations fails with non-numeric value" {
+    run budget_set_max_run_iterations "xyz"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "must be a positive integer" ]]
+}
+
+@test "budget_get_task_iterations returns 0 for new task" {
+    iterations=$(budget_get_task_iterations "task-123")
+    [ "$iterations" -eq 0 ]
+}
+
+@test "budget_get_task_iterations fails without task_id" {
+    run budget_get_task_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id parameter" ]]
+}
+
+@test "budget_get_run_iterations returns 0 initially" {
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 0 ]
+}
+
+@test "budget_increment_task_iterations increments counter" {
+    # First increment
+    run budget_increment_task_iterations "task-123"
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_task_iterations "task-123")
+    [ "$iterations" -eq 1 ]
+
+    # Second increment
+    run budget_increment_task_iterations "task-123"
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_task_iterations "task-123")
+    [ "$iterations" -eq 2 ]
+
+    # Third increment
+    run budget_increment_task_iterations "task-123"
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_task_iterations "task-123")
+    [ "$iterations" -eq 3 ]
+}
+
+@test "budget_increment_task_iterations fails without task_id" {
+    run budget_increment_task_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id parameter" ]]
+}
+
+@test "budget_increment_task_iterations tracks multiple tasks separately" {
+    # Increment task-123
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+
+    # Increment task-456
+    budget_increment_task_iterations "task-456"
+
+    # Verify separate counters
+    iterations_123=$(budget_get_task_iterations "task-123")
+    iterations_456=$(budget_get_task_iterations "task-456")
+    [ "$iterations_123" -eq 2 ]
+    [ "$iterations_456" -eq 1 ]
+}
+
+@test "budget_increment_run_iterations increments counter" {
+    # First increment
+    run budget_increment_run_iterations
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 1 ]
+
+    # Second increment
+    run budget_increment_run_iterations
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 2 ]
+
+    # Third increment
+    run budget_increment_run_iterations
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 3 ]
+}
+
+@test "budget_get_max_task_iterations returns default of 3" {
+    max=$(budget_get_max_task_iterations)
+    [ "$max" -eq 3 ]
+}
+
+@test "budget_get_max_run_iterations returns default of 50" {
+    max=$(budget_get_max_run_iterations)
+    [ "$max" -eq 50 ]
+}
+
+@test "budget_check_task_iterations returns 0 when within limit" {
+    budget_set_max_task_iterations 3
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+
+    run budget_check_task_iterations "task-123"
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_check_task_iterations returns 1 when over limit" {
+    budget_set_max_task_iterations 3
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+
+    run budget_check_task_iterations "task-123"
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_task_iterations returns 0 when exactly at limit" {
+    budget_set_max_task_iterations 3
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+
+    run budget_check_task_iterations "task-123"
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_check_task_iterations fails without task_id" {
+    run budget_check_task_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id parameter" ]]
+}
+
+@test "budget_check_run_iterations returns 0 when within limit" {
+    budget_set_max_run_iterations 5
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    run budget_check_run_iterations
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_check_run_iterations returns 1 when over limit" {
+    budget_set_max_run_iterations 3
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    run budget_check_run_iterations
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_run_iterations returns 0 when exactly at limit" {
+    budget_set_max_run_iterations 3
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    run budget_check_run_iterations
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_clear resets iteration counters" {
+    # Set some iterations
+    budget_increment_task_iterations "task-123"
+    budget_increment_task_iterations "task-123"
+    budget_increment_run_iterations
+    budget_set_max_task_iterations 10
+    budget_set_max_run_iterations 20
+
+    # Clear
+    budget_clear
+
+    # Verify all reset to defaults
+    [ "$(budget_get_task_iterations "task-123")" -eq 0 ]
+    [ "$(budget_get_run_iterations)" -eq 0 ]
+    [ "$(budget_get_max_task_iterations)" -eq 3 ]
+    [ "$(budget_get_max_run_iterations)" -eq 50 ]
+}
+
+@test "task_id with special characters is handled safely" {
+    # Test with task IDs containing special characters
+    budget_increment_task_iterations "task/with/slashes"
+    budget_increment_task_iterations "task:with:colons"
+    budget_increment_task_iterations "task with spaces"
+
+    # Verify they work
+    [ "$(budget_get_task_iterations "task/with/slashes")" -eq 1 ]
+    [ "$(budget_get_task_iterations "task:with:colons")" -eq 1 ]
+    [ "$(budget_get_task_iterations "task with spaces")" -eq 1 ]
+}
+
+# ========================================
+# Acceptance criteria tests for iteration tracking
+# ========================================
+
+@test "ACCEPTANCE: iteration counters track per-task" {
+    # Track multiple tasks
+    budget_increment_task_iterations "task-001"
+    budget_increment_task_iterations "task-001"
+    budget_increment_task_iterations "task-001"
+
+    budget_increment_task_iterations "task-002"
+    budget_increment_task_iterations "task-002"
+
+    # Verify separate tracking
+    [ "$(budget_get_task_iterations "task-001")" -eq 3 ]
+    [ "$(budget_get_task_iterations "task-002")" -eq 2 ]
+}
+
+@test "ACCEPTANCE: iteration counters track per-run" {
+    # Track run iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # Verify tracking
+    [ "$(budget_get_run_iterations)" -eq 3 ]
+}
+
+@test "ACCEPTANCE: config options for max iterations" {
+    # Set custom limits
+    budget_set_max_task_iterations 5
+    budget_set_max_run_iterations 100
+
+    # Verify they're set
+    [ "$(budget_get_max_task_iterations)" -eq 5 ]
+    [ "$(budget_get_max_run_iterations)" -eq 100 ]
+}
+
+@test "ACCEPTANCE: defaults are 3 per task and 50 per run" {
+    # Check defaults after clear
+    budget_clear
+
+    [ "$(budget_get_max_task_iterations)" -eq 3 ]
+    [ "$(budget_get_max_run_iterations)" -eq 50 ]
+}
+
+@test "ACCEPTANCE: counters persist across function calls" {
+    # Increment in multiple calls
+    budget_increment_task_iterations "task-123"
+    local first=$(budget_get_task_iterations "task-123")
+
+    budget_increment_task_iterations "task-123"
+    local second=$(budget_get_task_iterations "task-123")
+
+    budget_increment_task_iterations "task-123"
+    local third=$(budget_get_task_iterations "task-123")
+
+    # Verify persistence
+    [ "$first" -eq 1 ]
+    [ "$second" -eq 2 ]
+    [ "$third" -eq 3 ]
+}
