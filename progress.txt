@@ -2539,3 +2539,110 @@ _harness_store_usage "$estimated_input" "$estimated_output" 0 0 "" "true"
 3. **Estimation**: Refine character-to-token ratio based on actual model (GPT vs Claude have different tokenizers)
 4. **OpenCode**: Test with different providers (OpenAI, Anthropic) to ensure token extraction works consistently
 
+
+## Session 16: Phase 3 Checkpoint Validation (curb-ch2)
+
+### Task: Validate Phase 3 Completion
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### Phase 3 Summary - Extensibility Complete
+
+All features from Phase 3 verified and working:
+
+#### 1. Hook Points (5/5) ✓
+- **pre-loop**: Runs before main loop starts (tested, integrated)
+- **pre-task**: Runs before each task execution (tested, integrated)
+- **post-task**: Runs after task completes regardless of outcome (tested, integrated)
+- **on-error**: Runs when task fails with non-zero exit code (tested, integrated)
+- **post-loop**: Runs after main loop completes (tested, integrated)
+
+Implementation details:
+- Hook scripts stored in `.curb/hooks/{hook_name}.d/` and `~/.config/curb/hooks/{hook_name}.d/`
+- Scripts executed in sorted order (01-first.sh before 02-second.sh)
+- Environment context exported: `CURB_HOOK_NAME`, `CURB_PROJECT_DIR`, `CURB_TASK_ID`, `CURB_TASK_TITLE`, `CURB_EXIT_CODE`, `CURB_SESSION_ID`, `CURB_HARNESS`
+- 38 dedicated tests all passing
+
+#### 2. Harnesses (4/4) ✓
+- **Claude**: Full support (streaming, token reporting, system prompt, auto mode)
+- **Codex**: Full support (auto mode only, non-streaming)
+- **Gemini**: Full support (auto mode, estimation-based tokens, non-streaming)
+- **OpenCode**: Full support (streaming, token reporting, auto mode)
+
+Key capability differences:
+| Feature | Claude | OpenCode | Codex | Gemini |
+|---------|--------|----------|-------|--------|
+| Streaming | ✓ | ✓ | ✗ | ✗ |
+| Token Reporting | ✓ | ✓ | ✗ | ✗ |
+| System Prompt | ✓ | ✗ | ✗ | ✗ |
+| Auto Mode | ✓ | ✓ | ✓ | ✓ |
+
+#### 3. Capability Detection ✓
+System allows runtime querying of harness capabilities:
+- `harness_supports(capability, [harness])` - Check if capability supported
+- `harness_get_capabilities_json(harness)` - Get JSON object with boolean flags
+- Used in main loop for conditional feature activation (lines 108-128)
+- 16+ dedicated tests all passing
+
+#### 4. Token Tracking ✓
+Comprehensive token tracking implemented:
+- Claude: Direct extraction from JSON output (input, output, cache read, cache creation)
+- OpenCode: Extraction from step_finish events in JSON stream
+- Codex: No native tokens (captured but marked as unavailable)
+- Gemini: Character-based estimation (~4 chars per token) with estimated flag
+
+Token storage:
+- File-based tracking (survives command substitution): `_USAGE_INPUT_FILE`, `_USAGE_OUTPUT_FILE`, `_USAGE_CACHE_INPUT_FILE`, `_USAGE_CACHE_CREATION_FILE`, `_USAGE_COST_FILE`, `_USAGE_ESTIMATED_FILE`
+- `harness_get_usage()` returns structured JSON
+- `harness_get_total_tokens()` returns sum of input + output
+- Integrated with budget tracking system
+- 20+ dedicated tests all passing
+
+### Test Results:
+- **Total Tests**: 327 tests passing
+- **Hooks Tests**: 38 tests (`tests/hooks.bats`)
+- **Harness Tests**: 45+ tests (`tests/harness.bats`)
+  - Capability detection: 16+ tests
+  - Token tracking: 20+ tests
+  - Harness invocation: 9+ tests
+
+### Verification Process:
+1. Ran full test suite: `bats tests/*.bats`
+2. Verified hook integration in main curb script (5 hook_run calls)
+3. Verified harness_supports usage (4 capability checks at startup)
+4. Verified token extraction for each harness format
+5. Verified budget integration with token tracking
+6. Checked recent commits confirming feature completion
+
+### Key Milestones:
+- c38930b: Update harness priority configuration
+- 864e5eb: Extract token usage from Gemini and OpenCode
+- 639ced6: Add harness capability detection
+- 61dee3c: Implement OpenCode harness
+- 470795a: Implement Gemini harness
+- 654c3af: Implement 5 hook points in main loop
+- 4fe4fd4: Implement hooks.sh framework
+
+### Acceptance Criteria Met:
+✓ All hook points implemented and tested
+✓ All 4 harnesses working reliably with multiple features
+✓ Capability detection useful for conditional feature activation
+✓ Budget tracking works across all harnesses
+✓ Harness priority configuration implemented
+
+### Next Phase: Phase 4 - Polish (docs, examples, UX)
+
+Blocked tasks ready to start:
+- curb-a4p: Document config schema
+- curb-ehj: Write migration guide for existing users
+- curb-gp6: Write example hooks (slack, datadog, pagerduty)
+- curb-zlk: Update README with new features
+- curb-2d6: Improve --help output
+
+### Notes for Phase 4:
+1. Consider documenting the 4 capability types with practical use cases
+2. Hook examples in curb-gp6 should demonstrate all 5 hook points
+3. Config schema documentation should explain harness priority feature
+4. README update should highlight extensibility as a key feature
+5. --help output could show available harnesses and their capabilities
+
