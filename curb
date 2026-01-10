@@ -891,80 +891,102 @@ Say 'curb test successful' and nothing else."
 curb - Claude Under Ralph + Beads
 
 Autonomous AI coding agent that drives coding harnesses (Claude Code or OpenAI
-Codex) in a loop.
+Codex) in a loop to complete tasks from a project backlog.
 
-Usage:
+QUICK START:
   curb              Run loop until all tasks complete
-  curb --once       Run single iteration
-  curb --status     Show current task status
-  curb --ready      Show ready tasks
-  curb --plan       Run in planning mode
-  curb --test       Test harness invocation with simple prompts
-  curb --dump-prompt  Dump the actual prompt to a file for inspection
-  curb --migrate-to-beads      Migrate tasks from prd.json to beads
-  curb --migrate-to-beads-dry-run  Preview migration without making changes
-  curb --debug      Enable debug logging (can combine with other flags)
-  curb --stream     Stream harness activity in real-time (can combine)
-  curb --backend X  Force task backend: "beads" or "json" (default: auto-detect)
-  curb --harness X  Force harness: "claude" or "codex" (default: auto-detect)
-  curb --model X    Set Claude model: "opus", "sonnet", or "haiku"
-  curb --budget X   Set token budget for this run
-  curb --epic <id>  Filter to tasks within a specific epic
-  curb --label <name> Filter to tasks with a specific label
+  curb --once       Run single iteration and exit
+  curb --status     Show current task status and progress
+  curb --ready      List tasks ready to be worked on
+  curb --help       Show this help message
 
-Flags:
-  --debug, -d       Enable verbose debug output including:
-                    - Full prompt being sent to harness
-                    - Task selection details and JSON
-                    - Timing information
-                    - Saves prompt to temp file for debugging
-  --stream          Stream harness activity showing:
+CORE FLAGS:
+  --harness <name>  Choose harness: "auto" (default), "claude", or "codex"
+  --model <name>    Claude model: "opus", "sonnet", or "haiku" (default: config)
+  --backend <mode>  Task backend: "auto" (default), "beads", or "json"
+  --budget <tokens> Set token budget limit for this run (e.g., 1000000)
+
+RELIABILITY & SAFETY FLAGS:
+  --require-clean   Force clean repository state before starting
+  --no-require-clean  Disable clean state requirement (overrides config)
+  --once            Run exactly one iteration then exit (for CI/testing)
+
+DEBUG & TROUBLESHOOTING FLAGS:
+  --debug, -d       Enable verbose debug output:
+                    - Full prompts being sent to harness
+                    - Task selection and JSON details
+                    - Timing and execution information
+  --stream          Stream harness activity in real-time:
                     - Tool calls as they happen
-                    - Text responses in real-time
-                    - Final result and cost
-  --backend <mode>  Task backend selection:
-                    - auto: use beads if available, else json (default)
-                    - beads: use beads CLI (bd) for task management
-                    - json: use prd.json file directly
-  --harness <name>  Harness selection:
-                    - auto: prefer claude, fall back to codex (default)
-                    - claude: use Claude Code CLI
-                    - codex: use OpenAI Codex CLI
-  --model <name>    Claude model selection (only applies to claude harness):
-                    - opus: Claude Opus (most capable)
-                    - sonnet: Claude Sonnet (balanced)
-                    - haiku: Claude Haiku (fastest)
-  --epic <id>       Filter to tasks that are children of the specified epic
-  --label <name>    Filter to tasks with the specified label (e.g., "phase-1")
-  --budget <tokens> Set token budget limit (default from config or env)
-  --require-clean   Force clean state enforcement (overrides config)
-  --no-require-clean  Disable clean state enforcement (overrides config)
+                    - Text responses live
+                    - Final result and token usage
+  --plan            Generate fix_plan.md with code analysis
 
-Environment:
+FILTERING FLAGS:
+  --epic <id>       Only work on tasks in this epic
+  --label <name>    Only work on tasks with this label
+
+UTILITY FLAGS:
+  --test            Test harness invocation with sample prompts
+  --dump-prompt     Export current task prompts to files for inspection
+  --migrate-to-beads      Migrate tasks from prd.json to beads
+  --migrate-to-beads-dry-run  Preview migration without changes
+
+ENVIRONMENT VARIABLES:
   CURB_PROJECT_DIR     Project directory (default: pwd)
   CURB_MAX_ITERATIONS  Max loop iterations (default: 100)
-  CURB_DEBUG           Enable debug mode (set to "true")
+  CURB_DEBUG           Set to "true" to enable debug mode
   CURB_BACKEND         Task backend: "auto", "beads", or "json"
   CURB_BUDGET          Token budget limit for this run
-  HARNESS              Harness: "auto", "claude", or "codex"
+  CURB_REQUIRE_CLEAN   Set to "true" or "false" for clean state enforcement
+  HARNESS              Harness to use: "auto", "claude", or "codex"
   CURB_MODEL           Claude model: "opus", "sonnet", or "haiku"
   CURB_EPIC            Filter to tasks within this epic ID
   CURB_LABEL           Filter to tasks with this label
   CLAUDE_FLAGS         Extra flags for Claude Code CLI
   CODEX_FLAGS          Extra flags for OpenAI Codex CLI
 
-Files expected in project:
-  .beads/        Beads data directory (if using beads backend)
-  prd.json       Task backlog JSON (if using json backend)
-  PROMPT.md      Loop prompt template
-  AGENT.md       Agent build instructions (AGENTS.md also supported for Codex)
-  specs/         Specification files
-  progress.txt   Progress log (created automatically)
+EXAMPLES:
 
-Beads installation (optional, for beads backend):
-  brew install steveyegge/beads/bd
-  npm install -g @beads/bd
-  go install github.com/steveyegge/beads/cmd/bd@latest
+  # Run continuous loop with token budget
+  curb --budget 5000000
+
+  # Single iteration with clean state check
+  curb --once --require-clean
+
+  # Debug a specific epic
+  curb --epic backend-refactor --debug
+
+  # Stream output and limit to specific labels
+  curb --stream --label phase-1
+
+  # Use Sonnet model with budget tracking
+  curb --model sonnet --budget 2000000
+
+  # Check which tasks are ready without running
+  curb --ready
+
+  # View current progress
+  curb --status
+
+PROJECT FILES:
+  .beads/           Beads task tracking (if using beads backend)
+  prd.json          Task backlog JSON (if using json backend)
+  PROMPT.md         System prompt template
+  AGENT.md          Build/run instructions for AI agent
+  specs/            Specification files
+  progress.txt      Automatically generated progress log
+
+INSTALLATION:
+  Beads (optional, for beads backend):
+    brew install steveyegge/beads/bd
+    npm install -g @beads/bd
+    go install github.com/steveyegge/beads/cmd/bd@latest
+
+LEARN MORE:
+  README.md         Project overview and features
+  CONFIG.md         Configuration and environment setup
+  CONTRIBUTING.md   Development guidelines
 EOF
             ;;
         *)
