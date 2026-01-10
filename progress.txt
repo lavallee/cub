@@ -874,3 +874,88 @@ Budget tracking module is complete. Next tasks:
 3. Add --budget CLI flag (curb-0ub)
 4. Add budget warning at threshold
 
+## Session 14: Token Usage Extraction from Claude Harness (curb-0hz)
+
+### Task: Extract token usage from Claude harness output
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. **Token usage tracking infrastructure** in `lib/harness.sh`
+   - File-based state storage for process isolation (`_USAGE_*_FILE`)
+   - `harness_clear_usage()` - Clear usage state before new invocation
+   - `_harness_store_usage()` - Internal function to store captured usage
+   - `harness_get_usage()` - Returns JSON with input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, estimated
+   - `harness_get_total_tokens()` - Returns sum of input + output tokens
+
+2. **Stream JSON parsing enhancement** in `claude_parse_stream()`
+   - Now captures usage from "message" type events (which contain `.usage` object)
+   - Accumulates usage across multiple message events (multi-turn conversations)
+   - Captures cost_usd from "result" type events
+   - Stores all captured data via `_harness_store_usage()`
+
+3. **Non-streaming mode support** in `claude_invoke()`
+   - Changed to use `--output-format json` to get structured output
+   - Extracts usage from JSON response when available
+   - Clears usage before each invocation
+
+4. **Fallback estimation** when usage unavailable
+   - If only cost_usd available (no token counts), estimates tokens from cost
+   - Uses rough average: $6.5 per million tokens → cost * 150000
+   - Assumes 2/3 output, 1/3 input split
+   - Sets `estimated: true` flag when using estimation
+
+5. **Comprehensive test suite** - 14 new tests in `tests/harness.bats`
+   - Unit tests for each new function
+   - Stream parsing tests with mock Claude output
+   - Accumulation tests for multi-message scenarios
+   - Estimation fallback tests
+   - Acceptance criteria tests
+
+### Test Results:
+- All 14 new token usage tests PASS
+- All 240 total tests PASS
+
+### Learnings:
+
+- **Claude Code stream-json format**: Token usage is in message events, not result events
+  - Message events: `{"type":"message","usage":{"input_tokens":N,"output_tokens":N,...}}`
+  - Result events: `{"type":"result","cost_usd":N,...}` (no usage object)
+  - Need to capture both: usage from message, cost from result
+
+- **File-based state survives pipes**: Since `claude_parse_stream` is called in a pipeline, variables don't persist
+  - Solution: Write to files at end of function, read from files in `harness_get_usage()`
+  - Pattern: accumulate in local variables during loop, write to files after loop ends
+
+- **Multiple message events possible**: In multi-turn conversations, each turn produces a message event
+  - Must accumulate: `total_input=$((total_input + input))`
+  - Final accumulated values written after processing all events
+
+- **Estimation formula**: When only cost available, reverse-engineer tokens
+  - Claude pricing varies by model and token type
+  - Using average $6.5 per million tokens as rough estimate
+  - Mark as `estimated: true` so caller knows precision
+
+- **Test both "message" and "assistant" event types**: Claude output varies
+  - Some outputs use `{"type":"message",...}`
+  - Some use `{"type":"assistant",...}`
+  - Handle both in case statement
+
+### Implementation Details:
+- Usage files: `${TMPDIR:-/tmp}/curb_usage_{input,output,cache_input,cache_creation,cost}_$$`
+- Cleanup trap ensures files removed on exit
+- harness_get_usage returns proper JSON via jq construction
+- Non-streaming mode now uses `--output-format json` (was text before)
+
+### Acceptance Criteria Met:
+✓ Token count extracted from Claude streaming output
+✓ Returned in structured format (input_tokens, output_tokens)
+✓ Fallback to estimate if not available
+✓ Works with both streaming and non-streaming modes
+
+### Next Steps:
+Token usage extraction is complete. Can now be integrated with budget tracking:
+1. Main loop calls harness, then `harness_get_total_tokens()` → `budget_record()`
+2. Add --budget CLI flag (curb-0ub)
+3. Add budget warning at threshold
+

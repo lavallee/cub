@@ -10,6 +10,102 @@
 _HARNESS=""
 
 # ============================================================================
+# Token Usage Tracking (file-based to survive command substitution)
+# ============================================================================
+
+# File paths for usage tracking (process-specific)
+_USAGE_INPUT_FILE="${TMPDIR:-/tmp}/curb_usage_input_$$"
+_USAGE_OUTPUT_FILE="${TMPDIR:-/tmp}/curb_usage_output_$$"
+_USAGE_CACHE_INPUT_FILE="${TMPDIR:-/tmp}/curb_usage_cache_input_$$"
+_USAGE_CACHE_CREATION_FILE="${TMPDIR:-/tmp}/curb_usage_cache_creation_$$"
+_USAGE_COST_FILE="${TMPDIR:-/tmp}/curb_usage_cost_$$"
+
+# Cleanup trap for usage files
+trap 'rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" 2>/dev/null' EXIT
+
+# Clear all usage tracking state
+# Usage: harness_clear_usage
+harness_clear_usage() {
+    rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" 2>/dev/null
+    return 0
+}
+
+# Store usage data (internal function)
+# Usage: _harness_store_usage input_tokens output_tokens [cache_read_tokens] [cache_creation_tokens] [cost_usd]
+_harness_store_usage() {
+    local input_tokens="${1:-0}"
+    local output_tokens="${2:-0}"
+    local cache_read_tokens="${3:-0}"
+    local cache_creation_tokens="${4:-0}"
+    local cost_usd="${5:-}"
+
+    echo "$input_tokens" > "$_USAGE_INPUT_FILE"
+    echo "$output_tokens" > "$_USAGE_OUTPUT_FILE"
+    echo "$cache_read_tokens" > "$_USAGE_CACHE_INPUT_FILE"
+    echo "$cache_creation_tokens" > "$_USAGE_CACHE_CREATION_FILE"
+    if [[ -n "$cost_usd" && "$cost_usd" != "null" ]]; then
+        echo "$cost_usd" > "$_USAGE_COST_FILE"
+    fi
+}
+
+# Get usage from last harness invocation
+# Returns JSON object: {"input_tokens": N, "output_tokens": N, "cache_read_tokens": N, "cache_creation_tokens": N, "cost_usd": N, "estimated": bool}
+# Usage: harness_get_usage
+harness_get_usage() {
+    local input_tokens=$(cat "$_USAGE_INPUT_FILE" 2>/dev/null || echo "0")
+    local output_tokens=$(cat "$_USAGE_OUTPUT_FILE" 2>/dev/null || echo "0")
+    local cache_read_tokens=$(cat "$_USAGE_CACHE_INPUT_FILE" 2>/dev/null || echo "0")
+    local cache_creation_tokens=$(cat "$_USAGE_CACHE_CREATION_FILE" 2>/dev/null || echo "0")
+    local cost_usd=$(cat "$_USAGE_COST_FILE" 2>/dev/null || echo "")
+    local estimated="false"
+
+    # If we have no usage data but have cost, estimate tokens from cost
+    # Claude pricing: ~$3 per million input tokens, ~$15 per million output tokens (rough average)
+    # For simplicity, use total tokens estimate: cost * 150000 (average ~$6.5 per million)
+    if [[ "$input_tokens" == "0" && "$output_tokens" == "0" && -n "$cost_usd" && "$cost_usd" != "0" ]]; then
+        # Estimate: assume 2/3 output, 1/3 input based on typical usage
+        # Total tokens = cost * 150000 (rough estimate)
+        local total_estimate=$(echo "$cost_usd * 150000" | bc 2>/dev/null | cut -d. -f1)
+        if [[ -n "$total_estimate" && "$total_estimate" != "0" ]]; then
+            output_tokens=$((total_estimate * 2 / 3))
+            input_tokens=$((total_estimate / 3))
+            estimated="true"
+        fi
+    fi
+
+    # Build JSON response
+    local json
+    if [[ -n "$cost_usd" && "$cost_usd" != "" ]]; then
+        json=$(jq -n \
+            --argjson input "$input_tokens" \
+            --argjson output "$output_tokens" \
+            --argjson cache_read "$cache_read_tokens" \
+            --argjson cache_creation "$cache_creation_tokens" \
+            --argjson cost "$cost_usd" \
+            --argjson estimated "$estimated" \
+            '{input_tokens: $input, output_tokens: $output, cache_read_tokens: $cache_read, cache_creation_tokens: $cache_creation, cost_usd: $cost, estimated: $estimated}')
+    else
+        json=$(jq -n \
+            --argjson input "$input_tokens" \
+            --argjson output "$output_tokens" \
+            --argjson cache_read "$cache_read_tokens" \
+            --argjson cache_creation "$cache_creation_tokens" \
+            --argjson estimated "$estimated" \
+            '{input_tokens: $input, output_tokens: $output, cache_read_tokens: $cache_read, cache_creation_tokens: $cache_creation, cost_usd: null, estimated: $estimated}')
+    fi
+
+    echo "$json"
+}
+
+# Get total tokens (input + output) from last invocation
+# Usage: harness_get_total_tokens
+harness_get_total_tokens() {
+    local input_tokens=$(cat "$_USAGE_INPUT_FILE" 2>/dev/null || echo "0")
+    local output_tokens=$(cat "$_USAGE_OUTPUT_FILE" 2>/dev/null || echo "0")
+    echo $((input_tokens + output_tokens))
+}
+
+# ============================================================================
 # Harness Detection
 # ============================================================================
 
@@ -133,7 +229,10 @@ claude_invoke() {
     local task_prompt="$2"
     local debug="${3:-false}"
 
-    local flags="--dangerously-skip-permissions"
+    # Clear previous usage
+    harness_clear_usage
+
+    local flags="--dangerously-skip-permissions --output-format json"
     [[ "$debug" == "true" ]] && flags="$flags --debug"
 
     # Add model flag if specified
@@ -142,7 +241,30 @@ claude_invoke() {
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
 
-    echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags
+    # Capture JSON output to extract usage, then display result
+    local output
+    output=$(echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags 2>&1)
+    local exit_code=$?
+
+    # Try to extract usage from JSON output
+    # Claude --output-format json returns a JSON object with usage field
+    if echo "$output" | jq -e '.usage' >/dev/null 2>&1; then
+        local input=$(echo "$output" | jq -r '.usage.input_tokens // 0' 2>/dev/null)
+        local out=$(echo "$output" | jq -r '.usage.output_tokens // 0' 2>/dev/null)
+        local cache_read=$(echo "$output" | jq -r '.usage.cache_read_input_tokens // 0' 2>/dev/null)
+        local cache_creation=$(echo "$output" | jq -r '.usage.cache_creation_input_tokens // 0' 2>/dev/null)
+        local cost=$(echo "$output" | jq -r '.cost_usd // empty' 2>/dev/null)
+        _harness_store_usage "$input" "$out" "$cache_read" "$cache_creation" "$cost"
+
+        # Extract and display the result text
+        local result_text=$(echo "$output" | jq -r '.result // .content // empty' 2>/dev/null)
+        [[ -n "$result_text" ]] && echo "$result_text"
+    else
+        # If not valid JSON with usage, output as-is (error message or raw text)
+        echo "$output"
+    fi
+
+    return $exit_code
 }
 
 claude_invoke_streaming() {
@@ -165,7 +287,18 @@ claude_invoke_streaming() {
 }
 
 # Parse Claude Code's stream-json output
+# Extracts text output for display and captures token usage from message events
 claude_parse_stream() {
+    # Clear previous usage before parsing new stream
+    harness_clear_usage
+
+    # Local variables for accumulating usage across multiple messages
+    local total_input=0
+    local total_output=0
+    local total_cache_read=0
+    local total_cache_creation=0
+    local final_cost=""
+
     while IFS= read -r line; do
         # Skip empty lines
         [[ -z "$line" ]] && continue
@@ -174,8 +307,24 @@ claude_parse_stream() {
         local msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
 
         case "$msg_type" in
-            "assistant")
-                # Assistant text response
+            "assistant"|"message")
+                # Message events contain usage information
+                # Check for usage object first
+                local has_usage=$(echo "$line" | jq -r 'has("usage") // false' 2>/dev/null)
+                if [[ "$has_usage" == "true" ]]; then
+                    local input=$(echo "$line" | jq -r '.usage.input_tokens // 0' 2>/dev/null)
+                    local output=$(echo "$line" | jq -r '.usage.output_tokens // 0' 2>/dev/null)
+                    local cache_read=$(echo "$line" | jq -r '.usage.cache_read_input_tokens // 0' 2>/dev/null)
+                    local cache_creation=$(echo "$line" | jq -r '.usage.cache_creation_input_tokens // 0' 2>/dev/null)
+
+                    # Accumulate usage (multiple message events possible)
+                    total_input=$((total_input + input))
+                    total_output=$((total_output + output))
+                    total_cache_read=$((total_cache_read + cache_read))
+                    total_cache_creation=$((total_cache_creation + cache_creation))
+                fi
+
+                # Also check for text content in assistant messages
                 local content=$(echo "$line" | jq -r '.message.content[]? | select(.type=="text") | .text // empty' 2>/dev/null)
                 [[ -n "$content" ]] && echo -e "${content}"
                 ;;
@@ -199,7 +348,10 @@ claude_parse_stream() {
                 local result=$(echo "$line" | jq -r '.result // empty' 2>/dev/null)
                 [[ -n "$result" ]] && echo -e "\n${GREEN}✓ Result: ${result:0:200}${NC}"
                 local cost=$(echo "$line" | jq -r '.cost_usd // empty' 2>/dev/null)
-                [[ -n "$cost" && "$cost" != "null" ]] && echo -e "${DIM}  Cost: \$${cost}${NC}"
+                if [[ -n "$cost" && "$cost" != "null" ]]; then
+                    echo -e "${DIM}  Cost: \$${cost}${NC}"
+                    final_cost="$cost"
+                fi
                 ;;
             "system")
                 local sys_msg=$(echo "$line" | jq -r '.message // empty' 2>/dev/null)
@@ -207,6 +359,9 @@ claude_parse_stream() {
                 ;;
         esac
     done
+
+    # Store accumulated usage after processing all events
+    _harness_store_usage "$total_input" "$total_output" "$total_cache_read" "$total_cache_creation" "$final_cost"
 }
 
 # ============================================================================
