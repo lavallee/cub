@@ -16,6 +16,9 @@
 #
 set -euo pipefail
 
+# Version information
+CURB_VERSION="1.0.0"
+
 CURB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${CURB_PROJECT_DIR:-$(pwd)}"
 
@@ -888,10 +891,10 @@ Say 'curb test successful' and nothing else."
             ;;
         --help|-h)
             cat <<EOF
-curb - Claude Under Ralph + Beads
+curb v${CURB_VERSION} - Claude Under Ralph + Beads
 
-Autonomous AI coding agent that drives coding harnesses (Claude Code or OpenAI
-Codex) in a loop to complete tasks from a project backlog.
+Autonomous AI coding agent that drives coding harnesses (Claude Code, Codex,
+Gemini, OpenCode) in a loop to complete tasks from a project backlog.
 
 QUICK START:
   curb              Run loop until all tasks complete
@@ -901,7 +904,7 @@ QUICK START:
   curb --help       Show this help message
 
 CORE FLAGS:
-  --harness <name>  Choose harness: "auto" (default), "claude", or "codex"
+  --harness <name>  Choose harness: "auto" (default), "claude", "codex", "gemini", or "opencode"
   --model <name>    Claude model: "opus", "sonnet", or "haiku" (default: config)
   --backend <mode>  Task backend: "auto" (default), "beads", or "json"
   --budget <tokens> Set token budget limit for this run (e.g., 1000000)
@@ -939,7 +942,7 @@ ENVIRONMENT VARIABLES:
   CURB_BACKEND         Task backend: "auto", "beads", or "json"
   CURB_BUDGET          Token budget limit for this run
   CURB_REQUIRE_CLEAN   Set to "true" or "false" for clean state enforcement
-  HARNESS              Harness to use: "auto", "claude", or "codex"
+  HARNESS              Harness to use: "auto", "claude", "codex", "gemini", or "opencode"
   CURB_MODEL           Claude model: "opus", "sonnet", or "haiku"
   CURB_EPIC            Filter to tasks within this epic ID
   CURB_LABEL           Filter to tasks with this label
@@ -988,6 +991,9 @@ LEARN MORE:
   CONFIG.md         Configuration and environment setup
   CONTRIBUTING.md   Development guidelines
 EOF
+            ;;
+        --version)
+            echo "curb v${CURB_VERSION}"
             ;;
         *)
             validate_project
