@@ -73,6 +73,8 @@ curb --epic my-epic-id
 curb --label phase-1
 ```
 
+**Upgrading from an earlier version?** See [UPGRADING.md](UPGRADING.md) for migration guide and breaking changes.
+
 ## Usage
 
 ```bash
