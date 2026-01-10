@@ -26,5 +26,6 @@
       "enabled": true
     }
   },
-  "tasks_failed": 7
+  "tasks_failed": 7,
+  "tasks_completed": 1
 }

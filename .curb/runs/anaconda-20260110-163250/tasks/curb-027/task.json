@@ -2,7 +2,9 @@
   "task_id": "curb-027",
   "title": "Write BATS tests for lib/git.sh",
   "priority": "P1",
-  "status": "in_progress",
+  "status": "completed",
   "started_at": "2026-01-10T22:38:09Z",
-  "iterations": 0
+  "iterations": 1,
+  "completed_at": "2026-01-10T22:40:42Z",
+  "exit_code": 0
 }
