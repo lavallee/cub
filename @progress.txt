@@ -220,6 +220,51 @@ Task curb-016 was already implemented in a previous iteration. Verification conf
 - No code changes needed
 - Committed verification completion
 
+## Task: curb-017 - Add deprecation warnings for legacy flag syntax (Completed 2026-01-10)
+
+### What was done
+Implemented deprecation warnings to help users migrate from legacy flags to new subcommand syntax:
+- Added warn_deprecated_flag() helper function that outputs warnings to stderr
+- Added warnings for --status, --ready, --plan and their short forms (-s, -r, -p, -1)
+- Warnings include migration hints showing the new syntax (e.g., "use: curb status")
+- Added CURB_NO_DEPRECATION_WARNINGS=1 environment variable to suppress warnings
+- Fixed flag detection in subcommand dispatcher to properly handle single-dash flags
+
+### Testing performed
+- Manual testing: All legacy flags (--status, --ready, --plan, -s, -r, -p, -1) produce warnings
+- Verified warning message format and includes new syntax hint
+- Verified warnings go to stderr (not stdout)
+- Verified suppression with CURB_NO_DEPRECATION_WARNINGS=1 env var
+- Verified new syntax works without warnings (e.g., `curb status`)
+- Full test suite: All 437 BATS tests pass with no regressions
+
+### Key learnings
+1. Deprecation warnings are important for backward compatibility during migration
+2. Using stderr for warnings keeps stdout clean for scripting and command composition
+3. Helper functions for warnings promote consistency across the codebase
+4. Environment variables for feature control (like CURB_NO_DEPRECATION_WARNINGS) enable users to silence warnings in scripts
+5. Flag detection needs to account for both single-dash (-) and double-dash (--) prefixes
+6. Testing both long and short flag forms is important for completeness
+7. Functional requirements (warnings go to stderr) need explicit testing to ensure they work correctly
+
+### Files modified
+- curb: Added warn_deprecated_flag() function, updated legacy flag handling, fixed flag detection regex
+- .beads/issues.jsonl: Task status updated to closed
+
+### Acceptance criteria met
+✓ 'curb --status' warns and runs status
+✓ Warning message includes new syntax hint
+✓ Warning goes to stderr, not stdout
+✓ CURB_NO_DEPRECATION_WARNINGS=1 suppresses warnings
+✓ Functionality still works correctly
+✓ All 437 BATS tests pass
+
+### Code quality
+- Minimal implementation: Added warn_deprecated_flag() function (8 lines)
+- Updated legacy flag case statements (4 lines total changed)
+- Fixed flag detection regex from `^--` to `^-` (1 line change)
+- No breaking changes, full backward compatibility maintained
+
 ## Task: curb-008 - Write BATS tests for lib/session.sh (Completed 2026-01-10)
 
 ### What was done
