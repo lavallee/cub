@@ -155,25 +155,27 @@ _USAGE_OUTPUT_FILE="${TMPDIR:-/tmp}/curb_usage_output_$$"
 _USAGE_CACHE_INPUT_FILE="${TMPDIR:-/tmp}/curb_usage_cache_input_$$"
 _USAGE_CACHE_CREATION_FILE="${TMPDIR:-/tmp}/curb_usage_cache_creation_$$"
 _USAGE_COST_FILE="${TMPDIR:-/tmp}/curb_usage_cost_$$"
+_USAGE_ESTIMATED_FILE="${TMPDIR:-/tmp}/curb_usage_estimated_$$"
 
 # Cleanup trap for usage files
-trap 'rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" 2>/dev/null' EXIT
+trap 'rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" "$_USAGE_ESTIMATED_FILE" 2>/dev/null' EXIT
 
 # Clear all usage tracking state
 # Usage: harness_clear_usage
 harness_clear_usage() {
-    rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" 2>/dev/null
+    rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" "$_USAGE_ESTIMATED_FILE" 2>/dev/null
     return 0
 }
 
 # Store usage data (internal function)
-# Usage: _harness_store_usage input_tokens output_tokens [cache_read_tokens] [cache_creation_tokens] [cost_usd]
+# Usage: _harness_store_usage input_tokens output_tokens [cache_read_tokens] [cache_creation_tokens] [cost_usd] [estimated]
 _harness_store_usage() {
     local input_tokens="${1:-0}"
     local output_tokens="${2:-0}"
     local cache_read_tokens="${3:-0}"
     local cache_creation_tokens="${4:-0}"
     local cost_usd="${5:-}"
+    local estimated="${6:-false}"
 
     echo "$input_tokens" > "$_USAGE_INPUT_FILE"
     echo "$output_tokens" > "$_USAGE_OUTPUT_FILE"
@@ -181,6 +183,9 @@ _harness_store_usage() {
     echo "$cache_creation_tokens" > "$_USAGE_CACHE_CREATION_FILE"
     if [[ -n "$cost_usd" && "$cost_usd" != "null" ]]; then
         echo "$cost_usd" > "$_USAGE_COST_FILE"
+    fi
+    if [[ "$estimated" == "true" ]]; then
+        echo "true" > "$_USAGE_ESTIMATED_FILE"
     fi
 }
 
@@ -194,6 +199,11 @@ harness_get_usage() {
     local cache_creation_tokens=$(cat "$_USAGE_CACHE_CREATION_FILE" 2>/dev/null || echo "0")
     local cost_usd=$(cat "$_USAGE_COST_FILE" 2>/dev/null || echo "")
     local estimated="false"
+
+    # Check if usage was marked as estimated
+    if [[ -f "$_USAGE_ESTIMATED_FILE" ]]; then
+        estimated="true"
+    fi
 
     # If we have no usage data but have cost, estimate tokens from cost
     # Claude pricing: ~$3 per million input tokens, ~$15 per million output tokens (rough average)
@@ -588,14 +598,25 @@ ${task_prompt}"
     # Add any extra flags from environment
     [[ -n "${GEMINI_FLAGS:-}" ]] && flags="$flags $GEMINI_FLAGS"
 
-    # Note: Gemini CLI v0.1.9 does NOT report token usage in stdout
-    # TODO: Parse session files or use Gemini API SDK for usage tracking
-    # For now, we cannot extract token usage, so it remains at 0
-    echo "" | gemini -p "$combined_prompt" $flags
+    # Capture output to estimate token usage (Gemini CLI doesn't report actual usage)
+    local output
+    output=$(echo "" | gemini -p "$combined_prompt" $flags 2>&1)
     local exit_code=$?
 
-    # Store zero usage (token reporting not available in CLI)
-    _harness_store_usage 0 0 0 0 ""
+    # Display the output
+    echo "$output"
+
+    # Estimate token usage based on character counts
+    # Note: Gemini CLI v0.1.9 does NOT report token usage in stdout or session files
+    # Rough estimation: ~4 characters per token (common rule of thumb)
+    # This is marked as estimated in harness_get_usage output
+    local input_chars=${#combined_prompt}
+    local output_chars=${#output}
+    local estimated_input=$((input_chars / 4))
+    local estimated_output=$((output_chars / 4))
+
+    # Store estimated usage (will be marked as estimated=true in harness_get_usage)
+    _harness_store_usage "$estimated_input" "$estimated_output" 0 0 "" "true"
 
     return $exit_code
 }
@@ -633,7 +654,8 @@ opencode_invoke() {
 
 ${task_prompt}"
 
-    local flags=""
+    # Use --format json for token extraction
+    local flags="--format json"
     [[ "$debug" == "true" ]] && flags="$flags --print-logs --log-level DEBUG"
 
     # Add model flag if specified (requires provider/model format)
@@ -650,12 +672,9 @@ ${task_prompt}"
     [[ -n "${OPENCODE_FLAGS:-}" ]] && flags="$flags $OPENCODE_FLAGS"
 
     # OpenCode uses 'run' subcommand for autonomous operation (auto-approves all permissions)
-    # Note: Token usage not extracted in non-streaming mode
-    opencode run $flags "$combined_prompt"
-    local exit_code=$?
-
-    # Store zero usage (token reporting requires --format json in streaming mode)
-    _harness_store_usage 0 0 0 0 ""
+    # Use --format json to get token usage, then parse with opencode_parse_stream
+    opencode run $flags "$combined_prompt" | opencode_parse_stream
+    local exit_code=${PIPESTATUS[0]}
 
     return $exit_code
 }

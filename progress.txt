@@ -2420,3 +2420,122 @@ Successfully implemented OpenCode as a supported harness in lib/harness.sh follo
 - curb (27 lines added - debug capability logging)
 - tests/harness.bats (160 lines added - 16 new tests)
 - .beads/issues.jsonl (task closed)
+
+## Session N: Token Usage Extraction for Gemini and OpenCode (curb-fpg)
+
+### Task: Extract token usage from Gemini and OpenCode harnesses
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+
+1. **OpenCode token extraction** - Enhanced non-streaming mode
+   - Previously: `opencode_invoke()` set tokens to 0 (line 658)
+   - Now: Uses `--format json` and pipes to `opencode_parse_stream`
+   - Token extraction now works in BOTH streaming and non-streaming modes
+   - Extracts: input_tokens, output_tokens, cache_read, cache_write, cost
+
+2. **Gemini token estimation** - Added character-based fallback
+   - Gemini CLI v0.1.9 does NOT report token usage (confirmed via testing)
+   - No token data in stdout, stderr, or session files (~/.gemini/tmp/*/logs.json)
+   - Implemented estimation: ~4 characters per token (industry standard)
+   - Captures output to calculate both input and output token estimates
+   - Marks estimates with `estimated: true` flag in response JSON
+
+3. **Estimation flag tracking**
+   - Added `_USAGE_ESTIMATED_FILE` to track when usage is estimated
+   - Updated `_harness_store_usage()` to accept 6th parameter: estimated flag
+   - Updated `harness_get_usage()` to check estimated file and set flag
+   - Maintains existing cost-based estimation logic (for harnesses that report cost but not tokens)
+
+### Test Results:
+- All 317 tests continue to PASS
+- All 45 harness tests PASS
+- No regressions introduced
+
+### Learnings:
+
+1. **OpenCode JSON format consistency**:
+   - OpenCode outputs same JSON format regardless of invocation mode
+   - `--format json` works with both `opencode` (TUI) and `opencode run` (CLI)
+   - Both modes emit `step_finish` events with token counts
+   - Reusing `opencode_parse_stream()` for both modes ensures consistency
+
+2. **Gemini CLI limitations** (v0.1.9 via Homebrew):
+   - No `--output-format` flag (documented but not implemented)
+   - No token usage in stdout or stderr
+   - Session logs (~/.gemini/tmp/) only contain message text, no token data
+   - `/stats` command only available in interactive mode, not scriptable
+   - **Conclusion**: Token estimation is the ONLY option for CLI-based usage
+
+3. **Character-to-token estimation**:
+   - Rule of thumb: ~4 characters per token for English text
+   - Works reasonably well for rough budget tracking
+   - Better than returning 0 (enables budget enforcement)
+   - Marked as `estimated: true` so consumers can distinguish from real data
+
+4. **Estimation flag design**:
+   - File-based approach consistent with other usage tracking (`_USAGE_*_FILE` pattern)
+   - Boolean flag instead of enum (simple true/false)
+   - Presence of file = estimated, absence = measured
+   - Cleaned up by trap on exit
+
+5. **Token extraction architecture**:
+   - Token extraction happens during harness invocation, not as separate get function
+   - `harness_get_usage()` is a read-only accessor that returns cached data
+   - Task description mentioned `gemini_get_usage()` and `opencode_get_usage()` but these don't fit the architecture
+   - Actual pattern: extract during invoke, store in files, read via `harness_get_usage()`
+
+### Implementation Details:
+
+**OpenCode changes (lib/harness.sh:640-680)**:
+```bash
+# Before: opencode_invoke() set tokens to 0
+_harness_store_usage 0 0 0 0 ""
+
+# After: Use --format json and parse stream
+opencode run $flags "$combined_prompt" | opencode_parse_stream
+```
+
+**Gemini changes (lib/harness.sh:565-622)**:
+```bash
+# Capture output for estimation
+output=$(echo "" | gemini -p "$combined_prompt" $flags 2>&1)
+
+# Estimate tokens from character counts
+local input_chars=${#combined_prompt}
+local output_chars=${#output}
+local estimated_input=$((input_chars / 4))
+local estimated_output=$((output_chars / 4))
+
+# Store with estimated flag
+_harness_store_usage "$estimated_input" "$estimated_output" 0 0 "" "true"
+```
+
+**Usage tracking changes**:
+- Added `_USAGE_ESTIMATED_FILE` temp file
+- Updated `_harness_store_usage()` signature: 6 params instead of 5
+- Updated `harness_clear_usage()` to remove estimated file
+- Updated `harness_get_usage()` to check estimated file
+
+### Acceptance Criteria Met:
+✓ Token counts available from Gemini runs (via estimation)
+✓ Token counts available from OpenCode runs (extracted from JSON)
+✓ Estimation fallback works (character-based for Gemini)
+✓ Budget tracking accurate across harnesses (all harnesses report or estimate)
+
+### Files Modified:
+- lib/harness.sh:
+  - Lines 152-161: Added `_USAGE_ESTIMATED_FILE` tracking
+  - Lines 165-167: Updated `harness_clear_usage()` 
+  - Lines 170-190: Updated `_harness_store_usage()` signature
+  - Lines 195-244: Updated `harness_get_usage()` to check estimated flag
+  - Lines 565-622: Enhanced `gemini_invoke()` with estimation
+  - Lines 640-680: Enhanced `opencode_invoke()` to extract tokens
+
+### Future Enhancements:
+1. **Gemini**: Test newer CLI versions for native token reporting
+2. **Gemini**: Consider Gemini API SDK for accurate usage (requires API key setup)
+3. **Estimation**: Refine character-to-token ratio based on actual model (GPT vs Claude have different tokenizers)
+4. **OpenCode**: Test with different providers (OpenAI, Anthropic) to ensure token extraction works consistently
+
