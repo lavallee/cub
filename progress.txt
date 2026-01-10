@@ -3729,3 +3729,48 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 ### Files Modified:
 - curb: Enhanced cmd_status(), show_status(), added show_status_json()
 - tests/curb.bats: Added tests for subcommand and --json flag
+
+## Session: CLI Testing Implementation (curb-019)
+
+### Task: Write BATS tests for CLI dispatcher and routing
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Created comprehensive test suite in `tests/cli.bats` with 58 tests
+   - Subcommand routing tests (init, run, status, explain, artifacts, version)
+   - Help output tests for main CLI and all subcommands
+   - Deprecation warning tests for legacy flags (--status, --ready, --once, --plan)
+   - Backwards compatibility tests ensuring legacy invocations still work
+   - Unknown subcommand error handling
+   - Flag parsing tests for run subcommand options
+   - Global flag tests (--debug, --stream, --harness, --backend)
+   - Integration tests combining multiple flags
+
+### Test Results:
+- All 58 CLI-specific tests PASS
+- All existing tests continue to PASS
+- Test suite verifies the new subcommand structure introduced in curb-017/curb-018
+
+### Learnings:
+- **CURB_PROJECT_DIR environment variable**: Tests must set `export CURB_PROJECT_DIR="$TEST_DIR"` to ensure curb looks for prd.json in the test directory, not the repo root
+- **Mock harness setup**: Tests should create a mock harness in the test PATH to satisfy dependency checks without actually invoking Claude Code
+- **Template files**: Tests should create minimal PROMPT.md and AGENT.md files to avoid validation warnings
+- **Hanging tests**: Tests that invoke curb with unknown flags or no args will try to run the main loop and hang - use `timeout` command to prevent this
+- **Test organization**: Grouped tests by functionality (routing, help, deprecation, compatibility, flags, errors, integration) for clarity
+- **Deprecation testing**: Tests verify that `CURB_NO_DEPRECATION_WARNINGS=1` suppresses warnings as intended
+- **Exit code testing**: Some tests check exit codes, others check output patterns - use appropriate approach based on what matters
+- **Fixture usage**: `use_fixture "valid_prd.json" "prd.json"` copies fixture to test directory for realistic testing
+
+### Implementation Details:
+- Test file structure follows existing BATS conventions
+- Uses `load 'test_helper'` for common setup/teardown
+- Each test is independent with proper setup/teardown
+- Tests cover both happy paths and error conditions
+- Tests verify both new subcommand syntax and legacy flag syntax work correctly
+- Help text verification ensures user-facing documentation is present
+
+### Dependencies & Next Tasks:
+- curb-019 is now complete
+- CLI routing and dispatcher are fully tested
+- Test coverage ensures refactoring safety for future CLI changes
