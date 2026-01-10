@@ -3316,3 +3316,90 @@ Both functions follow the established pattern:
 - curb-006 is now complete
 - Artifacts system is now fully functional for task lifecycle tracking
 - Main loop can now: init_run → start_task → capture_plan/command/diff → finalize_task
+
+## Session 10: Session and Artifacts Integration (curb-010)
+
+### Task: Integrate session and artifacts into main loop
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Sourced lib/session.sh and lib/artifacts.sh in the main curb script
+   - Added source statements after hooks.sh
+   
+2. Added --name flag for session name override
+   - Supports both `--name value` and `--name=value` syntax
+   - Falls back to automatic animal name generation if not provided
+   - Can also be set via CURB_SESSION_NAME environment variable
+
+3. Session initialization in run_loop
+   - Calls session_init at the start of run_loop (after config_load)
+   - Uses --name flag if provided, otherwise generates random animal name
+   - Session ID format: {name}-{YYYYMMDD-HHMMSS}
+   - Logs session name and ID for visibility
+
+4. Artifacts initialization
+   - Calls artifacts_init_run after session_init
+   - Creates .curb/runs/{session-id}/ directory structure
+   - Generates run.json with session metadata and config snapshot
+
+5. Task-level artifact capture
+   - artifacts_start_task called before each task execution
+   - Creates task directory and task.json with metadata
+   - artifacts_capture_diff captures git diff after task completion
+   - artifacts_finalize_task generates summary and updates counters
+
+6. Logging and observability
+   - Session name logged at start: "Session: {animal} ({full-id})"
+   - Artifact paths logged in debug mode
+   - "Artifacts saved: {path}" message after task completion
+
+### Test Results:
+- All 394 tests PASS
+- 3 pre-existing test failures unrelated to this task (curb.bats tests for --status and --ready)
+- Artifacts integration tests all passing (53 artifact-specific tests)
+
+### Learnings:
+- **Library sourcing order matters**: Libraries must be sourced after their dependencies
+  - artifacts.sh depends on session.sh and xdg.sh
+  - Session must be initialized before artifacts can be used
+  
+- **Session state is optional**: Using session_is_initialized() checks before artifact calls
+  - Allows commands like --status and --ready to work without session
+  - Only run_loop initializes session, not one-off commands
+
+- **Artifact path construction**: Using $(pwd) in artifacts_get_path to get absolute paths
+  - Relative paths like .curb/runs/{session-id}/tasks/{task-id}
+  - Absolute paths needed for logging and external tools
+
+- **Task priority extraction**: Using jq with // operator for defaults
+  - `jq -r '.priority // "normal"'` provides fallback value
+  - Ensures priority is always present even for old task formats
+
+- **Pre-existing test failures**: Some tests in curb.bats were already failing
+  - Tests for --status and --ready fail due to PROJECT_DIR detection issues
+  - Not caused by this integration, verified with git stash
+  - Should be addressed in a separate task
+
+### Implementation Details:
+- Session initialized once per run_loop invocation
+- Artifacts created for each task execution
+- Git diff captured after each task to track changes
+- Summary.md generated with duration, exit code, files changed
+- run.json counters track tasks_completed and tasks_failed
+
+### Integration Points:
+- curb main script: lines 41-44 (source statements)
+- curb main script: lines 87-88 (SESSION_NAME variable)
+- curb main script: lines 612-648 (session and artifacts init in run_loop)
+- curb main script: lines 425-435 (artifacts_start_task before task execution)
+- curb main script: lines 572-599 (artifacts capture and finalization after task)
+- curb main script: lines 787-797 (--name flag parsing)
+
+### Files Modified:
+- curb (main script)
+
+### Next Tasks:
+- All tasks in prd.json are now closed
+- Consider addressing pre-existing test failures
+- Consider adding artifact viewing/querying commands
