@@ -26,6 +26,8 @@ source "${CURB_DIR}/lib/harness.sh"
 source "${CURB_DIR}/lib/xdg.sh"
 # Source configuration management
 source "${CURB_DIR}/lib/config.sh"
+# Source logger
+source "${CURB_DIR}/lib/logger.sh"
 
 # Load configuration early
 config_load
@@ -61,7 +63,7 @@ LABEL="${CURB_LABEL:-}"
 log_info() { echo -e "${BLUE}[curb]${NC} $1"; }
 log_success() { echo -e "${GREEN}[curb]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[curb]${NC} $1"; }
-log_error() { echo -e "${RED}[curb]${NC} $1" >&2; }
+_log_error_console() { echo -e "${RED}[curb]${NC} $1" >&2; }
 log_debug() {
     if [[ "$DEBUG" == "true" ]]; then
         echo -e "${DIM}${CYAN}[debug]${NC}${DIM} $1${NC}" >&2
@@ -79,7 +81,7 @@ check_deps() {
     fi
 
     if [[ ${#missing[@]} -gt 0 ]]; then
-        log_error "Missing dependencies: ${missing[*]}"
+        _log_error_console "Missing dependencies: ${missing[*]}"
         exit 1
     fi
 
@@ -102,7 +104,7 @@ validate_project() {
     else
         log_info "Using JSON backend (prd.json)"
         if [[ ! -f "${PROJECT_DIR}/prd.json" ]]; then
-            log_error "No prd.json found in ${PROJECT_DIR}"
+            _log_error_console "No prd.json found in ${PROJECT_DIR}"
             log_info "Run 'curb-init' to scaffold a new project"
             exit 1
         fi
@@ -131,7 +133,7 @@ show_status() {
     # Validate JSON before processing (only for json backend)
     if [[ "$backend" == "json" ]]; then
         if ! jq empty "$prd" 2>/dev/null; then
-            log_error "Invalid JSON in prd.json"
+            _log_error_console "Invalid JSON in prd.json"
             return 1
         fi
     fi
@@ -173,7 +175,7 @@ show_ready() {
     # Validate JSON before processing (only for json backend)
     if [[ "$backend" == "json" ]]; then
         if ! jq empty "$prd" 2>/dev/null; then
-            log_error "Invalid JSON in prd.json"
+            _log_error_console "Invalid JSON in prd.json"
             return 1
         fi
     fi
@@ -240,6 +242,20 @@ run_iteration() {
     local prd="${PROJECT_DIR}/prd.json"
     log_debug "Starting iteration"
 
+    # Initialize logger if not already initialized
+    if [[ -z "$(logger_get_file)" ]]; then
+        local project_name
+        project_name=$(basename "$PROJECT_DIR")
+        local session_id
+        session_id=$(date +"%Y%m%d-%H%M%S")
+
+        if logger_init "$project_name" "$session_id"; then
+            log_debug "Logger initialized: $(logger_get_file)"
+        else
+            log_warn "Failed to initialize logger"
+        fi
+    fi
+
     # Check for in-progress tasks first (resume interrupted work)
     # Respects --epic and --label filters
     local current_task
@@ -280,7 +296,7 @@ run_iteration() {
                 log_success "All tasks complete!"
                 return 0
             else
-                log_error "No ready tasks but ${open_count} tasks not closed. Check dependencies."
+                _log_error_console "No ready tasks but ${open_count} tasks not closed. Check dependencies."
                 return 1
             fi
         fi
@@ -347,6 +363,13 @@ run_iteration() {
         log_debug "Binary: $(which ${harness})"
     fi
 
+    # Extract task details for logging
+    local task_id=$(echo "$current_task" | jq -r '.id')
+    local task_title=$(echo "$current_task" | jq -r '.title')
+
+    # Log task start
+    log_task_start "$task_id" "$task_title" "$harness"
+
     # Run harness with the prompt via abstraction layer
     local start_time=$(date +%s)
     local exit_code=0
@@ -395,9 +418,14 @@ run_iteration() {
     log_debug "Duration: ${duration} seconds"
     log_debug "Exit code: ${exit_code}"
 
+    # Log task end (tokens_used defaulted to 0 since we don't have that info yet)
+    log_task_end "$task_id" "$exit_code" "$duration" 0
+
     if [[ $exit_code -ne 0 ]]; then
         log_warn "Claude Code exited with code ${exit_code}"
         log_debug "Non-zero exit may indicate: timeout, error, or user interrupt"
+        # Log error to structured logger
+        log_error "Harness exited with non-zero code" "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"harness\": \"$harness\"}"
     else
         log_debug "Claude Code completed successfully"
     fi
@@ -454,6 +482,18 @@ EOF
 run_loop() {
     local max_iterations="${CURB_MAX_ITERATIONS:-$(config_get_or "loop.max_iterations" "100")}"
     local iteration=0
+
+    # Initialize logger with project name and session ID
+    local project_name
+    project_name=$(basename "$PROJECT_DIR")
+    local session_id
+    session_id=$(date +"%Y%m%d-%H%M%S")
+
+    if logger_init "$project_name" "$session_id"; then
+        log_debug "Logger initialized: $(logger_get_file)"
+    else
+        log_warn "Failed to initialize logger"
+    fi
 
     log_info "Starting curb loop (max ${max_iterations} iterations)"
     log_debug "Max iterations: ${max_iterations}"
@@ -608,7 +648,7 @@ main() {
             if echo "Say hello" | claude -p; then
                 log_success "Test 1 passed"
             else
-                log_error "Test 1 failed (exit: $?)"
+                _log_error_console "Test 1 failed (exit: $?)"
             fi
             echo ""
             log_info "Test 2: Heredoc pipe"
@@ -616,7 +656,7 @@ main() {
             if claude -p <<< "Say goodbye"; then
                 log_success "Test 2 passed"
             else
-                log_error "Test 2 failed (exit: $?)"
+                _log_error_console "Test 2 failed (exit: $?)"
             fi
             echo ""
             log_info "Test 3: Multi-line prompt"
@@ -627,14 +667,14 @@ Say 'curb test successful' and nothing else."
             if echo "$test_prompt" | claude -p; then
                 log_success "Test 3 passed"
             else
-                log_error "Test 3 failed (exit: $?)"
+                _log_error_console "Test 3 failed (exit: $?)"
             fi
             echo ""
             log_success "All tests complete"
             ;;
         --migrate-to-beads)
             if [[ ! -f "${PROJECT_DIR}/prd.json" ]]; then
-                log_error "No prd.json found to migrate"
+                _log_error_console "No prd.json found to migrate"
                 exit 1
             fi
             log_info "Migrating from prd.json to beads..."
@@ -643,7 +683,7 @@ Say 'curb test successful' and nothing else."
             ;;
         --migrate-to-beads-dry-run)
             if [[ ! -f "${PROJECT_DIR}/prd.json" ]]; then
-                log_error "No prd.json found to migrate"
+                _log_error_console "No prd.json found to migrate"
                 exit 1
             fi
             log_info "DRY RUN: Showing what would be migrated..."
@@ -659,7 +699,7 @@ Say 'curb test successful' and nothing else."
                 current_task=$(get_ready_tasks "$prd" | jq 'first')
             fi
             if [[ "$current_task" == "null" || -z "$current_task" ]]; then
-                log_error "No tasks available"
+                _log_error_console "No tasks available"
                 exit 1
             fi
             local sys_file="${PROJECT_DIR}/curb_system_prompt.txt"

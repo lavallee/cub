@@ -273,3 +273,61 @@ The implementation was already present in the repository and working correctly. 
 ✓ task_start event logged with task_id, title, harness
 ✓ task_end event logged with duration, exit_code, tokens, git_sha
 ✓ Errors logged with context
+
+## Session 6: Config Integration into Main Script (curb-13j)
+
+### Task: Integrate config into main curb script
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Sourced `lib/config.sh` after `lib/xdg.sh` in the main curb script
+2. Added `config_load` call early in script initialization (before setting defaults)
+3. Replaced HARNESS default with `config_get_or "harness.default" "auto"`
+4. Replaced MAX_ITERATIONS with `config_get_or "loop.max_iterations" "100"`
+5. Maintained proper priority order: CLI flags > env vars > config file > hardcoded defaults
+
+### Test Results:
+- All 189 existing tests continue to PASS
+- Manual testing confirmed config file values are respected
+- Manual testing confirmed env vars and CLI flags override config values
+
+### Learnings:
+- **Config precedence architecture**: The bash `${VAR:-default}` pattern naturally implements priority
+  - `HARNESS="${HARNESS:-$(config_get_or "harness.default" "auto")}"` 
+  - This reads as: "Use $HARNESS if set, otherwise use config file value, otherwise use 'auto'"
+  - Priority chain: CLI flag sets HARNESS → env var sets HARNESS → config file → hardcoded default
+  - This pattern is clean and maintainable for bash scripts
+
+- **Early config loading**: Load config before setting any defaults
+  - Call `config_load` immediately after sourcing all libraries
+  - This ensures config is available when initializing variables
+  - Avoids race conditions where config might not be loaded yet
+
+- **Config key naming convention**: Use dot-notation for nested values
+  - `harness.default` maps to `{"harness": {"default": "auto"}}`
+  - `loop.max_iterations` maps to `{"loop": {"max_iterations": 100}}`
+  - This convention makes config files self-documenting and hierarchical
+
+- **Testing config integration**: Use temp directories with custom config files
+  - Create test config in /tmp with specific values
+  - Source libraries directly to test config loading
+  - Verify both config defaults and override behavior
+  - Don't need full BATS tests for config integration - simple bash scripts work well
+
+### Implementation Details:
+- Config is loaded once at script startup, then cached
+- The `config_get_or` function handles missing keys gracefully
+- CLI flag parsing happens after config loading, allowing flags to override
+- Comments added to clarify priority order for future maintainers
+
+### Acceptance Criteria Met:
+✓ curb respects config file harness priority
+✓ curb respects config file max_iterations  
+✓ CLI flags still override config values
+
+### Next Steps:
+This completes the config integration. Future config values can follow the same pattern:
+1. Add key to config.sh documentation
+2. Use `config_get_or "key.path" "default"` in curb script
+3. Ensure env vars and CLI flags can still override
