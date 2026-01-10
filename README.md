@@ -278,6 +278,98 @@ You can customize the harness priority in `.curb.json` or global config:
 
 Curb will try each harness in order and use the first one available. If none are found, it falls back to the default order.
 
+## Budget Management
+
+Curb provides token budget tracking to control AI API costs and prevent runaway spending.
+
+### How It Works
+
+Curb tracks token usage across all tasks and enforces budget limits:
+
+1. **Per-task tracking**: Each harness reports tokens used (where available)
+2. **Cumulative tracking**: Total tokens tracked per session in logs
+3. **Warning threshold**: Alert when budget usage reaches a configurable percentage
+4. **Hard limit**: Loop exits when budget is exceeded
+
+### Budget Configuration
+
+Set budget in your config file or via environment variable:
+
+**Global config** (`~/.config/curb/config.json`):
+```json
+{
+  "budget": {
+    "default": 1000000,
+    "warn_at": 0.8
+  }
+}
+```
+
+**Project override** (`.curb.json`):
+```json
+{
+  "budget": {
+    "default": 500000,
+    "warn_at": 0.75
+  }
+}
+```
+
+**Environment variable**:
+```bash
+export CURB_BUDGET=2000000  # Overrides both config files
+curb
+```
+
+### Budget Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `budget.default` | 1,000,000 | Token budget limit per session |
+| `budget.warn_at` | 0.8 | Warn when usage reaches this % (0.0-1.0) |
+
+### Common Budget Examples
+
+**For development/testing** (small projects):
+```bash
+export CURB_BUDGET=100000  # 100k tokens
+curb
+```
+
+**For medium projects** (most use cases):
+```bash
+export CURB_BUDGET=1000000  # 1M tokens (default)
+curb
+```
+
+**For large projects** (extensive refactoring):
+```bash
+export CURB_BUDGET=5000000  # 5M tokens
+curb
+```
+
+**For multi-day sessions**:
+```bash
+# Set higher budget if running multiple iterations
+export CURB_BUDGET=10000000  # 10M tokens
+curb --max-iterations 200
+```
+
+### Monitoring Budget Usage
+
+Check token usage in structured logs:
+
+```bash
+# View all budget warnings
+jq 'select(.event_type=="budget_warning")' ~/.local/share/curb/logs/myproject/*.jsonl
+
+# Track total tokens per session
+jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/curb/logs/myproject/*.jsonl
+
+# Find high-cost tasks
+jq 'select(.data.tokens_used > 10000)' ~/.local/share/curb/logs/myproject/*.jsonl
+```
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -398,6 +490,77 @@ jq -s '[.[].data.duration // 0] | add' logs/*.jsonl
 ## Hooks
 
 Curb provides a flexible hook system to integrate with external services and tools. Hooks are executable scripts that run at specific points in the curb lifecycle.
+
+### Hook Lifecycle
+
+The hook execution flow through a typical curb session:
+
+```
+┌─────────────────────────────────────────────────┐
+│                   curb Start                     │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │ pre-loop ✓   │  (setup, initialization)
+            └──────────────┘
+                   │
+                   ▼
+        ┌──────────────────────┐
+        │  Main Loop Starts    │
+        └──────┬───────────────┘
+               │
+        ┌──────▼──────────┐
+        │ pre-task ✓      │  (for each task)
+        └────────┬────────┘
+                 │
+                 ▼
+          ┌─────────────────┐
+          │ Execute Task    │
+          │  (harness)      │
+          └────────┬────────┘
+                   │
+        ┌──────────┴──────────┐
+        │                     │
+        ▼                     ▼
+   ┌──────────┐         ┌──────────┐
+   │ Success  │         │ Failure  │
+   └────┬─────┘         └────┬─────┘
+        │                    │
+        │              ┌─────▼──────┐
+        │              │ on-error ✓ │  (alert, logs)
+        │              └─────┬──────┘
+        │                    │
+        └────────┬───────────┘
+                 │
+                 ▼
+           ┌────────────────┐
+           │ post-task ✓    │  (metrics, notify)
+           └────────┬───────┘
+                    │
+        ┌───────────┴──────────┐
+        │                      │
+        ▼                      ▼
+    ┌────────┐           ┌──────────┐
+    │ More   │           │ All Done │
+    │ Tasks? │           └──────┬───┘
+    └───┬────┘                  │
+        │ yes                   │
+        ▼                       │
+   (Loop Back)                  │
+        │                       │
+        └───────────────────────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │ post-loop ✓  │  (cleanup, reports)
+            └──────────────┘
+                   │
+                   ▼
+            ┌──────────────┐
+            │  Exit Loop   │
+            └──────────────┘
+```
 
 ### Hook Points
 
