@@ -3476,3 +3476,40 @@ Both functions follow the established pattern:
 ✓ All artifacts functions have test coverage
 ✓ Tests verify JSON structure with jq
 ✓ Tests use isolated temp directories
+
+## curb-012: Create subcommand dispatcher (2026-01-10)
+
+### What Was Done
+- Implemented subcommand dispatcher in curb entry point
+- Created cmd_* handler functions for: init, run, status, explain, artifacts, version
+- Added dispatcher logic that checks first non-flag argument for subcommand match
+- Preserved full backwards compatibility with legacy --flag syntax
+
+### Key Implementation Details
+- Dispatcher checks if first arg is a subcommand (doesn't start with --)
+- Routes to cmd_* functions with remaining args
+- Falls through to legacy flag parsing if no subcommand matches
+- Unknown subcommands show error and help text
+- cmd_init delegates to curb-init script via exec
+- cmd_explain shows task details in human-readable format
+- cmd_artifacts supports list/show subcommands for artifact management
+
+### Testing
+- All 320+ BATS tests pass without modification
+- Manual testing confirms all subcommands work correctly
+- Legacy flags (--status, --ready, etc.) continue to work
+- Unknown subcommands properly handled with error + help
+
+### Design Patterns
+- Keep dispatcher simple - complex logic belongs in cmd_* functions
+- Each subcommand has dedicated cmd_* function
+- Subcommand functions handle their own validation
+- Backwards compatibility maintained by falling through to legacy case statement
+- Unknown subcommand detection checks if arg doesn't start with --
+
+### Lessons Learned
+- CURB_PROJECT_DIR environment variable can interfere with testing if set
+- Tests run in clean environment and don't inherit session variables
+- Dispatcher pattern allows gradual migration from flags to subcommands
+- Both patterns can coexist during transition period
+- "Claude Code Shell cwd was reset to X" messages are from environment, not our code
