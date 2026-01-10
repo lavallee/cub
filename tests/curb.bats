@@ -120,6 +120,8 @@ echo "Mocked harness"
 EOF
     chmod +x claude
 
+    # Suppress deprecation warnings so they don't pollute JSON output
+    export CURB_NO_DEPRECATION_WARNINGS=1
     run "$PROJECT_ROOT/curb" --status --json
     [ "$status" -eq 0 ]
     # Should be valid JSON
