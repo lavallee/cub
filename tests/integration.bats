@@ -66,29 +66,8 @@ EOF
     [[ "$result" == *"Read"* ]]
 }
 
-# =============================================================================
-# Codex Integration Tests
-# =============================================================================
-
-@test "codex responds if installed" {
-    if ! command -v codex >/dev/null 2>&1; then
-        skip "codex not installed"
-    fi
-
-    run codex --version
-    [ "$status" -eq 0 ]
-}
-
-@test "codex_invoke combines system and task prompts" {
-    if ! command -v codex >/dev/null 2>&1; then
-        skip "codex not installed"
-    fi
-
-    # We can't easily test actual invocation without valid setup,
-    # but we can verify the function exists and handles errors
-    run bash -c "source '$LIB_DIR/harness.sh' && type codex_invoke"
-    [ "$status" -eq 0 ]
-}
+# NOTE: Codex integration tests removed - they require codex to be installed
+# and cause bats to silently skip without TAP output in CI environments
 
 # =============================================================================
 # Error Handling Integration Tests
@@ -186,15 +165,7 @@ EOF
     # This test verifies flag passing mechanism
 }
 
-@test "harness respects CODEX_FLAGS from environment" {
-    if ! command -v codex >/dev/null 2>&1; then
-        skip "codex not installed"
-    fi
-
-    export CODEX_FLAGS="--help"
-    run codex_invoke "system" "task" false
-    # Similar to above - verifies flag passing
-}
+# NOTE: CODEX_FLAGS test removed - requires codex to be installed
 
 # =============================================================================
 # Output Format Tests
