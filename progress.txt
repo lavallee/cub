@@ -784,3 +784,93 @@ Foundation infrastructure is now fully in place:
 ### Next Steps:
 State verification module is complete. Can now be integrated into main loop to verify harness behavior after each iteration.
 
+## Session 13: Budget Tracking Implementation (curb-4l8)
+
+### Task: Implement budget.sh with token tracking
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. **Created `lib/budget.sh`** with token budget tracking functionality
+   - `budget_init(limit)` - Initialize budget limit for the session
+   - `budget_record(tokens)` - Add tokens to cumulative usage counter
+   - `budget_check()` - Returns 0 if within budget, 1 if over
+   - `budget_remaining()` - Echoes remaining tokens (can be negative)
+   - `budget_get_used()` - Returns current usage
+   - `budget_get_limit()` - Returns current limit
+   - `budget_clear()` - Clear state for testing
+
+2. **File-based state storage** (critical for bash compatibility)
+   - Uses temp files instead of global variables
+   - `_BUDGET_LIMIT_FILE` and `_BUDGET_USED_FILE` in `${TMPDIR:-/tmp}`
+   - Pattern follows config.sh approach for handling command substitution
+   - Trap ensures cleanup on exit
+
+3. **Created comprehensive test suite** in `tests/budget.bats`
+   - 24 tests covering all functionality
+   - Tests for initialization, validation, accumulation
+   - Tests for budget checking and remaining calculations
+   - Integration tests for full lifecycle scenarios
+   - All 4 acceptance criteria tests passing
+
+### Test Results:
+- All 24 new budget tests PASS
+- All 231 total tests PASS (207 existing + 24 new)
+
+### Learnings:
+
+- **File-based state is required for bash functions**: Cannot use global variables in bash when functions are called via command substitution
+  - Problem: `used=$(budget_get_used)` creates a subshell, variables don't persist
+  - Solution: Store state in temp files like config.sh does
+  - `${TMPDIR:-/tmp}/curb_budget_limit_$$` - unique per process
+  - Trap cleanup: `trap 'rm -f "$_BUDGET_LIMIT_FILE" "$_BUDGET_USED_FILE" 2>/dev/null' EXIT`
+
+- **BATS test exit codes matter**: When testing functions that return non-zero, use `run`
+  - Problem: `budget_check` when over budget returns 1, which fails the test
+  - Wrong: `budget_check; [ "$?" -eq 1 ]` - test fails immediately when budget_check returns 1
+  - Right: `run budget_check; [ "$status" -eq 1 ]` - captures exit code without failing
+  - This is critical for testing error conditions
+
+- **Arithmetic in bash**: Simple and reliable for token counting
+  - `new_used=$((current_used + tokens))` - bash arithmetic expansion
+  - `remaining=$((limit - used))` - handles negative values correctly
+  - No need for external tools like bc or awk for integers
+
+- **Parameter validation pattern**: Check for missing and invalid parameters
+  - Always validate required parameters: `if [[ -z "$param" ]]; then`
+  - Validate numeric parameters: `if ! [[ "$param" =~ ^[0-9]+$ ]]; then`
+  - Return 1 and echo error to stderr: `echo "ERROR: ..." >&2; return 1`
+  - Consistent error messages across all functions
+
+- **Testing state persistence**: Budget must persist across multiple function calls
+  - Read, modify, write pattern for accumulation
+  - `current_used=$(cat "$_BUDGET_USED_FILE" 2>/dev/null || echo "0")`
+  - Fallback to "0" if file doesn't exist yet
+  - Each function reads current state from file, never caches in memory
+
+- **Zero is a valid budget**: Allow zero as limit for special cases
+  - User might want to disable budget by setting to 0
+  - budget_check will return "over budget" immediately with any usage
+  - This is valid behavior, not an error condition
+
+### Implementation Details:
+- State stored in process-specific temp files (using `$$` for PID)
+- All functions validate parameters before processing
+- Error messages go to stderr with clear context
+- Exit codes: 0 for success, 1 for errors or over-budget
+- budget_remaining can return negative values (indicates overage)
+- budget_clear removes state files for test isolation
+
+### Acceptance Criteria Met:
+✓ budget_init sets limit correctly
+✓ budget_record accumulates usage
+✓ budget_check returns 1 when over
+✓ budget_remaining shows correct value
+
+### Next Steps:
+Budget tracking module is complete. Next tasks:
+1. Extract token usage from Claude harness output (curb-0hz)
+2. Integrate budget_check into main loop
+3. Add --budget CLI flag (curb-0ub)
+4. Add budget warning at threshold
+
