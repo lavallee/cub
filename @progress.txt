@@ -192,6 +192,34 @@ Implemented the cmd_artifacts function with full support for task artifact disco
 - curb-017: Add deprecation warnings for legacy flag syntax (can now focus on CLI polish)
 - Phase 2 tasks build on this stable artifact management foundation
 
+## Task: curb-016 - Implement cmd_artifacts (Verification 2026-01-10)
+
+### What was verified
+Task curb-016 was already implemented in a previous iteration. Verification confirmed:
+- cmd_artifacts function is fully functional and working as expected
+- All acceptance criteria met through manual testing
+- 'curb artifacts' lists recent task directories with paths
+- 'curb artifacts curb-016' returns the correct artifact path
+- 'curb artifacts curb-01' correctly shows ambiguous matches and asks for specificity
+- 'curb artifacts curb-999' provides helpful error message with guidance
+
+### Testing approach
+- Manual testing of all subcommands and error cases
+- Verified that the implementation handles edge cases gracefully
+- Confirmed script-friendly output for command composition
+
+### Key learnings
+1. The cmd_artifacts implementation is clean and efficient - uses find with appropriate depth limits
+2. The design decision to use direct task_id lookup instead of subcommands (list/show) is good
+3. The implementation properly handles the .curb/runs directory structure across multiple runs
+4. Error messages include helpful guidance (tip to run 'curb artifacts' to see available tasks)
+5. The command returns single path on stdout for easy shell integration
+
+### Task status
+- Verified working and closed in beads
+- No code changes needed
+- Committed verification completion
+
 ## Task: curb-008 - Write BATS tests for lib/session.sh (Completed 2026-01-10)
 
 ### What was done
