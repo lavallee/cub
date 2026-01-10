@@ -73,11 +73,17 @@ EOF
     use_fixture "valid_prd.json" "prd.json"
 
     run "$PROJECT_ROOT/curb" --ready
+    echo "Status: $status" >&3
+    echo "Output: $output" >&3
+    echo "PWD: $(pwd)" >&3
+    echo "Files: $(ls -la)" >&3
     [ "$status" -eq 0 ]
 }
 
 @test "curb fails gracefully when no prd.json exists" {
     run "$PROJECT_ROOT/curb" --status
+    echo "Status: $status" >&3
+    echo "Output: $output" >&3
     [ "$status" -ne 0 ]
     [[ "$output" == *"prd.json"* ]] || [[ "$output" == *"beads"* ]]
 }
@@ -88,6 +94,8 @@ EOF
     # Should use JSON backend
     export CURB_BACKEND="json"
     run "$PROJECT_ROOT/curb" --status
+    echo "Status: $status" >&3
+    echo "Output: $output" >&3
     [ "$status" -eq 0 ]
 }
 
