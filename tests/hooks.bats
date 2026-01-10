@@ -8,14 +8,15 @@ load test_helper
 setup() {
     setup_test_dir
 
-    # Source the hooks library
-    source "${PROJECT_ROOT}/lib/hooks.sh"
-
-    # Override curb_config_dir to use test directory
+    # Override curb_config_dir BEFORE sourcing hooks.sh
+    # This ensures hooks.sh uses our test directory
     curb_config_dir() {
         echo "$TEST_DIR/.config/curb"
     }
     export -f curb_config_dir
+
+    # Source the hooks library (will use our curb_config_dir)
+    source "${PROJECT_ROOT}/lib/hooks.sh"
 
     # Create config directory
     mkdir -p "$(curb_config_dir)"
