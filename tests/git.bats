@@ -42,10 +42,14 @@ teardown() {
 }
 
 @test "git_in_repo returns 1 when not in a git repository" {
-    # Create a new directory outside of git repo
-    NON_GIT_DIR="${BATS_TMPDIR}/non_git_$$"
+    # Create a new directory guaranteed to be outside any git repo
+    # Use /tmp directly to avoid BATS_TMPDIR which might be in the workspace
+    NON_GIT_DIR="/tmp/non_git_test_$$"
     mkdir -p "$NON_GIT_DIR"
     cd "$NON_GIT_DIR"
+
+    # Verify we're really outside a git repo
+    ! git rev-parse --git-dir >/dev/null 2>&1
 
     run git_in_repo
     [[ $status -eq 1 ]]
@@ -520,14 +524,15 @@ Line 3"
     local commit_msg
     commit_msg=$(git log -1 --pretty=%B)
 
-    # Extract from title [task_id]
-    local task_id_from_title
-    task_id_from_title=$(echo "$commit_msg" | head -1 | sed -E 's/^\[([^\]]+)\].*/\1/')
-    [[ "$task_id_from_title" == "curb-023" ]]
+    # Extract from title [task_id] using bash string manipulation (more portable)
+    local first_line
+    first_line=$(git log -1 --pretty=%s)
+    # Verify format starts with [task_id]
+    [[ "$first_line" =~ ^\[curb-023\] ]]
 
     # Extract from trailer Task-ID:
     local task_id_from_trailer
-    task_id_from_trailer=$(echo "$commit_msg" | grep "^Task-ID:" | sed 's/Task-ID: //')
+    task_id_from_trailer=$(echo "$commit_msg" | grep "^Task-ID:" | cut -d' ' -f2)
     [[ "$task_id_from_trailer" == "curb-023" ]]
 }
 

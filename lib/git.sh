@@ -232,8 +232,8 @@ git_stash_changes() {
     # Generate a unique stash identifier based on timestamp
     _GIT_STASH_ID="curb-stash-$(date +%s)"
 
-    # Stash changes with our identifier
-    if ! git stash push -m "$_GIT_STASH_ID" >/dev/null 2>&1; then
+    # Stash changes with our identifier (include untracked files)
+    if ! git stash push -u -m "$_GIT_STASH_ID" >/dev/null 2>&1; then
         echo "ERROR: Failed to stash changes" >&2
         _GIT_STASH_ID=""
         return 1
