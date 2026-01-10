@@ -25,6 +25,11 @@ setup_test_dir() {
     cat > "$MOCK_BIN_DIR/claude" << 'MOCK_EOF'
 #!/usr/bin/env bash
 # Mock claude harness for testing
+# Simulate auth error if ANTHROPIC_API_KEY is "invalid"
+if [[ "${ANTHROPIC_API_KEY:-}" == "invalid" ]]; then
+    echo "Error: Invalid API key" >&2
+    exit 1
+fi
 echo "Mock claude: $*"
 exit 0
 MOCK_EOF
