@@ -405,3 +405,118 @@ Logger integration is complete. Future enhancements could include:
 1. Token usage extraction from harness output (when available)
 2. Log analysis tools to generate reports from JSONL logs
 3. Real-time log monitoring/streaming for long-running loops
+
+## Session 8: Global Onboarding (curb-kiz)
+
+### Task: Add curb init --global for onboarding
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. Added --global flag handling to curb-init script
+   - Parses `--global` flag before processing project directory
+   - Routes to global initialization instead of project initialization
+   - Early exit after global init completes
+
+2. Dependency checking for global setup
+   - Checks for `jq` (required for JSON parsing)
+   - Checks for at least one harness (claude or codex)
+   - Provides installation instructions for missing dependencies
+   - Exits with clear error if dependencies missing
+
+3. Global directory structure creation
+   - Uses XDG Base Directory Specification via lib/xdg.sh
+   - Creates `~/.config/curb/` for configuration
+   - Creates `~/.local/share/curb/logs/` for logs
+   - Creates `~/.cache/curb/` for cache
+   - Uses `curb_ensure_dirs()` helper function
+
+4. Config file generation with sensible defaults
+   - Creates `~/.config/curb/config.json` with:
+     - `harness.default`: "auto" (auto-detect available harness)
+     - `harness.priority`: ["claude", "codex"] (preference order)
+     - `budget.default`: 1000000 tokens (reasonable default)
+     - `budget.warn_at`: 0.8 (warn at 80% of budget)
+     - `loop.max_iterations`: 100 (safety limit)
+     - `clean_state.require_commit`: true (ensure changes committed)
+     - `clean_state.require_tests`: false (opt-in for test enforcement)
+     - `hooks.enabled`: true (enable hook system)
+   - Skips creation if file already exists (idempotent)
+
+5. Hook directories creation
+   - Creates 5 hook directories under `~/.config/curb/hooks/`:
+     - `pre-loop.d/` - Before starting the main loop
+     - `pre-task.d/` - Before each task execution
+     - `post-task.d/` - After each task execution
+     - `on-error.d/` - When a task fails
+     - `post-loop.d/` - After the main loop completes
+   - Warns if directories already exist (idempotent)
+
+6. Comprehensive success message
+   - Shows paths to all created resources
+   - Lists next steps for the user
+   - Documents key configuration options
+   - Guides user to project initialization
+
+### Test Results:
+- Manual testing: `curb-init --global` successfully creates all files and directories
+- Idempotent: Running again shows appropriate warnings, doesn't fail
+- Regular project init: `curb-init .` still works correctly (not affected by new flag)
+- Dependencies: Properly detects jq and available harnesses
+
+### Learnings:
+- **Flag parsing in bash**: Parse flags before positional arguments
+  - Check `${1:-}` for flag, then shift if it matches
+  - Remaining arguments become positional parameters
+  - Use boolean variable to track flag state throughout script
+
+- **Sourcing libraries in scripts**: Must source dependencies early
+  - Source lib/xdg.sh at the top to get directory helpers
+  - Libraries must be sourced before using their functions
+  - Use `CURB_DIR` to find libraries relative to script location
+
+- **Idempotent initialization**: Check before creating
+  - Check if config file exists before writing
+  - Check if directories exist before creating (mkdir -p handles this)
+  - Provide different messages for "created" vs "already exists"
+  - Use warnings (log_warn) for skip cases, not errors
+
+- **User-friendly output**: Guide the user through next steps
+  - Show what was created and where
+  - Explain what each configuration option does
+  - Provide clear next steps (customize config, init project, start curb)
+  - Include installation instructions for missing dependencies
+
+- **Dependency checking pattern**: Clear error messages with instructions
+  - Check each dependency individually
+  - Collect all missing dependencies in an array
+  - Show installation instructions for each missing dependency
+  - Exit with error only after showing all missing items
+
+- **Config file defaults**: Balance between permissive and safe
+  - Large token budget (1000000) for experimentation
+  - Warn at 80% to give user time to decide
+  - Reasonable max_iterations (100) as safety net
+  - Require commits by default (ensure clean state)
+  - Don't require tests by default (opt-in for strictness)
+
+### Implementation Details:
+- Script structure: flag parsing → global init OR project init (not both)
+- Global init creates: config dir, logs dir, cache dir, hooks dirs, config file
+- Config format: Valid JSON with nested structure for related settings
+- Hook directories: Named with `.d` suffix following convention (e.g., `pre-task.d/`)
+- Exit code: 0 on success, 1 on missing dependencies
+- Project init: Completely unchanged, maintains backward compatibility
+
+### Acceptance Criteria Met:
+✓ curb init --global creates ~/.config/curb/config.json
+✓ Missing dependencies are reported clearly
+✓ Config has sensible defaults for budget, harness priority
+✓ Hook directories created
+
+### Next Steps:
+Global onboarding is complete. Users can now:
+1. Run `curb-init --global` for first-time setup
+2. Customize config file and add hooks
+3. Initialize projects with `curb-init <project-dir>`
+4. Start using curb with confidence that global config is properly set up
