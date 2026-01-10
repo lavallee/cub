@@ -801,17 +801,19 @@ teardown() {
     task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local summary_file="${task_dir}/summary.md"
 
+    [ -f "$summary_file" ] || { echo "summary.md not found at $summary_file"; return 1; }
+
     local summary_content
     summary_content=$(cat "$summary_file")
 
-    # Check for required fields
-    [[ "$summary_content" =~ "Task Summary: Test task" ]]
-    [[ "$summary_content" =~ "Task ID: test-001" ]]
-    [[ "$summary_content" =~ "Status: completed" ]]
-    [[ "$summary_content" =~ "Exit Code: 0" ]]
-    [[ "$summary_content" =~ "Duration:" ]]
-    [[ "$summary_content" =~ "Files Changed:" ]]
-    [[ "$summary_content" =~ "Task completed successfully" ]]
+    # Check for required fields (using markdown format with ** bold **)
+    [[ "$summary_content" == *"# Task Summary: Test task"* ]]
+    [[ "$summary_content" == *"**Task ID:** test-001"* ]]
+    [[ "$summary_content" == *"**Status:** completed"* ]]
+    [[ "$summary_content" == *"**Exit Code:** 0"* ]]
+    [[ "$summary_content" == *"**Duration:**"* ]]
+    [[ "$summary_content" == *"**Files Changed:**"* ]]
+    [[ "$summary_content" == *"Task completed successfully"* ]]
 }
 
 @test "artifacts_finalize_task: summary.md has 600 permissions" {
