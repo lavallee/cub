@@ -33,6 +33,8 @@ source "${CURB_DIR}/lib/logger.sh"
 source "${CURB_DIR}/lib/state.sh"
 # Source budget tracking
 source "${CURB_DIR}/lib/budget.sh"
+# Source hooks framework
+source "${CURB_DIR}/lib/hooks.sh"
 
 # Load configuration early
 config_load
@@ -380,6 +382,12 @@ run_iteration() {
     # Log task start
     log_task_start "$task_id" "$task_title" "$harness"
 
+    # Run pre-task hooks
+    log_debug "Running pre-task hooks..."
+    hooks_set_task_context "$task_id" "$task_title"
+    hooks_run "pre-task"
+    log_debug "Pre-task hooks complete"
+
     # Run harness with the prompt via abstraction layer
     local start_time=$(date +%s)
     local exit_code=0
@@ -470,6 +478,12 @@ run_iteration() {
         log_debug "Non-zero exit may indicate: timeout, error, or user interrupt"
         # Log error to structured logger
         log_error "Harness exited with non-zero code" "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"harness\": \"$harness\"}"
+
+        # Run on-error hooks
+        log_debug "Running on-error hooks..."
+        hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+        hooks_run "on-error"
+        log_debug "On-error hooks complete"
     else
         log_debug "Claude Code completed successfully"
 
@@ -493,6 +507,12 @@ run_iteration() {
             fi
         fi
     fi
+
+    # Run post-task hooks (always run, regardless of success/failure)
+    log_debug "Running post-task hooks..."
+    hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+    hooks_run "post-task"
+    log_debug "Post-task hooks complete"
 
     return $exit_code
 }
@@ -564,6 +584,12 @@ run_loop() {
     log_debug "Loop starting at: $(date)"
     echo ""
 
+    # Run pre-loop hooks
+    log_debug "Running pre-loop hooks..."
+    hooks_set_session_context "$session_id" "$(harness_get)"
+    hooks_run "pre-loop"
+    log_debug "Pre-loop hooks complete"
+
     while [[ $iteration -lt $max_iterations ]]; do
         iteration=$((iteration + 1))
         log_info "=== Iteration ${iteration} ==="
@@ -578,6 +604,10 @@ run_loop() {
         if [[ "$remaining" -eq 0 ]]; then
             log_success "All tasks complete! Exiting loop."
             show_status
+            # Run post-loop hooks
+            log_debug "Running post-loop hooks..."
+            hooks_run "post-loop"
+            log_debug "Post-loop hooks complete"
             return 0
         fi
 
@@ -602,6 +632,10 @@ run_loop() {
                 log_success "Budget exceeded (used ${used} of ${limit} tokens)"
                 log_info "Stopping gracefully due to budget limit"
                 show_status
+                # Run post-loop hooks
+                log_debug "Running post-loop hooks..."
+                hooks_run "post-loop"
+                log_debug "Post-loop hooks complete"
                 return 0
             fi
         fi
@@ -614,6 +648,10 @@ run_loop() {
     log_warn "Reached max iterations (${max_iterations})"
     log_debug "Loop terminated at: $(date)"
     show_status
+    # Run post-loop hooks
+    log_debug "Running post-loop hooks..."
+    hooks_run "post-loop"
+    log_debug "Post-loop hooks complete"
     return 1
 }
 
