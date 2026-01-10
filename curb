@@ -1317,6 +1317,26 @@ run_iteration() {
         fi
     fi
 
+    # Initialize git run branch if in a git repository (only if not already initialized)
+    if git_in_repo; then
+        local current_branch
+        current_branch=$(git_get_run_branch 2>/dev/null)
+        if [[ -z "$current_branch" ]]; then
+            log_debug "Initializing git run branch..."
+            local session_name
+            session_name=$(session_get_name)
+            if git_init_run_branch "$session_name"; then
+                local branch_name
+                branch_name=$(git_get_run_branch)
+                log_info "Git branch: ${branch_name}"
+            else
+                log_warn "Failed to initialize git run branch"
+            fi
+        fi
+    else
+        log_debug "Not in a git repository, skipping git operations"
+    fi
+
     # Check for in-progress tasks first (resume interrupted work)
     # Respects --epic and --label filters
     local current_task
@@ -1606,6 +1626,16 @@ run_iteration() {
         fi
     fi
 
+    # Commit changes if task was successful and we're in a git repository
+    if [[ $exit_code -eq 0 ]] && git_in_repo; then
+        log_debug "Committing task changes..."
+        if git_commit_task "$task_id" "$task_title" "$summary_text"; then
+            log_info "Changes committed to git"
+        else
+            log_warn "Failed to commit changes (this is not an error if there were no changes)"
+        fi
+    fi
+
     return $exit_code
 }
 
@@ -1695,6 +1725,22 @@ run_loop() {
         log_debug "Artifacts initialized: ${artifacts_path}"
     else
         log_warn "Failed to initialize artifacts"
+    fi
+
+    # Initialize git run branch if in a git repository
+    if git_in_repo; then
+        log_debug "Initializing git run branch..."
+        local session_name
+        session_name=$(session_get_name)
+        if git_init_run_branch "$session_name"; then
+            local branch_name
+            branch_name=$(git_get_run_branch)
+            log_info "Git branch: ${branch_name}"
+        else
+            log_warn "Failed to initialize git run branch"
+        fi
+    else
+        log_debug "Not in a git repository, skipping git operations"
     fi
 
     log_info "Starting curb loop (max ${max_iterations} iterations)"
