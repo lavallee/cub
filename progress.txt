@@ -3685,3 +3685,47 @@ Moved curb-init logic into cmd_init to consolidate CLI subcommands and reduce ma
 - Optional: Update legacy flag tests in curb.bats
 - Consider closing curb-015, curb-016 as they're already implemented
 
+
+## Task: curb-015 (2026-01-10)
+
+### Context:
+Migrated --status flag to 'curb status' subcommand and added --json output option for machine-readable status reporting.
+
+### Key Learnings:
+- **Subcommand with flags**: cmd_status() demonstrates the pattern for subcommands that accept their own flags (--json)
+- **JSON mode output cleanliness**: When outputting JSON, all logging must be suppressed to ensure valid JSON. Used `validate_project >/dev/null 2>&1` to silence validation logs.
+- **Dual interface support**: Both modern subcommand (`curb status`) and legacy flag (`curb --status`) work by passing remaining args through in both dispatchers
+- **Flag parsing in subcommands**: Used while loop with case statement to parse subcommand-specific flags like --json
+- **Enhanced status display**: Added current session info and most recent run details to provide better visibility into project state
+
+### Implementation Details:
+- cmd_status() parses --json flag and routes to show_status() or show_status_json()
+- show_status() enhanced to display:
+  - Task counts with progress bar
+  - Current session name/ID (if initialized)
+  - Most recent run ID, start time, status, and path
+- show_status_json() outputs structured JSON with:
+  - task_counts: {total, open, in_progress, closed}
+  - current_session: {name, id} or null
+  - most_recent_run: {id, started_at, status, path} or null
+- Subcommand dispatcher passes args via: `cmd_status "${args[@]:1}"`
+- Legacy flag handler updated to pass args: `cmd_status "${args[@]:1}"`
+
+### Test Results:
+- Manual testing: ✅ All functionality working
+  - `curb status` - displays formatted status with session and run info
+  - `curb status --json` - outputs valid, parseable JSON
+  - `curb --status` - legacy flag still works
+  - `curb --status --json` - legacy flag with JSON works
+- BATS tests: Added 4 new tests for status functionality
+- Note: 3 pre-existing test failures (documented in curb-013 entry) remain unchanged
+
+### Acceptance Criteria Verification:
+✅ 'curb status' shows current/last run status
+✅ 'curb status --json' outputs valid JSON
+✅ Shows task completion counts
+✅ Shows path to recent artifacts
+
+### Files Modified:
+- curb: Enhanced cmd_status(), show_status(), added show_status_json()
+- tests/curb.bats: Added tests for subcommand and --json flag
