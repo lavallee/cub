@@ -2263,3 +2263,81 @@ Gemini harness is complete and ready for use. Users can:
 5. Consider AGENTS.md setup command for advanced users
 6. Document reasoning token limitation in code comments
 7. Test with multiple providers (OpenAI, Anthropic, etc.)
+
+## Session: OpenCode Harness Implementation (curb-lop)
+
+### Task: Implement OpenCode harness
+
+**Date:** 2026-01-10
+
+### Implementation Summary
+
+Successfully implemented OpenCode as a supported harness in lib/harness.sh following the pattern from Claude, Codex, and Gemini implementations. The implementation includes full support for token usage tracking via JSON streaming.
+
+### Key Implementation Details
+
+1. **Command Structure**:
+   - OpenCode requires `opencode run` subcommand for autonomous operation
+   - Auto-approval is built-in to `run` mode (no flag needed like Gemini's `-y`)
+   - Combined system + task prompts with `---` separator (same as Gemini/Codex)
+
+2. **Streaming and Token Tracking**:
+   - `--format json` flag enables structured JSON event streaming
+   - Token usage extracted from `step_finish` events
+   - Token structure: `.part.tokens.input/output/reasoning/cache.read/cache.write`
+   - Maps `cache.write` to `cache_creation_tokens` for harness.sh compatibility
+   - Reasoning tokens tracked but not currently used (for future o1-style models)
+
+3. **Model Selection**:
+   - Requires `provider/model` format (e.g., `anthropic/claude-sonnet-4`)
+   - Auto-prepends `anthropic/` if `CURB_MODEL` doesn't contain `/`
+   - Supports other providers via explicit format: `openai/gpt-4o`
+
+4. **Priority in Detection**:
+   - Added to harness_detect() after Claude, before Codex/Gemini
+   - Priority: claude > opencode > codex > gemini
+   - Rationale: OpenCode has better token reporting than Codex/Gemini
+
+5. **Environment Variables**:
+   - `OPENCODE_FLAGS` for passing custom flags (follows pattern of CLAUDE_FLAGS, CODEX_FLAGS, GEMINI_FLAGS)
+   - `CURB_MODEL` supported with automatic provider prefix
+
+### Testing Results
+
+- All 301 existing tests pass
+- Manual testing confirmed:
+  - ✅ Basic invocation works (`opencode_invoke`)
+  - ✅ Streaming invocation works (`opencode_invoke_streaming`)
+  - ✅ Token extraction works (input, output, cache read/write, cost)
+  - ✅ Harness detection works (`HARNESS=opencode`)
+  - ✅ Version check works (returns 1.0.220)
+
+### Learnings
+
+1. **OpenCode JSON Structure**:
+   - Nested token structure: `.part.tokens.*` (not flat like Claude's `.usage.*`)
+   - Cache tokens use `cache.read` and `cache.write` (not `cache_read_input_tokens`)
+   - Cost reported directly in USD (not always present in Claude)
+
+2. **Parser Pattern**:
+   - OpenCode's `text` event contains full text in `.part.text` (not delta)
+   - Use `printf "%s"` instead of `echo` to preserve formatting
+   - Accumulate usage across multiple `step_finish` events (sessions can have multiple steps)
+
+3. **Production Recommendations**:
+   - For better caching, consider using AGENTS.md file instead of prompt concatenation
+   - Can create custom agents via `opencode.json` for project-specific configuration
+   - Session management features available but not needed for curb's use case
+
+### Next Steps Completed
+
+- ✅ Task curb-lop marked as closed in beads
+- ✅ Changes committed with detailed message
+- ✅ All tests pass
+- ✅ Learnings documented in progress.txt
+
+### Files Modified
+
+- lib/harness.sh (152 lines added, 4 lines modified)
+- .beads/issues.jsonl (task closed)
+
