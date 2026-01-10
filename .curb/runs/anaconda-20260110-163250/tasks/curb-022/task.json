@@ -1,0 +1,10 @@
+{
+  "task_id": "curb-022",
+  "title": "Implement git_init_run_branch with naming convention",
+  "priority": "P0",
+  "status": "failed",
+  "started_at": "2026-01-10T21:40:52Z",
+  "iterations": 1,
+  "completed_at": "2026-01-10T21:49:47Z",
+  "exit_code": 1
+}

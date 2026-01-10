@@ -168,3 +168,87 @@ git_get_run_branch() {
     echo "$_GIT_RUN_BRANCH"
     return 0
 }
+
+# Commit all changes with a structured task message format
+# Stages all changes and creates a commit with task attribution.
+#
+# Parameters:
+#   $1 - task_id: The task identifier (e.g., "curb-023")
+#   $2 - task_title: The task title/description
+#   $3 - summary: Optional summary text for the commit body
+#
+# Returns:
+#   0 on success (commit created)
+#   0 if nothing to commit (not an error, just a no-op)
+#   1 on error (invalid parameters or git command failure)
+#
+# Commit Message Format:
+#   [task_id] task_title
+#
+#   summary (if provided)
+#
+#   Task-ID: task_id
+#
+# Example:
+#   git_commit_task "curb-023" "Implement git_commit_task" "Added function with tests"
+git_commit_task() {
+    local task_id="$1"
+    local task_title="$2"
+    local summary="$3"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_title" ]]; then
+        echo "ERROR: task_title is required" >&2
+        return 1
+    fi
+
+    # Check if we're in a git repository
+    if ! git_in_repo; then
+        echo "ERROR: Not in a git repository" >&2
+        return 1
+    fi
+
+    # Stage all changes
+    if ! git add -A 2>/dev/null; then
+        echo "ERROR: Failed to stage changes" >&2
+        return 1
+    fi
+
+    # Check if there's anything to commit
+    if git diff --cached --quiet HEAD 2>/dev/null; then
+        # Nothing staged, check if repo is completely clean
+        if git_is_clean; then
+            # Nothing to commit, but this is not an error
+            return 0
+        fi
+    fi
+
+    # Build commit message
+    local commit_msg
+    commit_msg="[${task_id}] ${task_title}"
+
+    # Add summary if provided
+    if [[ -n "$summary" ]]; then
+        commit_msg="${commit_msg}
+
+${summary}"
+    fi
+
+    # Add task ID trailer
+    commit_msg="${commit_msg}
+
+Task-ID: ${task_id}"
+
+    # Create commit using heredoc for proper multi-line handling
+    if ! git commit -m "$commit_msg" >/dev/null 2>&1; then
+        echo "ERROR: Failed to create commit" >&2
+        return 1
+    fi
+
+    return 0
+}
