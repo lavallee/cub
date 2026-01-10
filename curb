@@ -428,8 +428,28 @@ run_iteration() {
     log_debug "Duration: ${duration} seconds"
     log_debug "Exit code: ${exit_code}"
 
-    # Log task end (tokens_used defaulted to 0 since we don't have that info yet)
-    log_task_end "$task_id" "$exit_code" "$duration" 0
+    # Extract token usage from harness
+    local tokens_used=0
+    tokens_used=$(harness_get_total_tokens)
+    log_debug "Tokens used: ${tokens_used}"
+
+    # Record token usage in budget if budget is initialized
+    local budget_remaining=""
+    local budget_total=""
+    if [[ -f "${TMPDIR:-/tmp}/curb_budget_limit_$$" ]]; then
+        log_debug "Recording ${tokens_used} tokens to budget"
+        budget_record "$tokens_used"
+        budget_remaining=$(budget_remaining)
+        budget_total=$(budget_get_limit)
+        log_debug "Budget: ${budget_remaining} remaining of ${budget_total}"
+    fi
+
+    # Log task end with budget information
+    if [[ -n "$budget_remaining" && -n "$budget_total" ]]; then
+        log_task_end "$task_id" "$exit_code" "$duration" "$tokens_used" "$budget_remaining" "$budget_total"
+    else
+        log_task_end "$task_id" "$exit_code" "$duration" "$tokens_used"
+    fi
 
     if [[ $exit_code -ne 0 ]]; then
         log_warn "Claude Code exited with code ${exit_code}"
@@ -558,6 +578,19 @@ run_loop() {
         log_info "Iteration ${iteration} complete. ${remaining} tasks remaining."
         log_debug "--- Iteration ${iteration} end: $(date) ---"
         echo ""
+
+        # Check budget after iteration if budget is initialized
+        if [[ -f "${TMPDIR:-/tmp}/curb_budget_limit_$$" ]]; then
+            if ! budget_check; then
+                local used=$(budget_get_used)
+                local limit=$(budget_get_limit)
+                echo ""
+                log_success "Budget exceeded (used ${used} of ${limit} tokens)"
+                log_info "Stopping gracefully due to budget limit"
+                show_status
+                return 0
+            fi
+        fi
 
         # Brief pause between iterations to allow for interruption
         log_debug "Sleeping 2 seconds before next iteration..."

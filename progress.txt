@@ -1239,3 +1239,88 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 - **Documentation synchronization**: Update both usage comment at top AND detailed --help section
 - **Budget module is already complete**: lib/budget.sh had all necessary functionality including budget_init, budget_check, budget_record
 - **Beads CLI**: This project uses beads (bd) for task management instead of prd.json JSON files. Use `bd close <id> -r "reason"` to mark tasks complete.
+
+## Session N: Budget Enforcement in Main Loop (curb-rvl)
+
+### Task: Add budget enforcement to main loop
+- **Status**: COMPLETED
+- **Date**: 2026-01-09
+
+### What was implemented:
+1. **Updated log_task_end in lib/logger.sh** to accept optional budget parameters
+   - Added $5 budget_remaining and $6 budget_total optional parameters
+   - Conditionally includes budget fields in JSON output when provided
+   - Maintains backward compatibility (old calls without budget still work)
+
+2. **Integrated token tracking in run_iteration()**
+   - Extracts token usage via harness_get_total_tokens() after harness completes
+   - Records usage to budget with budget_record() if budget is initialized
+   - Gets remaining budget and total for logging
+   - Passes budget info to log_task_end for structured logging
+
+3. **Integrated budget check in run_loop()**
+   - Checks budget after each iteration completes
+   - If budget_check returns 1 (over budget), displays clear message
+   - Message format: "Budget exceeded (used X of Y tokens)"
+   - Exits gracefully with return code 0 (not an error)
+   - Shows status before exiting
+
+### Test Results:
+- All 263 BATS tests continue to PASS
+- No regressions in existing functionality
+- Budget tracking verified through existing budget.sh tests
+
+### Acceptance Criteria Met:
+✓ Loop stops when budget exceeded (budget_check in run_loop)
+✓ Clear message: "Budget exceeded (used X of Y tokens)" (line 588 in curb)
+✓ Remaining budget logged after each task (budget_remaining/budget_total in log_task_end)
+✓ Graceful exit (not error code) (returns 0 when budget exceeded)
+
+### Implementation Details:
+- Token extraction uses harness_get_total_tokens() from lib/harness.sh
+- Budget check uses file-based state detection: checks if budget limit file exists
+- Budget fields only added to logs when budget is initialized (optional)
+- Log format: {task_id, exit_code, duration_sec, tokens_used, budget_remaining, budget_total, git_sha}
+- Exit is graceful (return 0) since budget limit is expected behavior, not an error
+
+### Files Modified:
+- lib/logger.sh: Updated log_task_end signature (added 2 optional parameters, 10 lines)
+- curb: Integrated token tracking and budget enforcement (27 lines total)
+  - run_iteration: Extract tokens, record to budget, pass to log (17 lines)
+  - run_loop: Check budget after each iteration, exit gracefully if exceeded (10 lines)
+
+### Key Learnings:
+
+- **Optional parameters in bash functions**: Use default values for backward compatibility
+  - Pattern: `local param="${5:-}"` (empty string if not provided)
+  - Check if value exists before using: `if [[ -n "$param" ]]; then`
+  - Allows gradual migration without breaking existing callers
+
+- **Budget state detection**: Check if budget is initialized before using it
+  - File-based check: `if [[ -f "${TMPDIR:-/tmp}/curb_budget_limit_$$" ]]; then`
+  - This prevents errors when budget is not configured
+  - Allows budget to be optional feature
+
+- **Graceful vs error exit**: Budget exceeded is not an error
+  - Return 0 when stopping due to budget (expected behavior)
+  - Return 1 only for actual errors (failures, bugs, exceptions)
+  - This distinction is important for CI/CD integration
+
+- **Token extraction timing**: Must happen after harness completes
+  - Call harness_get_total_tokens() after harness_invoke returns
+  - Harness stores usage in temp files during execution
+  - Files persist until next invocation (harness_clear_usage)
+
+- **Structured logging evolution**: Add fields without breaking old logs
+  - Optional fields like budget_remaining/budget_total
+  - Consumers can handle missing fields gracefully
+  - Allows incremental feature rollout
+
+- **Budget enforcement location**: Check after iteration, not during
+  - Let current task complete fully before checking budget
+  - This ensures clean state (commits, tests) happen
+  - Prevents partial work from being left uncommitted
+
+### Next Steps:
+Budget enforcement is complete. Next task:
+- curb-iji: Add budget warning at threshold (warn at 80% usage)

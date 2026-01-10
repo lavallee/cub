@@ -221,6 +221,8 @@ log_task_end() {
     local exit_code="$2"
     local duration_sec="$3"
     local tokens_used="${4:-0}"
+    local budget_remaining="${5:-}"
+    local budget_total="${6:-}"
 
     # Validate required arguments
     if [[ -z "$task_id" ]]; then
@@ -244,13 +246,25 @@ log_task_end() {
 
     # Build JSON data using jq for safe construction
     local data_json
-    data_json=$(jq -cn \
-        --arg task_id "$task_id" \
-        --argjson exit_code "$exit_code" \
-        --argjson duration_sec "$duration_sec" \
-        --argjson tokens_used "$tokens_used" \
-        --arg git_sha "$git_sha" \
-        '{task_id: $task_id, exit_code: $exit_code, duration_sec: $duration_sec, tokens_used: $tokens_used, git_sha: $git_sha}')
+    if [[ -n "$budget_remaining" && -n "$budget_total" ]]; then
+        data_json=$(jq -cn \
+            --arg task_id "$task_id" \
+            --argjson exit_code "$exit_code" \
+            --argjson duration_sec "$duration_sec" \
+            --argjson tokens_used "$tokens_used" \
+            --argjson budget_remaining "$budget_remaining" \
+            --argjson budget_total "$budget_total" \
+            --arg git_sha "$git_sha" \
+            '{task_id: $task_id, exit_code: $exit_code, duration_sec: $duration_sec, tokens_used: $tokens_used, budget_remaining: $budget_remaining, budget_total: $budget_total, git_sha: $git_sha}')
+    else
+        data_json=$(jq -cn \
+            --arg task_id "$task_id" \
+            --argjson exit_code "$exit_code" \
+            --argjson duration_sec "$duration_sec" \
+            --argjson tokens_used "$tokens_used" \
+            --arg git_sha "$git_sha" \
+            '{task_id: $task_id, exit_code: $exit_code, duration_sec: $duration_sec, tokens_used: $tokens_used, git_sha: $git_sha}')
+    fi
 
     if [[ $? -ne 0 ]]; then
         echo "ERROR: Failed to construct task_end JSON" >&2
