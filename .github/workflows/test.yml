@@ -39,5 +39,8 @@ jobs:
       - name: Install bats-core
         run: brew install bats-core
 
+      - name: Install jq
+        run: brew install jq
+
       - name: Run tests
         run: bats tests/
