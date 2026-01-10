@@ -45,15 +45,8 @@ teardown() {
     [ "$status" -ne 0 ]
 }
 
-@test "claude_invoke_streaming handles timeout" {
-    if ! command -v claude >/dev/null 2>&1; then
-        skip "claude not installed"
-    fi
-
-    # Set very short timeout to trigger timeout scenario
-    # Note: This test might be flaky depending on network
-    skip "Timeout testing requires custom timeout implementation"
-}
+# NOTE: Timeout test removed - requires custom timeout implementation
+# and was causing bats to silently skip without TAP output
 
 @test "claude_parse_stream handles real Claude stream-json output" {
     if ! command -v claude >/dev/null 2>&1; then
@@ -123,10 +116,8 @@ EOF
     [ "$status" -eq 127 ]
 }
 
-@test "harness_invoke handles empty prompts" {
-    # Skip this test - invoking claude with empty prompt can hang waiting for input
-    skip "Claude with empty prompt and invalid auth can hang - tested via unit tests instead"
-}
+# NOTE: Empty prompt test removed - invoking claude with empty prompt can hang
+# and was causing bats to silently skip without TAP output
 
 @test "harness_invoke handles very long prompts" {
     # Create a very long prompt (simulating large context)

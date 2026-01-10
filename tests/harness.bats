@@ -336,9 +336,9 @@ EOF
     [ "$status" -eq 0 ]
 
     # Verify all required fields present
-    echo "$output" | jq -e '.input_tokens' >/dev/null
-    echo "$output" | jq -e '.output_tokens' >/dev/null
-    echo "$output" | jq -e '.estimated' >/dev/null
+    [ "$(echo "$output" | jq -e '.input_tokens')" != "null" ]
+    [ "$(echo "$output" | jq -e '.output_tokens')" != "null" ]
+    [ "$(echo "$output" | jq -e '.estimated')" != "null" ]
 }
 
 @test "ACCEPTANCE: Fallback to estimate if not available" {
