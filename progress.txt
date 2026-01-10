@@ -1609,3 +1609,91 @@ Hooks framework is complete. Future integration tasks:
 3. Set context before each hook invocation
 4. Document hook usage in README for users
 
+## Session 5: Hook Directory Scanning (curb-zrg)
+
+### Task: Add hook directory scanning
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Created `hooks_find(hook_name)` function in `lib/hooks.sh`
+   - Scans both global (~/.config/curb/hooks/{hook_name}.d/) and project (./.curb/hooks/{hook_name}.d/) directories
+   - Returns list of executable scripts (one per line)
+   - Filters to executable files only (using find -perm +111)
+   - Returns scripts in sorted order (global hooks first, then project)
+   - Validates hook_name parameter and returns error if empty
+
+2. Refactored `hooks_run()` to use `hooks_find()` internally
+   - Eliminated code duplication
+   - Maintains existing functionality and behavior
+   - All existing tests continue to pass
+   - hooks_run() now delegates script discovery to hooks_find()
+
+3. Added comprehensive test coverage in `tests/hooks.bats`
+   - 8 new tests for hooks_find function
+   - 4 acceptance criteria tests validating all requirements
+   - Tests cover: empty results, global directory, project directory, sorting, filtering, merging
+
+### Test Results:
+- All 301 tests PASS (including 12 new hooks_find tests)
+- 4 acceptance criteria tests PASS:
+  - AC: hooks_find finds hooks in global directory
+  - AC: hooks_find finds hooks in project directory
+  - AC: hooks_find merges both global and project (global first)
+  - AC: hooks_find only returns executable files
+
+### Learnings:
+- **Function composition pattern**: Extract common logic into reusable function
+  - hooks_find() handles script discovery
+  - hooks_run() focuses on execution and context management
+  - Cleaner separation of concerns
+  - Easier to test and maintain
+
+- **Reading directories with sorted output**: Use find with -print0 and sort -z
+  - Pattern: `find "$dir" -type f -perm +111 -print0 2>/dev/null | sort -z`
+  - -print0 and sort -z handle filenames with spaces correctly
+  - Null-terminated strings are preserved during sort
+  - 2>/dev/null suppresses error output for non-existent directories
+
+- **Building arrays from variable output**: Use while with read -r
+  - Pattern for reading newline-separated output:
+    ```bash
+    while IFS= read -r line; do
+      array+=("$line")
+    done < <(command)
+    ```
+  - Important to capture process substitution output correctly
+  - Alternative to command substitution when piping
+
+- **Testing directory scanning logic**: Multiple scenarios needed
+  - Test empty directories (no output)
+  - Test single source (global or project only)
+  - Test both sources together (merging behavior)
+  - Test filtering (non-executable files excluded)
+  - Test sorting order (global scripts appear before project)
+
+### Acceptance Criteria Met:
+✓ Finds hooks in global directory
+✓ Finds hooks in project directory
+✓ Merges both (global runs first)
+✓ Only returns executable files
+✓ Scripts sorted by filename
+
+### Implementation Details:
+- hooks_find() returns newline-separated paths (one path per line)
+- Validates hook_name (returns error code 1 if empty)
+- Uses same directory scanning logic as original hooks_run()
+- Global directory processed first, then project directory
+- Executable bit checked via find -perm +111
+- Works with any hook point name (pre-loop, post-task, on-error, etc.)
+
+### Files Modified:
+- lib/hooks.sh: Added hooks_find() function, refactored hooks_run() to use it
+- tests/hooks.bats: Added 12 new tests for hooks_find
+
+### Impact:
+- hooks_find() can be used by other parts of the system to introspect available hooks
+- Eliminates code duplication between hooks discovery and execution
+- Maintains backward compatibility with all existing hooks_run() usage
+- Ready to support future features that need hook introspection
+
