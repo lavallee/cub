@@ -4517,3 +4517,45 @@ All tests passing (647/649, 2 pre-existing failures unrelated to redaction).
 - Unblocks: curb-035 (Write BATS tests for iteration tracking)
 - Related to: curb-036 (CHECKPOINT: Verify guardrails prevent runaway loops)
 
+
+## 2026-01-11 - curb-035: BATS Tests for Iteration Tracking and Secret Redaction
+
+### What I Found
+- Tests for iteration tracking already existed in tests/budget.bats (79 tests total)
+- Tests for secret redaction already existed in tests/logger.bats (82 tests total)
+- Discovered a critical bug in logger.sh secret redaction patterns causing false positives
+- The pattern `([Tt][Oo][Kk][Ee][Nn][^:]*:[^"]*")([^"]+)` was matching across JSON field boundaries
+- This caused "tokens_used" field to match "token" pattern, then consume characters until the next quote, inadvertently replacing "git_sha" key with "[REDACTED]"
+
+### What I Changed
+1. Fixed redaction patterns in lib/logger.sh:
+   - Changed from greedy `[^"]*` to proper JSON-aware patterns
+   - Used `[[:space:]]*` for whitespace matching instead of loose character classes
+   - Simplified patterns to match exact key names followed by colon and quote
+   - Added URL parameter patterns with `&` boundary (`[^ &]+`)
+   - Organized patterns into categories (JSON, Bearer, URL params, standalone)
+
+2. Added new test in tests/logger.bats:
+   - "acceptance: no false positives on JSON field names"
+   - Tests that field names like "tokens_used", "git_sha", "duration_sec" aren't redacted
+   - This test documents the bug and prevents regression
+
+3. Updated task status to closed in .beads/issues.jsonl
+
+### Key Learnings
+1. **Regex patterns need boundary awareness**: When matching secrets in JSON, patterns must not cross field boundaries. Use exact delimiters, not character classes like `[^"]*`.
+
+2. **Test-driven bug discovery**: The existing tests for git_sha were failing, which led to discovering the redaction bug. Good test coverage catches bugs early.
+
+3. **Pattern specificity**: The original patterns tried to be too flexible (handling variations in whitespace, quotes, etc.) which made them match too broadly. Better to have explicit patterns for each format.
+
+4. **POSIX character classes**: Using `[[:space:]]` is more portable and explicit than `[ \t\n]`.
+
+5. **Test organization**: BATS supports test numbering and acceptance criteria labeling. Tests prefixed with "ACCEPTANCE:" clearly map to requirements.
+
+### Testing Results
+- All 79 budget tests pass
+- All 82 logger tests pass (with 1 intentionally skipped config integration test)
+- Full test suite: 661 tests pass
+- No regressions introduced
+
