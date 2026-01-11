@@ -349,3 +349,61 @@ EOF
     # IDs should be different
     [ "$id1" != "$id2" ]
 }
+
+# =============================================================================
+# Claim Task Tests
+# =============================================================================
+
+@test "claim_task requires task_id parameter" {
+    create_minimal_prd
+    run claim_task "prd.json" "" "test-session"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id and session_name" ]]
+}
+
+@test "claim_task requires session_name parameter" {
+    create_minimal_prd
+    run claim_task "prd.json" "test-task" ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id and session_name" ]]
+}
+
+@test "claim_task updates task status to in_progress for JSON backend" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Task 1", "status": "open", "priority": "P0"}
+  ]
+}
+EOF
+
+    claim_task "prd.json" "t1" "test-session"
+
+    # Verify task is now in_progress
+    local status
+    status=$(jq -r '.tasks[0].status' prd.json)
+    [ "$status" = "in_progress" ]
+}
+
+@test "claim_task works with multiple tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Task 1", "status": "open", "priority": "P0"},
+    {"id": "t2", "title": "Task 2", "status": "open", "priority": "P1"}
+  ]
+}
+EOF
+
+    claim_task "prd.json" "t1" "session1"
+
+    # Verify only t1 is in_progress
+    local t1_status t2_status
+    t1_status=$(jq -r '.tasks[0].status' prd.json)
+    t2_status=$(jq -r '.tasks[1].status' prd.json)
+
+    [ "$t1_status" = "in_progress" ]
+    [ "$t2_status" = "open" ]
+}

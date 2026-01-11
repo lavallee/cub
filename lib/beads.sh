@@ -126,6 +126,36 @@ beads_update_task_status() {
     bd update "$task_id" --status "$new_status"
 }
 
+# Claim a task by marking it as in_progress and setting assignee to session name
+# Usage: beads_claim_task <task_id> <session_name>
+# Returns: 0 on success, 1 on error
+beads_claim_task() {
+    local task_id="$1"
+    local session_name="$2"
+
+    if [[ -z "$task_id" ]] || [[ -z "$session_name" ]]; then
+        echo "ERROR: beads_claim_task requires task_id and session_name" >&2
+        return 1
+    fi
+
+    # Check if beads is available
+    if ! beads_available; then
+        echo "WARNING: beads (bd) not available, skipping assignee setting for $task_id" >&2
+        return 0
+    fi
+
+    # Update status to in_progress and set assignee to session name
+    bd update "$task_id" --status "in_progress" --assignee "$session_name" 2>/dev/null
+    local exit_code=$?
+
+    if [[ $exit_code -eq 0 ]]; then
+        return 0
+    else
+        echo "WARNING: Failed to set assignee for $task_id, but continuing" >&2
+        return 0
+    fi
+}
+
 # Add a note/comment to a task
 beads_add_task_note() {
     local task_id="$1"

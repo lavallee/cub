@@ -161,6 +161,28 @@ update_task_status() {
     fi
 }
 
+# Claim a task (mark as in_progress and set assignee for beads backend)
+# Usage: claim_task <prd> <task_id> <session_name>
+# Returns: 0 on success, 1 on error
+claim_task() {
+    local prd="$1"
+    local task_id="$2"
+    local session_name="$3"
+
+    if [[ -z "$task_id" ]] || [[ -z "$session_name" ]]; then
+        echo "ERROR: claim_task requires task_id and session_name" >&2
+        return 1
+    fi
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # For beads: set both status and assignee
+        beads_claim_task "$task_id" "$session_name"
+    else
+        # For JSON: just update status to in_progress
+        json_update_task_status "$prd" "$task_id" "in_progress"
+    fi
+}
+
 # Add a note to a task
 add_task_note() {
     local prd="$1"

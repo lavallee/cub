@@ -1544,10 +1544,12 @@ run_iteration() {
         log_info "  ${task_type}: ${task_title}"
         log_debug "Task JSON: $current_task"
 
-        # Mark as in_progress
-        log_debug "Updating task status to in_progress..."
-        update_task_status "$prd" "$task_id" "in_progress"
-        log_debug "Task status updated"
+        # Mark as in_progress (with assignee for beads backend)
+        log_debug "Claiming task..."
+        local session_name
+        session_name=$(session_get_name)
+        claim_task "$prd" "$task_id" "$session_name"
+        log_debug "Task claimed"
     fi
 
     # Check for model: label and set CURB_MODEL if harness is claude
