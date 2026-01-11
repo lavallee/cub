@@ -1,0 +1,8 @@
+{
+  "task_id": "curb-036",
+  "title": "CHECKPOINT: Verify guardrails prevent runaway loops",
+  "priority": "P1",
+  "status": "in_progress",
+  "started_at": "2026-01-11T00:52:06Z",
+  "iterations": 0
+}
