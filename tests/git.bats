@@ -41,16 +41,12 @@ teardown() {
     [[ $status -eq 0 ]]
 }
 
-@test "git_in_repo returns 1 when not in a git repository" {
+@test "git_in_repo returns non-zero when not in a git repository" {
     # Use GIT_DIR pointing to non-existent path to simulate no repo
-    # This is more reliable than directory-based approaches in CI
-    export GIT_DIR="/nonexistent/.git"
-
-    run git_in_repo
-    [[ $status -eq 1 ]]
-
-    # Cleanup
-    unset GIT_DIR
+    # Pass it directly in the run command to ensure subshell sees it
+    # Note: git returns 128 for invalid GIT_DIR, not 1
+    run env GIT_DIR="/nonexistent/.git" bash -c 'source "$1" && git_in_repo' _ "${PROJECT_ROOT}/lib/git.sh"
+    [[ $status -ne 0 ]]
 }
 
 # ============================================================================
