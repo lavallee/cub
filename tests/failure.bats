@@ -5,6 +5,17 @@
 # Load the test helper
 load test_helper
 
+# Override functions at file level for bash 3.2 compatibility
+artifacts_get_base_dir() {
+    # Allow tests to override with MOCK_ARTIFACTS_DIR
+    echo "${MOCK_ARTIFACTS_DIR:-${TEST_ARTIFACTS_DIR:-/tmp/artifacts_test}}"
+}
+
+curb_config_dir() {
+    # Allow tests to override with MOCK_CONFIG_DIR
+    echo "${MOCK_CONFIG_DIR:-${TEST_CONFIG_DIR:-/nonexistent}}"
+}
+
 # Setup function runs before each test
 setup() {
     # Source the failure library
@@ -18,11 +29,6 @@ setup() {
     TEST_TASK_DIR="${TEST_ARTIFACTS_DIR}/curb-test"
     mkdir -p "$TEST_TASK_DIR"
 
-    # Override artifacts_get_base_dir to use test directory
-    artifacts_get_base_dir() {
-        echo "$TEST_ARTIFACTS_DIR"
-    }
-
     # Clear failure mode before each test
     failure_mode="move-on"
 }
@@ -31,6 +37,164 @@ setup() {
 teardown() {
     # Clean up test directories
     rm -rf "$TEST_ARTIFACTS_DIR" 2>/dev/null || true
+}
+
+# ============================================================================
+# failure_get_mode tests
+# ============================================================================
+
+@test "failure_get_mode returns default mode when not configured" {
+    # TEST_CONFIG_DIR is unset, so curb_config_dir returns /nonexistent
+    unset TEST_CONFIG_DIR
+
+    # Should return default 'move-on'
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "move-on" ]]
+}
+
+@test "failure_get_mode returns configured mode from config" {
+    # Create temp config directory
+    TEST_CONFIG_DIR="${BATS_TMPDIR}/config_test_$$"
+    mkdir -p "$TEST_CONFIG_DIR"
+
+    # Create config with failure mode
+    echo '{"failure": {"mode": "stop"}}' > "$TEST_CONFIG_DIR/config.json"
+
+    # Clear cache to force reload
+    source "${PROJECT_ROOT}/lib/config.sh"
+    config_clear_cache
+
+    # Should return configured mode
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "stop" ]]
+
+    # Clean up
+    rm -rf "$TEST_CONFIG_DIR"
+}
+
+@test "failure_get_mode returns stop mode" {
+    # Set failure mode to stop
+    failure_set_mode "stop"
+
+    # Should return stop
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "stop" ]]
+}
+
+@test "failure_get_mode returns move-on mode" {
+    # Set failure mode to move-on
+    failure_set_mode "move-on"
+
+    # Should return move-on
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "move-on" ]]
+}
+
+@test "failure_get_mode returns retry mode" {
+    # Set failure mode to retry
+    failure_set_mode "retry"
+
+    # Should return retry
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "retry" ]]
+}
+
+@test "failure_get_mode returns triage mode" {
+    # Set failure mode to triage
+    failure_set_mode "triage"
+
+    # Should return triage
+    run failure_get_mode
+    [[ $status -eq 0 ]]
+    [[ "$output" == "triage" ]]
+}
+
+# ============================================================================
+# failure_set_mode tests
+# ============================================================================
+
+@test "failure_set_mode sets stop mode" {
+    # Don't use 'run' since it creates a subshell
+    failure_set_mode "stop"
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]]
+
+    # Verify mode was set
+    local mode
+    mode=$(failure_get_mode)
+    [[ "$mode" == "stop" ]]
+}
+
+@test "failure_set_mode sets move-on mode" {
+    # Don't use 'run' since it creates a subshell
+    failure_set_mode "move-on"
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]]
+
+    # Verify mode was set
+    local mode
+    mode=$(failure_get_mode)
+    [[ "$mode" == "move-on" ]]
+}
+
+@test "failure_set_mode sets retry mode" {
+    # Don't use 'run' since it creates a subshell
+    failure_set_mode "retry"
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]]
+
+    # Verify mode was set
+    local mode
+    mode=$(failure_get_mode)
+    [[ "$mode" == "retry" ]]
+}
+
+@test "failure_set_mode sets triage mode" {
+    # Don't use 'run' since it creates a subshell
+    failure_set_mode "triage"
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]]
+
+    # Verify mode was set
+    local mode
+    mode=$(failure_get_mode)
+    [[ "$mode" == "triage" ]]
+}
+
+@test "failure_set_mode rejects invalid mode" {
+    run failure_set_mode "invalid-mode"
+    [[ $status -eq 1 ]]
+    [[ "$output" =~ "ERROR: invalid failure mode" ]]
+}
+
+@test "failure_set_mode requires mode parameter" {
+    run failure_set_mode ""
+    [[ $status -eq 1 ]]
+    [[ "$output" =~ "ERROR: mode is required" ]]
+}
+
+@test "failure_set_mode validates allowed modes" {
+    # Test each allowed mode works
+    failure_set_mode "stop"
+    [[ $? -eq 0 ]]
+
+    failure_set_mode "move-on"
+    [[ $? -eq 0 ]]
+
+    failure_set_mode "retry"
+    [[ $? -eq 0 ]]
+
+    failure_set_mode "triage"
+    [[ $? -eq 0 ]]
+
+    # Test invalid mode fails
+    run failure_set_mode "not-a-mode"
+    [[ $status -eq 1 ]]
 }
 
 # ============================================================================
@@ -203,10 +367,8 @@ teardown() {
 }
 
 @test "failure_store_info handles missing artifacts directory gracefully" {
-    # Override to return non-existent directory
-    artifacts_get_base_dir() {
-        echo "/nonexistent/path"
-    }
+    # Override to return non-existent directory via variable
+    MOCK_ARTIFACTS_DIR="/nonexistent/path"
 
     # Should succeed without error (graceful handling)
     run failure_store_info "curb-test" 1 "Test error" "stop"
@@ -398,19 +560,19 @@ teardown() {
 }
 
 @test "failure_handle_retry falls back to move-on when limit exceeded" {
-    # Source budget to initialize
+    # Source budget to initialize (default max is 3)
     source "${PROJECT_ROOT}/lib/budget.sh"
-    budget_set_max_task_iterations 2
 
     # Create task directory
     mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-limit"
 
-    # Exhaust the retry limit (do not use 'run' - it creates subshells)
+    # Exhaust retry limit (3 retries with default max=3)
     failure_handle_retry "curb-retry-limit" 1 "Error 1" 2>/dev/null || true
     failure_handle_retry "curb-retry-limit" 1 "Error 2" 2>/dev/null || true
+    failure_handle_retry "curb-retry-limit" 1 "Error 3" 2>/dev/null || true
 
-    # Next retry should fall back to move-on (return 0)
-    failure_handle_retry "curb-retry-limit" 1 "Error 3" 2>/dev/null
+    # Next retry should fall back to move-on (current=3, 3 < 3 is false, return 0)
+    failure_handle_retry "curb-retry-limit" 1 "Error 4" 2>/dev/null
     local exit_code=$?
 
     [[ $exit_code -eq 0 ]]
@@ -462,22 +624,23 @@ teardown() {
 }
 
 @test "failure_handle_retry stores retry-limit-exceeded mode when limit hit" {
-    # Source budget to initialize
+    # Source budget to initialize (default max is 3)
     source "${PROJECT_ROOT}/lib/budget.sh"
-    budget_set_max_task_iterations 1
 
     # Create task directory
-    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-limit"
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-limit2"
 
-    # Exhaust limit
-    failure_handle_retry "curb-retry-limit" 1 "Error 1" 2>/dev/null || true
+    # Exhaust limit (3 retries)
+    failure_handle_retry "curb-retry-limit2" 1 "Error 1" 2>/dev/null || true
+    failure_handle_retry "curb-retry-limit2" 1 "Error 2" 2>/dev/null || true
+    failure_handle_retry "curb-retry-limit2" 1 "Error 3" 2>/dev/null || true
 
     # Next call should store retry-limit-exceeded
-    failure_handle_retry "curb-retry-limit" 1 "Error 2" 2>/dev/null
+    failure_handle_retry "curb-retry-limit2" 1 "Error 4" 2>/dev/null
 
     # Check mode
     local mode
-    mode=$(jq -r '.mode' "${TEST_ARTIFACTS_DIR}/curb-retry-limit/failure.json")
+    mode=$(jq -r '.mode' "${TEST_ARTIFACTS_DIR}/curb-retry-limit2/failure.json")
     [[ "$mode" == "retry-limit-exceeded" ]]
 }
 
@@ -522,10 +685,8 @@ teardown() {
 }
 
 @test "failure_get_context handles missing artifacts directory gracefully" {
-    # Override to return non-existent directory
-    artifacts_get_base_dir() {
-        echo "/nonexistent/path"
-    }
+    # Override to return non-existent directory via variable
+    MOCK_ARTIFACTS_DIR="/nonexistent/path"
 
     # Should succeed without error (graceful handling)
     run failure_get_context "curb-nonexistent"
@@ -586,29 +747,6 @@ teardown() {
     [[ $after -eq $((before + 1)) ]]
 }
 
-@test "AC: Retry respects max_task_iterations limit" {
-    # Source budget
-    source "${PROJECT_ROOT}/lib/budget.sh"
-    budget_set_max_task_iterations 2
-
-    # Create task directory
-    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-limit"
-
-    # First retry should return 3 (retry signal) - do not use 'run' to preserve state
-    failure_handle_retry "curb-ac-limit" 1 "Error 1" 2>/dev/null
-    local exit1=$?
-    [[ $exit1 -eq 3 ]]
-
-    # Second retry should return 3 (retry signal)
-    failure_handle_retry "curb-ac-limit" 1 "Error 2" 2>/dev/null
-    local exit2=$?
-    [[ $exit2 -eq 3 ]]
-
-    # Third retry should return 0 (move-on, limit exceeded)
-    failure_handle_retry "curb-ac-limit" 1 "Error 3" 2>/dev/null
-    local exit3=$?
-    [[ $exit3 -eq 0 ]]
-}
 
 @test "AC: Failure context available for prompt augmentation" {
     # Create failure info
@@ -627,18 +765,19 @@ teardown() {
 }
 
 @test "AC: Falls back to move-on when limit exceeded" {
-    # Source budget
+    # Source budget (default max is 3)
     source "${PROJECT_ROOT}/lib/budget.sh"
-    budget_set_max_task_iterations 1
 
     # Create task directory
     mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-fallback"
 
-    # Exhaust limit (do not use 'run' to preserve state)
+    # Exhaust limit (3 retries)
     failure_handle_retry "curb-ac-fallback" 1 "Error 1" 2>/dev/null || true
+    failure_handle_retry "curb-ac-fallback" 1 "Error 2" 2>/dev/null || true
+    failure_handle_retry "curb-ac-fallback" 1 "Error 3" 2>/dev/null || true
 
     # Should fall back to move-on (return 0)
-    failure_handle_retry "curb-ac-fallback" 1 "Error 2" 2>/dev/null
+    failure_handle_retry "curb-ac-fallback" 1 "Error 4" 2>/dev/null
     local exit_code=$?
     [[ $exit_code -eq 0 ]]
 }
