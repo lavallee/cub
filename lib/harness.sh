@@ -410,6 +410,23 @@ harness_invoke_streaming() {
 }
 
 # ============================================================================
+# Output Buffering Helpers
+# ============================================================================
+
+# Get stdbuf command for line buffering if available
+# Returns: "stdbuf -oL" or "gstdbuf -oL" or empty string
+# Usage: local stdbuf_cmd=$(_get_stdbuf_cmd)
+_get_stdbuf_cmd() {
+    if command -v stdbuf >/dev/null 2>&1; then
+        echo "stdbuf -oL"
+    elif command -v gstdbuf >/dev/null 2>&1; then
+        echo "gstdbuf -oL"  # macOS with homebrew coreutils
+    else
+        echo ""
+    fi
+}
+
+# ============================================================================
 # Claude Backend
 # ============================================================================
 
@@ -470,9 +487,24 @@ claude_invoke_streaming() {
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
 
-    echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags | claude_parse_stream
-    # Return claude's exit code from PIPESTATUS
-    return ${PIPESTATUS[1]}
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    # Falls back to temp file capture when stdbuf is not available
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
+
+    if [[ -n "$stdbuf_cmd" ]]; then
+        # Line-buffered streaming - output appears in real-time
+        echo "$task_prompt" | $stdbuf_cmd claude -p --append-system-prompt "$system_prompt" $flags | claude_parse_stream
+        return ${PIPESTATUS[1]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_claude_stream_$$"
+        echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags > "$tmpfile" 2>&1
+        local exit_code=${PIPESTATUS[1]}
+        claude_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 # Parse Claude Code's stream-json output
@@ -694,10 +726,22 @@ ${task_prompt}"
 
     # OpenCode uses 'run' subcommand for autonomous operation (auto-approves all permissions)
     # Use --format json to get token usage, then parse with opencode_parse_stream
-    opencode run $flags "$combined_prompt" | opencode_parse_stream
-    local exit_code=${PIPESTATUS[0]}
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
 
-    return $exit_code
+    if [[ -n "$stdbuf_cmd" ]]; then
+        $stdbuf_cmd opencode run $flags "$combined_prompt" | opencode_parse_stream
+        return ${PIPESTATUS[0]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_$$"
+        opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
+        local exit_code=$?
+        opencode_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 opencode_invoke_streaming() {
@@ -730,9 +774,22 @@ ${task_prompt}"
     # Add any extra flags from environment
     [[ -n "${OPENCODE_FLAGS:-}" ]] && flags="$flags $OPENCODE_FLAGS"
 
-    # Pipe to parser for token extraction
-    opencode run $flags "$combined_prompt" | opencode_parse_stream
-    return ${PIPESTATUS[0]}
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
+
+    if [[ -n "$stdbuf_cmd" ]]; then
+        $stdbuf_cmd opencode run $flags "$combined_prompt" | opencode_parse_stream
+        return ${PIPESTATUS[0]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_stream_$$"
+        opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
+        local exit_code=$?
+        opencode_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 # Parse OpenCode's JSON streaming output
