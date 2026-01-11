@@ -24,6 +24,7 @@ readonly FAILURE_TRIAGE="triage"
 # Source dependencies
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/config.sh"
+source "${SCRIPT_DIR}/artifacts.sh"
 
 # Default failure mode - can be overridden by config
 failure_mode="move-on"

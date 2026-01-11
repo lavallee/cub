@@ -80,9 +80,9 @@ state_ensure_clean() {
     fi
 
     # Get list of uncommitted files for error message
-    # Exclude .curb/ since those are curb's own run artifacts
+    # Exclude .curb/ and .beads/ since those are curb's own artifacts (committed separately)
     local uncommitted_files
-    uncommitted_files=$(git status --short 2>/dev/null | grep -v '^\?\? \.curb/')
+    uncommitted_files=$(git status --short 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/')
 
     # Act based on configuration
     if [[ "$require_commit" == "true" ]]; then

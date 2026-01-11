@@ -1897,6 +1897,13 @@ run_iteration() {
     local max_run=$(budget_get_max_run_iterations)
     log_debug "Run iteration ${run_iteration}/${max_run} complete"
 
+    # Commit curb artifacts (.beads/ and .curb/) if there are changes
+    # These are committed separately after the harness's work is complete
+    if git_in_repo; then
+        log_debug "Committing curb artifacts if needed..."
+        git_commit_curb_artifacts "$task_id"
+    fi
+
     return $exit_code
 }
 
