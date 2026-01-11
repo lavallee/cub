@@ -1,0 +1,30 @@
+{
+  "run_id": "turtle-20260110-181817",
+  "session_name": "turtle",
+  "started_at": "2026-01-10T23:18:17Z",
+  "status": "in_progress",
+  "config": {
+    "harness": {
+      "default": "auto",
+      "priority": [
+        "claude",
+        "codex"
+      ]
+    },
+    "budget": {
+      "default": 1000000,
+      "warn_at": 0.8
+    },
+    "loop": {
+      "max_iterations": 100
+    },
+    "clean_state": {
+      "require_commit": true,
+      "require_tests": false
+    },
+    "hooks": {
+      "enabled": true
+    }
+  },
+  "tasks_failed": 2
+}

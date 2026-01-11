@@ -525,3 +525,149 @@ budget_check_run_iterations() {
 
     return 0
 }
+
+# Singular alias for budget_increment_task_iterations
+# Increases the task's iteration counter by 1.
+#
+# Parameters:
+#   $1 - task_id (required): The task identifier
+#
+# Returns:
+#   0 on success
+#   1 if task_id parameter is missing
+#
+# Example:
+#   budget_increment_task_iteration "task-123"
+budget_increment_task_iteration() {
+    budget_increment_task_iterations "$@"
+}
+
+# Singular alias for budget_increment_run_iterations
+# Increases the run's iteration counter by 1.
+#
+# Returns:
+#   0 on success
+#
+# Example:
+#   budget_increment_run_iteration
+budget_increment_run_iteration() {
+    budget_increment_run_iterations "$@"
+}
+
+# Reset iteration count for a specific task
+# Clears the task's iteration counter back to 0. Useful for retry scenarios.
+#
+# Parameters:
+#   $1 - task_id (required): The task identifier
+#
+# Returns:
+#   0 on success
+#   1 if task_id parameter is missing
+#
+# Example:
+#   budget_reset_task_iterations "task-123"
+budget_reset_task_iterations() {
+    local task_id="$1"
+
+    # Validate parameter
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: budget_reset_task_iterations requires task_id parameter" >&2
+        return 1
+    fi
+
+    # Create safe filename from task_id
+    local safe_task_id
+    safe_task_id=$(echo "$task_id" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    local task_file="${_BUDGET_TASK_ITERATIONS_DIR}/${safe_task_id}"
+
+    # Reset counter to 0
+    echo "0" > "$task_file"
+
+    return 0
+}
+
+# Check if task iteration warning threshold has been crossed
+# Warns when task's iteration count exceeds warn_at threshold (default 80% of max).
+# Logs warning when threshold is crossed.
+#
+# Parameters:
+#   $1 - task_id (required): The task identifier
+#   $2 - warn_at (optional): Percentage threshold (default 80)
+#
+# Returns:
+#   0 if under threshold or already warned
+#   1 if threshold just crossed (warning triggered)
+#
+# Example:
+#   if ! budget_check_task_iteration_warning "task-123" 80; then
+#     echo "WARNING: Task approaching iteration limit" >&2
+#   fi
+budget_check_task_iteration_warning() {
+    local task_id="$1"
+    local warn_at="${2:-80}"
+
+    # Validate parameter
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: budget_check_task_iteration_warning requires task_id parameter" >&2
+        return 1
+    fi
+
+    local current
+    current=$(budget_get_task_iterations "$task_id")
+    local max
+    max=$(budget_get_max_task_iterations)
+
+    # Guard against division by zero
+    if [[ "$max" -eq 0 ]]; then
+        return 0
+    fi
+
+    # Calculate percentage used
+    local percentage=$((current * 100 / max))
+
+    # Check if threshold crossed
+    if [[ "$percentage" -ge "$warn_at" ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# Check if run iteration warning threshold has been crossed
+# Warns when run's iteration count exceeds warn_at threshold (default 80% of max).
+# Logs warning when threshold is crossed.
+#
+# Parameters:
+#   $1 - warn_at (optional): Percentage threshold (default 80)
+#
+# Returns:
+#   0 if under threshold or already warned
+#   1 if threshold just crossed (warning triggered)
+#
+# Example:
+#   if ! budget_check_run_iteration_warning 80; then
+#     echo "WARNING: Run approaching iteration limit" >&2
+#   fi
+budget_check_run_iteration_warning() {
+    local warn_at="${1:-80}"
+
+    local current
+    current=$(budget_get_run_iterations)
+    local max
+    max=$(budget_get_max_run_iterations)
+
+    # Guard against division by zero
+    if [[ "$max" -eq 0 ]]; then
+        return 0
+    fi
+
+    # Calculate percentage used
+    local percentage=$((current * 100 / max))
+
+    # Check if threshold crossed
+    if [[ "$percentage" -ge "$warn_at" ]]; then
+        return 1
+    fi
+
+    return 0
+}

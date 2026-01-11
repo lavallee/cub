@@ -674,3 +674,325 @@ teardown() {
     [ "$second" -eq 2 ]
     [ "$third" -eq 3 ]
 }
+
+# ========================================
+# Singular alias tests
+# ========================================
+
+@test "budget_increment_task_iteration (singular) works" {
+    run budget_increment_task_iteration "task-456"
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_task_iterations "task-456")
+    [ "$iterations" -eq 1 ]
+
+    run budget_increment_task_iteration "task-456"
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_task_iterations "task-456")
+    [ "$iterations" -eq 2 ]
+}
+
+@test "budget_increment_run_iteration (singular) works" {
+    run budget_increment_run_iteration
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 1 ]
+
+    run budget_increment_run_iteration
+    [ "$status" -eq 0 ]
+    iterations=$(budget_get_run_iterations)
+    [ "$iterations" -eq 2 ]
+}
+
+# ========================================
+# budget_reset_task_iterations tests
+# ========================================
+
+@test "budget_reset_task_iterations resets counter to zero" {
+    # Set some iterations
+    budget_increment_task_iterations "task-789"
+    budget_increment_task_iterations "task-789"
+    budget_increment_task_iterations "task-789"
+    [ "$(budget_get_task_iterations "task-789")" -eq 3 ]
+
+    # Reset
+    run budget_reset_task_iterations "task-789"
+    [ "$status" -eq 0 ]
+
+    # Verify reset
+    [ "$(budget_get_task_iterations "task-789")" -eq 0 ]
+}
+
+@test "budget_reset_task_iterations fails without task_id" {
+    run budget_reset_task_iterations
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id parameter" ]]
+}
+
+@test "budget_reset_task_iterations allows retry after reset" {
+    budget_set_max_task_iterations 2
+
+    # Use up iterations
+    budget_increment_task_iterations "task-retry"
+    budget_increment_task_iterations "task-retry"
+    budget_increment_task_iterations "task-retry"
+
+    # Should be over limit
+    run budget_check_task_iterations "task-retry"
+    [ "$status" -eq 1 ]
+
+    # Reset
+    budget_reset_task_iterations "task-retry"
+
+    # Should now be within limit
+    run budget_check_task_iterations "task-retry"
+    [ "$status" -eq 0 ]
+}
+
+# ========================================
+# Warning threshold tests
+# ========================================
+
+@test "budget_check_task_iteration_warning returns 0 when under threshold" {
+    budget_set_max_task_iterations 10
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+
+    # At 3/10 = 30%, should be under 80% threshold
+    run budget_check_task_iteration_warning "task-warn" 80
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_check_task_iteration_warning returns 1 when at threshold" {
+    budget_set_max_task_iterations 10
+    # Set to 8/10 = 80%
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+
+    # At 8/10 = 80%, should trigger warning
+    run budget_check_task_iteration_warning "task-warn" 80
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_task_iteration_warning returns 1 when over threshold" {
+    budget_set_max_task_iterations 10
+    # Set to 9/10 = 90%
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+
+    # At 9/10 = 90%, should trigger warning
+    run budget_check_task_iteration_warning "task-warn" 80
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_task_iteration_warning uses custom threshold" {
+    budget_set_max_task_iterations 10
+    # Set to 5/10 = 50%
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+    budget_increment_task_iterations "task-warn"
+
+    # At 50%, should not warn at 80% threshold
+    run budget_check_task_iteration_warning "task-warn" 80
+    [ "$status" -eq 0 ]
+
+    # But should warn at 40% threshold
+    run budget_check_task_iteration_warning "task-warn" 40
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_task_iteration_warning fails without task_id" {
+    run budget_check_task_iteration_warning
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id parameter" ]]
+}
+
+@test "budget_check_run_iteration_warning returns 0 when under threshold" {
+    budget_set_max_run_iterations 10
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # At 3/10 = 30%, should be under 80% threshold
+    run budget_check_run_iteration_warning 80
+    [ "$status" -eq 0 ]
+}
+
+@test "budget_check_run_iteration_warning returns 1 when at threshold" {
+    budget_set_max_run_iterations 10
+    # Set to 8/10 = 80%
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # At 8/10 = 80%, should trigger warning
+    run budget_check_run_iteration_warning 80
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_run_iteration_warning returns 1 when over threshold" {
+    budget_set_max_run_iterations 10
+    # Set to 9/10 = 90%
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # At 9/10 = 90%, should trigger warning
+    run budget_check_run_iteration_warning 80
+    [ "$status" -eq 1 ]
+}
+
+@test "budget_check_run_iteration_warning uses custom threshold" {
+    budget_set_max_run_iterations 10
+    # Set to 5/10 = 50%
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # At 50%, should not warn at 80% threshold
+    run budget_check_run_iteration_warning 80
+    [ "$status" -eq 0 ]
+
+    # But should warn at 40% threshold
+    run budget_check_run_iteration_warning 40
+    [ "$status" -eq 1 ]
+}
+
+# ========================================
+# Integration tests for new functions
+# ========================================
+
+@test "ACCEPTANCE: Increment functions update counters correctly" {
+    # Test task iteration increment
+    budget_increment_task_iteration "task-001"
+    budget_increment_task_iteration "task-001"
+    [ "$(budget_get_task_iterations "task-001")" -eq 2 ]
+
+    # Test run iteration increment
+    budget_increment_run_iteration
+    budget_increment_run_iteration
+    budget_increment_run_iteration
+    [ "$(budget_get_run_iterations)" -eq 3 ]
+}
+
+@test "ACCEPTANCE: Check functions return correct status" {
+    budget_set_max_task_iterations 3
+    budget_set_max_run_iterations 5
+
+    # Within limit
+    budget_increment_task_iterations "task-check"
+    run budget_check_task_iterations "task-check"
+    [ "$status" -eq 0 ]
+
+    budget_increment_run_iterations
+    run budget_check_run_iterations
+    [ "$status" -eq 0 ]
+
+    # Over limit
+    budget_increment_task_iterations "task-check"
+    budget_increment_task_iterations "task-check"
+    budget_increment_task_iterations "task-check"
+    run budget_check_task_iterations "task-check"
+    [ "$status" -eq 1 ]
+}
+
+@test "ACCEPTANCE: Warning logged at 80% of limit" {
+    # Task warning at 80%
+    budget_set_max_task_iterations 10
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+    budget_increment_task_iterations "task-80"
+
+    # Should warn at 8/10 = 80%
+    run budget_check_task_iteration_warning "task-80"
+    [ "$status" -eq 1 ]
+
+    # Run warning at 80%
+    budget_set_max_run_iterations 10
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+    budget_increment_run_iterations
+
+    # Should warn at 8/10 = 80%
+    run budget_check_run_iteration_warning
+    [ "$status" -eq 1 ]
+}
+
+@test "ACCEPTANCE: Reset function clears task counter" {
+    budget_increment_task_iterations "task-reset"
+    budget_increment_task_iterations "task-reset"
+    budget_increment_task_iterations "task-reset"
+    [ "$(budget_get_task_iterations "task-reset")" -eq 3 ]
+
+    budget_reset_task_iterations "task-reset"
+    [ "$(budget_get_task_iterations "task-reset")" -eq 0 ]
+}
+
+@test "ACCEPTANCE: Functions work together correctly" {
+    budget_set_max_task_iterations 3
+
+    # Increment and check
+    budget_increment_task_iteration "task-together"
+    run budget_check_task_iterations "task-together"
+    [ "$status" -eq 0 ]
+
+    # Check warning
+    run budget_check_task_iteration_warning "task-together" 50
+    [ "$status" -eq 0 ]
+
+    # Increment more
+    budget_increment_task_iteration "task-together"
+    budget_increment_task_iteration "task-together"
+
+    # At limit (3/3)
+    run budget_check_task_iterations "task-together"
+    [ "$status" -eq 0 ]
+
+    # Warning should trigger (3/3 = 100%)
+    run budget_check_task_iteration_warning "task-together" 80
+    [ "$status" -eq 1 ]
+
+    # Reset and verify
+    budget_reset_task_iterations "task-together"
+    [ "$(budget_get_task_iterations "task-together")" -eq 0 ]
+    run budget_check_task_iterations "task-together"
+    [ "$status" -eq 0 ]
+}

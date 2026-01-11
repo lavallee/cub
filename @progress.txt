@@ -379,3 +379,30 @@ All 34 tests pass successfully:
 - Remember to reset global variables in setup() when testing modules with state
 - Use function calls directly (not 'run') when tests need to verify global variable changes
 - Be careful with bash version compatibility - test on target bash version (3.2+)
+
+## Task curb-029: Add iteration tracking to budget.sh (2026-01-10)
+
+**Implementation:**
+- Added iteration tracking to budget.sh module for preventing runaway loops
+- Used file-based storage (not associative arrays) for bash 3.2 compatibility
+- Task iterations tracked via directory of files (one per task ID)
+- Run iterations tracked via single file
+- Max limits configurable with defaults (3 per task, 50 per run)
+
+**Key Learnings:**
+1. **File-based state pattern**: Continued use of file-based state management for cross-subshell persistence, consistent with existing budget.sh design
+2. **Safe task ID handling**: Used `sed 's/[^a-zA-Z0-9_-]/_/g'` to sanitize task IDs for safe filesystem usage
+3. **Directory-based associative storage**: Implemented per-task tracking via directory of files instead of bash 4+ associative arrays for compatibility
+4. **Comprehensive testing**: Added 28 new tests covering all functions, edge cases, and acceptance criteria
+5. **Trap cleanup**: Extended EXIT trap to clean up new iteration tracking files and directory
+
+**Gotchas Avoided:**
+- Avoided using bash 4+ associative arrays (declare -A) for task iterations
+- Task IDs with special characters (/, :, spaces) handled safely via sanitization
+- Reset logic in budget_clear() includes all new state files
+
+**Testing Approach:**
+- Unit tests for each function (setters, getters, incrementers, checkers)
+- Edge case tests (missing params, special characters, boundary conditions)
+- Acceptance tests matching all specified criteria
+- All 60 tests passing (32 original + 28 new)
