@@ -301,6 +301,12 @@ json_get_ready_tasks() {
         echo "[DEBUG json_get_ready_tasks] prd=$prd epic=$epic label=$label" >&2
     fi
 
+    # Check if file exists first
+    if [[ ! -f "$prd" ]]; then
+        echo "Error: PRD file not found: $prd" >&2
+        return 1
+    fi
+
     local result
     result=$(jq --arg epic "$epic" --arg label "$label" '
         # Build a set of closed task IDs
@@ -320,7 +326,7 @@ json_get_ready_tasks() {
         ]
         # Sort by priority (P0 < P1 < P2 < P3 < P4)
         | sort_by(.priority)
-    ' "$prd" 2>&1)
+    ' "$prd" 2>&1) || return $?
 
     if [[ "${DEBUG:-}" == "true" ]]; then
         echo "[DEBUG json_get_ready_tasks] result=${result:0:200}" >&2

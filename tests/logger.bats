@@ -983,7 +983,8 @@ teardown() {
     local test_config="${BATS_TMPDIR}/test_config_$$"
     mkdir -p "$test_config"
 
-    cat > "${test_config}/config.json" <<EOF
+    # Use single-quoted heredoc to avoid BATS parsing issues with backslashes
+    cat > "${test_config}/config.json" <<'CONFIGEOF'
 {
     "logger": {
         "secret_patterns": [
@@ -991,7 +992,7 @@ teardown() {
         ]
     }
 }
-EOF
+CONFIGEOF
 
     # Override config dir for this test
     curb_config_dir() {
