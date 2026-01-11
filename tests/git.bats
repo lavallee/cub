@@ -42,26 +42,15 @@ teardown() {
 }
 
 @test "git_in_repo returns 1 when not in a git repository" {
-    # Create a new directory guaranteed to be outside any git repo
-    NON_GIT_DIR="/tmp/non_git_test_$$"
-    mkdir -p "$NON_GIT_DIR"
-    cd "$NON_GIT_DIR"
-
-    # Use GIT_CEILING_DIRECTORIES set to the test directory itself
-    # This prevents git from searching parent directories for a repo
-    # Must be exported so it's visible to the subshell in 'run'
-    export GIT_CEILING_DIRECTORIES="$NON_GIT_DIR"
-
-    # Verify we're really outside a git repo with ceiling set
-    ! git rev-parse --git-dir >/dev/null 2>&1
+    # Use GIT_DIR pointing to non-existent path to simulate no repo
+    # This is more reliable than directory-based approaches in CI
+    export GIT_DIR="/nonexistent/.git"
 
     run git_in_repo
     [[ $status -eq 1 ]]
 
     # Cleanup
-    unset GIT_CEILING_DIRECTORIES
-    cd /
-    rm -rf "$NON_GIT_DIR"
+    unset GIT_DIR
 }
 
 # ============================================================================
