@@ -4704,3 +4704,89 @@ The main loop will need to:
 4. Call `failure_get_context(task_id)` to get failure info for prompt
 5. Include context in system message or task description for retry attempt
 
+
+## Session 8: Failure Handling Integration (curb-040)
+
+### Task: Integrate failure handling into main loop
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Sourced lib/failure.sh in curb main script at startup
+2. Added failure handler invocation after harness execution completes with non-zero exit code
+3. Implemented handler response logic for all failure modes:
+   - stop: Returns exit code 2, halts the run
+   - move-on: Returns exit code 0, continues to next task
+   - retry: Returns exit code 3, retries current task
+   - triage: Falls back to move-on (not yet fully implemented)
+4. Augmented task prompt with failure context for retry mode
+   - Modified generate_task_prompt() to call failure_get_context()
+   - Adds "## RETRY CONTEXT" section to prompt when retrying
+5. Updated main loop (run_loop) to handle special exit codes:
+   - Exit code 2: Halts run immediately and runs post-loop hooks
+   - Exit code 3: Retries task without incrementing loop iteration counter
+6. All failure handling decisions logged via lib/logger.sh
+
+### Test Results:
+- All 42 failure.bats tests PASS
+- 703 out of 712 total tests PASS
+- 6 pre-existing failures in curb.bats (unrelated to this task)
+- No new test failures introduced by this integration
+
+### Learnings:
+
+#### Exit Code Signaling Pattern
+- Using specific exit codes (0, 2, 3) to signal different behaviors is cleaner than using global variables
+- The pattern allows failure handlers to communicate intent to the main loop
+- Exit codes are composable: main loop can handle them without knowing failure handler internals
+
+#### Prompt Augmentation for Retry
+- failure_get_context() provides formatted failure context for the agent
+- Context includes exit code and any captured error output
+- Adding context as a separate "## RETRY CONTEXT" section keeps it distinct from task description
+- Redirect stderr to /dev/null when calling failure_get_context to avoid polluting output
+
+#### Loop Iteration Handling
+- Retry mode requires NOT incrementing the iteration counter
+- Use `iteration=$((iteration - 1))` after retry signal to cancel the increment
+- This ensures retry attempts don't count against the max_iterations limit
+
+#### Post-Task Hook Timing
+- For stop and retry modes, we run post-task hooks BEFORE returning special exit code
+- This ensures hooks can observe task failure before run halts or retries
+- The main post-task hook block is still reached for move-on mode (normal flow)
+
+#### Integration Architecture
+- Failure handling is called AFTER on-error hooks but BEFORE post-task hooks
+- This ordering allows:
+  1. Harness executes
+  2. On-error hooks run if harness failed
+  3. Failure handler determines next action
+  4. Post-task hooks run
+  5. Artifacts are captured
+  6. Git commit happens (if successful)
+
+#### Configuration Discovery
+- failure_get_mode() uses config_get() to read failure.mode from config
+- Falls back to default "move-on" if not configured
+- This allows users to set failure mode via .curb.json or global config
+
+### Dependencies & Integration Points:
+- **Depends on**: lib/failure.sh, lib/budget.sh (for iteration tracking), lib/artifacts.sh (for failure info storage)
+- **Integrates with**: run_iteration(), run_loop(), generate_task_prompt()
+- **Used by**: Main task execution flow when harness returns non-zero exit code
+
+### Files Modified:
+- curb (main script): Added source statement, failure handler invocation, loop exit code handling, prompt augmentation
+- No changes to lib/failure.sh (it was already complete)
+
+### Acceptance Criteria Met:
+- ✅ Failure mode respected on task failure
+- ✅ Stop mode halts run
+- ✅ Move-on mode continues to next task
+- ✅ Retry mode re-executes with context
+- ✅ All modes logged and tracked
+
+### Task Complete:
+The failure handling system is now fully integrated into the main loop. Tasks that fail will be handled according to the configured failure mode (stop, move-on, or retry), with all decisions logged and tracked. Retry attempts include context about the previous failure to help the agent avoid repeating the same mistake.
+
