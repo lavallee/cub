@@ -249,6 +249,71 @@ See [Hooks Documentation](../README.md#hooks) for details on writing custom hook
 
 ---
 
+### Guardrails Configuration
+
+Prevent runaway loops and redact sensitive information from output.
+
+#### `guardrails.max_task_iterations`
+- **Type**: Number
+- **Default**: `3`
+- **Description**: Maximum number of times a single task can be attempted. When exceeded, task is marked failed and skipped. Prevents infinite retry loops.
+
+#### `guardrails.max_run_iterations`
+- **Type**: Number
+- **Default**: `50`
+- **Description**: Maximum number of total iterations in a run. When exceeded, run stops immediately. Prevents runaway loop behavior across all tasks.
+
+#### `guardrails.iteration_warning_threshold`
+- **Type**: Number (0.0-1.0)
+- **Default**: `0.8` (80%)
+- **Description**: Warning threshold as percentage of iteration limit. Logs warning when approaching max_task_iterations or max_run_iterations.
+
+#### `guardrails.secret_patterns`
+- **Type**: Array of strings (regex patterns)
+- **Default**: `["api[_-]?key", "password", "token", "secret", "authorization", "credentials"]`
+- **Description**: Regular expression patterns to detect and redact sensitive information from logs and output. Matched case-insensitively.
+
+**Examples:**
+
+Strict limits for testing:
+```json
+{
+  "guardrails": {
+    "max_task_iterations": 2,
+    "max_run_iterations": 10,
+    "iteration_warning_threshold": 0.5
+  }
+}
+```
+
+Add custom secret patterns:
+```json
+{
+  "guardrails": {
+    "secret_patterns": [
+      "api[_-]?key",
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "credentials",
+      "webhook_url",
+      "private_key",
+      "aws_secret"
+    ]
+  }
+}
+```
+
+Relaxed limits for complex tasks:
+```bash
+export CURB_MAX_TASK_ITERATIONS=10
+export CURB_MAX_RUN_ITERATIONS=200
+curb
+```
+
+---
+
 ## Environment Variables
 
 Environment variables override all config files and provide quick, temporary overrides.
@@ -265,6 +330,8 @@ Environment variables override all config files and provide quick, temporary ove
 | `CURB_EPIC` | String | | Filter to epic ID |
 | `CURB_LABEL` | String | | Filter to label name |
 | `CURB_REQUIRE_CLEAN` | Boolean | `true` | Enforce clean state |
+| `CURB_MAX_TASK_ITERATIONS` | Number | 3 | Max attempts per task |
+| `CURB_MAX_RUN_ITERATIONS` | Number | 50 | Max iterations per run |
 | `HARNESS` | String | `auto` | Harness: `auto`, `claude`, `codex`, `gemini`, `opencode` |
 | `CLAUDE_FLAGS` | String | | Extra flags for Claude Code CLI |
 | `CODEX_FLAGS` | String | | Extra flags for OpenAI Codex CLI |
