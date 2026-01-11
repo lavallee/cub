@@ -2,7 +2,9 @@
   "task_id": "curb-034",
   "title": "Integrate iteration limits into main loop",
   "priority": "P1",
-  "status": "in_progress",
+  "status": "completed",
   "started_at": "2026-01-11T00:30:02Z",
-  "iterations": 0
+  "iterations": 1,
+  "completed_at": "2026-01-11T00:38:05Z",
+  "exit_code": 0
 }
