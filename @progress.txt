@@ -406,3 +406,40 @@ All 34 tests pass successfully:
 - Edge case tests (missing params, special characters, boundary conditions)
 - Acceptance tests matching all specified criteria
 - All 60 tests passing (32 original + 28 new)
+
+## Task curb-030: Implement budget_check_* and budget_increment_* functions (2026-01-10)
+
+**Implementation:**
+- Added singular function aliases: budget_increment_task_iteration() and budget_increment_run_iteration()
+- Implemented budget_reset_task_iterations() to clear task counters for retry scenarios
+- Implemented budget_check_task_iteration_warning() to warn at 80% of task iteration limit
+- Implemented budget_check_run_iteration_warning() to warn at 80% of run iteration limit
+- Added 18 comprehensive tests covering all new functions, edge cases, and acceptance criteria
+- All 79 budget tests passing (60 from curb-029 + 19 new)
+
+**Key Learnings:**
+1. **Function naming consistency**: Task spec used singular form (budget_increment_task_iteration) but existing code used plural (budget_increment_task_iterations). Solution: Create singular aliases that delegate to plural versions for backward compatibility
+2. **Warning threshold pattern**: Reused the percentage calculation pattern from budget_check_warning() for consistency
+3. **Reset function importance**: budget_reset_task_iterations() is critical for retry scenarios where a task needs to be attempted again after fixing issues
+4. **Return code conventions**: All check/warning functions follow bash conventions (0 for OK/under threshold, 1 for exceeded/over threshold)
+5. **Guard against division by zero**: Both warning functions check for max == 0 before calculating percentage
+
+**Gotchas Avoided:**
+- Warning functions return 1 when threshold is crossed, 0 otherwise (different from exceeded functions)
+- Reset function creates new file with "0" rather than deleting the file (maintains consistency)
+- Parameter validation in all functions with clear error messages
+
+**Testing Approach:**
+- Unit tests for singular aliases to ensure they delegate correctly
+- Tests for reset function covering: basic reset, missing parameters, retry scenario
+- Tests for warning functions covering: under threshold, at threshold, over threshold, custom thresholds
+- Integration tests verifying all functions work together correctly
+- Acceptance criteria tests matching all task requirements
+- All tests pass with proper edge case coverage
+
+**Acceptance Criteria Met:**
+- ✓ Increment functions update counters correctly (singular aliases work)
+- ✓ Check functions return correct status (0 for OK, 1 for exceeded)
+- ✓ Warning logged at 80% of limit (both task and run warnings implemented)
+- ✓ Reset function clears task counter (allows retry scenarios)
+- ✓ Functions work together correctly (verified via integration test)
