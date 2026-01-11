@@ -1081,3 +1081,135 @@ EOF
     # Should be unchanged (no redaction for words in normal text)
     [[ "$output" == "$input" ]]
 }
+
+# ============================================================================
+# logger_stream tests
+# ============================================================================
+
+@test "logger_stream outputs message with timestamp to stdout" {
+    local output
+    output=$(logger_stream "Test message")
+
+    # Should have timestamp format [HH:MM:SS]
+    [[ "$output" =~ ^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\] ]]
+
+    # Should contain the message
+    [[ "$output" =~ Test\ message ]]
+}
+
+@test "logger_stream applies secret redaction" {
+    local output
+    output=$(logger_stream "api_key=sk_live_secret123")
+
+    # Should have timestamp
+    [[ "$output" =~ ^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\] ]]
+
+    # Secret should be redacted
+    [[ "$output" =~ \[REDACTED\] ]]
+
+    # Original secret should not appear
+    [[ ! "$output" =~ sk_live_secret123 ]]
+}
+
+@test "logger_stream supports custom timestamp format" {
+    local output
+    output=$(logger_stream "Test" "%H:%M")
+
+    # Should have custom timestamp format [HH:MM]
+    [[ "$output" =~ ^\[[0-9]{2}:[0-9]{2}\] ]]
+}
+
+@test "logger_stream returns 0 on success" {
+    logger_stream "Test message"
+    [[ $? -eq 0 ]]
+}
+
+@test "logger_stream handles empty message gracefully" {
+    logger_stream ""
+    [[ $? -eq 0 ]]
+}
+
+@test "logger_stream outputs to stdout not stderr" {
+    local stdout_output
+    local stderr_output
+
+    stdout_output=$(logger_stream "Test message" 2>/dev/null)
+    stderr_output=$(logger_stream "Test message" 2>&1 >/dev/null)
+
+    # Should have content in stdout
+    [[ -n "$stdout_output" ]]
+
+    # Should have no content in stderr
+    [[ -z "$stderr_output" ]]
+}
+
+@test "logger_stream works with special characters" {
+    local output
+    output=$(logger_stream "Message with special chars: @#$%^&*()")
+
+    # Should preserve special characters (but still apply redaction)
+    [[ "$output" =~ \@\#\$%\^ ]]
+}
+
+@test "logger_stream multiple secrets redacted" {
+    local output
+    output=$(logger_stream "api_key=secret1 password=secret2 token=secret3")
+
+    # All secrets should be redacted
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ secret1 ]]
+    [[ ! "$output" =~ secret2 ]]
+    [[ ! "$output" =~ secret3 ]]
+}
+
+@test "logger_stream with Bearer token redaction" {
+    local output
+    output=$(logger_stream "Authorization: Bearer sk_live_secret_token_here")
+
+    # Token should be redacted
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ sk_live_secret_token_here ]]
+}
+
+# ============================================================================
+# Acceptance criteria tests for logger_stream
+# ============================================================================
+
+@test "acceptance: logger_stream outputs with timestamp prefix" {
+    local output
+    output=$(logger_stream "Processing task...")
+
+    # Must have [HH:MM:SS] format timestamp
+    [[ "$output" =~ ^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\] ]]
+    [[ "$output" =~ Processing\ task ]]
+}
+
+@test "acceptance: logger_stream applies secret redaction before output" {
+    local output
+    output=$(logger_stream "Connecting with api_key=sk_live_abc123def456")
+
+    # Message visible, secret redacted
+    [[ "$output" =~ Connecting ]]
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ sk_live_abc123def456 ]]
+}
+
+@test "acceptance: logger_stream outputs to stdout" {
+    local output
+    output=$(logger_stream "Test output" 2>/dev/null)
+
+    # Should have output on stdout
+    [[ -n "$output" ]]
+
+    # Should contain both timestamp and message
+    [[ "$output" =~ ^\[[0-9]{2}:[0-9]{2}:[0-9]{2}\] ]]
+    [[ "$output" =~ Test\ output ]]
+}
+
+@test "acceptance: logger_stream timestamp format HH:MM:SS" {
+    local output
+    output=$(logger_stream "test")
+
+    # Must match [HH:MM:SS] exactly (hours, minutes, seconds)
+    [[ "$output" =~ ^\[[0-2][0-9]:[0-5][0-9]:[0-5][0-9]\] ]]
+}

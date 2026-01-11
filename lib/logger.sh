@@ -407,3 +407,45 @@ log_error() {
     # Write log entry
     logger_write "error" "$data_json"
 }
+
+# Stream message to stdout with timestamp prefix
+# Outputs messages with [HH:MM:SS] timestamp, with secret redaction applied
+# Used for real-time streaming output when --stream flag is enabled
+#
+# Args:
+#   $1 - message: Text message to output (required)
+#   $2 - timestamp_format: Custom timestamp format (optional, defaults to HH:MM:SS)
+#
+# Returns:
+#   0 always
+#
+# Example:
+#   logger_stream "Processing task..."
+#   logger_stream "API response received" "%H:%M:%S"
+#
+# Notes:
+#   - Output goes to stdout, not log file
+#   - Secret redaction is applied automatically via logger_redact
+#   - Use this when --stream flag enables real-time output
+logger_stream() {
+    local message="$1"
+    local timestamp_format="${2:-%H:%M:%S}"
+
+    # Validate required arguments
+    if [[ -z "$message" ]]; then
+        return 0
+    fi
+
+    # Get current timestamp
+    local timestamp
+    timestamp=$(date +"$timestamp_format")
+
+    # Apply secret redaction to message
+    local redacted_message
+    redacted_message=$(logger_redact "$message")
+
+    # Output with timestamp prefix to stdout
+    echo "[${timestamp}] ${redacted_message}"
+
+    return 0
+}

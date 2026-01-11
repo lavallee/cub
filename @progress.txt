@@ -443,3 +443,44 @@ All 34 tests pass successfully:
 - ✓ Warning logged at 80% of limit (both task and run warnings implemented)
 - ✓ Reset function clears task counter (allows retry scenarios)
 - ✓ Functions work together correctly (verified via integration test)
+
+## Task curb-032: Add logger_stream with timestamps (2026-01-10)
+
+**Implementation:**
+- Added logger_stream(message, timestamp_format) function to lib/logger.sh
+- Outputs messages with [HH:MM:SS] timestamp prefix to stdout
+- Applies secret redaction automatically via logger_redact before output
+- Supports configurable timestamp format (optional parameter, defaults to HH:MM:SS)
+- Returns 0 on success, suitable for use in shell pipelines
+- Handles empty messages gracefully (returns 0, no output)
+
+**Key Learnings:**
+1. **Logger integration**: logger_stream reuses existing logger_redact functionality, maintaining consistency with JSONL logging
+2. **Timestamp format in date**: bash date command uses %H:%M:%S format which matches the HH:MM:SS requirement
+3. **Stdout vs stderr**: Important to output to stdout (not stderr) for proper stream integration and command composition
+4. **Redaction happens before timestamp**: Apply redaction to the message content before adding timestamp prefix to ensure secrets never appear in output
+5. **Empty message handling**: Returning 0 for empty messages (no-op) is better than treating it as an error - allows clean integration in loops
+
+**Testing Approach:**
+- Added 15 new BATS tests covering all functionality:
+  - Timestamp format verification ([HH:MM:SS] pattern)
+  - Secret redaction with various patterns (api_key, password, token, Bearer tokens)
+  - Stdout output verification (not stderr)
+  - Custom timestamp format support
+  - Multiple secrets in one message
+  - Special character handling
+  - Empty message handling
+  - Acceptance criteria tests
+- All 80 logger tests pass (13 new logger_stream tests + 67 existing tests)
+
+**Implementation Stats:**
+- 42 lines added to lib/logger.sh (logger_stream function + docs)
+- 137 lines added to tests/logger.bats (15 new test cases)
+- No modifications to existing functions, full backward compatibility
+
+**Acceptance Criteria Met:**
+- ✓ logger_stream outputs with timestamp prefix [HH:MM:SS]
+- ✓ Secret redaction applied automatically (no secrets in output)
+- ✓ Outputs to stdout, not log file
+- ✓ Compatible with --stream flag (integration ready)
+- ✓ Configurable timestamp format (optional parameter)
