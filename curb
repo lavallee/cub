@@ -616,6 +616,23 @@ cmd_run() {
         fi
     fi
 
+    # Load iteration limits from config
+    local max_task_iterations
+    max_task_iterations=$(config_get_or "guardrails.max_task_iterations" "3")
+    if budget_set_max_task_iterations "$max_task_iterations"; then
+        log_debug "Max task iterations: ${max_task_iterations}"
+    else
+        log_warn "Failed to set max task iterations"
+    fi
+
+    local max_run_iterations
+    max_run_iterations=$(config_get_or "guardrails.max_run_iterations" "50")
+    if budget_set_max_run_iterations "$max_run_iterations"; then
+        log_debug "Max run iterations: ${max_run_iterations}"
+    else
+        log_warn "Failed to set max run iterations"
+    fi
+
     validate_project
 
     # Execute based on mode
@@ -1271,6 +1288,15 @@ run_iteration() {
     local prd="${PROJECT_DIR}/prd.json"
     log_debug "Starting iteration"
 
+    # Check run iteration limit before starting task
+    if ! budget_check_run_iterations; then
+        local current=$(budget_get_run_iterations)
+        local max=$(budget_get_max_run_iterations)
+        log_warn "Run iteration limit exceeded (${current}/${max})"
+        log_info "Stopping run due to iteration limit"
+        return 1
+    fi
+
     # Initialize session if not already initialized
     if ! session_is_initialized; then
         log_debug "Initializing session..."
@@ -1454,6 +1480,16 @@ run_iteration() {
     local task_title=$(echo "$current_task" | jq -r '.title')
     local task_priority=$(echo "$current_task" | jq -r '.priority // "normal"')
 
+    # Check task iteration limit before attempting task
+    if ! budget_check_task_iterations "$task_id"; then
+        local current=$(budget_get_task_iterations "$task_id")
+        local max=$(budget_get_max_task_iterations)
+        log_warn "Task ${task_id} iteration limit exceeded (${current}/${max})"
+        log_info "Marking task as failed and moving on"
+        update_task_status "$prd" "$task_id" "failed"
+        return 1
+    fi
+
     # Start task artifacts
     if session_is_initialized; then
         log_debug "Starting task artifacts for ${task_id}..."
@@ -1465,6 +1501,14 @@ run_iteration() {
             log_warn "Failed to start task artifacts"
         fi
     fi
+
+    # Increment task iteration counter
+    budget_increment_task_iterations "$task_id"
+    local task_iteration=$(budget_get_task_iterations "$task_id")
+    local max_task=$(budget_get_max_task_iterations)
+    local run_iteration=$(budget_get_run_iterations)
+    local max_run=$(budget_get_max_run_iterations)
+    log_info "Task ${task_id} iteration ${task_iteration}/${max_task} (run ${run_iteration}/${max_run})"
 
     # Log task start
     log_task_start "$task_id" "$task_title" "$harness"
@@ -1620,7 +1664,13 @@ run_iteration() {
             task_status="failed"
         fi
 
-        local summary_text="Task execution completed with exit code ${exit_code}. Duration: ${duration}s. Tokens used: ${tokens_used}."
+        # Get iteration counts for summary
+        local task_iter=$(budget_get_task_iterations "$task_id")
+        local max_task_iter=$(budget_get_max_task_iterations)
+        local run_iter=$(budget_get_run_iterations)
+        local max_run_iter=$(budget_get_max_run_iterations)
+
+        local summary_text="Task execution completed with exit code ${exit_code}. Duration: ${duration}s. Tokens used: ${tokens_used}. Task iteration: ${task_iter}/${max_task_iter}. Run iteration: ${run_iter}/${max_run_iter}."
         if artifacts_finalize_task "$task_id" "$task_status" "$exit_code" "$summary_text"; then
             local artifacts_path
             artifacts_path=$(artifacts_get_path "$task_id")
@@ -1651,6 +1701,12 @@ run_iteration() {
             log_warn "Failed to commit changes (this is not an error if there were no changes)"
         fi
     fi
+
+    # Increment run iteration counter after completing task
+    budget_increment_run_iterations
+    local run_iteration=$(budget_get_run_iterations)
+    local max_run=$(budget_get_max_run_iterations)
+    log_debug "Run iteration ${run_iteration}/${max_run} complete"
 
     return $exit_code
 }

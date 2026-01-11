@@ -4420,3 +4420,100 @@ Default patterns cover:
 
 All tests passing (647/649, 2 pre-existing failures unrelated to redaction).
 
+
+## Session: Iteration Limits Integration (curb-034)
+
+### Task: Integrate iteration limits into main loop
+- **Status**: COMPLETED
+- **Date**: 2026-01-10
+
+### What was implemented:
+1. Loaded guardrails config at run start in `cmd_run()`:
+   - Read `guardrails.max_task_iterations` (default: 3)
+   - Read `guardrails.max_run_iterations` (default: 50)
+   - Set limits using `budget_set_max_task_iterations()` and `budget_set_max_run_iterations()`
+
+2. Added run iteration limit check at start of `run_iteration()`:
+   - Calls `budget_check_run_iterations()` before starting task
+   - Returns failure if limit exceeded
+   - Logs current/max iteration counts
+
+3. Added task iteration limit check before task attempt:
+   - Calls `budget_check_task_iterations()` after selecting task
+   - Marks task as failed if limit exceeded
+   - Moves on to next task instead of retrying infinitely
+
+4. Incremented iteration counters:
+   - Task counter: incremented in `run_iteration()` after selecting task
+   - Run counter: incremented at end of `run_iteration()` after task completes
+
+5. Enhanced logging with iteration counts:
+   - Log task iteration as: "Task {id} iteration {current}/{max} (run {run_current}/{run_max})"
+   - Include iteration counts in artifact summary text
+   - Display iteration progress to user
+
+6. Integrated iteration counts into task artifacts:
+   - Iteration counts included in summary.md via summary_text
+   - Provides visibility into how many attempts were made
+
+### Test Results:
+- All 79 budget tests PASS (including iteration tracking tests)
+- Bash syntax check PASS
+- Integration maintains backward compatibility
+
+### Learnings:
+
+1. **Config Loading Pattern**:
+   - Load guardrail limits early in `cmd_run()` after budget initialization
+   - Use `config_get_or()` with sensible defaults (3 for tasks, 50 for runs)
+   - Log limits in debug mode for troubleshooting
+
+2. **Iteration Check Points**:
+   - Check run limit BEFORE starting iteration (prevents wasted work)
+   - Check task limit AFTER selecting task but BEFORE attempting (allows proper cleanup)
+   - Increment counters AFTER the operation (task selected, iteration completed)
+
+3. **Counter Timing**:
+   - Task counter: increment immediately after task selection, before harness invocation
+   - Run counter: increment at very end of run_iteration, after all cleanup
+   - This ensures counters reflect actual attempts, not just intentions
+
+4. **Failure Handling**:
+   - When task iteration limit exceeded: mark task as "failed" and move on
+   - When run iteration limit exceeded: stop entire run gracefully
+   - Both return failure codes that propagate through the loop
+
+5. **User Visibility**:
+   - Show iteration counts as informational messages (log_info) not just debug
+   - Include both task and run iterations in the same message for context
+   - Format: "iteration X/Y (run A/B)" makes it clear which is which
+
+6. **Integration Points**:
+   - Load limits: cmd_run() after budget init
+   - Check run limit: start of run_iteration()
+   - Check task limit: after task selection in run_iteration()
+   - Increment task: after task selection, before harness
+   - Increment run: end of run_iteration()
+   - Include in artifacts: pass counts to summary_text
+
+### Files Modified:
+- `curb` (main script): Added config loading, iteration checks, counter increments
+  - Lines 619-634: Load guardrails config
+  - Lines 1291-1298: Check run iteration limit
+  - Lines 1483-1491: Check task iteration limit
+  - Lines 1505-1511: Increment task counter and log
+  - Lines 1667-1673: Include iteration counts in artifacts
+  - Lines 1697-1701: Increment run counter
+
+### Acceptance Criteria Met:
+✓ Run stops when max_run_iterations exceeded
+✓ Task marked failed when max_task_iterations exceeded
+✓ Iteration counts logged to console and structured logger
+✓ Counts included in artifact metadata (summary.md)
+✓ Behavior matches configured policy (fail task vs stop run)
+
+### Dependencies & Next Tasks:
+- This task completes Phase 4 iteration tracking integration
+- Unblocks: curb-035 (Write BATS tests for iteration tracking)
+- Related to: curb-036 (CHECKPOINT: Verify guardrails prevent runaway loops)
+
