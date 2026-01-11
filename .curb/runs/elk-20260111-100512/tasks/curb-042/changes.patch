@@ -1,5 +1,5 @@
 diff --git a/.curb/runs/elk-20260111-100512/tasks/curb-042/task.json b/.curb/runs/elk-20260111-100512/tasks/curb-042/task.json
-index c29503b..7f5bf7b 100644
+index f24c321..b7a1878 100644
 --- a/.curb/runs/elk-20260111-100512/tasks/curb-042/task.json
 +++ b/.curb/runs/elk-20260111-100512/tasks/curb-042/task.json
 @@ -2,9 +2,7 @@
@@ -7,11 +7,11 @@ index c29503b..7f5bf7b 100644
    "title": "Write BATS tests for failure modes",
    "priority": "P1",
 -  "status": "completed",
--  "started_at": "2026-01-11T15:05:25Z",
+-  "started_at": "2026-01-11T15:05:32Z",
 -  "iterations": 1,
--  "completed_at": "2026-01-11T15:05:27Z",
+-  "completed_at": "2026-01-11T15:05:34Z",
 -  "exit_code": 0
 +  "status": "in_progress",
-+  "started_at": "2026-01-11T15:05:32Z",
++  "started_at": "2026-01-11T15:05:39Z",
 +  "iterations": 0
  }
