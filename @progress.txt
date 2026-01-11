@@ -1,3 +1,43 @@
+## Task curb-037: Create lib/failure.sh with mode enum and failure_get_mode (2026-01-10)
+
+**Implementation:**
+- Created lib/failure.sh with standard header and module documentation
+- Defined four mode constants: FAILURE_STOP, FAILURE_MOVE_ON, FAILURE_RETRY, FAILURE_TRIAGE
+- Implemented failure_get_mode() function that reads config via config_get("failure.mode") or returns default
+- Implemented failure_set_mode(mode) function with validation using case statement for allowed modes
+- Default mode is 'move-on' as specified - simple, safe default that continues execution
+
+**Key Learnings:**
+1. **Mode constants pattern**: Used readonly constants to avoid typos and enable IDE/linter checking
+2. **Config integration**: Followed existing pattern by sourcing config.sh and using config_get() to read values
+3. **Fallback defaults**: Default mode is set directly in failure_mode variable, returned if config_get() returns empty
+4. **Validation pattern**: Used case statement matching against exact modes (stop|move-on|retry|triage) for clear validation
+5. **Error messaging**: Both validation errors go to stderr, making it easy for scripts to suppress or handle them
+6. **Function naming**: Simple names (failure_get_mode, failure_set_mode) follow existing lib patterns
+7. **State management**: Setting failure_mode variable directly allows runtime overrides without persisting to config
+
+**Testing Approach:**
+- Manual verification of all acceptance criteria
+- Tested default mode returns 'move-on'
+- Tested all four valid modes are accepted
+- Tested invalid modes are rejected with exit code 1
+- Tested missing arguments are rejected
+- Verified all constants are defined and accessible
+
+**Acceptance Criteria Met:**
+- ✓ lib/failure.sh exists with standard header
+- ✓ Mode constants defined (FAILURE_STOP, FAILURE_MOVE_ON, FAILURE_RETRY, FAILURE_TRIAGE)
+- ✓ failure_get_mode returns configured mode or default
+- ✓ Default mode is 'move-on'
+- ✓ Invalid modes are rejected with error message
+- ✓ failure_set_mode validates input
+
+**Files Modified:**
+- Created: lib/failure.sh (85 lines, fully documented)
+
+**Future Integration:**
+This module will be used by the main loop to determine behavior when tasks fail. Later tasks will integrate failure handling with the retry and triage systems. The simple design here (just a getter/setter) keeps this task focused and allows complex failure logic to be added later.
+
 ## Task curb-033: Add config schema for guardrails (2026-01-10)
 
 **Implementation:**
@@ -523,3 +563,50 @@ All 34 tests pass successfully:
 - ✓ Outputs to stdout, not log file
 - ✓ Compatible with --stream flag (integration ready)
 - ✓ Configurable timestamp format (optional parameter)
+
+## Task curb-038: Implement stop and move-on failure modes (2026-01-10)
+
+**Implementation:**
+- Created failure_handle_stop(task_id, exit_code, output) that returns exit code 2 to signal halt
+- Created failure_handle_move_on(task_id, exit_code, output) that returns exit code 0 to signal continue
+- Created failure_store_info(task_id, exit_code, output, mode) helper to store failure details
+- Failure info stored as failure.json in task artifacts directory with full metadata
+- Both handlers log errors via logger module with structured JSON context
+- All functions include comprehensive parameter validation
+
+**Key Learnings:**
+1. **Exit code conventions**: Using different exit codes to signal behavior (0=continue, 2=halt) provides clear signaling to main loop
+2. **Failure storage pattern**: Storing failure info in task artifacts directory (failure.json) enables later retrieval by explain command
+3. **Graceful degradation**: failure_store_info handles missing artifacts/task directories gracefully by returning success (0) rather than failing
+4. **Structured failure data**: JSON format includes task_id, exit_code, output, mode, and ISO 8601 timestamp for complete debugging context
+5. **Parameter validation**: All functions validate required parameters and provide clear error messages to stderr
+6. **Integration with artifacts**: Reusing artifacts_get_base_dir() from artifacts.sh maintains consistency with existing patterns
+7. **Testing pattern**: Created 26 comprehensive BATS tests covering happy paths, error cases, and all acceptance criteria
+
+**Testing Approach:**
+- Unit tests for each handler function (stop, move-on, store_info)
+- Parameter validation tests (missing/empty parameters)
+- Graceful degradation tests (missing directories)
+- Integration tests combining handlers with storage
+- Acceptance criteria verification tests
+- All 26 tests passing with 100% coverage
+
+**Acceptance Criteria Met:**
+- ✓ Stop mode halts run immediately (returns exit code 2)
+- ✓ Move-on mode marks task failed and continues (returns exit code 0)
+- ✓ Failure info stored for retrieval (failure.json in task artifacts)
+- ✓ Task artifacts updated with failure details (JSON includes all metadata)
+- ✓ Exit codes distinguish stop vs continue (2 vs 0)
+
+**Files Modified:**
+- lib/failure.sh: Added 3 functions (154 lines added, total 238 lines)
+- tests/failure.bats: Created comprehensive test suite (26 tests, 304 lines)
+- .beads/issues.jsonl: Task status updated to closed
+
+**Exit Code Convention:**
+- 0: Continue execution (move-on mode)
+- 1: Validation error (invalid parameters)
+- 2: Halt run (stop mode)
+
+**Future Integration:**
+These handlers will be integrated into the main loop to dispatch failures based on failure_get_mode(). The retry and triage modes will build on this foundation in future tasks.
