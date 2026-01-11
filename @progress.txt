@@ -1,3 +1,33 @@
+## Task curb-041: Implement cmd_explain to show task failure reasons (2026-01-11)
+
+**Implementation:**
+- Enhanced cmd_explain function in curb script to show detailed task information
+- Added failure information display for failed tasks (reads failure.json from artifacts)
+- Added blocking dependency detection and display
+- Added actionable suggestions for resolution
+- Added artifacts path display when available
+- Fixed error handling for non-existent tasks (|| true pattern for set -e compatibility)
+- Updated help text with new features documentation
+
+**Key Learnings:**
+1. **set -e compatibility**: When using command substitution with `set -e`, commands that fail will exit the script. Use `|| true` to prevent this: `task=$(get_task "$prd" "$target" 2>/dev/null) || true`
+2. **Failure artifacts**: Failure info is stored in failure.json in the task artifacts directory, created by failure_store_info() in lib/failure.sh
+3. **Dependency checking pattern**: Loop through dependsOn array, check each dependency's status, collect those not closed into a blocking_deps array
+4. **Colored output sections**: Use color codes (${RED}, ${YELLOW}, ${NC}) for visual separation of sections (Failure Information, Blocking Dependencies, Suggestions)
+5. **Graceful degradation**: When artifacts don't exist, show helpful message instead of crashing
+6. **User-friendly errors**: Include tips in error messages (e.g., "Run 'curb status' to see available tasks")
+7. **beads backend**: The beads backend uses `bd show <id> --json` to get task details, which exits non-zero for non-existent tasks
+
+**Acceptance Criteria Met:**
+- ✓ 'curb explain <task-id>' shows task status
+- ✓ Failed tasks show failure reason (from failure.json)
+- ✓ Blocked tasks show blocking dependencies with their status
+- ✓ Output is human-readable with colored sections
+- ✓ Handles missing task gracefully with helpful tip
+
+**Files Modified:**
+- curb: Enhanced cmd_explain function and cmd_explain_help (115 lines added, 15 lines removed)
+
 ## Task curb-037: Create lib/failure.sh with mode enum and failure_get_mode (2026-01-10)
 
 **Implementation:**
