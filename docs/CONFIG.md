@@ -247,6 +247,179 @@ Strict mode - stop on hook failure:
 
 See [Hooks Documentation](../README.md#hooks) for details on writing custom hooks.
 
+#### Example Hooks
+
+Curb ships with example hooks in `examples/hooks/` that you can copy and customize:
+
+| Hook | Location | Description |
+|------|----------|-------------|
+| `10-auto-branch.sh` | `pre-loop.d/` | Automatically creates a git branch when a session starts |
+| `90-pr-prompt.sh` | `post-loop.d/` | Prompts to create a GitHub PR at end of run |
+| `slack-notify.sh` | `post-task.d/` | Posts task completion notifications to Slack |
+| `datadog-metric.sh` | `post-loop.d/` | Reports run metrics to Datadog |
+| `pagerduty-alert.sh` | `on-error.d/` | Sends PagerDuty alerts on task failure |
+
+**Installing Example Hooks:**
+
+1. **For a specific project:**
+   ```bash
+   # Create hooks directory
+   mkdir -p .curb/hooks/pre-loop.d
+
+   # Copy and enable the auto-branch hook
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
+   chmod +x .curb/hooks/pre-loop.d/10-auto-branch.sh
+   ```
+
+2. **For all projects (global):**
+   ```bash
+   # Create global hooks directory
+   mkdir -p ~/.config/curb/hooks/pre-loop.d
+
+   # Copy and enable the auto-branch hook globally
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh ~/.config/curb/hooks/pre-loop.d/
+   chmod +x ~/.config/curb/hooks/pre-loop.d/10-auto-branch.sh
+   ```
+
+**Auto-Branch Hook:**
+
+The `10-auto-branch.sh` hook automatically creates a new git branch when a curb session starts:
+
+- Creates branches with naming convention: `curb/{session_name}/{timestamp}`
+- Stores the base branch for later PR creation
+- Idempotent (safe to run multiple times)
+- Skips if not in a git repository or already on a curb branch
+
+Example output:
+```
+[auto-branch] Creating branch: curb/porcupine/20260111-120000 (from main)
+[auto-branch] Stored base branch: main
+```
+
+**PR Prompt Hook:**
+
+The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a curb session completes:
+
+- Uses the GitHub CLI (`gh`) for PR creation
+- Reads base branch from `.curb/.base-branch` (set by auto-branch hook)
+- Generates title and body from commit history
+- Interactive prompt: yes/no/edit
+- Skips automatically if:
+  - No commits ahead of base branch
+  - Already on main/master branch
+  - PR already exists for the branch
+  - Not running interactively (no TTY)
+
+Prerequisites:
+- GitHub CLI installed: `brew install gh`
+- Authenticated: `gh auth login`
+- Repository has GitHub remote
+
+Example output:
+```
+==========================================
+[pr-prompt] Ready to create Pull Request
+==========================================
+
+Branch:  curb/porcupine/20260111-120000
+Base:    main
+Commits: 3 ahead
+
+Title:   Curb: Porcupine session (3 commits)
+
+[pr-prompt] Create PR? [y/N/e(dit)]
+```
+
+**Using Both Hooks Together:**
+
+For a complete PR workflow, enable both hooks:
+```bash
+# In your project
+mkdir -p .curb/hooks/pre-loop.d .curb/hooks/post-loop.d
+cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
+cp examples/hooks/post-loop.d/90-pr-prompt.sh .curb/hooks/post-loop.d/
+chmod +x .curb/hooks/*/[0-9]*.sh
+```
+
+This gives you:
+1. Auto-branch at session start (pre-loop)
+2. PR prompt at session end (post-loop)
+
+**Customizing Hooks:**
+
+Hooks receive context via environment variables:
+- `CURB_SESSION_ID` - Session ID (e.g., "porcupine-20260111-114543")
+- `CURB_PROJECT_DIR` - Project directory
+- `CURB_TASK_ID` - Current task ID (for task hooks)
+- `CURB_TASK_TITLE` - Current task title (for task hooks)
+- `CURB_EXIT_CODE` - Task exit code (for post-task/on-error hooks)
+- `CURB_HARNESS` - Harness being used
+
+---
+
+### Guardrails Configuration
+
+Prevent runaway loops and redact sensitive information from output.
+
+#### `guardrails.max_task_iterations`
+- **Type**: Number
+- **Default**: `3`
+- **Description**: Maximum number of times a single task can be attempted. When exceeded, task is marked failed and skipped. Prevents infinite retry loops.
+
+#### `guardrails.max_run_iterations`
+- **Type**: Number
+- **Default**: `50`
+- **Description**: Maximum number of total iterations in a run. When exceeded, run stops immediately. Prevents runaway loop behavior across all tasks.
+
+#### `guardrails.iteration_warning_threshold`
+- **Type**: Number (0.0-1.0)
+- **Default**: `0.8` (80%)
+- **Description**: Warning threshold as percentage of iteration limit. Logs warning when approaching max_task_iterations or max_run_iterations.
+
+#### `guardrails.secret_patterns`
+- **Type**: Array of strings (regex patterns)
+- **Default**: `["api[_-]?key", "password", "token", "secret", "authorization", "credentials"]`
+- **Description**: Regular expression patterns to detect and redact sensitive information from logs and output. Matched case-insensitively.
+
+**Examples:**
+
+Strict limits for testing:
+```json
+{
+  "guardrails": {
+    "max_task_iterations": 2,
+    "max_run_iterations": 10,
+    "iteration_warning_threshold": 0.5
+  }
+}
+```
+
+Add custom secret patterns:
+```json
+{
+  "guardrails": {
+    "secret_patterns": [
+      "api[_-]?key",
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "credentials",
+      "webhook_url",
+      "private_key",
+      "aws_secret"
+    ]
+  }
+}
+```
+
+Relaxed limits for complex tasks:
+```bash
+export CURB_MAX_TASK_ITERATIONS=10
+export CURB_MAX_RUN_ITERATIONS=200
+curb
+```
+
 ---
 
 ## Environment Variables
@@ -265,6 +438,8 @@ Environment variables override all config files and provide quick, temporary ove
 | `CURB_EPIC` | String | | Filter to epic ID |
 | `CURB_LABEL` | String | | Filter to label name |
 | `CURB_REQUIRE_CLEAN` | Boolean | `true` | Enforce clean state |
+| `CURB_MAX_TASK_ITERATIONS` | Number | 3 | Max attempts per task |
+| `CURB_MAX_RUN_ITERATIONS` | Number | 50 | Max iterations per run |
 | `HARNESS` | String | `auto` | Harness: `auto`, `claude`, `codex`, `gemini`, `opencode` |
 | `CLAUDE_FLAGS` | String | | Extra flags for Claude Code CLI |
 | `CODEX_FLAGS` | String | | Extra flags for OpenAI Codex CLI |

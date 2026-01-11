@@ -14,8 +14,9 @@ setup_test_dir() {
     TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"
 
-    # Reset backend state
+    # Reset backend state and project directory
     unset CURB_BACKEND
+    unset CURB_PROJECT_DIR
     export _TASK_BACKEND=""
 
     # Create mock harness (claude) for tests that don't actually invoke it

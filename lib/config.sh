@@ -38,8 +38,26 @@ config_load() {
     local user_config="$(curb_config_dir)/config.json"
     local merged_config="{}"
 
-    # Start with empty config
-    merged_config="{}"
+    # Start with defaults
+    # These provide sensible values for all configuration options
+    merged_config=$(cat <<'EOF'
+{
+  "guardrails": {
+    "max_task_iterations": 3,
+    "max_run_iterations": 50,
+    "iteration_warning_threshold": 0.8,
+    "secret_patterns": [
+      "api[_-]?key",
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "credentials"
+    ]
+  }
+}
+EOF
+    )
 
     # Merge user config if it exists
     if [[ -f "$user_config" ]]; then

@@ -44,6 +44,8 @@ source "${CURB_DIR}/lib/hooks.sh"
 source "${CURB_DIR}/lib/session.sh"
 # Source artifacts management
 source "${CURB_DIR}/lib/artifacts.sh"
+# Source failure handling
+source "${CURB_DIR}/lib/failure.sh"
 
 # Load configuration early
 config_load
@@ -616,6 +618,23 @@ cmd_run() {
         fi
     fi
 
+    # Load iteration limits from config
+    local max_task_iterations
+    max_task_iterations=$(config_get_or "guardrails.max_task_iterations" "3")
+    if budget_set_max_task_iterations "$max_task_iterations"; then
+        log_debug "Max task iterations: ${max_task_iterations}"
+    else
+        log_warn "Failed to set max task iterations"
+    fi
+
+    local max_run_iterations
+    max_run_iterations=$(config_get_or "guardrails.max_run_iterations" "50")
+    if budget_set_max_run_iterations "$max_run_iterations"; then
+        log_debug "Max run iterations: ${max_run_iterations}"
+    else
+        log_warn "Failed to set max run iterations"
+    fi
+
     validate_project
 
     # Execute based on mode
@@ -713,7 +732,8 @@ cmd_explain_help() {
     cat <<'EOF'
 curb explain <task-id>
 
-Show detailed information about a specific task.
+Show detailed information about a specific task, including failure
+reasons and blocking dependencies.
 
 USAGE:
   curb explain <task-id>    Display full task details
@@ -728,23 +748,35 @@ OUTPUT INCLUDES:
   - Dependencies (tasks that must be completed first)
   - Labels and other metadata
 
+FOR FAILED TASKS:
+  - Exit code from last execution
+  - Failure mode (stop, move-on, retry)
+  - Timestamp of failure
+  - Error output (if captured)
+  - Suggestions for resolution
+
+FOR BLOCKED TASKS:
+  - List of blocking dependencies with their status
+  - Suggestions for unblocking
+
 EXAMPLES:
   # View task details
   curb explain curb-018
 
+  # Investigate why a task failed
+  curb explain curb-041
+
+  # Check what's blocking a task
+  curb explain feature-42
+
   # Look up a task's requirements
   curb explain backend-001
 
-  # Check task dependencies
-  curb explain feature-42
-
-  # Verify acceptance criteria for a task
-  curb explain my-project-15
-
 SEE ALSO:
-  curb status      Check overall progress
-  curb run --ready List ready tasks
-  curb --help      Show all commands
+  curb status       Check overall progress
+  curb run --ready  List ready tasks
+  curb artifacts    Access task output files
+  curb --help       Show all commands
 EOF
 }
 
@@ -768,14 +800,17 @@ cmd_explain() {
     # Try to get task first
     local prd="${PROJECT_DIR}/prd.json"
     local task
-    task=$(get_task "$prd" "$target" 2>/dev/null)
+    task=$(get_task "$prd" "$target" 2>/dev/null) || true
 
     if [[ -n "$task" && "$task" != "null" ]]; then
         # Found a task - show task details
+        local task_id=$(echo "$task" | jq -r '.id')
+        local task_status=$(echo "$task" | jq -r '.status')
+
         echo "$task" | jq -r '
             "Task: \(.id)",
             "Title: \(.title)",
-            "Type: \(.type)",
+            "Type: \(.type // "task")",
             "Status: \(.status)",
             "Priority: \(.priority // "normal")",
             "",
@@ -783,12 +818,96 @@ cmd_explain() {
             "\(.description)",
             "",
             (if .acceptanceCriteria then "Acceptance Criteria:\n- " + (.acceptanceCriteria | join("\n- ")) else "" end),
-            (if .dependsOn then "\nDepends on: " + (.dependsOn | join(", ")) else "" end),
-            (if .labels then "\nLabels: " + (.labels | join(", ")) else "" end)
+            (if .dependsOn and (.dependsOn | length > 0) then "\nDepends on: " + (.dependsOn | join(", ")) else "" end),
+            (if .labels and (.labels | length > 0) then "\nLabels: " + (.labels | join(", ")) else "" end)
         '
+
+        # Show failure reason if task failed
+        if [[ "$task_status" == "failed" ]]; then
+            echo ""
+            echo -e "${RED}=== Failure Information ===${NC}"
+
+            # Look for failure.json in artifacts
+            local artifacts_base="${PROJECT_DIR}/.curb/runs"
+            local failure_file=""
+            if [[ -d "$artifacts_base" ]]; then
+                failure_file=$(find "$artifacts_base" -path "*/tasks/${task_id}/failure.json" 2>/dev/null | head -n 1)
+            fi
+
+            if [[ -n "$failure_file" && -f "$failure_file" ]]; then
+                local exit_code=$(jq -r '.exit_code // "unknown"' "$failure_file" 2>/dev/null)
+                local mode=$(jq -r '.mode // "unknown"' "$failure_file" 2>/dev/null)
+                local timestamp=$(jq -r '.timestamp // "unknown"' "$failure_file" 2>/dev/null)
+                local output=$(jq -r '.output // ""' "$failure_file" 2>/dev/null)
+
+                echo "Exit code: ${exit_code}"
+                echo "Failure mode: ${mode}"
+                echo "Timestamp: ${timestamp}"
+                if [[ -n "$output" && "$output" != "null" && "$output" != "" ]]; then
+                    echo ""
+                    echo "Error output:"
+                    echo "$output"
+                fi
+            else
+                echo "No detailed failure information available."
+                echo "The task may have failed before artifacts were created."
+            fi
+
+            # Provide suggestions
+            echo ""
+            echo -e "${YELLOW}Suggestions:${NC}"
+            echo "  - Review task artifacts: curb artifacts ${task_id}"
+            echo "  - Reset to open and retry: update status to 'open' in task source"
+            echo "  - Check logs for more details"
+        fi
+
+        # Check for blocking dependencies
+        local depends_on=$(echo "$task" | jq -r '.dependsOn // [] | .[]' 2>/dev/null)
+        if [[ -n "$depends_on" ]]; then
+            local blocking_deps=()
+            while IFS= read -r dep_id; do
+                if [[ -n "$dep_id" ]]; then
+                    # Check if dependency is closed
+                    local dep_task
+                    dep_task=$(get_task "$prd" "$dep_id" 2>/dev/null)
+                    if [[ -n "$dep_task" && "$dep_task" != "null" ]]; then
+                        local dep_status=$(echo "$dep_task" | jq -r '.status')
+                        if [[ "$dep_status" != "closed" ]]; then
+                            blocking_deps+=("${dep_id} (${dep_status})")
+                        fi
+                    else
+                        blocking_deps+=("${dep_id} (not found)")
+                    fi
+                fi
+            done <<< "$depends_on"
+
+            if [[ ${#blocking_deps[@]} -gt 0 ]]; then
+                echo ""
+                echo -e "${YELLOW}=== Blocking Dependencies ===${NC}"
+                echo "This task is blocked by the following dependencies:"
+                for blocking in "${blocking_deps[@]}"; do
+                    echo "  - ${blocking}"
+                done
+                echo ""
+                echo -e "${YELLOW}Suggestions:${NC}"
+                echo "  - Complete blocking tasks first"
+                echo "  - Use 'curb explain <dep-id>' to investigate blockers"
+            fi
+        fi
+
+        # Show artifacts path if available
+        local artifacts_base="${PROJECT_DIR}/.curb/runs"
+        if [[ -d "$artifacts_base" ]]; then
+            local task_dir=$(find "$artifacts_base" -path "*/tasks/${task_id}" -type d 2>/dev/null | head -n 1)
+            if [[ -n "$task_dir" && -d "$task_dir" ]]; then
+                echo ""
+                echo "Artifacts: ${task_dir}"
+            fi
+        fi
     else
         # Not a task, maybe a session? (future implementation)
-        _log_error_console "Task or session not found: ${target}"
+        _log_error_console "Task not found: ${target}"
+        _log_error_console "Tip: Run 'curb status' to see available tasks"
         return 1
     fi
 }
@@ -1244,6 +1363,14 @@ generate_task_prompt() {
     local task_desc=$(echo "$task_json" | jq -r '.description')
     local task_criteria=$(echo "$task_json" | jq -r '.acceptanceCriteria // [] | join("\n- ")')
 
+    # Parse acceptance criteria from description (markdown checkboxes)
+    local desc_criteria=""
+    desc_criteria=$(parse_acceptance_criteria "$task_desc" 2>/dev/null || true)
+
+    # Check for failure context (for retry mode)
+    local failure_context=""
+    failure_context=$(failure_get_context "$task_id" 2>/dev/null)
+
     # Generate focused task prompt (minimal - just the task)
     cat <<EOF
 ## CURRENT TASK
@@ -1254,9 +1381,38 @@ Title: ${task_title}
 
 Description:
 ${task_desc}
+EOF
+
+    # Include acceptance criteria section
+    # Prioritize explicit acceptanceCriteria array, but also include parsed checkboxes
+    if [[ -n "$task_criteria" && "$task_criteria" != "-" ]]; then
+        cat <<EOF
 
 Acceptance Criteria:
 - ${task_criteria}
+EOF
+    elif [[ -n "$desc_criteria" ]]; then
+        cat <<EOF
+
+Acceptance Criteria (from description checkboxes):
+EOF
+        echo "$desc_criteria" | while IFS= read -r criterion; do
+            echo "- $criterion"
+        done
+    fi
+
+    # Add failure context if this is a retry
+    if [[ -n "$failure_context" ]]; then
+        cat <<EOF
+
+## RETRY CONTEXT
+
+${failure_context}
+EOF
+    fi
+
+    # Add completion instructions
+    cat <<EOF
 
 When complete:
 1. Run feedback loops (typecheck, test, lint)
@@ -1270,6 +1426,15 @@ EOF
 run_iteration() {
     local prd="${PROJECT_DIR}/prd.json"
     log_debug "Starting iteration"
+
+    # Check run iteration limit before starting task
+    if ! budget_check_run_iterations; then
+        local current=$(budget_get_run_iterations)
+        local max=$(budget_get_max_run_iterations)
+        log_warn "Run iteration limit exceeded (${current}/${max})"
+        log_info "Stopping run due to iteration limit"
+        return 1
+    fi
 
     # Initialize session if not already initialized
     if ! session_is_initialized; then
@@ -1398,10 +1563,12 @@ run_iteration() {
         log_info "  ${task_type}: ${task_title}"
         log_debug "Task JSON: $current_task"
 
-        # Mark as in_progress
-        log_debug "Updating task status to in_progress..."
-        update_task_status "$prd" "$task_id" "in_progress"
-        log_debug "Task status updated"
+        # Mark as in_progress (with assignee for beads backend)
+        log_debug "Claiming task..."
+        local session_name
+        session_name=$(session_get_name)
+        claim_task "$prd" "$task_id" "$session_name"
+        log_debug "Task claimed"
     fi
 
     # Check for model: label and set CURB_MODEL if harness is claude
@@ -1454,6 +1621,16 @@ run_iteration() {
     local task_title=$(echo "$current_task" | jq -r '.title')
     local task_priority=$(echo "$current_task" | jq -r '.priority // "normal"')
 
+    # Check task iteration limit before attempting task
+    if ! budget_check_task_iterations "$task_id"; then
+        local current=$(budget_get_task_iterations "$task_id")
+        local max=$(budget_get_max_task_iterations)
+        log_warn "Task ${task_id} iteration limit exceeded (${current}/${max})"
+        log_info "Marking task as failed and moving on"
+        update_task_status "$prd" "$task_id" "failed"
+        return 1
+    fi
+
     # Start task artifacts
     if session_is_initialized; then
         log_debug "Starting task artifacts for ${task_id}..."
@@ -1465,6 +1642,21 @@ run_iteration() {
             log_warn "Failed to start task artifacts"
         fi
     fi
+
+    # Log acceptance criteria for this task
+    if [[ "$DEBUG" == "true" ]]; then
+        verify_acceptance_criteria "$task_id" "$prd" 2>/dev/null | while IFS= read -r line; do
+            log_debug "$line"
+        done
+    fi
+
+    # Increment task iteration counter
+    budget_increment_task_iterations "$task_id"
+    local task_iteration=$(budget_get_task_iterations "$task_id")
+    local max_task=$(budget_get_max_task_iterations)
+    local run_iteration=$(budget_get_run_iterations)
+    local max_run=$(budget_get_max_run_iterations)
+    log_info "Task ${task_id} iteration ${task_iteration}/${max_task} (run ${run_iteration}/${max_run})"
 
     # Log task start
     log_task_start "$task_id" "$task_title" "$harness"
@@ -1595,6 +1787,75 @@ run_iteration() {
         fi
     fi
 
+    # Handle task failure if exit_code is non-zero
+    if [[ $exit_code -ne 0 ]]; then
+        log_debug "Task failed with exit code ${exit_code}, invoking failure handler..."
+
+        # Get failure mode from config
+        local failure_mode
+        failure_mode=$(failure_get_mode)
+        log_debug "Failure mode: ${failure_mode}"
+
+        # Collect harness output for failure context (if available)
+        local harness_output=""
+        # Note: harness output is not captured in current implementation
+        # Future enhancement: capture last N lines of harness output
+
+        # Call appropriate failure handler based on mode
+        local failure_result=0
+        case "$failure_mode" in
+            stop)
+                failure_handle_stop "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            move-on)
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            retry)
+                failure_handle_retry "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            triage)
+                log_warn "Triage mode not yet implemented, falling back to move-on"
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            *)
+                log_warn "Unknown failure mode '${failure_mode}', falling back to move-on"
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+        esac
+
+        log_debug "Failure handler returned: ${failure_result}"
+
+        # Check failure handler result
+        # Return codes: 0=continue, 2=halt, 3=retry
+        if [[ $failure_result -eq 2 ]]; then
+            # Stop mode - halt the run
+            log_info "Failure handler requested run halt"
+            # Run post-task hooks before halting
+            log_debug "Running post-task hooks..."
+            hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+            hooks_run "post-task"
+            log_debug "Post-task hooks complete"
+            # Return special code to signal halt to main loop
+            return 2
+        elif [[ $failure_result -eq 3 ]]; then
+            # Retry mode - retry the task
+            log_info "Failure handler requested task retry"
+            # Run post-task hooks
+            log_debug "Running post-task hooks..."
+            hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+            hooks_run "post-task"
+            log_debug "Post-task hooks complete"
+            # Return special code to signal retry to main loop
+            return 3
+        fi
+        # Otherwise fall through to normal post-task flow (move-on)
+    fi
+
     # Run post-task hooks (always run, regardless of success/failure)
     log_debug "Running post-task hooks..."
     hooks_set_task_context "$task_id" "$task_title" "$exit_code"
@@ -1620,7 +1881,13 @@ run_iteration() {
             task_status="failed"
         fi
 
-        local summary_text="Task execution completed with exit code ${exit_code}. Duration: ${duration}s. Tokens used: ${tokens_used}."
+        # Get iteration counts for summary
+        local task_iter=$(budget_get_task_iterations "$task_id")
+        local max_task_iter=$(budget_get_max_task_iterations)
+        local run_iter=$(budget_get_run_iterations)
+        local max_run_iter=$(budget_get_max_run_iterations)
+
+        local summary_text="Task execution completed with exit code ${exit_code}. Duration: ${duration}s. Tokens used: ${tokens_used}. Task iteration: ${task_iter}/${max_task_iter}. Run iteration: ${run_iter}/${max_run_iter}."
         if artifacts_finalize_task "$task_id" "$task_status" "$exit_code" "$summary_text"; then
             local artifacts_path
             artifacts_path=$(artifacts_get_path "$task_id")
@@ -1650,6 +1917,19 @@ run_iteration() {
         else
             log_warn "Failed to commit changes (this is not an error if there were no changes)"
         fi
+    fi
+
+    # Increment run iteration counter after completing task
+    budget_increment_run_iterations
+    local run_iteration=$(budget_get_run_iterations)
+    local max_run=$(budget_get_max_run_iterations)
+    log_debug "Run iteration ${run_iteration}/${max_run} complete"
+
+    # Commit curb artifacts (.beads/ and .curb/) if there are changes
+    # These are committed separately after the harness's work is complete
+    if git_in_repo; then
+        log_debug "Committing curb artifacts if needed..."
+        git_commit_curb_artifacts "$task_id"
     fi
 
     return $exit_code
@@ -1793,9 +2073,27 @@ run_loop() {
 
         # Run single iteration
         log_debug "Calling run_iteration..."
-        if ! run_iteration; then
+        run_iteration
+        local iteration_result=$?
+
+        if [[ $iteration_result -eq 2 ]]; then
+            # Failure handler requested halt
+            log_warn "Failure handler requested run halt"
+            show_status
+            # Run post-loop hooks
+            log_debug "Running post-loop hooks..."
+            hooks_run "post-loop"
+            log_debug "Post-loop hooks complete"
+            return 2
+        elif [[ $iteration_result -eq 3 ]]; then
+            # Failure handler requested retry
+            log_info "Failure handler requested retry - will retry task in next iteration"
+            # Don't increment iteration counter for retry
+            iteration=$((iteration - 1))
+        elif [[ $iteration_result -ne 0 ]]; then
+            # Other non-zero exit (normal failure with move-on)
             log_warn "Iteration failed, continuing..."
-            log_debug "run_iteration returned non-zero"
+            log_debug "run_iteration returned ${iteration_result}"
         fi
 
         echo ""

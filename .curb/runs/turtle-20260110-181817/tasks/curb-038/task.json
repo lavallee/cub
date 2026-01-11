@@ -1,0 +1,10 @@
+{
+  "task_id": "curb-038",
+  "title": "Implement stop and move-on failure modes",
+  "priority": "P1",
+  "status": "failed",
+  "started_at": "2026-01-11T01:13:50Z",
+  "iterations": 1,
+  "completed_at": "2026-01-11T01:21:01Z",
+  "exit_code": 1
+}

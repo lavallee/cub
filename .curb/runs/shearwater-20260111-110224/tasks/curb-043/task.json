@@ -1,0 +1,8 @@
+{
+  "task_id": "curb-043",
+  "title": "CHECKPOINT: Verify failure handling works for all modes",
+  "priority": "P1",
+  "status": "in_progress",
+  "started_at": "2026-01-11T16:02:34Z",
+  "iterations": 0
+}

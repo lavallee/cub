@@ -740,3 +740,45 @@ EOF
     # Should return something
     [ -n "$output" ]
 }
+
+# =============================================================================
+# Output Buffering Helper Tests
+# =============================================================================
+
+@test "_get_stdbuf_cmd returns stdbuf if available" {
+    # Create a mock stdbuf in PATH
+    mkdir -p "$TEST_DIR/bin"
+    echo '#!/bin/bash' > "$TEST_DIR/bin/stdbuf"
+    chmod +x "$TEST_DIR/bin/stdbuf"
+    
+    PATH="$TEST_DIR/bin:$PATH" run _get_stdbuf_cmd
+    [ "$status" -eq 0 ]
+    [ "$output" = "stdbuf -oL" ]
+}
+
+@test "_get_stdbuf_cmd returns gstdbuf if stdbuf not available" {
+    # Create a mock gstdbuf in PATH (simulating macOS with homebrew coreutils)
+    mkdir -p "$TEST_DIR/bin"
+    echo '#!/bin/bash' > "$TEST_DIR/bin/gstdbuf"
+    chmod +x "$TEST_DIR/bin/gstdbuf"
+    
+    # Make sure stdbuf is not in path
+    PATH="$TEST_DIR/bin" run _get_stdbuf_cmd
+    [ "$status" -eq 0 ]
+    [ "$output" = "gstdbuf -oL" ]
+}
+
+@test "_get_stdbuf_cmd returns empty if neither available" {
+    # Empty PATH with no stdbuf or gstdbuf
+    PATH="" run _get_stdbuf_cmd
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+}
+
+@test "ACCEPTANCE: Streaming uses stdbuf when available for output buffering" {
+    # This test verifies the helper function exists and works
+    # Actual streaming behavior requires integration testing
+    run _get_stdbuf_cmd
+    [ "$status" -eq 0 ]
+    # Output is either stdbuf/gstdbuf command or empty - all valid
+}

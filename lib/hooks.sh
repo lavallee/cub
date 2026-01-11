@@ -84,10 +84,12 @@ hooks_find() {
         done < <(find "$project_hook_dir" -type f -perm +111 -print0 2>/dev/null | sort -z)
     fi
 
-    # Output each script on a separate line
-    for script in "${all_scripts[@]}"; do
-        echo "$script"
-    done
+    # Output each script on a separate line (handle empty array safely)
+    if [[ ${#all_scripts[@]} -gt 0 ]]; then
+        for script in "${all_scripts[@]}"; do
+            echo "$script"
+        done
+    fi
 
     return 0
 }

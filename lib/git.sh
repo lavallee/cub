@@ -66,24 +66,85 @@ git_get_current_branch() {
 #     echo "Uncommitted changes detected"
 #   fi
 git_is_clean() {
-    # Check for uncommitted changes in working tree
-    if ! git diff --quiet HEAD 2>/dev/null; then
+    # Exclude .curb/ and .beads/ from all checks since those are curb's own artifacts
+    # Use pathspec ':!.curb/' ':!.beads/' to exclude directories from git operations
+    # These files are committed separately after task completion
+
+    # Check for uncommitted changes in working tree (excluding curb artifacts)
+    if ! git diff --quiet HEAD -- ':!.curb/' ':!.beads/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for staged but uncommitted changes
-    if ! git diff --cached --quiet HEAD 2>/dev/null; then
+    # Check for staged but uncommitted changes (excluding curb artifacts)
+    if ! git diff --cached --quiet HEAD -- ':!.curb/' ':!.beads/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for untracked files (files not in .gitignore)
+    # Check for untracked files (files not in .gitignore, excluding curb artifacts)
     local untracked
-    untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
+    untracked=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.curb/' | grep -v '^\.beads/')
     if [[ -n "$untracked" ]]; then
         return 1
     fi
 
     # Repository is clean
+    return 0
+}
+
+# Commit curb artifacts (.beads/ and .curb/) if there are changes
+# These directories contain curb's own tracking data and should be committed
+# separately from the harness's commits.
+#
+# Parameters:
+#   $1 - task_id: The task ID to include in commit message (optional)
+#
+# Returns:
+#   0 on success (changes committed or nothing to commit)
+#   1 on error (git command failure)
+#
+# Example:
+#   git_commit_curb_artifacts "curb-042"
+git_commit_curb_artifacts() {
+    local task_id="${1:-}"
+
+    # Check if there are any changes to commit in .beads/ or .curb/
+    local has_beads_changes=false
+    local has_curb_changes=false
+
+    if git status --porcelain .beads/ 2>/dev/null | grep -q .; then
+        has_beads_changes=true
+    fi
+
+    if git status --porcelain .curb/ 2>/dev/null | grep -q .; then
+        has_curb_changes=true
+    fi
+
+    # Nothing to commit
+    if [[ "$has_beads_changes" == "false" && "$has_curb_changes" == "false" ]]; then
+        return 0
+    fi
+
+    # Stage changes
+    if [[ "$has_beads_changes" == "true" ]]; then
+        git add .beads/ 2>/dev/null || true
+    fi
+
+    if [[ "$has_curb_changes" == "true" ]]; then
+        git add .curb/ 2>/dev/null || true
+    fi
+
+    # Build commit message
+    local commit_msg="chore: update curb artifacts"
+    if [[ -n "$task_id" ]]; then
+        commit_msg="chore($task_id): update curb artifacts"
+    fi
+
+    # Commit
+    if ! git commit -m "$commit_msg" 2>/dev/null; then
+        # Commit failed - might be nothing staged, which is ok
+        return 0
+    fi
+
     return 0
 }
 

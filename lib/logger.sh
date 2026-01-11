@@ -17,6 +17,42 @@ source "${SCRIPT_DIR}/xdg.sh"
 # Global variable to store log file path
 _LOG_FILE=""
 
+# Default secret patterns for redaction
+# These patterns match JSON key:value or key=value patterns
+# Format: (key_pattern with separator and optional quote)(value_pattern)
+# We'll use sed to replace the value part with [REDACTED]
+# Note: Patterns are case-insensitive (handled in the key matching)
+# IMPORTANT: For JSON patterns, we use [^"{}]* instead of [^"]* to avoid crossing field boundaries
+_DEFAULT_SECRET_PATTERNS=(
+    # JSON patterns: "key":"value" or "key": "value"
+    '("?[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Ss][Ee][Cc][Rr][Ee][Tt]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Aa][Ss][Ss][Ww][Dd]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Rr][Ee][Ff][Rr][Ee][Ss][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Ww][Ss][_-]?[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    # Bearer token pattern
+    '([Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+)([A-Za-z0-9._-]+)'
+    # URL parameter patterns: key=value
+    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy][=])([^ &]+)'
+    '([Tt][Oo][Kk][Ee][Nn][=])([^ &]+)'
+    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][=])([^ &]+)'
+    # Bare key:value patterns (without quotes)
+    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]:)([^ ]+)'
+    '([Tt][Oo][Kk][Ee][Nn]:)([^ ]+)'
+    '([Ss][Ee][Cc][Rr][Ee][Tt]:)([^ ]+)'
+    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]:)([^ ]+)'
+    # Standalone patterns: key value (at line start)
+    '(^[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][[:space:]]+)([^ ]+)'
+    '(^[Tt][Oo][Kk][Ee][Nn][[:space:]]+)([^ ]+)'
+    '(^[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]+)([^ ]+)'
+)
+
 # Initialize logger with project name and session ID
 # Creates log directory and sets up log file path
 #
@@ -84,10 +120,10 @@ logger_write() {
         data_json="{}"
     fi
 
-    # Check if logger is initialized
-    if [[ -z "$_LOG_FILE" ]]; then
-        echo "ERROR: Logger not initialized. Call logger_init first." >&2
-        return 1
+    # Check if logger is initialized - silently skip if not
+    # This allows logging calls to be safe even before logger_init
+    if [[ -z "${_LOG_FILE:-}" ]]; then
+        return 0
     fi
 
     # Validate event_type
@@ -106,10 +142,14 @@ logger_write() {
         return 1
     fi
 
+    # Apply redaction to data_json before logging
+    local redacted_data_json
+    redacted_data_json=$(logger_redact "$data_json")
+
     # Build JSON log entry using jq for safe construction
-    # Use echo to pipe the data_json so it's properly parsed
+    # Use echo to pipe the redacted data_json so it's properly parsed
     local log_entry
-    log_entry=$(echo "$data_json" | jq -c \
+    log_entry=$(echo "$redacted_data_json" | jq -c \
         --arg ts "$timestamp" \
         --arg type "$event_type" \
         '{timestamp: $ts, event_type: $type, data: .}')
@@ -148,6 +188,60 @@ logger_get_file() {
 #   logger_clear
 logger_clear() {
     _LOG_FILE=""
+    return 0
+}
+
+# Redact secrets from a string using pattern matching
+# Replaces secret values with '[REDACTED]' to prevent exposure in logs
+#
+# Args:
+#   $1 - input_string: String that may contain secrets
+#
+# Returns:
+#   Redacted string with secrets replaced by [REDACTED]
+#   Exit code: 0 always
+#
+# Environment:
+#   Reads logger.secret_patterns from config if available
+#   Falls back to _DEFAULT_SECRET_PATTERNS
+#
+# Example:
+#   redacted=$(logger_redact "api_key=sk_live_1234567890")
+#   # Returns: "api_key=[REDACTED]"
+logger_redact() {
+    local input_string="$1"
+    local output="$input_string"
+    local patterns=()
+
+    # Get patterns array - try config first, fall back to defaults
+    # Check if config_get function exists (bash 3.2 compatible)
+    if type config_get > /dev/null 2>&1; then
+        local config_patterns
+        config_patterns=$(config_get "logger.secret_patterns" 2>/dev/null)
+        if [[ $? -eq 0 && -n "$config_patterns" ]]; then
+            # Parse JSON array into bash array
+            # Using jq to extract each pattern
+            while IFS= read -r pattern; do
+                patterns+=("$pattern")
+            done < <(echo "$config_patterns" | jq -r '.[]' 2>/dev/null)
+        fi
+    fi
+
+    # If no custom patterns, use defaults
+    if [[ ${#patterns[@]} -eq 0 ]]; then
+        patterns=("${_DEFAULT_SECRET_PATTERNS[@]}")
+    fi
+
+    # Apply each pattern to redact secrets
+    # Patterns have two capture groups: (key+separator)(value)
+    # We replace with: \1[REDACTED]
+    for pattern in "${patterns[@]}"; do
+        # Use sed for pattern replacement
+        # Keep the key and separator, replace the value with [REDACTED]
+        output=$(echo "$output" | sed -E "s/${pattern}/\1[REDACTED]/g" 2>/dev/null)
+    done
+
+    echo "$output"
     return 0
 }
 
@@ -322,4 +416,46 @@ log_error() {
 
     # Write log entry
     logger_write "error" "$data_json"
+}
+
+# Stream message to stdout with timestamp prefix
+# Outputs messages with [HH:MM:SS] timestamp, with secret redaction applied
+# Used for real-time streaming output when --stream flag is enabled
+#
+# Args:
+#   $1 - message: Text message to output (required)
+#   $2 - timestamp_format: Custom timestamp format (optional, defaults to HH:MM:SS)
+#
+# Returns:
+#   0 always
+#
+# Example:
+#   logger_stream "Processing task..."
+#   logger_stream "API response received" "%H:%M:%S"
+#
+# Notes:
+#   - Output goes to stdout, not log file
+#   - Secret redaction is applied automatically via logger_redact
+#   - Use this when --stream flag enables real-time output
+logger_stream() {
+    local message="$1"
+    local timestamp_format="${2:-%H:%M:%S}"
+
+    # Validate required arguments
+    if [[ -z "$message" ]]; then
+        return 0
+    fi
+
+    # Get current timestamp
+    local timestamp
+    timestamp=$(date +"$timestamp_format")
+
+    # Apply secret redaction to message
+    local redacted_message
+    redacted_message=$(logger_redact "$message")
+
+    # Output with timestamp prefix to stdout
+    echo "[${timestamp}] ${redacted_message}"
+
+    return 0
 }

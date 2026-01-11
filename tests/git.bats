@@ -41,22 +41,12 @@ teardown() {
     [[ $status -eq 0 ]]
 }
 
-@test "git_in_repo returns 1 when not in a git repository" {
-    # Create a new directory guaranteed to be outside any git repo
-    # Use /tmp directly to avoid BATS_TMPDIR which might be in the workspace
-    NON_GIT_DIR="/tmp/non_git_test_$$"
-    mkdir -p "$NON_GIT_DIR"
-    cd "$NON_GIT_DIR"
-
-    # Verify we're really outside a git repo
-    ! git rev-parse --git-dir >/dev/null 2>&1
-
-    run git_in_repo
-    [[ $status -eq 1 ]]
-
-    # Cleanup
-    cd /
-    rm -rf "$NON_GIT_DIR"
+@test "git_in_repo returns non-zero when not in a git repository" {
+    # Use GIT_DIR pointing to non-existent path to simulate no repo
+    # Pass it directly in the run command to ensure subshell sees it
+    # Note: git returns 128 for invalid GIT_DIR, not 1
+    run env GIT_DIR="/nonexistent/.git" bash -c 'source "$1" && git_in_repo' _ "${PROJECT_ROOT}/lib/git.sh"
+    [[ $status -ne 0 ]]
 }
 
 # ============================================================================
@@ -837,8 +827,9 @@ Line 3"
     echo "modified" > README.md
     echo "new" > newfile.txt
 
-    # Verify changes exist
-    [[ $(git_has_changes) ]]
+    # Verify changes exist (check exit code, not output)
+    run git_has_changes
+    [[ $status -eq 0 ]]
 
     # Stash them
     git_stash_changes

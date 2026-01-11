@@ -252,6 +252,49 @@ harness_get_total_tokens() {
 }
 
 # ============================================================================
+# Debug Command Logging
+# ============================================================================
+
+# Log the full harness command in debug mode
+# Helps with troubleshooting and allows easy copy-paste for manual testing
+# Usage: _harness_log_command harness_name command [flags...]
+# Example: _harness_log_command "claude" "claude" "-p" "--append-system-prompt" "..."
+_harness_log_command() {
+    local debug="${1:-false}"
+    local harness_name="$2"
+    shift 2
+    local cmd_args=("$@")
+
+    # Only log in debug mode
+    if [[ "$debug" != "true" ]]; then
+        return 0
+    fi
+
+    # Build the full command string with proper quoting for display
+    local full_cmd="$harness_name"
+    for arg in "${cmd_args[@]}"; do
+        # Quote arguments that contain spaces or special characters
+        if [[ "$arg" =~ [[:space:]] || "$arg" =~ [\'\"\$\`\\] ]]; then
+            full_cmd="$full_cmd \"${arg//\"/\\\"}\""
+        else
+            full_cmd="$full_cmd $arg"
+        fi
+    done
+
+    # Redact potential secrets in the command
+    # Common patterns: API keys, tokens, passwords
+    local redacted_cmd="$full_cmd"
+    redacted_cmd=$(echo "$redacted_cmd" | sed -E 's/(api[_-]?key|password|token|secret|authorization|credentials)[=:][^ "]*/**REDACTED**/gi')
+    redacted_cmd=$(echo "$redacted_cmd" | sed -E 's/(sk-[a-zA-Z0-9]{20,})/**REDACTED**/g')
+    redacted_cmd=$(echo "$redacted_cmd" | sed -E 's/(anthropic_api_key|openai_api_key)[=:][^ "]*/\1=**REDACTED**/gi')
+
+    # Output debug message (will be captured by caller's debug logging)
+    echo "[debug] Harness command: $redacted_cmd" >&2
+    echo "[debug] Copy-paste ready (unredacted version may contain secrets):" >&2
+    echo "[debug] echo 'PROMPT_HERE' | $harness_name ${cmd_args[*]}" >&2
+}
+
+# ============================================================================
 # Harness Detection
 # ============================================================================
 
@@ -410,6 +453,23 @@ harness_invoke_streaming() {
 }
 
 # ============================================================================
+# Output Buffering Helpers
+# ============================================================================
+
+# Get stdbuf command for line buffering if available
+# Returns: "stdbuf -oL" or "gstdbuf -oL" or empty string
+# Usage: local stdbuf_cmd=$(_get_stdbuf_cmd)
+_get_stdbuf_cmd() {
+    if command -v stdbuf >/dev/null 2>&1; then
+        echo "stdbuf -oL"
+    elif command -v gstdbuf >/dev/null 2>&1; then
+        echo "gstdbuf -oL"  # macOS with homebrew coreutils
+    else
+        echo ""
+    fi
+}
+
+# ============================================================================
 # Claude Backend
 # ============================================================================
 
@@ -429,6 +489,9 @@ claude_invoke() {
 
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
+
+    # Log full command in debug mode
+    _harness_log_command "$debug" "claude" "-p" "--append-system-prompt" "[SYSTEM_PROMPT]" $flags
 
     # Capture JSON output to extract usage, then display result
     local output
@@ -470,9 +533,27 @@ claude_invoke_streaming() {
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
 
-    echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags | claude_parse_stream
-    # Return claude's exit code from PIPESTATUS
-    return ${PIPESTATUS[1]}
+    # Log full command in debug mode
+    _harness_log_command "$debug" "claude" "-p" "--append-system-prompt" "[SYSTEM_PROMPT]" $flags
+
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    # Falls back to temp file capture when stdbuf is not available
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
+
+    if [[ -n "$stdbuf_cmd" ]]; then
+        # Line-buffered streaming - output appears in real-time
+        echo "$task_prompt" | $stdbuf_cmd claude -p --append-system-prompt "$system_prompt" $flags | claude_parse_stream
+        return ${PIPESTATUS[1]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_claude_stream_$$"
+        echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags > "$tmpfile" 2>&1
+        local exit_code=${PIPESTATUS[1]}
+        claude_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 # Parse Claude Code's stream-json output
@@ -575,6 +656,9 @@ ${task_prompt}"
     # Add any extra flags from environment
     [[ -n "${CODEX_FLAGS:-}" ]] && flags="$flags $CODEX_FLAGS"
 
+    # Log full command in debug mode
+    _harness_log_command "$debug" "codex" "exec" $flags "-"
+
     echo "$combined_prompt" | codex exec $flags -
 }
 
@@ -618,6 +702,9 @@ ${task_prompt}"
 
     # Add any extra flags from environment
     [[ -n "${GEMINI_FLAGS:-}" ]] && flags="$flags $GEMINI_FLAGS"
+
+    # Log full command in debug mode
+    _harness_log_command "$debug" "gemini" "-p" "[PROMPT]" $flags
 
     # Capture output to estimate token usage (Gemini CLI doesn't report actual usage)
     local output
@@ -692,12 +779,27 @@ ${task_prompt}"
     # Add any extra flags from environment
     [[ -n "${OPENCODE_FLAGS:-}" ]] && flags="$flags $OPENCODE_FLAGS"
 
+    # Log full command in debug mode
+    _harness_log_command "$debug" "opencode" "run" $flags "[PROMPT]"
+
     # OpenCode uses 'run' subcommand for autonomous operation (auto-approves all permissions)
     # Use --format json to get token usage, then parse with opencode_parse_stream
-    opencode run $flags "$combined_prompt" | opencode_parse_stream
-    local exit_code=${PIPESTATUS[0]}
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
 
-    return $exit_code
+    if [[ -n "$stdbuf_cmd" ]]; then
+        $stdbuf_cmd opencode run $flags "$combined_prompt" | opencode_parse_stream
+        return ${PIPESTATUS[0]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_$$"
+        opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
+        local exit_code=$?
+        opencode_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 opencode_invoke_streaming() {
@@ -730,9 +832,25 @@ ${task_prompt}"
     # Add any extra flags from environment
     [[ -n "${OPENCODE_FLAGS:-}" ]] && flags="$flags $OPENCODE_FLAGS"
 
-    # Pipe to parser for token extraction
-    opencode run $flags "$combined_prompt" | opencode_parse_stream
-    return ${PIPESTATUS[0]}
+    # Log full command in debug mode
+    _harness_log_command "$debug" "opencode" "run" $flags "[PROMPT]"
+
+    # Use stdbuf for line buffering if available (prevents output truncation)
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
+
+    if [[ -n "$stdbuf_cmd" ]]; then
+        $stdbuf_cmd opencode run $flags "$combined_prompt" | opencode_parse_stream
+        return ${PIPESTATUS[0]}
+    else
+        # Temp file fallback - ensures complete output capture
+        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_stream_$$"
+        opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
+        local exit_code=$?
+        opencode_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
 }
 
 # Parse OpenCode's JSON streaming output
