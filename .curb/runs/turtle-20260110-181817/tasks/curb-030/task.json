@@ -2,7 +2,9 @@
   "task_id": "curb-030",
   "title": "Implement budget_check_* and budget_increment_* functions",
   "priority": "P1",
-  "status": "in_progress",
+  "status": "completed",
   "started_at": "2026-01-10T23:58:00Z",
-  "iterations": 0
+  "iterations": 1,
+  "completed_at": "2026-01-11T00:02:28Z",
+  "exit_code": 0
 }
