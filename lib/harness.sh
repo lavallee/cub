@@ -35,6 +35,8 @@ readonly HARNESS_CAP_STREAMING="streaming"
 readonly HARNESS_CAP_TOKEN_REPORTING="token_reporting"
 readonly HARNESS_CAP_SYSTEM_PROMPT="system_prompt"
 readonly HARNESS_CAP_AUTO_MODE="auto_mode"
+readonly HARNESS_CAP_JSON_OUTPUT="json_output"
+readonly HARNESS_CAP_MODEL_SELECTION="model_selection"
 
 # Get capabilities for a specific harness
 # Returns a space-separated list of supported capabilities
@@ -44,36 +46,44 @@ _harness_get_capabilities() {
 
     case "$harness" in
         claude)
-            # Claude Code: Full featured - streaming, token reporting, system prompts, auto mode
-            # - Streaming via --output-format stream-json
-            # - Token reporting via .usage in JSON output
-            # - System prompt via --append-system-prompt
-            # - Auto mode via --dangerously-skip-permissions
-            echo "streaming token_reporting system_prompt auto_mode"
+            # Claude Code: Full featured
+            # - streaming: --output-format stream-json
+            # - token_reporting: .usage in JSON output
+            # - system_prompt: --append-system-prompt
+            # - auto_mode: --dangerously-skip-permissions
+            # - json_output: --output-format json
+            # - model_selection: --model flag
+            echo "streaming token_reporting system_prompt auto_mode json_output model_selection"
             ;;
         opencode)
             # OpenCode: Streaming with token reporting, no separate system prompt
-            # - Streaming via --format json (outputs step_finish events with token counts)
-            # - Token reporting via .part.tokens in step_finish events
-            # - No system prompt flag (must combine prompts)
-            # - Auto mode via 'run' subcommand (auto-approves all permissions)
-            echo "streaming token_reporting auto_mode"
+            # - streaming: --format json (outputs step_finish events with token counts)
+            # - token_reporting: .part.tokens in step_finish events
+            # - auto_mode: 'run' subcommand (auto-approves all permissions)
+            # - json_output: --format json
+            # - No system_prompt flag (must combine prompts)
+            # - No model_selection (configured via project, not CLI)
+            echo "streaming token_reporting auto_mode json_output"
             ;;
         codex)
-            # Codex: Basic auto mode only, no streaming or token reporting
+            # Codex: Basic auto mode only
+            # - auto_mode: --full-auto
             # - No streaming output format (passthrough only)
-            # - No token reporting in CLI output
-            # - No system prompt flag (must combine prompts)
-            # - Auto mode via --full-auto
+            # - No token_reporting in CLI output
+            # - No system_prompt flag (must combine prompts)
+            # - No json_output format
+            # - No model_selection via CLI
             echo "auto_mode"
             ;;
         gemini)
-            # Gemini CLI: Basic auto mode only
-            # - No streaming output format (v0.1.9 doesn't support --output-format stream-json)
-            # - No token reporting in CLI output
-            # - No system prompt flag (must combine prompts)
-            # - Auto mode via -y (YOLO mode, auto-accept all actions)
-            echo "auto_mode"
+            # Gemini CLI: Basic auto mode with model selection
+            # - auto_mode: -y (YOLO mode, auto-accept all actions)
+            # - model_selection: -m flag
+            # - No streaming (v0.1.9 doesn't support --output-format stream-json)
+            # - No token_reporting in CLI output (uses estimation)
+            # - No system_prompt flag (must combine prompts)
+            # - No json_output format
+            echo "auto_mode model_selection"
             ;;
         *)
             # Unknown harness - return empty (no capabilities)
@@ -122,6 +132,8 @@ harness_get_capabilities_json() {
     local token_reporting="false"
     local system_prompt="false"
     local auto_mode="false"
+    local json_output="false"
+    local model_selection="false"
 
     case " $caps " in
         *" streaming "*) streaming="true" ;;
@@ -135,6 +147,12 @@ harness_get_capabilities_json() {
     case " $caps " in
         *" auto_mode "*) auto_mode="true" ;;
     esac
+    case " $caps " in
+        *" json_output "*) json_output="true" ;;
+    esac
+    case " $caps " in
+        *" model_selection "*) model_selection="true" ;;
+    esac
 
     jq -n \
         --arg harness "$harness" \
@@ -142,7 +160,9 @@ harness_get_capabilities_json() {
         --argjson token_reporting "$token_reporting" \
         --argjson system_prompt "$system_prompt" \
         --argjson auto_mode "$auto_mode" \
-        '{harness: $harness, streaming: $streaming, token_reporting: $token_reporting, system_prompt: $system_prompt, auto_mode: $auto_mode}'
+        --argjson json_output "$json_output" \
+        --argjson model_selection "$model_selection" \
+        '{harness: $harness, streaming: $streaming, token_reporting: $token_reporting, system_prompt: $system_prompt, auto_mode: $auto_mode, json_output: $json_output, model_selection: $model_selection}'
 }
 
 # ============================================================================

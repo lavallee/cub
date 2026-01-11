@@ -285,7 +285,9 @@ When curb picks up a task with a `model:` label, it automatically sets `CURB_MOD
 
 ## AI Harnesses
 
-Curb abstracts the AI coding CLI into a "harness" layer, supporting multiple backends:
+Curb abstracts the AI coding CLI into a "harness" layer, supporting multiple backends.
+
+For detailed capability matrix and technical reference, see [docs/HARNESSES.md](docs/HARNESSES.md).
 
 ### Claude Code (Default)
 
