@@ -47,11 +47,12 @@ teardown() {
     mkdir -p "$NON_GIT_DIR"
     cd "$NON_GIT_DIR"
 
-    # Use GIT_CEILING_DIRECTORIES to prevent git from finding parent repos
-    # This is essential for CI environments where /tmp might be under a git workspace
-    export GIT_CEILING_DIRECTORIES="/tmp"
+    # Use GIT_CEILING_DIRECTORIES set to the test directory itself
+    # This prevents git from searching parent directories for a repo
+    # Must be exported so it's visible to the subshell in 'run'
+    export GIT_CEILING_DIRECTORIES="$NON_GIT_DIR"
 
-    # Verify we're really outside a git repo
+    # Verify we're really outside a git repo with ceiling set
     ! git rev-parse --git-dir >/dev/null 2>&1
 
     run git_in_repo
