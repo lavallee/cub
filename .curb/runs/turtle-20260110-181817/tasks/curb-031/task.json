@@ -1,0 +1,8 @@
+{
+  "task_id": "curb-031",
+  "title": "Add logger_redact function with secret patterns",
+  "priority": "P1",
+  "status": "in_progress",
+  "started_at": "2026-01-11T00:02:34Z",
+  "iterations": 0
+}

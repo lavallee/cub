@@ -779,3 +779,305 @@ teardown() {
     [[ "$component" == "harness" ]]
     [[ "$details" == "connection timeout" ]]
 }
+
+# ============================================================================
+# logger_redact tests
+# ============================================================================
+
+@test "logger_redact redacts api_key values" {
+    local input='{"api_key": "sk_live_1234567890abcdef"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ sk_live_1234567890abcdef ]]
+}
+
+@test "logger_redact redacts API_KEY (uppercase) values" {
+    local input='{"API_KEY": "AKIAIOSFODNN7EXAMPLE"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ AKIAIOSFODNN7EXAMPLE ]]
+}
+
+@test "logger_redact redacts token values" {
+    local input='{"token": "ghp_1234567890abcdefghijklmnopqrstuv"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ ghp_1234567890abcdefghijklmnopqrstuv ]]
+}
+
+@test "logger_redact redacts secret values" {
+    local input='{"secret": "my-super-secret-value-123"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ my-super-secret-value-123 ]]
+}
+
+@test "logger_redact redacts password values" {
+    local input='{"password": "P@ssw0rd123!"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ 'P@ssw0rd123!' ]]
+}
+
+@test "logger_redact redacts Bearer tokens" {
+    local input='Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 ]]
+}
+
+@test "logger_redact redacts private_key values" {
+    local input='{"private_key": "-----BEGIN-RSA-PRIVATE-KEY-----"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ '-----BEGIN-RSA-PRIVATE-KEY-----' ]]
+}
+
+@test "logger_redact redacts access_token values" {
+    local input='{"access_token": "ya29.a0AfH6SMBx..."}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ 'ya29.a0AfH6SMBx...' ]]
+}
+
+@test "logger_redact redacts client_secret values" {
+    local input='{"client_secret": "GOCSPX-1234567890abcdef"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ 'GOCSPX-1234567890abcdef' ]]
+}
+
+@test "logger_redact preserves key names for context" {
+    local input='{"api_key": "secret123"}'
+    local output
+    output=$(logger_redact "$input")
+
+    # Should preserve the key name
+    [[ "$output" =~ api_key ]]
+    # But redact the value
+    [[ "$output" =~ \[REDACTED\] ]]
+}
+
+@test "logger_redact handles multiple secrets in one string" {
+    local input='{"api_key": "key123", "token": "tok456", "password": "pass789"}'
+    local output
+    output=$(logger_redact "$input")
+
+    # All secrets should be redacted
+    [[ ! "$output" =~ key123 ]]
+    [[ ! "$output" =~ tok456 ]]
+    [[ ! "$output" =~ pass789 ]]
+
+    # Should have multiple [REDACTED] markers
+    local redacted_count
+    redacted_count=$(echo "$output" | grep -o '\[REDACTED\]' | wc -l | tr -d ' ')
+    [[ "$redacted_count" -ge 3 ]]
+}
+
+@test "logger_redact handles different separators (equals, colon, space)" {
+    local input1='api_key=secret123'
+    local input2='api_key:secret456'
+    local input3='api_key secret789'
+
+    local output1 output2 output3
+    output1=$(logger_redact "$input1")
+    output2=$(logger_redact "$input2")
+    output3=$(logger_redact "$input3")
+
+    [[ "$output1" =~ \[REDACTED\] ]]
+    [[ "$output2" =~ \[REDACTED\] ]]
+    [[ "$output3" =~ \[REDACTED\] ]]
+}
+
+@test "logger_redact does not redact common words" {
+    # Should not redact "token" when it's not a key
+    local input='This is a token message about secrets'
+    local output
+    output=$(logger_redact "$input")
+
+    # The word "token" and "secrets" as regular words should remain
+    [[ "$output" == "$input" ]]
+}
+
+@test "logger_redact returns original string if no secrets found" {
+    local input='{"message": "Hello world", "count": 42}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" == "$input" ]]
+}
+
+@test "logger_redact handles empty string" {
+    local output
+    output=$(logger_redact "")
+
+    [[ -z "$output" ]]
+}
+
+@test "logger_write automatically redacts secrets" {
+    logger_init "testproject" "session123"
+
+    # Write log with secret
+    logger_write "test_event" '{"api_key": "sk_live_1234567890", "message": "test"}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Read the logged data
+    local logged_data
+    logged_data=$(jq -c '.data' "$log_file")
+
+    # Secret should be redacted
+    [[ "$logged_data" =~ \[REDACTED\] ]]
+    [[ ! "$logged_data" =~ sk_live_1234567890 ]]
+
+    # Message should be preserved
+    [[ "$logged_data" =~ test ]]
+}
+
+@test "logger_write redacts secrets in nested JSON" {
+    logger_init "testproject" "session123"
+
+    # Write log with nested secret
+    logger_write "test_event" '{"config": {"api_key": "secret123"}, "status": "ok"}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # Read the logged data
+    local logged_data
+    logged_data=$(jq -c '.data' "$log_file")
+
+    # Secret should be redacted
+    [[ "$logged_data" =~ \[REDACTED\] ]]
+    [[ ! "$logged_data" =~ secret123 ]]
+}
+
+# ============================================================================
+# Config integration tests for redaction
+# ============================================================================
+
+@test "logger_redact uses custom patterns from config" {
+    # Source config.sh to make config_get available
+    source "${PROJECT_ROOT}/lib/config.sh"
+
+    # Create a test config with custom patterns
+    local test_config="${BATS_TMPDIR}/test_config_$$"
+    mkdir -p "$test_config"
+
+    cat > "${test_config}/config.json" <<EOF
+{
+    "logger": {
+        "secret_patterns": [
+            "([Cc][Uu][Ss][Tt][Oo][Mm][_-]?[Kk][Ee][Yy][\"'= :])([^ \"'}\\],]+)"
+        ]
+    }
+}
+EOF
+
+    # Override config dir for this test
+    curb_config_dir() {
+        echo "$test_config"
+    }
+
+    # Clear and reload config
+    config_clear_cache
+    config_load
+
+    # Test redaction with custom pattern
+    local input='{"custom_key": "should-be-redacted"}'
+    local output
+    output=$(logger_redact "$input")
+
+    [[ "$output" =~ \[REDACTED\] ]]
+    [[ ! "$output" =~ should-be-redacted ]]
+
+    # Cleanup
+    rm -rf "$test_config"
+}
+
+# ============================================================================
+# Acceptance criteria tests for redaction
+# ============================================================================
+
+@test "acceptance: common secret patterns detected and redacted" {
+    local patterns_to_test=(
+        '{"api_key": "test123"}'
+        '{"token": "test456"}'
+        '{"secret": "test789"}'
+        '{"password": "testpwd"}'
+        'Bearer testbearer'
+        '{"private_key": "testpk"}'
+    )
+
+    for pattern in "${patterns_to_test[@]}"; do
+        local output
+        output=$(logger_redact "$pattern")
+
+        # Each should have [REDACTED]
+        [[ "$output" =~ \[REDACTED\] ]]
+    done
+}
+
+@test "acceptance: redaction replaces value with [REDACTED]" {
+    local input='{"api_key": "sk_live_1234567890"}'
+    local output
+    output=$(logger_redact "$input")
+
+    # Should contain [REDACTED]
+    [[ "$output" =~ \[REDACTED\] ]]
+
+    # Should NOT contain the original secret value
+    [[ ! "$output" =~ sk_live_1234567890 ]]
+}
+
+@test "acceptance: logger_write applies redaction automatically" {
+    logger_init "testproject" "session123"
+
+    # Write multiple events with secrets
+    logger_write "event1" '{"api_key": "secret1"}'
+    logger_write "event2" '{"password": "secret2"}'
+    logger_write "event3" '{"token": "secret3"}'
+
+    local log_file
+    log_file=$(logger_get_file)
+
+    # None of the secrets should appear in the log file
+    local log_contents
+    log_contents=$(cat "$log_file")
+
+    [[ ! "$log_contents" =~ secret1 ]]
+    [[ ! "$log_contents" =~ secret2 ]]
+    [[ ! "$log_contents" =~ secret3 ]]
+
+    # Should have [REDACTED] markers
+    [[ "$log_contents" =~ \[REDACTED\] ]]
+}
+
+@test "acceptance: no false positives on common words" {
+    # Words like "token", "key", "secret" in normal text should not be redacted
+    local input='{"message": "The token system handles secret keys properly"}'
+    local output
+    output=$(logger_redact "$input")
+
+    # Should be unchanged (no redaction for words in normal text)
+    [[ "$output" == "$input" ]]
+}
