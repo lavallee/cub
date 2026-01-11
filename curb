@@ -44,6 +44,8 @@ source "${CURB_DIR}/lib/hooks.sh"
 source "${CURB_DIR}/lib/session.sh"
 # Source artifacts management
 source "${CURB_DIR}/lib/artifacts.sh"
+# Source failure handling
+source "${CURB_DIR}/lib/failure.sh"
 
 # Load configuration early
 config_load
@@ -1261,6 +1263,10 @@ generate_task_prompt() {
     local task_desc=$(echo "$task_json" | jq -r '.description')
     local task_criteria=$(echo "$task_json" | jq -r '.acceptanceCriteria // [] | join("\n- ")')
 
+    # Check for failure context (for retry mode)
+    local failure_context=""
+    failure_context=$(failure_get_context "$task_id" 2>/dev/null)
+
     # Generate focused task prompt (minimal - just the task)
     cat <<EOF
 ## CURRENT TASK
@@ -1274,6 +1280,20 @@ ${task_desc}
 
 Acceptance Criteria:
 - ${task_criteria}
+EOF
+
+    # Add failure context if this is a retry
+    if [[ -n "$failure_context" ]]; then
+        cat <<EOF
+
+## RETRY CONTEXT
+
+${failure_context}
+EOF
+    fi
+
+    # Add completion instructions
+    cat <<EOF
 
 When complete:
 1. Run feedback loops (typecheck, test, lint)
@@ -1639,6 +1659,75 @@ run_iteration() {
         fi
     fi
 
+    # Handle task failure if exit_code is non-zero
+    if [[ $exit_code -ne 0 ]]; then
+        log_debug "Task failed with exit code ${exit_code}, invoking failure handler..."
+
+        # Get failure mode from config
+        local failure_mode
+        failure_mode=$(failure_get_mode)
+        log_debug "Failure mode: ${failure_mode}"
+
+        # Collect harness output for failure context (if available)
+        local harness_output=""
+        # Note: harness output is not captured in current implementation
+        # Future enhancement: capture last N lines of harness output
+
+        # Call appropriate failure handler based on mode
+        local failure_result=0
+        case "$failure_mode" in
+            stop)
+                failure_handle_stop "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            move-on)
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            retry)
+                failure_handle_retry "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            triage)
+                log_warn "Triage mode not yet implemented, falling back to move-on"
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+            *)
+                log_warn "Unknown failure mode '${failure_mode}', falling back to move-on"
+                failure_handle_move_on "$task_id" "$exit_code" "$harness_output"
+                failure_result=$?
+                ;;
+        esac
+
+        log_debug "Failure handler returned: ${failure_result}"
+
+        # Check failure handler result
+        # Return codes: 0=continue, 2=halt, 3=retry
+        if [[ $failure_result -eq 2 ]]; then
+            # Stop mode - halt the run
+            log_info "Failure handler requested run halt"
+            # Run post-task hooks before halting
+            log_debug "Running post-task hooks..."
+            hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+            hooks_run "post-task"
+            log_debug "Post-task hooks complete"
+            # Return special code to signal halt to main loop
+            return 2
+        elif [[ $failure_result -eq 3 ]]; then
+            # Retry mode - retry the task
+            log_info "Failure handler requested task retry"
+            # Run post-task hooks
+            log_debug "Running post-task hooks..."
+            hooks_set_task_context "$task_id" "$task_title" "$exit_code"
+            hooks_run "post-task"
+            log_debug "Post-task hooks complete"
+            # Return special code to signal retry to main loop
+            return 3
+        fi
+        # Otherwise fall through to normal post-task flow (move-on)
+    fi
+
     # Run post-task hooks (always run, regardless of success/failure)
     log_debug "Running post-task hooks..."
     hooks_set_task_context "$task_id" "$task_title" "$exit_code"
@@ -1849,9 +1938,27 @@ run_loop() {
 
         # Run single iteration
         log_debug "Calling run_iteration..."
-        if ! run_iteration; then
+        run_iteration
+        local iteration_result=$?
+
+        if [[ $iteration_result -eq 2 ]]; then
+            # Failure handler requested halt
+            log_warn "Failure handler requested run halt"
+            show_status
+            # Run post-loop hooks
+            log_debug "Running post-loop hooks..."
+            hooks_run "post-loop"
+            log_debug "Post-loop hooks complete"
+            return 2
+        elif [[ $iteration_result -eq 3 ]]; then
+            # Failure handler requested retry
+            log_info "Failure handler requested retry - will retry task in next iteration"
+            # Don't increment iteration counter for retry
+            iteration=$((iteration - 1))
+        elif [[ $iteration_result -ne 0 ]]; then
+            # Other non-zero exit (normal failure with move-on)
             log_warn "Iteration failed, continuing..."
-            log_debug "run_iteration returned non-zero"
+            log_debug "run_iteration returned ${iteration_result}"
         fi
 
         echo ""

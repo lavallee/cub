@@ -1,0 +1,8 @@
+{
+  "task_id": "curb-040",
+  "title": "Integrate failure handling into main loop",
+  "priority": "P1",
+  "status": "in_progress",
+  "started_at": "2026-01-11T01:33:00Z",
+  "iterations": 0
+}

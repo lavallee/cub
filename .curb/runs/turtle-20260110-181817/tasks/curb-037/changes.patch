@@ -1,0 +1,76 @@
+diff --git a/.curb/runs/turtle-20260110-181817/run.json b/.curb/runs/turtle-20260110-181817/run.json
+index 7e25386..d973caa 100644
+--- a/.curb/runs/turtle-20260110-181817/run.json
++++ b/.curb/runs/turtle-20260110-181817/run.json
+@@ -26,6 +26,6 @@
+       "enabled": true
+     }
+   },
+-  "tasks_failed": 6,
++  "tasks_failed": 8,
+   "tasks_completed": 3
+ }
+diff --git a/.curb/runs/turtle-20260110-181817/tasks/curb-036/task.json b/.curb/runs/turtle-20260110-181817/tasks/curb-036/task.json
+index 6d08b93..8f8c6fd 100644
+--- a/.curb/runs/turtle-20260110-181817/tasks/curb-036/task.json
++++ b/.curb/runs/turtle-20260110-181817/tasks/curb-036/task.json
+@@ -2,7 +2,9 @@
+   "task_id": "curb-036",
+   "title": "CHECKPOINT: Verify guardrails prevent runaway loops",
+   "priority": "P1",
+-  "status": "in_progress",
++  "status": "failed",
+   "started_at": "2026-01-11T00:52:06Z",
+-  "iterations": 0
++  "iterations": 1,
++  "completed_at": "2026-01-11T01:00:31Z",
++  "exit_code": 1
+ }
+diff --git a/@progress.txt b/@progress.txt
+index e3ce8f5..132147f 100644
+--- a/@progress.txt
++++ b/@progress.txt
+@@ -1,3 +1,43 @@
++## Task curb-037: Create lib/failure.sh with mode enum and failure_get_mode (2026-01-10)
++
++**Implementation:**
++- Created lib/failure.sh with standard header and module documentation
++- Defined four mode constants: FAILURE_STOP, FAILURE_MOVE_ON, FAILURE_RETRY, FAILURE_TRIAGE
++- Implemented failure_get_mode() function that reads config via config_get("failure.mode") or returns default
++- Implemented failure_set_mode(mode) function with validation using case statement for allowed modes
++- Default mode is 'move-on' as specified - simple, safe default that continues execution
++
++**Key Learnings:**
++1. **Mode constants pattern**: Used readonly constants to avoid typos and enable IDE/linter checking
++2. **Config integration**: Followed existing pattern by sourcing config.sh and using config_get() to read values
++3. **Fallback defaults**: Default mode is set directly in failure_mode variable, returned if config_get() returns empty
++4. **Validation pattern**: Used case statement matching against exact modes (stop|move-on|retry|triage) for clear validation
++5. **Error messaging**: Both validation errors go to stderr, making it easy for scripts to suppress or handle them
++6. **Function naming**: Simple names (failure_get_mode, failure_set_mode) follow existing lib patterns
++7. **State management**: Setting failure_mode variable directly allows runtime overrides without persisting to config
++
++**Testing Approach:**
++- Manual verification of all acceptance criteria
++- Tested default mode returns 'move-on'
++- Tested all four valid modes are accepted
++- Tested invalid modes are rejected with exit code 1
++- Tested missing arguments are rejected
++- Verified all constants are defined and accessible
++
++**Acceptance Criteria Met:**
++- ✓ lib/failure.sh exists with standard header
++- ✓ Mode constants defined (FAILURE_STOP, FAILURE_MOVE_ON, FAILURE_RETRY, FAILURE_TRIAGE)
++- ✓ failure_get_mode returns configured mode or default
++- ✓ Default mode is 'move-on'
++- ✓ Invalid modes are rejected with error message
++- ✓ failure_set_mode validates input
++
++**Files Modified:**
++- Created: lib/failure.sh (85 lines, fully documented)
++
++**Future Integration:**
++This module will be used by the main loop to determine behavior when tasks fail. Later tasks will integrate failure handling with the retry and triage systems. The simple design here (just a getter/setter) keeps this task focused and allows complex failure logic to be added later.
++
+ ## Task curb-033: Add config schema for guardrails (2026-01-10)
+ 
+ **Implementation:**
