@@ -254,6 +254,7 @@ Curb ships with example hooks in `examples/hooks/` that you can copy and customi
 | Hook | Location | Description |
 |------|----------|-------------|
 | `10-auto-branch.sh` | `pre-loop.d/` | Automatically creates a git branch when a session starts |
+| `90-pr-prompt.sh` | `post-loop.d/` | Prompts to create a GitHub PR at end of run |
 | `slack-notify.sh` | `post-task.d/` | Posts task completion notifications to Slack |
 | `datadog-metric.sh` | `post-loop.d/` | Reports run metrics to Datadog |
 | `pagerduty-alert.sh` | `on-error.d/` | Sends PagerDuty alerts on task failure |
@@ -294,6 +295,55 @@ Example output:
 [auto-branch] Creating branch: curb/porcupine/20260111-120000 (from main)
 [auto-branch] Stored base branch: main
 ```
+
+**PR Prompt Hook:**
+
+The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a curb session completes:
+
+- Uses the GitHub CLI (`gh`) for PR creation
+- Reads base branch from `.curb/.base-branch` (set by auto-branch hook)
+- Generates title and body from commit history
+- Interactive prompt: yes/no/edit
+- Skips automatically if:
+  - No commits ahead of base branch
+  - Already on main/master branch
+  - PR already exists for the branch
+  - Not running interactively (no TTY)
+
+Prerequisites:
+- GitHub CLI installed: `brew install gh`
+- Authenticated: `gh auth login`
+- Repository has GitHub remote
+
+Example output:
+```
+==========================================
+[pr-prompt] Ready to create Pull Request
+==========================================
+
+Branch:  curb/porcupine/20260111-120000
+Base:    main
+Commits: 3 ahead
+
+Title:   Curb: Porcupine session (3 commits)
+
+[pr-prompt] Create PR? [y/N/e(dit)]
+```
+
+**Using Both Hooks Together:**
+
+For a complete PR workflow, enable both hooks:
+```bash
+# In your project
+mkdir -p .curb/hooks/pre-loop.d .curb/hooks/post-loop.d
+cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
+cp examples/hooks/post-loop.d/90-pr-prompt.sh .curb/hooks/post-loop.d/
+chmod +x .curb/hooks/*/[0-9]*.sh
+```
+
+This gives you:
+1. Auto-branch at session start (pre-loop)
+2. PR prompt at session end (post-loop)
 
 **Customizing Hooks:**
 
