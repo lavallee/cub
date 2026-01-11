@@ -687,3 +687,146 @@ migrate_json_to_beads() {
         echo "  4. Optionally backup and remove prd.json"
     fi
 }
+
+# ============================================================================
+# Acceptance Criteria Parsing
+# ============================================================================
+#
+# Functions to parse and verify acceptance criteria from task descriptions.
+# Acceptance criteria are typically markdown checkboxes:
+#   - [ ] Unchecked criterion
+#   - [x] Checked criterion
+#
+# These functions support both beads and prd.json backends.
+
+# Parse acceptance criteria from a task description
+# Returns one criterion per line (just the text, without checkbox)
+# Usage: parse_acceptance_criteria "task description"
+# Example output:
+#   All tests pass
+#   Documentation updated
+parse_acceptance_criteria() {
+    local description="$1"
+
+    if [[ -z "$description" ]]; then
+        return 0
+    fi
+
+    # Extract lines that match markdown checkbox pattern
+    # - [ ] unchecked item
+    # - [x] or - [X] checked item
+    # Supports both with and without leading whitespace
+    # Note: Using POSIX character classes for macOS compatibility
+    echo "$description" | grep -E '^[[:space:]]*-[[:space:]]*\[[xX ]\]' | \
+        sed 's/^[[:space:]]*-[[:space:]]*\[[xX ]\][[:space:]]*//' | \
+        sed 's/[[:space:]]*$//'
+}
+
+# Count acceptance criteria in a description
+# Usage: count_acceptance_criteria "description"
+count_acceptance_criteria() {
+    local description="$1"
+    local criteria
+    criteria=$(parse_acceptance_criteria "$description")
+
+    if [[ -z "$criteria" ]]; then
+        echo "0"
+    else
+        echo "$criteria" | wc -l | tr -d ' '
+    fi
+}
+
+# Get acceptance criteria for a task by ID
+# Returns criteria as newline-separated list
+# Usage: get_task_acceptance_criteria task_id [prd_file]
+get_task_acceptance_criteria() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    local description
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Get description from beads
+        description=$(bd show "$task_id" 2>/dev/null | sed -n '/^Description:/,/^Labels:\|^Depends on/p' | \
+            sed '1d;$d' | sed '/^$/d')
+    else
+        # Get description from prd.json
+        description=$(json_get_task "$prd" "$task_id" | jq -r '.description // ""')
+    fi
+
+    parse_acceptance_criteria "$description"
+}
+
+# Check if a task has acceptance criteria
+# Returns 0 if has criteria, 1 otherwise
+# Usage: task_has_acceptance_criteria task_id [prd_file]
+task_has_acceptance_criteria() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    local count
+    count=$(get_task_acceptance_criteria "$task_id" "$prd" | wc -l | tr -d ' ')
+
+    [[ "$count" -gt 0 ]]
+}
+
+# Verify acceptance criteria for a task
+# This is a placeholder for more sophisticated verification
+# Currently just checks if criteria exist and logs them
+# Returns 0 if no criteria or all criteria are checkable, 1 if verification fails
+# Usage: verify_acceptance_criteria task_id [prd_file]
+verify_acceptance_criteria() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    local criteria
+    criteria=$(get_task_acceptance_criteria "$task_id" "$prd")
+
+    if [[ -z "$criteria" ]]; then
+        # No criteria = default behavior (pass)
+        echo "[verify] No acceptance criteria found for $task_id"
+        return 0
+    fi
+
+    local count
+    count=$(echo "$criteria" | wc -l | tr -d ' ')
+
+    echo "[verify] Found $count acceptance criteria for $task_id:"
+    echo "$criteria" | while IFS= read -r criterion; do
+        echo "[verify]   - $criterion"
+    done
+
+    # For now, we don't auto-verify criteria (would require AI interpretation)
+    # Future enhancement: parse criteria for verifiable patterns like:
+    #   - "tests pass" -> run tests
+    #   - "builds successfully" -> run build
+    #   - "lint passes" -> run lint
+    # For now, just log and return success (human/AI verifies)
+    return 0
+}
+
+# Format acceptance criteria for prompt inclusion
+# Returns markdown-formatted criteria suitable for AI prompt
+# Usage: format_acceptance_criteria_for_prompt task_id [prd_file]
+format_acceptance_criteria_for_prompt() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    local criteria
+    criteria=$(get_task_acceptance_criteria "$task_id" "$prd")
+
+    if [[ -z "$criteria" ]]; then
+        return 0
+    fi
+
+    echo ""
+    echo "## Acceptance Criteria"
+    echo ""
+    echo "The following criteria must be met before this task can be considered complete:"
+    echo ""
+    echo "$criteria" | while IFS= read -r criterion; do
+        echo "- [ ] $criterion"
+    done
+    echo ""
+    echo "Please verify each criterion is satisfied before marking the task as done."
+}

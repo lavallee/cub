@@ -1363,6 +1363,10 @@ generate_task_prompt() {
     local task_desc=$(echo "$task_json" | jq -r '.description')
     local task_criteria=$(echo "$task_json" | jq -r '.acceptanceCriteria // [] | join("\n- ")')
 
+    # Parse acceptance criteria from description (markdown checkboxes)
+    local desc_criteria=""
+    desc_criteria=$(parse_acceptance_criteria "$task_desc" 2>/dev/null || true)
+
     # Check for failure context (for retry mode)
     local failure_context=""
     failure_context=$(failure_get_context "$task_id" 2>/dev/null)
@@ -1377,10 +1381,25 @@ Title: ${task_title}
 
 Description:
 ${task_desc}
+EOF
+
+    # Include acceptance criteria section
+    # Prioritize explicit acceptanceCriteria array, but also include parsed checkboxes
+    if [[ -n "$task_criteria" && "$task_criteria" != "-" ]]; then
+        cat <<EOF
 
 Acceptance Criteria:
 - ${task_criteria}
 EOF
+    elif [[ -n "$desc_criteria" ]]; then
+        cat <<EOF
+
+Acceptance Criteria (from description checkboxes):
+EOF
+        echo "$desc_criteria" | while IFS= read -r criterion; do
+            echo "- $criterion"
+        done
+    fi
 
     # Add failure context if this is a retry
     if [[ -n "$failure_context" ]]; then
@@ -1622,6 +1641,13 @@ run_iteration() {
         else
             log_warn "Failed to start task artifacts"
         fi
+    fi
+
+    # Log acceptance criteria for this task
+    if [[ "$DEBUG" == "true" ]]; then
+        verify_acceptance_criteria "$task_id" "$prd" 2>/dev/null | while IFS= read -r line; do
+            log_debug "$line"
+        done
     fi
 
     # Increment task iteration counter
