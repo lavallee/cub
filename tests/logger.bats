@@ -1082,6 +1082,23 @@ EOF
     [[ "$output" == "$input" ]]
 }
 
+@test "acceptance: no false positives on JSON field names" {
+    # Field names containing words like "token" should not be redacted
+    local input='{"tokens_used":100,"git_sha":"abc123","duration_sec":42}'
+    local output
+    output=$(logger_redact "$input")
+
+    # Field names should be preserved
+    [[ "$output" =~ "tokens_used" ]]
+    [[ "$output" =~ "git_sha" ]]
+    [[ "$output" =~ "duration_sec" ]]
+
+    # Values should also be preserved (they're not secrets)
+    [[ "$output" =~ "100" ]]
+    [[ "$output" =~ "abc123" ]]
+    [[ "$output" =~ "42" ]]
+}
+
 # ============================================================================
 # logger_stream tests
 # ============================================================================

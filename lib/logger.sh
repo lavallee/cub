@@ -19,28 +19,33 @@ _LOG_FILE=""
 
 # Default secret patterns for redaction
 # These patterns match JSON key:value or key=value patterns
-# Format: (key_pattern with separator and quote)(value_pattern)
+# Format: (key_pattern with separator and optional quote)(value_pattern)
 # We'll use sed to replace the value part with [REDACTED]
 # Note: Patterns are case-insensitive (handled in the key matching)
+# IMPORTANT: For JSON patterns, we use [^"{}]* instead of [^"]* to avoid crossing field boundaries
 _DEFAULT_SECRET_PATTERNS=(
-    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy][^:]*:[^"]*")([^"]+)'
-    '([Tt][Oo][Kk][Ee][Nn][^:]*:[^"]*")([^"]+)'
-    '([Ss][Ee][Cc][Rr][Ee][Tt][^:]*:[^"]*")([^"]+)'
-    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][^:]*:[^"]*")([^"]+)'
-    '([Pp][Aa][Ss][Ss][Ww][Dd][^:]*:[^"]*")([^"]+)'
-    '([Bb][Ee][Aa][Rr][Ee][Rr][ ]+)([A-Za-z0-9._-]+)'
-    '([Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn][^:]*:[^"]*")([^"]+)'
-    '([Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy][^:]*:[^"]*")([^"]+)'
-    '([Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn][^:]*:[^"]*")([^"]+)'
-    '([Rr][Ee][Ff][Rr][Ee][Ss][Hh][_-]?[Tt][Oo][Kk][Ee][Nn][^:]*:[^"]*")([^"]+)'
-    '([Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt][^:]*:[^"]*")([^"]+)'
-    '([Aa][Ww][Ss][_-]?[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Kk][Ee][Yy][^:]*:[^"]*")([^"]+)'
-    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy][=])([^ ]+)'
-    '([Tt][Oo][Kk][Ee][Nn][=])([^ ]+)'
-    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][=])([^ ]+)'
-    '(^[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][ ]+)([^ ]+)'
-    '(^[Tt][Oo][Kk][Ee][Nn][ ]+)([^ ]+)'
-    '(^[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][ ]+)([^ ]+)'
+    # JSON patterns: "key":"value" or "key": "value"
+    '("?[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Ss][Ee][Cc][Rr][Ee][Tt]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Aa][Ss][Ss][Ww][Dd]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Rr][Ee][Ff][Rr][Ee][Ss][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    '("?[Aa][Ww][Ss][_-]?[Ss][Ee][Cc][Rr][Ee][Tt][_-]?[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Kk][Ee][Yy]"?[[:space:]]*:[[:space:]]*")([^"]+)'
+    # Bearer token pattern
+    '([Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+)([A-Za-z0-9._-]+)'
+    # URL parameter patterns: key=value
+    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy][=])([^ &]+)'
+    '([Tt][Oo][Kk][Ee][Nn][=])([^ &]+)'
+    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][=])([^ &]+)'
+    # Standalone patterns: key value (at line start)
+    '(^[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][[:space:]]+)([^ ]+)'
+    '(^[Tt][Oo][Kk][Ee][Nn][[:space:]]+)([^ ]+)'
+    '(^[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]+)([^ ]+)'
 )
 
 # Initialize logger with project name and session ID
