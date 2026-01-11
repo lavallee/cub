@@ -247,6 +247,64 @@ Strict mode - stop on hook failure:
 
 See [Hooks Documentation](../README.md#hooks) for details on writing custom hooks.
 
+#### Example Hooks
+
+Curb ships with example hooks in `examples/hooks/` that you can copy and customize:
+
+| Hook | Location | Description |
+|------|----------|-------------|
+| `10-auto-branch.sh` | `pre-loop.d/` | Automatically creates a git branch when a session starts |
+| `slack-notify.sh` | `post-task.d/` | Posts task completion notifications to Slack |
+| `datadog-metric.sh` | `post-loop.d/` | Reports run metrics to Datadog |
+| `pagerduty-alert.sh` | `on-error.d/` | Sends PagerDuty alerts on task failure |
+
+**Installing Example Hooks:**
+
+1. **For a specific project:**
+   ```bash
+   # Create hooks directory
+   mkdir -p .curb/hooks/pre-loop.d
+
+   # Copy and enable the auto-branch hook
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
+   chmod +x .curb/hooks/pre-loop.d/10-auto-branch.sh
+   ```
+
+2. **For all projects (global):**
+   ```bash
+   # Create global hooks directory
+   mkdir -p ~/.config/curb/hooks/pre-loop.d
+
+   # Copy and enable the auto-branch hook globally
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh ~/.config/curb/hooks/pre-loop.d/
+   chmod +x ~/.config/curb/hooks/pre-loop.d/10-auto-branch.sh
+   ```
+
+**Auto-Branch Hook:**
+
+The `10-auto-branch.sh` hook automatically creates a new git branch when a curb session starts:
+
+- Creates branches with naming convention: `curb/{session_name}/{timestamp}`
+- Stores the base branch for later PR creation
+- Idempotent (safe to run multiple times)
+- Skips if not in a git repository or already on a curb branch
+
+Example output:
+```
+[auto-branch] Creating branch: curb/porcupine/20260111-120000 (from main)
+[auto-branch] Stored base branch: main
+```
+
+**Customizing Hooks:**
+
+Hooks receive context via environment variables:
+- `CURB_SESSION_ID` - Session ID (e.g., "porcupine-20260111-114543")
+- `CURB_PROJECT_DIR` - Project directory
+- `CURB_TASK_ID` - Current task ID (for task hooks)
+- `CURB_TASK_TITLE` - Current task title (for task hooks)
+- `CURB_EXIT_CODE` - Task exit code (for post-task/on-error hooks)
+- `CURB_HARNESS` - Harness being used
+
 ---
 
 ### Guardrails Configuration
