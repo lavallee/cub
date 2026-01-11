@@ -82,3 +82,157 @@ failure_set_mode() {
             ;;
     esac
 }
+
+# Handle stop failure mode - halts run immediately
+# Args:
+#   $1 - task_id: The ID of the failed task
+#   $2 - exit_code: The exit code from task execution
+#   $3 - output: Output/error message from the failed task (optional)
+#
+# Returns: 2 (signals main loop to halt run)
+#
+# Example:
+#   failure_handle_stop "curb-038" 1 "Tests failed" || exit $?
+failure_handle_stop() {
+    local task_id="$1"
+    local exit_code="$2"
+    local output="$3"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    # Log failure with stop mode
+    source "${SCRIPT_DIR}/logger.sh"
+    log_error "Task failed in stop mode - halting run" \
+        "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"mode\": \"stop\"}"
+
+    # Store failure info for explain command
+    failure_store_info "$task_id" "$exit_code" "$output" "stop"
+
+    # Return 2 to signal 'halt run' to main loop
+    return 2
+}
+
+# Handle move-on failure mode - marks task as failed and continues
+# Args:
+#   $1 - task_id: The ID of the failed task
+#   $2 - exit_code: The exit code from task execution
+#   $3 - output: Output/error message from the failed task (optional)
+#
+# Returns: 0 (signals main loop to continue)
+#
+# Example:
+#   failure_handle_move_on "curb-038" 1 "Tests failed"
+failure_handle_move_on() {
+    local task_id="$1"
+    local exit_code="$2"
+    local output="$3"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    # Log failure with move-on mode
+    source "${SCRIPT_DIR}/logger.sh"
+    log_error "Task failed in move-on mode - continuing to next task" \
+        "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"mode\": \"move-on\"}"
+
+    # Store failure info for explain command
+    failure_store_info "$task_id" "$exit_code" "$output" "move-on"
+
+    # Return 0 to signal 'continue' to main loop
+    return 0
+}
+
+# Store failure information for later retrieval
+# Args:
+#   $1 - task_id: The ID of the failed task
+#   $2 - exit_code: The exit code from task execution
+#   $3 - output: Output/error message from the failed task (optional)
+#   $4 - mode: The failure mode that was used (optional)
+#
+# Returns: 0 on success, 1 on error
+#
+# Stores failure info in task artifacts directory for retrieval by explain command
+failure_store_info() {
+    local task_id="$1"
+    local exit_code="$2"
+    local output="$3"
+    local mode="${4:-unknown}"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    # Source artifacts module to find task directory
+    source "${SCRIPT_DIR}/artifacts.sh"
+
+    # Find the task artifacts directory
+    local artifacts_base
+    artifacts_base=$(artifacts_get_base_dir)
+
+    if [[ ! -d "$artifacts_base" ]]; then
+        # No artifacts directory yet - skip storing failure info
+        return 0
+    fi
+
+    # Find task directory (search in current run)
+    local task_dir
+    task_dir=$(find "$artifacts_base" -maxdepth 2 -type d -name "$task_id" 2>/dev/null | head -n 1)
+
+    if [[ -z "$task_dir" || ! -d "$task_dir" ]]; then
+        # Task directory doesn't exist - skip storing failure info
+        return 0
+    fi
+
+    # Create failure.json in task artifacts directory
+    local failure_file="${task_dir}/failure.json"
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Build failure JSON
+    local failure_json
+    failure_json=$(jq -n \
+        --arg task_id "$task_id" \
+        --argjson exit_code "$exit_code" \
+        --arg output "$output" \
+        --arg mode "$mode" \
+        --arg timestamp "$timestamp" \
+        '{task_id: $task_id, exit_code: $exit_code, output: $output, mode: $mode, timestamp: $timestamp}')
+
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to create failure JSON" >&2
+        return 1
+    fi
+
+    # Write failure info to file
+    echo "$failure_json" > "$failure_file"
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to write failure.json" >&2
+        return 1
+    fi
+
+    return 0
+}
