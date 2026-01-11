@@ -9,15 +9,22 @@ Combines the [Ralph Wiggum technique](https://ghuntley.com/ralph/) (running an A
 
 ## Features
 
-- **Multi-Harness Support**: Works with Claude Code or OpenAI Codex CLI
+- **Multi-Harness Support**: Works with Claude Code, OpenAI Codex, Google Gemini, or OpenCode
 - **Dual Task Backend**: Use beads CLI or simple prd.json for task management
-- **Autonomous Loop**: Runs until all tasks are complete
+- **Autonomous Loop**: Runs until all tasks are complete or budget exhausted
 - **Dependency Tracking**: Respects task dependencies, picks ready tasks
 - **Priority Scheduling**: P0-P4 priority-based task selection
 - **Epic/Label Filtering**: Target specific epics or labeled tasks
 - **Per-Task Model Selection**: Tasks with `model:X` labels auto-select the model
+- **Budget Management**: Token budget tracking with configurable limits and warnings
+- **Guardrails**: Iteration limits, secret redaction, and safety controls
+- **Failure Handling**: Configurable modes (stop, move-on, retry, triage)
+- **Session Management**: Named sessions with animal names, artifact bundles per task
+- **Git Workflow**: Auto-branching, commit per task, clean state enforcement
+- **Hooks System**: Custom scripts at 5 lifecycle points (pre/post loop, pre/post task, on-error)
 - **Structured Logging**: JSONL logs with timestamps, durations, and git SHAs
 - **Global + Project Config**: XDG-compliant configuration with overrides
+- **Subcommand CLI**: Clear organization with init, run, status, explain, artifacts
 - **Planning Mode**: Analyze codebase and generate fix plans
 - **Streaming Output**: Watch agent activity in real-time
 - **Migration Tools**: Convert between prd.json and beads formats
@@ -50,71 +57,109 @@ ln -s ~/tools/curb/curb-init /usr/local/bin/curb-init
 
 ```bash
 # First-time setup (creates global config and directories)
-curb-init --global
+curb init --global
 
 # Initialize a new project
 cd my-project
-curb-init
+curb init
 
 # Edit prd.json with your tasks (or use beads: bd init && bd create "Task")
 # Add specifications to specs/
 # Update AGENT.md with build instructions
 
 # Check status
-curb --status
+curb status
 
 # Run the autonomous loop
-curb
+curb run
+
+# Or run a single iteration
+curb run --once
 
 # Or target a specific epic
-curb --epic my-epic-id
+curb run --epic my-epic-id
 
 # Or filter by label
-curb --label phase-1
+curb run --label phase-1
 ```
 
 **Upgrading from an earlier version?** See [UPGRADING.md](UPGRADING.md) for migration guide and breaking changes.
 
 ## Usage
 
+Curb uses a subcommand structure for clear organization:
+
 ```bash
-# Core commands
-curb              # Run loop until all tasks complete
-curb --once       # Run single iteration
-curb --status     # Show current task status
-curb --ready      # Show ready (unblocked) tasks
-curb --plan       # Run planning mode
+# SUBCOMMANDS
+curb init           # Initialize project or global config
+curb run            # Run the main loop (default)
+curb status         # Show task progress
+curb explain <id>   # Show task details
+curb artifacts      # List task outputs
+curb version        # Show version
 
-# Filtering (works with beads or JSON backend)
-curb --epic <id>      # Target tasks within a specific epic
-curb --label <name>   # Target tasks with a specific label
-curb --epic curb-1gq --label phase-1  # Combine filters
+# CURB INIT - Initialize project or system
+curb init                    # Initialize current directory
+curb init --global           # Set up global config
+curb init /path/to/project   # Initialize specific directory
 
-# Harness selection
-curb --harness claude    # Use Claude Code (default)
-curb --harness codex     # Use OpenAI Codex CLI
+# CURB RUN - Execute tasks (this is the default if no subcommand)
+curb run                     # Run loop until all tasks complete
+curb run --once              # Run single iteration
+curb run --ready             # Show ready (unblocked) tasks
+curb run --plan              # Run planning mode
+curb run --name myname       # Use custom session name
 
-# Backend selection
-curb --backend beads     # Force beads backend
-curb --backend json      # Force JSON backend
+# CURB STATUS - Show progress
+curb status                  # Show task summary
+curb status --json           # JSON output for scripting
 
-# Output modes
-curb --stream     # Stream harness activity in real-time
-curb --debug      # Enable verbose debug logging
+# CURB EXPLAIN - Task details
+curb explain curb-abc        # Show full task details
 
-# Migration tools
+# CURB ARTIFACTS - View task outputs
+curb artifacts               # List all artifacts
+curb artifacts curb-abc      # Show artifacts for specific task
+
+# FILTERING (works with beads or JSON backend)
+curb run --epic <id>         # Target tasks within a specific epic
+curb run --label <name>      # Target tasks with a specific label
+curb run --epic curb-1gq --label phase-1  # Combine filters
+
+# HARNESS SELECTION
+curb run --harness claude    # Use Claude Code (default)
+curb run --harness codex     # Use OpenAI Codex CLI
+curb run --harness gemini    # Use Google Gemini
+curb run --harness opencode  # Use OpenCode
+
+# BACKEND SELECTION
+curb run --backend beads     # Force beads backend
+curb run --backend json      # Force JSON backend
+
+# OUTPUT MODES
+curb run --stream            # Stream harness activity in real-time
+curb run --debug             # Enable verbose debug logging
+
+# MIGRATION TOOLS
 curb --migrate-to-beads          # Migrate prd.json to beads
 curb --migrate-to-beads-dry-run  # Preview migration
 
-# Debugging
-curb --test          # Test harness invocation
-curb --dump-prompt   # Save prompts to files for inspection
-curb --help          # Show help
+# DEBUGGING
+curb run --test              # Test harness invocation
+curb run --dump-prompt       # Save prompts to files for inspection
+
+# HELP
+curb --help                  # Main help
+curb init --help             # Init subcommand help
+curb run --help              # Run subcommand help
+curb status --help           # Status subcommand help
 ```
+
+**Note:** Running `curb` without a subcommand defaults to `curb run`.
 
 ## Project Structure
 
-After running `curb-init`, your project will have:
+After running `curb init`, your project will have:
 
 ```
 my-project/
@@ -124,7 +169,30 @@ my-project/
 ├── AGENTS.md       # Symlink to AGENT.md (for Codex compatibility)
 ├── progress.txt    # Session learnings (agent appends)
 ├── fix_plan.md     # Discovered issues and plans
-└── specs/          # Detailed specifications
+├── specs/          # Detailed specifications
+└── .curb/          # Curb runtime data (created during runs)
+    ├── hooks/      # Project-specific hooks
+    └── runs/       # Run artifacts and task outputs
+```
+
+### Artifacts Directory
+
+Each curb run creates artifacts in `.curb/runs/{session-id}/`:
+
+```
+.curb/runs/porcupine-20260111-114543/
+├── run.json                    # Run metadata and config
+└── tasks/
+    └── curb-abc/
+        ├── task.json           # Task execution details
+        ├── summary.md          # AI-generated summary
+        └── changes.patch       # Git diff of changes
+```
+
+View artifacts with:
+```bash
+curb artifacts                  # List all artifacts
+curb artifacts curb-abc         # Show specific task artifacts
 ```
 
 ## Task Backends
@@ -167,7 +235,7 @@ brew install steveyegge/beads/bd
 bd init
 
 # Curb auto-detects .beads/ directory
-curb --status  # Uses beads backend automatically
+curb status  # Uses beads backend automatically
 ```
 
 ### Task Fields
@@ -372,6 +440,156 @@ jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/curb/logs/myproject/*.j
 jq 'select(.data.tokens_used > 10000)' ~/.local/share/curb/logs/myproject/*.jsonl
 ```
 
+## Guardrails
+
+Curb includes safety guardrails to prevent runaway loops and protect sensitive information.
+
+### Iteration Limits
+
+```json
+{
+  "guardrails": {
+    "max_task_iterations": 3,    // Max retries per task
+    "max_run_iterations": 50,    // Max total iterations per run
+    "iteration_warning_threshold": 0.8  // Warn at 80% of limit
+  }
+}
+```
+
+When a task exceeds `max_task_iterations`, it's marked as failed and skipped.
+When a run exceeds `max_run_iterations`, the entire run stops.
+
+### Secret Redaction
+
+Curb automatically redacts sensitive patterns in logs and debug output:
+
+```json
+{
+  "guardrails": {
+    "secret_patterns": [
+      "api[_-]?key",
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "credentials"
+    ]
+  }
+}
+```
+
+Add custom patterns for project-specific secrets.
+
+## Failure Handling
+
+Curb provides configurable failure handling modes:
+
+```json
+{
+  "failure": {
+    "mode": "retry",
+    "max_retries": 3
+  }
+}
+```
+
+### Failure Modes
+
+| Mode | Behavior |
+|------|----------|
+| `stop` | Stop immediately on first failure |
+| `move-on` | Mark task failed, continue to next task |
+| `retry` | Retry task with failure context (up to max_retries) |
+| `triage` | (Future) Human-in-the-loop intervention |
+
+### Failure Context
+
+When using `retry` mode, subsequent attempts include context about what failed:
+
+```markdown
+## Previous Attempt Failed
+Exit code: 1
+Error: Test failures in auth_test.py
+
+Please fix the issues and try again.
+```
+
+## Session Management
+
+Each curb run creates a unique session with an auto-generated animal name:
+
+```bash
+# Auto-generated session name
+curb run    # Creates: porcupine-20260111-114543
+
+# Custom session name
+curb run --name release-1.0    # Creates: release-1.0-20260111-114543
+```
+
+Session names are used for:
+- Git branch naming: `curb/{session}/{timestamp}`
+- Artifact directories: `.curb/runs/{session}/`
+- Log identification
+
+### Session Assignment
+
+Tasks can be assigned to specific sessions (useful for parallel work):
+
+```bash
+# With beads backend
+bd assign curb-abc porcupine
+
+# View task assignment
+bd show curb-abc | grep Assignee
+```
+
+## Git Workflow
+
+Curb follows a disciplined git workflow:
+
+### Branch Per Run
+
+Each run creates a feature branch (when using the auto-branch hook):
+
+```
+main
+└── curb/porcupine/20260111-114543
+```
+
+### Commit Per Task
+
+The AI commits after each completed task with a structured message:
+
+```
+task(curb-abc): Implement user authentication
+
+- Added login form component
+- Created auth API endpoints
+- Added tests for auth flow
+
+Task-Id: curb-abc
+Co-Authored-By: Claude Sonnet <noreply@anthropic.com>
+```
+
+### Clean State Enforcement
+
+Curb verifies clean git state before and after tasks:
+
+```json
+{
+  "clean_state": {
+    "require_commit": true,   // Require all changes committed
+    "require_tests": false    // Optionally require tests pass
+  }
+}
+```
+
+Override via CLI:
+```bash
+curb run --require-clean      # Force clean state check
+curb run --no-require-clean   # Disable clean state check
+```
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -400,7 +618,7 @@ For a complete reference of all configuration options, see [docs/CONFIG.md](docs
 ### Global Setup
 
 ```bash
-curb-init --global
+curb init --global
 ```
 
 Creates:
@@ -723,7 +941,7 @@ This signals curb to exit the loop.
 Watch agent activity in real-time:
 
 ```bash
-curb --stream
+curb run --stream
 ```
 
 Shows tool calls, responses, and costs as they happen.
@@ -733,13 +951,15 @@ Shows tool calls, responses, and costs as they happen.
 Get verbose output for troubleshooting:
 
 ```bash
-curb --debug --once
+curb run --debug --once
 ```
 
 Includes:
 - Full prompts being sent
+- Full harness command line (for copy-paste debugging)
 - Task selection details
 - Timing information
+- Acceptance criteria logging
 - Saves prompts to temp files
 
 ### Planning Mode
@@ -747,7 +967,7 @@ Includes:
 Analyze codebase and update fix_plan.md:
 
 ```bash
-curb --plan
+curb run --plan
 ```
 
 Uses parallel subagents to study code, find TODOs, and document issues.
