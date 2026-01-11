@@ -1,3 +1,37 @@
+## Task curb-050: Integrate beads assignee with session name (2026-01-11)
+
+**Implementation:**
+- Added beads_claim_task(task_id, session_name) function in lib/beads.sh that updates both task status and assignee
+- Created unified claim_task() interface in lib/tasks.sh that delegates to appropriate backend
+- Updated curb script to call claim_task() with session name when claiming tasks
+- Added 4 comprehensive BATS tests for claim_task functionality
+
+**Key Learnings:**
+1. **Backend-aware task claiming**: The unified interface pattern in tasks.sh successfully routes beads-specific operations to the beads CLI while maintaining JSON backward compatibility
+2. **Graceful degradation**: When beads is unavailable or assignee setting fails, the function logs a warning but returns success (0) to allow the run to continue
+3. **Session name usage**: Session names (generated animal names like "giraffe", "panda") are perfect for human-readable task assignment tracking
+4. **bd command flags**: Beads supports both `--status` and `--assignee` flags in the same `bd update` command, allowing atomic status + assignee updates
+5. **Parameter validation**: All functions validate required parameters and provide clear error messages to stderr for debugging
+
+**Implementation Details:**
+- beads_claim_task() uses: `bd update <task-id> --status in_progress --assignee <session_name>`
+- claim_task() in tasks.sh provides unified interface matching pattern used elsewhere (e.g., update_task_status)
+- Curb script updated at line 1551 to use claim_task() instead of update_task_status()
+- All 63 task+session tests pass (including 4 new claim_task tests)
+
+**Acceptance Criteria Met:**
+- ✓ Beads tasks get assignee set to session name
+- ✓ Works only when using beads backend (JSON backend unaffected)
+- ✓ Graceful handling if beads unavailable (returns 0, logs warning)
+- ✓ Assignee visible in bd show output
+- ✓ All tests pass
+
+**Files Modified:**
+- lib/beads.sh: Added beads_claim_task() function (28 lines)
+- lib/tasks.sh: Added claim_task() unified interface (21 lines)
+- curb: Updated task claiming to use claim_task() with session name (3 lines)
+- tests/tasks.bats: Added 4 new tests for claim_task (54 lines)
+
 ## Task curb-041: Implement cmd_explain to show task failure reasons (2026-01-11)
 
 **Implementation:**
