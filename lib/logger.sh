@@ -115,10 +115,10 @@ logger_write() {
         data_json="{}"
     fi
 
-    # Check if logger is initialized
-    if [[ -z "$_LOG_FILE" ]]; then
-        echo "ERROR: Logger not initialized. Call logger_init first." >&2
-        return 1
+    # Check if logger is initialized - silently skip if not
+    # This allows logging calls to be safe even before logger_init
+    if [[ -z "${_LOG_FILE:-}" ]]; then
+        return 0
     fi
 
     # Validate event_type

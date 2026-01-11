@@ -66,18 +66,20 @@ git_get_current_branch() {
 #     echo "Uncommitted changes detected"
 #   fi
 git_is_clean() {
-    # Check for uncommitted changes in working tree
-    if ! git diff --quiet HEAD 2>/dev/null; then
+    # Exclude .curb/ from all checks since those are curb's own run artifacts
+    # Use pathspec ':!.curb/' to exclude the directory from git operations
+
+    # Check for uncommitted changes in working tree (excluding .curb/)
+    if ! git diff --quiet HEAD -- ':!.curb/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for staged but uncommitted changes
-    if ! git diff --cached --quiet HEAD 2>/dev/null; then
+    # Check for staged but uncommitted changes (excluding .curb/)
+    if ! git diff --cached --quiet HEAD -- ':!.curb/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for untracked files (files not in .gitignore)
-    # Exclude .curb/ directory since those are curb's own run artifacts
+    # Check for untracked files (files not in .gitignore, excluding .curb/)
     local untracked
     untracked=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.curb/')
     if [[ -n "$untracked" ]]; then
