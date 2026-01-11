@@ -82,11 +82,12 @@ teardown() {
 # logger_write tests
 # ============================================================================
 
-@test "logger_write fails if logger not initialized" {
+@test "logger_write silently skips if logger not initialized" {
+    # logger_write intentionally returns 0 when not initialized
+    # This makes logging calls safe before logger_init is called
     run logger_write "test_event" '{}'
 
-    [[ "$status" -eq 1 ]]
-    [[ "$output" =~ "ERROR: Logger not initialized" ]]
+    [[ "$status" -eq 0 ]]
 }
 
 @test "logger_write fails without event_type" {

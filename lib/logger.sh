@@ -42,6 +42,11 @@ _DEFAULT_SECRET_PATTERNS=(
     '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy][=])([^ &]+)'
     '([Tt][Oo][Kk][Ee][Nn][=])([^ &]+)'
     '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][=])([^ &]+)'
+    # Bare key:value patterns (without quotes)
+    '([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]:)([^ ]+)'
+    '([Tt][Oo][Kk][Ee][Nn]:)([^ ]+)'
+    '([Ss][Ee][Cc][Rr][Ee][Tt]:)([^ ]+)'
+    '([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]:)([^ ]+)'
     # Standalone patterns: key value (at line start)
     '(^[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][[:space:]]+)([^ ]+)'
     '(^[Tt][Oo][Kk][Ee][Nn][[:space:]]+)([^ ]+)'

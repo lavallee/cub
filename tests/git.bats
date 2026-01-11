@@ -43,10 +43,13 @@ teardown() {
 
 @test "git_in_repo returns 1 when not in a git repository" {
     # Create a new directory guaranteed to be outside any git repo
-    # Use /tmp directly to avoid BATS_TMPDIR which might be in the workspace
     NON_GIT_DIR="/tmp/non_git_test_$$"
     mkdir -p "$NON_GIT_DIR"
     cd "$NON_GIT_DIR"
+
+    # Use GIT_CEILING_DIRECTORIES to prevent git from finding parent repos
+    # This is essential for CI environments where /tmp might be under a git workspace
+    export GIT_CEILING_DIRECTORIES="/tmp"
 
     # Verify we're really outside a git repo
     ! git rev-parse --git-dir >/dev/null 2>&1
@@ -55,6 +58,7 @@ teardown() {
     [[ $status -eq 1 ]]
 
     # Cleanup
+    unset GIT_CEILING_DIRECTORIES
     cd /
     rm -rf "$NON_GIT_DIR"
 }
@@ -837,8 +841,9 @@ Line 3"
     echo "modified" > README.md
     echo "new" > newfile.txt
 
-    # Verify changes exist
-    [[ $(git_has_changes) ]]
+    # Verify changes exist (check exit code, not output)
+    run git_has_changes
+    [[ $status -eq 0 ]]
 
     # Stash them
     git_stash_changes
