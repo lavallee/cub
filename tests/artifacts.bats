@@ -626,6 +626,115 @@ teardown() {
     [[ "$patch_content" =~ "modified" ]]
 }
 
+# ============================================================================
+# artifacts_capture_harness_output
+# ============================================================================
+
+@test "artifacts_capture_harness_output: fails without task_id" {
+    session_init --name "test-session"
+
+    run artifacts_capture_harness_output "" "/tmp/nonexistent"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "task_id is required" ]]
+}
+
+@test "artifacts_capture_harness_output: fails without output_file" {
+    session_init --name "test-session"
+
+    run artifacts_capture_harness_output "test-001" ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "output_file is required" ]]
+}
+
+@test "artifacts_capture_harness_output: fails if output_file doesn't exist" {
+    session_init --name "test-session"
+
+    run artifacts_capture_harness_output "test-001" "/tmp/nonexistent_file_12345"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "output_file does not exist" ]]
+}
+
+@test "artifacts_capture_harness_output: creates harness_output.log" {
+    session_init --name "test-session"
+    artifacts_start_task "test-001" "Test task"
+
+    # Create a temp file with some content
+    local temp_file="${BATS_TEST_TMPDIR}/harness_output"
+    echo '{"type":"assistant","message":"test"}' > "$temp_file"
+
+    run artifacts_capture_harness_output "test-001" "$temp_file"
+    [ "$status" -eq 0 ]
+
+    local task_dir
+    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    local log_file="${task_dir}/harness_output.log"
+
+    [ -f "$log_file" ]
+}
+
+@test "artifacts_capture_harness_output: content is captured correctly" {
+    session_init --name "test-session"
+    artifacts_start_task "test-001" "Test task"
+
+    # Create a temp file with some JSON content
+    local temp_file="${BATS_TEST_TMPDIR}/harness_output"
+    echo '{"type":"assistant","message":"hello world"}' > "$temp_file"
+
+    artifacts_capture_harness_output "test-001" "$temp_file"
+
+    local task_dir
+    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    local log_file="${task_dir}/harness_output.log"
+
+    # Verify content
+    local content
+    content=$(cat "$log_file")
+    [[ "$content" =~ "hello world" ]]
+}
+
+@test "artifacts_capture_harness_output: appends with iteration header" {
+    session_init --name "test-session"
+    artifacts_start_task "test-001" "Test task"
+
+    # Create temp files for two iterations
+    local temp1="${BATS_TEST_TMPDIR}/harness1"
+    local temp2="${BATS_TEST_TMPDIR}/harness2"
+    echo '{"iteration":1}' > "$temp1"
+    echo '{"iteration":2}' > "$temp2"
+
+    artifacts_capture_harness_output "test-001" "$temp1" "1"
+    artifacts_capture_harness_output "test-001" "$temp2" "2"
+
+    local task_dir
+    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    local log_file="${task_dir}/harness_output.log"
+
+    # Verify iteration headers
+    local content
+    content=$(cat "$log_file")
+    [[ "$content" =~ "Iteration: 1" ]]
+    [[ "$content" =~ "Iteration: 2" ]]
+    [[ "$content" =~ "iteration\":1" ]]
+    [[ "$content" =~ "iteration\":2" ]]
+}
+
+@test "artifacts_capture_harness_output: harness_output.log has 600 permissions" {
+    session_init --name "test-session"
+    artifacts_start_task "test-001" "Test task"
+
+    local temp_file="${BATS_TEST_TMPDIR}/harness_output"
+    echo '{"test":true}' > "$temp_file"
+
+    artifacts_capture_harness_output "test-001" "$temp_file"
+
+    local task_dir
+    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    local log_file="${task_dir}/harness_output.log"
+
+    # Check permissions (should be 600)
+    assert_permissions "$log_file" "600"
+}
+
 @test "artifacts integration: capture all artifact types" {
     # Initialize git repo in test directory
     git init >/dev/null 2>&1

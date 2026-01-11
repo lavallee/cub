@@ -498,6 +498,11 @@ claude_invoke() {
     output=$(echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags 2>&1)
     local exit_code=$?
 
+    # Log raw output if CURB_HARNESS_LOG is set
+    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
+        echo "$output" >> "${CURB_HARNESS_LOG}"
+    fi
+
     # Try to extract usage from JSON output
     # Claude --output-format json returns a JSON object with usage field
     if echo "$output" | jq -e '.usage' >/dev/null 2>&1; then
@@ -541,15 +546,26 @@ claude_invoke_streaming() {
     local stdbuf_cmd
     stdbuf_cmd=$(_get_stdbuf_cmd)
 
+    # Optional: tee raw output to log file if CURB_HARNESS_LOG is set
+    local tee_cmd="cat"
+    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
+        tee_cmd="tee -a ${CURB_HARNESS_LOG}"
+    fi
+
     if [[ -n "$stdbuf_cmd" ]]; then
         # Line-buffered streaming - output appears in real-time
-        echo "$task_prompt" | $stdbuf_cmd claude -p --append-system-prompt "$system_prompt" $flags | claude_parse_stream
+        # With optional logging via tee
+        echo "$task_prompt" | $stdbuf_cmd claude -p --append-system-prompt "$system_prompt" $flags | $tee_cmd | claude_parse_stream
         return ${PIPESTATUS[1]}
     else
         # Temp file fallback - ensures complete output capture
         local tmpfile="${TMPDIR:-/tmp}/curb_claude_stream_$$"
         echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags > "$tmpfile" 2>&1
         local exit_code=${PIPESTATUS[1]}
+        # Log raw output if requested
+        if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
+            cat "$tmpfile" >> "${CURB_HARNESS_LOG}"
+        fi
         claude_parse_stream < "$tmpfile"
         rm -f "$tmpfile"
         return $exit_code

@@ -1685,6 +1685,10 @@ run_iteration() {
         log_debug "--- HARNESS START (${harness}) ---"
     fi
 
+    # Set up harness output logging to artifacts
+    local harness_log_file="${TMPDIR:-/tmp}/curb_harness_log_$$"
+    export CURB_HARNESS_LOG="$harness_log_file"
+
     # Invoke harness via abstraction layer
     if [[ "$STREAM" == "true" ]]; then
         log_info "Streaming ${harness} output..."
@@ -1694,6 +1698,18 @@ run_iteration() {
         harness_invoke "$system_prompt" "$task_prompt" "$DEBUG"
         exit_code=$?
     fi
+
+    # Capture harness output to artifacts
+    if session_is_initialized && [[ -f "$harness_log_file" ]]; then
+        log_debug "Capturing harness output to artifacts..."
+        if artifacts_capture_harness_output "$task_id" "$harness_log_file" "$task_iteration"; then
+            log_debug "Harness output captured"
+        else
+            log_warn "Failed to capture harness output"
+        fi
+        rm -f "$harness_log_file"
+    fi
+    unset CURB_HARNESS_LOG
 
     if [[ "$DEBUG" == "true" ]]; then
         log_debug "--- HARNESS END (${harness}) ---"

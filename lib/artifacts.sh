@@ -15,6 +15,7 @@
 #   artifacts_capture_plan(task_id, plan_content) - Write plan.md for a task
 #   artifacts_capture_command(task_id, cmd, exit_code, output, duration) - Append to commands.jsonl
 #   artifacts_capture_diff(task_id) - Capture git diff to changes.patch
+#   artifacts_capture_harness_output(task_id, output_file, iteration) - Capture harness output to log
 #   artifacts_get_path(task_id) - Get absolute path to task artifact directory
 #   artifacts_finalize_task(task_id, status, exit_code, summary_text) - Finalize task and generate summary
 #
@@ -547,6 +548,86 @@ artifacts_get_path() {
     abs_path="$(pwd)/${task_dir}"
 
     echo "$abs_path"
+    return 0
+}
+
+# Capture harness output for a task
+# Writes raw harness output to harness_output.log in the task directory
+# Appends to existing file if called multiple times (for multi-iteration tasks)
+#
+# Args:
+#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $2 - output_file: Path to the file containing harness output to copy
+#   $3 - iteration: Optional iteration number for multi-iteration tasks
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   artifacts_capture_harness_output "curb-123" "/tmp/harness_output.log" "1"
+artifacts_capture_harness_output() {
+    local task_id="$1"
+    local output_file="$2"
+    local iteration="${3:-}"
+
+    # Validate required arguments
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$output_file" ]]; then
+        echo "ERROR: output_file is required" >&2
+        return 1
+    fi
+
+    if [[ ! -f "$output_file" ]]; then
+        echo "ERROR: output_file does not exist: $output_file" >&2
+        return 1
+    fi
+
+    # Ensure task directory exists
+    artifacts_ensure_dirs "$task_id"
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+
+    # Get task directory path
+    local task_dir
+    task_dir=$(artifacts_get_task_dir "$task_id")
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+
+    local log_file="${task_dir}/harness_output.log"
+
+    # If iteration provided, add a separator header
+    if [[ -n "$iteration" ]]; then
+        local timestamp
+        timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        {
+            echo ""
+            echo "=========================================="
+            echo "Iteration: ${iteration}"
+            echo "Timestamp: ${timestamp}"
+            echo "=========================================="
+        } >> "$log_file"
+    fi
+
+    # Append harness output to log file
+    cat "$output_file" >> "$log_file"
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to append harness output to ${log_file}" >&2
+        return 1
+    fi
+
+    # Set file permissions to 600 (owner read/write only)
+    chmod 600 "$log_file"
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to set permissions on ${log_file}" >&2
+        return 1
+    fi
+
     return 0
 }
 
