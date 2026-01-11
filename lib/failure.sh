@@ -159,6 +159,133 @@ failure_handle_move_on() {
     return 0
 }
 
+# Handle retry failure mode - retries with context if under limit
+# Args:
+#   $1 - task_id: The ID of the failed task
+#   $2 - exit_code: The exit code from task execution
+#   $3 - output: Output/error message from the failed task (optional)
+#
+# Returns: 3 (signals main loop to retry task)
+#          0 (falls back to move-on if limit exceeded)
+#
+# Example:
+#   failure_handle_retry "curb-038" 1 "Tests failed" || handle_result=$?
+failure_handle_retry() {
+    local task_id="$1"
+    local exit_code="$2"
+    local output="$3"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    # Source budget module to check iteration limits
+    source "${SCRIPT_DIR}/budget.sh"
+
+    # Get current and max iterations
+    local current_iterations
+    current_iterations=$(budget_get_task_iterations "$task_id")
+    local max_iterations
+    max_iterations=$(budget_get_max_task_iterations)
+
+    # Check if we're under the limit
+    if [[ "$current_iterations" -lt "$max_iterations" ]]; then
+        # Increment iteration counter
+        budget_increment_task_iterations "$task_id"
+
+        # Log retry attempt
+        source "${SCRIPT_DIR}/logger.sh"
+        log_info "Task failed - retrying with context" \
+            "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"mode\": \"retry\", \"iteration\": $((current_iterations + 1)), \"max_iterations\": $max_iterations}"
+
+        # Store failure info for context retrieval
+        failure_store_info "$task_id" "$exit_code" "$output" "retry"
+
+        # Return 3 to signal 'retry' to main loop
+        return 3
+    else
+        # Limit exceeded - fall back to move-on behavior
+        source "${SCRIPT_DIR}/logger.sh"
+        log_error "Task retry limit exceeded - falling back to move-on" \
+            "{\"task_id\": \"$task_id\", \"exit_code\": $exit_code, \"mode\": \"retry\", \"iteration\": $current_iterations, \"max_iterations\": $max_iterations}"
+
+        # Store failure info with retry mode
+        failure_store_info "$task_id" "$exit_code" "$output" "retry-limit-exceeded"
+
+        # Fall back to move-on behavior (return 0 = continue)
+        return 0
+    fi
+}
+
+# Get failure context for prompt augmentation
+# Args:
+#   $1 - task_id: The ID of the failed task
+#
+# Returns: 0 on success, 1 on error
+# Outputs: Formatted failure context to stdout
+#
+# Example:
+#   context=$(failure_get_context "curb-038")
+#   # Returns: "Previous attempt failed with exit code 1: Tests failed. Please try a different approach."
+failure_get_context() {
+    local task_id="$1"
+
+    # Validate required parameter
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    # Source artifacts module to find task directory
+    source "${SCRIPT_DIR}/artifacts.sh"
+
+    # Find the task artifacts directory
+    local artifacts_base
+    artifacts_base=$(artifacts_get_base_dir)
+
+    if [[ ! -d "$artifacts_base" ]]; then
+        # No artifacts directory - no context available
+        return 0
+    fi
+
+    # Find task directory (search in current run)
+    local task_dir
+    task_dir=$(find "$artifacts_base" -maxdepth 2 -type d -name "$task_id" 2>/dev/null | head -n 1)
+
+    if [[ -z "$task_dir" || ! -d "$task_dir" ]]; then
+        # Task directory doesn't exist - no context available
+        return 0
+    fi
+
+    # Check if failure.json exists
+    local failure_file="${task_dir}/failure.json"
+    if [[ ! -f "$failure_file" ]]; then
+        # No failure info - no context available
+        return 0
+    fi
+
+    # Parse failure info
+    local exit_code output
+    exit_code=$(jq -r '.exit_code' "$failure_file" 2>/dev/null)
+    output=$(jq -r '.output' "$failure_file" 2>/dev/null)
+
+    # Format context message
+    if [[ -n "$output" && "$output" != "null" && "$output" != "" ]]; then
+        echo "Previous attempt failed with exit code $exit_code: $output. Please try a different approach."
+    else
+        echo "Previous attempt failed with exit code $exit_code. Please try a different approach."
+    fi
+
+    return 0
+}
+
 # Store failure information for later retrieval
 # Args:
 #   $1 - task_id: The ID of the failed task

@@ -362,3 +362,300 @@ teardown() {
     [[ $continue_exit -eq 0 ]]
     [[ $stop_exit -ne $continue_exit ]]
 }
+
+# ============================================================================
+# failure_handle_retry tests
+# ============================================================================
+
+@test "failure_handle_retry returns exit code 3 (retry signal) when under limit" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 3
+
+    # First retry should return 3
+    run failure_handle_retry "curb-retry-test" 1 "Test error"
+
+    # Should return 3 to signal retry
+    [[ $status -eq 3 ]]
+}
+
+@test "failure_handle_retry increments task iteration counter" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 3
+
+    # Get initial count
+    local initial_count
+    initial_count=$(budget_get_task_iterations "curb-retry-test")
+
+    # Call retry
+    failure_handle_retry "curb-retry-test" 1 "Test error" 2>/dev/null || true
+
+    # Check count was incremented
+    local new_count
+    new_count=$(budget_get_task_iterations "curb-retry-test")
+    [[ $new_count -eq $((initial_count + 1)) ]]
+}
+
+@test "failure_handle_retry falls back to move-on when limit exceeded" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 2
+
+    # Create task directory
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-limit"
+
+    # Exhaust the retry limit (do not use 'run' - it creates subshells)
+    failure_handle_retry "curb-retry-limit" 1 "Error 1" 2>/dev/null || true
+    failure_handle_retry "curb-retry-limit" 1 "Error 2" 2>/dev/null || true
+
+    # Next retry should fall back to move-on (return 0)
+    failure_handle_retry "curb-retry-limit" 1 "Error 3" 2>/dev/null
+    local exit_code=$?
+
+    [[ $exit_code -eq 0 ]]
+}
+
+@test "failure_handle_retry requires task_id parameter" {
+    run failure_handle_retry "" 1 "Test error"
+
+    # Should fail with exit code 1
+    [[ $status -eq 1 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "failure_handle_retry requires exit_code parameter" {
+    run failure_handle_retry "curb-retry-test" "" "Test error"
+
+    # Should fail with exit code 1
+    [[ $status -eq 1 ]]
+    [[ "$output" =~ "ERROR: exit_code is required" ]]
+}
+
+@test "failure_handle_retry accepts optional output parameter" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 3
+
+    run failure_handle_retry "curb-retry-test" 1
+
+    # Should return 3 even without output
+    [[ $status -eq 3 ]]
+}
+
+@test "failure_handle_retry stores failure info with retry mode" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 3
+
+    # Create task directory
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-test"
+
+    # Call retry
+    failure_handle_retry "curb-retry-test" 1 "Test error" 2>/dev/null || true
+
+    # Check if failure.json was created with retry mode
+    [[ -f "${TEST_ARTIFACTS_DIR}/curb-retry-test/failure.json" ]]
+    local mode
+    mode=$(jq -r '.mode' "${TEST_ARTIFACTS_DIR}/curb-retry-test/failure.json")
+    [[ "$mode" == "retry" ]]
+}
+
+@test "failure_handle_retry stores retry-limit-exceeded mode when limit hit" {
+    # Source budget to initialize
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 1
+
+    # Create task directory
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-retry-limit"
+
+    # Exhaust limit
+    failure_handle_retry "curb-retry-limit" 1 "Error 1" 2>/dev/null || true
+
+    # Next call should store retry-limit-exceeded
+    failure_handle_retry "curb-retry-limit" 1 "Error 2" 2>/dev/null
+
+    # Check mode
+    local mode
+    mode=$(jq -r '.mode' "${TEST_ARTIFACTS_DIR}/curb-retry-limit/failure.json")
+    [[ "$mode" == "retry-limit-exceeded" ]]
+}
+
+# ============================================================================
+# failure_get_context tests
+# ============================================================================
+
+@test "failure_get_context returns formatted context with output" {
+    # Create task directory and failure.json
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-context-test"
+    echo '{"task_id":"curb-context-test","exit_code":1,"output":"Build failed: missing dependency","mode":"retry"}' \
+        > "${TEST_ARTIFACTS_DIR}/curb-context-test/failure.json"
+
+    # Get context
+    run failure_get_context "curb-context-test"
+
+    # Should format correctly
+    [[ $status -eq 0 ]]
+    [[ "$output" == "Previous attempt failed with exit code 1: Build failed: missing dependency. Please try a different approach." ]]
+}
+
+@test "failure_get_context returns formatted context without output" {
+    # Create task directory and failure.json without output
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-context-test"
+    echo '{"task_id":"curb-context-test","exit_code":127,"output":null,"mode":"retry"}' \
+        > "${TEST_ARTIFACTS_DIR}/curb-context-test/failure.json"
+
+    # Get context
+    run failure_get_context "curb-context-test"
+
+    # Should format correctly
+    [[ $status -eq 0 ]]
+    [[ "$output" == "Previous attempt failed with exit code 127. Please try a different approach." ]]
+}
+
+@test "failure_get_context requires task_id parameter" {
+    run failure_get_context ""
+
+    # Should fail with exit code 1
+    [[ $status -eq 1 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "failure_get_context handles missing artifacts directory gracefully" {
+    # Override to return non-existent directory
+    artifacts_get_base_dir() {
+        echo "/nonexistent/path"
+    }
+
+    # Should succeed without error (graceful handling)
+    run failure_get_context "curb-nonexistent"
+    [[ $status -eq 0 ]]
+    [[ -z "$output" ]]
+}
+
+@test "failure_get_context handles missing task directory gracefully" {
+    # Don't create task directory
+
+    # Should succeed without error (graceful handling)
+    run failure_get_context "curb-nonexistent"
+    [[ $status -eq 0 ]]
+    [[ -z "$output" ]]
+}
+
+@test "failure_get_context handles missing failure.json gracefully" {
+    # Create task directory but no failure.json
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-no-failure"
+
+    # Should succeed without error (graceful handling)
+    run failure_get_context "curb-no-failure"
+    [[ $status -eq 0 ]]
+    [[ -z "$output" ]]
+}
+
+@test "failure_get_context handles empty output correctly" {
+    # Create task directory with empty output
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-empty-output"
+    echo '{"task_id":"curb-empty-output","exit_code":1,"output":"","mode":"retry"}' \
+        > "${TEST_ARTIFACTS_DIR}/curb-empty-output/failure.json"
+
+    # Get context
+    run failure_get_context "curb-empty-output"
+
+    # Should use format without output
+    [[ $status -eq 0 ]]
+    [[ "$output" == "Previous attempt failed with exit code 1. Please try a different approach." ]]
+}
+
+# ============================================================================
+# Retry mode acceptance criteria tests
+# ============================================================================
+
+@test "AC: Retry increments task iteration counter" {
+    # Source budget
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 3
+
+    local before
+    before=$(budget_get_task_iterations "curb-ac-retry")
+
+    failure_handle_retry "curb-ac-retry" 1 "Error" 2>/dev/null || true
+
+    local after
+    after=$(budget_get_task_iterations "curb-ac-retry")
+
+    [[ $after -eq $((before + 1)) ]]
+}
+
+@test "AC: Retry respects max_task_iterations limit" {
+    # Source budget
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 2
+
+    # Create task directory
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-limit"
+
+    # First retry should return 3 (retry signal) - do not use 'run' to preserve state
+    failure_handle_retry "curb-ac-limit" 1 "Error 1" 2>/dev/null
+    local exit1=$?
+    [[ $exit1 -eq 3 ]]
+
+    # Second retry should return 3 (retry signal)
+    failure_handle_retry "curb-ac-limit" 1 "Error 2" 2>/dev/null
+    local exit2=$?
+    [[ $exit2 -eq 3 ]]
+
+    # Third retry should return 0 (move-on, limit exceeded)
+    failure_handle_retry "curb-ac-limit" 1 "Error 3" 2>/dev/null
+    local exit3=$?
+    [[ $exit3 -eq 0 ]]
+}
+
+@test "AC: Failure context available for prompt augmentation" {
+    # Create failure info
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-context"
+    echo '{"task_id":"curb-ac-context","exit_code":1,"output":"Test failed","mode":"retry"}' \
+        > "${TEST_ARTIFACTS_DIR}/curb-ac-context/failure.json"
+
+    # Get context
+    run failure_get_context "curb-ac-context"
+
+    # Should return formatted context
+    [[ $status -eq 0 ]]
+    [[ "$output" =~ "Previous attempt failed" ]]
+    [[ "$output" =~ "Test failed" ]]
+    [[ "$output" =~ "Please try a different approach" ]]
+}
+
+@test "AC: Falls back to move-on when limit exceeded" {
+    # Source budget
+    source "${PROJECT_ROOT}/lib/budget.sh"
+    budget_set_max_task_iterations 1
+
+    # Create task directory
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-fallback"
+
+    # Exhaust limit (do not use 'run' to preserve state)
+    failure_handle_retry "curb-ac-fallback" 1 "Error 1" 2>/dev/null || true
+
+    # Should fall back to move-on (return 0)
+    failure_handle_retry "curb-ac-fallback" 1 "Error 2" 2>/dev/null
+    local exit_code=$?
+    [[ $exit_code -eq 0 ]]
+}
+
+@test "AC: Context format helpful for agent" {
+    # Create failure with specific error
+    mkdir -p "${TEST_ARTIFACTS_DIR}/curb-ac-helpful"
+    echo '{"task_id":"curb-ac-helpful","exit_code":1,"output":"TypeError: undefined is not a function","mode":"retry"}' \
+        > "${TEST_ARTIFACTS_DIR}/curb-ac-helpful/failure.json"
+
+    # Get context
+    run failure_get_context "curb-ac-helpful"
+
+    # Should include key error info
+    [[ "$output" =~ "TypeError: undefined is not a function" ]]
+    # Should be concise (less than 200 chars for this example)
+    [[ ${#output} -lt 200 ]]
+    # Should give actionable guidance
+    [[ "$output" =~ "different approach" ]]
+}
