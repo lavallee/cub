@@ -6,13 +6,14 @@ Curb 1.0 introduces significant new features and some breaking changes from earl
 
 If you're upgrading from a pre-1.0 version:
 
-1. **Initialize global config** (one time): `curb-init --global`
+1. **Initialize global config** (one time): `curb init --global`
 2. **Update project config** (if you have `.curb.json`): Review the new options in [Configuration Schema](#configuration-schema)
 3. **Review breaking changes**: See [Breaking Changes](#breaking-changes) section
-4. **Test your setup**: Run `curb --once` and verify logs are created
+4. **Test your setup**: Run `curb run --once` and verify logs are created
 5. **Optional: Migrate to beads**: `curb --migrate-to-beads` (if using prd.json)
+6. **Update any scripts**: Replace old flag syntax with new subcommands (see [CLI Subcommand Migration](#7-cli-subcommand-migration))
 
-That's it! The core workflow remains the same.
+That's it! The core workflow remains the same. Old CLI syntax still works with deprecation warnings.
 
 ## What's New in 1.0
 
@@ -218,7 +219,67 @@ curb --migrate-to-beads
 
 The JSON backend is still fully supported, so you don't have to migrate if you don't want to.
 
-### 6. **New Required Environment Variables (Mostly Optional)**
+### 7. **CLI Subcommand Migration**
+
+The curb CLI has been updated to use subcommands for clearer organization. The old flag-based syntax still works but shows deprecation warnings.
+
+**Command Syntax Changes:**
+
+| Old Syntax | New Syntax | Notes |
+|------------|------------|-------|
+| `curb-init` | `curb init` | Initialize project |
+| `curb-init --global` | `curb init --global` | Initialize global config |
+| `curb --status` | `curb status` | Show task progress |
+| `curb --status --json` | `curb status --json` | JSON output |
+| `curb --ready` | `curb run --ready` | List ready tasks |
+| `curb --once` | `curb run --once` | Single iteration |
+| `curb --plan` | `curb run --plan` | Planning mode |
+| `curb -s` | `curb status` | Short flag |
+| `curb -r` | `curb run --ready` | Short flag |
+| `curb -1` | `curb run --once` | Short flag |
+| `curb -p` | `curb run --plan` | Short flag |
+
+**Deprecation Warnings:**
+
+When using the old syntax, curb shows a warning like:
+```
+[curb] DEPRECATED: --status flag is deprecated. Use 'curb status' instead.
+[curb] This flag will be removed in a future release.
+```
+
+**Suppressing Warnings:**
+
+If you have scripts using the old syntax and want to suppress warnings temporarily:
+```bash
+export CURB_NO_DEPRECATION_WARNINGS=1
+```
+
+**Timeline:**
+
+- **1.0**: Old syntax works with warnings (current release)
+- **1.1**: Old syntax continues to work with warnings
+- **2.0**: Old syntax may be removed (announced ahead of time)
+
+**Migration Tips:**
+
+1. Update scripts gradually - the old syntax still works
+2. Use tab completion with `curb <TAB>` to discover subcommands
+3. Run `curb --help` to see the new command structure
+4. Run `curb <subcommand> --help` for subcommand-specific help
+
+**New Help System:**
+
+Each subcommand now has its own help:
+```bash
+curb --help           # Main help (shows all subcommands)
+curb init --help      # Init subcommand help
+curb run --help       # Run subcommand help
+curb status --help    # Status subcommand help
+curb explain --help   # Explain subcommand help
+curb artifacts --help # Artifacts subcommand help
+```
+
+### 8. **New Required Environment Variables (Mostly Optional)**
 
 Most new environment variables have sensible defaults. The only truly required one for budget control is:
 
@@ -248,7 +309,7 @@ All other environment variables are optional:
 
 3. **Initialize global config** (one-time, system-wide)
    ```bash
-   curb-init --global
+   curb init --global
    ```
 
 4. **Review and update project config** (if you have `.curb.json`)
@@ -263,18 +324,30 @@ All other environment variables are optional:
 5. **Test your setup**
    ```bash
    # Run a single iteration to verify everything works
-   curb --once
+   curb run --once
 
    # Check logs were created
    ls -la ~/.local/share/curb/logs/your-project/
    ```
 
 6. **Review new features**
-   - Try `curb --help` to see new flags
+   - Try `curb --help` to see new subcommands
    - Consider setting up a hook for notifications
    - Set a budget to prevent overspending
 
-7. **Optional: Migrate to beads**
+7. **Update scripts using old CLI syntax** (optional but recommended)
+   ```bash
+   # Find scripts using old syntax
+   grep -r "curb --status\|curb --ready\|curb --once\|curb-init" scripts/
+
+   # Update to new syntax:
+   #   curb --status  ->  curb status
+   #   curb --ready   ->  curb run --ready
+   #   curb --once    ->  curb run --once
+   #   curb-init      ->  curb init
+   ```
+
+8. **Optional: Migrate to beads**
    ```bash
    # Only if you want to switch from JSON to beads backend
    curb --migrate-to-beads
@@ -440,7 +513,7 @@ Then verify they work by running `curb --once` and checking that hooks fire.
 **A:**
 ```bash
 # Run one iteration
-curb --once
+curb run --once
 
 # Check logs were created
 ls ~/.local/share/curb/logs/
@@ -468,6 +541,27 @@ curb --no-require-clean
 - Hooks
 - Environment Variables
 
+### Q: My scripts use the old CLI flags. Do I need to update them immediately?
+
+**A:** No! The old flag syntax still works and will continue working in 1.0 and 1.1. You'll just see deprecation warnings. Update at your convenience - there's no rush.
+
+To suppress warnings in scripts:
+```bash
+export CURB_NO_DEPRECATION_WARNINGS=1
+```
+
+### Q: What are the new subcommands?
+
+**A:** The main subcommands are:
+```bash
+curb init       # Initialize project or global config
+curb run        # Run the main loop (default if no subcommand)
+curb status     # Show task progress
+curb explain    # Show task details
+curb artifacts  # List task outputs
+curb version    # Show version
+```
+
 ## Getting Help
 
 If you run into issues:
@@ -492,10 +586,11 @@ You can upgrade gradually and adopt new features at your own pace!
 
 ## Next Steps
 
-1. Run `curb-init --global` to set up global config
+1. Run `curb init --global` to set up global config
 2. Review your project config (if you have one) and update it
-3. Try `curb --once` to verify everything works
-4. Read README.md sections on new features you're interested in
-5. Set up hooks or budget management if they're useful for you
+3. Try `curb run --once` to verify everything works
+4. Explore the new subcommand structure: `curb --help`
+5. Read README.md sections on new features you're interested in
+6. Set up hooks or budget management if they're useful for you
 
-Welcome to Curb 1.0! 🎉
+Welcome to Curb 1.0!
