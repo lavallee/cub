@@ -77,8 +77,9 @@ git_is_clean() {
     fi
 
     # Check for untracked files (files not in .gitignore)
+    # Exclude .curb/ directory since those are curb's own run artifacts
     local untracked
-    untracked=$(git ls-files --others --exclude-standard 2>/dev/null)
+    untracked=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.curb/')
     if [[ -n "$untracked" ]]; then
         return 1
     fi

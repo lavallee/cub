@@ -42,9 +42,9 @@ failure_get_mode() {
     local mode
     mode=$(config_get "failure.mode" 2>/dev/null)
 
-    # If not in config, return the default
+    # If not in config, return the default (use fallback to handle unset var)
     if [[ -z "$mode" ]]; then
-        echo "$failure_mode"
+        echo "${failure_mode:-move-on}"
         return 0
     fi
 
