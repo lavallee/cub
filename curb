@@ -2145,7 +2145,7 @@ run_iteration() {
     # Initialize artifacts for this run if not already initialized
     if session_is_initialized; then
         local run_dir
-        run_dir=$(artifacts_get_run_dir 2>/dev/null)
+        run_dir=$(artifacts_get_run_dir 2>/dev/null) || true
         if [[ -n "$run_dir" ]] && [[ ! -f "${run_dir}/run.json" ]]; then
             log_debug "Initializing artifacts..."
             if artifacts_init_run; then
@@ -2161,7 +2161,7 @@ run_iteration() {
     # Initialize git run branch if in a git repository (only if not already initialized)
     if git_in_repo; then
         local current_branch
-        current_branch=$(git_get_run_branch 2>/dev/null)
+        current_branch=$(git_get_run_branch 2>/dev/null) || true
         if [[ -z "$current_branch" ]]; then
             log_debug "Initializing git run branch..."
             local session_name
