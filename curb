@@ -1791,6 +1791,19 @@ run_iteration() {
             else
                 log_warn "Failed to commit session files"
             fi
+
+            # Auto-commit remaining changes if configured (default: true)
+            # This handles cases where the agent completes work but forgets to commit
+            local auto_commit
+            auto_commit=$(config_get_or "clean_state.auto_commit" "true")
+            if [[ "$auto_commit" == "true" ]]; then
+                log_debug "Checking for uncommitted changes to auto-commit..."
+                if git_commit_remaining_changes "$task_id" "$task_title"; then
+                    log_debug "Remaining changes committed (if any)"
+                else
+                    log_warn "Failed to auto-commit remaining changes"
+                fi
+            fi
         fi
 
         # Verify clean state after successful harness run

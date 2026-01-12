@@ -191,6 +191,11 @@ Enforce code quality and consistency checks between task executions.
 - **Default**: `false`
 - **Description**: Enforce test passage before allowing commits. If enabled, tasks must pass all tests.
 
+#### `clean_state.auto_commit`
+- **Type**: Boolean
+- **Default**: `true`
+- **Description**: Automatically commit remaining changes when the harness completes successfully (exit 0) but forgets to commit. This prevents task failures due to uncommitted changes when the work is actually complete. Session files (progress.txt, fix_plan.md) are always auto-committed regardless of this setting.
+
 **Examples:**
 
 Relax clean state for development:
@@ -198,12 +203,13 @@ Relax clean state for development:
 curb --no-require-clean
 ```
 
-Strict mode - require tests pass:
+Strict mode - require tests pass, disable auto-commit:
 ```json
 {
   "clean_state": {
     "require_commit": true,
-    "require_tests": true
+    "require_tests": true,
+    "auto_commit": false
   }
 }
 ```

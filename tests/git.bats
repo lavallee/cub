@@ -1441,3 +1441,148 @@ Line 3"
     run git log --oneline -2
     [[ "$output" =~ "chore(curb-042): update session files" ]]
 }
+
+# ============================================================================
+# git_commit_remaining_changes tests
+# ============================================================================
+
+@test "git_commit_remaining_changes returns 0 when no changes exist" {
+    run git_commit_remaining_changes
+    [[ $status -eq 0 ]]
+}
+
+@test "git_commit_remaining_changes commits modified files" {
+    # Create and commit a file
+    echo "initial" > src_file.py
+    git add src_file.py
+    git commit -q -m "Initial file"
+
+    # Modify the file (simulating agent forgot to commit)
+    echo "modified content" > src_file.py
+
+    # Should commit the changes
+    run git_commit_remaining_changes "test-001" "Implement feature"
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean now
+    run git_is_clean
+    [[ $status -eq 0 ]]
+}
+
+@test "git_commit_remaining_changes commits untracked files" {
+    # Create new file (simulating agent created but forgot to commit)
+    echo "new file content" > new_feature.py
+
+    # Should add and commit
+    run git_commit_remaining_changes "test-002"
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean now
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # File should be tracked
+    git ls-files new_feature.py | grep -q new_feature.py
+}
+
+@test "git_commit_remaining_changes uses task_id and task_title in commit message" {
+    echo "feature code" > feature.py
+
+    git_commit_remaining_changes "curb-123" "Add new feature"
+
+    # Verify commit message format
+    local last_msg
+    last_msg=$(git log -1 --pretty=%B)
+    [[ "$last_msg" =~ "[curb-123] Add new feature" ]]
+    [[ "$last_msg" =~ "Auto-committed by curb" ]]
+    [[ "$last_msg" =~ "Task-ID: curb-123" ]]
+}
+
+@test "git_commit_remaining_changes uses task_id only when no title" {
+    echo "some code" > code.py
+
+    git_commit_remaining_changes "curb-456"
+
+    # Verify commit message format
+    local last_msg
+    last_msg=$(git log -1 --pretty=%s)
+    [[ "$last_msg" =~ "chore(curb-456): auto-commit remaining changes" ]]
+}
+
+@test "git_commit_remaining_changes excludes .curb/ directory" {
+    # Create changes in .curb/ (handled separately)
+    mkdir -p .curb/runs
+    echo "run data" > .curb/runs/test.json
+
+    # Create regular file change
+    echo "code" > main.py
+
+    git_commit_remaining_changes "test-001"
+
+    # main.py should be committed
+    git ls-files main.py | grep -q main.py
+
+    # .curb/ should NOT be committed by this function
+    local curb_status
+    curb_status=$(git status --porcelain .curb/ 2>/dev/null)
+    [[ -n "$curb_status" ]]  # .curb/ still has uncommitted changes
+}
+
+@test "git_commit_remaining_changes excludes .beads/ directory" {
+    # Create changes in .beads/ (handled separately)
+    mkdir -p .beads
+    echo "task data" > .beads/tasks.json
+
+    # Create regular file change
+    echo "code" > app.py
+
+    git_commit_remaining_changes "test-001"
+
+    # app.py should be committed
+    git ls-files app.py | grep -q app.py
+
+    # .beads/ should NOT be committed by this function
+    local beads_status
+    beads_status=$(git status --porcelain .beads/ 2>/dev/null)
+    [[ -n "$beads_status" ]]  # .beads/ still has uncommitted changes
+}
+
+@test "git_commit_remaining_changes commits multiple files" {
+    # Create multiple uncommitted files
+    echo "module 1" > module1.py
+    echo "module 2" > module2.py
+    echo "test file" > test_module.py
+
+    git_commit_remaining_changes "curb-789" "Implement modules"
+
+    # All files should be committed
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # Verify all files are tracked
+    git ls-files module1.py | grep -q module1.py
+    git ls-files module2.py | grep -q module2.py
+    git ls-files test_module.py | grep -q test_module.py
+}
+
+@test "ACCEPTANCE: Agent completes task but forgets to commit - curb auto-commits" {
+    # Simulate agent working on a task
+    echo "def feature():" > feature.py
+    echo "    return True" >> feature.py
+    echo "def test_feature():" > test_feature.py
+    echo "    assert feature()" >> test_feature.py
+
+    # Agent forgot to commit (exit 0 but no commit)
+    # git_commit_remaining_changes should save the day
+    git_commit_remaining_changes "curb-042" "Implement feature X"
+
+    # Repository should be clean
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # Commit should have meaningful message
+    local last_msg
+    last_msg=$(git log -1 --pretty=%B)
+    [[ "$last_msg" =~ "[curb-042] Implement feature X" ]]
+    [[ "$last_msg" =~ "Auto-committed by curb" ]]
+}

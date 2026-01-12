@@ -152,6 +152,72 @@ git_commit_curb_artifacts() {
 # These are files that agents are expected to modify during runs
 _GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
 
+# Commit all remaining uncommitted changes after successful task completion
+# This handles cases where the agent completes work but forgets to commit.
+# Only call this when harness exits with code 0 (success).
+# Excludes .curb/ and .beads/ directories which are handled separately.
+#
+# Parameters:
+#   $1 - task_id: The task ID to include in commit message
+#   $2 - task_title: The task title for the commit message (optional)
+#
+# Returns:
+#   0 on success (changes committed or nothing to commit)
+#   1 on error (git command failure)
+#
+# Example:
+#   git_commit_remaining_changes "curb-042" "Implement feature X"
+git_commit_remaining_changes() {
+    local task_id="${1:-}"
+    local task_title="${2:-}"
+
+    # Check if we're in a git repository
+    if ! git_in_repo; then
+        return 0
+    fi
+
+    # Check if there are any uncommitted changes (excluding curb artifacts)
+    local changes
+    changes=$(git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/')
+
+    if [[ -z "$changes" ]]; then
+        # Nothing to commit
+        return 0
+    fi
+
+    # Stage all changes EXCEPT .curb/ and .beads/ (which are handled separately)
+    # Use pathspec to exclude curb artifact directories
+    git add -A -- ':!.curb/' ':!.beads/' 2>/dev/null || true
+
+    # Build commit message
+    local commit_msg
+    if [[ -n "$task_id" && -n "$task_title" ]]; then
+        commit_msg="[${task_id}] ${task_title}
+
+Auto-committed by curb: agent completed successfully but did not commit changes.
+
+Task-ID: ${task_id}"
+    elif [[ -n "$task_id" ]]; then
+        commit_msg="chore(${task_id}): auto-commit remaining changes
+
+Auto-committed by curb: agent completed successfully but did not commit changes.
+
+Task-ID: ${task_id}"
+    else
+        commit_msg="chore: auto-commit remaining changes
+
+Auto-committed by curb: agent completed successfully but did not commit changes."
+    fi
+
+    # Commit
+    if ! git commit -m "$commit_msg" >/dev/null 2>&1; then
+        # Commit failed - might be nothing staged after excludes
+        return 0
+    fi
+
+    return 0
+}
+
 # Commit session files (progress.txt, fix_plan.md, etc.) if they have uncommitted changes
 # These are files that agents are expected to modify during task execution.
 # If the agent forgets to commit them, curb will do it to maintain clean state.
