@@ -66,14 +66,14 @@ _harness_get_capabilities() {
             echo "streaming token_reporting auto_mode json_output"
             ;;
         codex)
-            # Codex: Basic auto mode only
+            # Codex CLI 0.80+: Enhanced capabilities
             # - auto_mode: --full-auto
-            # - No streaming output format (passthrough only)
-            # - No token_reporting in CLI output
+            # - streaming: --json outputs JSONL events
+            # - json_output: --json flag
+            # - model_selection: -m flag
             # - No system_prompt flag (must combine prompts)
-            # - No json_output format
-            # - No model_selection via CLI
-            echo "auto_mode"
+            # - No token_reporting in CLI output (estimated only)
+            echo "auto_mode streaming json_output model_selection"
             ;;
         gemini)
             # Gemini CLI: Basic auto mode with model selection
@@ -674,10 +674,33 @@ claude_parse_stream() {
 # Codex Backend
 # ============================================================================
 
+# Map complexity label to codex model
+# Complexity levels: low -> gpt-4o-mini, medium -> gpt-4o, high -> o3
+# Also supports explicit model: labels like model:o3
+_codex_get_model_for_complexity() {
+    local complexity="${1:-medium}"
+
+    case "$complexity" in
+        low|simple)
+            echo "gpt-4o-mini"
+            ;;
+        high|complex)
+            echo "o3"
+            ;;
+        *)
+            # medium or unspecified - use default (gpt-4o or config default)
+            echo ""
+            ;;
+    esac
+}
+
 codex_invoke() {
     local system_prompt="$1"
     local task_prompt="$2"
     local debug="${3:-false}"
+
+    # Clear previous usage
+    harness_clear_usage
 
     # Codex doesn't have --append-system-prompt, so we combine prompts
     # The system prompt goes first, then a separator, then the task
@@ -689,13 +712,35 @@ ${task_prompt}"
 
     local flags="--full-auto"
 
+    # Add model flag if specified via CURB_MODEL
+    if [[ -n "${CURB_MODEL:-}" ]]; then
+        flags="$flags -m $CURB_MODEL"
+    fi
+
     # Add any extra flags from environment
     [[ -n "${CODEX_FLAGS:-}" ]] && flags="$flags $CODEX_FLAGS"
 
     # Log full command in debug mode
     _harness_log_command "$debug" "codex" "exec" $flags "-"
 
-    echo "$combined_prompt" | codex exec $flags -
+    # Run codex and capture output
+    local output
+    output=$(echo "$combined_prompt" | codex exec $flags - 2>&1)
+    local exit_code=$?
+
+    # Display the output
+    echo "$output"
+
+    # Estimate token usage based on character counts
+    # Codex CLI doesn't report actual usage in stdout
+    local input_chars=${#combined_prompt}
+    local output_chars=${#output}
+    local estimated_input=$((input_chars / 4))
+    local estimated_output=$((output_chars / 4))
+
+    _harness_store_usage "$estimated_input" "$estimated_output" 0 0 "" "true"
+
+    return $exit_code
 }
 
 codex_invoke_streaming() {
@@ -703,10 +748,107 @@ codex_invoke_streaming() {
     local task_prompt="$2"
     local debug="${3:-false}"
 
-    # Codex exec doesn't have a JSON streaming mode like Claude Code's --output-format stream-json
-    # For now, streaming mode just runs the same as non-streaming and passes through output
-    # TODO: Investigate codex proto command for structured streaming
-    codex_invoke "$system_prompt" "$task_prompt" "$debug"
+    # Clear previous usage
+    harness_clear_usage
+
+    local combined_prompt="${system_prompt}
+
+---
+
+${task_prompt}"
+
+    local flags="--full-auto --json"
+
+    # Add model flag if specified via CURB_MODEL
+    if [[ -n "${CURB_MODEL:-}" ]]; then
+        flags="$flags -m $CURB_MODEL"
+    fi
+
+    # Add any extra flags from environment
+    [[ -n "${CODEX_FLAGS:-}" ]] && flags="$flags $CODEX_FLAGS"
+
+    # Log full command in debug mode
+    _harness_log_command "$debug" "codex" "exec" $flags "-"
+
+    # Optional: tee raw output to log file if CURB_HARNESS_LOG is set
+    local tee_cmd="cat"
+    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
+        tee_cmd="tee -a ${CURB_HARNESS_LOG}"
+    fi
+
+    # Use stdbuf for line buffering if available
+    local stdbuf_cmd
+    stdbuf_cmd=$(_get_stdbuf_cmd)
+
+    if [[ -n "$stdbuf_cmd" ]]; then
+        echo "$combined_prompt" | $stdbuf_cmd codex exec $flags - | $tee_cmd | codex_parse_stream
+        return ${PIPESTATUS[1]}
+    else
+        local tmpfile="${TMPDIR:-/tmp}/curb_codex_stream_$$"
+        echo "$combined_prompt" | codex exec $flags - > "$tmpfile" 2>&1
+        local exit_code=${PIPESTATUS[1]}
+        if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
+            cat "$tmpfile" >> "${CURB_HARNESS_LOG}"
+        fi
+        codex_parse_stream < "$tmpfile"
+        rm -f "$tmpfile"
+        return $exit_code
+    fi
+}
+
+# Parse Codex's --json JSONL output
+# Extracts text for display and captures any usage information
+codex_parse_stream() {
+    local total_input=0
+    local total_output=0
+
+    while IFS= read -r line; do
+        # Skip empty lines
+        [[ -z "$line" ]] && continue
+
+        # Parse JSON event type
+        local event_type=$(echo "$line" | jq -r '.type // .event // empty' 2>/dev/null)
+
+        case "$event_type" in
+            message|assistant_message)
+                # Extract and display message content
+                local content=$(echo "$line" | jq -r '.content // .message // empty' 2>/dev/null)
+                [[ -n "$content" ]] && echo -e "$content"
+                ;;
+            tool_call|function_call)
+                # Show tool usage
+                local tool_name=$(echo "$line" | jq -r '.name // .tool // empty' 2>/dev/null)
+                [[ -n "$tool_name" ]] && echo -e "${YELLOW}▶ Tool: ${tool_name}${NC}"
+                ;;
+            usage|token_usage)
+                # Capture usage if reported
+                local input=$(echo "$line" | jq -r '.input_tokens // .prompt_tokens // 0' 2>/dev/null)
+                local output=$(echo "$line" | jq -r '.output_tokens // .completion_tokens // 0' 2>/dev/null)
+                total_input=$((total_input + input))
+                total_output=$((total_output + output))
+                ;;
+            agent_message)
+                # Agent status messages
+                local msg=$(echo "$line" | jq -r '.message // empty' 2>/dev/null)
+                [[ -n "$msg" ]] && echo -e "${DIM}[agent] ${msg}${NC}"
+                ;;
+            exec_command|command)
+                # Show command being executed
+                local cmd=$(echo "$line" | jq -r '.command // .cmd // empty' 2>/dev/null)
+                [[ -n "$cmd" ]] && echo -e "${CYAN}$ ${cmd}${NC}"
+                ;;
+            *)
+                # For unknown events, try to extract any text content
+                local text=$(echo "$line" | jq -r '.text // .output // empty' 2>/dev/null)
+                [[ -n "$text" ]] && echo "$text"
+                ;;
+        esac
+    done
+
+    # Store accumulated usage (or estimate if none reported)
+    if [[ $total_input -gt 0 || $total_output -gt 0 ]]; then
+        _harness_store_usage "$total_input" "$total_output" 0 0 ""
+    fi
 }
 
 # ============================================================================

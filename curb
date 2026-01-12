@@ -2243,13 +2243,41 @@ run_iteration() {
         log_debug "Task claimed"
     fi
 
-    # Check for model: label and set CURB_MODEL if harness is claude
+    # Check for model: or complexity: labels and set CURB_MODEL
+    # Works for claude and codex harnesses
     local harness=$(harness_get)
-    if [[ "$harness" == "claude" ]]; then
+    if [[ "$harness" == "claude" || "$harness" == "codex" ]]; then
         local task_model
+        # First check for explicit model: label
         task_model=$(echo "$current_task" | jq -r '.labels // [] | .[] | select(startswith("model:")) | split(":")[1]' 2>/dev/null | head -1)
-        if [[ -n "$task_model" ]]; then
+
+        # If no model label, check for complexity: label and map to model
+        if [[ -z "$task_model" ]]; then
+            local complexity
+            complexity=$(echo "$current_task" | jq -r '.labels // [] | .[] | select(startswith("complexity:")) | split(":")[1]' 2>/dev/null | head -1)
+            if [[ -n "$complexity" ]]; then
+                if [[ "$harness" == "claude" ]]; then
+                    # Claude: low->haiku, medium->sonnet, high->opus
+                    case "$complexity" in
+                        low|simple) task_model="haiku" ;;
+                        high|complex) task_model="opus" ;;
+                        *) task_model="sonnet" ;;
+                    esac
+                elif [[ "$harness" == "codex" ]]; then
+                    # Codex: low->gpt-4o-mini, medium->default, high->o3
+                    case "$complexity" in
+                        low|simple) task_model="gpt-4o-mini" ;;
+                        high|complex) task_model="o3" ;;
+                        *) task_model="" ;; # Use default
+                    esac
+                fi
+                [[ -n "$task_model" ]] && log_info "  Model from complexity (${complexity}): ${task_model}"
+            fi
+        else
             log_info "  Model from label: ${task_model}"
+        fi
+
+        if [[ -n "$task_model" ]]; then
             export CURB_MODEL="$task_model"
         fi
     fi
