@@ -244,12 +244,9 @@ failure_get_context() {
         return 1
     fi
 
-    # Source artifacts module to find task directory
-    source "${SCRIPT_DIR}/artifacts.sh"
-
-    # Find the task artifacts directory
+    # Find the task artifacts directory (artifacts.sh already sourced at module level)
     local artifacts_base
-    artifacts_base=$(artifacts_get_base_dir)
+    artifacts_base=$(artifacts_get_run_dir 2>/dev/null)
 
     if [[ ! -d "$artifacts_base" ]]; then
         # No artifacts directory - no context available
@@ -314,12 +311,9 @@ failure_store_info() {
         return 1
     fi
 
-    # Source artifacts module to find task directory
-    source "${SCRIPT_DIR}/artifacts.sh"
-
-    # Find the task artifacts directory
+    # Find the task artifacts directory (artifacts.sh already sourced at module level)
     local artifacts_base
-    artifacts_base=$(artifacts_get_base_dir)
+    artifacts_base=$(artifacts_get_run_dir 2>/dev/null)
 
     if [[ ! -d "$artifacts_base" ]]; then
         # No artifacts directory yet - skip storing failure info

@@ -6,7 +6,7 @@
 load test_helper
 
 # Override functions at file level for bash 3.2 compatibility
-artifacts_get_base_dir() {
+artifacts_get_run_dir() {
     # Allow tests to override with MOCK_ARTIFACTS_DIR
     echo "${MOCK_ARTIFACTS_DIR:-${TEST_ARTIFACTS_DIR:-/tmp/artifacts_test}}"
 }
@@ -28,6 +28,12 @@ setup() {
     # Create a mock task directory for failure storage tests
     TEST_TASK_DIR="${TEST_ARTIFACTS_DIR}/curb-test"
     mkdir -p "$TEST_TASK_DIR"
+
+    # Redefine mock after sourcing failure.sh (which sources artifacts.sh)
+    # This ensures our mock overrides the real function
+    artifacts_get_run_dir() {
+        echo "${MOCK_ARTIFACTS_DIR:-${TEST_ARTIFACTS_DIR:-/tmp/artifacts_test}}"
+    }
 
     # Clear failure mode before each test
     failure_mode="move-on"
