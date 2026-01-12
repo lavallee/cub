@@ -18,10 +18,7 @@ Study these files to understand the project:
    - Type checking (if applicable)
    - Tests
    - Linting
-5. **Complete**: If all checks pass:
-   - Update @prd.json: set the task's status to "closed"
-   - Commit changes with message format: `type(task-id): description`
-   - Append learnings to @progress.txt
+5. **Complete**: If all checks pass, close the task using the appropriate method shown in CURRENT TASK below, then commit your changes.
 
 ## Critical Rules
 
@@ -31,6 +28,7 @@ Study these files to understand the project:
 - **FIX WHAT YOU BREAK**: If tests unrelated to your work fail, fix them
 - **DOCUMENT DISCOVERIES**: If you find bugs or issues, add them to @fix_plan.md
 - **UPDATE AGENT.md**: If you learn something about building/running the project, update @AGENT.md
+- **CLOSE THE TASK**: Always mark the task as closed using the method specified in CURRENT TASK
 
 ## Parallelism Guidance
 
@@ -41,9 +39,10 @@ Study these files to understand the project:
 ## When You're Done
 
 After successfully completing the task and all checks pass:
-1. Ensure prd.json shows the task as "closed"
-2. Commit your changes
-3. If ALL tasks in prd.json have status="closed", output exactly:
+1. Close the task using the method shown in CURRENT TASK (either `bd close` or prd.json update)
+2. Commit your changes with format: `type(task-id): description`
+3. Append learnings to @progress.txt
+4. If ALL tasks are closed, output exactly:
 
 <promise>COMPLETE</promise>
 

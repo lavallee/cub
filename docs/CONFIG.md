@@ -216,6 +216,39 @@ Strict mode - require tests pass, disable auto-commit:
 
 ---
 
+### Task Configuration
+
+Control task lifecycle behavior.
+
+#### `task.auto_close`
+- **Type**: Boolean
+- **Default**: `true`
+- **Description**: Automatically close tasks when the harness completes successfully (exit 0) but the agent forgets to close the task. This is a safety net that prevents tasks from getting stuck in "in_progress" state when the work is actually complete. Works with both beads and prd.json backends.
+
+**Examples:**
+
+Default behavior (auto-close enabled):
+```json
+{
+  "task": {
+    "auto_close": true
+  }
+}
+```
+
+Disable auto-close (require explicit agent action):
+```json
+{
+  "task": {
+    "auto_close": false
+  }
+}
+```
+
+**Note:** When using the beads backend, auto-close runs `bd close <task-id>`. When using the prd.json backend, auto-close updates the task status to "closed" in prd.json.
+
+---
+
 ### Hooks Configuration
 
 Control the hook system for task lifecycle events.
@@ -444,6 +477,7 @@ Environment variables override all config files and provide quick, temporary ove
 | `CURB_EPIC` | String | | Filter to epic ID |
 | `CURB_LABEL` | String | | Filter to label name |
 | `CURB_REQUIRE_CLEAN` | Boolean | `true` | Enforce clean state |
+| `CURB_AUTO_CLOSE` | Boolean | `true` | Auto-close tasks on success |
 | `CURB_MAX_TASK_ITERATIONS` | Number | 3 | Max attempts per task |
 | `CURB_MAX_RUN_ITERATIONS` | Number | 50 | Max iterations per run |
 | `HARNESS` | String | `auto` | Harness: `auto`, `claude`, `codex`, `gemini`, `opencode` |

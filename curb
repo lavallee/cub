@@ -1032,6 +1032,135 @@ cmd_artifacts() {
     return 1
 }
 
+# Show help for agent-close subcommand
+cmd_agent_close_help() {
+    cat <<'EOF'
+curb agent-close <task-id>
+
+Mark a task as closed (complete). This command is backend-aware and works
+with both beads and prd.json backends.
+
+USAGE:
+  curb agent-close <task-id>    Mark the specified task as closed
+
+DESCRIPTION:
+  This command is designed to be called by the AI agent during task
+  completion. It automatically detects the task backend (beads or json)
+  and uses the appropriate method to close the task.
+
+  For beads backend:  Runs 'bd close <task-id>'
+  For json backend:   Updates prd.json to set status="closed"
+
+EXAMPLES:
+  curb agent-close curb-018
+  curb agent-close link-030
+
+SEE ALSO:
+  curb agent-verify   Verify a task is properly closed
+  curb status         Check overall progress
+  curb explain        Show task details
+EOF
+}
+
+# Agent-close subcommand - close a task (backend-aware)
+cmd_agent_close() {
+    # Check for --help first
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        cmd_agent_close_help
+        return 0
+    fi
+
+    local task_id="${1:-}"
+    if [[ -z "$task_id" ]]; then
+        _log_error_console "Usage: curb agent-close <task-id>"
+        return 1
+    fi
+
+    local prd="${PROJECT_DIR}/prd.json"
+    local backend=$(get_backend "${PROJECT_DIR}")
+
+    if [[ "$backend" == "beads" ]]; then
+        log_info "Closing task $task_id via beads..."
+        if bd close "$task_id" 2>&1; then
+            log_success "Task $task_id closed"
+            return 0
+        else
+            _log_error_console "Failed to close task $task_id"
+            return 1
+        fi
+    else
+        log_info "Closing task $task_id in prd.json..."
+        if json_update_task_status "$prd" "$task_id" "closed"; then
+            log_success "Task $task_id closed"
+            return 0
+        else
+            _log_error_console "Failed to close task $task_id"
+            return 1
+        fi
+    fi
+}
+
+# Show help for agent-verify subcommand
+cmd_agent_verify_help() {
+    cat <<'EOF'
+curb agent-verify <task-id>
+
+Verify that a task is properly marked as closed. This command is backend-aware
+and works with both beads and prd.json backends.
+
+USAGE:
+  curb agent-verify <task-id>    Check if the task status is "closed"
+
+DESCRIPTION:
+  This command verifies that a task has been properly closed. It's designed
+  to be called by the AI agent after closing a task to confirm the operation
+  succeeded.
+
+  Returns exit code 0 if task is closed, 1 otherwise.
+
+EXAMPLES:
+  curb agent-verify curb-018
+  curb agent-verify link-030
+
+  # In scripts:
+  if curb agent-verify curb-018; then
+    echo "Task is closed"
+  else
+    echo "Task is NOT closed"
+  fi
+
+SEE ALSO:
+  curb agent-close    Close a task
+  curb status         Check overall progress
+  curb explain        Show task details
+EOF
+}
+
+# Agent-verify subcommand - verify a task is closed
+cmd_agent_verify() {
+    # Check for --help first
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        cmd_agent_verify_help
+        return 0
+    fi
+
+    local task_id="${1:-}"
+    if [[ -z "$task_id" ]]; then
+        _log_error_console "Usage: curb agent-verify <task-id>"
+        return 1
+    fi
+
+    local prd="${PROJECT_DIR}/prd.json"
+
+    if verify_task_closed "$prd" "$task_id"; then
+        log_success "Task $task_id is closed"
+        return 0
+    else
+        _log_error_console "Task $task_id is NOT closed"
+        return 1
+    fi
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -1411,8 +1540,24 @@ ${failure_context}
 EOF
     fi
 
-    # Add completion instructions
-    cat <<EOF
+    # Add completion instructions (backend-aware)
+    local backend=$(get_backend)
+    if [[ "$backend" == "beads" ]]; then
+        cat <<EOF
+
+When complete:
+1. Run feedback loops (typecheck, test, lint)
+2. Mark task complete: bd close ${task_id}
+3. Commit: ${task_type}(${task_id}): ${task_title}
+4. Append learnings to progress.txt
+
+Note: This project uses the beads task backend. Use 'bd' commands for task management:
+- bd close ${task_id}  - Mark this task complete
+- bd show ${task_id}   - Check task status
+- bd list              - See all tasks
+EOF
+    else
+        cat <<EOF
 
 When complete:
 1. Run feedback loops (typecheck, test, lint)
@@ -1420,6 +1565,7 @@ When complete:
 3. Commit: ${task_type}(${task_id}): ${task_title}
 4. Append learnings to progress.txt
 EOF
+    fi
 }
 
 # Run a single iteration
@@ -1823,6 +1969,26 @@ run_iteration() {
                 exit_code=1
             else
                 log_debug "Tests passed or not required"
+            fi
+        fi
+
+        # Auto-close task if configured and all checks passed
+        # This is a safety net for when the agent forgets to close the task
+        if [[ $exit_code -eq 0 ]]; then
+            local auto_close
+            auto_close=$(config_get_or "task.auto_close" "true")
+            if [[ "$auto_close" == "true" ]]; then
+                log_debug "Checking if task needs auto-closing..."
+                if ! verify_task_closed "$prd" "$task_id" 2>/dev/null; then
+                    log_info "Auto-closing task $task_id (agent did not close it)..."
+                    if auto_close_task "$prd" "$task_id"; then
+                        log_success "Task $task_id auto-closed successfully"
+                    else
+                        log_warn "Failed to auto-close task $task_id"
+                    fi
+                else
+                    log_debug "Task $task_id already closed by agent"
+                fi
             fi
         fi
     fi
@@ -2253,6 +2419,16 @@ main() {
                 cmd_artifacts "${args[@]:1}"
                 return $?
                 ;;
+            agent-close)
+                # Close a task (agent helper command)
+                cmd_agent_close "${args[@]:1}"
+                return $?
+                ;;
+            agent-verify)
+                # Verify a task is closed (agent helper command)
+                cmd_agent_verify "${args[@]:1}"
+                return $?
+                ;;
             version)
                 # Show version
                 cmd_version
@@ -2380,6 +2556,8 @@ SUBCOMMANDS:
   curb status [--json]           Show task progress
   curb explain <task-id>         Show task details
   curb artifacts [<task-id>]     List task outputs
+  curb agent-close <task-id>     Close a task (for agent use)
+  curb agent-verify <task-id>    Verify task is closed
   curb version                   Show version
 
 QUICK START:

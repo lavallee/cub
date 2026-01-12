@@ -407,3 +407,154 @@ EOF
     [ "$t1_status" = "in_progress" ]
     [ "$t2_status" = "open" ]
 }
+
+# =============================================================================
+# Verify Task Closed Tests
+# =============================================================================
+
+@test "verify_task_closed requires task_id parameter" {
+    create_minimal_prd
+    run verify_task_closed "prd.json" ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id" ]]
+}
+
+@test "verify_task_closed returns success for closed task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Closed task", "status": "closed", "priority": "P0"}
+  ]
+}
+EOF
+
+    run verify_task_closed "prd.json" "t1"
+    [ "$status" -eq 0 ]
+}
+
+@test "verify_task_closed returns failure for open task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Open task", "status": "open", "priority": "P0"}
+  ]
+}
+EOF
+
+    run verify_task_closed "prd.json" "t1"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not closed" ]]
+}
+
+@test "verify_task_closed returns failure for in_progress task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "In progress task", "status": "in_progress", "priority": "P0"}
+  ]
+}
+EOF
+
+    run verify_task_closed "prd.json" "t1"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not closed" ]]
+}
+
+@test "verify_task_closed fails for non-existent prd file" {
+    run verify_task_closed "nonexistent.json" "t1"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not found" ]]
+}
+
+# =============================================================================
+# Auto Close Task Tests
+# =============================================================================
+
+@test "auto_close_task requires task_id parameter" {
+    create_minimal_prd
+    run auto_close_task "prd.json" ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "requires task_id" ]]
+}
+
+@test "auto_close_task closes an open task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Open task", "status": "open", "priority": "P0"}
+  ]
+}
+EOF
+
+    run auto_close_task "prd.json" "t1"
+    [ "$status" -eq 0 ]
+
+    # Verify task is now closed
+    local status
+    status=$(jq -r '.tasks[0].status' prd.json)
+    [ "$status" = "closed" ]
+}
+
+@test "auto_close_task closes an in_progress task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "In progress task", "status": "in_progress", "priority": "P0"}
+  ]
+}
+EOF
+
+    run auto_close_task "prd.json" "t1"
+    [ "$status" -eq 0 ]
+
+    # Verify task is now closed
+    local status
+    status=$(jq -r '.tasks[0].status' prd.json)
+    [ "$status" = "closed" ]
+}
+
+@test "auto_close_task succeeds silently for already closed task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Closed task", "status": "closed", "priority": "P0"}
+  ]
+}
+EOF
+
+    run auto_close_task "prd.json" "t1"
+    [ "$status" -eq 0 ]
+
+    # Verify task is still closed
+    local status
+    status=$(jq -r '.tasks[0].status' prd.json)
+    [ "$status" = "closed" ]
+}
+
+@test "auto_close_task only affects specified task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Task 1", "status": "in_progress", "priority": "P0"},
+    {"id": "t2", "title": "Task 2", "status": "open", "priority": "P1"}
+  ]
+}
+EOF
+
+    auto_close_task "prd.json" "t1"
+
+    # Verify t1 is closed and t2 is unchanged
+    local t1_status t2_status
+    t1_status=$(jq -r '.tasks[0].status' prd.json)
+    t2_status=$(jq -r '.tasks[1].status' prd.json)
+
+    [ "$t1_status" = "closed" ]
+    [ "$t2_status" = "open" ]
+}

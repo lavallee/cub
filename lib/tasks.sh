@@ -252,6 +252,83 @@ get_blocked_tasks() {
     fi
 }
 
+# Verify a task is properly closed
+# Returns 0 if task is closed, 1 otherwise
+# Usage: verify_task_closed <prd> <task_id>
+verify_task_closed() {
+    local prd="$1"
+    local task_id="$2"
+
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: verify_task_closed requires task_id" >&2
+        return 1
+    fi
+
+    local backend=$(get_backend)
+
+    if [[ "$backend" == "beads" ]]; then
+        # Check status via beads
+        local status
+        status=$(bd show "$task_id" --json 2>/dev/null | jq -r '.status // "unknown"')
+        if [[ "$status" == "closed" ]]; then
+            return 0
+        else
+            echo "Task $task_id not closed in beads (status: $status)" >&2
+            return 1
+        fi
+    else
+        # Check status in prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "ERROR: prd.json not found at $prd" >&2
+            return 1
+        fi
+        local status
+        status=$(jq -r --arg id "$task_id" '.tasks[] | select(.id == $id) | .status' "$prd" 2>/dev/null)
+        if [[ "$status" == "closed" ]]; then
+            return 0
+        else
+            echo "Task $task_id not closed in prd.json (status: $status)" >&2
+            return 1
+        fi
+    fi
+}
+
+# Auto-close a task (for use after successful harness completion)
+# Returns 0 on success, 1 on failure
+# Usage: auto_close_task <prd> <task_id>
+auto_close_task() {
+    local prd="$1"
+    local task_id="$2"
+
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: auto_close_task requires task_id" >&2
+        return 1
+    fi
+
+    local backend=$(get_backend)
+
+    # Check if already closed
+    if verify_task_closed "$prd" "$task_id" 2>/dev/null; then
+        return 0  # Already closed, nothing to do
+    fi
+
+    if [[ "$backend" == "beads" ]]; then
+        # Close via beads
+        if bd close "$task_id" 2>/dev/null; then
+            echo "Auto-closed task $task_id via beads" >&2
+            return 0
+        else
+            echo "Failed to auto-close task $task_id via beads" >&2
+            return 1
+        fi
+    else
+        # Close via prd.json update
+        json_update_task_status "$prd" "$task_id" "closed"
+        echo "Auto-closed task $task_id in prd.json" >&2
+        return 0
+    fi
+}
+
 #
 # ============================================================================
 # JSON Backend Implementation (prd.json)
