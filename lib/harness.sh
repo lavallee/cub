@@ -797,7 +797,8 @@ ${task_prompt}"
 }
 
 # Parse Codex's --json JSONL output
-# Extracts text for display and captures any usage information
+# Codex emits events like: thread.started, turn.started, item.started, item.completed
+# Item types include: reasoning, command_execution, message, file_edit, etc.
 codex_parse_stream() {
     local total_input=0
     local total_output=0
@@ -807,39 +808,69 @@ codex_parse_stream() {
         [[ -z "$line" ]] && continue
 
         # Parse JSON event type
-        local event_type=$(echo "$line" | jq -r '.type // .event // empty' 2>/dev/null)
+        local event_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
 
         case "$event_type" in
-            message|assistant_message)
-                # Extract and display message content
-                local content=$(echo "$line" | jq -r '.content // .message // empty' 2>/dev/null)
-                [[ -n "$content" ]] && echo -e "$content"
+            item.started)
+                # Show what's starting
+                local item_type=$(echo "$line" | jq -r '.item.type // empty' 2>/dev/null)
+                case "$item_type" in
+                    command_execution)
+                        local cmd=$(echo "$line" | jq -r '.item.command // empty' 2>/dev/null)
+                        [[ -n "$cmd" ]] && echo -e "${CYAN}$ ${cmd}${NC}"
+                        ;;
+                    file_edit|file_write)
+                        local file=$(echo "$line" | jq -r '.item.file_path // .item.path // empty' 2>/dev/null)
+                        [[ -n "$file" ]] && echo -e "${YELLOW}▶ Editing: ${file}${NC}"
+                        ;;
+                esac
                 ;;
-            tool_call|function_call)
-                # Show tool usage
-                local tool_name=$(echo "$line" | jq -r '.name // .tool // empty' 2>/dev/null)
-                [[ -n "$tool_name" ]] && echo -e "${YELLOW}▶ Tool: ${tool_name}${NC}"
+            item.completed)
+                # Extract item details
+                local item_type=$(echo "$line" | jq -r '.item.type // empty' 2>/dev/null)
+                case "$item_type" in
+                    reasoning)
+                        local text=$(echo "$line" | jq -r '.item.text // empty' 2>/dev/null)
+                        [[ -n "$text" ]] && echo -e "${DIM}${text}${NC}"
+                        ;;
+                    message)
+                        local content=$(echo "$line" | jq -r '.item.content // .item.text // empty' 2>/dev/null)
+                        [[ -n "$content" ]] && echo -e "$content"
+                        ;;
+                    command_execution)
+                        local output=$(echo "$line" | jq -r '.item.aggregated_output // empty' 2>/dev/null)
+                        local exit_code=$(echo "$line" | jq -r '.item.exit_code // empty' 2>/dev/null)
+                        if [[ -n "$output" ]]; then
+                            # Truncate long output
+                            if [[ ${#output} -gt 500 ]]; then
+                                echo "${output:0:500}..."
+                            else
+                                echo "$output"
+                            fi
+                        fi
+                        ;;
+                    file_edit|file_write)
+                        local status=$(echo "$line" | jq -r '.item.status // empty' 2>/dev/null)
+                        [[ "$status" == "completed" ]] && echo -e "${GREEN}✓ File updated${NC}"
+                        ;;
+                esac
                 ;;
-            usage|token_usage)
-                # Capture usage if reported
-                local input=$(echo "$line" | jq -r '.input_tokens // .prompt_tokens // 0' 2>/dev/null)
-                local output=$(echo "$line" | jq -r '.output_tokens // .completion_tokens // 0' 2>/dev/null)
-                total_input=$((total_input + input))
-                total_output=$((total_output + output))
+            turn.completed)
+                # Turn completed - could extract usage here if available
+                local usage=$(echo "$line" | jq -r '.usage // empty' 2>/dev/null)
+                if [[ -n "$usage" && "$usage" != "null" ]]; then
+                    local input=$(echo "$line" | jq -r '.usage.input_tokens // 0' 2>/dev/null)
+                    local output=$(echo "$line" | jq -r '.usage.output_tokens // 0' 2>/dev/null)
+                    total_input=$((total_input + input))
+                    total_output=$((total_output + output))
+                fi
                 ;;
-            agent_message)
-                # Agent status messages
-                local msg=$(echo "$line" | jq -r '.message // empty' 2>/dev/null)
-                [[ -n "$msg" ]] && echo -e "${DIM}[agent] ${msg}${NC}"
-                ;;
-            exec_command|command)
-                # Show command being executed
-                local cmd=$(echo "$line" | jq -r '.command // .cmd // empty' 2>/dev/null)
-                [[ -n "$cmd" ]] && echo -e "${CYAN}$ ${cmd}${NC}"
+            thread.started|turn.started)
+                # Session lifecycle events - skip silently
                 ;;
             *)
                 # For unknown events, try to extract any text content
-                local text=$(echo "$line" | jq -r '.text // .output // empty' 2>/dev/null)
+                local text=$(echo "$line" | jq -r '.item.text // .text // .output // empty' 2>/dev/null)
                 [[ -n "$text" ]] && echo "$text"
                 ;;
         esac
