@@ -1354,9 +1354,36 @@ _doctor_check_git() {
 
     local total_count=$((session_count + source_count + cruft_count + config_count + unknown_count))
 
-    if [[ $total_count -eq 0 ]]; then
+    # Check for curb artifacts (.beads/ and .curb/) separately
+    local curb_artifacts
+    curb_artifacts=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.(beads|curb)/' || true)
+    local curb_artifact_count=0
+    if [[ -n "$curb_artifacts" ]]; then
+        curb_artifact_count=$(echo "$curb_artifacts" | wc -l | tr -d ' ')
+    fi
+
+    if [[ $total_count -eq 0 && $curb_artifact_count -eq 0 ]]; then
         _doctor_ok "Working directory clean"
         return 0
+    fi
+
+    # Report curb artifacts if present
+    if [[ $curb_artifact_count -gt 0 ]]; then
+        _doctor_warn "Curb artifacts need committing (${curb_artifact_count} files)"
+        ((issues++))
+        echo ""
+        echo "  Curb artifacts (safe to commit with --fix):"
+        # Use here-string to avoid subshell from pipe
+        while IFS= read -r line; do
+            echo "    $line"
+        done <<< "$curb_artifacts"
+        # Store for fix phase (exported so it survives function calls)
+        export _DOCTOR_CURB_ARTIFACTS="$curb_artifacts"
+    fi
+
+    if [[ $total_count -eq 0 ]]; then
+        # Only curb artifacts, no other changes
+        return $issues
     fi
 
     _doctor_warn "Uncommitted changes detected (${total_count} files)"
@@ -1509,8 +1536,32 @@ Auto-committed by 'curb doctor --fix'" >/dev/null 2>&1; then
                 fi
             fi
         fi
+    fi
 
-        # Suggest cruft cleanup
+    # Fix curb artifacts (.beads/ and .curb/)
+    if [[ -n "${_DOCTOR_CURB_ARTIFACTS:-}" ]]; then
+        if [[ "$dry_run" == "true" ]]; then
+            echo "  Would commit curb artifacts:"
+            echo "$_DOCTOR_CURB_ARTIFACTS" | while read -r line; do
+                local filepath="${line:3}"
+                echo "    - $filepath"
+            done
+        else
+            echo "  Committing curb artifacts..."
+            git add .beads/ .curb/ 2>/dev/null || true
+            if git commit -m "chore: commit curb artifacts
+
+Auto-committed by 'curb doctor --fix'" >/dev/null 2>&1; then
+                log_success "  Curb artifacts committed"
+                ((fixed++))
+            else
+                _doctor_info "  No curb artifacts to commit (already clean)"
+            fi
+        fi
+    fi
+
+    # Suggest cruft cleanup
+    if [[ -n "${_DOCTOR_CHANGES_JSON:-}" ]]; then
         local cruft_files
         cruft_files=$(echo "$_DOCTOR_CHANGES_JSON" | jq -r '.cruft[]' 2>/dev/null)
 
@@ -1584,19 +1635,23 @@ cmd_doctor() {
     echo "================================"
 
     local total_issues=0
+    local check_result=0
 
-    # Run all checks
-    _doctor_check_env
-    ((total_issues += $?))
+    # Run all checks (capture return value explicitly to avoid set -e issues)
+    _doctor_check_env || check_result=$?
+    ((total_issues += check_result)) || true
+    check_result=0
 
-    _doctor_check_project
-    ((total_issues += $?))
+    _doctor_check_project || check_result=$?
+    ((total_issues += check_result)) || true
+    check_result=0
 
-    _doctor_check_git "$verbose"
-    ((total_issues += $?))
+    _doctor_check_git "$verbose" || check_result=$?
+    ((total_issues += check_result)) || true
+    check_result=0
 
-    _doctor_check_tasks
-    ((total_issues += $?))
+    _doctor_check_tasks || check_result=$?
+    ((total_issues += check_result)) || true
 
     # Apply fixes if requested
     if [[ "$fix" == "true" ]]; then
