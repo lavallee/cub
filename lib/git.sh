@@ -685,3 +685,228 @@ git_push_branch() {
         return 1
     fi
 }
+
+# =============================================================================
+# File Categorization for Doctor Command
+# =============================================================================
+
+# Patterns for categorizing uncommitted files
+_GIT_SESSION_PATTERNS=("progress.txt" "fix_plan.md")
+_GIT_CRUFT_PATTERNS=(
+    "*.bak"
+    "*.tmp"
+    "*.orig"
+    "*.swp"
+    "*~"
+    ".DS_Store"
+    "__pycache__"
+    "*.pyc"
+    "node_modules"
+    ".turbo"
+    "coverage"
+    "*.log"
+    ".pytest_cache"
+    ".mypy_cache"
+    ".ruff_cache"
+    "dist"
+    "build"
+    ".next"
+)
+_GIT_SOURCE_EXTENSIONS=(
+    "ts" "tsx" "js" "jsx" "mjs" "cjs"
+    "py" "rb" "go" "rs" "java" "kt" "scala"
+    "sh" "bash" "zsh"
+    "c" "cpp" "cc" "h" "hpp"
+    "cs" "fs"
+    "php" "swift" "m" "mm"
+    "vue" "svelte"
+    "sql"
+    "css" "scss" "sass" "less"
+    "html" "htm"
+)
+
+# Categorize a single file path
+# Usage: git_categorize_file <filepath>
+# Returns: "session", "cruft", "source", "config", or "unknown"
+git_categorize_file() {
+    local filepath="$1"
+    local filename
+    filename=$(basename "$filepath")
+    local extension="${filename##*.}"
+
+    # Check session files first (exact match)
+    local pattern
+    for pattern in "${_GIT_SESSION_PATTERNS[@]}"; do
+        if [[ "$filename" == "$pattern" ]]; then
+            echo "session"
+            return 0
+        fi
+    done
+
+    # Check cruft patterns (glob matching)
+    for pattern in "${_GIT_CRUFT_PATTERNS[@]}"; do
+        # Handle wildcard patterns like *.bak
+        if [[ "$pattern" == "*."* ]]; then
+            local ext="${pattern#*.}"
+            if [[ "$extension" == "$ext" ]]; then
+                echo "cruft"
+                return 0
+            fi
+        # Handle directory patterns (no extension) - match as path component
+        elif [[ "$pattern" != *"."* ]]; then
+            # Check if filepath starts with pattern/ or contains /pattern/
+            # or if the filename exactly matches the pattern
+            if [[ "$filepath" == "${pattern}/"* ]] || \
+               [[ "$filepath" == *"/${pattern}/"* ]] || \
+               [[ "$filepath" == *"/${pattern}" ]] || \
+               [[ "$filename" == "$pattern" ]]; then
+                echo "cruft"
+                return 0
+            fi
+        # Handle exact filename patterns
+        elif [[ "$filename" == "$pattern" ]]; then
+            echo "cruft"
+            return 0
+        fi
+    done
+
+    # Check config files
+    if [[ "$filename" == ".env"* ]] || \
+       [[ "$filename" == "*.config.js" ]] || \
+       [[ "$filename" == "*.config.ts" ]] || \
+       [[ "$filename" == "tsconfig.json" ]] || \
+       [[ "$filename" == "package.json" ]] || \
+       [[ "$filename" == ".eslintrc"* ]] || \
+       [[ "$filename" == ".prettierrc"* ]]; then
+        echo "config"
+        return 0
+    fi
+
+    # Check source code extensions
+    local ext
+    for ext in "${_GIT_SOURCE_EXTENSIONS[@]}"; do
+        if [[ "$extension" == "$ext" ]]; then
+            echo "source"
+            return 0
+        fi
+    done
+
+    # Check markdown (source but not session)
+    if [[ "$extension" == "md" ]]; then
+        echo "source"
+        return 0
+    fi
+
+    echo "unknown"
+    return 0
+}
+
+# Get all uncommitted files with their categories
+# Usage: git_categorize_changes
+# Output: JSON object with categorized files
+# {
+#   "session": ["progress.txt", "fix_plan.md"],
+#   "source": ["src/foo.ts"],
+#   "cruft": [".DS_Store"],
+#   "config": [".env"],
+#   "unknown": ["somefile"]
+# }
+git_categorize_changes() {
+    if ! git_in_repo; then
+        echo '{"error": "not a git repository"}'
+        return 1
+    fi
+
+    # Initialize arrays for each category
+    local session_files=()
+    local source_files=()
+    local cruft_files=()
+    local config_files=()
+    local unknown_files=()
+
+    # Get all uncommitted files (modified, staged, and untracked)
+    # Use -u to show all individual files in untracked directories
+    local all_files
+    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/')
+
+    if [[ -z "$all_files" ]]; then
+        # No changes
+        echo '{"session":[],"source":[],"cruft":[],"config":[],"unknown":[]}'
+        return 0
+    fi
+
+    # Process each file
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+
+        # Extract git status and filepath (status is first 2 chars, then space, then path)
+        local git_status="${line:0:2}"
+        local filepath="${line:3}"
+
+        # Handle renamed files (old -> new format)
+        if [[ "$filepath" == *" -> "* ]]; then
+            filepath="${filepath##* -> }"
+        fi
+
+        # Categorize the file
+        local category
+        category=$(git_categorize_file "$filepath")
+
+        case "$category" in
+            session)
+                session_files+=("$filepath")
+                ;;
+            source)
+                source_files+=("$filepath")
+                ;;
+            cruft)
+                cruft_files+=("$filepath")
+                ;;
+            config)
+                config_files+=("$filepath")
+                ;;
+            *)
+                unknown_files+=("$filepath")
+                ;;
+        esac
+    done <<< "$all_files"
+
+    # Helper to convert array to JSON, handling empty arrays properly
+    _array_to_json() {
+        if [[ $# -eq 0 ]]; then
+            echo '[]'
+        else
+            printf '%s\n' "$@" | jq -R 'select(length > 0)' | jq -s '.'
+        fi
+    }
+
+    # Build JSON output using jq for proper escaping
+    # Use ${array[@]+"${array[@]}"} pattern to handle empty arrays in strict mode
+    local json_output
+    json_output=$(jq -n \
+        --argjson session "$(_array_to_json ${session_files[@]+"${session_files[@]}"})" \
+        --argjson source "$(_array_to_json ${source_files[@]+"${source_files[@]}"})" \
+        --argjson cruft "$(_array_to_json ${cruft_files[@]+"${cruft_files[@]}"})" \
+        --argjson config "$(_array_to_json ${config_files[@]+"${config_files[@]}"})" \
+        --argjson unknown "$(_array_to_json ${unknown_files[@]+"${unknown_files[@]}"})" \
+        '{session: $session, source: $source, cruft: $cruft, config: $config, unknown: $unknown}' 2>/dev/null)
+
+    # Handle empty arrays properly
+    if [[ -z "$json_output" ]]; then
+        # Fallback if jq fails
+        echo '{"session":[],"source":[],"cruft":[],"config":[],"unknown":[]}'
+    else
+        echo "$json_output"
+    fi
+}
+
+# Get uncommitted files with git status markers
+# Usage: git_list_changes_with_status
+# Output: Lines in format "XY filename" where XY is git status
+git_list_changes_with_status() {
+    if ! git_in_repo; then
+        return 1
+    fi
+
+    git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/'
+}
