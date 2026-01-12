@@ -72,14 +72,26 @@ beads_get_in_progress_task() {
 
 # Get all ready tasks (no open blockers)
 # Returns JSON array sorted by priority
-# Optional filters: epic (parent ID), label (label name)
+# Optional filters: epic (parent ID or labels), label (label name)
 beads_get_ready_tasks() {
     local epic="${1:-}"
     local label="${2:-}"
     local flags=""
+    local epic_labels=""
 
     if [[ -n "$epic" ]]; then
-        flags="${flags} --parent ${epic}"
+        # First try to get labels from the epic to use for filtering
+        # This handles cases where tasks share labels with their epic
+        # rather than having a parent/child relationship
+        epic_labels=$(bd show "$epic" --json 2>/dev/null | jq -r '.[0].labels // [] | .[]' 2>/dev/null | head -1)
+
+        if [[ -n "$epic_labels" ]]; then
+            # Use the epic's first label to find related tasks
+            flags="${flags} --label ${epic_labels}"
+        else
+            # Fall back to parent filter if epic has no labels
+            flags="${flags} --parent ${epic}"
+        fi
     fi
     if [[ -n "$label" ]]; then
         flags="${flags} --label ${label}"
