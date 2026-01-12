@@ -1782,6 +1782,17 @@ run_iteration() {
     else
         log_debug "Claude Code completed successfully"
 
+        # Auto-commit session files (progress.txt, fix_plan.md) if modified
+        # This handles cases where the agent modifies these files but forgets to commit
+        if git_in_repo; then
+            log_debug "Checking for uncommitted session files..."
+            if git_commit_session_files "$task_id"; then
+                log_debug "Session files committed (if any)"
+            else
+                log_warn "Failed to commit session files"
+            fi
+        fi
+
         # Verify clean state after successful harness run
         log_debug "Checking repository state..."
         if ! state_ensure_clean "$REQUIRE_CLEAN"; then

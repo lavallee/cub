@@ -1296,3 +1296,148 @@ Line 3"
     # Cleanup
     rm -rf "$REMOTE_DIR"
 }
+
+# ============================================================================
+# git_commit_session_files tests
+# ============================================================================
+
+@test "git_commit_session_files returns 0 when no session files exist" {
+    run git_commit_session_files
+    [[ $status -eq 0 ]]
+}
+
+@test "git_commit_session_files returns 0 when session files are unchanged" {
+    # Create progress.txt and commit it
+    echo "initial progress" > progress.txt
+    git add progress.txt
+    git commit -q -m "Add progress.txt"
+
+    # No changes to commit
+    run git_commit_session_files
+    [[ $status -eq 0 ]]
+}
+
+@test "git_commit_session_files commits modified progress.txt" {
+    # Create and commit progress.txt
+    echo "initial" > progress.txt
+    git add progress.txt
+    git commit -q -m "Initial progress"
+
+    # Modify progress.txt
+    echo "modified progress" > progress.txt
+
+    # Should commit the changes
+    run git_commit_session_files "test-001"
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean now
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # Verify commit message
+    local last_msg
+    last_msg=$(git log -1 --pretty=%B)
+    [[ "$last_msg" =~ "chore(test-001): update session files" ]]
+    [[ "$last_msg" =~ "progress.txt" ]]
+}
+
+@test "git_commit_session_files commits modified fix_plan.md" {
+    # Create and commit fix_plan.md
+    echo "# Plan" > fix_plan.md
+    git add fix_plan.md
+    git commit -q -m "Initial plan"
+
+    # Modify fix_plan.md
+    echo "# Updated Plan" > fix_plan.md
+
+    # Should commit the changes
+    run git_commit_session_files
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean now
+    run git_is_clean
+    [[ $status -eq 0 ]]
+}
+
+@test "git_commit_session_files commits untracked progress.txt" {
+    # Create progress.txt but don't add it
+    echo "new progress" > progress.txt
+
+    # Should add and commit
+    run git_commit_session_files "test-002"
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean now
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # File should be tracked
+    git ls-files progress.txt | grep -q progress.txt
+}
+
+@test "git_commit_session_files commits multiple session files" {
+    # Create both session files
+    echo "progress notes" > progress.txt
+    echo "fix plan notes" > fix_plan.md
+
+    # Should commit both
+    run git_commit_session_files "test-003"
+    [[ $status -eq 0 ]]
+
+    # Repository should be clean
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # Verify both files in commit message
+    local last_msg
+    last_msg=$(git log -1 --pretty=%B)
+    [[ "$last_msg" =~ "progress.txt" ]]
+    [[ "$last_msg" =~ "fix_plan.md" ]]
+}
+
+@test "git_commit_session_files ignores non-session files" {
+    # Create a non-session file
+    echo "other content" > other_file.txt
+
+    # Should not commit other_file.txt
+    run git_commit_session_files
+    [[ $status -eq 0 ]]
+
+    # other_file.txt should still be untracked
+    local status_output
+    status_output=$(git status --porcelain other_file.txt)
+    [[ "$status_output" =~ "??" ]]
+}
+
+@test "git_commit_session_files works without task_id" {
+    echo "progress" > progress.txt
+
+    run git_commit_session_files
+    [[ $status -eq 0 ]]
+
+    # Verify commit message without task_id
+    local last_msg
+    last_msg=$(git log -1 --pretty=%s)
+    [[ "$last_msg" == "chore: update session files" ]]
+}
+
+@test "ACCEPTANCE: Session files left behind by agent are auto-committed" {
+    # Simulate agent modifying progress.txt but not committing
+    echo "Session 1 notes" > progress.txt
+    git add progress.txt
+    git commit -q -m "Agent work on task"
+
+    # Agent modifies again but forgets to commit
+    echo "Session 2 notes" >> progress.txt
+
+    # git_commit_session_files should handle this
+    git_commit_session_files "curb-042"
+
+    # Repository should be clean
+    run git_is_clean
+    [[ $status -eq 0 ]]
+
+    # The change should be committed
+    run git log --oneline -2
+    [[ "$output" =~ "chore(curb-042): update session files" ]]
+}

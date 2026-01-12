@@ -148,6 +148,79 @@ git_commit_curb_artifacts() {
     return 0
 }
 
+# Default session files that should be auto-committed if modified
+# These are files that agents are expected to modify during runs
+_GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
+
+# Commit session files (progress.txt, fix_plan.md, etc.) if they have uncommitted changes
+# These are files that agents are expected to modify during task execution.
+# If the agent forgets to commit them, curb will do it to maintain clean state.
+#
+# Parameters:
+#   $1 - task_id: The task ID to include in commit message (optional)
+#
+# Returns:
+#   0 on success (changes committed or nothing to commit)
+#   1 on error (git command failure)
+#
+# Example:
+#   git_commit_session_files "curb-042"
+git_commit_session_files() {
+    local task_id="${1:-}"
+
+    # Check if we're in a git repository
+    if ! git_in_repo; then
+        return 0
+    fi
+
+    # Check which session files have changes
+    local files_to_commit=()
+    local file
+
+    for file in "${_GIT_SESSION_FILES[@]}"; do
+        # Check if file exists and has changes (modified or untracked)
+        if [[ -f "$file" ]]; then
+            local file_status
+            file_status=$(git status --porcelain "$file" 2>/dev/null)
+            if [[ -n "$file_status" ]]; then
+                files_to_commit+=("$file")
+            fi
+        fi
+    done
+
+    # Nothing to commit
+    if [[ ${#files_to_commit[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    # Stage the files
+    for file in "${files_to_commit[@]}"; do
+        git add "$file" 2>/dev/null || true
+    done
+
+    # Build commit message
+    local commit_msg="chore: update session files"
+    if [[ -n "$task_id" ]]; then
+        commit_msg="chore($task_id): update session files"
+    fi
+
+    # Add list of files to commit body
+    local file_list
+    file_list=$(printf '%s\n' "${files_to_commit[@]}" | sed 's/^/- /')
+    commit_msg="${commit_msg}
+
+Auto-committed by curb after task completion:
+${file_list}"
+
+    # Commit using heredoc for proper multi-line handling
+    if ! git commit -m "$commit_msg" >/dev/null 2>&1; then
+        # Commit failed - might be nothing staged, which is ok
+        return 0
+    fi
+
+    return 0
+}
+
 # Global variable to store the run branch name
 _GIT_RUN_BRANCH=""
 
