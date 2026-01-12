@@ -16,6 +16,18 @@
 #
 set -euo pipefail
 
+# Error trap for debugging - logs where script crashes due to set -e
+_error_trap() {
+    local exit_code=$?
+    local line_no=$1
+    echo "[ERROR] Script exited at line ${line_no} with exit code ${exit_code}" >&2
+    # Also log to structured logger if available
+    if type log_error &>/dev/null && [[ -n "$(logger_get_file 2>/dev/null)" ]]; then
+        log_error "Script crashed" "{\"line\": ${line_no}, \"exit_code\": ${exit_code}}"
+    fi
+}
+trap '_error_trap ${LINENO}' ERR
+
 # Version information
 CURB_VERSION="1.0.0"
 
