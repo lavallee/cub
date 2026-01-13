@@ -23,6 +23,9 @@ PREFIX=""
 GLOBAL_UNINSTALL=false
 PURGE=false
 
+# Save original arguments for sudo re-execution
+ORIGINAL_ARGS=("$@")
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -125,7 +128,7 @@ if [[ "$GLOBAL_UNINSTALL" == "true" ]]; then
     if [[ ! -w "$BIN_DIR" ]] && [[ $EUID -ne 0 ]]; then
         echo -e "${YELLOW}Global uninstallation requires root privileges.${NC}"
         echo "Re-running with sudo..."
-        exec sudo "$0" "$@"
+        exec sudo "$0" "${ORIGINAL_ARGS[@]}"
     fi
 fi
 

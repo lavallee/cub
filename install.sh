@@ -21,6 +21,9 @@ NC='\033[0m'
 PREFIX="${HOME}/.local"
 GLOBAL_INSTALL=false
 
+# Save original arguments for sudo re-execution
+ORIGINAL_ARGS=("$@")
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -124,7 +127,7 @@ if [[ "$GLOBAL_INSTALL" == "true" ]]; then
     if [[ ! -w "/usr/local" ]] && [[ $EUID -ne 0 ]]; then
         echo -e "${YELLOW}Global installation requires root privileges.${NC}"
         echo "Re-running with sudo..."
-        exec sudo "$0" "$@"
+        exec sudo "$0" "${ORIGINAL_ARGS[@]}"
     fi
 fi
 
