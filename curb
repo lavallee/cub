@@ -2212,10 +2212,18 @@ run_iteration() {
         log_debug "Ready tasks result: ${ready_tasks:0:200}..."
 
         if [[ -z "$ready_tasks" || "$ready_tasks" == "[]" ]]; then
+            echo "[curb] NO READY TASKS: ready_tasks is empty or [], checking remaining..." >&2
             # Check if we're done
             local open_count=$(get_remaining_count "$prd")
+            echo "[curb] OPEN COUNT: open_count='$open_count'" >&2
             log_debug "Open task count: ${open_count}"
-            if [[ "$open_count" -eq 0 ]]; then
+
+            # Handle error case (-1 or empty means backend query failed)
+            if [[ -z "$open_count" || "$open_count" == "-1" ]]; then
+                log_warn "Failed to get task count, retrying next iteration"
+                return 1
+            elif [[ "$open_count" -eq 0 ]]; then
+                echo "[curb] EXIT REASON: open_count is 0 in run_iteration" >&2
                 log_success "All tasks complete!"
                 return 0
             else
@@ -2537,6 +2545,8 @@ run_iteration() {
                     log_info "Auto-closing task $task_id (agent did not close it)..."
                     if auto_close_task "$prd" "$task_id"; then
                         log_success "Task $task_id auto-closed successfully"
+                        # Give beads a moment to stabilize after closing
+                        sleep 1
                     else
                         log_warn "Failed to auto-close task $task_id"
                     fi
@@ -2692,6 +2702,14 @@ run_iteration() {
         git_commit_curb_artifacts "$task_id"
     fi
 
+    # Debug: verify beads state at end of iteration
+    if [[ "${DEBUG:-}" == "true" ]]; then
+        echo "[curb] END OF ITERATION: checking beads state..." >&2
+        local post_remaining=$(get_remaining_count "$prd")
+        local post_ready=$(get_ready_tasks "$prd" "$EPIC" "$LABEL" | jq 'length' 2>/dev/null || echo "error")
+        echo "[curb] POST-TASK STATE: remaining=$post_remaining ready_count=$post_ready" >&2
+    fi
+
     return $exit_code
 }
 
@@ -2819,9 +2837,17 @@ run_loop() {
         local prd="${PROJECT_DIR}/prd.json"
         log_debug "Querying remaining tasks..."
         local remaining=$(get_remaining_count "$prd")
+
+        # Always log this to stderr so it's visible even with streaming
+        echo "[curb] REMAINING CHECK: remaining='$remaining' (empty='$([ -z "$remaining" ] && echo yes || echo no)')" >&2
         log_debug "Remaining tasks: ${remaining}"
 
-        if [[ "$remaining" -eq 0 ]]; then
+        # Handle error case (-1 or empty string means backend query failed)
+        if [[ -z "$remaining" || "$remaining" == "-1" ]]; then
+            log_warn "Failed to get remaining task count, assuming tasks remain"
+            remaining=1  # Continue loop on error
+        elif [[ "$remaining" -eq 0 ]]; then
+            echo "[curb] EXIT REASON: remaining count is 0, exiting loop" >&2
             log_success "All tasks complete! Exiting loop."
             show_status
             # Run post-loop hooks

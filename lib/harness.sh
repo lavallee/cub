@@ -207,6 +207,8 @@ _harness_store_usage() {
     if [[ "$estimated" == "true" ]]; then
         echo "true" > "$_USAGE_ESTIMATED_FILE"
     fi
+
+    return 0
 }
 
 # Get usage from last harness invocation
@@ -668,28 +670,53 @@ claude_parse_stream() {
 
     # Store accumulated usage after processing all events
     _harness_store_usage "$total_input" "$total_output" "$total_cache_read" "$total_cache_creation" "$final_cost"
+
+    # Explicitly return success - important because set -e + pipefail can cause
+    # the script to exit if this function returns non-zero
+    return 0
 }
 
 # ============================================================================
 # Codex Backend
 # ============================================================================
 
-# Map complexity label to codex model
-# Complexity levels: low -> gpt-4o-mini, medium -> gpt-4o, high -> o3
-# Also supports explicit model: labels like model:o3
-_codex_get_model_for_complexity() {
-    local complexity="${1:-medium}"
+# Translate Claude model names to OpenAI equivalents for codex
+# This allows users to specify familiar Claude model names when using codex harness
+_codex_translate_model() {
+    local model="${1:-}"
 
-    case "$complexity" in
+    case "$model" in
+        # Claude model names -> OpenAI codex equivalents
+        opus|claude-opus|opus-4)
+            # Opus = most capable -> use max codex model
+            echo "gpt-5.2-codex-max"
+            ;;
+        sonnet|claude-sonnet|sonnet-4)
+            # Sonnet = balanced -> use standard codex model
+            echo "gpt-5.2-codex"
+            ;;
+        haiku|claude-haiku|haiku-3)
+            # Haiku = fast/cheap -> use mini codex model
+            echo "gpt-5.2-codex-mini"
+            ;;
+        # Complexity labels (from task labels)
         low|simple)
-            echo "gpt-4o-mini"
+            echo "gpt-5.2-codex-mini"
             ;;
         high|complex)
-            echo "o3"
+            echo "gpt-5.2-codex-max"
+            ;;
+        medium)
+            # Return empty to use codex default
+            echo ""
+            ;;
+        # Pass through OpenAI model names unchanged
+        gpt-*|o3*|o4*|codex*)
+            echo "$model"
             ;;
         *)
-            # medium or unspecified - use default (gpt-4o or config default)
-            echo ""
+            # Unknown model - pass through and let codex handle it
+            echo "$model"
             ;;
     esac
 }
@@ -714,9 +741,13 @@ ${task_prompt}"
     # --full-auto alone still prompts for network/git operations
     local flags="--dangerously-bypass-approvals-and-sandbox"
 
-    # Add model flag if specified via CURB_MODEL
+    # Add model flag if specified via CURB_MODEL (with translation for Claude model names)
     if [[ -n "${CURB_MODEL:-}" ]]; then
-        flags="$flags -m $CURB_MODEL"
+        local translated_model
+        translated_model=$(_codex_translate_model "$CURB_MODEL")
+        if [[ -n "$translated_model" ]]; then
+            flags="$flags -m $translated_model"
+        fi
     fi
 
     # Add any extra flags from environment
@@ -762,9 +793,13 @@ ${task_prompt}"
     # Use full bypass for autonomous operation + JSON for streaming
     local flags="--dangerously-bypass-approvals-and-sandbox --json"
 
-    # Add model flag if specified via CURB_MODEL
+    # Add model flag if specified via CURB_MODEL (with translation for Claude model names)
     if [[ -n "${CURB_MODEL:-}" ]]; then
-        flags="$flags -m $CURB_MODEL"
+        local translated_model
+        translated_model=$(_codex_translate_model "$CURB_MODEL")
+        if [[ -n "$translated_model" ]]; then
+            flags="$flags -m $translated_model"
+        fi
     fi
 
     # Add any extra flags from environment
@@ -883,6 +918,9 @@ codex_parse_stream() {
     if [[ $total_input -gt 0 || $total_output -gt 0 ]]; then
         _harness_store_usage "$total_input" "$total_output" 0 0 ""
     fi
+
+    # Explicitly return success
+    return 0
 }
 
 # ============================================================================
@@ -1117,4 +1155,7 @@ opencode_parse_stream() {
     # Note: OpenCode reports cache.write, which maps to cache_creation_tokens
     # Reasoning tokens are not currently tracked separately (included in output for simplicity)
     _harness_store_usage "$total_input" "$total_output" "$total_cache_read" "$total_cache_write" "$final_cost"
+
+    # Explicitly return success
+    return 0
 }

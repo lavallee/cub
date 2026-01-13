@@ -97,7 +97,27 @@ beads_get_ready_tasks() {
         flags="${flags} --label ${label}"
     fi
 
-    bd ready ${flags} --json 2>/dev/null | jq '
+    # Capture output and exit code separately for debugging
+    local output
+    local exit_code
+    output=$(bd ready ${flags} --json 2>&1)
+    exit_code=$?
+
+    if [[ "${DEBUG:-}" == "true" ]]; then
+        echo "[beads_get_ready_tasks] flags='$flags' exit=$exit_code output_len=${#output}" >&2
+        echo "[beads_get_ready_tasks] raw output: ${output:0:300}" >&2
+    fi
+
+    # If bd ready failed, return empty array
+    if [[ $exit_code -ne 0 ]]; then
+        echo "WARNING: bd ready failed (exit=$exit_code): ${output:0:200}" >&2
+        echo "[]"
+        return 1
+    fi
+
+    # Transform and return
+    local result
+    result=$(echo "$output" | jq '
         # Transform beads output to match prd.json format
         [.[] | {
             id: .id,
@@ -110,7 +130,15 @@ beads_get_ready_tasks() {
             dependsOn: (.blocks // [])
         }]
         | sort_by(.priority)
-    '
+    ' 2>/dev/null)
+
+    if [[ "${DEBUG:-}" == "true" ]]; then
+        local count
+        count=$(echo "$result" | jq 'length' 2>/dev/null || echo "parse-error")
+        echo "[beads_get_ready_tasks] result count=$count" >&2
+    fi
+
+    echo "$result"
 }
 
 # Get a specific task by ID
@@ -241,15 +269,61 @@ beads_get_task_counts() {
 }
 
 # Check if all tasks are complete
+# Returns 0 (true) if all tasks are closed, 1 (false) otherwise
+# On error, returns 1 (false) to be safe (assume tasks remain)
 beads_all_tasks_complete() {
+    local output
+    output=$(bd list --json 2>&1)
+    if [[ $? -ne 0 ]]; then
+        echo "WARNING: bd list failed in all_tasks_complete" >&2
+        return 1  # Assume tasks remain on error
+    fi
+
     local remaining
-    remaining=$(bd list --json 2>/dev/null | jq '[.[] | select(.status != "closed")] | length')
+    remaining=$(echo "$output" | jq '[.[] | select(.status != "closed")] | length' 2>/dev/null)
+
+    # On parse error or empty result, assume tasks remain
+    if [[ -z "$remaining" || ! "$remaining" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+
     [[ "$remaining" -eq 0 ]]
 }
 
 # Get count of remaining (non-closed) tasks
+# Returns -1 on error (caller should handle gracefully)
 beads_get_remaining_count() {
-    bd list --json 2>/dev/null | jq '[.[] | select(.status != "closed")] | length'
+    local output
+    output=$(bd list --json 2>&1)
+    local exit_code=$?
+
+    # Debug: always log what we got from bd list
+    if [[ "${DEBUG:-}" == "true" ]]; then
+        echo "[beads_get_remaining_count] bd list exit=$exit_code output_len=${#output}" >&2
+        echo "[beads_get_remaining_count] first 200 chars: ${output:0:200}" >&2
+    fi
+
+    if [[ $exit_code -ne 0 ]]; then
+        echo "WARNING: bd list failed (exit=$exit_code): $output" >&2
+        echo "-1"
+        return 1
+    fi
+
+    # Validate JSON output
+    local count
+    count=$(echo "$output" | jq '[.[] | select(.status != "closed")] | length' 2>/dev/null)
+
+    if [[ -z "$count" || ! "$count" =~ ^[0-9]+$ ]]; then
+        echo "WARNING: bd list returned invalid JSON, count='$count'" >&2
+        echo "-1"
+        return 1
+    fi
+
+    if [[ "${DEBUG:-}" == "true" ]]; then
+        echo "[beads_get_remaining_count] returning count=$count" >&2
+    fi
+
+    echo "$count"
 }
 
 # Get blocked tasks
