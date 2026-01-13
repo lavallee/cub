@@ -908,5 +908,5 @@ git_list_changes_with_status() {
         return 1
     fi
 
-    git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/'
+    git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/' || true
 }
