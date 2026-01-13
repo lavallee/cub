@@ -5033,3 +5033,9 @@ All acceptance criteria met:
 - ✅ Documentation matches behavior
 
 **Status: COMPLETE - Ready for 1.0 Release**
+
+## Task curb-ulr: Refactor curb script into modules (2026-01-13)
+
+- Split command implementations and loop helpers into dedicated lib modules.
+- Added cmd_* modules plus project validation module; main script is now 470 lines.
+- BATS suite reports 790 planned tests with 786 ok lines; warning persists but no failures.
