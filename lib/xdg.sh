@@ -42,22 +42,22 @@ xdg_cache_home() {
     fi
 }
 
-# Ensure curb directories exist
-# Creates standard curb directories:
-#   - config: $(xdg_config_home)/curb
-#   - data: $(xdg_data_home)/curb
-#   - logs: $(xdg_data_home)/curb/logs
-#   - cache: $(xdg_cache_home)/curb
-curb_ensure_dirs() {
+# Ensure cub directories exist
+# Creates standard cub directories:
+#   - config: $(xdg_config_home)/cub
+#   - data: $(xdg_data_home)/cub
+#   - logs: $(xdg_data_home)/cub/logs
+#   - cache: $(xdg_cache_home)/cub
+cub_ensure_dirs() {
     local config_dir
     local data_dir
     local logs_dir
     local cache_dir
 
-    config_dir="$(xdg_config_home)/curb"
-    data_dir="$(xdg_data_home)/curb"
+    config_dir="$(xdg_config_home)/cub"
+    data_dir="$(xdg_data_home)/cub"
     logs_dir="${data_dir}/logs"
-    cache_dir="$(xdg_cache_home)/curb"
+    cache_dir="$(xdg_cache_home)/cub"
 
     # Create directories if they don't exist
     mkdir -p "$config_dir"
@@ -65,26 +65,26 @@ curb_ensure_dirs() {
     mkdir -p "$cache_dir"
 }
 
-# Get curb config directory
-# Returns: path to curb config directory
-curb_config_dir() {
-    echo "$(xdg_config_home)/curb"
+# Get cub config directory
+# Returns: path to cub config directory
+cub_config_dir() {
+    echo "$(xdg_config_home)/cub"
 }
 
-# Get curb data directory
-# Returns: path to curb data directory
-curb_data_dir() {
-    echo "$(xdg_data_home)/curb"
+# Get cub data directory
+# Returns: path to cub data directory
+cub_data_dir() {
+    echo "$(xdg_data_home)/cub"
 }
 
-# Get curb logs directory
-# Returns: path to curb logs directory
-curb_logs_dir() {
-    echo "$(xdg_data_home)/curb/logs"
+# Get cub logs directory
+# Returns: path to cub logs directory
+cub_logs_dir() {
+    echo "$(xdg_data_home)/cub/logs"
 }
 
-# Get curb cache directory
-# Returns: path to curb cache directory
-curb_cache_dir() {
-    echo "$(xdg_cache_home)/curb"
+# Get cub cache directory
+# Returns: path to cub cache directory
+cub_cache_dir() {
+    echo "$(xdg_cache_home)/cub"
 }

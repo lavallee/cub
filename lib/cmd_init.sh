@@ -4,24 +4,24 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_INIT_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_INIT_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_INIT_SH_LOADED=1
+_CUB_CMD_INIT_SH_LOADED=1
 
 cmd_init_help() {
     cat <<'EOF'
-curb init [--global] [<directory>]
+cub init [--global] [<directory>]
 
-Initialize curb in a project or globally.
+Initialize cub in a project or globally.
 
 USAGE:
-  curb init              Initialize in current directory
-  curb init --global    Set up global configuration
-  curb init <dir>       Initialize in specific directory
+  cub init              Initialize in current directory
+  cub init --global    Set up global configuration
+  cub init <dir>       Initialize in specific directory
 
 OPTIONS:
-  --global              Set up global configuration (~/.config/curb)
+  --global              Set up global configuration (~/.config/cub)
                         Creates config templates and hook directories.
                         Only needs to run once per system.
 
@@ -34,28 +34,28 @@ WHAT IT CREATES:
   AGENT.md              Build/run instructions
   progress.txt          Progress tracking (auto-updated)
   fix_plan.md           Issue tracking (auto-updated)
-  .gitignore            With curb patterns
+  .gitignore            With cub patterns
 
 GLOBAL SETUP:
-  ~/.config/curb/config.json       Configuration defaults
-  ~/.config/curb/hooks/            Hook directories
+  ~/.config/cub/config.json       Configuration defaults
+  ~/.config/cub/hooks/            Hook directories
 
 EXAMPLES:
   # Initialize in current directory
-  curb init
+  cub init
 
   # Initialize specific project
-  curb init ~/my-project
+  cub init ~/my-project
 
   # Set up system-wide defaults
-  curb init --global
+  cub init --global
 
   # Then initialize a project
-  curb init ~/my-project
+  cub init ~/my-project
 
 SEE ALSO:
-  curb --help       Show all commands
-  curb status       Check project status
+  cub --help       Show all commands
+  cub status       Check project status
 EOF
 }
 
@@ -79,7 +79,7 @@ cmd_init() {
     # Global initialization (--global flag)
     # ============================================================================
     if [[ "$global_init" == "true" ]]; then
-        log_info "Initializing global curb configuration"
+        log_info "Initializing global cub configuration"
         echo ""
 
         # Check dependencies
@@ -124,16 +124,16 @@ cmd_init() {
         log_info "Creating global directory structure..."
 
         # Create XDG directories
-        curb_ensure_dirs
+        cub_ensure_dirs
 
         local config_dir
-        config_dir="$(curb_config_dir)"
+        config_dir="$(cub_config_dir)"
         local config_file="${config_dir}/config.json"
         local hooks_dir="${config_dir}/hooks"
 
         log_success "Created ${config_dir}"
-        log_success "Created $(curb_logs_dir)"
-        log_success "Created $(curb_cache_dir)"
+        log_success "Created $(cub_logs_dir)"
+        log_success "Created $(cub_cache_dir)"
 
         # Create config file with sensible defaults
         log_info "Creating default configuration..."
@@ -182,18 +182,18 @@ EOF
         done
 
         echo ""
-        log_success "Global curb configuration complete!"
+        log_success "Global cub configuration complete!"
         echo ""
         echo "Configuration:"
         echo "  Config file:  ${config_file}"
         echo "  Hooks:        ${hooks_dir}"
-        echo "  Logs:         $(curb_logs_dir)"
+        echo "  Logs:         $(cub_logs_dir)"
         echo ""
         echo "Next steps:"
         echo "  1. Review and customize ${config_file}"
         echo "  2. Add custom hooks to ${hooks_dir}/<hook-type>.d/"
-        echo "  3. Initialize a project with: curb init <project-dir>"
-        echo "  4. Start building: cd <project-dir> && curb"
+        echo "  3. Initialize a project with: cub init <project-dir>"
+        echo "  4. Start building: cd <project-dir> && cub"
         echo ""
         echo "Configuration options:"
         echo "  harness.default       - Default harness to use (auto|claude|codex)"
@@ -217,7 +217,7 @@ EOF
     prefix=$(echo "$project_name" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | head -c 8)
     [[ -z "$prefix" ]] && prefix="prd"
 
-    log_info "Initializing curb in: ${target_dir}"
+    log_info "Initializing cub in: ${target_dir}"
     log_info "Project prefix: ${prefix}"
 
     cd "$target_dir" || return 1
@@ -262,7 +262,7 @@ EOF
 
     # Create PROMPT.md
     if [[ ! -f "PROMPT.md" ]]; then
-        cp "${CURB_DIR}/templates/PROMPT.md" PROMPT.md
+        cp "${CUB_DIR}/templates/PROMPT.md" PROMPT.md
         log_success "Created PROMPT.md"
     else
         log_warn "PROMPT.md already exists, skipping"
@@ -270,7 +270,7 @@ EOF
 
     # Create AGENT.md
     if [[ ! -f "AGENT.md" ]]; then
-        cp "${CURB_DIR}/templates/AGENT.md" AGENT.md
+        cp "${CUB_DIR}/templates/AGENT.md" AGENT.md
         log_success "Created AGENT.md"
     else
         log_warn "AGENT.md already exists, skipping"
@@ -329,38 +329,38 @@ EOF
 
     # Create .gitignore additions
     if [[ -f ".gitignore" ]]; then
-        if ! grep -q "# Curb" .gitignore 2>/dev/null; then
+        if ! grep -q "# Cub" .gitignore 2>/dev/null; then
             cat >> .gitignore <<EOF
 
-# Curb
-*.curb.tmp
+# Cub
+*.cub.tmp
 EOF
             log_success "Updated .gitignore"
         fi
     else
         cat > .gitignore <<EOF
-# Curb
-*.curb.tmp
+# Cub
+*.cub.tmp
 EOF
         log_success "Created .gitignore"
     fi
 
     echo ""
-    log_success "Curb initialized!"
+    log_success "Cub initialized!"
     echo ""
     echo "Next steps:"
     echo "  1. Edit prd.json to add your tasks (use ChatPRD template output)"
     echo "  2. Add specifications to specs/"
     echo "  3. Update AGENT.md with build instructions"
-    echo "  4. Run 'curb status' to see task summary"
-    echo "  5. Run 'curb' to start the autonomous loop"
+    echo "  4. Run 'cub status' to see task summary"
+    echo "  5. Run 'cub' to start the autonomous loop"
     echo ""
     echo "Useful commands:"
-    echo "  curb status        Show task progress"
-    echo "  curb run --ready   Show ready tasks"
-    echo "  curb run --once    Run single iteration"
-    echo "  curb run --plan    Run planning mode"
-    echo "  curb --harness codex Use OpenAI Codex instead of Claude"
+    echo "  cub status        Show task progress"
+    echo "  cub run --ready   Show ready tasks"
+    echo "  cub run --once    Run single iteration"
+    echo "  cub run --plan    Run planning mode"
+    echo "  cub --harness codex Use OpenAI Codex instead of Claude"
     echo ""
 
     return 0

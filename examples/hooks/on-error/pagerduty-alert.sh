@@ -2,7 +2,7 @@
 #
 # PagerDuty Error Alert Hook
 #
-# Sends a PagerDuty incident when a curb task fails.
+# Sends a PagerDuty incident when a cub task fails.
 # This hook runs when task execution returns a non-zero exit code via the on-error hook point.
 # Useful for alerting your team when the AI agent encounters problems.
 #
@@ -13,9 +13,9 @@
 #      Example: abc123def456ghi789
 #
 #   2. Copy this script to your hooks directory:
-#      mkdir -p ~/.config/curb/hooks/on-error.d
-#      cp pagerduty-alert.sh ~/.config/curb/hooks/on-error.d/01-pagerduty.sh
-#      chmod +x ~/.config/curb/hooks/on-error.d/01-pagerduty.sh
+#      mkdir -p ~/.config/cub/hooks/on-error.d
+#      cp pagerduty-alert.sh ~/.config/cub/hooks/on-error.d/01-pagerduty.sh
+#      chmod +x ~/.config/cub/hooks/on-error.d/01-pagerduty.sh
 #
 #   3. Set your PagerDuty routing key as an environment variable:
 #      export PD_ROUTING_KEY="your-routing-key"
@@ -24,14 +24,14 @@
 #      export PD_SEVERITY="critical"  # critical, error, warning, info
 #
 #   5. Optional: Set the dedupe key prefix for auto-resolution
-#      export PD_DEDUPE_KEY_PREFIX="curb"
+#      export PD_DEDUPE_KEY_PREFIX="cub"
 #
 # CONTEXT VARIABLES:
-#   CURB_TASK_ID       - Task ID that failed
-#   CURB_TASK_TITLE    - Task title
-#   CURB_EXIT_CODE     - Non-zero exit code
-#   CURB_PROJECT_DIR   - Project directory
-#   CURB_SESSION_ID    - Current session ID
+#   CUB_TASK_ID       - Task ID that failed
+#   CUB_TASK_TITLE    - Task title
+#   CUB_EXIT_CODE     - Non-zero exit code
+#   CUB_PROJECT_DIR   - Project directory
+#   CUB_SESSION_ID    - Current session ID
 #
 
 set -euo pipefail
@@ -39,12 +39,12 @@ set -euo pipefail
 # Configuration from environment or defaults
 PD_ROUTING_KEY="${PD_ROUTING_KEY:-}"
 PD_SEVERITY="${PD_SEVERITY:-error}"
-PD_DEDUPE_KEY_PREFIX="${PD_DEDUPE_KEY_PREFIX:-curb}"
-PROJECT_DIR="${CURB_PROJECT_DIR:-.}"
-TASK_ID="${CURB_TASK_ID:-unknown}"
-TASK_TITLE="${CURB_TASK_TITLE:-No title}"
-EXIT_CODE="${CURB_EXIT_CODE:-1}"
-SESSION_ID="${CURB_SESSION_ID:-unknown}"
+PD_DEDUPE_KEY_PREFIX="${PD_DEDUPE_KEY_PREFIX:-cub}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
+TASK_ID="${CUB_TASK_ID:-unknown}"
+TASK_TITLE="${CUB_TASK_TITLE:-No title}"
+EXIT_CODE="${CUB_EXIT_CODE:-1}"
+SESSION_ID="${CUB_SESSION_ID:-unknown}"
 
 # Require routing key to be set
 if [[ -z "$PD_ROUTING_KEY" ]]; then
@@ -59,14 +59,14 @@ GIT_COMMIT=$(cd "$PROJECT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo
 GIT_REMOTE=$(cd "$PROJECT_DIR" && git config --get remote.origin.url 2>/dev/null || echo "unknown")
 
 # Build deduplication key for PagerDuty (prevents duplicate incidents)
-# Format: curb-{project}-{task_id}-error
+# Format: cub-{project}-{task_id}-error
 DEDUPE_KEY="${PD_DEDUPE_KEY_PREFIX}-${PROJECT_NAME}-${TASK_ID}-error"
 
 # Get current timestamp in RFC3339 format
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Build the event summary
-SUMMARY="Curb task failed: $TASK_TITLE (exit code: $EXIT_CODE)"
+SUMMARY="Cub task failed: $TASK_TITLE (exit code: $EXIT_CODE)"
 
 # Build PagerDuty Events API v2 payload
 PAYLOAD=$(cat <<EOF
@@ -77,9 +77,9 @@ PAYLOAD=$(cat <<EOF
     "payload": {
         "summary": "$SUMMARY",
         "severity": "$PD_SEVERITY",
-        "source": "Curb AI Agent",
+        "source": "Cub AI Agent",
         "component": "$PROJECT_NAME",
-        "group": "curb-tasks",
+        "group": "cub-tasks",
         "class": "task-failure",
         "custom_details": {
             "task_id": "$TASK_ID",

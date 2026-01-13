@@ -3,7 +3,7 @@
 # logger.sh - Structured logging with JSONL output
 #
 # Provides functions for writing structured logs in JSON Lines format.
-# Logs are written to ~/.local/share/curb/logs/{project}/{session}.jsonl
+# Logs are written to ~/.local/share/cub/logs/{project}/{session}.jsonl
 # Each log line is valid JSON with timestamp, event type, and data.
 #
 # Environment Variables:
@@ -82,7 +82,7 @@ logger_init() {
 
     # Ensure base log directory exists
     local logs_base
-    logs_base="$(curb_logs_dir)"
+    logs_base="$(cub_logs_dir)"
     mkdir -p "$logs_base"
 
     # Create project-specific log directory
@@ -109,7 +109,7 @@ logger_init() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   logger_write "task_start" '{"task_id": "curb-123", "name": "test"}'
+#   logger_write "task_start" '{"task_id": "cub-123", "name": "test"}'
 #   logger_write "info" '{"message": "Processing complete"}'
 logger_write() {
     local event_type="$1"
@@ -249,7 +249,7 @@ logger_redact() {
 # Records task_id, title, harness, and timestamp
 #
 # Args:
-#   $1 - task_id: Unique task identifier (e.g., "curb-123")
+#   $1 - task_id: Unique task identifier (e.g., "cub-123")
 #   $2 - task_title: Human-readable task title
 #   $3 - harness: Harness being used (e.g., "claude", "opencode")
 #
@@ -257,7 +257,7 @@ logger_redact() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   log_task_start "curb-123" "Implement feature X" "claude"
+#   log_task_start "cub-123" "Implement feature X" "claude"
 log_task_start() {
     local task_id="$1"
     local task_title="$2"
@@ -300,7 +300,7 @@ log_task_start() {
 # Records task_id, exit_code, duration, tokens used, and git SHA
 #
 # Args:
-#   $1 - task_id: Unique task identifier (e.g., "curb-123")
+#   $1 - task_id: Unique task identifier (e.g., "cub-123")
 #   $2 - exit_code: Exit code from task execution
 #   $3 - duration_sec: Duration in seconds
 #   $4 - tokens_used: Number of tokens used (optional, defaults to 0)
@@ -309,7 +309,7 @@ log_task_start() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   log_task_end "curb-123" 0 42 1500
+#   log_task_end "cub-123" 0 42 1500
 log_task_end() {
     local task_id="$1"
     local exit_code="$2"
@@ -380,7 +380,7 @@ log_task_end() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   log_error "Task failed" '{"task_id": "curb-123", "reason": "timeout"}'
+#   log_error "Task failed" '{"task_id": "cub-123", "reason": "timeout"}'
 #   log_error "Configuration error"
 log_error() {
     local message="$1"

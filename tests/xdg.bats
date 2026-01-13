@@ -52,36 +52,36 @@ setup() {
     [[ "$result" == "/custom/cache" ]]
 }
 
-# Test curb_config_dir
-@test "curb_config_dir returns correct path" {
+# Test cub_config_dir
+@test "cub_config_dir returns correct path" {
     unset XDG_CONFIG_HOME
-    result=$(curb_config_dir)
-    [[ "$result" == "${HOME}/.config/curb" ]]
+    result=$(cub_config_dir)
+    [[ "$result" == "${HOME}/.config/cub" ]]
 }
 
-# Test curb_data_dir
-@test "curb_data_dir returns correct path" {
+# Test cub_data_dir
+@test "cub_data_dir returns correct path" {
     unset XDG_DATA_HOME
-    result=$(curb_data_dir)
-    [[ "$result" == "${HOME}/.local/share/curb" ]]
+    result=$(cub_data_dir)
+    [[ "$result" == "${HOME}/.local/share/cub" ]]
 }
 
-# Test curb_logs_dir
-@test "curb_logs_dir returns correct path" {
+# Test cub_logs_dir
+@test "cub_logs_dir returns correct path" {
     unset XDG_DATA_HOME
-    result=$(curb_logs_dir)
-    [[ "$result" == "${HOME}/.local/share/curb/logs" ]]
+    result=$(cub_logs_dir)
+    [[ "$result" == "${HOME}/.local/share/cub/logs" ]]
 }
 
-# Test curb_cache_dir
-@test "curb_cache_dir returns correct path" {
+# Test cub_cache_dir
+@test "cub_cache_dir returns correct path" {
     unset XDG_CACHE_HOME
-    result=$(curb_cache_dir)
-    [[ "$result" == "${HOME}/.cache/curb" ]]
+    result=$(cub_cache_dir)
+    [[ "$result" == "${HOME}/.cache/cub" ]]
 }
 
-# Test curb_ensure_dirs creates directories
-@test "curb_ensure_dirs creates config directory" {
+# Test cub_ensure_dirs creates directories
+@test "cub_ensure_dirs creates config directory" {
     # Use temp dir for testing
     export XDG_CONFIG_HOME="${BATS_TMPDIR}/test_config"
     export XDG_DATA_HOME="${BATS_TMPDIR}/test_data"
@@ -91,13 +91,13 @@ setup() {
     rm -rf "${BATS_TMPDIR}/test_config" "${BATS_TMPDIR}/test_data" "${BATS_TMPDIR}/test_cache"
 
     # Call the function
-    curb_ensure_dirs
+    cub_ensure_dirs
 
     # Verify config directory exists
-    [[ -d "${BATS_TMPDIR}/test_config/curb" ]]
+    [[ -d "${BATS_TMPDIR}/test_config/cub" ]]
 }
 
-@test "curb_ensure_dirs creates data directory" {
+@test "cub_ensure_dirs creates data directory" {
     # Use temp dir for testing
     export XDG_CONFIG_HOME="${BATS_TMPDIR}/test_config"
     export XDG_DATA_HOME="${BATS_TMPDIR}/test_data"
@@ -107,13 +107,13 @@ setup() {
     rm -rf "${BATS_TMPDIR}/test_config" "${BATS_TMPDIR}/test_data" "${BATS_TMPDIR}/test_cache"
 
     # Call the function
-    curb_ensure_dirs
+    cub_ensure_dirs
 
     # Verify data directory exists
-    [[ -d "${BATS_TMPDIR}/test_data/curb" ]]
+    [[ -d "${BATS_TMPDIR}/test_data/cub" ]]
 }
 
-@test "curb_ensure_dirs creates logs directory" {
+@test "cub_ensure_dirs creates logs directory" {
     # Use temp dir for testing
     export XDG_CONFIG_HOME="${BATS_TMPDIR}/test_config"
     export XDG_DATA_HOME="${BATS_TMPDIR}/test_data"
@@ -123,13 +123,13 @@ setup() {
     rm -rf "${BATS_TMPDIR}/test_config" "${BATS_TMPDIR}/test_data" "${BATS_TMPDIR}/test_cache"
 
     # Call the function
-    curb_ensure_dirs
+    cub_ensure_dirs
 
     # Verify logs directory exists
-    [[ -d "${BATS_TMPDIR}/test_data/curb/logs" ]]
+    [[ -d "${BATS_TMPDIR}/test_data/cub/logs" ]]
 }
 
-@test "curb_ensure_dirs creates cache directory" {
+@test "cub_ensure_dirs creates cache directory" {
     # Use temp dir for testing
     export XDG_CONFIG_HOME="${BATS_TMPDIR}/test_config"
     export XDG_DATA_HOME="${BATS_TMPDIR}/test_data"
@@ -139,8 +139,8 @@ setup() {
     rm -rf "${BATS_TMPDIR}/test_config" "${BATS_TMPDIR}/test_data" "${BATS_TMPDIR}/test_cache"
 
     # Call the function
-    curb_ensure_dirs
+    cub_ensure_dirs
 
     # Verify cache directory exists
-    [[ -d "${BATS_TMPDIR}/test_cache/curb" ]]
+    [[ -d "${BATS_TMPDIR}/test_cache/cub" ]]
 }

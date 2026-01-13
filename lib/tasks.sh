@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# tasks.sh - Unified task management interface for curb
+# tasks.sh - Unified task management interface for cub
 #
 # Supports two backends:
 #   1. beads (bd CLI) - preferred when available
 #   2. prd.json - JSON file fallback
 #
 # Backend selection:
-#   - CURB_BACKEND=beads|json  - explicit selection
+#   - CUB_BACKEND=beads|json  - explicit selection
 #   - Auto-detect: uses beads if available and initialized, else json
 #
 
@@ -17,11 +17,11 @@ if [[ -n "${_TASKS_SH_LOADED:-}" ]]; then
 fi
 _TASKS_SH_LOADED=1
 
-CURB_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CUB_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source beads wrapper if available
-if [[ -f "${CURB_LIB_DIR}/beads.sh" ]]; then
-    source "${CURB_LIB_DIR}/beads.sh"
+if [[ -f "${CUB_LIB_DIR}/beads.sh" ]]; then
+    source "${CUB_LIB_DIR}/beads.sh"
 fi
 
 # Backend state (set by detect_backend)
@@ -32,14 +32,14 @@ detect_backend() {
     local project_dir="${1:-.}"
 
     # Check for explicit override
-    if [[ -n "${CURB_BACKEND:-}" ]]; then
-        case "$CURB_BACKEND" in
+    if [[ -n "${CUB_BACKEND:-}" ]]; then
+        case "$CUB_BACKEND" in
             beads|bd)
                 if ! beads_available; then
-                    echo "WARNING: CURB_BACKEND=beads but beads (bd) not installed, falling back to json" >&2
+                    echo "WARNING: CUB_BACKEND=beads but beads (bd) not installed, falling back to json" >&2
                     _TASK_BACKEND="json"
                 elif ! beads_initialized "$project_dir"; then
-                    echo "WARNING: CURB_BACKEND=beads but .beads/ not found in ${project_dir}. Run 'bd init' first, falling back to json" >&2
+                    echo "WARNING: CUB_BACKEND=beads but .beads/ not found in ${project_dir}. Run 'bd init' first, falling back to json" >&2
                     _TASK_BACKEND="json"
                 else
                     _TASK_BACKEND="beads"
@@ -52,7 +52,7 @@ detect_backend() {
                 # Will be handled in auto-detect below
                 ;;
             *)
-                echo "WARNING: Unknown CURB_BACKEND=$CURB_BACKEND, using auto-detect" >&2
+                echo "WARNING: Unknown CUB_BACKEND=$CUB_BACKEND, using auto-detect" >&2
                 ;;
         esac
     fi
@@ -787,7 +787,7 @@ migrate_json_to_beads() {
     echo "Next steps:"
     echo "  1. Verify with: bd list"
     echo "  2. Check ready tasks: bd ready"
-    echo "  3. Run curb (will auto-detect beads): curb --status"
+    echo "  3. Run cub (will auto-detect beads): cub --status"
     if [[ "$dry_run" != "true" ]]; then
         echo "  4. Optionally backup and remove prd.json"
     fi

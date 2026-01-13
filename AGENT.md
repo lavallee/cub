@@ -5,7 +5,7 @@ Update this file as you learn new things about the codebase.
 
 ## Project Overview
 
-Curb is a CLI tool that wraps AI coding assistants (Claude Code, Codex, etc.) to provide a reliable "set and forget" loop for autonomous coding sessions. It handles task management, clean state verification, budget tracking, and structured logging.
+Cub is a CLI tool that wraps AI coding assistants (Claude Code, Codex, etc.) to provide a reliable "set and forget" loop for autonomous coding sessions. It handles task management, clean state verification, budget tracking, and structured logging.
 
 ## Tech Stack
 
@@ -23,26 +23,26 @@ Curb is a CLI tool that wraps AI coding assistants (Claude Code, Codex, etc.) to
 brew install jq  # or apt-get install jq
 
 # Clone and make scripts executable
-chmod +x curb curb-init
+chmod +x cub cub-init
 ```
 
 ## Running the Project
 
 ```bash
-# Run curb in a project directory
-./curb
+# Run cub in a project directory
+./cub
 
 # Single iteration mode
-./curb --once
+./cub --once
 
 # Specify harness
-./curb --harness claude
+./cub --harness claude
 
 # Global setup for first-time users
-./curb-init --global
+./cub-init --global
 
 # Initialize a project
-./curb-init .
+./cub-init .
 ```
 
 ## Feedback Loops
@@ -55,14 +55,14 @@ bats tests/*.bats
 
 # No type checking for bash scripts
 # shellcheck is recommended but not required:
-# shellcheck curb curb-init lib/*.sh
+# shellcheck cub cub-init lib/*.sh
 ```
 
 ## Project Structure
 
 ```
-├── curb              # Main CLI script
-├── curb-init         # Project/global initialization
+├── cub              # Main CLI script
+├── cub-init         # Project/global initialization
 ├── lib/              # Bash libraries
 │   ├── xdg.sh        # XDG Base Directory helpers
 │   ├── config.sh     # Configuration loading/merging
@@ -83,7 +83,7 @@ bats tests/*.bats
 
 ## Key Files
 
-- `curb` - Main entry point, contains the main loop
+- `cub` - Main entry point, contains the main loop
 - `lib/config.sh` - Config loading with precedence: env vars > project > global > defaults
 - `lib/logger.sh` - JSONL logging with task_start/end events
 - `lib/xdg.sh` - XDG directory helpers for config/data/cache paths

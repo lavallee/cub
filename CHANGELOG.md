@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes to Curb are documented in this file.
+All notable changes to Cub are documented in this file.
 
 ## [1.0.0] - 2026-01-10
 
-The inaugural release of Curb! A complete autonomous AI coding agent harness combining the Ralph Wiggum technique with beads-style task management.
+The inaugural release of Cub! A complete autonomous AI coding agent harness combining the Ralph Wiggum technique with beads-style task management.
 
 ### Added - Foundation Phase
 - **Configuration System**: XDG-compliant global and project-level configuration with full precedence hierarchy (CLI > env > project > global > defaults)
@@ -28,7 +28,7 @@ The inaugural release of Curb! A complete autonomous AI coding agent harness com
 - **Harness Capability Detection**: Automatic detection of harness capabilities like token extraction and streaming support
 - **5 Lifecycle Hooks**: Extension points (pre-loop, pre-task, post-task, on-error, post-loop) for custom integrations
 - **Hook Examples**: Reference implementations for Slack notifications, Datadog metrics, and PagerDuty alerts
-- **Global + Project Hooks**: Hook discovery from both ~/.config/curb/hooks/ and ./.curb/hooks/ directories
+- **Global + Project Hooks**: Hook discovery from both ~/.config/cub/hooks/ and ./.cub/hooks/ directories
 
 ### Added - Polish Phase
 - **Example Hooks**: Ready-to-use hook implementations for:
@@ -71,7 +71,7 @@ The inaugural release of Curb! A complete autonomous AI coding agent harness com
 - **README.md** (809 lines): Complete feature overview, installation, quick start, usage, configuration, and troubleshooting
 - **CONFIG.md** (523 lines): Comprehensive configuration reference with all options, environment variables, and examples
 - **UPGRADING.md** (394 lines): Migration guide for users upgrading from earlier versions
-- **AGENT.md**: Build and run instructions for the curb repository itself
+- **AGENT.md**: Build and run instructions for the cub repository itself
 - **CONTRIBUTING.md**: Guidelines for contributors
 - **PROMPT.md**: Default system prompt template
 - **AGENTS.md**: Description of supported AI coding agents
@@ -79,9 +79,9 @@ The inaugural release of Curb! A complete autonomous AI coding agent harness com
 
 ### Project Structure
 ```
-curb/
-├── curb              # Main CLI script (autonomous loop)
-├── curb-init         # Project and global initialization
+cub/
+├── cub              # Main CLI script (autonomous loop)
+├── cub-init         # Project and global initialization
 ├── lib/              # Bash libraries
 │   ├── xdg.sh        # XDG Base Directory helpers
 │   ├── config.sh     # Configuration loading with precedence
@@ -117,16 +117,16 @@ curb/
 
 ## Versioning
 
-Curb follows semantic versioning:
+Cub follows semantic versioning:
 - **1.x.x**: Stable releases with backward compatibility
 - **0.x.x** (pre-release): Early development versions
 
 ## Installation
 
 ```bash
-git clone https://github.com/lavallee/curb ~/tools/curb
-export PATH="$PATH:$HOME/tools/curb"
-curb-init --global
+git clone https://github.com/lavallee/cub ~/tools/cub
+export PATH="$PATH:$HOME/tools/cub"
+cub-init --global
 ```
 
 For detailed installation and usage, see [README.md](README.md).

@@ -8,21 +8,21 @@ load test_helper
 setup() {
     setup_test_dir
 
-    # Override curb_config_dir BEFORE sourcing hooks.sh
+    # Override cub_config_dir BEFORE sourcing hooks.sh
     # This ensures hooks.sh uses our test directory
-    curb_config_dir() {
-        echo "$TEST_DIR/.config/curb"
+    cub_config_dir() {
+        echo "$TEST_DIR/.config/cub"
     }
-    export -f curb_config_dir
+    export -f cub_config_dir
 
-    # Source the hooks library (will use our curb_config_dir)
+    # Source the hooks library (will use our cub_config_dir)
     source "${PROJECT_ROOT}/lib/hooks.sh"
 
     # Create config directory
-    mkdir -p "$(curb_config_dir)"
+    mkdir -p "$(cub_config_dir)"
 
     # Create default config with hooks enabled
-    cat > "$(curb_config_dir)/config.json" <<EOF
+    cat > "$(cub_config_dir)/config.json" <<EOF
 {
     "hooks": {
         "enabled": true,
@@ -49,9 +49,9 @@ create_hook() {
 
     local hook_dir
     if [[ "$location" == "global" ]]; then
-        hook_dir="$(curb_config_dir)/hooks/${hook_name}.d"
+        hook_dir="$(cub_config_dir)/hooks/${hook_name}.d"
     else
-        hook_dir="./.curb/hooks/${hook_name}.d"
+        hook_dir="./.cub/hooks/${hook_name}.d"
     fi
 
     mkdir -p "$hook_dir"
@@ -106,20 +106,20 @@ create_hook() {
     [ "$second_line" -lt "$third_line" ]
 }
 
-# Test: hooks_run exports CURB_HOOK_NAME
-@test "hooks_run exports CURB_HOOK_NAME" {
-    create_hook "pre-task" "01-test.sh" $'#!/bin/bash\necho \"Hook name: $CURB_HOOK_NAME\"\nexit 0' \"global\"
+# Test: hooks_run exports CUB_HOOK_NAME
+@test "hooks_run exports CUB_HOOK_NAME" {
+    create_hook "pre-task" "01-test.sh" $'#!/bin/bash\necho \"Hook name: $CUB_HOOK_NAME\"\nexit 0' \"global\"
 
     run hooks_run "pre-task"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Hook name: pre-task"* ]]
 }
 
-# Test: hooks_run exports CURB_PROJECT_DIR
-@test "hooks_run exports CURB_PROJECT_DIR" {
-    create_hook "pre-task" "01-test.sh" $'#!/bin/bash\necho \"Project dir: $CURB_PROJECT_DIR\"\nexit 0' \"global\"
+# Test: hooks_run exports CUB_PROJECT_DIR
+@test "hooks_run exports CUB_PROJECT_DIR" {
+    create_hook "pre-task" "01-test.sh" $'#!/bin/bash\necho \"Project dir: $CUB_PROJECT_DIR\"\nexit 0' \"global\"
 
-    export CURB_PROJECT_DIR="$TEST_DIR"
+    export CUB_PROJECT_DIR="$TEST_DIR"
     run hooks_run "pre-task"
     [ "$status" -eq 0 ]
     [[ "$output" == *"Project dir: $TEST_DIR"* ]]
@@ -128,8 +128,8 @@ create_hook() {
 # Test: hooks_set_task_context exports task variables
 @test "hooks_set_task_context exports task variables" {
     create_hook "pre-task" "01-test.sh" '#!/bin/bash
-echo "Task ID: $CURB_TASK_ID"
-echo "Task Title: $CURB_TASK_TITLE"
+echo "Task ID: $CUB_TASK_ID"
+echo "Task Title: $CUB_TASK_TITLE"
 exit 0' "global"
 
     hooks_set_task_context "test-001" "Test Task"
@@ -141,7 +141,7 @@ exit 0' "global"
 
 # Test: hooks_set_task_context exports exit code
 @test "hooks_set_task_context exports exit code" {
-    create_hook "post-task" "01-test.sh" $'#!/bin/bash\necho \"Exit code: $CURB_EXIT_CODE\"\nexit 0' \"global\"
+    create_hook "post-task" "01-test.sh" $'#!/bin/bash\necho \"Exit code: $CUB_EXIT_CODE\"\nexit 0' \"global\"
 
     hooks_set_task_context "test-001" "Test Task" "42"
     run hooks_run "post-task"
@@ -152,8 +152,8 @@ exit 0' "global"
 # Test: hooks_set_session_context exports session variables
 @test "hooks_set_session_context exports session variables" {
     create_hook "pre-loop" "01-test.sh" '#!/bin/bash
-echo "Session ID: $CURB_SESSION_ID"
-echo "Harness: $CURB_HARNESS"
+echo "Session ID: $CUB_SESSION_ID"
+echo "Harness: $CUB_HARNESS"
 exit 0' "global"
 
     hooks_set_session_context "20260110-123456" "claude"
@@ -187,7 +187,7 @@ exit 0' "global"
 # Test: hook failure stops execution when fail_fast is true
 @test "hook failure stops execution when fail_fast is true" {
     # Update config to enable fail_fast
-    cat > "$(curb_config_dir)/config.json" <<EOF
+    cat > "$(cub_config_dir)/config.json" <<EOF
 {
     "hooks": {
         "enabled": true,
@@ -216,7 +216,7 @@ EOF
 
 # Test: non-executable files are skipped
 @test "non-executable files are skipped" {
-    local hook_dir="$(curb_config_dir)/hooks/pre-task.d"
+    local hook_dir="$(cub_config_dir)/hooks/pre-task.d"
     mkdir -p "$hook_dir"
 
     # Create non-executable file
@@ -264,17 +264,17 @@ exit 0' "global"
     hooks_set_session_context "20260110-123456" "claude"
 
     # Verify variables are set
-    [ -n "$CURB_TASK_ID" ]
-    [ -n "$CURB_SESSION_ID" ]
+    [ -n "$CUB_TASK_ID" ]
+    [ -n "$CUB_SESSION_ID" ]
 
     hooks_clear_context
 
     # Verify variables are cleared
-    [ -z "$CURB_TASK_ID" ]
-    [ -z "$CURB_TASK_TITLE" ]
-    [ -z "$CURB_EXIT_CODE" ]
-    [ -z "$CURB_SESSION_ID" ]
-    [ -z "$CURB_HARNESS" ]
+    [ -z "$CUB_TASK_ID" ]
+    [ -z "$CUB_TASK_TITLE" ]
+    [ -z "$CUB_EXIT_CODE" ]
+    [ -z "$CUB_SESSION_ID" ]
+    [ -z "$CUB_HARNESS" ]
 }
 
 # tests for hooks_find function
@@ -331,7 +331,7 @@ exit 0' "global"
 
 # Test: hooks_find only returns executable files
 @test "hooks_find only returns executable files" {
-    local hook_dir="$(curb_config_dir)/hooks/pre-task.d"
+    local hook_dir="$(cub_config_dir)/hooks/pre-task.d"
     mkdir -p "$hook_dir"
 
     # Create non-executable file
@@ -408,14 +408,14 @@ exit 0' "project"
 # Test: AC - Scripts receive context via environment vars
 @test "AC: scripts receive context via environment vars" {
     create_hook "pre-task" "01-test.sh" '#!/bin/bash
-[ -n "$CURB_HOOK_NAME" ] || exit 1
-[ -n "$CURB_PROJECT_DIR" ] || exit 1
-[ -n "$CURB_TASK_ID" ] || exit 1
+[ -n "$CUB_HOOK_NAME" ] || exit 1
+[ -n "$CUB_PROJECT_DIR" ] || exit 1
+[ -n "$CUB_TASK_ID" ] || exit 1
 echo "All context vars present"
 exit 0' "global"
 
     hooks_set_task_context "test-001" "Test Task"
-    export CURB_PROJECT_DIR="$TEST_DIR"
+    export CUB_PROJECT_DIR="$TEST_DIR"
 
     run hooks_run "pre-task"
     [ "$status" -eq 0 ]
@@ -493,7 +493,7 @@ exit 0' "project"
 
 # Test: AC - hooks_find only returns executable files
 @test "AC: hooks_find only returns executable files" {
-    local hook_dir="$(curb_config_dir)/hooks/pre-task.d"
+    local hook_dir="$(cub_config_dir)/hooks/pre-task.d"
     mkdir -p "$hook_dir"
 
     # Create non-executable file

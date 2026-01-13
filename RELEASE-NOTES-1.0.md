@@ -1,12 +1,12 @@
-# Curb 1.0.0 Release Notes
+# Cub 1.0.0 Release Notes
 
 **Release Date:** January 10, 2026
 
-Curb 1.0 is the first stable release of the autonomous AI coding agent harness. It combines the Ralph Wiggum technique (running AI in a loop) with beads-style task management to provide a reliable, safe, and extensible platform for autonomous coding.
+Cub 1.0 is the first stable release of the autonomous AI coding agent harness. It combines the Ralph Wiggum technique (running AI in a loop) with beads-style task management to provide a reliable, safe, and extensible platform for autonomous coding.
 
-## 🎯 What is Curb?
+## 🎯 What is Cub?
 
-Curb wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) in an autonomous loop that:
+Cub wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) in an autonomous loop that:
 - Picks tasks from a backlog (beads or prd.json)
 - Executes them via AI harness
 - Tracks progress and artifacts
@@ -117,7 +117,7 @@ Unified interface abstracts backend differences.
 ### 3. Structured Artifacts
 Every task execution produces a complete artifact bundle:
 ```
-.curb/runs/{session-name}/tasks/{task-id}/
+.cub/runs/{session-name}/tasks/{task-id}/
 ├── task.json         # Normalized task view
 ├── summary.md        # What changed, final status
 └── changes.patch     # Unified diff
@@ -126,7 +126,7 @@ Every task execution produces a complete artifact bundle:
 ### 4. Comprehensive Logging
 Machine-readable JSONL logs at:
 ```
-~/.local/share/curb/logs/{project}/{session}.jsonl
+~/.local/share/cub/logs/{project}/{session}.jsonl
 ```
 
 Queryable with jq for analysis, debugging, and metrics.
@@ -157,8 +157,8 @@ Token-based budget tracking with:
 ### 8. XDG-Compliant Configuration
 Follows XDG Base Directory specification:
 ```
-~/.config/curb/config.json  # Global config
-.curb.json                   # Project overrides
+~/.config/cub/config.json  # Global config
+.cub.json                   # Project overrides
 ```
 
 Full precedence hierarchy: CLI flags > env vars > project > global > defaults
@@ -209,50 +209,50 @@ See [UPGRADING.md](UPGRADING.md) for the complete migration guide.
 
 **TL;DR:**
 ```bash
-# Update curb
-cd ~/tools/curb && git pull
+# Update cub
+cd ~/tools/cub && git pull
 
 # Initialize global config (one time)
-curb-init --global
+cub-init --global
 
 # Test your setup
-curb --once
+cub --once
 ```
 
 ## 📦 Installation
 
 ```bash
 # Clone to tools directory
-git clone https://github.com/lavallee/curb ~/tools/curb
+git clone https://github.com/lavallee/cub ~/tools/cub
 
 # Add to PATH
-export PATH="$PATH:$HOME/tools/curb"
+export PATH="$PATH:$HOME/tools/cub"
 
 # First-time setup
-curb-init --global
+cub-init --global
 
 # Initialize a project
 cd my-project
-curb init
+cub init
 ```
 
 ## 🎯 Quick Start
 
 ```bash
 # Check status
-curb status
+cub status
 
 # Run one iteration
-curb run --once
+cub run --once
 
 # Run continuous loop
-curb run
+cub run
 
 # Target specific epic
-curb run --epic my-epic-id
+cub run --epic my-epic-id
 
 # Use specific harness
-curb run --harness gemini
+cub run --harness gemini
 ```
 
 ## 🔮 Future Roadmap (Post-1.0)
@@ -289,7 +289,7 @@ MIT License - See LICENSE file for details
 ## 🐛 Reporting Issues
 
 Found a bug or have a feature request?
-https://github.com/lavallee/curb/issues
+https://github.com/lavallee/cub/issues
 
 ## 📚 Resources
 
@@ -301,4 +301,4 @@ https://github.com/lavallee/curb/issues
 
 ---
 
-**Curb 1.0.0** - Autonomous AI Coding, Done Right. 🎉
+**Cub 1.0.0** - Autonomous AI Coding, Done Right. 🎉

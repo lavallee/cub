@@ -4,10 +4,10 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_PROJECT_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_PROJECT_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_PROJECT_SH_LOADED=1
+_CUB_PROJECT_SH_LOADED=1
 
 check_deps() {
     local missing=()
@@ -73,7 +73,7 @@ validate_project() {
         log_info "Using JSON backend (prd.json)"
         if [[ ! -f "${PROJECT_DIR}/prd.json" ]]; then
             _log_error_console "No prd.json found in ${PROJECT_DIR}"
-            log_info "Run 'curb-init' to scaffold a new project"
+            log_info "Run 'cub-init' to scaffold a new project"
             exit 1
         fi
         log_debug "Found prd.json ($(wc -c < "${PROJECT_DIR}/prd.json") bytes)"
@@ -81,13 +81,13 @@ validate_project() {
 
     if [[ ! -f "${PROJECT_DIR}/PROMPT.md" ]]; then
         log_warn "No PROMPT.md found, using default template"
-        cp "${CURB_DIR}/templates/PROMPT.md" "${PROJECT_DIR}/PROMPT.md"
+        cp "${CUB_DIR}/templates/PROMPT.md" "${PROJECT_DIR}/PROMPT.md"
     fi
     log_debug "Found PROMPT.md ($(wc -l < "${PROJECT_DIR}/PROMPT.md") lines)"
 
     if [[ ! -f "${PROJECT_DIR}/AGENT.md" ]]; then
         log_warn "No AGENT.md found, using default template"
-        cp "${CURB_DIR}/templates/AGENT.md" "${PROJECT_DIR}/AGENT.md"
+        cp "${CUB_DIR}/templates/AGENT.md" "${PROJECT_DIR}/AGENT.md"
     fi
     log_debug "Found AGENT.md ($(wc -l < "${PROJECT_DIR}/AGENT.md") lines)"
     log_debug "Project validation complete"

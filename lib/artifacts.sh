@@ -4,7 +4,7 @@
 #
 # Provides functions for managing artifact bundles that provide
 # observability into each task's execution. Artifacts are stored
-# in .curb/runs/{session-id}/tasks/{task-id}/ structure.
+# in .cub/runs/{session-id}/tasks/{task-id}/ structure.
 #
 # Functions:
 #   artifacts_get_run_dir() - Get the directory for the current run
@@ -26,10 +26,10 @@ source "${SCRIPT_DIR}/session.sh"
 source "${SCRIPT_DIR}/xdg.sh"
 
 # Base directory for artifacts (relative to project root)
-_ARTIFACTS_BASE_DIR=".curb/runs"
+_ARTIFACTS_BASE_DIR=".cub/runs"
 
 # Get the directory for the current run
-# Returns: path to run directory (.curb/runs/{session-id})
+# Returns: path to run directory (.cub/runs/{session-id})
 #
 # Returns:
 #   Path to run directory on success, error on failure
@@ -56,16 +56,16 @@ artifacts_get_run_dir() {
 }
 
 # Get the directory for a specific task
-# Returns: path to task directory (.curb/runs/{session-id}/tasks/{task-id})
+# Returns: path to task directory (.cub/runs/{session-id}/tasks/{task-id})
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #
 # Returns:
 #   Path to task directory on success, error on failure
 #
 # Example:
-#   task_dir=$(artifacts_get_task_dir "curb-123")
+#   task_dir=$(artifacts_get_task_dir "cub-123")
 artifacts_get_task_dir() {
     local task_id="$1"
 
@@ -91,13 +91,13 @@ artifacts_get_task_dir() {
 # Creates the full directory hierarchy with secure permissions (700)
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #
 # Returns:
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_ensure_dirs "curb-123"
+#   artifacts_ensure_dirs "cub-123"
 artifacts_ensure_dirs() {
     local task_id="$1"
 
@@ -217,7 +217,7 @@ artifacts_init_run() {
 # Creates the task directory and task.json with initial metadata
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #   $2 - task_title: The task title/description
 #   $3 - priority: Task priority (optional, defaults to "normal")
 #
@@ -225,7 +225,7 @@ artifacts_init_run() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_start_task "curb-123" "Implement feature X" "high"
+#   artifacts_start_task "cub-123" "Implement feature X" "high"
 artifacts_start_task() {
     local task_id="$1"
     local task_title="$2"
@@ -296,14 +296,14 @@ artifacts_start_task() {
 # Writes plan content to plan.md in the task directory
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #   $2 - plan_content: The plan content to write (markdown)
 #
 # Returns:
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_capture_plan "curb-123" "## Plan\n1. Step one\n2. Step two"
+#   artifacts_capture_plan "cub-123" "## Plan\n1. Step one\n2. Step two"
 artifacts_capture_plan() {
     local task_id="$1"
     local plan_content="$2"
@@ -353,7 +353,7 @@ artifacts_capture_plan() {
 # Appends command metadata to commands.jsonl in the task directory
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #   $2 - cmd: The command that was executed
 #   $3 - exit_code: The exit code of the command
 #   $4 - output: The command output (optional, can be empty)
@@ -363,7 +363,7 @@ artifacts_capture_plan() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_capture_command "curb-123" "npm test" "0" "All tests passed" "5.2"
+#   artifacts_capture_command "cub-123" "npm test" "0" "All tests passed" "5.2"
 artifacts_capture_command() {
     local task_id="$1"
     local cmd="$2"
@@ -448,13 +448,13 @@ artifacts_capture_command() {
 # Handles case where HEAD doesn't exist (fresh repo) by using git diff
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #
 # Returns:
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_capture_diff "curb-123"
+#   artifacts_capture_diff "cub-123"
 artifacts_capture_diff() {
     local task_id="$1"
 
@@ -519,13 +519,13 @@ artifacts_capture_diff() {
 # Returns the absolute path to the task artifacts directory
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #
 # Returns:
 #   Absolute path to task directory on success, error on failure
 #
 # Example:
-#   path=$(artifacts_get_path "curb-123")
+#   path=$(artifacts_get_path "cub-123")
 artifacts_get_path() {
     local task_id="$1"
 
@@ -556,7 +556,7 @@ artifacts_get_path() {
 # Appends to existing file if called multiple times (for multi-iteration tasks)
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #   $2 - output_file: Path to the file containing harness output to copy
 #   $3 - iteration: Optional iteration number for multi-iteration tasks
 #
@@ -564,7 +564,7 @@ artifacts_get_path() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_capture_harness_output "curb-123" "/tmp/harness_output.log" "1"
+#   artifacts_capture_harness_output "cub-123" "/tmp/harness_output.log" "1"
 artifacts_capture_harness_output() {
     local task_id="$1"
     local output_file="$2"
@@ -637,7 +637,7 @@ artifacts_capture_harness_output() {
 # Updates run.json counters (tasks_completed or tasks_failed)
 #
 # Args:
-#   $1 - task_id: The task identifier (e.g., "curb-123")
+#   $1 - task_id: The task identifier (e.g., "cub-123")
 #   $2 - status: Final status (e.g., "completed", "failed")
 #   $3 - exit_code: Exit code of the task execution
 #   $4 - summary_text: Optional summary text describing what was done
@@ -646,7 +646,7 @@ artifacts_capture_harness_output() {
 #   0 on success, 1 on failure
 #
 # Example:
-#   artifacts_finalize_task "curb-123" "completed" "0" "All tests passed"
+#   artifacts_finalize_task "cub-123" "completed" "0" "All tests passed"
 artifacts_finalize_task() {
     local task_id="$1"
     local task_status="$2"  # renamed from 'status' to avoid BATS conflict

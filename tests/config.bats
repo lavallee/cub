@@ -16,8 +16,8 @@ setup() {
     mkdir -p "$TEST_CONFIG_DIR"
     mkdir -p "$TEST_PROJECT_DIR"
 
-    # Override curb_config_dir to use test directory
-    curb_config_dir() {
+    # Override cub_config_dir to use test directory
+    cub_config_dir() {
         echo "$TEST_CONFIG_DIR"
     }
 
@@ -45,10 +45,10 @@ teardown() {
 
 @test "config_get returns simple string value" {
     # Create config with string
-    echo '{"name": "curb"}' > "$TEST_CONFIG_DIR/config.json"
+    echo '{"name": "cub"}' > "$TEST_CONFIG_DIR/config.json"
 
     result=$(config_get "name")
-    [[ "$result" == "curb" ]]
+    [[ "$result" == "cub" ]]
 }
 
 @test "config_get returns number value" {
@@ -95,10 +95,10 @@ teardown() {
 # ============================================================================
 
 @test "config_get_or returns value when key exists" {
-    echo '{"name": "curb"}' > "$TEST_CONFIG_DIR/config.json"
+    echo '{"name": "cub"}' > "$TEST_CONFIG_DIR/config.json"
 
     result=$(config_get_or "name" "fallback")
-    [[ "$result" == "curb" ]]
+    [[ "$result" == "cub" ]]
 }
 
 @test "config_get_or returns fallback when key does not exist" {
@@ -131,7 +131,7 @@ teardown() {
 
     # Create project config that overrides name
     cd "$TEST_PROJECT_DIR"
-    echo '{"name": "project_value", "project_only": "project"}' > ./.curb.json
+    echo '{"name": "project_value", "project_only": "project"}' > ./.cub.json
 
     # Clear cache to force reload
     config_clear_cache
@@ -156,7 +156,7 @@ teardown() {
 
 @test "config_load works with only project config" {
     cd "$TEST_PROJECT_DIR"
-    echo '{"project": "value"}' > ./.curb.json
+    echo '{"project": "value"}' > ./.cub.json
 
     config_load
     result=$(config_get "project")
@@ -278,56 +278,56 @@ teardown() {
 # Environment variable override tests
 # ============================================================================
 
-@test "CURB_BUDGET env var overrides config budget" {
+@test "CUB_BUDGET env var overrides config budget" {
     echo '{"budget": {"default": 100}}' > "$TEST_CONFIG_DIR/config.json"
 
-    # Set CURB_BUDGET environment variable
-    export CURB_BUDGET=500
+    # Set CUB_BUDGET environment variable
+    export CUB_BUDGET=500
     config_clear_cache
 
     result=$(config_get "budget.default")
     [[ "$result" == "500" ]]
 
     # Clean up
-    unset CURB_BUDGET
+    unset CUB_BUDGET
 }
 
-@test "CURB_BUDGET env var overrides project config budget" {
+@test "CUB_BUDGET env var overrides project config budget" {
     echo '{"budget": {"default": 100}}' > "$TEST_CONFIG_DIR/config.json"
 
     cd "$TEST_PROJECT_DIR"
-    echo '{"budget": {"default": 200}}' > ./.curb.json
+    echo '{"budget": {"default": 200}}' > ./.cub.json
 
-    # Set CURB_BUDGET environment variable (should have highest priority)
-    export CURB_BUDGET=500
+    # Set CUB_BUDGET environment variable (should have highest priority)
+    export CUB_BUDGET=500
     config_clear_cache
 
     result=$(config_get "budget.default")
     [[ "$result" == "500" ]]
 
     # Clean up
-    unset CURB_BUDGET
+    unset CUB_BUDGET
 }
 
-@test "CURB_BUDGET env var creates budget structure if not present" {
+@test "CUB_BUDGET env var creates budget structure if not present" {
     echo '{}' > "$TEST_CONFIG_DIR/config.json"
 
-    # Set CURB_BUDGET environment variable
-    export CURB_BUDGET=300
+    # Set CUB_BUDGET environment variable
+    export CUB_BUDGET=300
     config_clear_cache
 
     result=$(config_get "budget.default")
     [[ "$result" == "300" ]]
 
     # Clean up
-    unset CURB_BUDGET
+    unset CUB_BUDGET
 }
 
-@test "config without CURB_BUDGET env var uses file values" {
+@test "config without CUB_BUDGET env var uses file values" {
     echo '{"budget": {"default": 100}}' > "$TEST_CONFIG_DIR/config.json"
 
-    # Ensure CURB_BUDGET is not set
-    unset CURB_BUDGET
+    # Ensure CUB_BUDGET is not set
+    unset CUB_BUDGET
     config_clear_cache
 
     result=$(config_get "budget.default")

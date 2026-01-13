@@ -4,20 +4,20 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_AGENT_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_AGENT_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_AGENT_SH_LOADED=1
+_CUB_CMD_AGENT_SH_LOADED=1
 
 cmd_agent_close_help() {
     cat <<'EOF'
-curb agent-close <task-id>
+cub agent-close <task-id>
 
 Mark a task as closed (complete). This command is backend-aware and works
 with both beads and prd.json backends.
 
 USAGE:
-  curb agent-close <task-id>    Mark the specified task as closed
+  cub agent-close <task-id>    Mark the specified task as closed
 
 DESCRIPTION:
   This command is designed to be called by the AI agent during task
@@ -28,13 +28,13 @@ DESCRIPTION:
   For json backend:   Updates prd.json to set status="closed"
 
 EXAMPLES:
-  curb agent-close curb-018
-  curb agent-close link-030
+  cub agent-close cub-018
+  cub agent-close link-030
 
 SEE ALSO:
-  curb agent-verify   Verify a task is properly closed
-  curb status         Check overall progress
-  curb explain        Show task details
+  cub agent-verify   Verify a task is properly closed
+  cub status         Check overall progress
+  cub explain        Show task details
 EOF
 }
 
@@ -47,7 +47,7 @@ cmd_agent_close() {
 
     local task_id="${1:-}"
     if [[ -z "$task_id" ]]; then
-        _log_error_console "Usage: curb agent-close <task-id>"
+        _log_error_console "Usage: cub agent-close <task-id>"
         return 1
     fi
 
@@ -78,13 +78,13 @@ cmd_agent_close() {
 
 cmd_agent_verify_help() {
     cat <<'EOF'
-curb agent-verify <task-id>
+cub agent-verify <task-id>
 
 Verify that a task is properly marked as closed. This command is backend-aware
 and works with both beads and prd.json backends.
 
 USAGE:
-  curb agent-verify <task-id>    Check if the task status is "closed"
+  cub agent-verify <task-id>    Check if the task status is "closed"
 
 DESCRIPTION:
   This command verifies that a task has been properly closed. It's designed
@@ -94,20 +94,20 @@ DESCRIPTION:
   Returns exit code 0 if task is closed, 1 otherwise.
 
 EXAMPLES:
-  curb agent-verify curb-018
-  curb agent-verify link-030
+  cub agent-verify cub-018
+  cub agent-verify link-030
 
   # In scripts:
-  if curb agent-verify curb-018; then
+  if cub agent-verify cub-018; then
     echo "Task is closed"
   else
     echo "Task is NOT closed"
   fi
 
 SEE ALSO:
-  curb agent-close    Close a task
-  curb status         Check overall progress
-  curb explain        Show task details
+  cub agent-close    Close a task
+  cub status         Check overall progress
+  cub explain        Show task details
 EOF
 }
 
@@ -120,7 +120,7 @@ cmd_agent_verify() {
 
     local task_id="${1:-}"
     if [[ -z "$task_id" ]]; then
-        _log_error_console "Usage: curb agent-verify <task-id>"
+        _log_error_console "Usage: cub agent-verify <task-id>"
         return 1
     fi
 

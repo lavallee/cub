@@ -66,23 +66,23 @@ git_get_current_branch() {
 #     echo "Uncommitted changes detected"
 #   fi
 git_is_clean() {
-    # Exclude .curb/ and .beads/ from all checks since those are curb's own artifacts
-    # Use pathspec ':!.curb/' ':!.beads/' to exclude directories from git operations
+    # Exclude .cub/ and .beads/ from all checks since those are cub's own artifacts
+    # Use pathspec ':!.cub/' ':!.beads/' to exclude directories from git operations
     # These files are committed separately after task completion
 
-    # Check for uncommitted changes in working tree (excluding curb artifacts)
-    if ! git diff --quiet HEAD -- ':!.curb/' ':!.beads/' 2>/dev/null; then
+    # Check for uncommitted changes in working tree (excluding cub artifacts)
+    if ! git diff --quiet HEAD -- ':!.cub/' ':!.beads/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for staged but uncommitted changes (excluding curb artifacts)
-    if ! git diff --cached --quiet HEAD -- ':!.curb/' ':!.beads/' 2>/dev/null; then
+    # Check for staged but uncommitted changes (excluding cub artifacts)
+    if ! git diff --cached --quiet HEAD -- ':!.cub/' ':!.beads/' 2>/dev/null; then
         return 1
     fi
 
-    # Check for untracked files (files not in .gitignore, excluding curb artifacts)
+    # Check for untracked files (files not in .gitignore, excluding cub artifacts)
     local untracked
-    untracked=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.curb/' | grep -v '^\.beads/')
+    untracked=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v '^\.cub/' | grep -v '^\.beads/')
     if [[ -n "$untracked" ]]; then
         return 1
     fi
@@ -91,8 +91,8 @@ git_is_clean() {
     return 0
 }
 
-# Commit curb artifacts (.beads/ and .curb/) if there are changes
-# These directories contain curb's own tracking data and should be committed
+# Commit cub artifacts (.beads/ and .cub/) if there are changes
+# These directories contain cub's own tracking data and should be committed
 # separately from the harness's commits.
 #
 # Parameters:
@@ -103,24 +103,24 @@ git_is_clean() {
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_curb_artifacts "curb-042"
-git_commit_curb_artifacts() {
+#   git_commit_cub_artifacts "cub-042"
+git_commit_cub_artifacts() {
     local task_id="${1:-}"
 
-    # Check if there are any changes to commit in .beads/ or .curb/
+    # Check if there are any changes to commit in .beads/ or .cub/
     local has_beads_changes=false
-    local has_curb_changes=false
+    local has_cub_changes=false
 
     if git status --porcelain .beads/ 2>/dev/null | grep -q .; then
         has_beads_changes=true
     fi
 
-    if git status --porcelain .curb/ 2>/dev/null | grep -q .; then
-        has_curb_changes=true
+    if git status --porcelain .cub/ 2>/dev/null | grep -q .; then
+        has_cub_changes=true
     fi
 
     # Nothing to commit
-    if [[ "$has_beads_changes" == "false" && "$has_curb_changes" == "false" ]]; then
+    if [[ "$has_beads_changes" == "false" && "$has_cub_changes" == "false" ]]; then
         return 0
     fi
 
@@ -129,14 +129,14 @@ git_commit_curb_artifacts() {
         git add .beads/ 2>/dev/null || true
     fi
 
-    if [[ "$has_curb_changes" == "true" ]]; then
-        git add .curb/ 2>/dev/null || true
+    if [[ "$has_cub_changes" == "true" ]]; then
+        git add .cub/ 2>/dev/null || true
     fi
 
     # Build commit message
-    local commit_msg="chore: update curb artifacts"
+    local commit_msg="chore: update cub artifacts"
     if [[ -n "$task_id" ]]; then
-        commit_msg="chore($task_id): update curb artifacts"
+        commit_msg="chore($task_id): update cub artifacts"
     fi
 
     # Commit
@@ -155,7 +155,7 @@ _GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
 # Commit all remaining uncommitted changes after successful task completion
 # This handles cases where the agent completes work but forgets to commit.
 # Only call this when harness exits with code 0 (success).
-# Excludes .curb/ and .beads/ directories which are handled separately.
+# Excludes .cub/ and .beads/ directories which are handled separately.
 #
 # Parameters:
 #   $1 - task_id: The task ID to include in commit message
@@ -166,7 +166,7 @@ _GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_remaining_changes "curb-042" "Implement feature X"
+#   git_commit_remaining_changes "cub-042" "Implement feature X"
 git_commit_remaining_changes() {
     local task_id="${1:-}"
     local task_title="${2:-}"
@@ -176,37 +176,37 @@ git_commit_remaining_changes() {
         return 0
     fi
 
-    # Check if there are any uncommitted changes (excluding curb artifacts)
+    # Check if there are any uncommitted changes (excluding cub artifacts)
     local changes
-    changes=$(git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/')
+    changes=$(git status --porcelain 2>/dev/null | grep -v '^.. \.cub/' | grep -v '^.. \.beads/')
 
     if [[ -z "$changes" ]]; then
         # Nothing to commit
         return 0
     fi
 
-    # Stage all changes EXCEPT .curb/ and .beads/ (which are handled separately)
-    # Use pathspec to exclude curb artifact directories
-    git add -A -- ':!.curb/' ':!.beads/' 2>/dev/null || true
+    # Stage all changes EXCEPT .cub/ and .beads/ (which are handled separately)
+    # Use pathspec to exclude cub artifact directories
+    git add -A -- ':!.cub/' ':!.beads/' 2>/dev/null || true
 
     # Build commit message
     local commit_msg
     if [[ -n "$task_id" && -n "$task_title" ]]; then
         commit_msg="[${task_id}] ${task_title}
 
-Auto-committed by curb: agent completed successfully but did not commit changes.
+Auto-committed by cub: agent completed successfully but did not commit changes.
 
 Task-ID: ${task_id}"
     elif [[ -n "$task_id" ]]; then
         commit_msg="chore(${task_id}): auto-commit remaining changes
 
-Auto-committed by curb: agent completed successfully but did not commit changes.
+Auto-committed by cub: agent completed successfully but did not commit changes.
 
 Task-ID: ${task_id}"
     else
         commit_msg="chore: auto-commit remaining changes
 
-Auto-committed by curb: agent completed successfully but did not commit changes."
+Auto-committed by cub: agent completed successfully but did not commit changes."
     fi
 
     # Commit
@@ -220,7 +220,7 @@ Auto-committed by curb: agent completed successfully but did not commit changes.
 
 # Commit session files (progress.txt, fix_plan.md, etc.) if they have uncommitted changes
 # These are files that agents are expected to modify during task execution.
-# If the agent forgets to commit them, curb will do it to maintain clean state.
+# If the agent forgets to commit them, cub will do it to maintain clean state.
 #
 # Parameters:
 #   $1 - task_id: The task ID to include in commit message (optional)
@@ -230,7 +230,7 @@ Auto-committed by curb: agent completed successfully but did not commit changes.
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_session_files "curb-042"
+#   git_commit_session_files "cub-042"
 git_commit_session_files() {
     local task_id="${1:-}"
 
@@ -275,7 +275,7 @@ git_commit_session_files() {
     file_list=$(printf '%s\n' "${files_to_commit[@]}" | sed 's/^/- /')
     commit_msg="${commit_msg}
 
-Auto-committed by curb after task completion:
+Auto-committed by cub after task completion:
 ${file_list}"
 
     # Commit using heredoc for proper multi-line handling
@@ -290,7 +290,7 @@ ${file_list}"
 # Global variable to store the run branch name
 _GIT_RUN_BRANCH=""
 
-# Initialize a run branch with naming convention curb/{session_name}/{YYYYMMDD-HHMMSS}
+# Initialize a run branch with naming convention cub/{session_name}/{YYYYMMDD-HHMMSS}
 # Creates and checks out a new branch from current HEAD.
 # If the branch already exists, warns and uses it.
 #
@@ -303,7 +303,7 @@ _GIT_RUN_BRANCH=""
 #
 # Example:
 #   git_init_run_branch "panda"
-#   # Creates and checks out: curb/panda/20260110-163000
+#   # Creates and checks out: cub/panda/20260110-163000
 git_init_run_branch() {
     local session_name="$1"
 
@@ -323,8 +323,8 @@ git_init_run_branch() {
     local timestamp
     timestamp=$(date +%Y%m%d-%H%M%S)
 
-    # Generate branch name: curb/{session_name}/{timestamp}
-    local branch_name="curb/${session_name}/${timestamp}"
+    # Generate branch name: cub/{session_name}/{timestamp}
+    local branch_name="cub/${session_name}/${timestamp}"
 
     # Check if branch already exists
     if git rev-parse --verify "$branch_name" >/dev/null 2>&1; then
@@ -353,7 +353,7 @@ git_init_run_branch() {
 # Returns the branch name that was set by git_init_run_branch
 #
 # Returns:
-#   Echoes the run branch name (e.g., "curb/panda/20260110-163000")
+#   Echoes the run branch name (e.g., "cub/panda/20260110-163000")
 #   Returns 0 on success
 #   Returns 1 if run branch has not been initialized
 #
@@ -430,7 +430,7 @@ git_stash_changes() {
     fi
 
     # Generate a unique stash identifier based on timestamp
-    _GIT_STASH_ID="curb-stash-$(date +%s)"
+    _GIT_STASH_ID="cub-stash-$(date +%s)"
 
     # Stash changes with our identifier (include untracked files)
     if ! git stash push -u -m "$_GIT_STASH_ID" >/dev/null 2>&1; then
@@ -532,7 +532,7 @@ git_get_base_branch() {
 # Stages all changes and creates a commit with task attribution.
 #
 # Parameters:
-#   $1 - task_id: The task identifier (e.g., "curb-023")
+#   $1 - task_id: The task identifier (e.g., "cub-023")
 #   $2 - task_title: The task title/description
 #   $3 - summary: Optional summary text for the commit body
 #
@@ -549,7 +549,7 @@ git_get_base_branch() {
 #   Task-ID: task_id
 #
 # Example:
-#   git_commit_task "curb-023" "Implement git_commit_task" "Added function with tests"
+#   git_commit_task "cub-023" "Implement git_commit_task" "Added function with tests"
 git_commit_task() {
     local task_id="$1"
     local task_title="$2"
@@ -827,7 +827,7 @@ git_categorize_changes() {
     # Get all uncommitted files (modified, staged, and untracked)
     # Use -u to show all individual files in untracked directories
     local all_files
-    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/')
+    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.cub/' | grep -v '^.. \.beads/')
 
     if [[ -z "$all_files" ]]; then
         # No changes
@@ -908,5 +908,5 @@ git_list_changes_with_status() {
         return 1
     fi
 
-    git status --porcelain 2>/dev/null | grep -v '^.. \.curb/' | grep -v '^.. \.beads/' || true
+    git status --porcelain 2>/dev/null | grep -v '^.. \.cub/' | grep -v '^.. \.beads/' || true
 }

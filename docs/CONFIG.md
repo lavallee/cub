@@ -1,21 +1,21 @@
 # Configuration Reference
 
-This document provides a comprehensive reference for all Curb configuration options. Configuration can be set at multiple levels with the following priority (highest to lowest):
+This document provides a comprehensive reference for all Cub configuration options. Configuration can be set at multiple levels with the following priority (highest to lowest):
 
 1. **CLI flags** (e.g., `--budget 500000`)
-2. **Environment variables** (e.g., `CURB_BUDGET=500000`)
-3. **Project config** (`.curb.json` in project root)
-4. **Global config** (`~/.config/curb/config.json`)
+2. **Environment variables** (e.g., `CUB_BUDGET=500000`)
+3. **Project config** (`.cub.json` in project root)
+4. **Global config** (`~/.config/cub/config.json`)
 5. **Hardcoded defaults**
 
 ## Quick Start
 
 ### Global Setup
 ```bash
-curb-init --global
+cub-init --global
 ```
 
-This creates `~/.config/curb/config.json` with defaults:
+This creates `~/.config/cub/config.json` with defaults:
 ```json
 {
   "harness": {
@@ -40,10 +40,10 @@ This creates `~/.config/curb/config.json` with defaults:
 ```
 
 ### Project Override
-Create `.curb.json` in your project root to override global settings:
+Create `.cub.json` in your project root to override global settings:
 ```bash
 mkdir -p my-project && cd my-project
-cat > .curb.json <<EOF
+cat > .cub.json <<EOF
 {
   "budget": {
     "default": 500000
@@ -67,7 +67,7 @@ Controls which AI harness (Claude Code, Codex, etc.) is used to execute tasks.
 - **Allowed Values**: `auto`, `claude`, `codex`, `gemini`, `opencode`
 - **CLI Flag**: `--harness <name>`
 - **Environment Variable**: `HARNESS`
-- **Description**: Default harness to use. With `auto`, curb attempts harnesses in priority order.
+- **Description**: Default harness to use. With `auto`, cub attempts harnesses in priority order.
 
 #### `harness.priority`
 - **Type**: Array of strings
@@ -87,7 +87,7 @@ Controls which AI harness (Claude Code, Codex, etc.) is used to execute tasks.
 
 Force Claude and fall back to Codex:
 ```bash
-curb --harness claude
+cub --harness claude
 ```
 
 Override priority to try Gemini first:
@@ -109,7 +109,7 @@ Manage token budget to control AI API costs.
 - **Type**: Number
 - **Default**: `1000000` (1 million tokens)
 - **CLI Flag**: `--budget <tokens>`
-- **Environment Variable**: `CURB_BUDGET`
+- **Environment Variable**: `CUB_BUDGET`
 - **Description**: Token budget limit per session. Loop exits when exceeded.
 
 #### `budget.warn_at`
@@ -121,8 +121,8 @@ Manage token budget to control AI API costs.
 
 Small project (100k token budget):
 ```bash
-export CURB_BUDGET=100000
-curb
+export CUB_BUDGET=100000
+cub
 ```
 
 High-cost project with warning at 70%:
@@ -138,10 +138,10 @@ High-cost project with warning at 70%:
 Monitor budget usage:
 ```bash
 # View warnings
-jq 'select(.event_type=="budget_warning")' ~/.local/share/curb/logs/myproject/*.jsonl
+jq 'select(.event_type=="budget_warning")' ~/.local/share/cub/logs/myproject/*.jsonl
 
 # Track total tokens
-jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/curb/logs/myproject/*.jsonl
+jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/cub/logs/myproject/*.jsonl
 ```
 
 ---
@@ -154,14 +154,14 @@ Control the main execution loop behavior.
 - **Type**: Number
 - **Default**: `100`
 - **CLI Flag**: `--max-iterations <num>`
-- **Environment Variable**: `CURB_MAX_ITERATIONS`
+- **Environment Variable**: `CUB_MAX_ITERATIONS`
 - **Description**: Maximum number of iterations before loop exits. Prevents infinite loops and controls costs.
 
 **Examples:**
 
 Quick test run with 5 iterations:
 ```bash
-curb --max-iterations 5 --once
+cub --max-iterations 5 --once
 ```
 
 Extended session:
@@ -183,7 +183,7 @@ Enforce code quality and consistency checks between task executions.
 - **Type**: Boolean
 - **Default**: `true`
 - **CLI Flags**: `--require-clean`, `--no-require-clean`
-- **Environment Variable**: `CURB_REQUIRE_CLEAN`
+- **Environment Variable**: `CUB_REQUIRE_CLEAN`
 - **Description**: Enforce git commits after harness completes a task. If false, allows uncommitted changes.
 
 #### `clean_state.require_tests`
@@ -200,7 +200,7 @@ Enforce code quality and consistency checks between task executions.
 
 Relax clean state for development:
 ```bash
-curb --no-require-clean
+cub --no-require-clean
 ```
 
 Strict mode - require tests pass, disable auto-commit:
@@ -288,7 +288,7 @@ See [Hooks Documentation](../README.md#hooks) for details on writing custom hook
 
 #### Example Hooks
 
-Curb ships with example hooks in `examples/hooks/` that you can copy and customize:
+Cub ships with example hooks in `examples/hooks/` that you can copy and customize:
 
 | Hook | Location | Description |
 |------|----------|-------------|
@@ -303,44 +303,44 @@ Curb ships with example hooks in `examples/hooks/` that you can copy and customi
 1. **For a specific project:**
    ```bash
    # Create hooks directory
-   mkdir -p .curb/hooks/pre-loop.d
+   mkdir -p .cub/hooks/pre-loop.d
 
    # Copy and enable the auto-branch hook
-   cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
-   chmod +x .curb/hooks/pre-loop.d/10-auto-branch.sh
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh .cub/hooks/pre-loop.d/
+   chmod +x .cub/hooks/pre-loop.d/10-auto-branch.sh
    ```
 
 2. **For all projects (global):**
    ```bash
    # Create global hooks directory
-   mkdir -p ~/.config/curb/hooks/pre-loop.d
+   mkdir -p ~/.config/cub/hooks/pre-loop.d
 
    # Copy and enable the auto-branch hook globally
-   cp examples/hooks/pre-loop.d/10-auto-branch.sh ~/.config/curb/hooks/pre-loop.d/
-   chmod +x ~/.config/curb/hooks/pre-loop.d/10-auto-branch.sh
+   cp examples/hooks/pre-loop.d/10-auto-branch.sh ~/.config/cub/hooks/pre-loop.d/
+   chmod +x ~/.config/cub/hooks/pre-loop.d/10-auto-branch.sh
    ```
 
 **Auto-Branch Hook:**
 
-The `10-auto-branch.sh` hook automatically creates a new git branch when a curb session starts:
+The `10-auto-branch.sh` hook automatically creates a new git branch when a cub session starts:
 
-- Creates branches with naming convention: `curb/{session_name}/{timestamp}`
+- Creates branches with naming convention: `cub/{session_name}/{timestamp}`
 - Stores the base branch for later PR creation
 - Idempotent (safe to run multiple times)
-- Skips if not in a git repository or already on a curb branch
+- Skips if not in a git repository or already on a cub branch
 
 Example output:
 ```
-[auto-branch] Creating branch: curb/porcupine/20260111-120000 (from main)
+[auto-branch] Creating branch: cub/porcupine/20260111-120000 (from main)
 [auto-branch] Stored base branch: main
 ```
 
 **PR Prompt Hook:**
 
-The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a curb session completes:
+The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a cub session completes:
 
 - Uses the GitHub CLI (`gh`) for PR creation
-- Reads base branch from `.curb/.base-branch` (set by auto-branch hook)
+- Reads base branch from `.cub/.base-branch` (set by auto-branch hook)
 - Generates title and body from commit history
 - Interactive prompt: yes/no/edit
 - Skips automatically if:
@@ -360,11 +360,11 @@ Example output:
 [pr-prompt] Ready to create Pull Request
 ==========================================
 
-Branch:  curb/porcupine/20260111-120000
+Branch:  cub/porcupine/20260111-120000
 Base:    main
 Commits: 3 ahead
 
-Title:   Curb: Porcupine session (3 commits)
+Title:   Cub: Porcupine session (3 commits)
 
 [pr-prompt] Create PR? [y/N/e(dit)]
 ```
@@ -374,10 +374,10 @@ Title:   Curb: Porcupine session (3 commits)
 For a complete PR workflow, enable both hooks:
 ```bash
 # In your project
-mkdir -p .curb/hooks/pre-loop.d .curb/hooks/post-loop.d
-cp examples/hooks/pre-loop.d/10-auto-branch.sh .curb/hooks/pre-loop.d/
-cp examples/hooks/post-loop.d/90-pr-prompt.sh .curb/hooks/post-loop.d/
-chmod +x .curb/hooks/*/[0-9]*.sh
+mkdir -p .cub/hooks/pre-loop.d .cub/hooks/post-loop.d
+cp examples/hooks/pre-loop.d/10-auto-branch.sh .cub/hooks/pre-loop.d/
+cp examples/hooks/post-loop.d/90-pr-prompt.sh .cub/hooks/post-loop.d/
+chmod +x .cub/hooks/*/[0-9]*.sh
 ```
 
 This gives you:
@@ -387,12 +387,12 @@ This gives you:
 **Customizing Hooks:**
 
 Hooks receive context via environment variables:
-- `CURB_SESSION_ID` - Session ID (e.g., "porcupine-20260111-114543")
-- `CURB_PROJECT_DIR` - Project directory
-- `CURB_TASK_ID` - Current task ID (for task hooks)
-- `CURB_TASK_TITLE` - Current task title (for task hooks)
-- `CURB_EXIT_CODE` - Task exit code (for post-task/on-error hooks)
-- `CURB_HARNESS` - Harness being used
+- `CUB_SESSION_ID` - Session ID (e.g., "porcupine-20260111-114543")
+- `CUB_PROJECT_DIR` - Project directory
+- `CUB_TASK_ID` - Current task ID (for task hooks)
+- `CUB_TASK_TITLE` - Current task title (for task hooks)
+- `CUB_EXIT_CODE` - Task exit code (for post-task/on-error hooks)
+- `CUB_HARNESS` - Harness being used
 
 ---
 
@@ -454,9 +454,9 @@ Add custom secret patterns:
 
 Relaxed limits for complex tasks:
 ```bash
-export CURB_MAX_TASK_ITERATIONS=10
-export CURB_MAX_RUN_ITERATIONS=200
-curb
+export CUB_MAX_TASK_ITERATIONS=10
+export CUB_MAX_RUN_ITERATIONS=200
+cub
 ```
 
 ---
@@ -467,19 +467,19 @@ Environment variables override all config files and provide quick, temporary ove
 
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
-| `CURB_PROJECT_DIR` | String | `$(pwd)` | Project directory |
-| `CURB_MODEL` | String | | Claude model: `haiku`, `sonnet`, `opus` |
-| `CURB_BUDGET` | Number | 1,000,000 | Token budget limit |
-| `CURB_MAX_ITERATIONS` | Number | 100 | Max loop iterations |
-| `CURB_DEBUG` | Boolean | `false` | Enable debug logging |
-| `CURB_STREAM` | Boolean | `false` | Stream harness output |
-| `CURB_BACKEND` | String | `auto` | Task backend: `auto`, `beads`, `json` |
-| `CURB_EPIC` | String | | Filter to epic ID |
-| `CURB_LABEL` | String | | Filter to label name |
-| `CURB_REQUIRE_CLEAN` | Boolean | `true` | Enforce clean state |
-| `CURB_AUTO_CLOSE` | Boolean | `true` | Auto-close tasks on success |
-| `CURB_MAX_TASK_ITERATIONS` | Number | 3 | Max attempts per task |
-| `CURB_MAX_RUN_ITERATIONS` | Number | 50 | Max iterations per run |
+| `CUB_PROJECT_DIR` | String | `$(pwd)` | Project directory |
+| `CUB_MODEL` | String | | Claude model: `haiku`, `sonnet`, `opus` |
+| `CUB_BUDGET` | Number | 1,000,000 | Token budget limit |
+| `CUB_MAX_ITERATIONS` | Number | 100 | Max loop iterations |
+| `CUB_DEBUG` | Boolean | `false` | Enable debug logging |
+| `CUB_STREAM` | Boolean | `false` | Stream harness output |
+| `CUB_BACKEND` | String | `auto` | Task backend: `auto`, `beads`, `json` |
+| `CUB_EPIC` | String | | Filter to epic ID |
+| `CUB_LABEL` | String | | Filter to label name |
+| `CUB_REQUIRE_CLEAN` | Boolean | `true` | Enforce clean state |
+| `CUB_AUTO_CLOSE` | Boolean | `true` | Auto-close tasks on success |
+| `CUB_MAX_TASK_ITERATIONS` | Number | 3 | Max attempts per task |
+| `CUB_MAX_RUN_ITERATIONS` | Number | 50 | Max iterations per run |
 | `HARNESS` | String | `auto` | Harness: `auto`, `claude`, `codex`, `gemini`, `opencode` |
 | `CLAUDE_FLAGS` | String | | Extra flags for Claude Code CLI |
 | `CODEX_FLAGS` | String | | Extra flags for OpenAI Codex CLI |
@@ -490,19 +490,19 @@ Environment variables override all config files and provide quick, temporary ove
 
 Quick test with Haiku model:
 ```bash
-export CURB_MODEL=haiku
-export CURB_BUDGET=50000
-curb --once
+export CUB_MODEL=haiku
+export CUB_BUDGET=50000
+cub --once
 ```
 
 Debug a specific task:
 ```bash
-CURB_DEBUG=true CURB_STREAM=true curb --once
+CUB_DEBUG=true CUB_STREAM=true cub --once
 ```
 
 Force beads backend and target epic:
 ```bash
-CURB_BACKEND=beads CURB_EPIC=phase-1 curb
+CUB_BACKEND=beads CUB_EPIC=phase-1 cub
 ```
 
 ---
@@ -512,7 +512,7 @@ CURB_BACKEND=beads CURB_EPIC=phase-1 curb
 For one-time overrides, use CLI flags instead of config files:
 
 ```bash
-curb [OPTIONS]
+cub [OPTIONS]
 ```
 
 ### Task Selection
@@ -552,29 +552,29 @@ curb [OPTIONS]
 
 ```bash
 # Run with specific model and budget
-curb --budget 200000 --once
+cub --budget 200000 --once
 
 # Debug a specific epic
-curb --debug --epic phase-1 --once
+cub --debug --epic phase-1 --once
 
 # Force harness and enable streaming
-curb --harness claude --stream
+cub --harness claude --stream
 
 # Run planning mode
-curb --plan
+cub --plan
 
 # Show which tasks are ready to run
-curb --ready
+cub --ready
 ```
 
 ---
 
 ## Directory Structure
 
-Curb uses XDG Base Directory specification for configuration and logs:
+Cub uses XDG Base Directory specification for configuration and logs:
 
 ```
-~/.config/curb/
+~/.config/cub/
 ├── config.json              # Global configuration
 └── hooks/                   # Global hook directories
     ├── pre-loop.d/
@@ -583,15 +583,15 @@ Curb uses XDG Base Directory specification for configuration and logs:
     ├── on-error.d/
     └── post-loop.d/
 
-~/.local/share/curb/
+~/.local/share/cub/
 └── logs/                    # Session logs
     └── {project}/
         └── {session}.jsonl  # YYYYMMDD-HHMMSS format
 
-~/.cache/curb/              # Cache directory
+~/.cache/cub/              # Cache directory
 
-.curb.json                  # Project-level config (in project root)
-.curb/hooks/                # Project-specific hooks (in project root)
+.cub.json                  # Project-level config (in project root)
+.cub/hooks/                # Project-specific hooks (in project root)
 ```
 
 ---
@@ -664,13 +664,13 @@ Minimal, deterministic config:
 ### Example 4: Per-Model Overrides
 ```bash
 # Fast tasks with Haiku
-curb --label quick --model haiku --budget 50000
+cub --label quick --model haiku --budget 50000
 
 # Complex tasks with Opus
-curb --label complex --model opus --budget 500000
+cub --label complex --model opus --budget 500000
 
 # Standard tasks with Sonnet
-curb --model sonnet
+cub --model sonnet
 ```
 
 ---
@@ -678,24 +678,24 @@ curb --model sonnet
 ## Debugging Configuration
 
 ### View Merged Configuration
-Check what configuration curb is actually using:
+Check what configuration cub is actually using:
 
 ```bash
 # Show in-memory config (requires examining logs)
-curb --debug --once 2>&1 | grep -i config
+cub --debug --once 2>&1 | grep -i config
 
 # View global config
-cat ~/.config/curb/config.json | jq .
+cat ~/.config/cub/config.json | jq .
 
 # View project config
-cat .curb.json | jq .
+cat .cub.json | jq .
 ```
 
 ### Configuration Loading Order
-Curb loads config in this order (later overrides earlier):
+Cub loads config in this order (later overrides earlier):
 1. Hardcoded defaults
-2. Global config (`~/.config/curb/config.json`)
-3. Project config (`.curb.json`)
+2. Global config (`~/.config/cub/config.json`)
+3. Project config (`.cub.json`)
 4. Environment variables
 5. CLI flags
 
@@ -703,10 +703,10 @@ Curb loads config in this order (later overrides earlier):
 Validate JSON before using:
 ```bash
 # Validate global config
-jq empty ~/.config/curb/config.json && echo "Valid"
+jq empty ~/.config/cub/config.json && echo "Valid"
 
 # Validate project config
-jq empty .curb.json && echo "Valid"
+jq empty .cub.json && echo "Valid"
 ```
 
 ---
@@ -714,12 +714,12 @@ jq empty .curb.json && echo "Valid"
 ## Troubleshooting
 
 **Q: "Config file not found" error**
-- Run `curb-init --global` to create global config
-- Create `.curb.json` in your project if using project-level config
+- Run `cub-init --global` to create global config
+- Create `.cub.json` in your project if using project-level config
 
 **Q: Budget exceeded but tasks remaining**
-- Increase `budget.default` in config or via `CURB_BUDGET` env var
-- Check token usage in logs: `jq '.data.tokens_used' ~/.local/share/curb/logs/myproject/*.jsonl`
+- Increase `budget.default` in config or via `CUB_BUDGET` env var
+- Check token usage in logs: `jq '.data.tokens_used' ~/.local/share/cub/logs/myproject/*.jsonl`
 - Reduce `budget.warn_at` to get earlier warnings
 
 **Q: Wrong harness selected**
@@ -729,10 +729,10 @@ jq empty .curb.json && echo "Valid"
 
 **Q: Tasks not running**
 - Check `loop.max_iterations` - may have hit limit
-- Use `curb --ready` to see available tasks
+- Use `cub --ready` to see available tasks
 - Check `--epic` and `--label` filters aren't too restrictive
 
 **Q: Hook not executing**
 - Ensure `hooks.enabled: true` in config
-- Check script is executable: `chmod +x ~/.config/curb/hooks/post-task.d/myhook.sh`
-- Verify hook location: `~/.config/curb/hooks/{hook-name}.d/` or `.curb/hooks/{hook-name}.d/`
+- Check script is executable: `chmod +x ~/.config/cub/hooks/post-task.d/myhook.sh`
+- Verify hook location: `~/.config/cub/hooks/{hook-name}.d/` or `.cub/hooks/{hook-name}.d/`

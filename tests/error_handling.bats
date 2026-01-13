@@ -7,7 +7,7 @@ load 'test_helper'
 
 setup() {
     setup_test_dir
-    export CURB_BACKEND="json"
+    export CUB_BACKEND="json"
     source "$LIB_DIR/tasks.sh"
     source "$LIB_DIR/harness.sh"
 }

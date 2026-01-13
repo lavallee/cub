@@ -309,7 +309,7 @@ teardown() {
     run budget_check_warning 80
     [ "$status" -eq 0 ]
     # Warning file should not exist
-    [ ! -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ ! -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 @test "budget_check_warning sets flag when at threshold" {
@@ -319,7 +319,7 @@ teardown() {
     # Returns 1 when warning is triggered
     [ "$status" -eq 1 ]
     # Warning file should exist
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 @test "budget_check_warning sets flag when over threshold" {
@@ -329,7 +329,7 @@ teardown() {
     # Returns 1 when warning is triggered
     [ "$status" -eq 1 ]
     # Warning file should exist
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 @test "budget_check_warning only warns once" {
@@ -339,12 +339,12 @@ teardown() {
     # First call should set the warning and return 1
     run budget_check_warning 80
     [ "$status" -eq 1 ]
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 
     # Second call should return 0 (already warned)
     run budget_check_warning 80
     [ "$status" -eq 0 ]
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 @test "budget_check_warning uses custom threshold" {
@@ -354,7 +354,7 @@ teardown() {
     # At 50% usage, should not warn at 80% threshold
     run budget_check_warning 80
     [ "$status" -eq 0 ]
-    [ ! -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ ! -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 
     # Clear and try with lower threshold
     budget_clear
@@ -362,7 +362,7 @@ teardown() {
     budget_record 500000
     run budget_check_warning 40
     [ "$status" -eq 1 ]
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 @test "ACCEPTANCE: budget_check_warning shows only once per run" {
@@ -372,7 +372,7 @@ teardown() {
     # First warning - returns 1
     run budget_check_warning 80
     [ "$status" -eq 1 ]
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 
     # Record more usage
     budget_record 100000
@@ -380,7 +380,7 @@ teardown() {
     # Second call returns 0 (already warned)
     run budget_check_warning 80
     [ "$status" -eq 0 ]
-    [ -f "${TMPDIR:-/tmp}/curb_budget_warned_$$" ]
+    [ -f "${TMPDIR:-/tmp}/cub_budget_warned_$$" ]
 }
 
 # ========================================

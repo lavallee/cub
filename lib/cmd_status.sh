@@ -4,20 +4,20 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_STATUS_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_STATUS_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_STATUS_SH_LOADED=1
+_CUB_CMD_STATUS_SH_LOADED=1
 
 cmd_status_help() {
     cat <<'EOF'
-curb status [--json]
+cub status [--json]
 
 Display current task progress and status summary.
 
 USAGE:
-  curb status           Show formatted status summary
-  curb status --json    Output status as machine-readable JSON
+  cub status           Show formatted status summary
+  cub status --json    Output status as machine-readable JSON
 
 OUTPUT:
   When run without --json:
@@ -33,21 +33,21 @@ OUTPUT:
 
 EXAMPLES:
   # Show human-readable status
-  curb status
+  cub status
 
   # Check progress before running
-  curb status
+  cub status
 
   # Get JSON for scripting
-  curb status --json | jq '.task_counts'
+  cub status --json | jq '.task_counts'
 
   # Monitor while loop runs in background
-  watch -n 5 'curb status'
+  watch -n 5 'cub status'
 
 SEE ALSO:
-  curb run --ready    List tasks ready to work on
-  curb --help         Show all commands
-  curb artifacts      Access task output files
+  cub run --ready    List tasks ready to work on
+  cub --help         Show all commands
+  cub artifacts      Access task output files
 EOF
 }
 
@@ -69,7 +69,7 @@ cmd_status() {
                 ;;
             *)
                 _log_error_console "Unknown flag: $1"
-                _log_error_console "Usage: curb status [--json]"
+                _log_error_console "Usage: cub status [--json]"
                 return 1
                 ;;
         esac
@@ -144,7 +144,7 @@ show_status() {
     fi
 
     # Show most recent run
-    local artifacts_base="${PROJECT_DIR}/.curb/runs"
+    local artifacts_base="${PROJECT_DIR}/.cub/runs"
     if [[ -d "$artifacts_base" ]]; then
         local most_recent_run
         most_recent_run=$(ls -t "$artifacts_base" 2>/dev/null | head -n 1)
@@ -191,7 +191,7 @@ show_status_json() {
     fi
 
     local most_recent_run="null"
-    local artifacts_base="${PROJECT_DIR}/.curb/runs"
+    local artifacts_base="${PROJECT_DIR}/.cub/runs"
     if [[ -d "$artifacts_base" ]]; then
         local run_dir
         run_dir=$(ls -t "$artifacts_base" 2>/dev/null | head -n 1)

@@ -49,11 +49,11 @@
 3. **Dependency checking pattern**: Loop through dependsOn array, check each dependency's status, collect those not closed into a blocking_deps array
 4. **Colored output sections**: Use color codes (${RED}, ${YELLOW}, ${NC}) for visual separation of sections (Failure Information, Blocking Dependencies, Suggestions)
 5. **Graceful degradation**: When artifacts don't exist, show helpful message instead of crashing
-6. **User-friendly errors**: Include tips in error messages (e.g., "Run 'curb status' to see available tasks")
+6. **User-friendly errors**: Include tips in error messages (e.g., "Run 'cub status' to see available tasks")
 7. **beads backend**: The beads backend uses `bd show <id> --json` to get task details, which exits non-zero for non-existent tasks
 
 **Acceptance Criteria Met:**
-- ✓ 'curb explain <task-id>' shows task status
+- ✓ 'cub explain <task-id>' shows task status
 - ✓ Failed tasks show failure reason (from failure.json)
 - ✓ Blocked tasks show blocking dependencies with their status
 - ✓ Output is human-readable with colored sections
@@ -114,13 +114,13 @@ This module will be used by the main loop to determine behavior when tasks fail.
 **Key Learnings:**
 1. **Config defaults pattern**: Add defaults as initial merged_config in config_load(), then merge files on top. This ensures all keys have sensible defaults.
 2. **JQ dot notation**: config_get() already supports dot.notation keys via jq, so no changes needed to the function itself
-3. **Config override hierarchy works**: Tested that defaults are overridden by project config (.curb.json), which matches the documented priority
+3. **Config override hierarchy works**: Tested that defaults are overridden by project config (.cub.json), which matches the documented priority
 4. **Secret patterns**: Default patterns include api_key, password, token, secret, authorization, credentials - comprehensive but not too aggressive
-5. **Environment variable naming**: Use CURB_MAX_TASK_ITERATIONS and CURB_MAX_RUN_ITERATIONS for consistency with other env vars (CURB_ prefix)
+5. **Environment variable naming**: Use CUB_MAX_TASK_ITERATIONS and CUB_MAX_RUN_ITERATIONS for consistency with other env vars (CUB_ prefix)
 
 **Testing Approach:**
 - Verified all four guardrails keys return correct defaults via config_get
-- Tested override via .curb.json for max_task_iterations
+- Tested override via .cub.json for max_task_iterations
 - Tested that non-overridden keys still work (secret_patterns)
 - Confirmed config_get_or fallback behavior works
 - All 28 existing config tests pass with new code
@@ -129,7 +129,7 @@ This module will be used by the main loop to determine behavior when tasks fail.
 - New "Guardrails Configuration" section in CONFIG.md
 - Documented all four keys with type, default, and description
 - Added 3 practical examples showing common guardrails setups
-- Added environment variables CURB_MAX_TASK_ITERATIONS and CURB_MAX_RUN_ITERATIONS to env vars table
+- Added environment variables CUB_MAX_TASK_ITERATIONS and CUB_MAX_RUN_ITERATIONS to env vars table
 
 **Acceptance Criteria Met:**
 - ✓ Config keys defined with defaults
@@ -156,8 +156,8 @@ Implemented comprehensive help text for all subcommands and updated main help to
 - Ensured all help text fits within 80-column terminal (max line: 75 chars)
 
 ### Testing performed
-- Manual testing of all subcommand help: `curb init --help`, `curb run --help`, etc.
-- Main help tested: `curb --help` shows clear subcommand overview
+- Manual testing of all subcommand help: `cub init --help`, `cub run --help`, etc.
+- Main help tested: `cub --help` shows clear subcommand overview
 - Line length verification: All output fits within 80 columns
 - Full test suite: All 437 BATS tests pass with no regressions
 - Verified help for error cases (unknown subcommands still show help)
@@ -173,9 +173,9 @@ Implemented comprehensive help text for all subcommands and updated main help to
 8. Consistent formatting with aligned descriptions makes help text easier to scan
 
 ### Acceptance criteria met
-✓ 'curb --help' shows subcommand overview
-✓ 'curb run --help' shows run-specific options
-✓ 'curb init --help' shows init-specific options
+✓ 'cub --help' shows subcommand overview
+✓ 'cub run --help' shows run-specific options
+✓ 'cub init --help' shows init-specific options
 ✓ Examples included for common use cases
 ✓ Help fits in standard terminal (80 cols, max achieved: 75)
 
@@ -195,7 +195,7 @@ Implemented comprehensive help text for all subcommands and updated main help to
 
 ### What was done
 Implemented the version subcommand dispatcher pattern which establishes the foundation for adding more subcommands in Phase 2:
-- Added cmd_version() function that prints 'curb v${CURB_VERSION}'
+- Added cmd_version() function that prints 'curb v${CUB_VERSION}'
 - Created subcommand dispatcher in main() that checks first argument before flag parsing
 - Falls through to existing flag parsing for backward compatibility
 - Version subcommand exits with code 0
@@ -209,7 +209,7 @@ Implemented the version subcommand dispatcher pattern which establishes the foun
 ### Key learnings
 1. The subcommand dispatcher pattern is clean: check subcommands first, then fall through to flag parsing
 2. Bash case statements work well for dispatcher pattern - can easily extend for future subcommands
-3. Important to maintain backward compatibility - both `curb version` and `curb --version` work
+3. Important to maintain backward compatibility - both `curb version` and `cub --version` work
 4. Minimal implementation (just 6 lines of code) establishes the pattern for Phase 2 refactoring
 5. The pattern allows for future subcommands like cmd_run, cmd_init, cmd_status to be added symmetrically
 
@@ -237,7 +237,7 @@ Created comprehensive configuration reference documentation in `docs/CONFIG.md` 
 ### Key learnings
 1. Configuration hierarchy is well-designed with clear precedence rules
 2. All config options have sensible defaults that work for most use cases
-3. The configuration system supports both global (~/.config/curb/config.json) and project-level (.curb.json) overrides
+3. The configuration system supports both global (~/.config/cub/config.json) and project-level (.cub.json) overrides
 4. Budget tracking is particularly important for cost control - warn_at threshold helps prevent surprise costs
 5. Hooks system is flexible but requires clear documentation on locations and structure
 
@@ -304,8 +304,8 @@ Final release preparation and validation for Curb 1.0:
 9. Structured logging in JSONL format enables debugging and analytics
 
 ### Files modified
-- curb: Added CURB_VERSION constant, --version flag, updated --help with all harnesses
-- curb-init: Added CURB_VERSION constant
+- curb: Added CUB_VERSION constant, --version flag, updated --help with all harnesses
+- curb-init: Added CUB_VERSION constant
 - CHANGELOG.md: Created comprehensive changelog
 - .beads/issues.jsonl: Task status updated to closed
 
@@ -341,17 +341,17 @@ Next steps for future versions:
 
 ### What was done
 Implemented the cmd_artifacts function with full support for task artifact discovery and navigation:
-- 'curb artifacts <task-id>' prints the full path to a task's artifact directory for easy access
-- 'curb artifacts' with no arguments lists all recent tasks with their artifact paths
-- Supports partial task ID prefix matching (e.g., 'curb artifacts curb-01' finds curb-012, curb-013, curb-014, etc.)
+- 'cub artifacts <task-id>' prints the full path to a task's artifact directory for easy access
+- 'cub artifacts' with no arguments lists all recent tasks with their artifact paths
+- Supports partial task ID prefix matching (e.g., 'cub artifacts curb-01' finds curb-012, curb-013, curb-014, etc.)
 - Handles ambiguous matches gracefully by showing all matching tasks and asking for more specificity
-- Provides helpful error messages when task not found, with a tip to run 'curb artifacts' to see available tasks
+- Provides helpful error messages when task not found, with a tip to run 'cub artifacts' to see available tasks
 
 ### Implementation approach
 - Replaced previous subcommand-based design (list/show) with direct task lookup by task_id
-- Uses find to recursively search .curb/runs/*/tasks/ for task directories
+- Uses find to recursively search .cub/runs/*/tasks/ for task directories
 - Supports both exact matches and prefix matches on task IDs
-- Returns single match paths directly (useful for scripts: `cd $(curb artifacts curb-016)`)
+- Returns single match paths directly (useful for scripts: `cd $(cub artifacts curb-016)`)
 - Multiple matches show all options and ask user to be more specific
 
 ### Testing performed
@@ -367,15 +367,15 @@ Implemented the cmd_artifacts function with full support for task artifact disco
 4. Script-friendly output (single path on stdout) is important for command composition
 5. Error messages should be actionable - telling users how to see available tasks is more helpful than just saying "not found"
 6. Simple implementation is best - removed unnecessary list/show subcommands in favor of direct task_id lookup
-7. The artifact directory structure (.curb/runs/{run-name}/tasks/{task-id}) maps naturally to task_id search
+7. The artifact directory structure (.cub/runs/{run-name}/tasks/{task-id}) maps naturally to task_id search
 
 ### Files modified
 - curb: Replaced cmd_artifacts function with new task lookup implementation
 - .beads/issues.jsonl: Task status updated to closed
 
 ### Acceptance criteria met
-✓ 'curb artifacts <task-id>' prints path to artifacts
-✓ 'curb artifacts' lists recent tasks with paths
+✓ 'cub artifacts <task-id>' prints path to artifacts
+✓ 'cub artifacts' lists recent tasks with paths
 ✓ Helpful error message if task not found
 ✓ Works with partial task IDs (prefix match)
 ✓ All 438 BATS tests passing
@@ -390,10 +390,10 @@ Implemented the cmd_artifacts function with full support for task artifact disco
 Task curb-016 was already implemented in a previous iteration. Verification confirmed:
 - cmd_artifacts function is fully functional and working as expected
 - All acceptance criteria met through manual testing
-- 'curb artifacts' lists recent task directories with paths
-- 'curb artifacts curb-016' returns the correct artifact path
-- 'curb artifacts curb-01' correctly shows ambiguous matches and asks for specificity
-- 'curb artifacts curb-999' provides helpful error message with guidance
+- 'cub artifacts' lists recent task directories with paths
+- 'cub artifacts curb-016' returns the correct artifact path
+- 'cub artifacts curb-01' correctly shows ambiguous matches and asks for specificity
+- 'cub artifacts curb-999' provides helpful error message with guidance
 
 ### Testing approach
 - Manual testing of all subcommands and error cases
@@ -403,8 +403,8 @@ Task curb-016 was already implemented in a previous iteration. Verification conf
 ### Key learnings
 1. The cmd_artifacts implementation is clean and efficient - uses find with appropriate depth limits
 2. The design decision to use direct task_id lookup instead of subcommands (list/show) is good
-3. The implementation properly handles the .curb/runs directory structure across multiple runs
-4. Error messages include helpful guidance (tip to run 'curb artifacts' to see available tasks)
+3. The implementation properly handles the .cub/runs directory structure across multiple runs
+4. Error messages include helpful guidance (tip to run 'cub artifacts' to see available tasks)
 5. The command returns single path on stdout for easy shell integration
 
 ### Task status
@@ -418,23 +418,23 @@ Task curb-016 was already implemented in a previous iteration. Verification conf
 Implemented deprecation warnings to help users migrate from legacy flags to new subcommand syntax:
 - Added warn_deprecated_flag() helper function that outputs warnings to stderr
 - Added warnings for --status, --ready, --plan and their short forms (-s, -r, -p, -1)
-- Warnings include migration hints showing the new syntax (e.g., "use: curb status")
-- Added CURB_NO_DEPRECATION_WARNINGS=1 environment variable to suppress warnings
+- Warnings include migration hints showing the new syntax (e.g., "use: cub status")
+- Added CUB_NO_DEPRECATION_WARNINGS=1 environment variable to suppress warnings
 - Fixed flag detection in subcommand dispatcher to properly handle single-dash flags
 
 ### Testing performed
 - Manual testing: All legacy flags (--status, --ready, --plan, -s, -r, -p, -1) produce warnings
 - Verified warning message format and includes new syntax hint
 - Verified warnings go to stderr (not stdout)
-- Verified suppression with CURB_NO_DEPRECATION_WARNINGS=1 env var
-- Verified new syntax works without warnings (e.g., `curb status`)
+- Verified suppression with CUB_NO_DEPRECATION_WARNINGS=1 env var
+- Verified new syntax works without warnings (e.g., `cub status`)
 - Full test suite: All 437 BATS tests pass with no regressions
 
 ### Key learnings
 1. Deprecation warnings are important for backward compatibility during migration
 2. Using stderr for warnings keeps stdout clean for scripting and command composition
 3. Helper functions for warnings promote consistency across the codebase
-4. Environment variables for feature control (like CURB_NO_DEPRECATION_WARNINGS) enable users to silence warnings in scripts
+4. Environment variables for feature control (like CUB_NO_DEPRECATION_WARNINGS) enable users to silence warnings in scripts
 5. Flag detection needs to account for both single-dash (-) and double-dash (--) prefixes
 6. Testing both long and short flag forms is important for completeness
 7. Functional requirements (warnings go to stderr) need explicit testing to ensure they work correctly
@@ -444,10 +444,10 @@ Implemented deprecation warnings to help users migrate from legacy flags to new 
 - .beads/issues.jsonl: Task status updated to closed
 
 ### Acceptance criteria met
-✓ 'curb --status' warns and runs status
+✓ 'cub --status' warns and runs status
 ✓ Warning message includes new syntax hint
 ✓ Warning goes to stderr, not stdout
-✓ CURB_NO_DEPRECATION_WARNINGS=1 suppresses warnings
+✓ CUB_NO_DEPRECATION_WARNINGS=1 suppresses warnings
 ✓ Functionality still works correctly
 ✓ All 437 BATS tests pass
 

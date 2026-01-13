@@ -28,7 +28,7 @@
 
 ### Learnings:
 - BATS test framework uses `load test_helper` to source common setup
-- Tests should use `PROJECT_ROOT` (set by test_helper) rather than `CURB_DIR`
+- Tests should use `PROJECT_ROOT` (set by test_helper) rather than `CUB_DIR`
 - Test temp directories should use `${BATS_TMPDIR}` for isolation
 - All functions in bash libraries should have clear comments explaining behavior
 - XDG spec provides good standard for directory structure
@@ -77,7 +77,7 @@
   - Use `bd list --status <status>` to query tasks
 
 ### Implementation Details:
-- Config precedence: project (`./.curb.json`) > user (`~/.config/curb/config.json`)
+- Config precedence: project (`./.cub.json`) > user (`~/.config/cub/config.json`)
 - Invalid JSON handled gracefully with warnings to stderr
 - Null values treated as missing (return exit code 1)
 - Cache persists across function calls within same shell session
@@ -97,16 +97,16 @@ The implementation was already present in the repository and working correctly. 
 
 ### What was implemented:
 1. Enhanced `config_load()` in `lib/config.sh` to support environment variable overrides
-   - Added CURB_BUDGET environment variable support
+   - Added CUB_BUDGET environment variable support
    - Environment variables now have highest precedence in config merging
    - Used jq's `--argjson` to safely inject numeric values
    - Handles missing budget structure gracefully (creates if needed)
 
 2. Added comprehensive test coverage in `tests/config.bats`
-   - Test: CURB_BUDGET env var overrides config budget
-   - Test: CURB_BUDGET env var overrides project config budget
-   - Test: CURB_BUDGET env var creates budget structure if not present
-   - Test: Config without CURB_BUDGET env var uses file values
+   - Test: CUB_BUDGET env var overrides config budget
+   - Test: CUB_BUDGET env var overrides project config budget
+   - Test: CUB_BUDGET env var creates budget structure if not present
+   - Test: Config without CUB_BUDGET env var uses file values
 
 ### Test Results:
 - All 4 new environment variable tests PASS
@@ -123,19 +123,19 @@ The implementation was already present in the repository and working correctly. 
 - **Graceful structure creation**: When env var sets a nested value, use jq to create structure if missing
   - First try: `.budget.default = $budget` (updates existing)
   - Fallback: `. + {budget: {default: $budget}}` (creates structure)
-- **Environment variable naming**: Follow existing CURB_* convention
-  - Consistent with CURB_BACKEND, CURB_DEBUG, CURB_MODEL, etc.
+- **Environment variable naming**: Follow existing CUB_* convention
+  - Consistent with CUB_BACKEND, CUB_DEBUG, CUB_MODEL, etc.
   - Makes it easy to discover available env vars
 
 ### Implementation Details:
 - Updated config precedence from "project > user" to "env vars > project > user"
-- CURB_BUDGET is the first env var override implemented
-- Pattern is extensible for other env vars (CURB_HARNESS, CURB_MAX_ITERATIONS, etc.)
+- CUB_BUDGET is the first env var override implemented
+- Pattern is extensible for other env vars (CUB_HARNESS, CUB_MAX_ITERATIONS, etc.)
 - All acceptance criteria met:
   ✓ Global config alone works
   ✓ Project config overrides global values
   ✓ Missing config files handled gracefully (empty default)
-  ✓ CURB_BUDGET env var overrides config budget
+  ✓ CUB_BUDGET env var overrides config budget
 
 ## Session 4: Logger Implementation (curb-et7)
 
@@ -145,7 +145,7 @@ The implementation was already present in the repository and working correctly. 
 
 ### What was implemented:
 1. Created `lib/logger.sh` with full JSONL logging functionality
-   - `logger_init(project_name, session_id)` - Initialize log file at ~/.local/share/curb/logs/{project}/{session}.jsonl
+   - `logger_init(project_name, session_id)` - Initialize log file at ~/.local/share/cub/logs/{project}/{session}.jsonl
    - `logger_write(event_type, data_json)` - Append structured log entries
    - `logger_get_file()` - Get current log file path
    - `logger_clear()` - Clear logger state for testing
@@ -193,7 +193,7 @@ The implementation was already present in the repository and working correctly. 
 - Append-only writes preserve all previous entries
 
 ### Acceptance Criteria Met:
-✓ Log file created at ~/.local/share/curb/logs/{project}/{session}.jsonl
+✓ Log file created at ~/.local/share/cub/logs/{project}/{session}.jsonl
 ✓ Each line is valid JSON
 ✓ Timestamps in ISO 8601 format
 ✓ Log file is append-only
@@ -351,7 +351,7 @@ This completes the config integration. Future config values can follow the same 
 
 ### Test Results:
 - All 189 existing BATS tests continue to PASS
-- Manual verification: log files created at ~/.local/share/curb/logs/curb/{session}.jsonl
+- Manual verification: log files created at ~/.local/share/cub/logs/cub/{session}.jsonl
 - Manual verification: JSONL entries contain task_start, task_end, and error events
 
 ### Learnings:
@@ -363,7 +363,7 @@ This completes the config integration. Future config values can follow the same 
 
 - **Dual initialization pattern**: Logger needs initialization in both places
   - `run_loop()` - Main entry point for normal operations
-  - `run_iteration()` - Entry point for `curb --once` single iteration mode
+  - `run_iteration()` - Entry point for `cub --once` single iteration mode
   - Use guard check `if [[ -z "$(logger_get_file)" ]]` to prevent re-initialization
   - This ensures logger works in all execution modes
 
@@ -390,13 +390,13 @@ This completes the config integration. Future config values can follow the same 
 
 ### Implementation Details:
 - Session ID format: `YYYYMMDD-HHMMSS` (e.g., "20260109-210920")
-- Log file path: `~/.local/share/curb/logs/{project}/{session}.jsonl`
+- Log file path: `~/.local/share/cub/logs/{project}/{session}.jsonl`
 - Each iteration uses same session log file (one file per curb invocation)
 - Git SHA captured automatically in log_task_end for traceability
 - All log writes are append-only, preserving complete execution history
 
 ### Acceptance Criteria Met:
-✓ Running curb creates log file at ~/.local/share/curb/logs/{project}/{session}.jsonl
+✓ Running curb creates log file at ~/.local/share/cub/logs/{project}/{session}.jsonl
 ✓ Each task iteration produces start/end log entries with complete metadata
 ✓ Log includes harness, task_id, duration, exit_code, and git_sha
 
@@ -408,7 +408,7 @@ Logger integration is complete. Future enhancements could include:
 
 ## Session 8: Global Onboarding (curb-kiz)
 
-### Task: Add curb init --global for onboarding
+### Task: Add cub init --global for onboarding
 - **Status**: COMPLETED
 - **Date**: 2026-01-09
 
@@ -426,13 +426,13 @@ Logger integration is complete. Future enhancements could include:
 
 3. Global directory structure creation
    - Uses XDG Base Directory Specification via lib/xdg.sh
-   - Creates `~/.config/curb/` for configuration
-   - Creates `~/.local/share/curb/logs/` for logs
-   - Creates `~/.cache/curb/` for cache
+   - Creates `~/.config/cub/` for configuration
+   - Creates `~/.local/share/cub/logs/` for logs
+   - Creates `~/.cache/cub/` for cache
    - Uses `curb_ensure_dirs()` helper function
 
 4. Config file generation with sensible defaults
-   - Creates `~/.config/curb/config.json` with:
+   - Creates `~/.config/cub/config.json` with:
      - `harness.default`: "auto" (auto-detect available harness)
      - `harness.priority`: ["claude", "codex"] (preference order)
      - `budget.default`: 1000000 tokens (reasonable default)
@@ -444,7 +444,7 @@ Logger integration is complete. Future enhancements could include:
    - Skips creation if file already exists (idempotent)
 
 5. Hook directories creation
-   - Creates 5 hook directories under `~/.config/curb/hooks/`:
+   - Creates 5 hook directories under `~/.config/cub/hooks/`:
      - `pre-loop.d/` - Before starting the main loop
      - `pre-task.d/` - Before each task execution
      - `post-task.d/` - After each task execution
@@ -473,7 +473,7 @@ Logger integration is complete. Future enhancements could include:
 - **Sourcing libraries in scripts**: Must source dependencies early
   - Source lib/xdg.sh at the top to get directory helpers
   - Libraries must be sourced before using their functions
-  - Use `CURB_DIR` to find libraries relative to script location
+  - Use `CUB_DIR` to find libraries relative to script location
 
 - **Idempotent initialization**: Check before creating
   - Check if config file exists before writing
@@ -509,7 +509,7 @@ Logger integration is complete. Future enhancements could include:
 - Project init: Completely unchanged, maintains backward compatibility
 
 ### Acceptance Criteria Met:
-✓ curb init --global creates ~/.config/curb/config.json
+✓ cub init --global creates ~/.config/cub/config.json
 ✓ Missing dependencies are reported clearly
 ✓ Config has sensible defaults for budget, harness priority
 ✓ Hook directories created
@@ -530,14 +530,14 @@ Global onboarding is complete. Users can now:
 ### What was validated:
 Phase 1 is complete. All configuration and logging features are working correctly:
 
-1. **Global Config**: `curb init --global` command
-   - Creates `~/.config/curb/config.json` with sensible defaults
+1. **Global Config**: `cub init --global` command
+   - Creates `~/.config/cub/config.json` with sensible defaults
    - Creates XDG directory structure (config, logs, cache)
    - Creates hook directories (pre-loop.d, pre-task.d, post-task.d, on-error.d, post-loop.d)
    - Idempotent: can be run multiple times safely
    - Checks dependencies (jq, harnesses)
 
-2. **Project Config Override**: `.curb.json` file in project root
+2. **Project Config Override**: `.cub.json` file in project root
    - Project config properly overrides global config values
    - Tested with budget.default (500000 overriding 1000000)
    - Tested with loop.max_iterations (50 overriding 100)
@@ -545,7 +545,7 @@ Phase 1 is complete. All configuration and logging features are working correctl
    - Config precedence: env vars > project > global > defaults
 
 3. **Structured Logging**: JSONL logs after each run
-   - Logs created at `~/.local/share/curb/logs/{project}/{session}.jsonl`
+   - Logs created at `~/.local/share/cub/logs/{project}/{session}.jsonl`
    - Session ID format: `YYYYMMDD-HHMMSS` (e.g., "20260109-214858")
    - Log entries contain: timestamp (ISO 8601), event_type, and data
    - Event types: task_start, task_end, error
@@ -572,10 +572,10 @@ Phase 1 is complete. All configuration and logging features are working correctl
   - Ensure documentation matches implementation
   - Validate acceptance criteria before closing
 
-- **Config file location**: Project config is `.curb.json` (not `.curb/config.json`)
+- **Config file location**: Project config is `.cub.json` (not `.cub/config.json`)
   - This follows the dotfile convention for project-specific config
-  - The `.curb/` directory is used by beads for task tracking
-  - Global config is at `~/.config/curb/config.json` (follows XDG spec)
+  - The `.cub/` directory is used by beads for task tracking
+  - Global config is at `~/.config/cub/config.json` (follows XDG spec)
 
 - **Testing config merging**: Use bash to source libraries and test
   - Source dependencies in order: xdg.sh before config.sh
@@ -590,7 +590,7 @@ Phase 1 is complete. All configuration and logging features are working correctl
 - **Phase 1 is complete**: All foundational features ready
   - Global and project configuration working
   - Structured logging with metadata
-  - Onboarding experience via `curb init --global`
+  - Onboarding experience via `cub init --global`
   - Ready to proceed to Phase 2: Reliability features
 
 ### Questions Answered:
@@ -622,12 +622,12 @@ Phase 1 validation complete. Ready to proceed to Phase 2: Reliability
    - Added `--label <name>` flag to target tasks with a specific label
    - Both flags can be combined (AND logic)
    - Works with both beads and JSON backends
-   - Environment variables: `CURB_EPIC`, `CURB_LABEL`
+   - Environment variables: `CUB_EPIC`, `CUB_LABEL`
    - Leverages beads CLI's native `--parent` and `--label` flags
 
 2. **Per-Task Model Selection**
    - Tasks with `model:X` labels (e.g., `model:haiku`, `model:sonnet`) auto-select the model
-   - Main loop extracts model label and sets `CURB_MODEL` before harness invocation
+   - Main loop extracts model label and sets `CUB_MODEL` before harness invocation
    - Only applies to Claude harness (other harnesses may not support model selection)
 
 3. **Beads Backend Fixes**
@@ -689,7 +689,7 @@ This epic is a container for all Phase 1 foundation tasks. All 9 child tasks wer
 5. **curb-ohp**: log_task_start/end functions with metadata
 6. **curb-13j**: Config integration into main curb script
 7. **curb-0b5**: Logger integration into main loop
-8. **curb-kiz**: curb init --global for onboarding
+8. **curb-kiz**: cub init --global for onboarding
 9. **curb-hp9**: Checkpoint validation (Phase 1 complete)
 
 ### Test Results:
@@ -1099,8 +1099,8 @@ Test runner integration is complete. Next tasks in reliability phase:
    - Auto-detects test runner from project
 
 4. **Added --require-clean and --no-require-clean CLI flags**
-   - New REQUIRE_CLEAN variable initialized from CURB_REQUIRE_CLEAN env var
-   - Flags set REQUIRE_CLEAN and export CURB_REQUIRE_CLEAN
+   - New REQUIRE_CLEAN variable initialized from CUB_REQUIRE_CLEAN env var
+   - Flags set REQUIRE_CLEAN and export CUB_REQUIRE_CLEAN
    - --require-clean forces strict mode (fail on uncommitted changes)
    - --no-require-clean disables check (allow uncommitted changes)
    - Documented in --help output
@@ -1160,7 +1160,7 @@ Test runner integration is complete. Next tasks in reliability phase:
   - "Repository state is clean" on success
   - "State check failed: uncommitted changes detected" on failure
   - Helps debug when running with --debug flag
-  - Provides visibility into what curb is doing
+  - Provides visibility into what cub is doing
 
 ### Implementation Details:
 - lib/state.sh sourced at line 32 in curb script
@@ -1199,17 +1199,17 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 2. Added BUDGET variable initialization after config_load with environment variable support
 3. Implemented flag parsing in main() function:
    - Supports both `--budget=1000000` and `--budget 1000000` syntax
-   - Exports CURB_BUDGET environment variable for subshells
+   - Exports CUB_BUDGET environment variable for subshells
    - Follows established pattern used by --model, --epic, --label flags
 4. Added budget_init() call after dependency check:
    - Uses CLI flag value if provided
-   - Falls back to environment variable CURB_BUDGET
+   - Falls back to environment variable CUB_BUDGET
    - Falls back to config file value at `budget.limit`
    - Logs initialization or warning on failure
 5. Updated --help documentation:
-   - Added usage example: `curb --budget X`
+   - Added usage example: `cub --budget X`
    - Added flag description with token parameter
-   - Added CURB_BUDGET to environment variables section
+   - Added CUB_BUDGET to environment variables section
 
 ### Test Results:
 - All 263 BATS tests continue to PASS
@@ -1218,7 +1218,7 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 - Help output verified with correct documentation
 
 ### Acceptance Criteria Verification:
-- [x] curb --budget 1000000 sets budget (verified with manual test)
+- [x] cub --budget 1000000 sets budget (verified with manual test)
 - [x] Default from config if no flag (integrated config_get fallback)
 - [x] Shows in --help (added to usage and flags sections)
 
@@ -1235,7 +1235,7 @@ Clean state integration is complete. Ready for budget enforcement tasks:
 ### Key Learnings:
 - **Flag parsing pattern**: This project consistently uses loop-based getopts with lookahead for handling both `--flag=value` and `--flag value` syntax
 - **Config integration**: Always use `config_get_or` with fallback default to handle cases where config key doesn't exist
-- **Environment variable support**: Export variables (CURB_BUDGET) to make them available in subshells
+- **Environment variable support**: Export variables (CUB_BUDGET) to make them available in subshells
 - **Documentation synchronization**: Update both usage comment at top AND detailed --help section
 - **Budget module is already complete**: lib/budget.sh had all necessary functionality including budget_init, budget_check, budget_record
 - **Beads CLI**: This project uses beads (bd) for task management instead of prd.json JSON files. Use `bd close <id> -r "reason"` to mark tasks complete.
@@ -1428,7 +1428,7 @@ Phase 2 implementation is complete and fully functional. All critical reliabilit
 
 ### Verified Workflows:
 1. ✓ `./curb` runs main loop with full reliability checks
-2. ✓ `./curb --once` runs single iteration with all checks
+2. ✓ `./cub --once` runs single iteration with all checks
 3. ✓ Clean state enforcement prevents uncommitted changes from going undetected
 4. ✓ Test requirement can be enabled/disabled per project
 5. ✓ Budget tracking accumulates tokens across iterations
@@ -1485,7 +1485,7 @@ Ready to proceed to Phase 3: Extensibility (hooks, new harnesses)
 ### What was implemented:
 1. **Created `lib/hooks.sh`** with comprehensive hook framework
    - `hooks_run(hook_name)` - Main function to execute hook scripts
-   - Checks both global (~/.config/curb/hooks/) and project (./.curb/hooks/) directories
+   - Checks both global (~/.config/cub/hooks/) and project (./.cub/hooks/) directories
    - Executes all scripts in {hook_name}.d/ directories
    - Scripts run in sorted order using `find ... | sort -z`
    - Only executable files are run (checked with `find -perm +111`)
@@ -1500,7 +1500,7 @@ Ready to proceed to Phase 3: Extensibility (hooks, new harnesses)
 3. **Context export via environment variables**
    - `hooks_set_task_context(task_id, task_title, exit_code)` - Export task context
    - `hooks_set_session_context(session_id, harness)` - Export session context
-   - Variables: CURB_HOOK_NAME, CURB_PROJECT_DIR, CURB_TASK_ID, CURB_TASK_TITLE, CURB_EXIT_CODE, CURB_SESSION_ID, CURB_HARNESS
+   - Variables: CUB_HOOK_NAME, CUB_PROJECT_DIR, CUB_TASK_ID, CUB_TASK_TITLE, CUB_EXIT_CODE, CUB_SESSION_ID, CUB_HARNESS
    - Context persists across hook script executions
 
 4. **Configurable behavior**
@@ -1617,7 +1617,7 @@ Hooks framework is complete. Future integration tasks:
 
 ### What was implemented:
 1. Created `hooks_find(hook_name)` function in `lib/hooks.sh`
-   - Scans both global (~/.config/curb/hooks/{hook_name}.d/) and project (./.curb/hooks/{hook_name}.d/) directories
+   - Scans both global (~/.config/cub/hooks/{hook_name}.d/) and project (./.cub/hooks/{hook_name}.d/) directories
    - Returns list of executable scripts (one per line)
    - Filters to executable files only (using find -perm +111)
    - Returns scripts in sorted order (global hooks first, then project)
@@ -1788,10 +1788,10 @@ Hooks framework is complete. Future integration tasks:
   - Post-loop: After loop decision made, before exit
 
 ### Context Variables Available to Hooks:
-- **All hooks**: CURB_HOOK_NAME, CURB_PROJECT_DIR
-- **Pre-loop, Post-loop**: CURB_SESSION_ID, CURB_HARNESS
-- **Pre-task**: CURB_TASK_ID, CURB_TASK_TITLE
-- **Post-task, On-error**: CURB_TASK_ID, CURB_TASK_TITLE, CURB_EXIT_CODE
+- **All hooks**: CUB_HOOK_NAME, CUB_PROJECT_DIR
+- **Pre-loop, Post-loop**: CUB_SESSION_ID, CUB_HARNESS
+- **Pre-task**: CUB_TASK_ID, CUB_TASK_TITLE
+- **Post-task, On-error**: CUB_TASK_ID, CUB_TASK_TITLE, CUB_EXIT_CODE
 
 ### Implementation Details:
 - Hooks sourced at line 37 in curb script
@@ -1814,8 +1814,8 @@ Hooks framework is complete. Future integration tasks:
 
 ### Next Steps:
 Hook integration is complete. Users can now:
-1. Create hook scripts in ~/.config/curb/hooks/{hook-name}.d/
-2. Create project-specific hooks in ./.curb/hooks/{hook-name}.d/
+1. Create hook scripts in ~/.config/cub/hooks/{hook-name}.d/
+2. Create project-specific hooks in ./.cub/hooks/{hook-name}.d/
 3. Use hooks for notifications, metrics, validation, cleanup, etc.
 4. Control hook behavior via hooks.enabled and hooks.fail_fast config
 
@@ -1928,7 +1928,7 @@ ${task_prompt}"
 
     local flags="-y"  # YOLO mode required
     [[ "$debug" == "true" ]] && flags="$flags -d"
-    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags -m $CURB_MODEL"
+    [[ -n "${CUB_MODEL:-}" ]] && flags="$flags -m $CUB_MODEL"
 
     # Invoke with combined prompt
     echo "" | gemini -p "$combined_prompt" $flags
@@ -2017,7 +2017,7 @@ Ready to proceed with curb-3s0 (Implement Gemini harness):
 1. **Created gemini_invoke() function** in lib/harness.sh
    - Concatenates system and task prompts (no --append-system-prompt flag available)
    - Uses -y (YOLO) flag for autonomous operation (required for automation)
-   - Supports CURB_MODEL environment variable for model selection
+   - Supports CUB_MODEL environment variable for model selection
    - Supports GEMINI_FLAGS for additional user flags
    - Clears usage tracking and stores zero values (token reporting not available)
    - Returns exit code from gemini CLI
@@ -2114,7 +2114,7 @@ Ready to proceed with curb-3s0 (Implement Gemini harness):
 - Comment density: High (explains limitations, TODOs, and patterns)
 
 ### Acceptance Criteria Met:
-✓ curb --harness gemini works (routing implemented)
+✓ cub --harness gemini works (routing implemented)
 ✓ System and task prompts passed correctly (concatenation pattern)
 ✓ Streaming mode if available (fallback to non-streaming)
 ✓ Falls back gracefully if not installed (harness_available check)
@@ -2139,9 +2139,9 @@ Ready to proceed with curb-3s0 (Implement Gemini harness):
 ### Next Steps:
 Gemini harness is complete and ready for use. Users can:
 1. Install Gemini CLI via homebrew, npm, or npx
-2. Run curb --harness gemini to use it
+2. Run cub --harness gemini to use it
 3. Set HARNESS=gemini or harness.default="gemini" in config
-4. Use CURB_MODEL to select model (gemini-2.5-flash, etc.)
+4. Use CUB_MODEL to select model (gemini-2.5-flash, etc.)
 5. Add GEMINI_FLAGS for additional CLI options
 
 ## Session: OpenCode CLI Research Spike (curb-d9l)
@@ -2290,7 +2290,7 @@ Successfully implemented OpenCode as a supported harness in lib/harness.sh follo
 
 3. **Model Selection**:
    - Requires `provider/model` format (e.g., `anthropic/claude-sonnet-4`)
-   - Auto-prepends `anthropic/` if `CURB_MODEL` doesn't contain `/`
+   - Auto-prepends `anthropic/` if `CUB_MODEL` doesn't contain `/`
    - Supports other providers via explicit format: `openai/gpt-4o`
 
 4. **Priority in Detection**:
@@ -2300,7 +2300,7 @@ Successfully implemented OpenCode as a supported harness in lib/harness.sh follo
 
 5. **Environment Variables**:
    - `OPENCODE_FLAGS` for passing custom flags (follows pattern of CLAUDE_FLAGS, CODEX_FLAGS, GEMINI_FLAGS)
-   - `CURB_MODEL` supported with automatic provider prefix
+   - `CUB_MODEL` supported with automatic provider prefix
 
 ### Testing Results
 
@@ -2558,9 +2558,9 @@ All features from Phase 3 verified and working:
 - **post-loop**: Runs after main loop completes (tested, integrated)
 
 Implementation details:
-- Hook scripts stored in `.curb/hooks/{hook_name}.d/` and `~/.config/curb/hooks/{hook_name}.d/`
+- Hook scripts stored in `.cub/hooks/{hook_name}.d/` and `~/.config/cub/hooks/{hook_name}.d/`
 - Scripts executed in sorted order (01-first.sh before 02-second.sh)
-- Environment context exported: `CURB_HOOK_NAME`, `CURB_PROJECT_DIR`, `CURB_TASK_ID`, `CURB_TASK_TITLE`, `CURB_EXIT_CODE`, `CURB_SESSION_ID`, `CURB_HARNESS`
+- Environment context exported: `CUB_HOOK_NAME`, `CUB_PROJECT_DIR`, `CUB_TASK_ID`, `CUB_TASK_TITLE`, `CUB_EXIT_CODE`, `CUB_SESSION_ID`, `CUB_HARNESS`
 - 38 dedicated tests all passing
 
 #### 2. Harnesses (4/4) ✓
@@ -2693,15 +2693,15 @@ Blocked tasks ready to start:
 1. Hook system is fully functional in lib/hooks.sh - no changes needed
 2. Scripts run in sorted order from both global and project directories
 3. Each hook has specific context variables available (see hooks.sh)
-4. All hooks export CURB_PROJECT_DIR, CURB_HOOK_NAME
-5. Task-specific hooks (pre-task, post-task, on-error) get CURB_TASK_ID, CURB_TASK_TITLE, CURB_EXIT_CODE
-6. Session hooks (pre-loop, post-loop) get CURB_SESSION_ID, CURB_HARNESS
+4. All hooks export CUB_PROJECT_DIR, CUB_HOOK_NAME
+5. Task-specific hooks (pre-task, post-task, on-error) get CUB_TASK_ID, CUB_TASK_TITLE, CUB_EXIT_CODE
+6. Session hooks (pre-loop, post-loop) get CUB_SESSION_ID, CUB_HARNESS
 7. Example hooks should gracefully handle missing config (environment variables)
 8. Example hooks follow pattern: validate env vars → build payload → POST request → check HTTP status
 
 ### Implementation Details:
 - Each hook script starts with comprehensive documentation block
-- Installation instructions specify both global (~/.config/curb/hooks) and project (.curb/hooks) locations
+- Installation instructions specify both global (~/.config/cub/hooks) and project (.cub/hooks) locations
 - All three hooks use curl for HTTP requests to external services
 - Webhook/API credentials passed via environment variables (best practice)
 - Hooks use `set -euo pipefail` for safety
@@ -2790,8 +2790,8 @@ Blocked tasks ready to start:
 
 2. **Breaking Changes Section** - Detailed compatibility information:
    - Config file format changes (new required fields)
-   - Global config location change (~/.config/curb/config.json)
-   - Log location and format changes (JSONL in ~/.local/share/curb/logs/)
+   - Global config location change (~/.config/cub/config.json)
+   - Log location and format changes (JSONL in ~/.local/share/cub/logs/)
    - Hook directory structure migration path
    - Beads backend migration (optional)
    - New environment variables (all with defaults)
@@ -2890,7 +2890,7 @@ Migration guides are often the difference between happy users and frustrated use
 2. Test project includes:
    - Simple prd.json with 3 tasks (create files, merge files)
    - PROMPT.md and AGENT.md templates
-   - Config file (.curb.json) enabling hooks and disabling state checks
+   - Config file (.cub.json) enabling hooks and disabling state checks
    - Git initialization for clean state verification
 
 3. Comprehensive hooks implementation:
@@ -2902,7 +2902,7 @@ Migration guides are often the difference between happy users and frustrated use
    - File existence checks (hello.txt, world.txt, merged.txt)
    - Task status verification (open -> closed transitions)
    - Hook execution verification (all hooks logged events)
-   - Structured logs verification (~/.local/share/curb/logs/)
+   - Structured logs verification (~/.local/share/cub/logs/)
    - Budget enforcement verification
 
 5. Created BATS test suite (tests/e2e.bats):
@@ -2925,7 +2925,7 @@ Migration guides are often the difference between happy users and frustrated use
 
 - **Hook verification**: Testing hooks requires:
   - Making scripts executable (chmod +x)
-  - Setting CURB_PROJECT_DIR so hooks can write to correct location
+  - Setting CUB_PROJECT_DIR so hooks can write to correct location
   - Checking for event markers in log files ([pre-loop], [pre-task], etc.)
 
 - **Git initialization required**: Curb's clean state checking requires:
@@ -2962,7 +2962,7 @@ Migration guides are often the difference between happy users and frustrated use
 - Test project uses JSON backend (not beads) for simplicity
 - Tasks are deliberately simple (create files) to minimize token usage
 - Dependencies tested via task 3 depending on tasks 1 and 2
-- Hooks export context vars: CURB_TASK_ID, CURB_TASK_TITLE, CURB_EXIT_CODE, etc.
+- Hooks export context vars: CUB_TASK_ID, CUB_TASK_TITLE, CUB_EXIT_CODE, etc.
 - Cleanup function registered with trap EXIT for reliability
 
 ### Files Created:
@@ -2971,8 +2971,8 @@ Migration guides are often the difference between happy users and frustrated use
 - tests/e2e/project/prd.json (3 test tasks)
 - tests/e2e/project/PROMPT.md (agent instructions)
 - tests/e2e/project/AGENT.md (build instructions)
-- tests/e2e/project/.curb.json (test configuration)
-- tests/e2e/project/.curb/hooks/*/*.sh (5 hook scripts)
+- tests/e2e/project/.cub.json (test configuration)
+- tests/e2e/project/.cub/hooks/*/*.sh (5 hook scripts)
 - tests/e2e.bats (14 BATS tests)
 
 ### Dependencies & Next Tasks:
@@ -3012,7 +3012,7 @@ Completely reorganized and enhanced the --help output for the curb CLI tool:
    - Each example includes a comment explaining what it does
 
 4. **Improved documentation:**
-   - Environment variables section clearly lists all CURB_* env vars
+   - Environment variables section clearly lists all CUB_* env vars
    - Each flag has concrete usage information (e.g., "budget 5000000")
    - Added LEARN MORE section pointing to README.md, CONFIG.md, CONTRIBUTING.md
 
@@ -3128,12 +3128,12 @@ Implemented comprehensive session management functions in `lib/session.sh`:
 - Can be used by logger to track session IDs
 - Foundation for task lifecycle management
 
-## curb-003: Create lib/artifacts.sh (2026-01-10)
+## cub-003: Create lib/artifacts.sh (2026-01-10)
 
 Successfully implemented lib/artifacts.sh module for artifact directory management:
 
 ### Implementation Details
-- Created .curb/runs/{session-id}/tasks/{task-id} directory structure
+- Created .cub/runs/{session-id}/tasks/{task-id} directory structure
 - Used `mkdir -p -m 700` for atomic directory creation with secure permissions
 - Sourced session.sh for session_get_id() and xdg.sh for consistency
 - All functions return proper error codes and messages to stderr
@@ -3161,14 +3161,14 @@ Successfully implemented lib/artifacts.sh module for artifact directory manageme
 
 ### What was implemented:
 1. Created `artifacts_init_run()` function in lib/artifacts.sh
-   - Creates run directory at .curb/runs/{session-id}
+   - Creates run directory at .cub/runs/{session-id}
    - Generates run.json with metadata: run_id, session_name, started_at, config snapshot, status
    - Captures config snapshot using config_dump if available
    - Uses ISO 8601 timestamps (YYYY-MM-DDTHH:MM:SSZ)
    - Secure permissions (700) for all created directories
 
 2. Created `artifacts_start_task()` function in lib/artifacts.sh
-   - Creates task directory at .curb/runs/{session-id}/tasks/{task-id}
+   - Creates task directory at .cub/runs/{session-id}/tasks/{task-id}
    - Generates task.json with metadata: task_id, title, priority, status, started_at, iterations
    - Priority parameter optional, defaults to 'normal'
    - Uses ISO 8601 timestamps
@@ -3188,7 +3188,7 @@ Successfully implemented lib/artifacts.sh module for artifact directory manageme
 ### Learnings:
 - Bash glob patterns (*.pattern*) don't expand properly in BATS tests within variable assignments
   - Solution: Use `find` command instead of globs in tests
-  - Example: `run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)`
+  - Example: `run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)`
 - jq -n creates JSON from scratch without requiring input
 - jq --argjson allows passing JSON objects as parameters (for config snapshot)
 - ISO 8601 timestamps in UTC: `date -u +"%Y-%m-%dT%H:%M:%SZ"`
@@ -3330,7 +3330,7 @@ Both functions follow the established pattern:
 2. Added --name flag for session name override
    - Supports both `--name value` and `--name=value` syntax
    - Falls back to automatic animal name generation if not provided
-   - Can also be set via CURB_SESSION_NAME environment variable
+   - Can also be set via CUB_SESSION_NAME environment variable
 
 3. Session initialization in run_loop
    - Calls session_init at the start of run_loop (after config_load)
@@ -3340,7 +3340,7 @@ Both functions follow the established pattern:
 
 4. Artifacts initialization
    - Calls artifacts_init_run after session_init
-   - Creates .curb/runs/{session-id}/ directory structure
+   - Creates .cub/runs/{session-id}/ directory structure
    - Generates run.json with session metadata and config snapshot
 
 5. Task-level artifact capture
@@ -3369,7 +3369,7 @@ Both functions follow the established pattern:
   - Only run_loop initializes session, not one-off commands
 
 - **Artifact path construction**: Using $(pwd) in artifacts_get_path to get absolute paths
-  - Relative paths like .curb/runs/{session-id}/tasks/{task-id}
+  - Relative paths like .cub/runs/{session-id}/tasks/{task-id}
   - Absolute paths needed for logging and external tools
 
 - **Task priority extraction**: Using jq with // operator for defaults
@@ -3418,12 +3418,12 @@ Both functions follow the established pattern:
 - These failures appear to be test setup issues with mocked harness, not related to artifact generation
 
 ### Environment Variable Gotcha
-- Discovered that CURB_EPIC environment variable filters tasks across ALL curb invocations
-- This caused e2e test tasks to be filtered out when CURB_EPIC=curb-E01 was set from main project
-- Recommendation: Be mindful of persistent CURB_* environment variables when testing
+- Discovered that CUB_EPIC environment variable filters tasks across ALL curb invocations
+- This caused e2e test tasks to be filtered out when CUB_EPIC=curb-E01 was set from main project
+- Recommendation: Be mindful of persistent CUB_* environment variables when testing
 
 ### Artifact Generation Verification
-- Confirmed artifact bundle structure is created correctly in .curb/runs/<run-id>/
+- Confirmed artifact bundle structure is created correctly in .cub/runs/<run-id>/
 - Artifacts from test runs visible in git commit (buffalo-20260110-122623, wallaby-20260110-122200)
 - Files generated: run.json, tasks/<task-id>/task.json, summary.md, changes.patch
 
@@ -3477,7 +3477,7 @@ Both functions follow the established pattern:
 ✓ Tests verify JSON structure with jq
 ✓ Tests use isolated temp directories
 
-## curb-012: Create subcommand dispatcher (2026-01-10)
+## cub-012: Create subcommand dispatcher (2026-01-10)
 
 ### What Was Done
 - Implemented subcommand dispatcher in curb entry point
@@ -3508,7 +3508,7 @@ Both functions follow the established pattern:
 - Unknown subcommand detection checks if arg doesn't start with --
 
 ### Lessons Learned
-- CURB_PROJECT_DIR environment variable can interfere with testing if set
+- CUB_PROJECT_DIR environment variable can interfere with testing if set
 - Tests run in clean environment and don't inherit session variables
 - Dispatcher pattern allows gradual migration from flags to subcommands
 - Both patterns can coexist during transition period
@@ -3543,7 +3543,7 @@ Both functions follow the established pattern:
    - All other args passed through to subcommand dispatcher
 
 3. Updated subcommand dispatcher
-   - Routes 'curb run' with args to cmd_run "${args[@]:1}"
+   - Routes 'cub run' with args to cmd_run "${args[@]:1}"
    - Legacy flag handling maintained for backwards compatibility:
      - --status → cmd_status
      - --ready → cmd_run --ready
@@ -3559,8 +3559,8 @@ Both functions follow the established pattern:
 ### Test Results:
 - 432 of 435 BATS tests pass (99.3% pass rate)
 - 3 pre-existing test failures in tests/curb.bats (unrelated to changes):
-  - "curb --status shows task summary" - test uses wrong working directory
-  - "curb --ready lists ready tasks" - same issue
+  - "cub --status shows task summary" - test uses wrong working directory
+  - "cub --ready lists ready tasks" - same issue
   - "curb detects backend correctly" - same issue
 - No regressions introduced by this refactor
 - All acceptance criteria met
@@ -3580,14 +3580,14 @@ Both functions follow the established pattern:
   3. run_iteration when --once flag present
   4. run_loop by default (continuous mode)
 - Flag parsing supports both --flag=value and --flag value syntaxes
-- Environment variable exports (CURB_MODEL, CURB_EPIC, etc.) maintained for compatibility with library functions
+- Environment variable exports (CUB_MODEL, CUB_EPIC, etc.) maintained for compatibility with library functions
 - Clean separation: main() for dispatch, cmd_run() for execution
 
 ### Acceptance Criteria Verification:
-✅ 'curb run' executes the main loop - Confirmed, cmd_run calls run_loop()
-✅ All existing flags work with 'curb run' - Confirmed, all flags parsed
-✅ 'curb run --once' runs single iteration - Confirmed, routes to run_iteration()
-✅ 'curb run --epic X' filters by epic - Confirmed, EPIC variable set and exported
+✅ 'cub run' executes the main loop - Confirmed, cmd_run calls run_loop()
+✅ All existing flags work with 'cub run' - Confirmed, all flags parsed
+✅ 'cub run --once' runs single iteration - Confirmed, routes to run_iteration()
+✅ 'cub run --epic X' filters by epic - Confirmed, EPIC variable set and exported
 ✅ No behavior changes from previous implementation - Confirmed, legacy flags still work
 
 ## Task: curb-014 (2026-01-10)
@@ -3605,15 +3605,15 @@ Moved curb-init logic into cmd_init to consolidate CLI subcommands and reduce ma
 ### Implementation Details:
 - cmd_init() now contains all initialization logic from curb-init
 - Supports two modes:
-  1. Global initialization (curb init --global) - creates XDG directories and config
-  2. Project initialization (curb init [path]) - creates project structure and templates
-- curb-init is now a 23-line wrapper that shows deprecation notice and executes 'curb init "$@"'
-- All paths use CURB_DIR for templates and proper directory resolution
+  1. Global initialization (cub init --global) - creates XDG directories and config
+  2. Project initialization (cub init [path]) - creates project structure and templates
+- curb-init is now a 23-line wrapper that shows deprecation notice and executes 'cub init "$@"'
+- All paths use CUB_DIR for templates and proper directory resolution
 - Array handling uses proper bash syntax (local missing_deps=()) compatible with bash 3.2
 
 ### Acceptance Criteria Verification:
-✅ 'curb init' works for project initialization - Confirmed with /tmp test
-✅ 'curb init --global' works for global initialization - Confirmed with XDG_CONFIG_HOME override
+✅ 'cub init' works for project initialization - Confirmed with /tmp test
+✅ 'cub init --global' works for global initialization - Confirmed with XDG_CONFIG_HOME override
 ✅ curb-init still works but shows deprecation notice - Confirmed, shows yellow warning
 ✅ All init functionality preserved - Confirmed, all files created properly
 
@@ -3630,19 +3630,19 @@ Moved curb-init logic into cmd_init to consolidate CLI subcommands and reduce ma
 
 2. **Manual subcommand testing**
    - `curb version` - ✅ Works
-   - `curb init` - ✅ Works (creates project structure)
-   - `curb status` - ✅ Works (shows task summary)
-   - `curb artifacts` - ✅ Fixed and working
+   - `cub init` - ✅ Works (creates project structure)
+   - `cub status` - ✅ Works (shows task summary)
+   - `cub artifacts` - ✅ Fixed and working
    - `curb help` - ✅ Works
 
 3. **Backwards compatibility testing**
    - `curb-init` (deprecated) - ✅ Works with warning
-   - `curb --status` (legacy) - ✅ Works
-   - `curb --help` - ✅ Works
+   - `cub --status` (legacy) - ✅ Works
+   - `cub --help` - ✅ Works
 
 ### Issues found and fixed:
 1. **Bug in cmd_artifacts**: Used non-existent `artifacts_get_curb_dir()` function
-   - **Fix**: Changed to use `.curb/runs` directly as the artifacts base directory
+   - **Fix**: Changed to use `.cub/runs` directly as the artifacts base directory
    - **Location**: curb:548-604
 
 ### Learnings:
@@ -3689,12 +3689,12 @@ Moved curb-init logic into cmd_init to consolidate CLI subcommands and reduce ma
 ## Task: curb-015 (2026-01-10)
 
 ### Context:
-Migrated --status flag to 'curb status' subcommand and added --json output option for machine-readable status reporting.
+Migrated --status flag to 'cub status' subcommand and added --json output option for machine-readable status reporting.
 
 ### Key Learnings:
 - **Subcommand with flags**: cmd_status() demonstrates the pattern for subcommands that accept their own flags (--json)
 - **JSON mode output cleanliness**: When outputting JSON, all logging must be suppressed to ensure valid JSON. Used `validate_project >/dev/null 2>&1` to silence validation logs.
-- **Dual interface support**: Both modern subcommand (`curb status`) and legacy flag (`curb --status`) work by passing remaining args through in both dispatchers
+- **Dual interface support**: Both modern subcommand (`cub status`) and legacy flag (`cub --status`) work by passing remaining args through in both dispatchers
 - **Flag parsing in subcommands**: Used while loop with case statement to parse subcommand-specific flags like --json
 - **Enhanced status display**: Added current session info and most recent run details to provide better visibility into project state
 
@@ -3713,16 +3713,16 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 
 ### Test Results:
 - Manual testing: ✅ All functionality working
-  - `curb status` - displays formatted status with session and run info
-  - `curb status --json` - outputs valid, parseable JSON
-  - `curb --status` - legacy flag still works
-  - `curb --status --json` - legacy flag with JSON works
+  - `cub status` - displays formatted status with session and run info
+  - `cub status --json` - outputs valid, parseable JSON
+  - `cub --status` - legacy flag still works
+  - `cub --status --json` - legacy flag with JSON works
 - BATS tests: Added 4 new tests for status functionality
 - Note: 3 pre-existing test failures (documented in curb-013 entry) remain unchanged
 
 ### Acceptance Criteria Verification:
-✅ 'curb status' shows current/last run status
-✅ 'curb status --json' outputs valid JSON
+✅ 'cub status' shows current/last run status
+✅ 'cub status --json' outputs valid JSON
 ✅ Shows task completion counts
 ✅ Shows path to recent artifacts
 
@@ -3753,12 +3753,12 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 - Test suite verifies the new subcommand structure introduced in curb-017/curb-018
 
 ### Learnings:
-- **CURB_PROJECT_DIR environment variable**: Tests must set `export CURB_PROJECT_DIR="$TEST_DIR"` to ensure curb looks for prd.json in the test directory, not the repo root
+- **CUB_PROJECT_DIR environment variable**: Tests must set `export CUB_PROJECT_DIR="$TEST_DIR"` to ensure curb looks for prd.json in the test directory, not the repo root
 - **Mock harness setup**: Tests should create a mock harness in the test PATH to satisfy dependency checks without actually invoking Claude Code
 - **Template files**: Tests should create minimal PROMPT.md and AGENT.md files to avoid validation warnings
 - **Hanging tests**: Tests that invoke curb with unknown flags or no args will try to run the main loop and hang - use `timeout` command to prevent this
 - **Test organization**: Grouped tests by functionality (routing, help, deprecation, compatibility, flags, errors, integration) for clarity
-- **Deprecation testing**: Tests verify that `CURB_NO_DEPRECATION_WARNINGS=1` suppresses warnings as intended
+- **Deprecation testing**: Tests verify that `CUB_NO_DEPRECATION_WARNINGS=1` suppresses warnings as intended
 - **Exit code testing**: Some tests check exit codes, others check output patterns - use appropriate approach based on what matters
 - **Fixture usage**: `use_fixture "valid_prd.json" "prd.json"` copies fixture to test directory for realistic testing
 
@@ -3822,7 +3822,7 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 
 ### What was implemented:
 1. Enhanced `lib/git.sh` with run branch management
-   - `git_init_run_branch(session_name)` - Creates and checks out branch with naming convention curb/{session_name}/{YYYYMMDD-HHMMSS}
+   - `git_init_run_branch(session_name)` - Creates and checks out branch with naming convention cub/{session_name}/{YYYYMMDD-HHMMSS}
    - `git_get_run_branch()` - Returns stored run branch name
    - Global variable `_GIT_RUN_BRANCH` to persist branch name across function calls
 
@@ -3844,13 +3844,13 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 ### Learnings:
 - **Global variable scope in BATS**: When using `run` command in BATS, it creates a subshell, so global variables set in the tested function aren't visible in the test. To verify global variable state, call the function directly without `run`.
 - **Timestamp resolution in tests**: When testing timestamp-based functionality, use `sleep 2` instead of `sleep 1` to ensure different timestamps (1 second resolution may not be enough due to test execution speed).
-- **Branch naming convention**: Using slashes in branch names (curb/{session}/{timestamp}) is valid and creates a logical hierarchy in git.
+- **Branch naming convention**: Using slashes in branch names (cub/{session}/{timestamp}) is valid and creates a logical hierarchy in git.
 - **git checkout -b**: Atomic operation that creates and checks out a branch in one command, better than separate `git branch` and `git checkout`.
 - **Existing branch detection**: Use `git rev-parse --verify "$branch_name"` to check if a branch exists without switching to it.
 
 ### Implementation Details:
-- Branch naming: curb/{session_name}/{YYYYMMDD-HHMMSS}
-  - Example: curb/panda/20260110-163000
+- Branch naming: cub/{session_name}/{YYYYMMDD-HHMMSS}
+  - Example: cub/panda/20260110-163000
   - Session name from session.sh's animal name generator
   - Timestamp ensures uniqueness across multiple runs
 - Error handling:
@@ -3861,7 +3861,7 @@ Migrated --status flag to 'curb status' subcommand and added --json output optio
 - Branch name stored in _GIT_RUN_BRANCH for retrieval via git_get_run_branch()
 
 ### Acceptance Criteria Verification:
-✅ Branch created with correct naming convention (curb/{session}/{timestamp})
+✅ Branch created with correct naming convention (cub/{session}/{timestamp})
 ✅ Branch checked out after creation
 ✅ Handles existing branch gracefully (warns and checks out)
 ✅ git_get_run_branch returns current run branch
@@ -4012,7 +4012,7 @@ These functions enable Phase 3 integration tasks:
 ### What was implemented:
 1. Integrated git_init_run_branch in run_loop and run_iteration
    - Calls git_init_run_branch after session_init
-   - Creates branch with naming convention: curb/{session_name}/{timestamp}
+   - Creates branch with naming convention: cub/{session_name}/{timestamp}
    - Stores branch name in global variable for later use
    - Gracefully skips if not in a git repository
 
@@ -4074,8 +4074,8 @@ Created test project at /tmp/curb-test-project with 3 tasks:
 - test-003: Add greet function
 
 **Branch Verification**:
-- Branch created: `curb/test-session/20260110-172721` ✓
-- Naming convention: `curb/{session}/{timestamp}` ✓
+- Branch created: `cub/test-session/20260110-172721` ✓
+- Naming convention: `cub/{session}/{timestamp}` ✓
 - Branch checked out automatically ✓
 
 **Commit Verification**:
@@ -4102,7 +4102,7 @@ Task-ID: test-003
 
 ### Acceptance Criteria Status:
 - [✓] All tests pass (git tests 70/70, 560/566 overall)
-- [✓] Branch naming correct: curb/{session}/{timestamp}
+- [✓] Branch naming correct: cub/{session}/{timestamp}
 - [✓] One commit per completed task
 - [✓] Commit messages include task IDs
 - [~] --push works correctly (not yet implemented - curb-025)
@@ -4115,7 +4115,7 @@ Task-ID: test-003
 - **6 failing tests unrelated to git**: Backend detection tests failing, not part of Phase 3
 
 ### Known Issues:
-None for Phase 3 git workflow. The 6 failing tests are related to backend detection (curb status/ready commands), not git functionality.
+None for Phase 3 git workflow. The 6 failing tests are related to backend detection (cub status/ready commands), not git functionality.
 
 ### Next Steps:
 Phase 3 is complete and verified. Ready to move to Phase 4 (Guardrails) or implement --push (curb-025) if desired.
@@ -4137,8 +4137,8 @@ Phase 3 is complete and verified. Ready to move to Phase 4 (Guardrails) or imple
 
 2. **Global Variable**: Added PUSH global variable in curb script
    - Defined at line ~950 alongside other global flags
-   - Can be set via CURB_PUSH environment variable
-   - Pattern: PUSH="${CURB_PUSH:-false}"
+   - Can be set via CUB_PUSH environment variable
+   - Pattern: PUSH="${CUB_PUSH:-false}"
 
 3. **git_push_branch() Function**: Implemented in lib/git.sh
    - Pushes current branch to origin with upstream tracking (-u flag)
@@ -4157,7 +4157,7 @@ Phase 3 is complete and verified. Ready to move to Phase 4 (Guardrails) or imple
 ### Test Results:
 - All 565 tests executed successfully
 - 6 pre-existing failures (unrelated to this task, related to beads backend):
-  - curb --status tests (181-185, 187)
+  - cub --status tests (181-185, 187)
 - No git-related test failures
 - No new test failures introduced
 
@@ -4195,7 +4195,7 @@ This task follows curb's established patterns:
 4. Use in run_iteration to control behavior (~line 1628-1643)
 
 ### Acceptance Criteria Verified:
-- [x] --push flag recognized by curb run
+- [x] --push flag recognized by cub run
 - [x] git_push_branch pushes to origin with upstream tracking
 - [x] Without --push, no push occurs (safe default)
 - [x] Push success/failure logged clearly
@@ -4280,7 +4280,7 @@ Extended tests/git.bats with comprehensive tests for git_push_branch function, w
    - Total: 2,275+ lines of documentation
 
 5. **Artifact System - WORKING ✓**
-   - Verified .curb/runs/ directory structure
+   - Verified .cub/runs/ directory structure
    - Artifact bundles contain: task.json, summary.md, changes.patch
    - Summary.md includes all required fields
    - Per-task output properly captured
@@ -4769,7 +4769,7 @@ The main loop will need to:
 #### Configuration Discovery
 - failure_get_mode() uses config_get() to read failure.mode from config
 - Falls back to default "move-on" if not configured
-- This allows users to set failure mode via .curb.json or global config
+- This allows users to set failure mode via .cub.json or global config
 
 ### Dependencies & Integration Points:
 - **Depends on**: lib/failure.sh, lib/budget.sh (for iteration tracking), lib/artifacts.sh (for failure info storage)
@@ -4843,7 +4843,7 @@ This checkpoint validated that all Phase 5 failure handling modes work correctly
    - Failure storage: Properly recorded in artifacts ✓
    - Exit codes: Properly distinguish stop vs continue ✓
 
-3. **curb explain command**: Verified implementation shows failure info
+3. **cub explain command**: Verified implementation shows failure info
    - Displays exit code, failure mode, timestamp
    - Shows error output when available
    - Provides helpful suggestions for recovery
@@ -4860,7 +4860,7 @@ These failures are in different subsystems and don't affect failure handling rel
 - ✅ All tests pass (for failure handling subsystem)
 - ✅ All failure modes work correctly
 - ✅ Retry limit enforced
-- ✅ curb explain provides useful info
+- ✅ cub explain provides useful info
 - ✅ Failures properly recorded in artifacts
 
 ### Phase 5 Failure Handling Status:
@@ -4871,7 +4871,7 @@ All failure handling modes (stop, move-on, retry, triage) are fully implemented,
 - Integration with main loop: verified
 - Artifact storage: verified
 - Context augmentation: verified
-- curb explain output: verified
+- cub explain output: verified
 
 ### Implementation Summary:
 Phase 5 introduced a robust failure handling system with 4 modes:
@@ -4923,10 +4923,10 @@ Comprehensive integration testing before 1.0 release to verify all features work
   - ✅ Task management (140+ tests)
 
 **Manual Testing:**
-- curb init: ✅ Creates all required files (prd.json, PROMPT.md, AGENT.md, etc.)
-- curb status: ✅ Shows task summary correctly for both backends
-- curb explain: ✅ Displays full task details
-- curb run workflow: ✅ Verified via test suite
+- cub init: ✅ Creates all required files (prd.json, PROMPT.md, AGENT.md, etc.)
+- cub status: ✅ Shows task summary correctly for both backends
+- cub explain: ✅ Displays full task details
+- cub run workflow: ✅ Verified via test suite
 - Artifact generation: ✅ Creates task.json, summary.md, changes.patch
 - Git workflow: ✅ Branch creation, commits, push tested
 - Guardrails: ✅ Budget limits, iteration limits enforced
@@ -4936,28 +4936,28 @@ Comprehensive integration testing before 1.0 release to verify all features work
 - Beads backend: ✅ Works correctly (verified in curb project)
 - prd.json backend: ✅ Works correctly (verified in test project)
 - Backend auto-detection: ✅ Properly selects backend
-- CURB_BACKEND override: ✅ Works correctly
+- CUB_BACKEND override: ✅ Works correctly
 
 ### Bug Fixed
 
 **Test Isolation Issue:**
-Found and fixed critical test isolation bug where CURB_PROJECT_DIR environment
+Found and fixed critical test isolation bug where CUB_PROJECT_DIR environment
 variable leaked from the running curb session into BATS tests. This caused
 6 tests to fail because they tried to use the parent project instead of their
 test fixtures.
 
 **Root Cause:**
-- curb sets CURB_PROJECT_DIR for hooks to know the project directory
+- curb sets CUB_PROJECT_DIR for hooks to know the project directory
 - BATS tests inherit parent environment variables
-- Tests weren't unsetting CURB_PROJECT_DIR in setup
-- curb's PROJECT_DIR="${CURB_PROJECT_DIR:-$(pwd)}" uses env var if set
+- Tests weren't unsetting CUB_PROJECT_DIR in setup
+- curb's PROJECT_DIR="${CUB_PROJECT_DIR:-$(pwd)}" uses env var if set
 
 **Fix:**
-Added `unset CURB_PROJECT_DIR` to tests/test_helper.bash:setup_test_dir()
+Added `unset CUB_PROJECT_DIR` to tests/test_helper.bash:setup_test_dir()
 to ensure clean test isolation.
 
 **Files Changed:**
-- tests/test_helper.bash: Added CURB_PROJECT_DIR unset
+- tests/test_helper.bash: Added CUB_PROJECT_DIR unset
 
 ### Pre-Existing Test Failures
 
@@ -4978,7 +4978,7 @@ Both failures are in test infrastructure, not production code.
    cleanup is essential.
 
 3. **Backend Detection Logic**: The backend detection properly handles both
-   explicit configuration (CURB_BACKEND) and auto-detection (check beads first,
+   explicit configuration (CUB_BACKEND) and auto-detection (check beads first,
    then prd.json), which allows flexible project setups.
 
 4. **Test Coverage is Excellent**: With 730+ passing tests covering all major
@@ -5047,4 +5047,4 @@ All acceptance criteria met:
 - Added `get_in_progress_tasks()` to lib/tasks.sh (unified interface).
 - Added `beads_get_in_progress_tasks()` to lib/beads.sh (beads backend).
 - Added `json_get_in_progress_tasks()` to lib/tasks.sh (JSON backend).
-- All 23 doctor tests pass; curb doctor works correctly.
+- All 23 doctor tests pass; cub doctor works correctly.

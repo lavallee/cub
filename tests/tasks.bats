@@ -9,7 +9,7 @@ setup() {
     setup_test_dir
 
     # Force JSON backend (no beads in tests)
-    export CURB_BACKEND="json"
+    export CUB_BACKEND="json"
 
     # Source the library under test
     source "$LIB_DIR/tasks.sh"
@@ -36,8 +36,8 @@ teardown() {
     [ "$output" = "json" ]
 }
 
-@test "detect_backend respects CURB_BACKEND=json" {
-    export CURB_BACKEND="json"
+@test "detect_backend respects CUB_BACKEND=json" {
+    export CUB_BACKEND="json"
     run detect_backend
     [ "$status" -eq 0 ]
     [ "$output" = "json" ]

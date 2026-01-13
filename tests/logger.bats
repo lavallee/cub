@@ -14,8 +14,8 @@ setup() {
     TEST_LOGS_DIR="${BATS_TMPDIR}/logs_test_$$"
     mkdir -p "$TEST_LOGS_DIR"
 
-    # Override curb_logs_dir to use test directory
-    curb_logs_dir() {
+    # Override cub_logs_dir to use test directory
+    cub_logs_dir() {
         echo "$TEST_LOGS_DIR"
     }
 
@@ -283,9 +283,9 @@ teardown() {
 
     # Write various event types
     logger_write "session_start" '{"user": "testuser"}'
-    logger_write "task_start" '{"task_id": "curb-123", "name": "test task"}'
+    logger_write "task_start" '{"task_id": "cub-123", "name": "test task"}'
     logger_write "info" '{"message": "processing..."}'
-    logger_write "task_complete" '{"task_id": "curb-123", "status": "success"}'
+    logger_write "task_complete" '{"task_id": "cub-123", "status": "success"}'
     logger_write "session_end" '{}'
 
     local log_file
@@ -311,11 +311,11 @@ teardown() {
     task_start_id=$(sed -n '2p' "$log_file" | jq -r '.data.task_id')
 
     [[ "$session_start_user" == "testuser" ]]
-    [[ "$task_start_id" == "curb-123" ]]
+    [[ "$task_start_id" == "cub-123" ]]
 }
 
 @test "acceptance: log file created at correct XDG path" {
-    # Note: In real usage, curb_logs_dir returns ~/.local/share/curb/logs
+    # Note: In real usage, cub_logs_dir returns ~/.local/share/cub/logs
     # In tests, it returns our test directory
     logger_init "myproject" "mysession"
 
@@ -378,7 +378,7 @@ teardown() {
 
 @test "log_task_start creates task_start event with all metadata" {
     logger_init "testproject" "session123"
-    log_task_start "curb-123" "Test Task" "claude"
+    log_task_start "cub-123" "Test Task" "claude"
 
     local log_file
     log_file=$(logger_get_file)
@@ -396,7 +396,7 @@ teardown() {
     task_title=$(jq -r '.data.task_title' "$log_file")
     harness=$(jq -r '.data.harness' "$log_file")
 
-    [[ "$task_id" == "curb-123" ]]
+    [[ "$task_id" == "cub-123" ]]
     [[ "$task_title" == "Test Task" ]]
     [[ "$harness" == "claude" ]]
 }
@@ -413,7 +413,7 @@ teardown() {
 @test "log_task_start fails without task_title" {
     logger_init "testproject" "session123"
 
-    run log_task_start "curb-123" "" "claude"
+    run log_task_start "cub-123" "" "claude"
 
     [[ "$status" -eq 1 ]]
     [[ "$output" =~ "ERROR: task_title is required" ]]
@@ -422,7 +422,7 @@ teardown() {
 @test "log_task_start fails without harness" {
     logger_init "testproject" "session123"
 
-    run log_task_start "curb-123" "Test Task" ""
+    run log_task_start "cub-123" "Test Task" ""
 
     [[ "$status" -eq 1 ]]
     [[ "$output" =~ "ERROR: harness is required" ]]
@@ -430,7 +430,7 @@ teardown() {
 
 @test "log_task_start handles special characters in title" {
     logger_init "testproject" "session123"
-    log_task_start "curb-123" "Task with \"quotes\" and 'apostrophes'" "claude"
+    log_task_start "cub-123" "Task with \"quotes\" and 'apostrophes'" "claude"
 
     local log_file
     log_file=$(logger_get_file)
@@ -447,7 +447,7 @@ teardown() {
 
 @test "log_task_end creates task_end event with all metadata" {
     logger_init "testproject" "session123"
-    log_task_end "curb-123" 0 42 1500
+    log_task_end "cub-123" 0 42 1500
 
     local log_file
     log_file=$(logger_get_file)
@@ -469,7 +469,7 @@ teardown() {
     tokens_used=$(jq -r '.data.tokens_used' "$log_file")
     git_sha=$(jq -r '.data.git_sha' "$log_file")
 
-    [[ "$task_id" == "curb-123" ]]
+    [[ "$task_id" == "cub-123" ]]
     [[ "$exit_code" == "0" ]]
     [[ "$duration_sec" == "42" ]]
     [[ "$tokens_used" == "1500" ]]
@@ -478,7 +478,7 @@ teardown() {
 
 @test "log_task_end captures current git SHA" {
     logger_init "testproject" "session123"
-    log_task_end "curb-123" 0 10 100
+    log_task_end "cub-123" 0 10 100
 
     local log_file
     log_file=$(logger_get_file)
@@ -492,7 +492,7 @@ teardown() {
 
 @test "log_task_end defaults tokens_used to 0 when omitted" {
     logger_init "testproject" "session123"
-    log_task_end "curb-123" 0 10
+    log_task_end "cub-123" 0 10
 
     local log_file
     log_file=$(logger_get_file)
@@ -515,7 +515,7 @@ teardown() {
 @test "log_task_end fails without exit_code" {
     logger_init "testproject" "session123"
 
-    run log_task_end "curb-123" "" 10 100
+    run log_task_end "cub-123" "" 10 100
 
     [[ "$status" -eq 1 ]]
     [[ "$output" =~ "ERROR: exit_code is required" ]]
@@ -524,7 +524,7 @@ teardown() {
 @test "log_task_end fails without duration_sec" {
     logger_init "testproject" "session123"
 
-    run log_task_end "curb-123" 0 "" 100
+    run log_task_end "cub-123" 0 "" 100
 
     [[ "$status" -eq 1 ]]
     [[ "$output" =~ "ERROR: duration_sec is required" ]]
@@ -532,7 +532,7 @@ teardown() {
 
 @test "log_task_end handles non-zero exit codes" {
     logger_init "testproject" "session123"
-    log_task_end "curb-123" 1 30 500
+    log_task_end "cub-123" 1 30 500
 
     local log_file
     log_file=$(logger_get_file)
@@ -572,7 +572,7 @@ teardown() {
 
 @test "log_error includes context when provided" {
     logger_init "testproject" "session123"
-    log_error "Task failed" '{"task_id": "curb-123", "reason": "timeout"}'
+    log_error "Task failed" '{"task_id": "cub-123", "reason": "timeout"}'
 
     local log_file
     log_file=$(logger_get_file)
@@ -588,7 +588,7 @@ teardown() {
     task_id=$(jq -r '.data.context.task_id' "$log_file")
     reason=$(jq -r '.data.context.reason' "$log_file")
 
-    [[ "$task_id" == "curb-123" ]]
+    [[ "$task_id" == "cub-123" ]]
     [[ "$reason" == "timeout" ]]
 }
 
@@ -634,13 +634,13 @@ teardown() {
     logger_init "testproject" "session123"
 
     # Log task start
-    log_task_start "curb-456" "Integration Test Task" "claude"
+    log_task_start "cub-456" "Integration Test Task" "claude"
 
     # Simulate some work (in real usage, would use $SECONDS)
     sleep 1
 
     # Log task end
-    log_task_end "curb-456" 0 1 2500
+    log_task_end "cub-456" 0 1 2500
 
     local log_file
     log_file=$(logger_get_file)
@@ -657,7 +657,7 @@ teardown() {
     start_task_id=$(sed -n '1p' "$log_file" | jq -r '.data.task_id')
 
     [[ "$start_event" == "task_start" ]]
-    [[ "$start_task_id" == "curb-456" ]]
+    [[ "$start_task_id" == "cub-456" ]]
 
     # Verify second entry is task_end
     local end_event
@@ -666,20 +666,20 @@ teardown() {
     end_task_id=$(sed -n '2p' "$log_file" | jq -r '.data.task_id')
 
     [[ "$end_event" == "task_end" ]]
-    [[ "$end_task_id" == "curb-456" ]]
+    [[ "$end_task_id" == "cub-456" ]]
 }
 
 @test "integration: task with error logging" {
     logger_init "testproject" "session123"
 
     # Log task start
-    log_task_start "curb-789" "Failing Task" "claude"
+    log_task_start "cub-789" "Failing Task" "claude"
 
     # Log error
-    log_error "Task encountered an error" '{"task_id": "curb-789", "phase": "execution"}'
+    log_error "Task encountered an error" '{"task_id": "cub-789", "phase": "execution"}'
 
     # Log task end with failure exit code
-    log_task_end "curb-789" 1 5 100
+    log_task_end "cub-789" 1 5 100
 
     local log_file
     log_file=$(logger_get_file)
@@ -710,7 +710,7 @@ teardown() {
 
 @test "acceptance: task_start event logged with task_id, title, harness" {
     logger_init "testproject" "session123"
-    log_task_start "curb-abc" "Acceptance Test" "opencode"
+    log_task_start "cub-abc" "Acceptance Test" "opencode"
 
     local log_file
     log_file=$(logger_get_file)
@@ -725,14 +725,14 @@ teardown() {
     harness=$(jq -r '.data.harness' "$log_file")
 
     [[ "$event_type" == "task_start" ]]
-    [[ "$task_id" == "curb-abc" ]]
+    [[ "$task_id" == "cub-abc" ]]
     [[ "$task_title" == "Acceptance Test" ]]
     [[ "$harness" == "opencode" ]]
 }
 
 @test "acceptance: task_end event logged with duration, exit_code, tokens, git_sha" {
     logger_init "testproject" "session123"
-    log_task_end "curb-def" 0 123 4567
+    log_task_end "cub-def" 0 123 4567
 
     local log_file
     log_file=$(logger_get_file)
@@ -751,7 +751,7 @@ teardown() {
     git_sha=$(jq -r '.data.git_sha' "$log_file")
 
     [[ "$event_type" == "task_end" ]]
-    [[ "$task_id" == "curb-def" ]]
+    [[ "$task_id" == "cub-def" ]]
     [[ "$exit_code" == "0" ]]
     [[ "$duration_sec" == "123" ]]
     [[ "$tokens_used" == "4567" ]]
@@ -996,7 +996,7 @@ teardown() {
 CONFIGEOF
 
     # Override config dir for this test
-    curb_config_dir() {
+    cub_config_dir() {
         echo "$test_config"
     }
 

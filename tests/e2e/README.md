@@ -1,10 +1,10 @@
 # End-to-End Tests
 
-This directory contains end-to-end tests for curb that verify the full loop execution with all features working together.
+This directory contains end-to-end tests for cub that verify the full loop execution with all features working together.
 
 ## Overview
 
-The e2e test creates a minimal test project with 3 simple tasks and runs curb with a budget to verify:
+The e2e test creates a minimal test project with 3 simple tasks and runs cub with a budget to verify:
 
 - ✓ Full loop runs to completion or budget limit
 - ✓ All hooks fire at the right times (pre-loop, pre-task, post-task, post-loop)
@@ -24,7 +24,7 @@ The e2e test creates a minimal test project with 3 simple tasks and runs curb wi
 ### Execute the test
 
 ```bash
-# From the curb root directory
+# From the cub root directory
 ./tests/e2e/run.sh
 ```
 
@@ -40,7 +40,7 @@ cd tests/e2e
 If you don't have an API key, the test will simulate the execution and verify the test infrastructure works:
 
 ```bash
-# Test will skip actual curb execution but verify test logic
+# Test will skip actual cub execution but verify test logic
 ./tests/e2e/run.sh
 ```
 
@@ -55,7 +55,7 @@ tests/e2e/
     ├── PROMPT.md       # Agent prompt
     ├── AGENT.md        # Build instructions
     ├── progress.txt    # Progress log
-    └── .curb/
+    └── .cub/
         ├── hooks/      # Test hooks
         │   ├── pre-loop.d/
         │   ├── pre-task.d/
@@ -80,7 +80,7 @@ The test verifies:
 1. **Generated Files**: All expected output files are created
 2. **Task Status**: Tasks are marked as closed in prd.json
 3. **Hooks**: All hooks executed and logged to hook_events.log
-4. **Logs**: Structured logs created in ~/.local/share/curb/logs/
+4. **Logs**: Structured logs created in ~/.local/share/cub/logs/
 5. **Budget**: Loop stops when budget is exceeded
 
 ## CI Integration
@@ -94,7 +94,7 @@ This test can be run in CI environments:
   run: ./tests/e2e/run.sh
 ```
 
-Note: Without an API key, the test will skip curb execution but still verify test infrastructure.
+Note: Without an API key, the test will skip cub execution but still verify test infrastructure.
 
 ## Cleanup
 
@@ -126,12 +126,12 @@ The budget is set to 100,000 tokens which should be enough for 3 simple tasks. I
 
 - Check the PROMPT.md and AGENT.md are clear
 - Verify Claude is not stuck waiting for user input
-- Check the curb logs for errors
+- Check the cub logs for errors
 
 ### Hooks not executing
 
 Ensure hook scripts are executable:
 
 ```bash
-chmod +x tests/e2e/project/.curb/hooks/*/*.sh
+chmod +x tests/e2e/project/.cub/hooks/*/*.sh
 ```

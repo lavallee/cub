@@ -549,7 +549,7 @@ EOF
 @test "harness_detect respects config harness.priority array" {
     # Set up config with priority list where claude is removed and bash is added
     # This ensures we can test priority-based selection without relying on installed harnesses
-    echo '{"harness": {"priority": ["nonexistent_harness", "bash"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["nonexistent_harness", "bash"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config from this test directory
     config_clear_cache
@@ -568,7 +568,7 @@ EOF
 
 @test "harness_detect tries each priority in order until found" {
     # Set config with multiple unavailable harnesses before bash
-    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2", "bash"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2", "bash"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -586,7 +586,7 @@ EOF
 
 @test "harness_detect falls back to default order if no config priority" {
     # Ensure no priority config
-    echo '{}' > "$TEST_DIR/.curb.json"
+    echo '{}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -605,7 +605,7 @@ EOF
 
 @test "harness_detect falls back to default if all priorities unavailable" {
     # Set priority list with only unavailable harnesses
-    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["nonexistent1", "nonexistent2"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -624,7 +624,7 @@ EOF
 
 @test "harness_detect prefers explicit HARNESS over config priority" {
     # Set config with priority
-    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -645,7 +645,7 @@ EOF
 
 @test "harness_detect accepts HARNESS=auto and ignores to use config/default" {
     # Set config with priority
-    echo '{"harness": {"priority": ["bash"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["bash"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -666,7 +666,7 @@ EOF
 
 @test "config priority can specify gemini, opencode, codex, claude" {
     # Verify the array is properly parsed for all known harnesses
-    echo '{"harness": {"priority": ["gemini", "opencode", "codex", "claude"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["gemini", "opencode", "codex", "claude"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -688,7 +688,7 @@ EOF
 
 @test "ACCEPTANCE: Config priority respected - can configure preferred harness order" {
     # Set up test with specific priority order
-    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["bash", "nonexistent"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -706,7 +706,7 @@ EOF
 
 @test "ACCEPTANCE: Falls through list until one is available" {
     # Test with mostly unavailable harnesses, one at the end
-    echo '{"harness": {"priority": ["unavailable1", "unavailable2", "unavailable3", "bash"]}}' > "$TEST_DIR/.curb.json"
+    echo '{"harness": {"priority": ["unavailable1", "unavailable2", "unavailable3", "bash"]}}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
@@ -724,7 +724,7 @@ EOF
 
 @test "ACCEPTANCE: Default priority if not configured" {
     # No priority config
-    echo '{}' > "$TEST_DIR/.curb.json"
+    echo '{}' > "$TEST_DIR/.cub.json"
 
     # Clear and reload config
     config_clear_cache
