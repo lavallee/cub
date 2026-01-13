@@ -24,7 +24,7 @@ teardown() {
     session_init --name "test-session"
     run artifacts_get_run_dir
     [ "$status" -eq 0 ]
-    [[ "$output" =~ ^\.curb/runs/test-session-[0-9]{8}-[0-9]{6}$ ]]
+    [[ "$output" =~ ^\.cub/runs/test-session-[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "artifacts_get_task_dir: fails without task_id" {
@@ -38,7 +38,7 @@ teardown() {
     session_init --name "test-session"
     run artifacts_get_task_dir "test-001"
     [ "$status" -eq 0 ]
-    [[ "$output" =~ ^\.curb/runs/test-session-.*/tasks/test-001$ ]]
+    [[ "$output" =~ ^\.cub/runs/test-session-.*/tasks/test-001$ ]]
 }
 
 @test "artifacts_ensure_dirs: fails without task_id" {
@@ -80,7 +80,7 @@ teardown() {
     run artifacts_init_run
     [ "$status" -eq 0 ]
 
-    local run_dir=".curb/runs/test-session-"*
+    local run_dir=".cub/runs/test-session-"*
     [ -d $run_dir ]
 }
 
@@ -89,7 +89,7 @@ teardown() {
     artifacts_init_run
 
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)
     local run_json="${run_dir}/run.json"
 
     [ -f "$run_json" ]
@@ -125,7 +125,7 @@ teardown() {
     artifacts_init_run
 
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)
     local run_json="${run_dir}/run.json"
 
     local timestamp
@@ -160,7 +160,7 @@ teardown() {
     run artifacts_start_task "test-001" "Test task"
     [ "$status" -eq 0 ]
 
-    local task_dir=".curb/runs/test-session-"*/tasks/test-001
+    local task_dir=".cub/runs/test-session-"*/tasks/test-001
     [ -d $task_dir ]
 }
 
@@ -170,7 +170,7 @@ teardown() {
     artifacts_start_task "test-001" "Test task" "high"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local task_json="${task_dir}/task.json"
 
     [ -f "$task_json" ]
@@ -211,7 +211,7 @@ teardown() {
     artifacts_start_task "test-001" "Test task"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local task_json="${task_dir}/task.json"
 
     run jq -r '.priority' "$task_json"
@@ -225,7 +225,7 @@ teardown() {
     artifacts_start_task "test-001" "Test task"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local task_json="${task_dir}/task.json"
 
     local timestamp
@@ -242,7 +242,7 @@ teardown() {
     run artifacts_start_task "test-001" "Test task"
     [ "$status" -eq 0 ]
 
-    local task_dir=".curb/runs/test-session-"*/tasks/test-001
+    local task_dir=".cub/runs/test-session-"*/tasks/test-001
     [ -d $task_dir ]
 }
 
@@ -254,7 +254,7 @@ teardown() {
 
     # Verify run.json exists
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "integration-test-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "integration-test-*" | head -1)
     [ -f "${run_dir}/run.json" ]
 
     # Verify both task directories exist
@@ -291,7 +291,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     [ -f "${task_dir}/plan.md" ]
 }
 
@@ -306,7 +306,7 @@ teardown() {
     artifacts_capture_plan "test-001" "$plan_content"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local plan_file="${task_dir}/plan.md"
 
     # Verify content matches
@@ -322,7 +322,7 @@ teardown() {
     artifacts_capture_plan "test-001" "# Plan"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local plan_file="${task_dir}/plan.md"
 
     # Check permissions (should be 600)
@@ -337,7 +337,7 @@ teardown() {
     artifacts_capture_plan "test-001" "Second plan"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local plan_file="${task_dir}/plan.md"
 
     # Should contain only the second plan
@@ -378,7 +378,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     [ -f "${task_dir}/commands.jsonl" ]
 }
 
@@ -390,7 +390,7 @@ teardown() {
     artifacts_capture_command "test-001" "npm build" "1" "Build failed" "2.3"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     # Should have 2 lines
@@ -412,7 +412,7 @@ teardown() {
     artifacts_capture_command "test-001" "npm test" "0" "output" "5.2"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     # Check timestamp format
@@ -428,7 +428,7 @@ teardown() {
     artifacts_capture_command "test-001" "npm test" "0" "All tests passed" "5.2"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     # Check all fields exist
@@ -457,7 +457,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     run jq -r '.output' "$commands_file"
@@ -472,7 +472,7 @@ teardown() {
     artifacts_capture_command "test-001" "npm test" "0" "output"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     run jq -r '.duration' "$commands_file"
@@ -487,7 +487,7 @@ teardown() {
     artifacts_capture_command "test-001" "npm test" "0" "output" "5.2"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local commands_file="${task_dir}/commands.jsonl"
 
     # Check permissions (should be 600)
@@ -515,7 +515,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     [ -f "${task_dir}/changes.patch" ]
 }
 
@@ -537,7 +537,7 @@ teardown() {
     artifacts_capture_diff "test-001"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local patch_file="${task_dir}/changes.patch"
 
     # Should contain diff output
@@ -562,7 +562,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local patch_file="${task_dir}/changes.patch"
 
     # File should exist but be empty (or just a newline)
@@ -585,7 +585,7 @@ teardown() {
     artifacts_capture_diff "test-001"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local patch_file="${task_dir}/changes.patch"
 
     # Check permissions (should be 600)
@@ -616,7 +616,7 @@ teardown() {
     artifacts_capture_diff "test-001"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local patch_file="${task_dir}/changes.patch"
 
     # Should contain the modified file (not the empty diff from first capture)
@@ -666,7 +666,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local log_file="${task_dir}/harness_output.log"
 
     [ -f "$log_file" ]
@@ -683,7 +683,7 @@ teardown() {
     artifacts_capture_harness_output "test-001" "$temp_file"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local log_file="${task_dir}/harness_output.log"
 
     # Verify content
@@ -706,7 +706,7 @@ teardown() {
     artifacts_capture_harness_output "test-001" "$temp2" "2"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local log_file="${task_dir}/harness_output.log"
 
     # Verify iteration headers
@@ -728,7 +728,7 @@ teardown() {
     artifacts_capture_harness_output "test-001" "$temp_file"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local log_file="${task_dir}/harness_output.log"
 
     # Check permissions (should be 600)
@@ -757,7 +757,7 @@ teardown() {
 
     # Verify all files exist
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "capture-test-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "capture-test-*" | head -1)/tasks/test-001
 
     [ -f "${task_dir}/task.json" ]
     [ -f "${task_dir}/plan.md" ]
@@ -789,7 +789,7 @@ teardown() {
     [[ "$output" =~ ^/ ]]
 
     # Should contain the expected structure
-    [[ "$output" =~ .curb/runs/test-session-.*/tasks/test-001 ]]
+    [[ "$output" =~ .cub/runs/test-session-.*/tasks/test-001 ]]
 }
 
 @test "artifacts_get_path: path is actually absolute and valid" {
@@ -846,7 +846,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local task_json="${task_dir}/task.json"
 
     # Check status
@@ -879,7 +879,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Second attempt"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local task_json="${task_dir}/task.json"
 
     # Iterations should be 2
@@ -895,7 +895,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Task completed successfully"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
 
     [ -f "${task_dir}/summary.md" ]
 }
@@ -907,7 +907,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Task completed successfully"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local summary_file="${task_dir}/summary.md"
 
     [ -f "$summary_file" ] || { echo "summary.md not found at $summary_file"; return 1; }
@@ -932,7 +932,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Done"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local summary_file="${task_dir}/summary.md"
 
     # Check permissions (should be 600)
@@ -947,7 +947,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Done"
 
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)
     local run_json="${run_dir}/run.json"
 
     # Check tasks_completed counter
@@ -964,7 +964,7 @@ teardown() {
     artifacts_finalize_task "test-001" "failed" "1" "Failed"
 
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)
     local run_json="${run_dir}/run.json"
 
     # Check tasks_failed counter
@@ -988,7 +988,7 @@ teardown() {
     artifacts_finalize_task "test-003" "failed" "1" "Failed"
 
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)
     local run_json="${run_dir}/run.json"
 
     # Check tasks_completed counter
@@ -1010,7 +1010,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local summary_file="${task_dir}/summary.md"
 
     local summary_content
@@ -1030,7 +1030,7 @@ teardown() {
     artifacts_finalize_task "test-001" "completed" "0" "Done"
 
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "test-session-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "test-session-*" | head -1)/tasks/test-001
     local summary_file="${task_dir}/summary.md"
 
     local summary_content
@@ -1066,7 +1066,7 @@ teardown() {
 
     # Verify all files exist
     local task_dir
-    task_dir=$(find .curb/runs -type d -name "lifecycle-test-*" | head -1)/tasks/test-001
+    task_dir=$(find .cub/runs -type d -name "lifecycle-test-*" | head -1)/tasks/test-001
 
     [ -f "${task_dir}/task.json" ]
     [ -f "${task_dir}/plan.md" ]
@@ -1081,7 +1081,7 @@ teardown() {
 
     # Verify run.json has correct counter
     local run_dir
-    run_dir=$(find .curb/runs -type d -name "lifecycle-test-*" | head -1)
+    run_dir=$(find .cub/runs -type d -name "lifecycle-test-*" | head -1)
     run jq -r '.tasks_completed' "${run_dir}/run.json"
     [ "$status" -eq 0 ]
     [ "$output" = "1" ]

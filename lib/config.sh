@@ -6,8 +6,8 @@
 # Supports dot-notation keys for nested values (e.g., "harness.priority").
 #
 # Config file locations (in priority order):
-#   1. ./.curb.json (project-specific)
-#   2. $(curb_config_dir)/config.json (user config)
+#   1. ./.cub.json (project-specific)
+#   2. $(cub_config_dir)/config.json (user config)
 #   3. Built-in defaults
 #
 # Usage:
@@ -18,11 +18,11 @@
 
 # Cache file for loaded configuration
 # Using a file instead of variable because bash command substitution creates subshells
-_CONFIG_CACHE_FILE="${TMPDIR:-/tmp}/curb_config_cache_$$"
+_CONFIG_CACHE_FILE="${TMPDIR:-/tmp}/cub_config_cache_$$"
 
 # Source xdg.sh for directory helpers
 # This allows us to find the config directory
-if [[ -z "$(type -t curb_config_dir)" ]]; then
+if [[ -z "$(type -t cub_config_dir)" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     source "${SCRIPT_DIR}/xdg.sh"
 fi
@@ -34,8 +34,8 @@ trap 'rm -f "$_CONFIG_CACHE_FILE" 2>/dev/null' EXIT
 # Merges configs in priority order: env vars > project > user > defaults
 # Returns: 0 on success, 1 if no configs found
 config_load() {
-    local project_config="./.curb.json"
-    local user_config="$(curb_config_dir)/config.json"
+    local project_config="./.cub.json"
+    local user_config="$(cub_config_dir)/config.json"
     local merged_config="{}"
 
     # Start with defaults
@@ -78,12 +78,12 @@ EOF
     fi
 
     # Apply environment variable overrides (highest priority)
-    # CURB_BUDGET overrides budget.default
-    if [[ -n "${CURB_BUDGET:-}" ]]; then
-        merged_config=$(echo "$merged_config" | jq --argjson budget "$CURB_BUDGET" '.budget.default = $budget' 2>/dev/null)
+    # CUB_BUDGET overrides budget.default
+    if [[ -n "${CUB_BUDGET:-}" ]]; then
+        merged_config=$(echo "$merged_config" | jq --argjson budget "$CUB_BUDGET" '.budget.default = $budget' 2>/dev/null)
         if [[ $? -ne 0 ]]; then
             # If jq fails (e.g., invalid JSON), try creating the structure
-            merged_config=$(echo "$merged_config" | jq --argjson budget "$CURB_BUDGET" '. + {budget: {default: $budget}}' 2>/dev/null)
+            merged_config=$(echo "$merged_config" | jq --argjson budget "$CUB_BUDGET" '. + {budget: {default: $budget}}' 2>/dev/null)
         fi
     fi
 

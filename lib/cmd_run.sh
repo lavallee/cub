@@ -4,22 +4,22 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_RUN_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_RUN_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_RUN_SH_LOADED=1
+_CUB_CMD_RUN_SH_LOADED=1
 
 cmd_run_help() {
     cat <<'EOF'
-curb run [<options>]
+cub run [<options>]
 
 Run the autonomous coding loop to complete tasks.
 
 USAGE:
-  curb run              Run continuous loop (default behavior)
-  curb run --once       Run exactly one iteration then exit
-  curb run --ready      Show ready (unblocked) tasks without running
-  curb run --plan       Run planning mode to analyze codebase
+  cub run              Run continuous loop (default behavior)
+  cub run --once       Run exactly one iteration then exit
+  cub run --ready      Show ready (unblocked) tasks without running
+  cub run --plan       Run planning mode to analyze codebase
 
 EXECUTION OPTIONS:
   --once, -1            Run single iteration then exit
@@ -49,27 +49,27 @@ DEBUG:
 
 EXAMPLES:
   # Run continuous loop
-  curb run
+  cub run
 
   # Run once with budget limit
-  curb run --once --budget 1000000
+  cub run --once --budget 1000000
 
   # View ready tasks without running
-  curb run --ready
+  cub run --ready
 
   # Work on specific epic only
-  curb run --epic backend-v2
+  cub run --epic backend-v2
 
   # Use Sonnet with live output
-  curb run --model sonnet --stream
+  cub run --model sonnet --stream
 
   # Run with detailed debugging
-  curb run --once --debug
+  cub run --once --debug
 
 SEE ALSO:
-  curb --help       Show all commands
-  curb status       Check current progress
-  curb artifacts    Access task output files
+  cub --help       Show all commands
+  cub status       Check current progress
+  cub artifacts    Access task output files
 EOF
 }
 
@@ -111,45 +111,45 @@ cmd_run() {
                 ;;
             --require-clean)
                 cmd_require_clean="true"
-                export CURB_REQUIRE_CLEAN="true"
+                export CUB_REQUIRE_CLEAN="true"
                 log_info "Clean state enforcement enabled via CLI flag"
                 ;;
             --no-require-clean)
                 cmd_require_clean="false"
-                export CURB_REQUIRE_CLEAN="false"
+                export CUB_REQUIRE_CLEAN="false"
                 log_info "Clean state enforcement disabled via CLI flag"
                 ;;
             --model=*)
                 cmd_model="${arg#--model=}"
-                export CURB_MODEL="$cmd_model"
+                export CUB_MODEL="$cmd_model"
                 ;;
             --model)
                 _next_is_model=true
                 ;;
             --epic=*)
                 cmd_epic="${arg#--epic=}"
-                export CURB_EPIC="$cmd_epic"
+                export CUB_EPIC="$cmd_epic"
                 ;;
             --epic)
                 _next_is_epic=true
                 ;;
             --label=*)
                 cmd_label="${arg#--label=}"
-                export CURB_LABEL="$cmd_label"
+                export CUB_LABEL="$cmd_label"
                 ;;
             --label)
                 _next_is_label=true
                 ;;
             --budget=*)
                 cmd_budget="${arg#--budget=}"
-                export CURB_BUDGET="$cmd_budget"
+                export CUB_BUDGET="$cmd_budget"
                 ;;
             --budget)
                 _next_is_budget=true
                 ;;
             --name=*)
                 cmd_session_name="${arg#--name=}"
-                export CURB_SESSION_NAME="$cmd_session_name"
+                export CUB_SESSION_NAME="$cmd_session_name"
                 ;;
             --name)
                 _next_is_name=true
@@ -158,23 +158,23 @@ cmd_run() {
                 # Handle deferred flag values
                 if [[ "${_next_is_model:-}" == "true" ]]; then
                     cmd_model="$arg"
-                    export CURB_MODEL="$cmd_model"
+                    export CUB_MODEL="$cmd_model"
                     _next_is_model=false
                 elif [[ "${_next_is_epic:-}" == "true" ]]; then
                     cmd_epic="$arg"
-                    export CURB_EPIC="$cmd_epic"
+                    export CUB_EPIC="$cmd_epic"
                     _next_is_epic=false
                 elif [[ "${_next_is_label:-}" == "true" ]]; then
                     cmd_label="$arg"
-                    export CURB_LABEL="$cmd_label"
+                    export CUB_LABEL="$cmd_label"
                     _next_is_label=false
                 elif [[ "${_next_is_budget:-}" == "true" ]]; then
                     cmd_budget="$arg"
-                    export CURB_BUDGET="$cmd_budget"
+                    export CUB_BUDGET="$cmd_budget"
                     _next_is_budget=false
                 elif [[ "${_next_is_name:-}" == "true" ]]; then
                     cmd_session_name="$arg"
-                    export CURB_SESSION_NAME="$cmd_session_name"
+                    export CUB_SESSION_NAME="$cmd_session_name"
                     _next_is_name=false
                 else
                     args+=("$arg")
@@ -459,11 +459,11 @@ run_iteration() {
         log_debug "Ready tasks result: ${ready_tasks:0:200}..."
 
         if [[ -z "$ready_tasks" || "$ready_tasks" == "[]" ]]; then
-            echo "[curb] NO READY TASKS: ready_tasks is empty or [], checking remaining..." >&2
+            echo "[cub] NO READY TASKS: ready_tasks is empty or [], checking remaining..." >&2
             # Check if we're done
             local open_count
             open_count=$(get_remaining_count "$prd")
-            echo "[curb] OPEN COUNT: open_count='$open_count'" >&2
+            echo "[cub] OPEN COUNT: open_count='$open_count'" >&2
             log_debug "Open task count: ${open_count}"
 
             # Handle error case (-1 or empty means backend query failed)
@@ -471,7 +471,7 @@ run_iteration() {
                 log_warn "Failed to get task count, retrying next iteration"
                 return 1
             elif [[ "$open_count" -eq 0 ]]; then
-                echo "[curb] EXIT REASON: open_count is 0 in run_iteration" >&2
+                echo "[cub] EXIT REASON: open_count is 0 in run_iteration" >&2
                 log_success "All tasks complete!"
                 return 0
             else
@@ -503,7 +503,7 @@ run_iteration() {
         log_debug "Task claimed"
     fi
 
-    # Check for model: or complexity: labels and set CURB_MODEL
+    # Check for model: or complexity: labels and set CUB_MODEL
     # Works for claude and codex harnesses
     local harness
     harness=$(harness_get)
@@ -539,7 +539,7 @@ run_iteration() {
         fi
 
         if [[ -n "$task_model" ]]; then
-            export CURB_MODEL="$task_model"
+            export CUB_MODEL="$task_model"
         fi
     fi
 
@@ -661,8 +661,8 @@ run_iteration() {
     fi
 
     # Set up harness output logging to artifacts
-    local harness_log_file="${TMPDIR:-/tmp}/curb_harness_log_$$"
-    export CURB_HARNESS_LOG="$harness_log_file"
+    local harness_log_file="${TMPDIR:-/tmp}/cub_harness_log_$$"
+    export CUB_HARNESS_LOG="$harness_log_file"
 
     # Invoke harness via abstraction layer
     if [[ "$STREAM" == "true" ]]; then
@@ -684,7 +684,7 @@ run_iteration() {
         fi
         rm -f "$harness_log_file"
     fi
-    unset CURB_HARNESS_LOG
+    unset CUB_HARNESS_LOG
 
     if [[ "$DEBUG" == "true" ]]; then
         log_debug "--- HARNESS END (${harness}) ---"
@@ -715,7 +715,7 @@ run_iteration() {
     # Record token usage in budget if budget is initialized
     local budget_remaining=""
     local budget_total=""
-    if [[ -f "${TMPDIR:-/tmp}/curb_budget_limit_$$" ]]; then
+    if [[ -f "${TMPDIR:-/tmp}/cub_budget_limit_$$" ]]; then
         log_debug "Recording ${tokens_used} tokens to budget"
         budget_record "$tokens_used"
         budget_remaining=$(budget_remaining)
@@ -970,21 +970,21 @@ run_iteration() {
     max_run=$(budget_get_max_run_iterations)
     log_debug "Run iteration ${run_iteration}/${max_run} complete"
 
-    # Commit curb artifacts (.beads/ and .curb/) if there are changes
+    # Commit cub artifacts (.beads/ and .cub/) if there are changes
     # These are committed separately after the harness's work is complete
     if git_in_repo; then
-        log_debug "Committing curb artifacts if needed..."
-        git_commit_curb_artifacts "$task_id"
+        log_debug "Committing cub artifacts if needed..."
+        git_commit_cub_artifacts "$task_id"
     fi
 
     # Debug: verify beads state at end of iteration
     if [[ "${DEBUG:-}" == "true" ]]; then
-        echo "[curb] END OF ITERATION: checking beads state..." >&2
+        echo "[cub] END OF ITERATION: checking beads state..." >&2
         local post_remaining
         post_remaining=$(get_remaining_count "$prd")
         local post_ready
         post_ready=$(get_ready_tasks "$prd" "$EPIC" "$LABEL" | jq 'length' 2>/dev/null || echo "error")
-        echo "[curb] POST-TASK STATE: remaining=$post_remaining ready_count=$post_ready" >&2
+        echo "[cub] POST-TASK STATE: remaining=$post_remaining ready_count=$post_ready" >&2
     fi
 
     return $exit_code
@@ -1037,7 +1037,7 @@ EOF
 }
 
 run_loop() {
-    local max_iterations="${CURB_MAX_ITERATIONS:-$(config_get_or "loop.max_iterations" "100")}"
+    local max_iterations="${CUB_MAX_ITERATIONS:-$(config_get_or "loop.max_iterations" "100")}"
     local iteration=0
 
     # Initialize session with optional name override
@@ -1117,7 +1117,7 @@ run_loop() {
         remaining=$(get_remaining_count "$prd")
 
         # Always log this to stderr so it's visible even with streaming
-        echo "[curb] REMAINING CHECK: remaining='$remaining' (empty='$([ -z "$remaining" ] && echo yes || echo no)')" >&2
+        echo "[cub] REMAINING CHECK: remaining='$remaining' (empty='$([ -z "$remaining" ] && echo yes || echo no)')" >&2
         log_debug "Remaining tasks: ${remaining}"
 
         # Handle error case (-1 or empty string means backend query failed)
@@ -1125,7 +1125,7 @@ run_loop() {
             log_warn "Failed to get remaining task count, assuming tasks remain"
             remaining=1  # Continue loop on error
         elif [[ "$remaining" -eq 0 ]]; then
-            echo "[curb] EXIT REASON: remaining count is 0, exiting loop" >&2
+            echo "[cub] EXIT REASON: remaining count is 0, exiting loop" >&2
             log_success "All tasks complete! Exiting loop."
             show_status
             # Run post-loop hooks
@@ -1166,7 +1166,7 @@ run_loop() {
         echo ""
 
         # Check budget after iteration if budget is initialized
-        if [[ -f "${TMPDIR:-/tmp}/curb_budget_limit_$$" ]]; then
+        if [[ -f "${TMPDIR:-/tmp}/cub_budget_limit_$$" ]]; then
             if ! budget_check; then
                 local used
                 used=$(budget_get_used)

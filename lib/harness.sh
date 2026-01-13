@@ -170,12 +170,12 @@ harness_get_capabilities_json() {
 # ============================================================================
 
 # File paths for usage tracking (process-specific)
-_USAGE_INPUT_FILE="${TMPDIR:-/tmp}/curb_usage_input_$$"
-_USAGE_OUTPUT_FILE="${TMPDIR:-/tmp}/curb_usage_output_$$"
-_USAGE_CACHE_INPUT_FILE="${TMPDIR:-/tmp}/curb_usage_cache_input_$$"
-_USAGE_CACHE_CREATION_FILE="${TMPDIR:-/tmp}/curb_usage_cache_creation_$$"
-_USAGE_COST_FILE="${TMPDIR:-/tmp}/curb_usage_cost_$$"
-_USAGE_ESTIMATED_FILE="${TMPDIR:-/tmp}/curb_usage_estimated_$$"
+_USAGE_INPUT_FILE="${TMPDIR:-/tmp}/cub_usage_input_$$"
+_USAGE_OUTPUT_FILE="${TMPDIR:-/tmp}/cub_usage_output_$$"
+_USAGE_CACHE_INPUT_FILE="${TMPDIR:-/tmp}/cub_usage_cache_input_$$"
+_USAGE_CACHE_CREATION_FILE="${TMPDIR:-/tmp}/cub_usage_cache_creation_$$"
+_USAGE_COST_FILE="${TMPDIR:-/tmp}/cub_usage_cost_$$"
+_USAGE_ESTIMATED_FILE="${TMPDIR:-/tmp}/cub_usage_estimated_$$"
 
 # Cleanup trap for usage files
 trap 'rm -f "$_USAGE_INPUT_FILE" "$_USAGE_OUTPUT_FILE" "$_USAGE_CACHE_INPUT_FILE" "$_USAGE_CACHE_CREATION_FILE" "$_USAGE_COST_FILE" "$_USAGE_ESTIMATED_FILE" 2>/dev/null' EXIT
@@ -507,7 +507,7 @@ claude_invoke() {
     [[ "$debug" == "true" ]] && flags="$flags --debug"
 
     # Add model flag if specified
-    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags --model $CURB_MODEL"
+    [[ -n "${CUB_MODEL:-}" ]] && flags="$flags --model $CUB_MODEL"
 
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
@@ -520,9 +520,9 @@ claude_invoke() {
     output=$(echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags 2>&1)
     local exit_code=$?
 
-    # Log raw output if CURB_HARNESS_LOG is set
-    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
-        echo "$output" >> "${CURB_HARNESS_LOG}"
+    # Log raw output if CUB_HARNESS_LOG is set
+    if [[ -n "${CUB_HARNESS_LOG:-}" ]]; then
+        echo "$output" >> "${CUB_HARNESS_LOG}"
     fi
 
     # Try to extract usage from JSON output
@@ -555,7 +555,7 @@ claude_invoke_streaming() {
     [[ "$debug" == "true" ]] && flags="$flags --debug"
 
     # Add model flag if specified
-    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags --model $CURB_MODEL"
+    [[ -n "${CUB_MODEL:-}" ]] && flags="$flags --model $CUB_MODEL"
 
     # Add any extra flags from environment
     [[ -n "${CLAUDE_FLAGS:-}" ]] && flags="$flags $CLAUDE_FLAGS"
@@ -568,10 +568,10 @@ claude_invoke_streaming() {
     local stdbuf_cmd
     stdbuf_cmd=$(_get_stdbuf_cmd)
 
-    # Optional: tee raw output to log file if CURB_HARNESS_LOG is set
+    # Optional: tee raw output to log file if CUB_HARNESS_LOG is set
     local tee_cmd="cat"
-    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
-        tee_cmd="tee -a ${CURB_HARNESS_LOG}"
+    if [[ -n "${CUB_HARNESS_LOG:-}" ]]; then
+        tee_cmd="tee -a ${CUB_HARNESS_LOG}"
     fi
 
     if [[ -n "$stdbuf_cmd" ]]; then
@@ -581,12 +581,12 @@ claude_invoke_streaming() {
         return ${PIPESTATUS[1]}
     else
         # Temp file fallback - ensures complete output capture
-        local tmpfile="${TMPDIR:-/tmp}/curb_claude_stream_$$"
+        local tmpfile="${TMPDIR:-/tmp}/cub_claude_stream_$$"
         echo "$task_prompt" | claude -p --append-system-prompt "$system_prompt" $flags > "$tmpfile" 2>&1
         local exit_code=${PIPESTATUS[1]}
         # Log raw output if requested
-        if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
-            cat "$tmpfile" >> "${CURB_HARNESS_LOG}"
+        if [[ -n "${CUB_HARNESS_LOG:-}" ]]; then
+            cat "$tmpfile" >> "${CUB_HARNESS_LOG}"
         fi
         claude_parse_stream < "$tmpfile"
         rm -f "$tmpfile"
@@ -741,10 +741,10 @@ ${task_prompt}"
     # --full-auto alone still prompts for network/git operations
     local flags="--dangerously-bypass-approvals-and-sandbox"
 
-    # Add model flag if specified via CURB_MODEL (with translation for Claude model names)
-    if [[ -n "${CURB_MODEL:-}" ]]; then
+    # Add model flag if specified via CUB_MODEL (with translation for Claude model names)
+    if [[ -n "${CUB_MODEL:-}" ]]; then
         local translated_model
-        translated_model=$(_codex_translate_model "$CURB_MODEL")
+        translated_model=$(_codex_translate_model "$CUB_MODEL")
         if [[ -n "$translated_model" ]]; then
             flags="$flags -m $translated_model"
         fi
@@ -793,10 +793,10 @@ ${task_prompt}"
     # Use full bypass for autonomous operation + JSON for streaming
     local flags="--dangerously-bypass-approvals-and-sandbox --json"
 
-    # Add model flag if specified via CURB_MODEL (with translation for Claude model names)
-    if [[ -n "${CURB_MODEL:-}" ]]; then
+    # Add model flag if specified via CUB_MODEL (with translation for Claude model names)
+    if [[ -n "${CUB_MODEL:-}" ]]; then
         local translated_model
-        translated_model=$(_codex_translate_model "$CURB_MODEL")
+        translated_model=$(_codex_translate_model "$CUB_MODEL")
         if [[ -n "$translated_model" ]]; then
             flags="$flags -m $translated_model"
         fi
@@ -808,10 +808,10 @@ ${task_prompt}"
     # Log full command in debug mode
     _harness_log_command "$debug" "codex" "exec" $flags "-"
 
-    # Optional: tee raw output to log file if CURB_HARNESS_LOG is set
+    # Optional: tee raw output to log file if CUB_HARNESS_LOG is set
     local tee_cmd="cat"
-    if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
-        tee_cmd="tee -a ${CURB_HARNESS_LOG}"
+    if [[ -n "${CUB_HARNESS_LOG:-}" ]]; then
+        tee_cmd="tee -a ${CUB_HARNESS_LOG}"
     fi
 
     # Use stdbuf for line buffering if available
@@ -822,11 +822,11 @@ ${task_prompt}"
         echo "$combined_prompt" | $stdbuf_cmd codex exec $flags - | $tee_cmd | codex_parse_stream
         return ${PIPESTATUS[1]}
     else
-        local tmpfile="${TMPDIR:-/tmp}/curb_codex_stream_$$"
+        local tmpfile="${TMPDIR:-/tmp}/cub_codex_stream_$$"
         echo "$combined_prompt" | codex exec $flags - > "$tmpfile" 2>&1
         local exit_code=${PIPESTATUS[1]}
-        if [[ -n "${CURB_HARNESS_LOG:-}" ]]; then
-            cat "$tmpfile" >> "${CURB_HARNESS_LOG}"
+        if [[ -n "${CUB_HARNESS_LOG:-}" ]]; then
+            cat "$tmpfile" >> "${CUB_HARNESS_LOG}"
         fi
         codex_parse_stream < "$tmpfile"
         rm -f "$tmpfile"
@@ -948,7 +948,7 @@ ${task_prompt}"
     [[ "$debug" == "true" ]] && flags="$flags -d"
 
     # Add model flag if specified (default: gemini-2.5-pro)
-    [[ -n "${CURB_MODEL:-}" ]] && flags="$flags -m $CURB_MODEL"
+    [[ -n "${CUB_MODEL:-}" ]] && flags="$flags -m $CUB_MODEL"
 
     # Add any extra flags from environment
     [[ -n "${GEMINI_FLAGS:-}" ]] && flags="$flags $GEMINI_FLAGS"
@@ -1017,12 +1017,12 @@ ${task_prompt}"
     [[ "$debug" == "true" ]] && flags="$flags --print-logs --log-level DEBUG"
 
     # Add model flag if specified (requires provider/model format)
-    if [[ -n "${CURB_MODEL:-}" ]]; then
+    if [[ -n "${CUB_MODEL:-}" ]]; then
         # If model doesn't contain '/', assume anthropic provider
-        if [[ "$CURB_MODEL" != */* ]]; then
-            flags="$flags -m anthropic/$CURB_MODEL"
+        if [[ "$CUB_MODEL" != */* ]]; then
+            flags="$flags -m anthropic/$CUB_MODEL"
         else
-            flags="$flags -m $CURB_MODEL"
+            flags="$flags -m $CUB_MODEL"
         fi
     fi
 
@@ -1043,7 +1043,7 @@ ${task_prompt}"
         return ${PIPESTATUS[0]}
     else
         # Temp file fallback - ensures complete output capture
-        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_$$"
+        local tmpfile="${TMPDIR:-/tmp}/cub_opencode_$$"
         opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
         local exit_code=$?
         opencode_parse_stream < "$tmpfile"
@@ -1071,11 +1071,11 @@ ${task_prompt}"
     [[ "$debug" == "true" ]] && flags="$flags --print-logs --log-level DEBUG"
 
     # Add model flag if specified
-    if [[ -n "${CURB_MODEL:-}" ]]; then
-        if [[ "$CURB_MODEL" != */* ]]; then
-            flags="$flags -m anthropic/$CURB_MODEL"
+    if [[ -n "${CUB_MODEL:-}" ]]; then
+        if [[ "$CUB_MODEL" != */* ]]; then
+            flags="$flags -m anthropic/$CUB_MODEL"
         else
-            flags="$flags -m $CURB_MODEL"
+            flags="$flags -m $CUB_MODEL"
         fi
     fi
 
@@ -1094,7 +1094,7 @@ ${task_prompt}"
         return ${PIPESTATUS[0]}
     else
         # Temp file fallback - ensures complete output capture
-        local tmpfile="${TMPDIR:-/tmp}/curb_opencode_stream_$$"
+        local tmpfile="${TMPDIR:-/tmp}/cub_opencode_stream_$$"
         opencode run $flags "$combined_prompt" > "$tmpfile" 2>&1
         local exit_code=$?
         opencode_parse_stream < "$tmpfile"

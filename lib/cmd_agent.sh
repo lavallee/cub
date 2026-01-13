@@ -4,10 +4,10 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_AGENT_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_AGENT_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_AGENT_SH_LOADED=1
+_CUB_CMD_AGENT_SH_LOADED=1
 
 cmd_agent_close_help() {
     cat <<'EOF'
@@ -33,8 +33,8 @@ EXAMPLES:
 
 SEE ALSO:
   curb agent-verify   Verify a task is properly closed
-  curb status         Check overall progress
-  curb explain        Show task details
+  cub status         Check overall progress
+  cub explain        Show task details
 EOF
 }
 
@@ -106,8 +106,8 @@ EXAMPLES:
 
 SEE ALSO:
   curb agent-close    Close a task
-  curb status         Check overall progress
-  curb explain        Show task details
+  cub status         Check overall progress
+  cub explain        Show task details
 EOF
 }
 

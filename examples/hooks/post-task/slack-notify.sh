@@ -10,9 +10,9 @@
 #      Example: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
 #
 #   2. Copy this script to your hooks directory:
-#      mkdir -p ~/.config/curb/hooks/post-task.d
-#      cp slack-notify.sh ~/.config/curb/hooks/post-task.d/01-slack.sh
-#      chmod +x ~/.config/curb/hooks/post-task.d/01-slack.sh
+#      mkdir -p ~/.config/cub/hooks/post-task.d
+#      cp slack-notify.sh ~/.config/cub/hooks/post-task.d/01-slack.sh
+#      chmod +x ~/.config/cub/hooks/post-task.d/01-slack.sh
 #
 #   3. Set the webhook URL as an environment variable:
 #      export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
@@ -21,10 +21,10 @@
 #      export SLACK_CHANNEL="@your-channel"
 #
 # CONTEXT VARIABLES:
-#   CURB_TASK_ID       - Task ID (e.g., "curb-abc123")
-#   CURB_TASK_TITLE    - Task title
-#   CURB_EXIT_CODE     - Exit code from task execution (0 = success)
-#   CURB_PROJECT_DIR   - Project directory
+#   CUB_TASK_ID       - Task ID (e.g., "curb-abc123")
+#   CUB_TASK_TITLE    - Task title
+#   CUB_EXIT_CODE     - Exit code from task execution (0 = success)
+#   CUB_PROJECT_DIR   - Project directory
 #
 
 set -euo pipefail
@@ -32,10 +32,10 @@ set -euo pipefail
 # Configuration from environment or defaults
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
 SLACK_CHANNEL="${SLACK_CHANNEL:-@curb-notifications}"
-PROJECT_DIR="${CURB_PROJECT_DIR:-.}"
-TASK_ID="${CURB_TASK_ID:-unknown}"
-TASK_TITLE="${CURB_TASK_TITLE:-No title}"
-EXIT_CODE="${CURB_EXIT_CODE:-0}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
+TASK_ID="${CUB_TASK_ID:-unknown}"
+TASK_TITLE="${CUB_TASK_TITLE:-No title}"
+EXIT_CODE="${CUB_EXIT_CODE:-0}"
 
 # Require webhook URL to be set
 if [[ -z "$SLACK_WEBHOOK_URL" ]]; then

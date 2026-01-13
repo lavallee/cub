@@ -4,20 +4,20 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_EXPLAIN_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_EXPLAIN_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_EXPLAIN_SH_LOADED=1
+_CUB_CMD_EXPLAIN_SH_LOADED=1
 
 cmd_explain_help() {
     cat <<'EOF'
-curb explain <task-id>
+cub explain <task-id>
 
 Show detailed information about a specific task, including failure
 reasons and blocking dependencies.
 
 USAGE:
-  curb explain <task-id>    Display full task details
+  cub explain <task-id>    Display full task details
 
 OUTPUT INCLUDES:
   - Task ID and title
@@ -42,22 +42,22 @@ FOR BLOCKED TASKS:
 
 EXAMPLES:
   # View task details
-  curb explain curb-018
+  cub explain curb-018
 
   # Investigate why a task failed
-  curb explain curb-041
+  cub explain curb-041
 
   # Check what's blocking a task
-  curb explain feature-42
+  cub explain feature-42
 
   # Look up a task's requirements
-  curb explain backend-001
+  cub explain backend-001
 
 SEE ALSO:
-  curb status       Check overall progress
-  curb run --ready  List ready tasks
-  curb artifacts    Access task output files
-  curb --help       Show all commands
+  cub status       Check overall progress
+  cub run --ready  List ready tasks
+  cub artifacts    Access task output files
+  cub --help       Show all commands
 EOF
 }
 
@@ -70,7 +70,7 @@ cmd_explain() {
 
     local target="${1:-}"
     if [[ -z "$target" ]]; then
-        _log_error_console "Usage: curb explain <task-id>"
+        _log_error_console "Usage: cub explain <task-id>"
         return 1
     fi
 
@@ -111,7 +111,7 @@ cmd_explain() {
             echo -e "${RED}=== Failure Information ===${NC}"
 
             # Look for failure.json in artifacts
-            local artifacts_base="${PROJECT_DIR}/.curb/runs"
+            local artifacts_base="${PROJECT_DIR}/.cub/runs"
             local failure_file=""
             if [[ -d "$artifacts_base" ]]; then
                 failure_file=$(find "$artifacts_base" -path "*/tasks/${task_id}/failure.json" 2>/dev/null | head -n 1)
@@ -143,7 +143,7 @@ cmd_explain() {
             # Provide suggestions
             echo ""
             echo -e "${YELLOW}Suggestions:${NC}"
-            echo "  - Review task artifacts: curb artifacts ${task_id}"
+            echo "  - Review task artifacts: cub artifacts ${task_id}"
             echo "  - Reset to open and retry: update status to 'open' in task source"
             echo "  - Check logs for more details"
         fi
@@ -180,12 +180,12 @@ cmd_explain() {
                 echo ""
                 echo -e "${YELLOW}Suggestions:${NC}"
                 echo "  - Complete blocking tasks first"
-                echo "  - Use 'curb explain <dep-id>' to investigate blockers"
+                echo "  - Use 'cub explain <dep-id>' to investigate blockers"
             fi
         fi
 
         # Show artifacts path if available
-        local artifacts_base="${PROJECT_DIR}/.curb/runs"
+        local artifacts_base="${PROJECT_DIR}/.cub/runs"
         if [[ -d "$artifacts_base" ]]; then
             local task_dir
             task_dir=$(find "$artifacts_base" -path "*/tasks/${task_id}" -type d 2>/dev/null | head -n 1)
@@ -197,7 +197,7 @@ cmd_explain() {
     else
         # Not a task, maybe a session? (future implementation)
         _log_error_console "Task not found: ${target}"
-        _log_error_console "Tip: Run 'curb status' to see available tasks"
+        _log_error_console "Tip: Run 'cub status' to see available tasks"
         return 1
     fi
 }

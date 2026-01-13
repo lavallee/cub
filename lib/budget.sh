@@ -14,15 +14,15 @@
 
 # State files for budget tracking
 # Using files instead of variables because bash command substitution creates subshells
-_BUDGET_LIMIT_FILE="${TMPDIR:-/tmp}/curb_budget_limit_$$"
-_BUDGET_USED_FILE="${TMPDIR:-/tmp}/curb_budget_used_$$"
-_BUDGET_WARNED_FILE="${TMPDIR:-/tmp}/curb_budget_warned_$$"
+_BUDGET_LIMIT_FILE="${TMPDIR:-/tmp}/cub_budget_limit_$$"
+_BUDGET_USED_FILE="${TMPDIR:-/tmp}/cub_budget_used_$$"
+_BUDGET_WARNED_FILE="${TMPDIR:-/tmp}/cub_budget_warned_$$"
 
 # Iteration tracking state files
-_BUDGET_TASK_ITERATIONS_DIR="${TMPDIR:-/tmp}/curb_task_iterations_$$"
-_BUDGET_RUN_ITERATIONS_FILE="${TMPDIR:-/tmp}/curb_run_iterations_$$"
-_BUDGET_MAX_TASK_ITERATIONS_FILE="${TMPDIR:-/tmp}/curb_max_task_iterations_$$"
-_BUDGET_MAX_RUN_ITERATIONS_FILE="${TMPDIR:-/tmp}/curb_max_run_iterations_$$"
+_BUDGET_TASK_ITERATIONS_DIR="${TMPDIR:-/tmp}/cub_task_iterations_$$"
+_BUDGET_RUN_ITERATIONS_FILE="${TMPDIR:-/tmp}/cub_run_iterations_$$"
+_BUDGET_MAX_TASK_ITERATIONS_FILE="${TMPDIR:-/tmp}/cub_max_task_iterations_$$"
+_BUDGET_MAX_RUN_ITERATIONS_FILE="${TMPDIR:-/tmp}/cub_max_run_iterations_$$"
 
 # Initialize iteration tracking directory and defaults
 mkdir -p "$_BUDGET_TASK_ITERATIONS_DIR" 2>/dev/null

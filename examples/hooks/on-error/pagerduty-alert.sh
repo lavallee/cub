@@ -13,9 +13,9 @@
 #      Example: abc123def456ghi789
 #
 #   2. Copy this script to your hooks directory:
-#      mkdir -p ~/.config/curb/hooks/on-error.d
-#      cp pagerduty-alert.sh ~/.config/curb/hooks/on-error.d/01-pagerduty.sh
-#      chmod +x ~/.config/curb/hooks/on-error.d/01-pagerduty.sh
+#      mkdir -p ~/.config/cub/hooks/on-error.d
+#      cp pagerduty-alert.sh ~/.config/cub/hooks/on-error.d/01-pagerduty.sh
+#      chmod +x ~/.config/cub/hooks/on-error.d/01-pagerduty.sh
 #
 #   3. Set your PagerDuty routing key as an environment variable:
 #      export PD_ROUTING_KEY="your-routing-key"
@@ -24,14 +24,14 @@
 #      export PD_SEVERITY="critical"  # critical, error, warning, info
 #
 #   5. Optional: Set the dedupe key prefix for auto-resolution
-#      export PD_DEDUPE_KEY_PREFIX="curb"
+#      export PD_DEDUPE_KEY_PREFIX="cub"
 #
 # CONTEXT VARIABLES:
-#   CURB_TASK_ID       - Task ID that failed
-#   CURB_TASK_TITLE    - Task title
-#   CURB_EXIT_CODE     - Non-zero exit code
-#   CURB_PROJECT_DIR   - Project directory
-#   CURB_SESSION_ID    - Current session ID
+#   CUB_TASK_ID       - Task ID that failed
+#   CUB_TASK_TITLE    - Task title
+#   CUB_EXIT_CODE     - Non-zero exit code
+#   CUB_PROJECT_DIR   - Project directory
+#   CUB_SESSION_ID    - Current session ID
 #
 
 set -euo pipefail
@@ -40,11 +40,11 @@ set -euo pipefail
 PD_ROUTING_KEY="${PD_ROUTING_KEY:-}"
 PD_SEVERITY="${PD_SEVERITY:-error}"
 PD_DEDUPE_KEY_PREFIX="${PD_DEDUPE_KEY_PREFIX:-curb}"
-PROJECT_DIR="${CURB_PROJECT_DIR:-.}"
-TASK_ID="${CURB_TASK_ID:-unknown}"
-TASK_TITLE="${CURB_TASK_TITLE:-No title}"
-EXIT_CODE="${CURB_EXIT_CODE:-1}"
-SESSION_ID="${CURB_SESSION_ID:-unknown}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
+TASK_ID="${CUB_TASK_ID:-unknown}"
+TASK_TITLE="${CUB_TASK_TITLE:-No title}"
+EXIT_CODE="${CUB_EXIT_CODE:-1}"
+SESSION_ID="${CUB_SESSION_ID:-unknown}"
 
 # Require routing key to be set
 if [[ -z "$PD_ROUTING_KEY" ]]; then

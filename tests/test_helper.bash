@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# test_helper.bash - Common setup and utilities for curb tests
+# test_helper.bash - Common setup and utilities for cub tests
 #
 
 # Get absolute path to project root
@@ -15,8 +15,8 @@ setup_test_dir() {
     cd "$TEST_DIR"
 
     # Reset backend state and project directory
-    unset CURB_BACKEND
-    unset CURB_PROJECT_DIR
+    unset CUB_BACKEND
+    unset CUB_PROJECT_DIR
     export _TASK_BACKEND=""
 
     # Create mock harness (claude) for tests that don't actually invoke it

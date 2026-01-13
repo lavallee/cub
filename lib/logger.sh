@@ -3,7 +3,7 @@
 # logger.sh - Structured logging with JSONL output
 #
 # Provides functions for writing structured logs in JSON Lines format.
-# Logs are written to ~/.local/share/curb/logs/{project}/{session}.jsonl
+# Logs are written to ~/.local/share/cub/logs/{project}/{session}.jsonl
 # Each log line is valid JSON with timestamp, event type, and data.
 #
 # Environment Variables:
@@ -82,7 +82,7 @@ logger_init() {
 
     # Ensure base log directory exists
     local logs_base
-    logs_base="$(curb_logs_dir)"
+    logs_base="$(cub_logs_dir)"
     mkdir -p "$logs_base"
 
     # Create project-specific log directory

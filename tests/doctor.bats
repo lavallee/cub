@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Test suite for curb doctor command
+# Test suite for cub doctor command
 
 # Load the test helper
 load test_helper
@@ -198,14 +198,14 @@ teardown() {
     [[ "$cruft_count" -eq 1 ]]
 }
 
-@test "git_categorize_changes excludes .curb directory" {
-    mkdir -p .curb
-    echo "artifact" > .curb/test.log
+@test "git_categorize_changes excludes .cub directory" {
+    mkdir -p .cub
+    echo "artifact" > .cub/test.log
 
     run git_categorize_changes
     [[ $status -eq 0 ]]
 
-    # Should not include .curb files
+    # Should not include .cub files
     local total
     total=$(echo "$output" | jq '[.session, .source, .cruft, .config, .unknown] | add | length')
     [[ "$total" -eq 0 ]]

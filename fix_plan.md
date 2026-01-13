@@ -43,7 +43,7 @@ Curb 1.0 has a solid foundation with 438+ tests and comprehensive core functiona
 **Dependencies**: None (can start immediately)
 
 **Acceptance Criteria**:
-- [ ] `curb run` creates branch `curb/{session-name}` at loop start
+- [ ] `cub run` creates branch `cub/{session-name}` at loop start
 - [ ] Each task completion triggers commit with message `task({task-id}): {title}`
 - [ ] Branch remains local unless `--push` flag is used
 - [ ] Configuration: `git.mode = "branch-per-run" | "commit-per-task" | "patch-only"`
@@ -71,7 +71,7 @@ log_warn "Push flag not yet implemented"
 ```
 
 **Acceptance Criteria**:
-- [ ] `curb --push` pushes branch to remote after each task
+- [ ] `cub --push` pushes branch to remote after each task
 - [ ] Without `--push`, no remote operations occur (safe default)
 - [ ] Push failures logged but don't stop the loop
 
@@ -146,7 +146,7 @@ log_warn "Push flag not yet implemented"
 **Acceptance Criteria**:
 - [ ] Config: `failure.mode = "stop" | "move-on" | "retry"`
 - [ ] Retry mode passes previous failure context to next attempt
-- [ ] `curb explain <task-id>` shows failure reason from artifacts
+- [ ] `cub explain <task-id>` shows failure reason from artifacts
 - [ ] Failed tasks marked with appropriate status
 
 ---

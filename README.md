@@ -49,38 +49,38 @@ git clone https://github.com/lavallee/curb ~/tools/curb
 export PATH="$PATH:$HOME/tools/curb"
 
 # Or create symlinks
-ln -s ~/tools/curb/curb /usr/local/bin/curb
-ln -s ~/tools/curb/curb-init /usr/local/bin/curb-init
+ln -s ~/tools/cub/curb /usr/local/bin/curb
+ln -s ~/tools/cub/curb-init /usr/local/bin/curb-init
 ```
 
 ## Quick Start
 
 ```bash
 # First-time setup (creates global config and directories)
-curb init --global
+cub init --global
 
 # Initialize a new project
 cd my-project
-curb init
+cub init
 
 # Edit prd.json with your tasks (or use beads: bd init && bd create "Task")
 # Add specifications to specs/
 # Update AGENT.md with build instructions
 
 # Check status
-curb status
+cub status
 
 # Run the autonomous loop
-curb run
+cub run
 
 # Or run a single iteration
-curb run --once
+cub run --once
 
 # Or target a specific epic
-curb run --epic my-epic-id
+cub run --epic my-epic-id
 
 # Or filter by label
-curb run --label phase-1
+cub run --label phase-1
 ```
 
 **Upgrading from an earlier version?** See [UPGRADING.md](UPGRADING.md) for migration guide and breaking changes.
@@ -91,75 +91,75 @@ Curb uses a subcommand structure for clear organization:
 
 ```bash
 # SUBCOMMANDS
-curb init           # Initialize project or global config
-curb run            # Run the main loop (default)
-curb status         # Show task progress
-curb explain <id>   # Show task details
-curb artifacts      # List task outputs
+cub init           # Initialize project or global config
+cub run            # Run the main loop (default)
+cub status         # Show task progress
+cub explain <id>   # Show task details
+cub artifacts      # List task outputs
 curb version        # Show version
 
 # CURB INIT - Initialize project or system
-curb init                    # Initialize current directory
-curb init --global           # Set up global config
-curb init /path/to/project   # Initialize specific directory
+cub init                    # Initialize current directory
+cub init --global           # Set up global config
+cub init /path/to/project   # Initialize specific directory
 
 # CURB RUN - Execute tasks (this is the default if no subcommand)
-curb run                     # Run loop until all tasks complete
-curb run --once              # Run single iteration
-curb run --ready             # Show ready (unblocked) tasks
-curb run --plan              # Run planning mode
-curb run --name myname       # Use custom session name
+cub run                     # Run loop until all tasks complete
+cub run --once              # Run single iteration
+cub run --ready             # Show ready (unblocked) tasks
+cub run --plan              # Run planning mode
+cub run --name myname       # Use custom session name
 
 # CURB STATUS - Show progress
-curb status                  # Show task summary
-curb status --json           # JSON output for scripting
+cub status                  # Show task summary
+cub status --json           # JSON output for scripting
 
 # CURB EXPLAIN - Task details
-curb explain curb-abc        # Show full task details
+cub explain curb-abc        # Show full task details
 
 # CURB ARTIFACTS - View task outputs
-curb artifacts               # List all artifacts
-curb artifacts curb-abc      # Show artifacts for specific task
+cub artifacts               # List all artifacts
+cub artifacts curb-abc      # Show artifacts for specific task
 
 # FILTERING (works with beads or JSON backend)
-curb run --epic <id>         # Target tasks within a specific epic
-curb run --label <name>      # Target tasks with a specific label
-curb run --epic curb-1gq --label phase-1  # Combine filters
+cub run --epic <id>         # Target tasks within a specific epic
+cub run --label <name>      # Target tasks with a specific label
+cub run --epic curb-1gq --label phase-1  # Combine filters
 
 # HARNESS SELECTION
-curb run --harness claude    # Use Claude Code (default)
-curb run --harness codex     # Use OpenAI Codex CLI
-curb run --harness gemini    # Use Google Gemini
-curb run --harness opencode  # Use OpenCode
+cub run --harness claude    # Use Claude Code (default)
+cub run --harness codex     # Use OpenAI Codex CLI
+cub run --harness gemini    # Use Google Gemini
+cub run --harness opencode  # Use OpenCode
 
 # BACKEND SELECTION
-curb run --backend beads     # Force beads backend
-curb run --backend json      # Force JSON backend
+cub run --backend beads     # Force beads backend
+cub run --backend json      # Force JSON backend
 
 # OUTPUT MODES
-curb run --stream            # Stream harness activity in real-time
-curb run --debug             # Enable verbose debug logging
+cub run --stream            # Stream harness activity in real-time
+cub run --debug             # Enable verbose debug logging
 
 # MIGRATION TOOLS
-curb --migrate-to-beads          # Migrate prd.json to beads
-curb --migrate-to-beads-dry-run  # Preview migration
+cub --migrate-to-beads          # Migrate prd.json to beads
+cub --migrate-to-beads-dry-run  # Preview migration
 
 # DEBUGGING
-curb run --test              # Test harness invocation
-curb run --dump-prompt       # Save prompts to files for inspection
+cub run --test              # Test harness invocation
+cub run --dump-prompt       # Save prompts to files for inspection
 
 # HELP
-curb --help                  # Main help
-curb init --help             # Init subcommand help
-curb run --help              # Run subcommand help
-curb status --help           # Status subcommand help
+cub --help                  # Main help
+cub init --help             # Init subcommand help
+cub run --help              # Run subcommand help
+cub status --help           # Status subcommand help
 ```
 
-**Note:** Running `curb` without a subcommand defaults to `curb run`.
+**Note:** Running `curb` without a subcommand defaults to `cub run`.
 
 ## Project Structure
 
-After running `curb init`, your project will have:
+After running `cub init`, your project will have:
 
 ```
 my-project/
@@ -170,17 +170,17 @@ my-project/
 ├── progress.txt    # Session learnings (agent appends)
 ├── fix_plan.md     # Discovered issues and plans
 ├── specs/          # Detailed specifications
-└── .curb/          # Curb runtime data (created during runs)
+└── .cub/          # Curb runtime data (created during runs)
     ├── hooks/      # Project-specific hooks
     └── runs/       # Run artifacts and task outputs
 ```
 
 ### Artifacts Directory
 
-Each curb run creates artifacts in `.curb/runs/{session-id}/`:
+Each cub run creates artifacts in `.cub/runs/{session-id}/`:
 
 ```
-.curb/runs/porcupine-20260111-114543/
+.cub/runs/porcupine-20260111-114543/
 ├── run.json                    # Run metadata and config
 └── tasks/
     └── curb-abc/
@@ -191,8 +191,8 @@ Each curb run creates artifacts in `.curb/runs/{session-id}/`:
 
 View artifacts with:
 ```bash
-curb artifacts                  # List all artifacts
-curb artifacts curb-abc         # Show specific task artifacts
+cub artifacts                  # List all artifacts
+cub artifacts curb-abc         # Show specific task artifacts
 ```
 
 ## Task Backends
@@ -235,7 +235,7 @@ brew install steveyegge/beads/bd
 bd init
 
 # Curb auto-detects .beads/ directory
-curb status  # Uses beads backend automatically
+cub status  # Uses beads backend automatically
 ```
 
 ### Task Fields
@@ -274,7 +274,7 @@ In JSON backend, add labels to the task:
 }
 ```
 
-When curb picks up a task with a `model:` label, it automatically sets `CURB_MODEL` to pass to the Claude harness.
+When curb picks up a task with a `model:` label, it automatically sets `CUB_MODEL` to pass to the Claude harness.
 
 ### Task Selection Algorithm
 
@@ -292,7 +292,7 @@ For detailed capability matrix and technical reference, see [docs/HARNESSES.md](
 ### Claude Code (Default)
 
 ```bash
-curb --harness claude
+cub --harness claude
 # or
 export HARNESS=claude
 ```
@@ -302,7 +302,7 @@ Uses Claude Code's `--append-system-prompt` for clean prompt separation.
 ### OpenAI Codex
 
 ```bash
-curb --harness codex
+cub --harness codex
 # or
 export HARNESS=codex
 ```
@@ -312,7 +312,7 @@ Uses Codex's `--full-auto` mode with combined prompts.
 ### Google Gemini
 
 ```bash
-curb --harness gemini
+cub --harness gemini
 # or
 export HARNESS=gemini
 ```
@@ -322,7 +322,7 @@ Uses Gemini CLI's `-y` (YOLO mode) for autonomous operation.
 ### OpenCode
 
 ```bash
-curb --harness opencode
+cub --harness opencode
 # or
 export HARNESS=opencode
 ```
@@ -338,7 +338,7 @@ By default, curb auto-detects available harnesses using this priority order:
 
 #### Configuration Example
 
-You can customize the harness priority in `.curb.json` or global config:
+You can customize the harness priority in `.cub.json` or global config:
 
 ```json
 {
@@ -367,7 +367,7 @@ Curb tracks token usage across all tasks and enforces budget limits:
 
 Set budget in your config file or via environment variable:
 
-**Global config** (`~/.config/curb/config.json`):
+**Global config** (`~/.config/cub/config.json`):
 ```json
 {
   "budget": {
@@ -377,7 +377,7 @@ Set budget in your config file or via environment variable:
 }
 ```
 
-**Project override** (`.curb.json`):
+**Project override** (`.cub.json`):
 ```json
 {
   "budget": {
@@ -389,7 +389,7 @@ Set budget in your config file or via environment variable:
 
 **Environment variable**:
 ```bash
-export CURB_BUDGET=2000000  # Overrides both config files
+export CUB_BUDGET=2000000  # Overrides both config files
 curb
 ```
 
@@ -404,27 +404,27 @@ curb
 
 **For development/testing** (small projects):
 ```bash
-export CURB_BUDGET=100000  # 100k tokens
+export CUB_BUDGET=100000  # 100k tokens
 curb
 ```
 
 **For medium projects** (most use cases):
 ```bash
-export CURB_BUDGET=1000000  # 1M tokens (default)
+export CUB_BUDGET=1000000  # 1M tokens (default)
 curb
 ```
 
 **For large projects** (extensive refactoring):
 ```bash
-export CURB_BUDGET=5000000  # 5M tokens
+export CUB_BUDGET=5000000  # 5M tokens
 curb
 ```
 
 **For multi-day sessions**:
 ```bash
 # Set higher budget if running multiple iterations
-export CURB_BUDGET=10000000  # 10M tokens
-curb --max-iterations 200
+export CUB_BUDGET=10000000  # 10M tokens
+cub --max-iterations 200
 ```
 
 ### Monitoring Budget Usage
@@ -433,13 +433,13 @@ Check token usage in structured logs:
 
 ```bash
 # View all budget warnings
-jq 'select(.event_type=="budget_warning")' ~/.local/share/curb/logs/myproject/*.jsonl
+jq 'select(.event_type=="budget_warning")' ~/.local/share/cub/logs/myproject/*.jsonl
 
 # Track total tokens per session
-jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/curb/logs/myproject/*.jsonl
+jq -s '[.[].data.tokens_used // 0] | add' ~/.local/share/cub/logs/myproject/*.jsonl
 
 # Find high-cost tasks
-jq 'select(.data.tokens_used > 10000)' ~/.local/share/curb/logs/myproject/*.jsonl
+jq 'select(.data.tokens_used > 10000)' ~/.local/share/cub/logs/myproject/*.jsonl
 ```
 
 ## Guardrails
@@ -518,19 +518,19 @@ Please fix the issues and try again.
 
 ## Session Management
 
-Each curb run creates a unique session with an auto-generated animal name:
+Each cub run creates a unique session with an auto-generated animal name:
 
 ```bash
 # Auto-generated session name
-curb run    # Creates: porcupine-20260111-114543
+cub run    # Creates: porcupine-20260111-114543
 
 # Custom session name
-curb run --name release-1.0    # Creates: release-1.0-20260111-114543
+cub run --name release-1.0    # Creates: release-1.0-20260111-114543
 ```
 
 Session names are used for:
-- Git branch naming: `curb/{session}/{timestamp}`
-- Artifact directories: `.curb/runs/{session}/`
+- Git branch naming: `cub/{session}/{timestamp}`
+- Artifact directories: `.cub/runs/{session}/`
 - Log identification
 
 ### Session Assignment
@@ -555,7 +555,7 @@ Each run creates a feature branch (when using the auto-branch hook):
 
 ```
 main
-└── curb/porcupine/20260111-114543
+└── cub/porcupine/20260111-114543
 ```
 
 ### Commit Per Task
@@ -588,23 +588,23 @@ Curb verifies clean git state before and after tasks:
 
 Override via CLI:
 ```bash
-curb run --require-clean      # Force clean state check
-curb run --no-require-clean   # Disable clean state check
+cub run --require-clean      # Force clean state check
+cub run --no-require-clean   # Disable clean state check
 ```
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CURB_PROJECT_DIR` | `$(pwd)` | Project directory |
-| `CURB_MAX_ITERATIONS` | `100` | Max loop iterations |
-| `CURB_DEBUG` | `false` | Enable debug mode |
-| `CURB_STREAM` | `false` | Enable streaming output |
-| `CURB_BACKEND` | `auto` | Task backend: `auto`, `beads`, `json` |
-| `CURB_EPIC` | | Filter to tasks within this epic ID |
-| `CURB_LABEL` | | Filter to tasks with this label |
-| `CURB_MODEL` | | Override model for Claude harness |
-| `CURB_BUDGET` | | Override token budget (overrides config) |
+| `CUB_PROJECT_DIR` | `$(pwd)` | Project directory |
+| `CUB_MAX_ITERATIONS` | `100` | Max loop iterations |
+| `CUB_DEBUG` | `false` | Enable debug mode |
+| `CUB_STREAM` | `false` | Enable streaming output |
+| `CUB_BACKEND` | `auto` | Task backend: `auto`, `beads`, `json` |
+| `CUB_EPIC` | | Filter to tasks within this epic ID |
+| `CUB_LABEL` | | Filter to tasks with this label |
+| `CUB_MODEL` | | Override model for Claude harness |
+| `CUB_BUDGET` | | Override token budget (overrides config) |
 | `HARNESS` | `auto` | AI harness: `auto`, `claude`, `codex`, `opencode`, `gemini` |
 | `CLAUDE_FLAGS` | | Extra flags for Claude Code |
 | `CODEX_FLAGS` | | Extra flags for Codex CLI |
@@ -620,21 +620,21 @@ For a complete reference of all configuration options, see [docs/CONFIG.md](docs
 ### Global Setup
 
 ```bash
-curb init --global
+cub init --global
 ```
 
 Creates:
-- `~/.config/curb/config.json` - Global configuration
-- `~/.config/curb/hooks/` - Hook directories
-- `~/.local/share/curb/logs/` - Log storage
-- `~/.cache/curb/` - Cache directory
+- `~/.config/cub/config.json` - Global configuration
+- `~/.config/cub/hooks/` - Hook directories
+- `~/.local/share/cub/logs/` - Log storage
+- `~/.cache/cub/` - Cache directory
 
 ### Configuration Precedence
 
 1. **CLI flags** (highest priority)
 2. **Environment variables**
-3. **Project config** (`.curb.json` in project root)
-4. **Global config** (`~/.config/curb/config.json`)
+3. **Project config** (`.cub.json` in project root)
+4. **Global config** (`~/.config/cub/config.json`)
 5. **Hardcoded defaults** (lowest priority)
 
 ### Config File Format
@@ -664,7 +664,7 @@ Creates:
 
 ### Project Override
 
-Create `.curb.json` in your project root to override global settings:
+Create `.cub.json` in your project root to override global settings:
 
 ```json
 {
@@ -684,7 +684,7 @@ Curb logs all task executions in JSONL format for debugging and analytics.
 ### Log Location
 
 ```
-~/.local/share/curb/logs/{project}/{session}.jsonl
+~/.local/share/cub/logs/{project}/{session}.jsonl
 ```
 
 Session ID format: `YYYYMMDD-HHMMSS` (e.g., `20260109-214858`)
@@ -702,7 +702,7 @@ Each task produces structured events:
 
 ```bash
 # Find all task starts
-jq 'select(.event_type=="task_start")' ~/.local/share/curb/logs/myproject/*.jsonl
+jq 'select(.event_type=="task_start")' ~/.local/share/cub/logs/myproject/*.jsonl
 
 # Find failed tasks
 jq 'select(.event_type=="task_end" and .data.exit_code != 0)' logs/*.jsonl
@@ -802,8 +802,8 @@ Curb supports five hook points:
 
 Hooks are discovered from two locations (in order):
 
-1. **Global hooks**: `~/.config/curb/hooks/{hook-name}.d/` - Available to all projects
-2. **Project hooks**: `./.curb/hooks/{hook-name}.d/` - Specific to a project
+1. **Global hooks**: `~/.config/cub/hooks/{hook-name}.d/` - Available to all projects
+2. **Project hooks**: `./.cub/hooks/{hook-name}.d/` - Specific to a project
 
 All executable files in these directories are run in sorted order (alphabetically).
 
@@ -813,13 +813,13 @@ All hooks receive context via environment variables:
 
 | Variable | Available In | Description |
 |----------|--------------|-------------|
-| `CURB_HOOK_NAME` | All | Name of the hook being executed |
-| `CURB_PROJECT_DIR` | All | Project directory |
-| `CURB_SESSION_ID` | pre-loop, post-loop | Unique session identifier |
-| `CURB_HARNESS` | pre-loop, post-loop | Harness in use (claude, codex, etc.) |
-| `CURB_TASK_ID` | pre-task, post-task, on-error | ID of the current task |
-| `CURB_TASK_TITLE` | pre-task, post-task, on-error | Title of the current task |
-| `CURB_EXIT_CODE` | post-task, on-error | Exit code from task execution (0 = success) |
+| `CUB_HOOK_NAME` | All | Name of the hook being executed |
+| `CUB_PROJECT_DIR` | All | Project directory |
+| `CUB_SESSION_ID` | pre-loop, post-loop | Unique session identifier |
+| `CUB_HARNESS` | pre-loop, post-loop | Harness in use (claude, codex, etc.) |
+| `CUB_TASK_ID` | pre-task, post-task, on-error | ID of the current task |
+| `CUB_TASK_TITLE` | pre-task, post-task, on-error | Title of the current task |
+| `CUB_EXIT_CODE` | post-task, on-error | Exit code from task execution (0 = success) |
 
 ### Example Hooks
 
@@ -833,14 +833,14 @@ Curb includes example hooks for common integrations:
 
 ```bash
 # Copy to global hooks directory
-mkdir -p ~/.config/curb/hooks/{post-task,post-loop,on-error}.d
-cp examples/hooks/post-task/slack-notify.sh ~/.config/curb/hooks/post-task.d/01-slack.sh
-chmod +x ~/.config/curb/hooks/post-task.d/01-slack.sh
+mkdir -p ~/.config/cub/hooks/{post-task,post-loop,on-error}.d
+cp examples/hooks/post-task/slack-notify.sh ~/.config/cub/hooks/post-task.d/01-slack.sh
+chmod +x ~/.config/cub/hooks/post-task.d/01-slack.sh
 
 # Or to project-specific hooks
-mkdir -p .curb/hooks/post-task.d
-cp examples/hooks/post-task/slack-notify.sh .curb/hooks/post-task.d/01-slack.sh
-chmod +x .curb/hooks/post-task.d/01-slack.sh
+mkdir -p .cub/hooks/post-task.d
+cp examples/hooks/post-task/slack-notify.sh .cub/hooks/post-task.d/01-slack.sh
+chmod +x .cub/hooks/post-task.d/01-slack.sh
 ```
 
 Each example script includes detailed installation and configuration instructions.
@@ -854,7 +854,7 @@ Creating a hook is simple - just write a bash script:
 # Example hook script
 
 # Hooks receive context as environment variables
-echo "Task $CURB_TASK_ID completed with exit code $CURB_EXIT_CODE"
+echo "Task $CUB_TASK_ID completed with exit code $CUB_EXIT_CODE"
 
 # Exit with 0 for success, non-zero for failure
 exit 0
@@ -943,7 +943,7 @@ This signals curb to exit the loop.
 Watch agent activity in real-time:
 
 ```bash
-curb run --stream
+cub run --stream
 ```
 
 Shows tool calls, responses, and costs as they happen.
@@ -953,7 +953,7 @@ Shows tool calls, responses, and costs as they happen.
 Get verbose output for troubleshooting:
 
 ```bash
-curb run --debug --once
+cub run --debug --once
 ```
 
 Includes:
@@ -969,7 +969,7 @@ Includes:
 Analyze codebase and update fix_plan.md:
 
 ```bash
-curb run --plan
+cub run --plan
 ```
 
 Uses parallel subagents to study code, find TODOs, and document issues.
@@ -980,10 +980,10 @@ Convert existing prd.json to beads format:
 
 ```bash
 # Preview what would happen
-curb --migrate-to-beads-dry-run
+cub --migrate-to-beads-dry-run
 
 # Perform migration
-curb --migrate-to-beads
+cub --migrate-to-beads
 ```
 
 ## Tips

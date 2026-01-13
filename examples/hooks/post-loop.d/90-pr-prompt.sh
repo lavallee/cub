@@ -2,7 +2,7 @@
 #
 # PR Creation Prompt Hook
 #
-# Offers to create a GitHub Pull Request at the end of a successful curb run.
+# Offers to create a GitHub Pull Request at the end of a successful cub run.
 # This hook runs after the curb loop completes via the post-loop hook point.
 #
 # INSTALLATION:
@@ -11,25 +11,25 @@
 #      gh auth login      # authenticate
 #
 #   2. Copy this script to your hooks directory:
-#      mkdir -p .curb/hooks/post-loop.d
-#      cp 90-pr-prompt.sh .curb/hooks/post-loop.d/
-#      chmod +x .curb/hooks/post-loop.d/90-pr-prompt.sh
+#      mkdir -p .cub/hooks/post-loop.d
+#      cp 90-pr-prompt.sh .cub/hooks/post-loop.d/
+#      chmod +x .cub/hooks/post-loop.d/90-pr-prompt.sh
 #
 #   Or for global hooks:
-#      mkdir -p ~/.config/curb/hooks/post-loop.d
-#      cp 90-pr-prompt.sh ~/.config/curb/hooks/post-loop.d/
-#      chmod +x ~/.config/curb/hooks/post-loop.d/90-pr-prompt.sh
+#      mkdir -p ~/.config/cub/hooks/post-loop.d
+#      cp 90-pr-prompt.sh ~/.config/cub/hooks/post-loop.d/
+#      chmod +x ~/.config/cub/hooks/post-loop.d/90-pr-prompt.sh
 #
 # CONTEXT VARIABLES:
-#   CURB_SESSION_ID    - Session ID (e.g., "porcupine-20260111-114543")
-#   CURB_PROJECT_DIR   - Project directory
-#   CURB_HARNESS       - Harness used (claude, codex, etc.)
+#   CUB_SESSION_ID    - Session ID (e.g., "porcupine-20260111-114543")
+#   CUB_PROJECT_DIR   - Project directory
+#   CUB_HARNESS       - Harness used (claude, codex, etc.)
 #
 # PREREQUISITES:
 #   - gh CLI installed and authenticated
 #   - Repository has a GitHub remote
 #   - Branch has been pushed to origin
-#   - Base branch stored in .curb/.base-branch (set by auto-branch hook)
+#   - Base branch stored in .cub/.base-branch (set by auto-branch hook)
 #
 # BEHAVIOR:
 #   - Skips if gh CLI not installed
@@ -44,8 +44,8 @@
 set -euo pipefail
 
 # Get context from environment
-PROJECT_DIR="${CURB_PROJECT_DIR:-.}"
-SESSION_ID="${CURB_SESSION_ID:-}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
+SESSION_ID="${CUB_SESSION_ID:-}"
 
 # Change to project directory
 cd "$PROJECT_DIR"
@@ -88,8 +88,8 @@ if [[ "$CURRENT_BRANCH" == "main" || "$CURRENT_BRANCH" == "master" ]]; then
     exit 0
 fi
 
-# Read base branch from .curb/.base-branch (set by auto-branch hook)
-BASE_BRANCH_FILE="${PROJECT_DIR}/.curb/.base-branch"
+# Read base branch from .cub/.base-branch (set by auto-branch hook)
+BASE_BRANCH_FILE="${PROJECT_DIR}/.cub/.base-branch"
 if [[ -f "$BASE_BRANCH_FILE" ]]; then
     BASE_BRANCH=$(cat "$BASE_BRANCH_FILE")
 else
@@ -129,8 +129,8 @@ if [[ -n "$EXISTING_PR" ]]; then
 fi
 
 # Generate PR title from branch name or first commit
-# Extract session name from branch: curb/porcupine/20260111-114543 -> "Porcupine session"
-if [[ "$CURRENT_BRANCH" == curb/* ]]; then
+# Extract session name from branch: cub/porcupine/20260111-114543 -> "Porcupine session"
+if [[ "$CURRENT_BRANCH" == cub/* ]]; then
     SESSION_NAME=$(echo "$CURRENT_BRANCH" | cut -d'/' -f2 | tr '[:lower:]' '[:upper:]' | head -c1)
     SESSION_NAME_REST=$(echo "$CURRENT_BRANCH" | cut -d'/' -f2 | tail -c+2)
     SUGGESTED_TITLE="Curb: ${SESSION_NAME}${SESSION_NAME_REST} session (${COMMITS_AHEAD} commits)"

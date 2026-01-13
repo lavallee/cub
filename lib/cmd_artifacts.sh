@@ -4,21 +4,21 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_ARTIFACTS_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_ARTIFACTS_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_ARTIFACTS_SH_LOADED=1
+_CUB_CMD_ARTIFACTS_SH_LOADED=1
 
 cmd_artifacts_help() {
     cat <<'EOF'
-curb artifacts [<task-id>]
+cub artifacts [<task-id>]
 
 Access and navigate to task artifact directories and output files.
 
 USAGE:
-  curb artifacts              List recent tasks with artifact paths
-  curb artifacts <task-id>    Show path to specific task artifacts
-  curb artifacts <prefix>     Find tasks by ID prefix (partial match)
+  cub artifacts              List recent tasks with artifact paths
+  cub artifacts <task-id>    Show path to specific task artifacts
+  cub artifacts <prefix>     Find tasks by ID prefix (partial match)
 
 TASK ARTIFACTS INCLUDE:
   - task.json              Task metadata and status
@@ -29,31 +29,31 @@ TASK ARTIFACTS INCLUDE:
 
 EXAMPLES:
   # List all recent tasks
-  curb artifacts
+  cub artifacts
 
   # Get path to specific task (useful for scripts)
-  curb artifacts curb-018
-  # Output: .curb/runs/panda-20260110-141339/tasks/curb-018
+  cub artifacts curb-018
+  # Output: .cub/runs/panda-20260110-141339/tasks/curb-018
 
   # Use in shell command
-  cd $(curb artifacts curb-018)
+  cd $(cub artifacts curb-018)
   cat summary.md
 
   # Find by prefix (shows matches if ambiguous)
-  curb artifacts curb-01
+  cub artifacts curb-01
 
   # View recent task summary
-  cat $(curb artifacts curb-017)/summary.md
+  cat $(cub artifacts curb-017)/summary.md
 
   # Examine git changes made by task
-  patch -p1 -R < $(curb artifacts curb-016)/changes.patch
+  patch -p1 -R < $(cub artifacts curb-016)/changes.patch
 
   # Find task logs
-  ls $(curb artifacts curb-015)/logs/
+  ls $(cub artifacts curb-015)/logs/
 
 SEE ALSO:
-  curb status      Check task progress
-  curb --help      Show all commands
+  cub status      Check task progress
+  cub --help      Show all commands
 EOF
 }
 
@@ -64,7 +64,7 @@ cmd_artifacts() {
         return 0
     fi
 
-    local artifacts_base=".curb/runs"
+    local artifacts_base=".cub/runs"
 
     # If no arguments given, list recent tasks with paths
     if [[ $# -eq 0 ]]; then
@@ -87,7 +87,7 @@ cmd_artifacts() {
 
     # Find a task by task_id (supports prefix matching)
     local search_id="$1"
-    local artifacts_base=".curb/runs"
+    local artifacts_base=".cub/runs"
 
     if [[ ! -d "$artifacts_base" ]]; then
         _log_error_console "No artifacts found (no runs yet)"
@@ -110,7 +110,7 @@ cmd_artifacts() {
 
     if [[ ${#matches[@]} -eq 0 ]]; then
         _log_error_console "Task not found: ${search_id}"
-        _log_error_console "Tip: Run 'curb artifacts' to see available tasks"
+        _log_error_console "Tip: Run 'cub artifacts' to see available tasks"
         return 1
     fi
 

@@ -4,22 +4,22 @@
 #
 
 # Include guard
-if [[ -n "${_CURB_CMD_DOCTOR_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_DOCTOR_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CURB_CMD_DOCTOR_SH_LOADED=1
+_CUB_CMD_DOCTOR_SH_LOADED=1
 
 cmd_doctor_help() {
     cat <<'EOF'
-curb doctor [options]
+cub doctor [options]
 
 Diagnose and optionally fix common curb issues.
 
 USAGE:
-  curb doctor              Run diagnostics
-  curb doctor --verbose    Show detailed diagnostic info
-  curb doctor --fix        Automatically fix detected issues
-  curb doctor --dry-run    Show what --fix would do
+  cub doctor              Run diagnostics
+  cub doctor --verbose    Show detailed diagnostic info
+  cub doctor --fix        Automatically fix detected issues
+  cub doctor --dry-run    Show what --fix would do
 
 CHECKS:
   - Environment: jq, harness availability, beads (if used)
@@ -39,18 +39,18 @@ FIX ACTIONS:
 
 EXAMPLES:
   # Run diagnostics
-  curb doctor
+  cub doctor
 
   # See what would be fixed
-  curb doctor --dry-run
+  cub doctor --dry-run
 
   # Auto-fix session files
-  curb doctor --fix
+  cub doctor --fix
 
 SEE ALSO:
-  curb init      Initialize project
-  curb status    Check task progress
-  curb --help    Show all commands
+  cub init      Initialize project
+  cub status    Check task progress
+  cub --help    Show all commands
 EOF
 }
 
@@ -142,7 +142,7 @@ _doctor_check_project() {
     if [[ -f "${PROJECT_DIR}/PROMPT.md" ]]; then
         _doctor_ok "PROMPT.md found"
     else
-        _doctor_warn "PROMPT.md not found (run 'curb init')"
+        _doctor_warn "PROMPT.md not found (run 'cub init')"
         ((issues++))
     fi
 
@@ -150,15 +150,15 @@ _doctor_check_project() {
     if [[ -f "${PROJECT_DIR}/AGENT.md" ]]; then
         _doctor_ok "AGENT.md found"
     else
-        _doctor_warn "AGENT.md not found (run 'curb init')"
+        _doctor_warn "AGENT.md not found (run 'cub init')"
         ((issues++))
     fi
 
-    # Check .curb/ directory
+    # Check .cub/ directory
     if [[ -d "${PROJECT_DIR}/.curb" ]]; then
-        _doctor_ok ".curb/ directory exists"
+        _doctor_ok ".cub/ directory exists"
     else
-        _doctor_info ".curb/ directory not found (will be created on first run)"
+        _doctor_info ".cub/ directory not found (will be created on first run)"
     fi
 
     return $issues
@@ -197,35 +197,35 @@ _doctor_check_git() {
 
     local total_count=$((session_count + source_count + cruft_count + config_count + unknown_count))
 
-    # Check for curb artifacts (.beads/ and .curb/) separately
-    local curb_artifacts
-    curb_artifacts=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.(beads|curb)/' || true)
-    local curb_artifact_count=0
-    if [[ -n "$curb_artifacts" ]]; then
-        curb_artifact_count=$(echo "$curb_artifacts" | wc -l | tr -d ' ')
+    # Check for cub artifacts (.beads/ and .cub/) separately
+    local cub_artifacts
+    cub_artifacts=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.(beads|curb)/' || true)
+    local cub_artifact_count=0
+    if [[ -n "$cub_artifacts" ]]; then
+        cub_artifact_count=$(echo "$cub_artifacts" | wc -l | tr -d ' ')
     fi
 
-    if [[ $total_count -eq 0 && $curb_artifact_count -eq 0 ]]; then
+    if [[ $total_count -eq 0 && $cub_artifact_count -eq 0 ]]; then
         _doctor_ok "Working directory clean"
         return 0
     fi
 
-    # Report curb artifacts if present
-    if [[ $curb_artifact_count -gt 0 ]]; then
-        _doctor_warn "Curb artifacts need committing (${curb_artifact_count} files)"
+    # Report cub artifacts if present
+    if [[ $cub_artifact_count -gt 0 ]]; then
+        _doctor_warn "Curb artifacts need committing (${cub_artifact_count} files)"
         ((issues++))
         echo ""
         echo "  Curb artifacts (safe to commit with --fix):"
         # Use here-string to avoid subshell from pipe
         while IFS= read -r line; do
             echo "    $line"
-        done <<< "$curb_artifacts"
+        done <<< "$cub_artifacts"
         # Store for fix phase (exported so it survives function calls)
-        export _DOCTOR_CURB_ARTIFACTS="$curb_artifacts"
+        export _DOCTOR_CUB_ARTIFACTS="$cub_artifacts"
     fi
 
     if [[ $total_count -eq 0 ]]; then
-        # Only curb artifacts, no other changes
+        # Only cub artifacts, no other changes
         return $issues
     fi
 
@@ -351,16 +351,16 @@ _doctor_fix() {
         _doctor_ok "No session files to commit"
     fi
 
-    # Commit curb artifacts if present
-    if [[ -n "${_DOCTOR_CURB_ARTIFACTS:-}" ]]; then
+    # Commit cub artifacts if present
+    if [[ -n "${_DOCTOR_CUB_ARTIFACTS:-}" ]]; then
         if [[ "$dry_run" == "true" ]]; then
-            _doctor_info "Would commit curb artifacts"
+            _doctor_info "Would commit cub artifacts"
         else
-            log_info "Committing curb artifacts..."
-            if git_commit_curb_artifacts "doctor"; then
-                _doctor_ok "Committed curb artifacts"
+            log_info "Committing cub artifacts..."
+            if git_commit_cub_artifacts "doctor"; then
+                _doctor_ok "Committed cub artifacts"
             else
-                _doctor_warn "Failed to commit curb artifacts"
+                _doctor_warn "Failed to commit cub artifacts"
                 ((issues++))
             fi
         fi
@@ -408,7 +408,7 @@ cmd_doctor() {
                 ;;
             *)
                 _log_error_console "Unknown flag: $1"
-                _log_error_console "Usage: curb doctor [--verbose] [--fix] [--dry-run]"
+                _log_error_console "Usage: cub doctor [--verbose] [--fix] [--dry-run]"
                 return 1
                 ;;
         esac
@@ -434,8 +434,8 @@ cmd_doctor() {
         _doctor_warn "Found ${total_issues} issue(s)"
         if [[ "$fix" != "true" ]]; then
             echo ""
-            echo "Run 'curb doctor --fix' to auto-fix some issues"
-            echo "Run 'curb doctor --dry-run' to preview fixes"
+            echo "Run 'cub doctor --fix' to auto-fix some issues"
+            echo "Run 'cub doctor --dry-run' to preview fixes"
         fi
     fi
 

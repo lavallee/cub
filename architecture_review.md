@@ -61,7 +61,7 @@ Go is the industry standard for CLI tools (Kubernetes, Docker, gh CLI) and fits 
 
 *   **Libraries:**
     *   **CLI:** `spf13/cobra` (standard for CLIs) or `urfave/cli`.
-    *   **UI:** `charmbracelet/bubbletea` for a rich, interactive TUI (Terminal User Interface) – would make `curb status` beautiful.
+    *   **UI:** `charmbracelet/bubbletea` for a rich, interactive TUI (Terminal User Interface) – would make `cub status` beautiful.
     *   **JSON:** Native standard library support.
     *   **Git:** `go-git` for native git operations without shelling out.
 
@@ -92,7 +92,7 @@ Don't rewrite everything at once. Replace the slow/complex parts first.
     *   *Gain:* Speed and reliability in task selection.
 
 ### Phase 2: Rich TUI & Monitoring
-1.  **Replace `curb status` with a Bubbletea (Go) TUI.**
+1.  **Replace `cub status` with a Bubbletea (Go) TUI.**
     *   Provides a live, auto-updating dashboard.
 2.  **Build `curb-hub` MVP.**
     *   A simple Go server that accepts JSON payloads from the `curb` CLI.

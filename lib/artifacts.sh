@@ -4,7 +4,7 @@
 #
 # Provides functions for managing artifact bundles that provide
 # observability into each task's execution. Artifacts are stored
-# in .curb/runs/{session-id}/tasks/{task-id}/ structure.
+# in .cub/runs/{session-id}/tasks/{task-id}/ structure.
 #
 # Functions:
 #   artifacts_get_run_dir() - Get the directory for the current run
@@ -26,10 +26,10 @@ source "${SCRIPT_DIR}/session.sh"
 source "${SCRIPT_DIR}/xdg.sh"
 
 # Base directory for artifacts (relative to project root)
-_ARTIFACTS_BASE_DIR=".curb/runs"
+_ARTIFACTS_BASE_DIR=".cub/runs"
 
 # Get the directory for the current run
-# Returns: path to run directory (.curb/runs/{session-id})
+# Returns: path to run directory (.cub/runs/{session-id})
 #
 # Returns:
 #   Path to run directory on success, error on failure
@@ -56,7 +56,7 @@ artifacts_get_run_dir() {
 }
 
 # Get the directory for a specific task
-# Returns: path to task directory (.curb/runs/{session-id}/tasks/{task-id})
+# Returns: path to task directory (.cub/runs/{session-id}/tasks/{task-id})
 #
 # Args:
 #   $1 - task_id: The task identifier (e.g., "curb-123")

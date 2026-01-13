@@ -117,7 +117,7 @@ Unified interface abstracts backend differences.
 ### 3. Structured Artifacts
 Every task execution produces a complete artifact bundle:
 ```
-.curb/runs/{session-name}/tasks/{task-id}/
+.cub/runs/{session-name}/tasks/{task-id}/
 ├── task.json         # Normalized task view
 ├── summary.md        # What changed, final status
 └── changes.patch     # Unified diff
@@ -126,7 +126,7 @@ Every task execution produces a complete artifact bundle:
 ### 4. Comprehensive Logging
 Machine-readable JSONL logs at:
 ```
-~/.local/share/curb/logs/{project}/{session}.jsonl
+~/.local/share/cub/logs/{project}/{session}.jsonl
 ```
 
 Queryable with jq for analysis, debugging, and metrics.
@@ -157,8 +157,8 @@ Token-based budget tracking with:
 ### 8. XDG-Compliant Configuration
 Follows XDG Base Directory specification:
 ```
-~/.config/curb/config.json  # Global config
-.curb.json                   # Project overrides
+~/.config/cub/config.json  # Global config
+.cub.json                   # Project overrides
 ```
 
 Full precedence hierarchy: CLI flags > env vars > project > global > defaults
@@ -216,7 +216,7 @@ cd ~/tools/curb && git pull
 curb-init --global
 
 # Test your setup
-curb --once
+cub --once
 ```
 
 ## 📦 Installation
@@ -233,26 +233,26 @@ curb-init --global
 
 # Initialize a project
 cd my-project
-curb init
+cub init
 ```
 
 ## 🎯 Quick Start
 
 ```bash
 # Check status
-curb status
+cub status
 
 # Run one iteration
-curb run --once
+cub run --once
 
 # Run continuous loop
-curb run
+cub run
 
 # Target specific epic
-curb run --epic my-epic-id
+cub run --epic my-epic-id
 
 # Use specific harness
-curb run --harness gemini
+cub run --harness gemini
 ```
 
 ## 🔮 Future Roadmap (Post-1.0)
@@ -289,7 +289,7 @@ MIT License - See LICENSE file for details
 ## 🐛 Reporting Issues
 
 Found a bug or have a feature request?
-https://github.com/lavallee/curb/issues
+https://github.com/lavallee/cub/issues
 
 ## 📚 Resources
 

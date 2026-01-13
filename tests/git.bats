@@ -138,7 +138,7 @@ teardown() {
     # Check that we're on the new branch
     local current_branch
     current_branch=$(git rev-parse --abbrev-ref HEAD)
-    [[ "$current_branch" =~ ^curb/panda/[0-9]{8}-[0-9]{6}$ ]]
+    [[ "$current_branch" =~ ^cub/panda/[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "git_init_run_branch checks out the new branch" {
@@ -153,7 +153,7 @@ teardown() {
     local new_branch
     new_branch=$(git_get_current_branch)
     [[ "$new_branch" != "$original_branch" ]]
-    [[ "$new_branch" =~ ^curb/panda/ ]]
+    [[ "$new_branch" =~ ^cub/panda/ ]]
 }
 
 @test "git_init_run_branch stores branch name in global variable" {
@@ -161,7 +161,7 @@ teardown() {
 
     # Global variable should be set (run without 'run' to check variable in same shell)
     [[ -n "$_GIT_RUN_BRANCH" ]]
-    [[ "$_GIT_RUN_BRANCH" =~ ^curb/panda/[0-9]{8}-[0-9]{6}$ ]]
+    [[ "$_GIT_RUN_BRANCH" =~ ^cub/panda/[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "git_init_run_branch returns error when session_name is empty" {
@@ -187,7 +187,7 @@ teardown() {
 
 @test "git_init_run_branch handles existing branch gracefully" {
     # Create a branch manually
-    local branch_name="curb/panda/20260110-120000"
+    local branch_name="cub/panda/20260110-120000"
     git checkout -q -b "$branch_name"
 
     # Switch back to main
@@ -228,10 +228,10 @@ teardown() {
     run git_init_run_branch "panda"
     [[ $status -eq 0 ]]
 
-    # Should be on new curb branch
+    # Should be on new cub branch
     local current_branch
     current_branch=$(git_get_current_branch)
-    [[ "$current_branch" =~ ^curb/panda/ ]]
+    [[ "$current_branch" =~ ^cub/panda/ ]]
 }
 
 @test "git_init_run_branch uses current timestamp" {
@@ -261,7 +261,7 @@ teardown() {
 
     run git_get_run_branch
     [[ $status -eq 0 ]]
-    [[ "$output" =~ ^curb/panda/[0-9]{8}-[0-9]{6}$ ]]
+    [[ "$output" =~ ^cub/panda/[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "git_get_run_branch returns error when not initialized" {
@@ -299,7 +299,7 @@ teardown() {
     current_branch=$(git_get_current_branch)
 
     [[ "$run_branch" == "$current_branch" ]]
-    [[ "$run_branch" =~ ^curb/wallaby/[0-9]{8}-[0-9]{6}$ ]]
+    [[ "$run_branch" =~ ^cub/wallaby/[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "INTEGRATION: Multiple sessions create different branches" {
@@ -316,8 +316,8 @@ teardown() {
 
     # Branches should be different
     [[ "$panda_branch" != "$wallaby_branch" ]]
-    [[ "$panda_branch" =~ ^curb/panda/ ]]
-    [[ "$wallaby_branch" =~ ^curb/wallaby/ ]]
+    [[ "$panda_branch" =~ ^cub/panda/ ]]
+    [[ "$wallaby_branch" =~ ^cub/wallaby/ ]]
 }
 
 # ============================================================================
@@ -330,8 +330,8 @@ teardown() {
     local branch
     branch=$(git_get_run_branch)
 
-    # Should match: curb/{session-name}/{YYYYMMDD-HHMMSS}
-    [[ "$branch" =~ ^curb/panda/[0-9]{8}-[0-9]{6}$ ]]
+    # Should match: cub/{session-name}/{YYYYMMDD-HHMMSS}
+    [[ "$branch" =~ ^cub/panda/[0-9]{8}-[0-9]{6}$ ]]
 }
 
 @test "ACCEPTANCE: Branch checked out after creation" {
@@ -348,7 +348,7 @@ teardown() {
 
 @test "ACCEPTANCE: Handles existing branch gracefully" {
     # Create a branch manually
-    local branch_name="curb/panda/20260110-120000"
+    local branch_name="cub/panda/20260110-120000"
     git checkout -q -b "$branch_name"
     git checkout -q main 2>/dev/null || git checkout -q master 2>/dev/null
 
@@ -379,7 +379,7 @@ teardown() {
     run git_get_run_branch
     [[ $status -eq 0 ]]
     [[ -n "$output" ]]
-    [[ "$output" =~ ^curb/panda/ ]]
+    [[ "$output" =~ ^cub/panda/ ]]
 }
 
 @test "ACCEPTANCE: Works from any starting branch" {
@@ -395,7 +395,7 @@ teardown() {
     # Should succeed and be on run branch
     local current_branch
     current_branch=$(git_get_current_branch)
-    [[ "$current_branch" =~ ^curb/panda/ ]]
+    [[ "$current_branch" =~ ^cub/panda/ ]]
 }
 
 # ============================================================================
@@ -406,21 +406,21 @@ teardown() {
     # Make a change
     echo "new content" > test.txt
 
-    run git_commit_task "curb-023" "Test task title"
+    run git_commit_task "cub-023" "Test task title"
     [[ $status -eq 0 ]]
 
     # Check commit message format
     local commit_msg
     commit_msg=$(git log -1 --pretty=%B)
-    [[ "$commit_msg" =~ ^\[curb-023\]\ Test\ task\ title ]]
-    [[ "$commit_msg" =~ Task-ID:\ curb-023 ]]
+    [[ "$commit_msg" =~ ^\[cub-023\]\ Test\ task\ title ]]
+    [[ "$commit_msg" =~ Task-ID:\ cub-023 ]]
 }
 
 @test "git_commit_task includes summary in commit message" {
     # Make a change
     echo "new content" > test.txt
 
-    run git_commit_task "curb-023" "Test task" "This is a summary"
+    run git_commit_task "cub-023" "Test task" "This is a summary"
     [[ $status -eq 0 ]]
 
     # Check commit message includes summary
@@ -436,7 +436,7 @@ teardown() {
     mkdir -p subdir
     echo "nested" > subdir/nested.txt
 
-    run git_commit_task "curb-023" "Test commit"
+    run git_commit_task "cub-023" "Test commit"
     [[ $status -eq 0 ]]
 
     # Verify all changes were committed
@@ -446,7 +446,7 @@ teardown() {
 
 @test "git_commit_task returns success when nothing to commit" {
     # Repository is already clean (from setup)
-    run git_commit_task "curb-023" "Test task"
+    run git_commit_task "cub-023" "Test task"
     [[ $status -eq 0 ]]
 
     # No new commit should have been created
@@ -466,7 +466,7 @@ teardown() {
 @test "git_commit_task returns error when task_title is missing" {
     echo "change" > test.txt
 
-    run git_commit_task "curb-023" ""
+    run git_commit_task "cub-023" ""
     [[ $status -eq 1 ]]
     [[ "$output" =~ "ERROR: task_title is required" ]]
 }
@@ -477,7 +477,7 @@ teardown() {
     mkdir -p "$NON_GIT_DIR"
     cd "$NON_GIT_DIR"
 
-    run git_commit_task "curb-023" "Test task"
+    run git_commit_task "cub-023" "Test task"
     [[ $status -eq 1 ]]
     [[ "$output" =~ "ERROR: Not in a git repository" ]]
 
@@ -493,7 +493,7 @@ teardown() {
 Line 2
 Line 3"
 
-    run git_commit_task "curb-023" "Test task" "$summary"
+    run git_commit_task "cub-023" "Test task" "$summary"
     [[ $status -eq 0 ]]
 
     # Check commit message includes all lines
@@ -507,7 +507,7 @@ Line 3"
 @test "git_commit_task commit message is parseable" {
     echo "change" > test.txt
 
-    run git_commit_task "curb-023" "Test task title" "Summary text"
+    run git_commit_task "cub-023" "Test task title" "Summary text"
     [[ $status -eq 0 ]]
 
     # Extract task ID from commit message
@@ -518,18 +518,18 @@ Line 3"
     local first_line
     first_line=$(git log -1 --pretty=%s)
     # Verify format starts with [task_id]
-    [[ "$first_line" =~ ^\[curb-023\] ]]
+    [[ "$first_line" =~ ^\[cub-023\] ]]
 
     # Extract from trailer Task-ID:
     local task_id_from_trailer
     task_id_from_trailer=$(echo "$commit_msg" | grep "^Task-ID:" | cut -d' ' -f2)
-    [[ "$task_id_from_trailer" == "curb-023" ]]
+    [[ "$task_id_from_trailer" == "cub-023" ]]
 }
 
 @test "git_commit_task works with special characters in title" {
     echo "change" > test.txt
 
-    run git_commit_task "curb-023" "Test with 'quotes' and \"double quotes\""
+    run git_commit_task "cub-023" "Test with 'quotes' and \"double quotes\""
     [[ $status -eq 0 ]]
 
     local commit_msg
@@ -540,7 +540,7 @@ Line 3"
 @test "git_commit_task works with special characters in summary" {
     echo "change" > test.txt
 
-    run git_commit_task "curb-023" "Test task" "Summary with \$variables and \`backticks\`"
+    run git_commit_task "cub-023" "Test task" "Summary with \$variables and \`backticks\`"
     [[ $status -eq 0 ]]
 
     local commit_msg
@@ -555,7 +555,7 @@ Line 3"
 @test "ACCEPTANCE: Commit created with structured message format" {
     echo "test change" > test.txt
 
-    git_commit_task "curb-023" "Implement feature X" "Added new functionality"
+    git_commit_task "cub-023" "Implement feature X" "Added new functionality"
 
     local commit_msg
     commit_msg=$(git log -1 --pretty=%B)
@@ -563,28 +563,28 @@ Line 3"
     # First line: [task_id] title
     local first_line
     first_line=$(echo "$commit_msg" | head -1)
-    [[ "$first_line" == "[curb-023] Implement feature X" ]]
+    [[ "$first_line" == "[cub-023] Implement feature X" ]]
 
     # Contains summary
     [[ "$commit_msg" =~ "Added new functionality" ]]
 
     # Contains trailer
-    [[ "$commit_msg" =~ "Task-ID: curb-023" ]]
+    [[ "$commit_msg" =~ "Task-ID: cub-023" ]]
 }
 
 @test "ACCEPTANCE: Task ID in commit title and trailer" {
     echo "test" > test.txt
 
-    git_commit_task "curb-123" "Test task"
+    git_commit_task "cub-123" "Test task"
 
     local commit_msg
     commit_msg=$(git log -1 --pretty=%B)
 
     # In title
-    [[ "$commit_msg" =~ ^\[curb-123\] ]]
+    [[ "$commit_msg" =~ ^\[cub-123\] ]]
 
     # In trailer
-    [[ "$commit_msg" =~ Task-ID:\ curb-123$ ]]
+    [[ "$commit_msg" =~ Task-ID:\ cub-123$ ]]
 }
 
 @test "ACCEPTANCE: All changes staged before commit" {
@@ -594,7 +594,7 @@ Line 3"
     echo "ignored content" > ignored.txt
     echo "ignored.txt" >> .gitignore
 
-    git_commit_task "curb-023" "Test commit"
+    git_commit_task "cub-023" "Test commit"
 
     # Verify only non-ignored files were committed
     run git_is_clean
@@ -606,7 +606,7 @@ Line 3"
 
 @test "ACCEPTANCE: No-op if nothing to commit (not an error)" {
     # Clean repository
-    run git_commit_task "curb-023" "Test task"
+    run git_commit_task "cub-023" "Test task"
     [[ $status -eq 0 ]]
 
     # No commit should have been created (still only 1 commit from setup)
@@ -618,20 +618,20 @@ Line 3"
 @test "ACCEPTANCE: Commit message parseable for task extraction" {
     echo "change" > test.txt
 
-    git_commit_task "curb-999" "Task title here" "Optional summary"
+    git_commit_task "cub-999" "Task title here" "Optional summary"
 
     local commit_msg
     commit_msg=$(git log -1 --pretty=%B)
 
     # Can extract task ID from first line
     local extracted_id
-    extracted_id=$(echo "$commit_msg" | head -1 | grep -oE '\[curb-[0-9]+\]' | tr -d '[]')
-    [[ "$extracted_id" == "curb-999" ]]
+    extracted_id=$(echo "$commit_msg" | head -1 | grep -oE '\[cub-[0-9]+\]' | tr -d '[]')
+    [[ "$extracted_id" == "cub-999" ]]
 
     # Can extract task ID from trailer
     local trailer_id
     trailer_id=$(git log -1 --pretty=%B | grep "^Task-ID:" | cut -d' ' -f2)
-    [[ "$trailer_id" == "curb-999" ]]
+    [[ "$trailer_id" == "cub-999" ]]
 
     # Both methods extract the same ID
     [[ "$extracted_id" == "$trailer_id" ]]
@@ -1431,7 +1431,7 @@ Line 3"
     echo "Session 2 notes" >> progress.txt
 
     # git_commit_session_files should handle this
-    git_commit_session_files "curb-042"
+    git_commit_session_files "cub-042"
 
     # Repository should be clean
     run git_is_clean
@@ -1439,7 +1439,7 @@ Line 3"
 
     # The change should be committed
     run git log --oneline -2
-    [[ "$output" =~ "chore(curb-042): update session files" ]]
+    [[ "$output" =~ "chore(cub-042): update session files" ]]
 }
 
 # ============================================================================
@@ -1488,31 +1488,31 @@ Line 3"
 @test "git_commit_remaining_changes uses task_id and task_title in commit message" {
     echo "feature code" > feature.py
 
-    git_commit_remaining_changes "curb-123" "Add new feature"
+    git_commit_remaining_changes "cub-123" "Add new feature"
 
     # Verify commit message format
     local last_msg
     last_msg=$(git log -1 --pretty=%B)
-    [[ "$last_msg" =~ "[curb-123] Add new feature" ]]
-    [[ "$last_msg" =~ "Auto-committed by curb" ]]
-    [[ "$last_msg" =~ "Task-ID: curb-123" ]]
+    [[ "$last_msg" =~ "[cub-123] Add new feature" ]]
+    [[ "$last_msg" =~ "Auto-committed by cub" ]]
+    [[ "$last_msg" =~ "Task-ID: cub-123" ]]
 }
 
 @test "git_commit_remaining_changes uses task_id only when no title" {
     echo "some code" > code.py
 
-    git_commit_remaining_changes "curb-456"
+    git_commit_remaining_changes "cub-456"
 
     # Verify commit message format
     local last_msg
     last_msg=$(git log -1 --pretty=%s)
-    [[ "$last_msg" =~ "chore(curb-456): auto-commit remaining changes" ]]
+    [[ "$last_msg" =~ "chore(cub-456): auto-commit remaining changes" ]]
 }
 
-@test "git_commit_remaining_changes excludes .curb/ directory" {
-    # Create changes in .curb/ (handled separately)
-    mkdir -p .curb/runs
-    echo "run data" > .curb/runs/test.json
+@test "git_commit_remaining_changes excludes .cub/ directory" {
+    # Create changes in .cub/ (handled separately)
+    mkdir -p .cub/runs
+    echo "run data" > .cub/runs/test.json
 
     # Create regular file change
     echo "code" > main.py
@@ -1522,10 +1522,10 @@ Line 3"
     # main.py should be committed
     git ls-files main.py | grep -q main.py
 
-    # .curb/ should NOT be committed by this function
-    local curb_status
-    curb_status=$(git status --porcelain .curb/ 2>/dev/null)
-    [[ -n "$curb_status" ]]  # .curb/ still has uncommitted changes
+    # .cub/ should NOT be committed by this function
+    local cub_status
+    cub_status=$(git status --porcelain .cub/ 2>/dev/null)
+    [[ -n "$cub_status" ]]  # .cub/ still has uncommitted changes
 }
 
 @test "git_commit_remaining_changes excludes .beads/ directory" {
@@ -1553,7 +1553,7 @@ Line 3"
     echo "module 2" > module2.py
     echo "test file" > test_module.py
 
-    git_commit_remaining_changes "curb-789" "Implement modules"
+    git_commit_remaining_changes "cub-789" "Implement modules"
 
     # All files should be committed
     run git_is_clean
@@ -1565,7 +1565,7 @@ Line 3"
     git ls-files test_module.py | grep -q test_module.py
 }
 
-@test "ACCEPTANCE: Agent completes task but forgets to commit - curb auto-commits" {
+@test "ACCEPTANCE: Agent completes task but forgets to commit - cub auto-commits" {
     # Simulate agent working on a task
     echo "def feature():" > feature.py
     echo "    return True" >> feature.py
@@ -1574,7 +1574,7 @@ Line 3"
 
     # Agent forgot to commit (exit 0 but no commit)
     # git_commit_remaining_changes should save the day
-    git_commit_remaining_changes "curb-042" "Implement feature X"
+    git_commit_remaining_changes "cub-042" "Implement feature X"
 
     # Repository should be clean
     run git_is_clean
@@ -1583,6 +1583,6 @@ Line 3"
     # Commit should have meaningful message
     local last_msg
     last_msg=$(git log -1 --pretty=%B)
-    [[ "$last_msg" =~ "[curb-042] Implement feature X" ]]
-    [[ "$last_msg" =~ "Auto-committed by curb" ]]
+    [[ "$last_msg" =~ "[cub-042] Implement feature X" ]]
+    [[ "$last_msg" =~ "Auto-committed by cub" ]]
 }

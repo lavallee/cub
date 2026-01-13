@@ -29,8 +29,8 @@ setup() {
     TEST_CONFIG_DIR="${BATS_TMPDIR}/config_test_$$"
     mkdir -p "$TEST_CONFIG_DIR"
 
-    # Override curb_config_dir to use test directory
-    curb_config_dir() {
+    # Override cub_config_dir to use test directory
+    cub_config_dir() {
         echo "$TEST_CONFIG_DIR"
     }
 

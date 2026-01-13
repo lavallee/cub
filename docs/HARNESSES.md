@@ -111,7 +111,7 @@ echo "$task" | claude -p \
 - `CLAUDE_FLAGS` - Additional flags passed to claude
 
 **Curb-specific:**
-- `CURB_MODEL` - Model override (set via `model:X` task labels)
+- `CUB_MODEL` - Model override (set via `model:X` task labels)
 
 ### OpenCode
 
@@ -228,7 +228,7 @@ Curb selects a harness using this priority:
 
 ### Configuration
 
-Set harness priority in `.curb.json` or global config:
+Set harness priority in `.cub.json` or global config:
 
 ```json
 {

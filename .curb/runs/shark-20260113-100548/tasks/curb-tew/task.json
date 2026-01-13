@@ -1,8 +1,0 @@
-{
-  "task_id": "curb-tew",
-  "title": "Extract doctor command to lib/doctor.sh",
-  "priority": "P2",
-  "status": "in_progress",
-  "started_at": "2026-01-13T15:05:52Z",
-  "iterations": 0
-}

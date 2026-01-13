@@ -157,8 +157,8 @@ mybackend_update_task_status() {
 Source your wrapper:
 
 ```bash
-if [[ -f "${CURB_LIB_DIR}/mybackend.sh" ]]; then
-    source "${CURB_LIB_DIR}/mybackend.sh"
+if [[ -f "${CUB_LIB_DIR}/mybackend.sh" ]]; then
+    source "${CUB_LIB_DIR}/mybackend.sh"
 fi
 ```
 
@@ -216,7 +216,7 @@ get_ready_tasks() {
 
 ### 5. Support Model Labels
 
-Tasks with `model:X` labels (e.g., `model:haiku`, `model:sonnet`) trigger automatic model selection. The main loop extracts this label and sets `CURB_MODEL` before invoking the harness. Your backend should include labels in the task JSON output:
+Tasks with `model:X` labels (e.g., `model:haiku`, `model:sonnet`) trigger automatic model selection. The main loop extracts this label and sets `CUB_MODEL` before invoking the harness. Your backend should include labels in the task JSON output:
 
 ```json
 {
@@ -259,13 +259,13 @@ bats tests/xdg.bats
 ### Test Harness Invocation
 
 ```bash
-curb --test
+cub --test
 ```
 
 ### Debug Mode
 
 ```bash
-curb --debug --once
+cub --debug --once
 ```
 
 Shows full prompts, timing, and saves prompts to temp files.
@@ -273,7 +273,7 @@ Shows full prompts, timing, and saves prompts to temp files.
 ### Dump Prompts
 
 ```bash
-curb --dump-prompt
+cub --dump-prompt
 ```
 
 Saves system and task prompts to files for manual testing.
@@ -282,13 +282,13 @@ Saves system and task prompts to files for manual testing.
 
 ```bash
 # Test epic filtering
-curb --epic my-epic-id --ready
+cub --epic my-epic-id --ready
 
 # Test label filtering
-curb --label phase-1 --status
+cub --label phase-1 --status
 
 # Test combined filters
-curb --epic curb-1gq --label phase-1 --once --debug
+cub --epic curb-1gq --label phase-1 --once --debug
 ```
 
 ## Code Style

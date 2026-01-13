@@ -1,8 +1,0 @@
-{
-  "task_id": "curb-042",
-  "title": "Write BATS tests for failure modes",
-  "priority": "P1",
-  "status": "in_progress",
-  "started_at": "2026-01-11T14:50:50Z",
-  "iterations": 0
-}

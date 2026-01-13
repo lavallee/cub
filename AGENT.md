@@ -33,10 +33,10 @@ chmod +x curb curb-init
 ./curb
 
 # Single iteration mode
-./curb --once
+./cub --once
 
 # Specify harness
-./curb --harness claude
+./cub --harness claude
 
 # Global setup for first-time users
 ./curb-init --global

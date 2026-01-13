@@ -55,7 +55,7 @@ tests/e2e/
     ├── PROMPT.md       # Agent prompt
     ├── AGENT.md        # Build instructions
     ├── progress.txt    # Progress log
-    └── .curb/
+    └── .cub/
         ├── hooks/      # Test hooks
         │   ├── pre-loop.d/
         │   ├── pre-task.d/
@@ -80,7 +80,7 @@ The test verifies:
 1. **Generated Files**: All expected output files are created
 2. **Task Status**: Tasks are marked as closed in prd.json
 3. **Hooks**: All hooks executed and logged to hook_events.log
-4. **Logs**: Structured logs created in ~/.local/share/curb/logs/
+4. **Logs**: Structured logs created in ~/.local/share/cub/logs/
 5. **Budget**: Loop stops when budget is exceeded
 
 ## CI Integration
@@ -133,5 +133,5 @@ The budget is set to 100,000 tokens which should be enough for 3 simple tasks. I
 Ensure hook scripts are executable:
 
 ```bash
-chmod +x tests/e2e/project/.curb/hooks/*/*.sh
+chmod +x tests/e2e/project/.cub/hooks/*/*.sh
 ```

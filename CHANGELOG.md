@@ -28,7 +28,7 @@ The inaugural release of Curb! A complete autonomous AI coding agent harness com
 - **Harness Capability Detection**: Automatic detection of harness capabilities like token extraction and streaming support
 - **5 Lifecycle Hooks**: Extension points (pre-loop, pre-task, post-task, on-error, post-loop) for custom integrations
 - **Hook Examples**: Reference implementations for Slack notifications, Datadog metrics, and PagerDuty alerts
-- **Global + Project Hooks**: Hook discovery from both ~/.config/curb/hooks/ and ./.curb/hooks/ directories
+- **Global + Project Hooks**: Hook discovery from both ~/.config/cub/hooks/ and ./.cub/hooks/ directories
 
 ### Added - Polish Phase
 - **Example Hooks**: Ready-to-use hook implementations for:
@@ -79,7 +79,7 @@ The inaugural release of Curb! A complete autonomous AI coding agent harness com
 
 ### Project Structure
 ```
-curb/
+cub/
 ├── curb              # Main CLI script (autonomous loop)
 ├── curb-init         # Project and global initialization
 ├── lib/              # Bash libraries

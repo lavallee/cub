@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 #
-# tests/e2e.bats - End-to-end tests for curb
+# tests/e2e.bats - End-to-end tests for cub
 #
 # These tests verify full loop execution with all features.
 # They can run with or without an API key (simulation mode).
@@ -51,16 +51,16 @@ teardown() {
     [ -f "$PROJECT_ROOT/tests/e2e/project/prd.json" ]
     [ -f "$PROJECT_ROOT/tests/e2e/project/PROMPT.md" ]
     [ -f "$PROJECT_ROOT/tests/e2e/project/AGENT.md" ]
-    [ -f "$PROJECT_ROOT/tests/e2e/project/.curb.json" ]
+    [ -f "$PROJECT_ROOT/tests/e2e/project/.cub.json" ]
 }
 
 # Test: E2E hooks are executable
 @test "e2e test hooks are executable" {
-    [ -x "$PROJECT_ROOT/tests/e2e/project/.curb/hooks/pre-loop.d/01-log.sh" ]
-    [ -x "$PROJECT_ROOT/tests/e2e/project/.curb/hooks/pre-task.d/01-log.sh" ]
-    [ -x "$PROJECT_ROOT/tests/e2e/project/.curb/hooks/post-task.d/01-log.sh" ]
-    [ -x "$PROJECT_ROOT/tests/e2e/project/.curb/hooks/post-loop.d/01-log.sh" ]
-    [ -x "$PROJECT_ROOT/tests/e2e/project/.curb/hooks/on-error.d/01-log.sh" ]
+    [ -x "$PROJECT_ROOT/tests/e2e/project/.cub/hooks/pre-loop.d/01-log.sh" ]
+    [ -x "$PROJECT_ROOT/tests/e2e/project/.cub/hooks/pre-task.d/01-log.sh" ]
+    [ -x "$PROJECT_ROOT/tests/e2e/project/.cub/hooks/post-task.d/01-log.sh" ]
+    [ -x "$PROJECT_ROOT/tests/e2e/project/.cub/hooks/post-loop.d/01-log.sh" ]
+    [ -x "$PROJECT_ROOT/tests/e2e/project/.cub/hooks/on-error.d/01-log.sh" ]
 }
 
 # Test: E2E prd.json is valid
@@ -86,7 +86,7 @@ teardown() {
 # Test: E2E config enables hooks
 @test "e2e config enables hooks" {
     local hooks_enabled
-    hooks_enabled=$(jq -r '.hooks.enabled' "$PROJECT_ROOT/tests/e2e/project/.curb.json")
+    hooks_enabled=$(jq -r '.hooks.enabled' "$PROJECT_ROOT/tests/e2e/project/.cub.json")
     [ "$hooks_enabled" == "true" ]
 }
 
@@ -112,7 +112,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     # Should indicate simulation mode
-    [[ "$output" == *"Simulating successful curb run"* ]] || [[ "$output" == *"All verification checks passed"* ]]
+    [[ "$output" == *"Simulating successful cub run"* ]] || [[ "$output" == *"All verification checks passed"* ]]
 }
 
 # Test: E2E test cleanup restores original state

@@ -161,7 +161,7 @@ main() {
     echo ""
 
     # Set environment for test
-    export CURB_PROJECT_DIR="$TEST_PROJECT"
+    export CUB_PROJECT_DIR="$TEST_PROJECT"
     export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
     # Check if API key is set
@@ -178,12 +178,12 @@ main() {
     local curb_exit_code=0
     if [[ "$SKIP_CURB" == "false" ]]; then
         cd "$PROJECT_ROOT"
-        ./curb --budget 100000 --backend json || curb_exit_code=$?
+        ./cub --budget 100000 --backend json || curb_exit_code=$?
 
         log_info "Curb exited with code: $curb_exit_code"
         echo ""
     else
-        log_info "Simulating successful curb run for verification tests..."
+        log_info "Simulating successful cub run for verification tests..."
         # Manually create expected files for testing verification logic
         cd "$TEST_PROJECT"
         echo "Hello from task 1" > hello.txt
@@ -259,7 +259,7 @@ main() {
 
     # Check for structured logs (if logger was enabled)
     log_info "4. Checking for structured logs..."
-    local log_dir="${HOME}/.local/share/curb/logs"
+    local log_dir="${HOME}/.local/share/cub/logs"
     if [[ -d "$log_dir" ]]; then
         local recent_logs
         recent_logs=$(find "$log_dir" -name "*.jsonl" -mmin -10 2>/dev/null | wc -l | tr -d ' ')

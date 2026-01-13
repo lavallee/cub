@@ -7,8 +7,8 @@
 # Scripts are run in sorted order (01-first.sh before 02-second.sh).
 #
 # Hook directories are checked in two locations:
-#   1. ~/.config/curb/hooks/{hook_name}.d/  (global hooks)
-#   2. ./.curb/hooks/{hook_name}.d/         (project-specific hooks)
+#   1. ~/.config/cub/hooks/{hook_name}.d/  (global hooks)
+#   2. ./.cub/hooks/{hook_name}.d/         (project-specific hooks)
 #
 # Available hook points:
 #   - pre-loop: Before starting the main loop
@@ -18,18 +18,18 @@
 #   - post-loop: After the main loop completes
 #
 # Environment Variables Exported to Hooks:
-#   CURB_HOOK_NAME     - Name of the hook being run
-#   CURB_PROJECT_DIR   - Project directory
-#   CURB_TASK_ID       - Current task ID (if applicable)
-#   CURB_TASK_TITLE    - Current task title (if applicable)
-#   CURB_EXIT_CODE     - Task exit code (for post-task/on-error hooks)
-#   CURB_HARNESS       - Harness being used (claude, codex, etc.)
-#   CURB_SESSION_ID    - Current session ID
+#   CUB_HOOK_NAME     - Name of the hook being run
+#   CUB_PROJECT_DIR   - Project directory
+#   CUB_TASK_ID       - Current task ID (if applicable)
+#   CUB_TASK_TITLE    - Current task title (if applicable)
+#   CUB_EXIT_CODE     - Task exit code (for post-task/on-error hooks)
+#   CUB_HARNESS       - Harness being used (claude, codex, etc.)
+#   CUB_SESSION_ID    - Current session ID
 #
 
 # Source dependencies
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -z "$(type -t curb_config_dir 2>/dev/null)" ]]; then
+if [[ -z "$(type -t cub_config_dir 2>/dev/null)" ]]; then
     source "${SCRIPT_DIR}/xdg.sh"
 fi
 if [[ -z "$(type -t config_get_or 2>/dev/null)" ]]; then
@@ -53,8 +53,8 @@ fi
 # Example:
 #   hooks_find "pre-task"
 #   # Output:
-#   # ~/.config/curb/hooks/pre-task.d/01-global.sh
-#   # ./.curb/hooks/pre-task.d/02-project.sh
+#   # ~/.config/cub/hooks/pre-task.d/01-global.sh
+#   # ./.cub/hooks/pre-task.d/02-project.sh
 hooks_find() {
     local hook_name="$1"
 
@@ -65,8 +65,8 @@ hooks_find() {
     fi
 
     # Build list of hook directories to check
-    local global_hook_dir="$(curb_config_dir)/hooks/${hook_name}.d"
-    local project_hook_dir="./.curb/hooks/${hook_name}.d"
+    local global_hook_dir="$(cub_config_dir)/hooks/${hook_name}.d"
+    local project_hook_dir="./.cub/hooks/${hook_name}.d"
 
     local all_scripts=()
 
@@ -128,8 +128,8 @@ hooks_run() {
     fi
 
     # Export hook context variables
-    export CURB_HOOK_NAME="$hook_name"
-    export CURB_PROJECT_DIR="${CURB_PROJECT_DIR:-$(pwd)}"
+    export CUB_HOOK_NAME="$hook_name"
+    export CUB_PROJECT_DIR="${CUB_PROJECT_DIR:-$(pwd)}"
 
     # Find all hook scripts for this hook
     local all_scripts=()
@@ -202,9 +202,9 @@ hooks_run() {
 #   hooks_set_task_context "$task_id" "$task_title"
 #   hooks_run "pre-task"
 hooks_set_task_context() {
-    export CURB_TASK_ID="$1"
-    export CURB_TASK_TITLE="${2:-}"
-    export CURB_EXIT_CODE="${3:-}"
+    export CUB_TASK_ID="$1"
+    export CUB_TASK_TITLE="${2:-}"
+    export CUB_EXIT_CODE="${3:-}"
 }
 
 # Export context for session-related hooks
@@ -218,18 +218,18 @@ hooks_set_task_context() {
 #   hooks_set_session_context "$session_id" "$harness"
 #   hooks_run "pre-loop"
 hooks_set_session_context() {
-    export CURB_SESSION_ID="$1"
-    export CURB_HARNESS="${2:-}"
+    export CUB_SESSION_ID="$1"
+    export CUB_HARNESS="${2:-}"
 }
 
 # Clear hook context variables
 # Useful for testing
 hooks_clear_context() {
-    unset CURB_HOOK_NAME
-    unset CURB_PROJECT_DIR
-    unset CURB_TASK_ID
-    unset CURB_TASK_TITLE
-    unset CURB_EXIT_CODE
-    unset CURB_SESSION_ID
-    unset CURB_HARNESS
+    unset CUB_HOOK_NAME
+    unset CUB_PROJECT_DIR
+    unset CUB_TASK_ID
+    unset CUB_TASK_TITLE
+    unset CUB_EXIT_CODE
+    unset CUB_SESSION_ID
+    unset CUB_HARNESS
 }

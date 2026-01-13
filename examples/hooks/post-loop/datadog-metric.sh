@@ -11,9 +11,9 @@
 #      Example: abc123def456
 #
 #   2. Copy this script to your hooks directory:
-#      mkdir -p ~/.config/curb/hooks/post-loop.d
-#      cp datadog-metric.sh ~/.config/curb/hooks/post-loop.d/01-datadog.sh
-#      chmod +x ~/.config/curb/hooks/post-loop.d/01-datadog.sh
+#      mkdir -p ~/.config/cub/hooks/post-loop.d
+#      cp datadog-metric.sh ~/.config/cub/hooks/post-loop.d/01-datadog.sh
+#      chmod +x ~/.config/cub/hooks/post-loop.d/01-datadog.sh
 #
 #   3. Set your Datadog API key as an environment variable:
 #      export DD_API_KEY="your-api-key"
@@ -26,9 +26,9 @@
 #      export DD_TAGS="env:production,service:curb"
 #
 # CONTEXT VARIABLES:
-#   CURB_SESSION_ID    - Session ID (timestamp)
-#   CURB_PROJECT_DIR   - Project directory
-#   CURB_HARNESS       - Harness used (claude, codex, etc.)
+#   CUB_SESSION_ID    - Session ID (timestamp)
+#   CUB_PROJECT_DIR   - Project directory
+#   CUB_HARNESS       - Harness used (claude, codex, etc.)
 #
 
 set -euo pipefail
@@ -37,9 +37,9 @@ set -euo pipefail
 DD_API_KEY="${DD_API_KEY:-}"
 DD_SITE="${DD_SITE:-datadoghq.com}"
 DD_TAGS="${DD_TAGS:-}"
-PROJECT_DIR="${CURB_PROJECT_DIR:-.}"
-SESSION_ID="${CURB_SESSION_ID:-unknown}"
-HARNESS="${CURB_HARNESS:-unknown}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
+SESSION_ID="${CUB_SESSION_ID:-unknown}"
+HARNESS="${CUB_HARNESS:-unknown}"
 
 # Require API key to be set
 if [[ -z "$DD_API_KEY" ]]; then

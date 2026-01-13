@@ -25,9 +25,9 @@ echo "Working in: $(pwd)"
 
 # 1. Clean up old run artifacts (optional - they contain old task IDs)
 echo -e "\n=== Step 1: Clean up old artifacts ==="
-if [[ -d .curb/runs ]]; then
-    echo "Found .curb/runs/ - consider removing old run data"
-    run_cmd rm -rf .curb/runs
+if [[ -d .cub/runs ]]; then
+    echo "Found .cub/runs/ - consider removing old run data"
+    run_cmd rm -rf .cub/runs
 fi
 if [[ -d .chopshop ]]; then
     echo "Found .chopshop/ - consider removing old session data"
@@ -41,7 +41,7 @@ echo -e "\n=== Step 2: Replace content in files ==="
 FILES=$(find . -type f \( -name "*.sh" -o -name "*.md" -o -name "*.json" -o -name "*.bats" -o -name "*.txt" \) \
     -not -path "./.git/*" \
     -not -path "./.beads/*" \
-    -not -path "./.curb/*" \
+    -not -path "./.cub/*" \
     -not -path "./.chopshop/*" \
     -not -path "./node_modules/*" 2>/dev/null)
 
@@ -60,21 +60,21 @@ for file in $FILES; do
             sed -i '' \
                 -e 's/\.curb\.json/.cub.json/g' \
                 -e 's/\.curb\//.cub\//g' \
-                -e 's/CURB_/CUB_/g' \
+                -e 's/CUB_/CUB_/g' \
                 -e 's/\[curb\]/[cub]/g' \
                 -e 's/curb\//cub\//g' \
-                -e 's/"curb"/"cub"/g' \
-                -e "s/'curb'/'cub'/g" \
-                -e 's/curb run/cub run/g' \
-                -e 's/curb init/cub init/g' \
-                -e 's/curb status/cub status/g' \
-                -e 's/curb doctor/cub doctor/g' \
-                -e 's/curb explain/cub explain/g' \
-                -e 's/curb artifacts/cub artifacts/g' \
-                -e 's/# curb/# cub/g' \
-                -e 's/curb --/cub --/g' \
-                -e 's/curb is /cub is /g' \
-                -e 's/curb will /cub will /g' \
+                -e 's/"cub"/"cub"/g' \
+                -e "s/'cub'/'cub'/g" \
+                -e 's/cub run/cub run/g' \
+                -e 's/cub init/cub init/g' \
+                -e 's/cub status/cub status/g' \
+                -e 's/cub doctor/cub doctor/g' \
+                -e 's/cub explain/cub explain/g' \
+                -e 's/cub artifacts/cub artifacts/g' \
+                -e 's/# cub/# cub/g' \
+                -e 's/cub --/cub --/g' \
+                -e 's/cub is /cub is /g' \
+                -e 's/cub will /cub will /g' \
                 -e 's/curb\.sh/cub.sh/g' \
                 "$file"
         fi
@@ -87,7 +87,7 @@ echo -e "\n=== Step 3: Rename files ==="
 [[ -f curb-init ]] && run_cmd mv curb-init cub-init
 [[ -f tests/curb.bats ]] && run_cmd mv tests/curb.bats tests/cub.bats
 [[ -d .curb ]] && run_cmd mv .curb .cub
-[[ -f tests/e2e/project/.curb.json ]] && run_cmd mv tests/e2e/project/.curb.json tests/e2e/project/.cub.json
+[[ -f tests/e2e/project/.cub.json ]] && run_cmd mv tests/e2e/project/.cub.json tests/e2e/project/.cub.json
 [[ -d tests/e2e/project/.curb ]] && run_cmd mv tests/e2e/project/.curb tests/e2e/project/.cub
 
 # 4. Update beads task IDs (optional - they can keep curb- prefix as historical)
