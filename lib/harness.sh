@@ -710,7 +710,9 @@ codex_invoke() {
 
 ${task_prompt}"
 
-    local flags="--full-auto"
+    # Use full bypass for autonomous operation - matches claude's --dangerously-skip-permissions
+    # --full-auto alone still prompts for network/git operations
+    local flags="--dangerously-bypass-approvals-and-sandbox"
 
     # Add model flag if specified via CURB_MODEL
     if [[ -n "${CURB_MODEL:-}" ]]; then
@@ -757,7 +759,8 @@ codex_invoke_streaming() {
 
 ${task_prompt}"
 
-    local flags="--full-auto --json"
+    # Use full bypass for autonomous operation + JSON for streaming
+    local flags="--dangerously-bypass-approvals-and-sandbox --json"
 
     # Add model flag if specified via CURB_MODEL
     if [[ -n "${CURB_MODEL:-}" ]]; then
