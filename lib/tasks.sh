@@ -116,6 +116,19 @@ get_in_progress_task() {
     fi
 }
 
+# Get all in-progress tasks
+# Returns JSON array of all tasks with status=in_progress
+# Used by doctor command to detect stuck tasks
+get_in_progress_tasks() {
+    local prd="$1"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        beads_get_in_progress_tasks
+    else
+        json_get_in_progress_tasks "$prd"
+    fi
+}
+
 # Get all ready tasks (status=open, all dependencies closed)
 # Returns JSON array sorted by priority
 # Optional filters: epic (parent ID), label (label name)
@@ -365,6 +378,15 @@ json_get_in_progress_task() {
             | if $label != "" then select((.labels // []) | any(. == $label)) else . end
         ] | first // empty
     ' "$prd"
+}
+
+# Get all in-progress tasks from prd.json
+# Returns JSON array of all tasks with status=in_progress
+# Used by doctor command to detect stuck tasks
+json_get_in_progress_tasks() {
+    local prd="$1"
+
+    jq '[.tasks[] | select(.status == "in_progress")]' "$prd"
 }
 
 # Get all ready tasks from prd.json

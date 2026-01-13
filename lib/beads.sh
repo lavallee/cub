@@ -70,6 +70,22 @@ beads_get_in_progress_task() {
     }'
 }
 
+# Get all in-progress tasks
+# Returns JSON array of all in-progress tasks
+# Used by doctor command to detect stuck tasks
+beads_get_in_progress_tasks() {
+    bd list --status in_progress --json 2>/dev/null | jq '[.[] | {
+        id: .id,
+        title: .title,
+        type: (.issue_type // .type // "task"),
+        status: .status,
+        priority: ("P" + ((.priority // 2) | tostring)),
+        description: (.description // ""),
+        labels: (.labels // []),
+        dependsOn: (.blocks // [])
+    }]'
+}
+
 # Get all ready tasks (no open blockers)
 # Returns JSON array sorted by priority
 # Optional filters: epic (parent ID or labels), label (label name)

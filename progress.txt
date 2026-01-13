@@ -5033,3 +5033,18 @@ All acceptance criteria met:
 - ✅ Documentation matches behavior
 
 **Status: COMPLETE - Ready for 1.0 Release**
+
+## Task curb-ulr: Refactor curb script into modules (2026-01-13)
+
+- Split command implementations and loop helpers into dedicated lib modules.
+- Added cmd_* modules plus project validation module; main script is now 470 lines.
+- BATS suite reports 790 planned tests with 786 ok lines; warning persists but no failures.
+
+## Task curb-tew: Fix doctor command missing function (2026-01-13)
+
+- The doctor command extraction was already done (lib/cmd_doctor.sh exists).
+- Fixed missing `get_in_progress_tasks` function that cmd_doctor.sh was calling.
+- Added `get_in_progress_tasks()` to lib/tasks.sh (unified interface).
+- Added `beads_get_in_progress_tasks()` to lib/beads.sh (beads backend).
+- Added `json_get_in_progress_tasks()` to lib/tasks.sh (JSON backend).
+- All 23 doctor tests pass; curb doctor works correctly.
