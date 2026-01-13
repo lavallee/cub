@@ -429,8 +429,8 @@ EXAMPLES:
   cub run --epic backend-v2     Work on epic
   cub run --once --debug        Debug one iteration
   cub run --model sonnet        Use Sonnet model
-  cub artifacts curb-018        Get task output
-  cub explain curb-018          See task details
+  cub artifacts cub-018         Get task output
+  cub explain cub-018           See task details
   cub init ~/my-project         Initialize project
   cub init --global             Setup system config
 

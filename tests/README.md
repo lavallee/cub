@@ -1,6 +1,6 @@
-# Curb Test Suite
+# Cub Test Suite
 
-Comprehensive test suite for the curb autonomous AI coding agent harness.
+Comprehensive test suite for the cub autonomous AI coding agent harness.
 
 ## Overview
 
@@ -58,9 +58,9 @@ Comprehensive test suite for the curb autonomous AI coding agent harness.
 
 ### End-to-End Tests
 
-**`curb.bats`** (20+ tests)
-- `curb-init` project scaffolding
-- Main `curb` script execution
+**`cub.bats`** (20+ tests)
+- `cub-init` project scaffolding
+- Main `cub` script execution
 - Task selection logic
 - Priority ordering
 - Prompt generation
@@ -99,7 +99,7 @@ bats tests/tasks.bats
 bats tests/harness.bats
 bats tests/error_handling.bats
 bats tests/integration.bats
-bats tests/curb.bats
+bats tests/cub.bats
 ```
 
 ### Verbose Output

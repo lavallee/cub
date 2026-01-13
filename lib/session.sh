@@ -3,7 +3,7 @@
 # session.sh - Session identity and management
 #
 # Provides functions for generating session identities with friendly,
-# memorable animal names for distinguishing concurrent curb instances.
+# memorable animal names for distinguishing concurrent cub instances.
 #
 # Functions:
 #   session_random_name() - Returns a random animal name

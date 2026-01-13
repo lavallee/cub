@@ -1,6 +1,6 @@
 # Harness Reference
 
-Curb supports multiple AI coding CLI tools ("harnesses"). This document describes the capabilities of each harness and how curb adapts its behavior accordingly.
+Cub supports multiple AI coding CLI tools ("harnesses"). This document describes the capabilities of each harness and how cub adapts its behavior accordingly.
 
 ## Capability Matrix
 
@@ -27,7 +27,7 @@ Real-time output streaming as the AI generates responses.
 | Codex | Not supported - output appears after completion |
 | Gemini | Not supported - output appears after completion |
 
-**How curb adapts:** When streaming is available, curb can show live progress with `--stream` flag. Without streaming, output appears only after task completion.
+**How cub adapts:** When streaming is available, cub can show live progress with `--stream` flag. Without streaming, output appears only after task completion.
 
 ### token_reporting
 Accurate token usage reporting for budget tracking.
@@ -39,7 +39,7 @@ Accurate token usage reporting for budget tracking.
 | Codex | Not available |
 | Gemini | Estimated from character count (~4 chars/token) |
 
-**How curb adapts:** Budget tracking uses actual tokens when available, falls back to estimation otherwise. Estimated usage is marked in logs.
+**How cub adapts:** Budget tracking uses actual tokens when available, falls back to estimation otherwise. Estimated usage is marked in logs.
 
 ### system_prompt
 Separate system prompt support (keeps system instructions distinct from task).
@@ -51,7 +51,7 @@ Separate system prompt support (keeps system instructions distinct from task).
 | Codex | Combined into task prompt |
 | Gemini | Combined into task prompt |
 
-**How curb adapts:** When `system_prompt` capability is missing, curb concatenates the system prompt (from PROMPT.md) with the task prompt, separated by `---`.
+**How cub adapts:** When `system_prompt` capability is missing, cub concatenates the system prompt (from PROMPT.md) with the task prompt, separated by `---`.
 
 ### auto_mode
 Autonomous operation without user confirmation prompts.
@@ -63,7 +63,7 @@ Autonomous operation without user confirmation prompts.
 | Codex | `--full-auto` |
 | Gemini | `-y` (YOLO mode) |
 
-**How curb adapts:** All harnesses must support auto_mode for autonomous loop operation. This is the minimum required capability.
+**How cub adapts:** All harnesses must support auto_mode for autonomous loop operation. This is the minimum required capability.
 
 ### json_output
 Structured JSON response format for programmatic parsing.
@@ -75,7 +75,7 @@ Structured JSON response format for programmatic parsing.
 | Codex | Not available (plain text only) |
 | Gemini | Not available (plain text only) |
 
-**How curb adapts:** JSON output enables reliable token extraction and result parsing. Without it, curb uses the raw text output.
+**How cub adapts:** JSON output enables reliable token extraction and result parsing. Without it, cub uses the raw text output.
 
 ### model_selection
 Runtime model selection via CLI flag.
@@ -87,7 +87,7 @@ Runtime model selection via CLI flag.
 | Codex | Not configurable via CLI |
 | Gemini | `-m <model>` (gemini-2.5-pro, etc.) |
 
-**How curb adapts:** Task labels like `model:haiku` only work with harnesses that support model_selection. For other harnesses, the label is ignored.
+**How cub adapts:** Task labels like `model:haiku` only work with harnesses that support model_selection. For other harnesses, the label is ignored.
 
 ## Harness Details
 
@@ -110,7 +110,7 @@ echo "$task" | claude -p \
 **Environment variables:**
 - `CLAUDE_FLAGS` - Additional flags passed to claude
 
-**Curb-specific:**
+**Cub-specific:**
 - `CUB_MODEL` - Model override (set via `model:X` task labels)
 
 ### OpenCode
@@ -219,7 +219,7 @@ HARNESS_CAP_MODEL_SELECTION="model_selection"
 
 ### Priority Order
 
-Curb selects a harness using this priority:
+Cub selects a harness using this priority:
 
 1. **CLI flag:** `--harness claude`
 2. **Environment variable:** `HARNESS=claude`
@@ -238,7 +238,7 @@ Set harness priority in `.cub.json` or global config:
 }
 ```
 
-Curb tries each harness in order until one is found installed.
+Cub tries each harness in order until one is found installed.
 
 ## Adding New Harnesses
 

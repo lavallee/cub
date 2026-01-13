@@ -1,6 +1,6 @@
-# Upgrading to Curb 1.0
+# Upgrading to Cub 1.0
 
-Curb 1.0 introduces significant new features and some breaking changes from earlier versions. This guide helps you understand what changed and how to upgrade your workflow.
+Cub 1.0 introduces significant new features and some breaking changes from earlier versions. This guide helps you understand what changed and how to upgrade your workflow.
 
 ## TL;DR
 
@@ -20,7 +20,7 @@ That's it! The core workflow remains the same. Old CLI syntax still works with d
 ### Major Features
 
 #### 1. **Budget Management**
-Token budgets prevent runaway spending on AI API calls. Set once and curb stops automatically when budget is reached.
+Token budgets prevent runaway spending on AI API calls. Set once and cub stops automatically when budget is reached.
 
 ```bash
 # Set budget via flag
@@ -28,7 +28,7 @@ cub --budget 1000000
 
 # Or via environment variable
 export CUB_BUDGET=1000000
-curb
+cub
 
 # Or in config file
 # ~/.config/cub/config.json or .cub.json
@@ -47,7 +47,7 @@ curb
 - `budget.warn_at` in config - Warning threshold (0.0-1.0, default 0.8)
 
 #### 2. **Hooks System**
-Extend curb behavior with custom scripts at 5 lifecycle points. Use for notifications, logging, integration with external tools.
+Extend cub behavior with custom scripts at 5 lifecycle points. Use for notifications, logging, integration with external tools.
 
 ```bash
 # Create a post-task hook to notify Slack
@@ -77,7 +77,7 @@ chmod +x ~/.config/cub/hooks/post-task.d/10-slack.sh
 See example hooks in `examples/hooks/` directory.
 
 #### 3. **Clean State Enforcement**
-Curb now verifies the git repository is in a clean state before and after tasks. Prevents accidentally pushing broken code.
+Cub now verifies the git repository is in a clean state before and after tasks. Prevents accidentally pushing broken code.
 
 ```bash
 # Enable in config (default: true)
@@ -122,7 +122,7 @@ cub --harness opencode
 ```
 
 #### 6. **Harness Auto-Detection**
-Curb now detects harness capabilities and adapts behavior accordingly. Includes capability detection for streaming, token reporting, system prompts, and auto mode.
+Cub now detects harness capabilities and adapts behavior accordingly. Includes capability detection for streaming, token reporting, system prompts, and auto mode.
 
 ### Minor Features
 
@@ -178,14 +178,14 @@ If you have a `.cub.json` project config or `~/.config/cub/config.json` global c
 }
 ```
 
-**Migration:** If you don't have a config file, run `curb-init --global` to create one with sensible defaults. If you do have a config, add the missing sections.
+**Migration:** If you don't have a config file, run `cub-init --global` to create one with sensible defaults. If you do have a config, add the missing sections.
 
 ### 2. **Global Configuration Location**
 
 **Before 1.0:** No global config
 **After 1.0:** `~/.config/cub/config.json`
 
-Run `curb-init --global` to set up the new global config location.
+Run `cub-init --global` to set up the new global config location.
 
 ### 3. **Log Location Changed**
 
@@ -221,27 +221,27 @@ The JSON backend is still fully supported, so you don't have to migrate if you d
 
 ### 7. **CLI Subcommand Migration**
 
-The curb CLI has been updated to use subcommands for clearer organization. The old flag-based syntax still works but shows deprecation warnings.
+The cub CLI has been updated to use subcommands for clearer organization. The old flag-based syntax still works but shows deprecation warnings.
 
 **Command Syntax Changes:**
 
 | Old Syntax | New Syntax | Notes |
 |------------|------------|-------|
-| `curb-init` | `cub init` | Initialize project |
-| `curb-init --global` | `cub init --global` | Initialize global config |
+| `cub-init` | `cub init` | Initialize project |
+| `cub-init --global` | `cub init --global` | Initialize global config |
 | `cub --status` | `cub status` | Show task progress |
 | `cub --status --json` | `cub status --json` | JSON output |
 | `cub --ready` | `cub run --ready` | List ready tasks |
 | `cub --once` | `cub run --once` | Single iteration |
 | `cub --plan` | `cub run --plan` | Planning mode |
-| `curb -s` | `cub status` | Short flag |
-| `curb -r` | `cub run --ready` | Short flag |
-| `curb -1` | `cub run --once` | Short flag |
-| `curb -p` | `cub run --plan` | Short flag |
+| `cub -s` | `cub status` | Short flag |
+| `cub -r` | `cub run --ready` | Short flag |
+| `cub -1` | `cub run --once` | Short flag |
+| `cub -p` | `cub run --plan` | Short flag |
 
 **Deprecation Warnings:**
 
-When using the old syntax, curb shows a warning like:
+When using the old syntax, cub shows a warning like:
 ```
 [cub] DEPRECATED: --status flag is deprecated. Use 'cub status' instead.
 [cub] This flag will be removed in a future release.
@@ -263,9 +263,9 @@ export CUB_NO_DEPRECATION_WARNINGS=1
 **Migration Tips:**
 
 1. Update scripts gradually - the old syntax still works
-2. Use tab completion with `curb <TAB>` to discover subcommands
+2. Use tab completion with `cub <TAB>` to discover subcommands
 3. Run `cub --help` to see the new command structure
-4. Run `curb <subcommand> --help` for subcommand-specific help
+4. Run `cub <subcommand> --help` for subcommand-specific help
 
 **New Help System:**
 
@@ -301,9 +301,9 @@ All other environment variables are optional:
    git status  # Ensure clean state
    ```
 
-2. **Update curb itself**
+2. **Update cub itself**
    ```bash
-   cd ~/tools/curb
+   cd ~/tools/cub
    git pull origin main
    ```
 
@@ -338,13 +338,13 @@ All other environment variables are optional:
 7. **Update scripts using old CLI syntax** (optional but recommended)
    ```bash
    # Find scripts using old syntax
-   grep -r "cub --status\|cub --ready\|cub --once\|curb-init" scripts/
+   grep -r "cub --status\|cub --ready\|cub --once\|cub-init" scripts/
 
    # Update to new syntax:
    #   cub --status  ->  cub status
    #   cub --ready   ->  cub run --ready
    #   cub --once    ->  cub run --once
-   #   curb-init      ->  cub init
+   #   cub-init      ->  cub init
    ```
 
 8. **Optional: Migrate to beads**
@@ -402,7 +402,7 @@ Full reference of all config options in 1.0:
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `CUB_EPIC` | Filter to epic | `curb-1gq` |
+| `CUB_EPIC` | Filter to epic | `cub-1gq` |
 | `CUB_LABEL` | Filter to label | `phase-1` |
 
 ### Debugging
@@ -440,9 +440,9 @@ cub --no-require-clean         # Disable clean state check
 ### Filtering
 
 ```bash
-cub --epic curb-1gq            # Only run tasks in epic
+cub --epic cub-1gq            # Only run tasks in epic
 cub --label phase-1            # Only run tasks with label
-cub --epic curb-1gq --label phase-1  # Combine filters
+cub --epic cub-1gq --label phase-1  # Combine filters
 ```
 
 ### Harness Selection
@@ -486,7 +486,7 @@ Then verify they work by running `cub --once` and checking that hooks fire.
 
 ### Q: Do I have to set up hooks?
 
-**A:** No, hooks are completely optional. You can use curb without any hooks. Disable them in config if you don't want any running:
+**A:** No, hooks are completely optional. You can use cub without any hooks. Disable them in config if you don't want any running:
 
 ```json
 {
@@ -559,7 +559,7 @@ cub run        # Run the main loop (default if no subcommand)
 cub status     # Show task progress
 cub explain    # Show task details
 cub artifacts  # List task outputs
-curb version    # Show version
+cub version    # Show version
 ```
 
 ## Getting Help
@@ -593,4 +593,4 @@ You can upgrade gradually and adopt new features at your own pace!
 5. Read README.md sections on new features you're interested in
 6. Set up hooks or budget management if they're useful for you
 
-Welcome to Curb 1.0!
+Welcome to Cub 1.0!

@@ -2,8 +2,8 @@
 #
 # Auto-Branch Creation Hook
 #
-# Automatically creates a new git branch when a curb session starts.
-# Uses the curb branch naming convention: cub/{session_name}/{timestamp}
+# Automatically creates a new git branch when a cub session starts.
+# Uses the cub branch naming convention: cub/{session_name}/{timestamp}
 #
 # INSTALLATION:
 #   1. Copy this script to your hooks directory:
@@ -58,10 +58,10 @@ if [[ -z "$SESSION_NAME" || "$SESSION_NAME" == "$SESSION_ID" ]]; then
     SESSION_NAME="${SESSION_ID%%-*}"
 fi
 
-# Check if already on a curb branch
+# Check if already on a cub branch
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [[ "$CURRENT_BRANCH" == cub/* ]]; then
-    echo "[auto-branch] Already on curb branch: $CURRENT_BRANCH"
+    echo "[auto-branch] Already on cub branch: $CURRENT_BRANCH"
     exit 0
 fi
 

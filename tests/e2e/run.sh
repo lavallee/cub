@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# End-to-end test for curb
+# End-to-end test for cub
 #
 # Tests full loop with budget, hooks, and state management
 #
@@ -122,7 +122,7 @@ verify_task_status() {
 # Main test
 main() {
     log_info "========================================="
-    log_info "Curb End-to-End Test with Budget"
+    log_info "Cub End-to-End Test with Budget"
     log_info "========================================="
     echo ""
 
@@ -139,7 +139,7 @@ main() {
     log_success "Dependencies OK"
     echo ""
 
-    # Initialize git repo (required for curb's clean state checking)
+    # Initialize git repo (required for cub's clean state checking)
     log_info "Initializing git repository..."
     cd "$TEST_PROJECT"
     if [[ ! -d .git ]]; then
@@ -154,8 +154,8 @@ main() {
     fi
     echo ""
 
-    # Run curb with budget
-    log_info "Running curb with budget of 100000 tokens..."
+    # Run cub with budget
+    log_info "Running cub with budget of 100000 tokens..."
     log_info "Project: $TEST_PROJECT"
     log_info "Budget: 100000 tokens"
     echo ""
@@ -168,19 +168,19 @@ main() {
     if [[ -z "$ANTHROPIC_API_KEY" ]]; then
         log_warn "ANTHROPIC_API_KEY not set - test may fail"
         log_warn "To run this test, export ANTHROPIC_API_KEY with a valid API key"
-        log_warn "Skipping curb execution..."
-        SKIP_CURB=true
+        log_warn "Skipping cub execution..."
+        SKIP_CUB=true
     else
-        SKIP_CURB=false
+        SKIP_CUB=false
     fi
 
-    # Run curb (or skip if no API key)
-    local curb_exit_code=0
-    if [[ "$SKIP_CURB" == "false" ]]; then
+    # Run cub (or skip if no API key)
+    local cub_exit_code=0
+    if [[ "$SKIP_CUB" == "false" ]]; then
         cd "$PROJECT_ROOT"
-        ./cub --budget 100000 --backend json || curb_exit_code=$?
+        ./cub --budget 100000 --backend json || cub_exit_code=$?
 
-        log_info "Curb exited with code: $curb_exit_code"
+        log_info "Cub exited with code: $cub_exit_code"
         echo ""
     else
         log_info "Simulating successful cub run for verification tests..."

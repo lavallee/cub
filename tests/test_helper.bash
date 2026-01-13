@@ -20,7 +20,7 @@ setup_test_dir() {
     export _TASK_BACKEND=""
 
     # Create mock harness (claude) for tests that don't actually invoke it
-    # This satisfies the dependency check in curb
+    # This satisfies the dependency check in cub
     MOCK_BIN_DIR="$TEST_DIR/bin"
     mkdir -p "$MOCK_BIN_DIR"
     cat > "$MOCK_BIN_DIR/claude" << 'MOCK_EOF'

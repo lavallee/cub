@@ -93,7 +93,7 @@ failure_set_mode() {
 # Returns: 2 (signals main loop to halt run)
 #
 # Example:
-#   failure_handle_stop "curb-038" 1 "Tests failed" || exit $?
+#   failure_handle_stop "cub-038" 1 "Tests failed" || exit $?
 failure_handle_stop() {
     local task_id="$1"
     local exit_code="$2"
@@ -131,7 +131,7 @@ failure_handle_stop() {
 # Returns: 0 (signals main loop to continue)
 #
 # Example:
-#   failure_handle_move_on "curb-038" 1 "Tests failed"
+#   failure_handle_move_on "cub-038" 1 "Tests failed"
 failure_handle_move_on() {
     local task_id="$1"
     local exit_code="$2"
@@ -170,7 +170,7 @@ failure_handle_move_on() {
 #          0 (falls back to move-on if limit exceeded)
 #
 # Example:
-#   failure_handle_retry "curb-038" 1 "Tests failed" || handle_result=$?
+#   failure_handle_retry "cub-038" 1 "Tests failed" || handle_result=$?
 failure_handle_retry() {
     local task_id="$1"
     local exit_code="$2"
@@ -233,7 +233,7 @@ failure_handle_retry() {
 # Outputs: Formatted failure context to stdout
 #
 # Example:
-#   context=$(failure_get_context "curb-038")
+#   context=$(failure_get_context "cub-038")
 #   # Returns: "Previous attempt failed with exit code 1: Tests failed. Please try a different approach."
 failure_get_context() {
     local task_id="$1"

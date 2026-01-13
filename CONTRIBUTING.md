@@ -1,14 +1,14 @@
-# Contributing to Curb
+# Contributing to Cub
 
-This guide explains how to extend curb with new AI harnesses, task backends, and other features.
+This guide explains how to extend cub with new AI harnesses, task backends, and other features.
 
 ## Architecture Overview
 
-Curb uses a modular architecture with abstraction layers:
+Cub uses a modular architecture with abstraction layers:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                         curb                              │
+│                         cub                              │
 │                   (main loop logic)                       │
 ├────────────────────┬─────────────────────────────────────┤
 │   lib/harness.sh   │   lib/tasks.sh                      │
@@ -228,7 +228,7 @@ Tasks with `model:X` labels (e.g., `model:haiku`, `model:sonnet`) trigger automa
 
 ## Project File Templates
 
-Templates in `templates/` are copied to projects during `curb-init`:
+Templates in `templates/` are copied to projects during `cub-init`:
 
 ### PROMPT.md
 
@@ -288,7 +288,7 @@ cub --epic my-epic-id --ready
 cub --label phase-1 --status
 
 # Test combined filters
-cub --epic curb-1gq --label phase-1 --once --debug
+cub --epic cub-1gq --label phase-1 --once --debug
 ```
 
 ## Code Style

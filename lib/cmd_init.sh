@@ -13,7 +13,7 @@ cmd_init_help() {
     cat <<'EOF'
 cub init [--global] [<directory>]
 
-Initialize curb in a project or globally.
+Initialize cub in a project or globally.
 
 USAGE:
   cub init              Initialize in current directory
@@ -21,7 +21,7 @@ USAGE:
   cub init <dir>       Initialize in specific directory
 
 OPTIONS:
-  --global              Set up global configuration (~/.config/curb)
+  --global              Set up global configuration (~/.config/cub)
                         Creates config templates and hook directories.
                         Only needs to run once per system.
 
@@ -34,7 +34,7 @@ WHAT IT CREATES:
   AGENT.md              Build/run instructions
   progress.txt          Progress tracking (auto-updated)
   fix_plan.md           Issue tracking (auto-updated)
-  .gitignore            With curb patterns
+  .gitignore            With cub patterns
 
 GLOBAL SETUP:
   ~/.config/cub/config.json       Configuration defaults
@@ -79,7 +79,7 @@ cmd_init() {
     # Global initialization (--global flag)
     # ============================================================================
     if [[ "$global_init" == "true" ]]; then
-        log_info "Initializing global curb configuration"
+        log_info "Initializing global cub configuration"
         echo ""
 
         # Check dependencies
@@ -182,7 +182,7 @@ EOF
         done
 
         echo ""
-        log_success "Global curb configuration complete!"
+        log_success "Global cub configuration complete!"
         echo ""
         echo "Configuration:"
         echo "  Config file:  ${config_file}"
@@ -193,7 +193,7 @@ EOF
         echo "  1. Review and customize ${config_file}"
         echo "  2. Add custom hooks to ${hooks_dir}/<hook-type>.d/"
         echo "  3. Initialize a project with: cub init <project-dir>"
-        echo "  4. Start building: cd <project-dir> && curb"
+        echo "  4. Start building: cd <project-dir> && cub"
         echo ""
         echo "Configuration options:"
         echo "  harness.default       - Default harness to use (auto|claude|codex)"
@@ -217,7 +217,7 @@ EOF
     prefix=$(echo "$project_name" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | head -c 8)
     [[ -z "$prefix" ]] && prefix="prd"
 
-    log_info "Initializing curb in: ${target_dir}"
+    log_info "Initializing cub in: ${target_dir}"
     log_info "Project prefix: ${prefix}"
 
     cd "$target_dir" || return 1
@@ -329,24 +329,24 @@ EOF
 
     # Create .gitignore additions
     if [[ -f ".gitignore" ]]; then
-        if ! grep -q "# Curb" .gitignore 2>/dev/null; then
+        if ! grep -q "# Cub" .gitignore 2>/dev/null; then
             cat >> .gitignore <<EOF
 
-# Curb
-*.curb.tmp
+# Cub
+*.cub.tmp
 EOF
             log_success "Updated .gitignore"
         fi
     else
         cat > .gitignore <<EOF
-# Curb
-*.curb.tmp
+# Cub
+*.cub.tmp
 EOF
         log_success "Created .gitignore"
     fi
 
     echo ""
-    log_success "Curb initialized!"
+    log_success "Cub initialized!"
     echo ""
     echo "Next steps:"
     echo "  1. Edit prd.json to add your tasks (use ChatPRD template output)"

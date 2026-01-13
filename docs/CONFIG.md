@@ -1,6 +1,6 @@
 # Configuration Reference
 
-This document provides a comprehensive reference for all Curb configuration options. Configuration can be set at multiple levels with the following priority (highest to lowest):
+This document provides a comprehensive reference for all Cub configuration options. Configuration can be set at multiple levels with the following priority (highest to lowest):
 
 1. **CLI flags** (e.g., `--budget 500000`)
 2. **Environment variables** (e.g., `CUB_BUDGET=500000`)
@@ -12,7 +12,7 @@ This document provides a comprehensive reference for all Curb configuration opti
 
 ### Global Setup
 ```bash
-curb-init --global
+cub-init --global
 ```
 
 This creates `~/.config/cub/config.json` with defaults:
@@ -67,7 +67,7 @@ Controls which AI harness (Claude Code, Codex, etc.) is used to execute tasks.
 - **Allowed Values**: `auto`, `claude`, `codex`, `gemini`, `opencode`
 - **CLI Flag**: `--harness <name>`
 - **Environment Variable**: `HARNESS`
-- **Description**: Default harness to use. With `auto`, curb attempts harnesses in priority order.
+- **Description**: Default harness to use. With `auto`, cub attempts harnesses in priority order.
 
 #### `harness.priority`
 - **Type**: Array of strings
@@ -122,7 +122,7 @@ Manage token budget to control AI API costs.
 Small project (100k token budget):
 ```bash
 export CUB_BUDGET=100000
-curb
+cub
 ```
 
 High-cost project with warning at 70%:
@@ -288,7 +288,7 @@ See [Hooks Documentation](../README.md#hooks) for details on writing custom hook
 
 #### Example Hooks
 
-Curb ships with example hooks in `examples/hooks/` that you can copy and customize:
+Cub ships with example hooks in `examples/hooks/` that you can copy and customize:
 
 | Hook | Location | Description |
 |------|----------|-------------|
@@ -322,12 +322,12 @@ Curb ships with example hooks in `examples/hooks/` that you can copy and customi
 
 **Auto-Branch Hook:**
 
-The `10-auto-branch.sh` hook automatically creates a new git branch when a curb session starts:
+The `10-auto-branch.sh` hook automatically creates a new git branch when a cub session starts:
 
 - Creates branches with naming convention: `cub/{session_name}/{timestamp}`
 - Stores the base branch for later PR creation
 - Idempotent (safe to run multiple times)
-- Skips if not in a git repository or already on a curb branch
+- Skips if not in a git repository or already on a cub branch
 
 Example output:
 ```
@@ -337,7 +337,7 @@ Example output:
 
 **PR Prompt Hook:**
 
-The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a curb session completes:
+The `90-pr-prompt.sh` hook offers to create a GitHub Pull Request when a cub session completes:
 
 - Uses the GitHub CLI (`gh`) for PR creation
 - Reads base branch from `.cub/.base-branch` (set by auto-branch hook)
@@ -364,7 +364,7 @@ Branch:  cub/porcupine/20260111-120000
 Base:    main
 Commits: 3 ahead
 
-Title:   Curb: Porcupine session (3 commits)
+Title:   Cub: Porcupine session (3 commits)
 
 [pr-prompt] Create PR? [y/N/e(dit)]
 ```
@@ -456,7 +456,7 @@ Relaxed limits for complex tasks:
 ```bash
 export CUB_MAX_TASK_ITERATIONS=10
 export CUB_MAX_RUN_ITERATIONS=200
-curb
+cub
 ```
 
 ---
@@ -502,7 +502,7 @@ CUB_DEBUG=true CUB_STREAM=true cub --once
 
 Force beads backend and target epic:
 ```bash
-CUB_BACKEND=beads CUB_EPIC=phase-1 curb
+CUB_BACKEND=beads CUB_EPIC=phase-1 cub
 ```
 
 ---
@@ -512,7 +512,7 @@ CUB_BACKEND=beads CUB_EPIC=phase-1 curb
 For one-time overrides, use CLI flags instead of config files:
 
 ```bash
-curb [OPTIONS]
+cub [OPTIONS]
 ```
 
 ### Task Selection
@@ -571,7 +571,7 @@ cub --ready
 
 ## Directory Structure
 
-Curb uses XDG Base Directory specification for configuration and logs:
+Cub uses XDG Base Directory specification for configuration and logs:
 
 ```
 ~/.config/cub/
@@ -692,7 +692,7 @@ cat .cub.json | jq .
 ```
 
 ### Configuration Loading Order
-Curb loads config in this order (later overrides earlier):
+Cub loads config in this order (later overrides earlier):
 1. Hardcoded defaults
 2. Global config (`~/.config/cub/config.json`)
 3. Project config (`.cub.json`)
@@ -714,7 +714,7 @@ jq empty .cub.json && echo "Valid"
 ## Troubleshooting
 
 **Q: "Config file not found" error**
-- Run `curb-init --global` to create global config
+- Run `cub-init --global` to create global config
 - Create `.cub.json` in your project if using project-level config
 
 **Q: Budget exceeded but tasks remaining**

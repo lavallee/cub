@@ -13,7 +13,7 @@ cmd_doctor_help() {
     cat <<'EOF'
 cub doctor [options]
 
-Diagnose and optionally fix common curb issues.
+Diagnose and optionally fix common cub issues.
 
 USAGE:
   cub doctor              Run diagnostics
@@ -155,7 +155,7 @@ _doctor_check_project() {
     fi
 
     # Check .cub/ directory
-    if [[ -d "${PROJECT_DIR}/.curb" ]]; then
+    if [[ -d "${PROJECT_DIR}/.cub" ]]; then
         _doctor_ok ".cub/ directory exists"
     else
         _doctor_info ".cub/ directory not found (will be created on first run)"
@@ -199,7 +199,7 @@ _doctor_check_git() {
 
     # Check for cub artifacts (.beads/ and .cub/) separately
     local cub_artifacts
-    cub_artifacts=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.(beads|curb)/' || true)
+    cub_artifacts=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.(beads|cub)/' || true)
     local cub_artifact_count=0
     if [[ -n "$cub_artifacts" ]]; then
         cub_artifact_count=$(echo "$cub_artifacts" | wc -l | tr -d ' ')
@@ -212,10 +212,10 @@ _doctor_check_git() {
 
     # Report cub artifacts if present
     if [[ $cub_artifact_count -gt 0 ]]; then
-        _doctor_warn "Curb artifacts need committing (${cub_artifact_count} files)"
+        _doctor_warn "Cub artifacts need committing (${cub_artifact_count} files)"
         ((issues++))
         echo ""
-        echo "  Curb artifacts (safe to commit with --fix):"
+        echo "  Cub artifacts (safe to commit with --fix):"
         # Use here-string to avoid subshell from pipe
         while IFS= read -r line; do
             echo "    $line"

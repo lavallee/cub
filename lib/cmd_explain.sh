@@ -42,10 +42,10 @@ FOR BLOCKED TASKS:
 
 EXAMPLES:
   # View task details
-  cub explain curb-018
+  cub explain cub-018
 
   # Investigate why a task failed
-  cub explain curb-041
+  cub explain cub-041
 
   # Check what's blocking a task
   cub explain feature-42

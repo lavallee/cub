@@ -1,12 +1,12 @@
-# Curb 1.0.0 Release Notes
+# Cub 1.0.0 Release Notes
 
 **Release Date:** January 10, 2026
 
-Curb 1.0 is the first stable release of the autonomous AI coding agent harness. It combines the Ralph Wiggum technique (running AI in a loop) with beads-style task management to provide a reliable, safe, and extensible platform for autonomous coding.
+Cub 1.0 is the first stable release of the autonomous AI coding agent harness. It combines the Ralph Wiggum technique (running AI in a loop) with beads-style task management to provide a reliable, safe, and extensible platform for autonomous coding.
 
-## 🎯 What is Curb?
+## 🎯 What is Cub?
 
-Curb wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) in an autonomous loop that:
+Cub wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) in an autonomous loop that:
 - Picks tasks from a backlog (beads or prd.json)
 - Executes them via AI harness
 - Tracks progress and artifacts
@@ -209,11 +209,11 @@ See [UPGRADING.md](UPGRADING.md) for the complete migration guide.
 
 **TL;DR:**
 ```bash
-# Update curb
-cd ~/tools/curb && git pull
+# Update cub
+cd ~/tools/cub && git pull
 
 # Initialize global config (one time)
-curb-init --global
+cub-init --global
 
 # Test your setup
 cub --once
@@ -223,13 +223,13 @@ cub --once
 
 ```bash
 # Clone to tools directory
-git clone https://github.com/lavallee/curb ~/tools/curb
+git clone https://github.com/lavallee/cub ~/tools/cub
 
 # Add to PATH
-export PATH="$PATH:$HOME/tools/curb"
+export PATH="$PATH:$HOME/tools/cub"
 
 # First-time setup
-curb-init --global
+cub-init --global
 
 # Initialize a project
 cd my-project
@@ -301,4 +301,4 @@ https://github.com/lavallee/cub/issues
 
 ---
 
-**Curb 1.0.0** - Autonomous AI Coding, Done Right. 🎉
+**Cub 1.0.0** - Autonomous AI Coding, Done Right. 🎉

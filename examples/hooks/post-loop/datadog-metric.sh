@@ -2,7 +2,7 @@
 #
 # Datadog Metrics Collection Hook
 #
-# Submits a custom metric to Datadog when the curb loop completes.
+# Submits a custom metric to Datadog when the cub loop completes.
 # This hook runs after every loop completion via the post-loop hook point.
 # Useful for tracking how often your AI agent successfully completes tasks.
 #
@@ -23,7 +23,7 @@
 #      export DD_SITE="datadoghq.eu"     # for EU
 #
 #   5. Optional: Add custom tags
-#      export DD_TAGS="env:production,service:curb"
+#      export DD_TAGS="env:production,service:cub"
 #
 # CONTEXT VARIABLES:
 #   CUB_SESSION_ID    - Session ID (timestamp)
@@ -66,20 +66,20 @@ TAG_JSON=$(printf '%s\n' "${TAG_ARRAY[@]}" | jq -R . | jq -s .)
 
 # Build Datadog metrics payload
 # Sending two metrics:
-# 1. curb.loop.completed - Counter of completed loops
-# 2. curb.loop.timestamp - Timestamp gauge for tracking freshness
+# 1. cub.loop.completed - Counter of completed loops
+# 2. cub.loop.timestamp - Timestamp gauge for tracking freshness
 TIMESTAMP=$(date +%s)
 PAYLOAD=$(cat <<EOF
 {
     "series": [
         {
-            "metric": "curb.loop.completed",
+            "metric": "cub.loop.completed",
             "points": [[${TIMESTAMP}, 1]],
             "type": "gauge",
             "tags": $(echo "$TAG_JSON" | jq -c '.')
         },
         {
-            "metric": "curb.loop.timestamp",
+            "metric": "cub.loop.timestamp",
             "points": [[${TIMESTAMP}, ${TIMESTAMP}]],
             "type": "gauge",
             "tags": $(echo "$TAG_JSON" | jq -c '.')

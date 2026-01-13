@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# tasks.sh - Unified task management interface for curb
+# tasks.sh - Unified task management interface for cub
 #
 # Supports two backends:
 #   1. beads (bd CLI) - preferred when available
@@ -787,7 +787,7 @@ migrate_json_to_beads() {
     echo "Next steps:"
     echo "  1. Verify with: bd list"
     echo "  2. Check ready tasks: bd ready"
-    echo "  3. Run curb (will auto-detect beads): cub --status"
+    echo "  3. Run cub (will auto-detect beads): cub --status"
     if [[ "$dry_run" != "true" ]]; then
         echo "  4. Optionally backup and remove prd.json"
     fi

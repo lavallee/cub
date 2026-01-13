@@ -1094,7 +1094,7 @@ run_loop() {
         log_debug "Not in a git repository, skipping git operations"
     fi
 
-    log_info "Starting curb loop (max ${max_iterations} iterations)"
+    log_info "Starting cub loop (max ${max_iterations} iterations)"
     log_debug "Max iterations: ${max_iterations}"
     log_debug "Loop starting at: $(date)"
     echo ""

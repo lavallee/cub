@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# hooks.sh - Hook Framework for Curb
+# hooks.sh - Hook Framework for Cub
 #
-# Provides functions for running hook scripts at various points in the curb lifecycle.
+# Provides functions for running hook scripts at various points in the cub lifecycle.
 # Hooks are executable scripts stored in directories like pre-task.d/, post-task.d/, etc.
 # Scripts are run in sorted order (01-first.sh before 02-second.sh).
 #

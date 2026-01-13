@@ -80,7 +80,7 @@ state_ensure_clean() {
     fi
 
     # Get list of uncommitted files for error message
-    # Exclude .cub/ and .beads/ since those are curb's own artifacts (committed separately)
+    # Exclude .cub/ and .beads/ since those are cub's own artifacts (committed separately)
     local uncommitted_files
     uncommitted_files=$(git status --short 2>/dev/null | grep -v '^.. \.cub/' | grep -v '^.. \.beads/')
 

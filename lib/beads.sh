@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# beads.sh - Beads CLI wrapper functions for curb
+# beads.sh - Beads CLI wrapper functions for cub
 #
 # Provides the same interface as tasks.sh but uses the beads (bd) CLI
 # for task management instead of direct JSON manipulation.

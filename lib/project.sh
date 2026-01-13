@@ -73,7 +73,7 @@ validate_project() {
         log_info "Using JSON backend (prd.json)"
         if [[ ! -f "${PROJECT_DIR}/prd.json" ]]; then
             _log_error_console "No prd.json found in ${PROJECT_DIR}"
-            log_info "Run 'curb-init' to scaffold a new project"
+            log_info "Run 'cub-init' to scaffold a new project"
             exit 1
         fi
         log_debug "Found prd.json ($(wc -c < "${PROJECT_DIR}/prd.json") bytes)"

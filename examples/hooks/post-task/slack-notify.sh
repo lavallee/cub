@@ -17,11 +17,11 @@
 #   3. Set the webhook URL as an environment variable:
 #      export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 #
-#   4. Optional: Set the channel name (default: @curb-notifications)
+#   4. Optional: Set the channel name (default: @cub-notifications)
 #      export SLACK_CHANNEL="@your-channel"
 #
 # CONTEXT VARIABLES:
-#   CUB_TASK_ID       - Task ID (e.g., "curb-abc123")
+#   CUB_TASK_ID       - Task ID (e.g., "cub-abc123")
 #   CUB_TASK_TITLE    - Task title
 #   CUB_EXIT_CODE     - Exit code from task execution (0 = success)
 #   CUB_PROJECT_DIR   - Project directory
@@ -31,7 +31,7 @@ set -euo pipefail
 
 # Configuration from environment or defaults
 SLACK_WEBHOOK_URL="${SLACK_WEBHOOK_URL:-}"
-SLACK_CHANNEL="${SLACK_CHANNEL:-@curb-notifications}"
+SLACK_CHANNEL="${SLACK_CHANNEL:-@cub-notifications}"
 PROJECT_DIR="${CUB_PROJECT_DIR:-.}"
 TASK_ID="${CUB_TASK_ID:-unknown}"
 TASK_TITLE="${CUB_TASK_TITLE:-No title}"
@@ -97,7 +97,7 @@ PAYLOAD=$(cat <<EOF
                     "short": true
                 }
             ],
-            "footer": "Curb Task Notifications",
+            "footer": "Cub Task Notifications",
             "ts": $(date +%s)
         }
     ]

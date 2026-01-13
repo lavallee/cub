@@ -32,24 +32,24 @@ EXAMPLES:
   cub artifacts
 
   # Get path to specific task (useful for scripts)
-  cub artifacts curb-018
-  # Output: .cub/runs/panda-20260110-141339/tasks/curb-018
+  cub artifacts cub-018
+  # Output: .cub/runs/panda-20260110-141339/tasks/cub-018
 
   # Use in shell command
-  cd $(cub artifacts curb-018)
+  cd $(cub artifacts cub-018)
   cat summary.md
 
   # Find by prefix (shows matches if ambiguous)
-  cub artifacts curb-01
+  cub artifacts cub-01
 
   # View recent task summary
-  cat $(cub artifacts curb-017)/summary.md
+  cat $(cub artifacts cub-017)/summary.md
 
   # Examine git changes made by task
-  patch -p1 -R < $(cub artifacts curb-016)/changes.patch
+  patch -p1 -R < $(cub artifacts cub-016)/changes.patch
 
   # Find task logs
-  ls $(cub artifacts curb-015)/logs/
+  ls $(cub artifacts cub-015)/logs/
 
 SEE ALSO:
   cub status      Check task progress
@@ -75,7 +75,7 @@ cmd_artifacts() {
 
         log_info "Recent tasks:"
         # Find all task directories, sort by modification time (newest first)
-        find "$artifacts_base" -maxdepth 3 -type d -name "curb-*" | sort -r | while read -r task_dir; do
+        find "$artifacts_base" -maxdepth 3 -type d -name "cub-*" | sort -r | while read -r task_dir; do
             if [[ -f "$task_dir/task.json" ]]; then
                 local task_id
                 task_id=$(basename "$task_dir")
@@ -106,7 +106,7 @@ cmd_artifacts() {
                 matches+=("$task_dir")
             fi
         fi
-    done < <(find "$artifacts_base" -maxdepth 3 -type d -name "curb-*" 2>/dev/null)
+    done < <(find "$artifacts_base" -maxdepth 3 -type d -name "cub-*" 2>/dev/null)
 
     if [[ ${#matches[@]} -eq 0 ]]; then
         _log_error_console "Task not found: ${search_id}"

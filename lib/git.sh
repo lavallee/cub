@@ -66,7 +66,7 @@ git_get_current_branch() {
 #     echo "Uncommitted changes detected"
 #   fi
 git_is_clean() {
-    # Exclude .cub/ and .beads/ from all checks since those are curb's own artifacts
+    # Exclude .cub/ and .beads/ from all checks since those are cub's own artifacts
     # Use pathspec ':!.cub/' ':!.beads/' to exclude directories from git operations
     # These files are committed separately after task completion
 
@@ -92,7 +92,7 @@ git_is_clean() {
 }
 
 # Commit cub artifacts (.beads/ and .cub/) if there are changes
-# These directories contain curb's own tracking data and should be committed
+# These directories contain cub's own tracking data and should be committed
 # separately from the harness's commits.
 #
 # Parameters:
@@ -103,7 +103,7 @@ git_is_clean() {
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_cub_artifacts "curb-042"
+#   git_commit_cub_artifacts "cub-042"
 git_commit_cub_artifacts() {
     local task_id="${1:-}"
 
@@ -166,7 +166,7 @@ _GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_remaining_changes "curb-042" "Implement feature X"
+#   git_commit_remaining_changes "cub-042" "Implement feature X"
 git_commit_remaining_changes() {
     local task_id="${1:-}"
     local task_title="${2:-}"
@@ -186,7 +186,7 @@ git_commit_remaining_changes() {
     fi
 
     # Stage all changes EXCEPT .cub/ and .beads/ (which are handled separately)
-    # Use pathspec to exclude curb artifact directories
+    # Use pathspec to exclude cub artifact directories
     git add -A -- ':!.cub/' ':!.beads/' 2>/dev/null || true
 
     # Build commit message
@@ -194,19 +194,19 @@ git_commit_remaining_changes() {
     if [[ -n "$task_id" && -n "$task_title" ]]; then
         commit_msg="[${task_id}] ${task_title}
 
-Auto-committed by curb: agent completed successfully but did not commit changes.
+Auto-committed by cub: agent completed successfully but did not commit changes.
 
 Task-ID: ${task_id}"
     elif [[ -n "$task_id" ]]; then
         commit_msg="chore(${task_id}): auto-commit remaining changes
 
-Auto-committed by curb: agent completed successfully but did not commit changes.
+Auto-committed by cub: agent completed successfully but did not commit changes.
 
 Task-ID: ${task_id}"
     else
         commit_msg="chore: auto-commit remaining changes
 
-Auto-committed by curb: agent completed successfully but did not commit changes."
+Auto-committed by cub: agent completed successfully but did not commit changes."
     fi
 
     # Commit
@@ -230,7 +230,7 @@ Auto-committed by curb: agent completed successfully but did not commit changes.
 #   1 on error (git command failure)
 #
 # Example:
-#   git_commit_session_files "curb-042"
+#   git_commit_session_files "cub-042"
 git_commit_session_files() {
     local task_id="${1:-}"
 
@@ -275,7 +275,7 @@ git_commit_session_files() {
     file_list=$(printf '%s\n' "${files_to_commit[@]}" | sed 's/^/- /')
     commit_msg="${commit_msg}
 
-Auto-committed by curb after task completion:
+Auto-committed by cub after task completion:
 ${file_list}"
 
     # Commit using heredoc for proper multi-line handling
@@ -430,7 +430,7 @@ git_stash_changes() {
     fi
 
     # Generate a unique stash identifier based on timestamp
-    _GIT_STASH_ID="curb-stash-$(date +%s)"
+    _GIT_STASH_ID="cub-stash-$(date +%s)"
 
     # Stash changes with our identifier (include untracked files)
     if ! git stash push -u -m "$_GIT_STASH_ID" >/dev/null 2>&1; then
@@ -532,7 +532,7 @@ git_get_base_branch() {
 # Stages all changes and creates a commit with task attribution.
 #
 # Parameters:
-#   $1 - task_id: The task identifier (e.g., "curb-023")
+#   $1 - task_id: The task identifier (e.g., "cub-023")
 #   $2 - task_title: The task title/description
 #   $3 - summary: Optional summary text for the commit body
 #
@@ -549,7 +549,7 @@ git_get_base_branch() {
 #   Task-ID: task_id
 #
 # Example:
-#   git_commit_task "curb-023" "Implement git_commit_task" "Added function with tests"
+#   git_commit_task "cub-023" "Implement git_commit_task" "Added function with tests"
 git_commit_task() {
     local task_id="$1"
     local task_title="$2"
