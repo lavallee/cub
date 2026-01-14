@@ -1894,3 +1894,105 @@ cub interview --all --auto --skip-categories "Security,Operations"
 
 **Verdict:**
 Task complete. The priority inference system is unified, well-tested, and integrated across all parsers. It provides intelligent priority detection from content while maintaining backward compatibility with explicit priority specifications.
+
+## Task cub-1x4.6: Dependency detection from text (2026-01-14)
+
+**Implementation:**
+- Created comprehensive dependency detection module: lib/dependencies.sh
+- Implements pattern-based extraction of dependency signals from unstructured text
+- Detects: "depends on", "blocked by", "requires", "after", "once", "before" patterns
+- Also detects numbered sequences implying execution order (1., 2., 3., etc.)
+- Smart matching: Checks text against known task identifiers with word boundaries
+- Supports blocking relationship inference (task1->task2 format)
+
+**Key Functions:**
+1. **detect_dependencies_from_content()** - Main entry point
+   - Takes content and known tasks list
+   - Returns space-separated list of detected dependency identifiers
+   - Returns 0 if dependencies found, 1 if none
+
+2. **_extract_explicit_dependencies()** - Pattern matching engine
+   - Checks against known tasks first (higher accuracy)
+   - Falls back to regex patterns for unknown tasks
+   - Handles 6 main dependency signal types
+
+3. **_extract_numbered_sequence_dependencies()** - Sequence detection
+   - Identifies numbered lists (1., 2., 3.)
+   - Infers execution order dependencies
+   - All earlier items depend on later items
+
+4. **infer_blocking_relationships()** - Relationship inference
+   - Generates "blocker->blocked" relationships
+   - Useful for dependency graph construction
+
+5. **Helper Functions:**
+   - _has_dependency_signals() - Quick signal detection
+   - _has_numbered_sequence() - Sequence detection check
+   - get_dependency_description() - Human-readable relationship descriptions
+   - validate_dependency_references() - Validates task identifiers (supports arrow syntax)
+   - extract_task_names() - Extracts potential task names from content
+
+**Test Coverage:**
+- Created comprehensive test suite: tests/dependencies.bats
+- 38 tests covering all functionality
+- All tests passing (38/38)
+- Tests include:
+  - Pattern detection (depends on, blocked by, requires, after, once, before)
+  - Case-insensitive matching
+  - Multiple dependency detection
+  - Numbered sequence detection
+  - Blocking relationship inference
+  - Dependency reference validation
+  - Arrow syntax handling (task1->task2)
+  - Complex real-world examples
+
+**Key Design Decisions:**
+1. **Smart Known Task Matching** - When known tasks provided, match against them first
+   - Avoids false positives with common words
+   - Example: "the API implementation" in "blocked by the API implementation" 
+   - When known task "api-implementation" provided, matches correctly
+   - Falls back to regex patterns for unknown tasks
+
+2. **Bash 3.2 Compatibility** - Avoids associative arrays (not in bash 3.2)
+   - Uses indexed arrays and parameter expansion
+   - All patterns use POSIX sed and grep
+
+3. **Multi-strategy Detection** - Combines multiple approaches
+   - Explicit patterns (keywords)
+   - Known task matching
+   - Numbered sequence inference
+   - Blocking relationship extraction
+
+4. **Arrow Syntax Support** - For dependency graph representation
+   - "task-1->task-2" means task-1 blocks task-2
+   - Validation properly splits on "->" using parameter expansion
+
+**Acceptance Criteria Met:**
+- ✓ Detects "depends on" pattern
+- ✓ Detects "blocked by" pattern  
+- ✓ Detects "requires" pattern
+- ✓ Detects "after" pattern
+- ✓ Detects numbered sequences implying order
+- ✓ Case-insensitive matching
+- ✓ Multiple dependencies in single text
+- ✓ Smart matching against known tasks
+- ✓ Blocking relationship inference
+- ✓ Comprehensive test coverage (38 tests)
+- ✓ Bash 3.2 compatible
+- ✓ Syntax validation passed
+
+**Files Created:**
+- lib/dependencies.sh (365 lines) - Complete dependency detection engine
+- tests/dependencies.bats (310 lines) - Comprehensive test suite
+
+**Files Modified:**
+- @progress.txt - This entry documenting completion
+
+**Integration Points:**
+- Can be used in cmd_pipeline.sh for vision-to-tasks dependency extraction
+- Can integrate with priority.sh for holistic content analysis
+- Can feed into task graph construction for execution planning
+- Can be used in task import workflows to auto-detect dependencies
+
+**Verdict:**
+Task complete. The dependency detection module is fully functional with comprehensive pattern matching, smart task name resolution, numbered sequence detection, and excellent test coverage. The implementation handles edge cases gracefully and maintains bash 3.2 compatibility across macOS and Linux.
