@@ -903,17 +903,17 @@ EOF
 # ============================================================================
 
 cmd_prep() {
-    local prefix=""
+    local session_id=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --prefix)
-                prefix="$2"
+            --session)
+                session_id="$2"
                 shift 2
                 ;;
-            --prefix=*)
-                prefix="${1#--prefix=}"
+            --session=*)
+                session_id="${1#--session=}"
                 shift
                 ;;
             --help|-h)
@@ -926,7 +926,7 @@ cmd_prep() {
                 return 1
                 ;;
             *)
-                # Ignore positional args (vision path is found by skill)
+                # Ignore positional args
                 shift
                 ;;
         esac
@@ -938,82 +938,160 @@ cmd_prep() {
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
-    # Stage 1: Triage
-    log_info "[1/4] TRIAGE - Requirements Refinement"
-    echo ""
+    # Determine which stage to start
+    local start_stage=""
+    local session_dir=""
 
-    if ! cmd_triage; then
-        _log_error_console "Triage failed. Prep stopped."
-        return 1
+    if [[ -n "$session_id" ]]; then
+        # Resume existing session
+        if ! pipeline_session_exists "$session_id"; then
+            _log_error_console "Session not found: $session_id"
+            return 1
+        fi
+        session_dir=$(pipeline_session_dir "$session_id")
+        log_info "Resuming session: ${session_id}"
+    else
+        # Check for most recent session
+        session_id=$(pipeline_most_recent_session)
+        if [[ -n "$session_id" ]]; then
+            session_dir=$(pipeline_session_dir "$session_id")
+            log_info "Found existing session: ${session_id}"
+        fi
     fi
 
-    local session_id
+    # Determine next step based on existing artifacts
+    if [[ -n "$session_dir" ]]; then
+        if [[ -f "${session_dir}/plan.jsonl" ]]; then
+            start_stage="bootstrap"
+        elif [[ -f "${session_dir}/architect.md" ]]; then
+            start_stage="plan"
+        elif [[ -f "${session_dir}/triage.md" ]]; then
+            start_stage="architect"
+        else
+            start_stage="triage"
+        fi
+    else
+        start_stage="triage"
+    fi
+
+    # Launch the appropriate stage
+    case "$start_stage" in
+        triage)
+            log_info "Starting Stage 1: Triage"
+            echo ""
+            cmd_triage
+            ;;
+        architect)
+            log_info "Starting Stage 2: Architect"
+            echo ""
+            cmd_architect --session "$session_id"
+            ;;
+        plan)
+            log_info "Starting Stage 3: Plan"
+            echo ""
+            cmd_plan --session "$session_id"
+            ;;
+        bootstrap)
+            log_info "Starting Stage 4: Bootstrap"
+            echo ""
+            cmd_bootstrap "$session_id"
+            ;;
+    esac
+
+    # Get session ID after stage completes (may have been created during triage)
     session_id=$(pipeline_most_recent_session)
+    session_dir=$(pipeline_session_dir "$session_id")
 
+    # Report prep status
     echo ""
-    log_success "✓ Triage complete"
-    echo ""
+    _prep_report_status "$session_id"
 
-    # Stage 2: Architect
-    log_info "[2/4] ARCHITECT - Technical Design"
-    echo ""
+    return 0
+}
 
-    if ! cmd_architect --session "$session_id"; then
-        _log_error_console "Architecture failed. Prep stopped."
-        return 1
+# Report the current prep status and remaining steps
+_prep_report_status() {
+    local session_id="$1"
+    local session_dir
+    session_dir=$(pipeline_session_dir "$session_id")
+
+    local has_triage=false
+    local has_architect=false
+    local has_plan=false
+    local has_bootstrap=false
+
+    [[ -f "${session_dir}/triage.md" ]] && has_triage=true
+    [[ -f "${session_dir}/architect.md" ]] && has_architect=true
+    [[ -f "${session_dir}/plan.jsonl" ]] && has_plan=true
+
+    # Check bootstrap status from session.json
+    if [[ -f "${session_dir}/session.json" ]]; then
+        local bs_status
+        bs_status=$(jq -r '.stages.bootstrap // ""' "${session_dir}/session.json" 2>/dev/null)
+        [[ "$bs_status" == "complete" ]] && has_bootstrap=true
     fi
 
-    echo ""
-    log_success "✓ Architecture complete"
-    echo ""
-
-    # Stage 3: Plan
-    log_info "[3/4] PLAN - Task Decomposition"
-    echo ""
-
-    if ! cmd_plan --session "$session_id"; then
-        _log_error_console "Planning failed. Prep stopped."
-        return 1
-    fi
-
-    echo ""
-    log_success "✓ Plan generated"
-    echo ""
-
-    # Stage 4: Bootstrap
-    log_info "[4/4] BOOTSTRAP - Initialize Beads"
-    echo ""
-
-    local bootstrap_args=("$session_id")
-    [[ -n "$prefix" ]] && bootstrap_args=("--prefix" "$prefix" "${bootstrap_args[@]}")
-
-    if ! cmd_bootstrap "${bootstrap_args[@]}"; then
-        _log_error_console "Bootstrap failed. Pipeline stopped."
-        return 1
-    fi
-
-    echo ""
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log_success "         PIPELINE COMPLETE"
+    log_info "         PREP STATUS"
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     log_info "Session: ${session_id}"
-    log_info "Artifacts: .cub/sessions/${session_id}/"
-    echo ""
-    log_info "Ready to start: cub run"
     echo ""
 
-    return 0
+    # Show status of each stage
+    if [[ "$has_triage" == "true" ]]; then
+        echo "  [✓] Triage    - triage.md"
+    else
+        echo "  [ ] Triage    - pending"
+    fi
+
+    if [[ "$has_architect" == "true" ]]; then
+        echo "  [✓] Architect - architect.md"
+    else
+        echo "  [ ] Architect - pending"
+    fi
+
+    if [[ "$has_plan" == "true" ]]; then
+        echo "  [✓] Plan      - plan.jsonl"
+    else
+        echo "  [ ] Plan      - pending"
+    fi
+
+    if [[ "$has_bootstrap" == "true" ]]; then
+        echo "  [✓] Bootstrap - complete"
+    else
+        echo "  [ ] Bootstrap - pending"
+    fi
+
+    echo ""
+
+    # Determine next step
+    if [[ "$has_bootstrap" == "true" ]]; then
+        log_success "Prep complete!"
+        log_info "Ready to start: cub run"
+    elif [[ "$has_plan" == "true" ]]; then
+        log_info "Next step: cub bootstrap --session ${session_id}"
+    elif [[ "$has_architect" == "true" ]]; then
+        log_info "Next step: cub plan --session ${session_id}"
+    elif [[ "$has_triage" == "true" ]]; then
+        log_info "Next step: cub architect --session ${session_id}"
+    else
+        log_info "Next step: cub triage --session ${session_id}"
+    fi
+
+    log_info "Or run: cub prep --session ${session_id}"
+    echo ""
 }
 
 _prep_help() {
     cat <<EOF
 Usage: cub prep [OPTIONS]
 
-Run the complete Vision-to-Tasks prep pipeline.
+Run the Vision-to-Tasks prep workflow one stage at a time.
 
-Each stage launches an interactive Claude session using skills installed
-in .claude/commands/. Questions are asked one at a time.
+Each invocation launches an interactive Claude session for the next
+incomplete stage. After you exit Claude, prep shows your progress
+and the next step.
 
 Stages:
   1. Triage    - Interactive requirements refinement (/cub:triage)
@@ -1022,12 +1100,18 @@ Stages:
   4. Bootstrap - Initialize beads and import tasks (shell)
 
 Options:
-  --prefix PREFIX    Task ID prefix for beads import
+  --session ID       Resume a specific session
   -h, --help         Show this help message
 
 Examples:
-  cub prep                        # Run full prep workflow
-  cub prep --prefix myproj        # Use custom task ID prefix
+  cub prep                          # Start or continue prep
+  cub prep --session myproj-...     # Resume specific session
+
+Workflow:
+  1. Run 'cub prep' - starts triage session
+  2. Complete triage interview, exit Claude
+  3. Run 'cub prep' again - continues to architect
+  4. Repeat until all stages complete
 
 Output:
   .cub/sessions/{session-id}/
@@ -1036,8 +1120,11 @@ Output:
     ├── plan.jsonl           # Beads-compatible tasks
     └── plan.md              # Human-readable plan
 
-Next:
-  cub run              # Start autonomous execution
+Individual Commands:
+  cub triage                 # Just run triage
+  cub architect              # Just run architect
+  cub plan                   # Just run plan
+  cub bootstrap              # Just run bootstrap
 EOF
 }
 
