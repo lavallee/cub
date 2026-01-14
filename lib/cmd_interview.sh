@@ -46,6 +46,24 @@ interview_merge_questions() {
     echo "$built_in" | jq --argjson custom "$custom" '. + $custom'
 }
 
+# Load skip_categories configuration from configuration file
+# Returns: Comma-separated string of categories to skip (empty string if none configured)
+interview_load_skip_categories() {
+    local skip_categories=""
+
+    # Try to load from project config file (.cub.json)
+    if [[ -f ".cub.json" ]]; then
+        skip_categories=$(jq -r '.interview.skip_categories // [] | join(",")' ".cub.json" 2>/dev/null)
+    fi
+
+    # Fallback to empty string if not found or jq fails
+    if [[ -z "$skip_categories" ]]; then
+        skip_categories=""
+    fi
+
+    echo "$skip_categories"
+}
+
 # ============================================================================
 # Question Bank
 # ============================================================================
@@ -1047,6 +1065,15 @@ OPTIONS:
   --all               Interview all open tasks in batch mode
   --skip-categories   Skip specific categories (comma-separated)
 
+CONFIGURATION:
+  Category filtering can be configured in .cub.json:
+  {
+    "interview": {
+      "skip_categories": ["Security", "Performance & Scale"]
+    }
+  }
+  CLI --skip-categories flag merges with configuration (CLI takes precedence).
+
 AUTO MODE WITH REVIEW FLOW:
   When using --auto, generated answers are presented for your review:
   - Accept answers you agree with
@@ -1058,6 +1085,13 @@ BATCH MODE:
   Use --all to interview all open tasks. Recommended with --auto --skip-review
   for autonomous operation. Optionally use --output-dir to customize spec location.
 
+SKIP CATEGORIES:
+  Use --skip-categories to exclude question categories from an interview.
+  Useful for internal tools where security questions are not needed.
+  Categories: Functional Requirements, Edge Cases, Error Handling,
+  User Experience, Data & State, Integration Points, Performance & Scale,
+  Security, Testing, Operations
+
 EXAMPLES:
   # Interactive interview
   cub interview cub-h87.1
@@ -1067,6 +1101,12 @@ EXAMPLES:
 
   # Auto mode, skip review phase
   cub interview cub-h87.1 --auto --skip-review
+
+  # Skip security questions
+  cub interview cub-h87.1 --auto --skip-categories Security
+
+  # Skip multiple categories
+  cub interview cub-h87.1 --auto --skip-categories "Security,Performance & Scale"
 
   # Save to custom location
   cub interview cub-h87.1 --output docs/task-spec.md
@@ -1079,6 +1119,9 @@ EXAMPLES:
 
   # Batch interview with custom output directory
   cub interview --all --auto --skip-review --output-dir specs/interviews
+
+  # Batch interview skipping certain categories
+  cub interview --all --auto --skip-review --skip-categories "Security,Operations"
 
 OUTPUT:
   Generates comprehensive markdown specification covering:
@@ -1354,6 +1397,10 @@ cmd_interview() {
     local skip_review=false
     local update_task=false
 
+    # Load skip_categories from configuration if available
+    local config_skip_categories
+    config_skip_categories=$(interview_load_skip_categories)
+
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --auto)
@@ -1394,6 +1441,17 @@ cmd_interview() {
                 ;;
         esac
     done
+
+    # Merge configuration skip_categories with CLI-provided ones
+    # CLI arguments take precedence over configuration
+    if [[ -z "$skip_categories" && -n "$config_skip_categories" ]]; then
+        skip_categories="$config_skip_categories"
+    elif [[ -n "$skip_categories" && -n "$config_skip_categories" ]]; then
+        # Both provided: merge them (CLI + config, with CLI taking precedence for duplicates)
+        skip_categories="${skip_categories},${config_skip_categories}"
+        # Remove duplicates by converting to array and back
+        skip_categories=$(echo "$skip_categories" | tr ',' '\n' | sort -u | tr '\n' ',' | sed 's/,$//')
+    fi
 
     # Validate arguments
     if [[ "$batch_mode" == "false" && -z "$task_id" ]]; then

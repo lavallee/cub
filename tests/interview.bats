@@ -764,3 +764,207 @@ EOF
     custom_count=$(echo "$filtered" | jq '[.[] | select(.category == "Custom API")] | length')
     [ "$custom_count" -eq 1 ]
 }
+
+# ============================================================================
+# Skip Categories Configuration Tests
+# ============================================================================
+
+@test "interview_load_skip_categories returns empty string when no config" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Setup: Create temp directory without .cub.json
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cd "$tmpdir" || exit 1
+
+    # Test
+    local result
+    result=$(interview_load_skip_categories)
+
+    # Cleanup
+    cd - >/dev/null || exit 1
+    rmdir "$tmpdir"
+
+    # Verify: Should return empty string
+    [ -z "$result" ]
+}
+
+@test "interview_load_skip_categories loads from .cub.json" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Setup: Create temp directory with .cub.json
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cd "$tmpdir" || exit 1
+
+    # Create .cub.json with skip_categories
+    cat > .cub.json <<'EOF'
+{
+  "interview": {
+    "skip_categories": ["Security", "Performance & Scale"]
+  }
+}
+EOF
+
+    # Test
+    local result
+    result=$(interview_load_skip_categories)
+
+    # Cleanup
+    cd - >/dev/null || exit 1
+    rm -rf "$tmpdir"
+
+    # Verify: Should return comma-separated list
+    [ "$result" = "Security,Performance & Scale" ]
+}
+
+@test "interview_load_skip_categories returns empty when skip_categories is empty array" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Setup: Create temp directory with .cub.json with empty skip_categories
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cd "$tmpdir" || exit 1
+
+    # Create .cub.json with empty skip_categories
+    cat > .cub.json <<'EOF'
+{
+  "interview": {
+    "skip_categories": []
+  }
+}
+EOF
+
+    # Test
+    local result
+    result=$(interview_load_skip_categories)
+
+    # Cleanup
+    cd - >/dev/null || exit 1
+    rm -rf "$tmpdir"
+
+    # Verify: Should return empty string
+    [ -z "$result" ]
+}
+
+@test "interview_load_skip_categories handles missing interview section" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Setup: Create temp directory with .cub.json without interview section
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    cd "$tmpdir" || exit 1
+
+    # Create .cub.json without interview section
+    cat > .cub.json <<'EOF'
+{
+  "hooks": {
+    "enabled": true
+  }
+}
+EOF
+
+    # Test
+    local result
+    result=$(interview_load_skip_categories)
+
+    # Cleanup
+    cd - >/dev/null || exit 1
+    rm -rf "$tmpdir"
+
+    # Verify: Should return empty string
+    [ -z "$result" ]
+}
+
+@test "skip_categories filter excludes specified categories" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Load questions
+    local questions
+    questions=$(interview_load_questions)
+
+    # Get original count of Security questions
+    local original_security_count
+    original_security_count=$(echo "$questions" | jq '[.[] | select(.category == "Security")] | length')
+
+    # Apply skip-categories filter for Security
+    local skip_array
+    skip_array=$(echo "Security" | jq -R 'split(",")')
+    local filtered
+    filtered=$(echo "$questions" | jq --argjson skip "$skip_array" '
+        [.[] | select(.category as $cat | $skip | contains([$cat]) | not)]
+    ')
+
+    # Count Security questions after filter
+    local filtered_security_count
+    filtered_security_count=$(echo "$filtered" | jq '[.[] | select(.category == "Security")] | length')
+
+    # Verify: Security questions should be removed
+    [ "$original_security_count" -gt 0 ]
+    [ "$filtered_security_count" -eq 0 ]
+}
+
+@test "skip_categories filter handles multiple categories" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Load questions
+    local questions
+    questions=$(interview_load_questions)
+
+    # Apply skip-categories filter for multiple categories
+    local skip_array
+    skip_array=$(echo "Security,Performance & Scale,Operations" | jq -R 'split(",")')
+    local filtered
+    filtered=$(echo "$questions" | jq --argjson skip "$skip_array" '
+        [.[] | select(.category as $cat | $skip | contains([$cat]) | not)]
+    ')
+
+    # Verify no questions from skipped categories exist
+    local security_count
+    security_count=$(echo "$filtered" | jq '[.[] | select(.category == "Security")] | length')
+    [ "$security_count" -eq 0 ]
+
+    local perf_count
+    perf_count=$(echo "$filtered" | jq '[.[] | select(.category == "Performance & Scale")] | length')
+    [ "$perf_count" -eq 0 ]
+
+    local ops_count
+    ops_count=$(echo "$filtered" | jq '[.[] | select(.category == "Operations")] | length')
+    [ "$ops_count" -eq 0 ]
+
+    # Verify other categories still exist
+    local func_count
+    func_count=$(echo "$filtered" | jq '[.[] | select(.category == "Functional Requirements")] | length')
+    [ "$func_count" -gt 0 ]
+}
+
+@test "skip_categories filter preserves non-skipped categories" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Load questions
+    local questions
+    questions=$(interview_load_questions)
+
+    # Get original count
+    local original_count
+    original_count=$(echo "$questions" | jq 'length')
+
+    # Apply skip-categories filter for just one category
+    local skip_array
+    skip_array=$(echo "Security" | jq -R 'split(",")')
+    local filtered
+    filtered=$(echo "$questions" | jq --argjson skip "$skip_array" '
+        [.[] | select(.category as $cat | $skip | contains([$cat]) | not)]
+    ')
+
+    local filtered_count
+    filtered_count=$(echo "$filtered" | jq 'length')
+
+    # Verify: Filtered count should be less than original
+    [ "$filtered_count" -lt "$original_count" ]
+
+    # Verify: Other categories are preserved
+    local has_functional
+    has_functional=$(echo "$filtered" | jq '[.[] | select(.category == "Functional Requirements")] | length')
+    [ "$has_functional" -gt 0 ]
+}
