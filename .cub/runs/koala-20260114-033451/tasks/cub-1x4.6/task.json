@@ -2,7 +2,9 @@
   "task_id": "cub-1x4.6",
   "title": "Dependency detection from text",
   "priority": "P2",
-  "status": "in_progress",
+  "status": "completed",
   "started_at": "2026-01-14T09:18:59Z",
-  "iterations": 0
+  "iterations": 1,
+  "completed_at": "2026-01-14T09:24:51Z",
+  "exit_code": 0
 }
