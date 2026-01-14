@@ -5927,3 +5927,31 @@ Added comprehensive custom question support to the interview mode system, allowi
 - Single-pass parsing for both formats
 - Linear time complexity for validation
 - No external dependencies beyond jq (already required)
+
+## cub-eke.8: Quick mode for non-interactive use
+
+Implemented `--quick` flag for non-interactive initialization with sensible defaults.
+
+### Key Implementation Details:
+
+1. **--quick flag**: Enables non-interactive mode that skips all prompts and uses auto-detected values
+2. **--backend flag**: Allows explicit specification of task backend (beads, json, auto)
+3. **Non-TTY detection**: Uses `[ -t 0 ]` to detect if stdin is a TTY, allowing proper behavior in CI/testing environments
+4. **Auto-detection**: 
+   - Project type: Falls back to detected type or defaults to "generic"
+   - Backend: Prefers beads if available, otherwise uses json
+5. **Backend initialization**: Automatically initializes beads with `bd init --stealth` when beads backend is selected
+6. **Environment variable support**: Respects CUB_BACKEND environment variable for backend selection
+
+### Testing:
+- All 407 BATS tests pass
+- Tested manual execution of `cub init --quick` with various flag combinations
+- Verified non-TTY handling in test environment
+
+### Examples:
+```bash
+cub init --quick                                  # Quick with auto-detection
+cub init --quick --type nextjs                    # Quick with specific type
+cub init --quick --type nextjs --backend beads    # Quick with type and backend
+```
+
