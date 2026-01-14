@@ -1730,7 +1730,8 @@ cmd_validate() {
 
     # Check for missing labels
     log_info "Checking for missing labels..."
-    bd list --type task 2>/dev/null | while read -r line; do
+    # Use process substitution to avoid subshell (preserves issues_found increments)
+    while read -r line; do
         local task_id
         task_id=$(echo "$line" | awk '{print $2}')
         local labels
@@ -1744,7 +1745,7 @@ cmd_validate() {
             log_warn "Task $task_id missing phase label"
             ((issues_found++))
         fi
-    done
+    done < <(bd list --type task 2>/dev/null)
 
     if [[ $issues_found -eq 0 ]]; then
         log_success "Validation complete. No issues found."
