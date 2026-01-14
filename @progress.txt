@@ -1,3 +1,57 @@
+## Task cub-0y8.7: Configurable strictness levels (2026-01-13)
+
+**Implementation:**
+- Added review.plan_strict config option to lib/config.sh (default: false)
+- Added review.block_on_concerns config option to lib/config.sh (default: false)
+- Added CUB_REVIEW_STRICT environment variable support in config_load()
+- Implemented strict mode in _architect_review(): pauses for review when CONCERNS found
+- Implemented strict mode in _plan_review(): pauses for review when CONCERNS found
+- Implemented block_on_concerns in run_review_plans(): converts CONCERNS to BLOCK
+- Updated verdict messages to indicate strict mode and block_on_concerns status
+
+**Key Learnings:**
+1. **Boolean config values**: Use config_get_or with "false" default for boolean values, as config_get returns empty string for false booleans (jq limitation with // empty operator)
+2. **User pausing in strict mode**: Simple read -p prompt allows users to review concerns before proceeding (Ctrl+C aborts, Enter continues)
+3. **Config hierarchy**: CUB_REVIEW_STRICT env var overrides config file settings, enabling CLI-level control
+4. **Verdict logic**: block_on_concerns upgrades CONCERNS to BLOCK only if no native BLOCK conditions exist (prevents false BLOCK for native blocks)
+5. **Two-level strictness**: plan_strict affects architect/plan stages (pauses), block_on_concerns affects run stage (blocks execution)
+
+**Configuration Behavior:**
+- review.plan_strict=false: Default behavior - CONCERNS allows continue
+- review.plan_strict=true: CONCERNS pauses for human review (in architect/plan stages)
+- review.block_on_concerns=false: Default behavior - CONCERNS allows continue (in run stage)
+- review.block_on_concerns=true: CONCERNS blocks execution (in run stage)
+- CUB_REVIEW_STRICT=true: Override review.plan_strict from command line
+
+**Testing Approach:**
+- Bash syntax validation passed (bash -n on all modified files)
+- Config tests: 28 tests pass (including config hierarchy tests)
+- CLI tests: 58 tests pass (including integration with config system)
+- Manual testing: Verified config_get_or returns correct values for all config keys
+- Environment variable testing: Verified CUB_REVIEW_STRICT overrides config correctly
+
+**Acceptance Criteria Met:**
+- ✓ CUB_REVIEW_STRICT env var implemented and functional
+- ✓ review.plan_strict config option added with default false
+- ✓ review.block_on_concerns config option added with default false
+- ✓ Strict mode pauses for review on CONCERNS in architect/plan stages
+- ✓ block_on_concerns upgrades CONCERNS to BLOCK in run stage
+- ✓ Config hierarchy (env var > project config > user config > defaults) working
+- ✓ All existing tests pass with no regressions
+- ✓ Proper error handling for missing config values
+
+**Files Modified:**
+- lib/config.sh: Added review config section with defaults, added CUB_REVIEW_STRICT env var handling
+- lib/cmd_pipeline.sh: Updated _architect_review() and _plan_review() with strict mode logic
+- lib/cmd_run.sh: Updated run_review_plans() with block_on_concerns logic
+- .beads/issues.jsonl: Task status updated to closed
+
+**Integration Points:**
+- Users can enable strict mode via: `CUB_REVIEW_STRICT=true cub architect`
+- Users can enable block_on_concerns via project config: `.cub.json` with `{"review": {"block_on_concerns": true}}`
+- Strict mode messages logged to both review report file and console
+- CONCERNS verdict includes note when strict mode is active
+
 ## Task cub-0y8.6: Pipeline integration (auto-review between stages) (2026-01-13)
 
 **Implementation:**
