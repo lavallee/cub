@@ -41,7 +41,7 @@ teardown() {
 }
 
 @test "cub init subcommand creates project structure" {
-    run "$PROJECT_ROOT/cub" init .
+    run "$PROJECT_ROOT/cub" init --backend=json .
     [ "$status" -eq 0 ]
     [ -f "prd.json" ]
     [ -f ".cub/prompt.md" ]
@@ -490,7 +490,7 @@ teardown() {
 # =============================================================================
 
 @test "cub init followed by cub status works" {
-    run "$PROJECT_ROOT/cub" init .
+    run "$PROJECT_ROOT/cub" init --backend=json .
     [ "$status" -eq 0 ]
 
     run "$PROJECT_ROOT/cub" status

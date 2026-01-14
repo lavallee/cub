@@ -5,7 +5,7 @@ Get started with Cub in 5 minutes. For detailed docs, see [README.md](README.md)
 ## Prerequisites (1 min)
 
 You need:
-- **Bash 4+** (check with `bash --version`)
+- **Bash 3.2+** (check with `bash --version`)
 - **jq** (install: `brew install jq` or `apt-get install jq`)
 - **Claude Code CLI** (install from [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code))
 

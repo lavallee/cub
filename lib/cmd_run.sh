@@ -238,6 +238,9 @@ cmd_run() {
         log_warn "Failed to set max run iterations"
     fi
 
+    # Check if project is initialized, prompt to init if not
+    prompt_init_if_needed
+
     validate_project
 
     # Execute based on mode

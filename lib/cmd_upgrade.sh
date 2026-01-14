@@ -1,54 +1,54 @@
 #!/usr/bin/env bash
 #
-# cmd_update.sh - update subcommand implementation
+# cmd_upgrade.sh - upgrade subcommand implementation
 #
-# Update cub to the latest version from GitHub or a local source.
+# Upgrade cub to the latest version from GitHub or a local source.
 #
 
 # Include guard
-if [[ -n "${_CUB_CMD_UPDATE_SH_LOADED:-}" ]]; then
+if [[ -n "${_CUB_CMD_UPGRADE_SH_LOADED:-}" ]]; then
     return 0
 fi
-_CUB_CMD_UPDATE_SH_LOADED=1
+_CUB_CMD_UPGRADE_SH_LOADED=1
 
 # GitHub repository
 CUB_GITHUB_REPO="lavallee/cub"
 CUB_GITHUB_URL="https://github.com/${CUB_GITHUB_REPO}"
 
-cmd_update_help() {
+cmd_upgrade_help() {
     cat <<'EOF'
-cub update [options]
+cub upgrade [options]
 
-Update cub to a newer version.
+Upgrade cub to a newer version.
 
 USAGE:
-  cub update              Update to latest tagged release
-  cub update --head       Update to latest commit on main branch
-  cub update --local      Update from current directory (for development)
+  cub upgrade              Upgrade to latest tagged release
+  cub upgrade --head       Upgrade to latest commit on main branch
+  cub upgrade --local      Upgrade from current directory (for development)
 
 OPTIONS:
   --head          Install from the main branch instead of latest release
   --local         Install from the current working directory
                   (must be run from a cub repository clone)
-  --check         Check for updates without installing
-  --force         Update even if already on the target version
+  --check         Check for upgrades without installing
+  --force         Upgrade even if already on the target version
   --global        Install system-wide to /usr/local (requires sudo)
 
 EXAMPLES:
-  # Update to latest stable release
-  cub update
+  # Upgrade to latest stable release
+  cub upgrade
 
   # Check what version is available
-  cub update --check
+  cub upgrade --check
 
   # Install bleeding-edge from main branch
-  cub update --head
+  cub upgrade --head
 
-  # Update from local development copy
-  cd ~/Projects/cub && cub update --local
+  # Upgrade from local development copy
+  cd ~/Projects/cub && cub upgrade --local
 
   # Force reinstall current version
-  cub update --force
+  cub upgrade --force
 
 SEE ALSO:
   cub version     Show current version
@@ -186,7 +186,8 @@ _run_install() {
     fi
 
     log_info "Running installer..."
-    if ! bash "${source_dir}/install.sh" "${install_args[@]}"; then
+    # Use safe array expansion to handle empty array with set -u
+    if ! bash "${source_dir}/install.sh" ${install_args[@]+"${install_args[@]}"}; then
         _log_error_console "Installation failed"
         return 1
     fi
@@ -235,10 +236,10 @@ _version_gte() {
     return 0
 }
 
-cmd_update() {
+cmd_upgrade() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
-        cmd_update_help
+        cmd_upgrade_help
         return 0
     fi
 
@@ -273,7 +274,7 @@ cmd_update() {
                 ;;
             *)
                 _log_error_console "Unknown flag: $1"
-                _log_error_console "Usage: cub update [--head|--local] [--check] [--force] [--global]"
+                _log_error_console "Usage: cub upgrade [--head|--local] [--check] [--force] [--global]"
                 return 1
                 ;;
         esac
@@ -348,7 +349,7 @@ cmd_update() {
         log_info "Latest main: ${latest_sha}"
 
         if [[ "$check_only" == "true" ]]; then
-            log_info "Use 'cub update --head' to install"
+            log_info "Use 'cub upgrade --head' to install"
             return 0
         fi
 
@@ -391,7 +392,7 @@ cmd_update() {
             log_info "You're up to date!"
         else
             log_info "Update available: v${current_version} -> ${latest_tag}"
-            log_info "Run 'cub update' to install"
+            log_info "Run 'cub upgrade' to install"
         fi
         return 0
     fi

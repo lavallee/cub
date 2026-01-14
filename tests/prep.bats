@@ -1,13 +1,12 @@
 #!/usr/bin/env bats
 #
-# pipeline.bats - Tests for the Vision-to-Tasks Pipeline (v0.14)
+# prep.bats - Tests for the Vision-to-Tasks Prep (v0.14)
 #
 # Tests cover:
 # - Session management functions
-# - Pipeline stage commands (triage, architect, plan, bootstrap)
-# - Unified pipeline command
+# - Prep stage commands (triage, architect, plan, bootstrap)
+# - Unified prep command
 # - Sessions management
-# - Migration from chopshop
 #
 
 load test_helper
@@ -15,11 +14,11 @@ load test_helper
 setup() {
     setup_test_dir
 
-    # Source the pipeline command
+    # Source the prep command
     source "$LIB_DIR/xdg.sh"
     source "$LIB_DIR/config.sh"
     source "$LIB_DIR/session.sh"
-    source "$LIB_DIR/cmd_pipeline.sh"
+    source "$LIB_DIR/cmd_prep.sh"
 
     # Set PROJECT_DIR for pipeline functions
     export PROJECT_DIR="$TEST_DIR"
@@ -305,11 +304,11 @@ teardown() {
     [[ "$output" =~ "Plan not complete" ]]
 }
 
-@test "pipeline: unified pipeline --help shows usage" {
-    run cmd_pipeline --help
+@test "prep: unified prep --help shows usage" {
+    run cmd_prep --help
 
     [[ "$status" -eq 0 ]]
-    [[ "$output" =~ "Run the complete Vision-to-Tasks pipeline" ]]
+    [[ "$output" =~ "Run the complete Vision-to-Tasks prep pipeline" ]]
 }
 
 # ============================================================================
@@ -351,39 +350,6 @@ teardown() {
 
     [[ "$status" -ne 0 ]]
     [[ "$output" =~ "Session not found" ]]
-}
-
-# ============================================================================
-# Migration Command Tests
-# ============================================================================
-
-@test "pipeline: migrate help shows usage" {
-    run cmd_migrate help
-
-    [[ "$status" -eq 0 ]]
-    [[ "$output" =~ "Migrate from other planning systems" ]]
-}
-
-@test "pipeline: migrate chopshop fails when no .chopshop directory" {
-    run cmd_migrate chopshop
-
-    [[ "$status" -ne 0 ]]
-    [[ "$output" =~ "No .chopshop directory" ]]
-}
-
-@test "pipeline: migrate chopshop copies session files" {
-    # Create .chopshop structure
-    mkdir -p "$TEST_DIR/.chopshop/sessions/test-session"
-    echo "# Triage" > "$TEST_DIR/.chopshop/sessions/test-session/triage-output.md"
-    echo "# Architect" > "$TEST_DIR/.chopshop/sessions/test-session/architect-output.md"
-
-    run cmd_migrate chopshop
-
-    [[ "$status" -eq 0 ]]
-
-    # Verify files were copied and renamed
-    [[ -f "$TEST_DIR/.cub/sessions/test-session/triage.md" ]]
-    [[ -f "$TEST_DIR/.cub/sessions/test-session/architect.md" ]]
 }
 
 # ============================================================================

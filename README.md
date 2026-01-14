@@ -32,7 +32,7 @@ Combines the [Ralph Wiggum technique](https://ghuntley.com/ralph/) (running an A
 ## Prerequisites
 
 - **Required**: [jq](https://jqlang.github.io/jq/) for JSON processing
-- **Required**: Bash 4+
+- **Required**: Bash 3.2+
 - **Harness** (at least one):
   - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Recommended
   - [OpenAI Codex CLI](https://github.com/openai/codex) (`codex`)
