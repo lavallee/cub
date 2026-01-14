@@ -144,6 +144,23 @@ _generate_agent_template() {
             cat <<'EOF'
 # Agent Instructions
 
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
+
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
 
@@ -239,6 +256,23 @@ EOF
             cat <<'EOF'
 # Agent Instructions
 
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
+
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
 
@@ -333,6 +367,23 @@ EOF
             cat <<'EOF'
 # Agent Instructions
 
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
+
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
 
@@ -426,6 +477,23 @@ EOF
         python)
             cat <<'EOF'
 # Agent Instructions
+
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
 
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
@@ -534,6 +602,23 @@ EOF
             cat <<'EOF'
 # Agent Instructions
 
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
+
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
 
@@ -631,6 +716,23 @@ EOF
             cat <<'EOF'
 # Agent Instructions
 
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
+
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
 
@@ -727,6 +829,23 @@ EOF
             # Generic template
             cat <<'EOF'
 # Agent Instructions
+
+<!--
+WHAT IS THIS FILE?
+This file is your operational manual for the project. Claude Code (the AI assistant) reads this file
+when starting work to understand how to build, test, and contribute to your project.
+
+WHAT TO EDIT:
+- Fill in the template sections below with YOUR project-specific information
+- Update this file whenever you discover new build steps, test commands, or gotchas
+- This file is committed to git, so it's shared with your team and preserved across sessions
+
+TIPS FOR AGENTS:
+- Keep sections concise and focused on actionable information
+- List exact commands (npm run dev, pytest, etc.) - not generic examples
+- Document "gotchas" that would surprise a new contributor
+- If a step isn't applicable (e.g., no type checking), delete the section rather than leaving it empty
+-->
 
 This file contains instructions for building and running the project.
 Update this file as you learn new things about the codebase.
@@ -1121,18 +1240,7 @@ EOF
     local progress_file
     progress_file=$(get_progress_file ".")
     if [[ ! -f "$progress_file" ]]; then
-        cat > "$progress_file" <<EOF
-# Progress Log
-Started: $(date -u +"%Y-%m-%d")
-
-## Codebase Patterns
-<!-- Agent adds discovered patterns here for future iterations -->
-
-## Key Files
-<!-- Important files to be aware of -->
-
----
-EOF
+        cp "${CUB_DIR}/templates/progress.txt" "$progress_file"
         log_success "Created $(basename "$progress_file")"
     else
         log_warn "$(basename "$progress_file") already exists, skipping"
@@ -1142,20 +1250,7 @@ EOF
     local fix_plan_file
     fix_plan_file=$(get_fix_plan_file ".")
     if [[ ! -f "$fix_plan_file" ]]; then
-        cat > "$fix_plan_file" <<EOF
-# Fix Plan
-
-Discovered issues and planned improvements.
-Agent maintains this file during development.
-
-## High Priority
-
-## Medium Priority
-
-## Low Priority
-
-## Completed
-EOF
+        cp "${CUB_DIR}/templates/fix_plan.md" "$fix_plan_file"
         log_success "Created $(basename "$fix_plan_file")"
     else
         log_warn "$(basename "$fix_plan_file") already exists, skipping"

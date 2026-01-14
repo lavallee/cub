@@ -1,0 +1,41 @@
+{
+  "<!--": [
+    "=== PROJECT CONFIGURATION FOR CUB ===",
+    "",
+    "This file contains project-specific settings that override global cub configuration.",
+    "All fields are optional - if omitted, cub uses defaults from ~/.config/cub/config.json",
+    "",
+    "WHAT TO EDIT:",
+    "- Add project-specific harness, budget, or state requirements",
+    "- Configure hooks if you want to run scripts before/after tasks",
+    "- Set max iterations or budget limits for this project",
+    "",
+    "TIPS:",
+    "- Remove sections you don't use (keep config concise)",
+    "- Commit this file to git so your team has consistent settings",
+    "- Use 'cub config show' to see all active settings (merged from all sources)"
+  ],
+  "harness": "claude",
+  "budget": {
+    "max_tokens_per_task": 500000,
+    "max_tasks_per_session": null,
+    "max_total_cost": null
+  },
+  "state": {
+    "require_clean": true,
+    "run_tests": true,
+    "run_typecheck": false,
+    "run_lint": false
+  },
+  "loop": {
+    "max_iterations": 100,
+    "on_task_failure": "stop"
+  },
+  "hooks": {
+    "enabled": true,
+    "fail_fast": false
+  },
+  "interview": {
+    "custom_questions": []
+  }
+}

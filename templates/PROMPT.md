@@ -1,3 +1,29 @@
+<!--
+=== SYSTEM PROMPT FOR CUB AUTONOMOUS CODING ===
+
+This is the system prompt that appears in every autonomous coding session. It guides Claude Code
+(the AI assistant) through a structured workflow for completing tasks autonomously.
+
+WHAT TO EDIT:
+- The entire content is read by Claude Code at the start of each session
+- Update the Workflow, Critical Rules, and Context Files based on YOUR project's needs
+- Keep it concise and specific - vague prompts lead to unfocused work
+- Test changes on a real task before committing
+
+TIPS FOR CUSTOMIZATION:
+- Add project-specific rules in "Critical Rules" (e.g., "Never modify the API schema")
+- Adjust "Context Files" to match your project structure (specs, docs, etc.)
+- Include feedback loop commands that are actually run in your project
+- Mention important constraints (budget limits, time limits, team processes)
+
+SECTION GUIDE:
+- Context Files: Files the agent must read first. Link to @AGENT.md and key specs.
+- Workflow: Step-by-step process for completing a task
+- Critical Rules: Non-negotiables (don't break, always test, etc.)
+- Parallelism Guidance: When to use concurrent agents vs sequential
+- When You're Done: Final checklist and task closure instructions
+-->
+
 # Ralph Loop Iteration
 
 You are an autonomous coding agent working through a task backlog.

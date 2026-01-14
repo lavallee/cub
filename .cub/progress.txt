@@ -1,5 +1,80 @@
 # Cub Development Progress
 
+## Session: Contextual Help in Generated Files (cub-eke.9)
+
+### Task: Add helpful HTML comments to all generated files
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+
+1. **Enhanced AGENT.md template** (`templates/AGENT.md`)
+   - Added HTML comment block explaining purpose and usage
+   - Sections include: Project Overview, Tech Stack, Development Setup, Running the Project
+   - Feedback Loops, Project Structure, Key Files, Gotchas & Learnings, Common Commands
+   - Each section includes clear placeholder comments explaining what to edit
+
+2. **Enhanced PROMPT.md template** (`templates/PROMPT.md`)
+   - Added HTML comment block explaining the system prompt role
+   - Includes tips for customization and section guide
+   - Clarifies how Claude Code uses this file
+
+3. **Created .cub.json template** (`templates/.cub.json`)
+   - Optional project configuration file with explanatory comments
+   - Fields: harness, budget, state, loop, hooks, interview
+   - Includes inline comments explaining each configuration option
+
+4. **Created progress.txt template** (`templates/progress.txt`)
+   - Comprehensive guide for tracking session learnings
+   - Section headings for Session History with examples
+   - Tips for effective entries with formatting guidance
+   - Examples of discoveries in various categories (Build, Dependencies, Performance, Testing, Architecture, Team)
+
+5. **Created fix_plan.md template** (`templates/fix_plan.md`)
+   - Structured issue tracking with severity levels (High/Medium/Low Priority)
+   - Technical Debt section for refactoring opportunities
+   - Test Coverage Gaps section
+   - Completed Fixes section for tracking resolutions
+   - Detailed explanation of what to add vs. what NOT to add
+
+6. **Updated lib/cmd_init.sh**
+   - Modified progress.txt creation (line 1124) to use template via `cp`
+   - Modified fix_plan.md creation (line 1134) to use template via `cp`
+   - Updated all agent template cases (nextjs, react, node, python, go, rust, generic)
+   - Added HTML comment block to beginning of each project-type-specific agent.md template
+
+### Test Results:
+- All CLI tests PASS (58 tests)
+- All e2e tests PASS (14 tests)
+- Manual verification of init command confirms templates are correctly copied
+- Verified contextual comments appear in generated agent.md, prompt.md, progress.txt, fix_plan.md
+
+### Files Modified:
+- `templates/AGENT.md` - Added contextual help comments
+- `templates/PROMPT.md` - Added contextual help comments
+- `templates/.cub.json` - Created new configuration template
+- `templates/progress.txt` - Created new progress tracking template
+- `templates/fix_plan.md` - Created new fix tracking template
+- `lib/cmd_init.sh` - Updated to use templates for progress.txt and fix_plan.md (lines 1124, 1134)
+- `lib/cmd_init.sh` - Added HTML comment block to all agent template cases (7 cases)
+
+### Learnings:
+
+1. **Template Strategy**: The cub project uses a mix of inline templates (for generated agent.md) and file-based templates (for prompts). This hybrid approach allows project-type-specific customization while maintaining reusable template files.
+
+2. **HTML Comments in Markdown**: HTML comments (`<!-- -->`) are ideal for contextual help in markdown files because they don't render in the final output but are visible when editing, providing clear guidance without cluttering the visual presentation.
+
+3. **Project Structure**: Generated files in the new layout go to `.cub/` directory:
+   - `.cub/agent.md` - From inline templates in lib/cmd_init.sh
+   - `.cub/prompt.md` - Copied from templates/PROMPT.md
+   - `.cub/progress.txt` - Now copied from templates/progress.txt
+   - `.cub/fix_plan.md` - Now copied from templates/fix_plan.md
+   - Optional: `.cub.json` - Users can copy from templates/.cub.json when needed
+
+4. **Init Process Improvement**: Using template files for progress.txt and fix_plan.md creates a consistent, maintainable source of truth for initial file structure and makes it easy to update templates for future sessions.
+
+5. **Bash Compatibility**: All changes maintain bash 3.2 compatibility (no advanced features used). Template copying uses simple `cp` command which is universally available.
+
 ## Session: Layout Migration Script (cub-eke.4)
 
 ### Task: Migration script for existing projects

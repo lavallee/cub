@@ -1,0 +1,60 @@
+# Session Progress Log
+
+<!--
+WHAT IS THIS FILE?
+This file documents learnings and discoveries made during autonomous coding sessions.
+It helps future sessions understand the codebase more efficiently.
+
+WHAT TO ADD:
+- Gotchas discovered during implementation
+- Performance characteristics or surprising behaviors
+- Build/test system quirks
+- Architecture decisions and their rationale
+- Commands and techniques that work well for this project
+
+TIPS FOR EFFECTIVE ENTRIES:
+- Be specific: "The API requires X format" is better than "API is weird"
+- Include workarounds: "If Y fails, try Z instead"
+- Link to code: "See src/api.ts:42 for how retries work"
+- Date entries if they're time-bound (deprecated features, version-specific issues)
+- Keep entries brief (1-2 sentences) - verbose logs aren't useful
+
+FORMAT:
+Use the format shown below. Add new discoveries at the top.
+Each entry should be actionable for the next session.
+-->
+
+## Session History
+
+### [Session Name/Date]
+- [Discoverytype]: [What was learned and why it matters]
+- [Action taken]: [How to apply this in future]
+- [Related files]: [Where in the codebase this applies]
+
+---
+
+## Common Discoveries (Examples)
+
+### Build System
+- npm build is slow (~45s); use npm run build:fast for development
+- Tests must run sequentially due to shared database; -j1 flag is required
+
+### Dependencies
+- Library X is incompatible with Node <16; upgrade or use version 1.2.3
+- Database driver requires libssl-dev on Ubuntu; brew install openssl on macOS
+
+### Performance
+- Queries over 50ms timeout; add --timeout=5000 to client config
+- Large files (>100MB) cause memory issues; process in chunks
+
+### Testing
+- Integration tests need real API keys in .env.test; see README setup section
+- E2E tests are flaky on CI; add --retries=3 flag
+
+### Architecture
+- State management uses Redux with thunk middleware; see docs/architecture.md
+- API responses always wrapped in {data, error} object per src/api/schema.ts
+
+### Team/Process
+- Pull requests require 2 approvals before merge per company policy
+- Database migrations must be reviewed by DBA before deployment
