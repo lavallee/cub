@@ -6,6 +6,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.19.0] - 2026-01-14 (PR #23)
+
+### Added - Git Workflow Integration
+
+- **Branch-Epic Binding** - Bind git branches to beads epics for organized workflow
+  - `cub branch <epic-id>` - Create and bind a new branch to an epic
+  - `cub branch <epic-id> --bind-only` - Bind current branch without creating new one
+  - `cub branch <epic-id> --name <custom-name>` - Custom branch name
+  - `cub branches` - List all branch bindings with status
+  - `cub branches --cleanup` - Remove bindings for merged branches
+  - `cub branches --sync` - Sync branch status with remote
+  - `cub branches --unbind <epic-id>` - Remove a binding
+
+- **Checkpoint System** - Review gates that block downstream tasks
+  - Create checkpoints with `bd create "Review milestone" --type gate`
+  - `cub checkpoints` - List all checkpoints
+  - `cub checkpoints --epic <id>` - List checkpoints for specific epic
+  - `cub checkpoints --blocking` - Show only blocking checkpoints
+  - `cub checkpoints approve <id>` - Approve checkpoint to unblock tasks
+  - Tasks blocked by unapproved checkpoints are skipped during `cub run`
+
+- **PR Management** - Auto-generate PRs from epic work
+  - `cub pr <epic-id>` - Create PR with auto-generated body from completed tasks
+  - `cub pr <epic-id> --draft` - Create as draft PR
+  - `cub pr <epic-id> --push` - Push branch before creating PR
+  - `cub pr <epic-id> --base <branch>` - Specify target branch
+  - PR body includes summary of all completed child tasks
+
+### Changed
+
+- **Auto Branch Switching** - `cub run` automatically switches to epic's bound branch
+- **Branch Metadata** - Stored in `.beads/branches.yaml` for persistence
+
+### Technical
+
+- Added `lib/branches.sh` - Branch-epic binding management
+- Added `lib/checkpoints.sh` - Checkpoint/gate management
+- Added `lib/cmd_branch.sh` - Branch commands
+- Added `lib/cmd_checkpoint.sh` - Checkpoint commands
+- Added `lib/cmd_pr.sh` - PR commands
+- Updated `lib/cmd_run.sh` - Auto branch switching, checkpoint blocking
+- Added comprehensive test suite in `tests/branches.bats`
+
+---
+
 ## [0.18.1] - 2026-01-14 (PR #22)
 
 ### Changed - Prep Workflow
