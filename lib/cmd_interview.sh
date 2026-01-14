@@ -120,10 +120,13 @@ interview_run_interactive() {
     title=$(echo "$task_json" | jq -r '.title')
 
     echo ""
-    echo "========================================="
-    echo "Interview: $title"
-    echo "Task ID: $task_id"
-    echo "========================================="
+    echo -e "${BLUE}=========================================${NC}"
+    echo -e "${BLUE}Interview: $title${NC}"
+    echo -e "${BLUE}Task ID: ${GREEN}$task_id${BLUE}${NC}"
+    echo -e "${BLUE}=========================================${NC}"
+    echo ""
+    echo "Answer questions about this task to refine the specification."
+    echo "Press Ctrl+C to quit, or leave a line blank to skip a question."
     echo ""
 
     local total
@@ -131,6 +134,7 @@ interview_run_interactive() {
 
     local q_num=1
     local responses_json="[]"
+    local current_category=""
 
     # Iterate through questions
     while read -r question_obj; do
@@ -139,21 +143,43 @@ interview_run_interactive() {
         local question
         question=$(echo "$question_obj" | jq -r '.question')
 
-        echo -e "${CYAN}[$q_num/$total] $category${NC}"
-        echo "$question"
-        echo -n "> "
+        # Print category header when it changes
+        if [[ "$category" != "$current_category" ]]; then
+            if [[ -n "$current_category" ]]; then
+                echo ""
+            fi
+            echo -e "${YELLOW}## $category${NC}"
+            echo ""
+            current_category="$category"
+        fi
 
-        local answer
-        read -r answer
-        echo ""
+        # Show progress and question
+        echo -e "${CYAN}[$q_num/$total]${NC} $question"
+        echo -n -e "${GREEN}>${NC} "
 
-        # Store response
-        responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
-            '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+        # Read answer with graceful handling
+        local answer=""
+        if read -r answer; then
+            # User entered something (or empty line)
+            echo ""
+
+            # Store response (including empty answers for context)
+            responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
+                '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+        else
+            # EOF or error (e.g., Ctrl+C handled by trap)
+            echo ""
+            echo ""
+            log_warn "Interview interrupted"
+            return 1
+        fi
 
         ((q_num++))
     done < <(echo "$questions" | jq -c '.[]')
 
+    echo ""
+    echo -e "${GREEN}✓ All questions answered${NC}"
+    echo ""
     echo "$responses_json"
 }
 
@@ -170,12 +196,13 @@ interview_run_auto() {
     description=$(echo "$task_json" | jq -r '.description // ""')
 
     echo ""
-    echo "========================================="
-    echo "Auto Interview: $title"
-    echo "Task ID: $task_id"
-    echo "========================================="
+    echo -e "${BLUE}=========================================${NC}"
+    echo -e "${BLUE}Auto Interview: $title${NC}"
+    echo -e "${BLUE}Task ID: ${GREEN}$task_id${BLUE}${NC}"
+    echo -e "${BLUE}=========================================${NC}"
     echo ""
     log_info "Generating AI responses based on task context..."
+    echo -e "${YELLOW}Processing $(echo "$questions" | jq 'length') questions...${NC}"
     echo ""
 
     # Build prompt for Claude to answer all questions
@@ -206,29 +233,45 @@ PROMPT
 
     # Call Claude to generate answers
     local ai_response
-    if ai_response=$(echo "$prompt" | claude --print 2>&1); then
+    local exit_code
+    ai_response=$(echo "$prompt" | claude --print 2>&1)
+    exit_code=$?
+
+    if [[ $exit_code -eq 0 && -n "$ai_response" ]]; then
         # Try to extract JSON from response
         local responses_json
-        # Look for JSON array in the response
-        if responses_json=$(echo "$ai_response" | grep -o '\[.*\]' | head -1); then
-            # Validate it's proper JSON
+
+        # First, try to parse the whole response as JSON
+        if echo "$ai_response" | jq empty 2>/dev/null; then
+            echo "$ai_response"
+            return 0
+        fi
+
+        # Look for JSON array in the response (between [ and ])
+        # Extract content between first [ and last ]
+        responses_json=$(echo "$ai_response" | grep -o '\[.*' | head -1)
+        if [[ -n "$responses_json" ]]; then
+            # Ensure it ends with ]
+            if [[ ! "$responses_json" == *"]" ]]; then
+                responses_json="${responses_json%\]*}]"
+            fi
+            # Try to validate as JSON
             if echo "$responses_json" | jq empty 2>/dev/null; then
                 echo "$responses_json"
                 return 0
             fi
         fi
 
-        # Fallback: try to parse the whole response as JSON
-        if echo "$ai_response" | jq empty 2>/dev/null; then
-            echo "$ai_response"
-            return 0
-        fi
-
-        # If JSON parsing fails, return error
+        # If JSON parsing fails, show warning and return error
+        log_warn "AI response parsing failed. Response was:"
+        echo "$ai_response" | head -10 >&2
         echo "ERROR: Failed to parse AI response as JSON" >&2
         return 1
     else
-        echo "ERROR: Failed to get AI response" >&2
+        echo "ERROR: Failed to get AI response (exit code: $exit_code)" >&2
+        if [[ -n "$ai_response" ]]; then
+            echo "Response: $ai_response" >&2
+        fi
         return 1
     fi
 }
@@ -429,6 +472,16 @@ cmd_interview() {
     # Get task
     local prd="${PROJECT_DIR}/prd.json"
     local task_json
+
+    # Detect backend for the project directory (not current working directory)
+    # This ensures we use the correct backend (beads vs json)
+    if [[ -z "${_TASK_BACKEND:-}" ]]; then
+        # Only detect once - reuse if already set
+        if command -v detect_backend &>/dev/null; then
+            detect_backend "$PROJECT_DIR" >/dev/null
+        fi
+    fi
+
     task_json=$(get_task "$prd" "$task_id" 2>/dev/null) || true
 
     if [[ -z "$task_json" || "$task_json" == "null" ]]; then
@@ -465,6 +518,10 @@ cmd_interview() {
         fi
     else
         responses_json=$(interview_run_interactive "$task_id" "$task_json" "$questions")
+        if [[ $? -ne 0 ]]; then
+            # User interrupted (Ctrl+C)
+            return 1
+        fi
     fi
 
     # Determine output file
@@ -477,16 +534,16 @@ cmd_interview() {
     interview_generate_spec "$task_json" "$responses_json" "$output_file"
 
     echo ""
-    log_success "Interview complete!"
+    echo -e "${GREEN}✓ Interview complete!${NC}"
     log_info "Specification saved to: $output_file"
     echo ""
 
     # Show preview
     if [[ -f "$output_file" ]]; then
-        echo "Preview (first 20 lines):"
-        echo "----------------------------------------"
+        echo -e "${BLUE}Preview (first 20 lines):${NC}"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         head -20 "$output_file"
-        echo "----------------------------------------"
+        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo ""
         log_info "View full spec: cat $output_file"
     fi
