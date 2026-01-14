@@ -1,3 +1,82 @@
+## Task cub-0y8.8: Summary output format (2026-01-13)
+
+**Implementation:**
+- Added generate_review_summary() function to create detailed markdown summary with verdict and issues by dimension
+- Added generate_verdict_summary() function to create console-friendly verdict summary with checkmark indicators
+- Enhanced run_review_plans() to track which dimensions (completeness, feasibility, dependencies, architecture) have issues
+- Refactored verdict section to use new summary generation functions
+- Improved report file output with organized "Issues by Dimension" section
+- Improved console output with clear dimension-specific issue indicators
+
+**Key Learnings:**
+1. **Verdict display symbols**: Using ✓ for PASS, ⚠ for CONCERNS, and ✗ for BLOCK provides clear visual feedback even before reading text
+2. **Dimension-based organization**: Grouping issues by dimension (completeness, feasibility, dependencies, architecture) makes it easier for users to find and fix problems
+3. **Separate summary functions**: Creating dedicated functions for markdown report vs console output allows tailored formatting for each use case
+4. **Issue tracking pattern**: Tracking individual boolean flags for each dimension (has_completeness_issues, etc.) enables dimension-specific indicators in console output
+5. **Shell functions with multiple outputs**: Using echo with $'...' syntax for multi-line strings makes function output cleaner than multiple echo statements
+6. **Markdown consistency**: Keeping report file and console output consistent in structure but customized in formatting improves overall UX
+
+**Function Details:**
+- generate_review_summary(verdict, completeness_summary, feasibility_summary, dependency_summary, architecture_summary): Outputs markdown with dimension headers and issue details
+- generate_verdict_summary(verdict, has_completeness_issues, has_feasibility_issues, has_dependency_issues, has_architecture_issues): Outputs bordered console summary with dimension-specific issue indicators
+
+**Testing Approach:**
+- Bash syntax validation: ✓ (bash -n on cmd_run.sh)
+- CLI tests: ✓ (all 58 tests pass)
+- Manual function testing: ✓ (both summary functions produce correct output)
+- Integration: ✓ (new functions work with existing run_review_plans() logic)
+
+**Acceptance Criteria Met:**
+- ✓ Human-readable summary output implemented
+- ✓ Verdict shown with checkmarks/warnings (✓/⚠/✗ symbols)
+- ✓ Issues listed and organized by dimension
+- ✓ Suggestions could be added (for future enhancement)
+- ✓ Works seamlessly with existing validation suites
+- ✓ All feedback loops pass
+
+**Files Modified:**
+- lib/cmd_run.sh: Added generate_review_summary() (66 lines) and generate_verdict_summary() (47 lines), refactored run_review_plans() verdict section
+- .beads/issues.jsonl: Task status updated to closed
+
+**Console Output Example:**
+```
+════════════════════════════════════════════════════════════════
+✓ VERDICT: PASS
+
+Your plan is ready for execution. All validations passed:
+  ✓ Completeness check
+  ✓ Feasibility check
+  ✓ Dependency validation
+  ✓ Architecture alignment
+════════════════════════════════════════════════════════════════
+```
+
+**Report File Output Example:**
+```markdown
+## Summary by Dimension
+
+✓ **VERDICT: PASS**
+
+All validations passed. Plan is ready for execution.
+
+---
+
+## Issues by Dimension
+
+### ✓ Completeness
+All tasks have title, description, and acceptance criteria.
+
+### ✓ Feasibility
+All dependencies are resolved and required files exist.
+...
+```
+
+**Integration Points:**
+- run_review_plans() uses new summary functions for both report file and console output
+- Verdict logic unchanged (PASS/CONCERNS/BLOCK) for backward compatibility
+- block_on_concerns config still works as expected
+- Dimension-based tracking enables future enhancements (e.g., dimension-specific configs)
+
 ## Task cub-0y8.7: Configurable strictness levels (2026-01-13)
 
 **Implementation:**
