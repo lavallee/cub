@@ -8,6 +8,11 @@
 # - - [ ] checkboxes -> individual tasks
 # - - bullet points -> tasks or acceptance criteria
 #
+# Features:
+# - Priority inference from content (title, description)
+# - Supports explicit priority markers ([P0], [P1], etc.)
+# - Detects priority from keywords: critical, blocker, high, low, optional, etc.
+#
 # Usage:
 #   parse_markdown_file "requirements.md"
 #
@@ -18,6 +23,11 @@
 #     "dependencies": [...]
 #   }
 #
+
+# Source priority inference library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
+fi
 
 # Parse a markdown file and extract epics, tasks, and dependencies
 # Output is JSON to stdout
@@ -64,14 +74,17 @@ parse_markdown_file() {
                 in_task=false
             fi
 
-            # Create epic
+            # Create epic with inferred priority
             ((epic_counter++))
             current_epic="epic-$epic_counter"
+            local priority_epic
+            priority_epic=$(infer_priority_from_title "$epic_title" 2>/dev/null || echo "P2")
             local epic_obj=$(jq -n \
                 --arg id "$current_epic" \
                 --arg title "$epic_title" \
                 --arg line "$line_number" \
-                '{id: $id, title: $title, description: "", type: "epic", priority: "P2", line: ($line | tonumber)}')
+                --arg priority "$priority_epic" \
+                '{id: $id, title: $title, description: "", type: "epic", priority: $priority, line: ($line | tonumber)}')
             epics_json=$(jq --argjson obj "$epic_obj" '. += [$obj]' <<<"$epics_json")
             current_feature=""
 
@@ -90,15 +103,18 @@ parse_markdown_file() {
                 in_task=false
             fi
 
-            # Create feature (as a task)
+            # Create feature (as a task) with inferred priority
             ((task_counter++))
             current_feature="$current_epic:$task_counter"
+            local priority_feature
+            priority_feature=$(infer_priority_from_title "$feature_title" 2>/dev/null || echo "P2")
             local feature_obj=$(jq -n \
                 --arg id "$current_feature" \
                 --arg title "$feature_title" \
                 --arg epic "$current_epic" \
                 --arg line "$line_number" \
-                '{id: $id, title: $title, description: "", type: "task", parent: $epic, priority: "P2", line: ($line | tonumber)}')
+                --arg priority "$priority_feature" \
+                '{id: $id, title: $title, description: "", type: "task", parent: $epic, priority: $priority, line: ($line | tonumber)}')
             tasks_json=$(jq --argjson obj "$feature_obj" '. += [$obj]' <<<"$tasks_json")
 
             continue
@@ -119,18 +135,21 @@ parse_markdown_file() {
                 acceptance_criteria="[]"
             fi
 
-            # Create new task
+            # Create new task with inferred priority
             ((task_counter++))
             current_task_id="$current_epic:$task_counter"
             in_task=true
 
+            local priority_task
+            priority_task=$(infer_priority_from_title "$task_title" 2>/dev/null || echo "P2")
             local task_obj=$(jq -n \
                 --arg id "$current_task_id" \
                 --arg title "$task_title" \
                 --arg parent "$current_feature" \
                 --arg epic "$current_epic" \
                 --arg line "$line_number" \
-                '{id: $id, title: $title, description: "", type: "task", parent: $parent, epic: $epic, priority: "P2", acceptanceCriteria: [], line: ($line | tonumber)}')
+                --arg priority "$priority_task" \
+                '{id: $id, title: $title, description: "", type: "task", parent: $parent, epic: $epic, priority: $priority, acceptanceCriteria: [], line: ($line | tonumber)}')
             tasks_json=$(jq --argjson obj "$task_obj" '. += [$obj]' <<<"$tasks_json")
 
             continue

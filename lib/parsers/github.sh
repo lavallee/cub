@@ -9,6 +9,9 @@
 # - Labels preserved as tags
 # - Milestones as epics
 # - Body parsed for acceptance criteria
+# - Priority inference from issue title and body
+#   - Explicit markers: [P0]-[P4]
+#   - Keywords: critical, blocker, high, low, optional, etc.
 #
 # Usage:
 #   parse_github_repo "owner/repo"
@@ -21,6 +24,11 @@
 #     "dependencies": [...]
 #   }
 #
+
+# Source priority inference library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
+fi
 
 # Check if gh CLI is available
 _check_gh_available() {
@@ -145,9 +153,9 @@ parse_github_issues() {
         local acceptance_criteria
         acceptance_criteria=$(_parse_acceptance_criteria "$body")
 
-        # Infer priority from title and body
+        # Infer priority from title and body using shared library
         local priority
-        priority=$(_infer_priority "$title" "$body")
+        priority=$(infer_priority_from_title_body "$title" "$body" 2>/dev/null || echo "P2")
 
         # Create task object
         local task_id="issue-$issue_number"
@@ -214,50 +222,6 @@ _parse_acceptance_criteria() {
     done < <(echo "$body")
 
     echo "$criteria"
-}
-
-# Infer priority from title and body
-# Looks for: [P0], [P1], [P2], [P3], [P4]
-# Keywords: critical, blocker, must, high, important, low, optional, nice-to-have
-# Output: Priority string (P0-P4, default P2)
-_infer_priority() {
-    local title="$1"
-    local body="$2"
-    local text="$title
-$body"
-
-    # Convert to lowercase for matching
-    local text_lower
-    text_lower=$(echo "$text" | tr '[:upper:]' '[:lower:]')
-
-    # Check for explicit priority markers
-    if [[ "$text" =~ \[P0\] ]]; then
-        echo "P0"
-        return
-    elif [[ "$text" =~ \[P1\] ]]; then
-        echo "P1"
-        return
-    elif [[ "$text" =~ \[P2\] ]]; then
-        echo "P2"
-        return
-    elif [[ "$text" =~ \[P3\] ]]; then
-        echo "P3"
-        return
-    elif [[ "$text" =~ \[P4\] ]]; then
-        echo "P4"
-        return
-    fi
-
-    # Check for keyword patterns
-    if [[ "$text_lower" =~ (critical|blocker|must|urgent|high.priority) ]]; then
-        echo "P0"
-    elif [[ "$text_lower" =~ (high|important|required) ]]; then
-        echo "P1"
-    elif [[ "$text_lower" =~ (low|optional|nice.to.have|nice-to-have) ]]; then
-        echo "P3"
-    else
-        echo "P2"  # Default priority
-    fi
 }
 
 # Extract just the epics from parsed GitHub issues

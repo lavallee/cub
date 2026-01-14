@@ -13,9 +13,108 @@
 #     "dependencies": [...]
 #   }
 #
+# Features:
+# - Priority inference from content (title, description)
+# - Supports explicit priority specification (P0-P4)
+# - Falls back to inferred priority if not specified
+# - Detects priority from keywords: critical, blocker, high, low, optional, etc.
+#
 # Usage:
 #   parse_json_file "requirements.json"
 #
+
+# Source priority inference library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
+fi
+
+# Helper function: Infer priorities for tasks where priority is not explicitly set
+# Input: JSON array of tasks
+# Output: JSON array with inferred priorities
+_infer_priorities_in_tasks() {
+    local tasks_json="$1"
+
+    # Use jq to process each task and infer priority if empty
+    jq '.[] |
+        if .priority == "" or .priority == null then
+            .priority = ((.title + " " + .description) | @base64) |
+            .priority = "INFER_ME"
+        else
+            .
+        end' <<<"$tasks_json" | jq -s '.'
+}
+
+# Helper function: Infer a single task's priority using bash priority inference
+_infer_task_priority() {
+    local title="$1"
+    local description="$2"
+    local explicit_priority="$3"
+
+    # If explicit priority is set and not empty, use it
+    if [[ -n "$explicit_priority" && "$explicit_priority" != "null" && "$explicit_priority" != "" ]]; then
+        echo "$explicit_priority"
+        return
+    fi
+
+    # Combine title and description for inference
+    local content="$title
+$description"
+
+    # Use the priority inference function if available
+    if declare -f infer_priority_from_content >/dev/null 2>&1; then
+        infer_priority_from_content "$content"
+    else
+        # Fallback to simple keyword matching if library not loaded
+        local text_lower
+        text_lower=$(echo "$content" | tr '[:upper:]' '[:lower:]')
+
+        if [[ "$text_lower" =~ (critical|blocker|must|urgent) ]]; then
+            echo "P0"
+        elif [[ "$text_lower" =~ (high|important|required) ]]; then
+            echo "P1"
+        elif [[ "$text_lower" =~ (low|optional|nice) ]]; then
+            echo "P3"
+        else
+            echo "P2"
+        fi
+    fi
+}
+
+# Process tasks array and infer priorities from content
+# This is called after jq extraction to apply bash-based priority inference
+_apply_priority_inference() {
+    local tasks_json="$1"
+
+    # Process each task and infer priority if needed
+    local result="[]"
+    while IFS= read -r task_line; do
+        if [[ -z "$task_line" ]]; then
+            continue
+        fi
+
+        local priority
+        priority=$(echo "$task_line" | jq -r '.priority // ""')
+
+        local title
+        title=$(echo "$task_line" | jq -r '.title // ""')
+
+        local description
+        description=$(echo "$task_line" | jq -r '.description // ""')
+
+        # If priority is empty, infer it
+        if [[ -z "$priority" || "$priority" == "null" ]]; then
+            priority=$(_infer_task_priority "$title" "$description" "")
+        fi
+
+        # Update the task with the inferred/kept priority
+        local updated_task
+        updated_task=$(echo "$task_line" | jq --arg p "$priority" '.priority = $p')
+
+        result=$(jq --argjson task "$updated_task" '. += [$task]' <<<"$result")
+    done < <(jq -c '.[]' <<<"$tasks_json")
+
+    echo "$result"
+}
 
 # Parse a JSON file and extract epics, tasks, and dependencies
 # Supports both simple array and structured PRD formats
@@ -85,13 +184,16 @@ _parse_array_format() {
                 type: "task",
                 status: ($task.status // "open"),
                 parent: ($task.parent // null),
-                priority: ($task.priority // "P2"),
+                priority: ($task.priority // ""),
                 dependsOn: ($task.dependsOn // []),
                 labels: ($task.labels // []),
                 acceptanceCriteria: ($task.acceptanceCriteria // []),
                 notes: ($task.notes // "")
             }
         )' <"$file")
+
+    # Infer priorities from content where not explicitly specified
+    tasks_json=$(_apply_priority_inference "$tasks_json")
 
     # Extract dependencies from dependsOn fields
     local dependencies_json
@@ -147,7 +249,7 @@ _parse_prd_format() {
                 type: "task",
                 status: ($feature.status // "open"),
                 parent: null,
-                priority: ($feature.priority // "P2"),
+                priority: ($feature.priority // ""),
                 dependsOn: ($feature.dependsOn // []),
                 labels: ($feature.labels // []),
                 acceptanceCriteria: ($feature.acceptanceCriteria // []),
@@ -166,7 +268,7 @@ _parse_prd_format() {
                             type: "task",
                             status: ($task.status // "open"),
                             parent: $feat.id,
-                            priority: ($task.priority // "P2"),
+                            priority: ($task.priority // ""),
                             dependsOn: ($task.dependsOn // []),
                             labels: ($task.labels // []),
                             acceptanceCriteria: ($task.acceptanceCriteria // []),
@@ -176,6 +278,9 @@ _parse_prd_format() {
                 else empty end)
             ) | .[]
         )' <"$file")
+
+    # Infer priorities from content where not explicitly specified
+    tasks_json=$(_apply_priority_inference "$tasks_json")
 
     # Extract dependencies
     dependencies_json=$(jq -n \
