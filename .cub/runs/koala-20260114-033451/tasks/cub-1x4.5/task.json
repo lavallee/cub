@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-1x4.5",
+  "title": "Priority inference from content",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T09:09:22Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T09:18:53Z",
+  "exit_code": 0
+}

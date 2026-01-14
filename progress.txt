@@ -5710,3 +5710,76 @@ Added comprehensive custom question support to the interview mode system, allowi
 - Bash syntax validation: Valid
 - No breaking changes to existing functionality
 
+
+## Task cub-1x4.2: JSON Parser (array and structured formats) (2026-01-14)
+
+**Implementation:**
+- Created `/lib/parsers/json.sh` with comprehensive JSON parsing support
+- Supports two input formats:
+  1. Simple array format: `{"prefix": "...", "tasks": [...]}`
+  2. Structured PRD format: `{"prefix": "...", "features": [{...tasks...}]}`
+- Both formats normalize to: `{epics: [], tasks: [...], dependencies: [...]}`
+- Created comprehensive test suite with 22 tests covering all scenarios
+
+**Key Functions:**
+1. `parse_json_file()` - Main entry point, auto-detects format
+2. `_parse_array_format()` - Handles simple task array format
+3. `_parse_prd_format()` - Handles structured feature/task hierarchy
+4. `_validate_json_structure()` - Validates structure consistency
+5. `_has_circular_dependency()` - Detects circular task dependencies
+6. `extract_tasks()`, `count_items()`, `format_parsed_json()` - Helper functions
+
+**Validation Features:**
+- JSON syntax validation
+- Required field checks (id, title, status)
+- Duplicate ID detection
+- Circular dependency detection (bidirectional edges)
+- Auto-generation of IDs for tasks without explicit IDs
+- Default value handling for optional fields (status, priority, etc.)
+
+**Test Coverage (22 tests):**
+- Simple array format: 6 tests
+  - Basic parsing, multiple tasks, dependencies, optional fields, auto IDs, defaults
+- Structured PRD format: 5 tests
+  - Single features, features with tasks, feature dependencies, auto IDs, optional fields
+- Error handling: 5 tests
+  - Missing file, invalid JSON, missing arrays, non-array type, duplicate IDs, circular deps
+- Helper functions: 3 tests
+  - extract_tasks, count_items, format_parsed_json
+- Integration tests: 2 tests
+  - Compatibility with markdown parser structure, complex PRD import scenario
+
+**All 22 tests PASS**
+
+**Design Decisions:**
+1. **Format detection**: Check for presence of "features" vs "tasks" array
+2. **Hierarchy handling**: Features become parent tasks, feature.tasks become child tasks
+3. **ID auto-generation**: prefix-feat-N for features, prefix-N for simple tasks
+4. **Dependency normalization**: Both formats output standard dependencies array format
+5. **Simple circular check**: Detect bidirectional edges (A→B and B→A) instead of full DFS (faster, catches most cycles)
+6. **Validation on parse**: Return errors immediately for invalid structures
+
+**Integration with codebase:**
+- Follows same pattern as `lib/parsers/markdown.sh`
+- Output format compatible with markdown parser
+- Designed to be used by task management pipeline
+- Functions are easily callable from shell scripts
+- Uses jq for JSON manipulation (consistent with existing codebase)
+
+**Learnings:**
+1. **jq multi-line output in subshells**: When capturing jq output with multiple items, pipes output naturally as arrays
+2. **Circular dependency detection**: Simple bidirectional edge detection is efficient and catches common cases
+3. **JSON normalization**: Converting different input formats to a single output format simplifies downstream processing
+4. **Error propagation**: Return error JSON and exit code 1 for consistent error handling
+5. **BATS testing patterns**: Using `load test_helper` provides PROJECT_ROOT automatically
+6. **Bash/jq integration**: Using --arg and --argjson with jq filters works reliably for parameter passing
+
+**Optional field handling:**
+- `description`, `priority`, `labels`, `acceptanceCriteria`, `notes` all have sensible defaults
+- `parent` is set based on feature hierarchy for PRD format
+- `type` is always set to "task" for consistency with parser output
+
+**Performance notes:**
+- Single-pass parsing for both formats
+- Linear time complexity for validation
+- No external dependencies beyond jq (already required)
