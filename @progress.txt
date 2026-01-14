@@ -1660,3 +1660,78 @@ Task complete. Review and approval flow provides human-in-the-loop refinement fo
 - `cub interview --all --auto --skip-review --update-task` - With task updates
 - Batch mode compatible with all other interview options (--skip-categories, --update-task)
 
+
+## Task cub-h87.12: Skip categories option (2026-01-14)
+
+**Implementation:**
+- Added interview_load_skip_categories() function to load configuration from .cub.json
+- Extended cmd_interview() to merge configuration-based skip_categories with CLI arguments
+- Updated batch mode (cmd_interview_batch) to respect skip_categories
+- Configuration merging: CLI --skip-categories takes precedence over .cub.json config
+- Handles duplicates when both CLI and config provide categories
+
+**Configuration Support:**
+- New .cub.json configuration structure:
+  ```json
+  {
+    "interview": {
+      "skip_categories": ["Security", "Performance & Scale"]
+    }
+  }
+  ```
+- Configuration-based categories merged with CLI-provided ones (with CLI taking precedence)
+- Empty configuration gracefully handled (returns empty string)
+- Missing interview section gracefully handled
+
+**CLI Features:**
+- --skip-categories flag accepts comma-separated category names
+- Works in both single-task and batch mode (--all)
+- Updated help text with new SKIP CATEGORIES and CONFIGURATION sections
+- Examples added for common use cases: skipping security questions, batch skipping
+
+**Tests Added (7 new tests - all passing):**
+1. interview_load_skip_categories returns empty string when no config
+2. interview_load_skip_categories loads from .cub.json
+3. interview_load_skip_categories returns empty when skip_categories is empty array
+4. interview_load_skip_categories handles missing interview section
+5. skip_categories filter excludes specified categories
+6. skip_categories filter handles multiple categories
+7. skip_categories filter preserves non-skipped categories
+
+**Key Design Decisions:**
+1. **Configuration loading**: Similar pattern to custom_questions loading
+2. **Deduplication**: CLI and config categories merged with duplicates removed
+3. **Priority**: CLI arguments take precedence (allows runtime overrides)
+4. **Backward compatibility**: Feature is entirely optional, no breaking changes
+
+**Usage Examples:**
+```bash
+# Skip security questions
+cub interview task-id --skip-categories Security
+
+# Skip multiple categories
+cub interview task-id --skip-categories "Security,Performance & Scale"
+
+# Batch interview with category skipping
+cub interview --all --auto --skip-categories "Security,Operations"
+```
+
+**Acceptance Criteria Met:**
+- ✓ skip_categories configuration support in .cub.json ✓
+- ✓ --skip-categories CLI flag functional ✓
+- ✓ Batch mode support (--all) ✓
+- ✓ Configuration merge with CLI precedence ✓
+- ✓ Comprehensive tests (7 new tests, 44 total passing) ✓
+- ✓ Help documentation updated with examples ✓
+- ✓ Syntax validation passed ✓
+
+**Testing Results:**
+- All 44 interview tests passing
+- New skip_categories tests: 7/7 passing
+- Bash syntax check: passed
+- Manual verification: Feature working as designed
+
+**Integration:**
+- Works seamlessly with existing interview modes (interactive, auto, batch)
+- Compatible with all existing options (--output, --update-task, etc.)
+- No impact on existing functionality (backward compatible)
