@@ -1140,3 +1140,286 @@ EOF
     [ "$status" -eq 0 ]
     echo "$output" | jq -e '.is_feasible == true'
 }
+
+# =============================================================================
+# DEPENDENCY GRAPH VALIDATION TESTS
+# =============================================================================
+
+@test "validate_task_dependencies returns error for missing task_id" {
+    create_minimal_prd
+    run validate_task_dependencies
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' | grep -q "task_id is required"
+}
+
+@test "validate_task_dependencies returns error for nonexistent task" {
+    create_sample_prd
+    run validate_task_dependencies "nonexistent"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' | grep -q "task not found"
+}
+
+@test "validate_task_dependencies marks valid task as valid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies detects missing dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1", "nonexistent"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues[] | select(. | contains("does not exist"))' | grep -q "nonexistent"
+}
+
+@test "validate_task_dependencies handles task with no dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies returns valid JSON structure" {
+    create_sample_prd
+    run validate_task_dependencies "test-0001"
+    [ "$status" -eq 0 ]
+    # Verify JSON structure
+    echo "$output" | jq -e '.id == "test-0001"'
+    echo "$output" | jq -e '.is_valid != null'
+    echo "$output" | jq -e '.issues != null'
+}
+
+@test "validate_task_dependencies detects dependency order issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t1", "title": "First", "status": "closed"}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues[] | select(. | contains("order"))' | grep -q "order issue"
+}
+
+@test "validate_all_dependencies returns empty array for empty prd" {
+    create_minimal_prd
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_dependencies validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t2"]}
+  ]
+}
+EOF
+
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    # Should have 3 results
+    echo "$output" | jq -e 'length == 3'
+    # All should be valid
+    echo "$output" | jq -e 'all(.is_valid == true)'
+}
+
+@test "validate_all_dependencies detects multiple invalid tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["nonexistent1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["nonexistent2"]}
+  ]
+}
+EOF
+
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    # Should have 3 results
+    echo "$output" | jq -e 'length == 3'
+    # Two should be invalid
+    echo "$output" | jq -e '[.[] | select(.is_valid == false)] | length == 2'
+}
+
+@test "get_dependency_order returns list of task ids" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t2"]}
+  ]
+}
+EOF
+
+    run get_dependency_order
+    [ "$status" -eq 0 ]
+    # Should contain task IDs
+    echo "$output" | grep -q "t1"
+    echo "$output" | grep -q "t2"
+    echo "$output" | grep -q "t3"
+}
+
+@test "get_dependency_order handles empty prd" {
+    create_minimal_prd
+    run get_dependency_order
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_blocked_tasks_report shows blocked tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "open"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+    # Should mention blocked task
+    echo "$output" | grep -q "t2"
+    echo "$output" | grep -q "t1"
+}
+
+@test "get_blocked_tasks_report shows no blocked tasks when all ready" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "No blocked"
+}
+
+@test "get_blocked_tasks_report handles empty prd" {
+    create_minimal_prd
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+}
+
+@test "get_dependency_summary reports no issues when all valid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_dependency_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "All dependencies are valid"
+}
+
+@test "get_dependency_summary reports issues when dependencies invalid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["nonexistent"]}
+  ]
+}
+EOF
+
+    run get_dependency_summary
+    [ "$status" -eq 1 ]
+    echo "$output" | grep -q "dependency issues"
+    echo "$output" | grep -q "t2"
+}
+
+@test "validate_task_dependencies handles multiple dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "closed"},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t1", "t2"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t3"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies detects multiple missing dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["missing1", "missing2"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues | length == 2'
+}
+
+@test "validate_all_dependencies handles file not found" {
+    run validate_all_dependencies "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}

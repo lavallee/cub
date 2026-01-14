@@ -1358,3 +1358,355 @@ get_feasibility_summary() {
 
     return 1
 }
+
+#
+# ============================================================================
+# DEPENDENCY GRAPH VALIDATION
+# ============================================================================
+#
+
+# Validate dependencies for a single task
+# Checks:
+#   1. All dependencies exist and are valid task IDs
+#   2. No circular dependencies
+#   3. Correct dependency order (dependencies before dependents)
+# Returns JSON: {"id": "task-id", "is_valid": true/false, "issues": ["issue1", "issue2"]}
+# Usage: validate_task_dependencies <task_id> [prd_file]
+validate_task_dependencies() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    if [[ -z "$task_id" ]]; then
+        echo '{"error": "task_id is required"}' >&2
+        return 1
+    fi
+
+    local backend=$(get_backend)
+    local issues=()
+    local depends_on=()
+
+    if [[ "$backend" == "beads" ]]; then
+        # Get task from beads
+        local task_json
+        task_json=$(bd show "$task_id" --json 2>/dev/null) || {
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        }
+
+        # Extract dependencies from blocks field
+        local blocking_tasks
+        blocking_tasks=$(echo "$task_json" | jq -r '.blocks // [] | .[]' 2>/dev/null)
+        while IFS= read -r dep; do
+            [[ -n "$dep" ]] && depends_on+=("$dep")
+        done <<< "$blocking_tasks"
+    else
+        # Get task from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        local task
+        task=$(json_get_task "$prd" "$task_id")
+
+        if [[ -z "$task" || "$task" == "null" ]]; then
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        fi
+
+        # Extract dependencies
+        local depends_on_str
+        depends_on_str=$(echo "$task" | jq -r '.dependsOn // [] | .[]')
+        while IFS= read -r dep; do
+            [[ -n "$dep" ]] && depends_on+=("$dep")
+        done <<< "$depends_on_str"
+    fi
+
+    # Get all task IDs for existence checking
+    local all_task_ids
+    if [[ "$backend" == "beads" ]]; then
+        all_task_ids=$(bd list --json 2>/dev/null | jq -r '.[] | .id')
+    else
+        all_task_ids=$(jq -r '.tasks[].id' "$prd")
+    fi
+
+    # Check each dependency exists
+    for dep in "${depends_on[@]}"; do
+        if ! echo "$all_task_ids" | grep -q "^${dep}$"; then
+            issues+=("Dependency '$dep' does not exist")
+        fi
+    done
+
+    # Check for circular dependencies
+    local cycle_found
+    if [[ "$backend" == "beads" ]]; then
+        # Use beads' built-in cycle detection
+        if bd dep cycles 2>/dev/null | grep -q "cycle"; then
+            issues+=("Circular dependency detected involving this task")
+        fi
+    else
+        # Use DFS to detect cycles in JSON backend
+        local cycles
+        cycles=$(_detect_cycles_json "$prd" "$task_id")
+        if [[ -n "$cycles" ]]; then
+            issues+=("Circular dependency detected: $cycles")
+        fi
+    fi
+
+    # Check dependency order (dependencies come before dependents in task list)
+    if [[ "$backend" == "json" ]] && [[ -f "$prd" ]]; then
+        local task_index
+        task_index=$(jq --arg id "$task_id" '.tasks | to_entries | map(select(.value.id == $id)) | .[0].key' "$prd")
+
+        for dep in "${depends_on[@]}"; do
+            local dep_index
+            dep_index=$(jq --arg id "$dep" '.tasks | to_entries | map(select(.value.id == $id)) | .[0].key' "$prd")
+
+            if [[ -n "$dep_index" && -n "$task_index" ]] && [[ "$dep_index" -gt "$task_index" ]]; then
+                issues+=("Dependency '$dep' appears after this task in the task list (order issue)")
+            fi
+        done
+    fi
+
+    # Build result JSON
+    local is_valid="true"
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        is_valid="false"
+    fi
+
+    # Output result as JSON
+    printf '{\n'
+    printf '  "id": "%s",\n' "$task_id"
+    printf '  "is_valid": %s,\n' "$is_valid"
+    printf '  "issues": ['
+
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        for i in "${!issues[@]}"; do
+            if [[ $i -gt 0 ]]; then
+                printf ', '
+            fi
+            printf '"%s"' "$(printf '%s\n' "${issues[$i]}" | sed 's/"/\\"/g')"
+        done
+    fi
+
+    printf ']\n'
+    printf '}\n'
+
+    return 0
+}
+
+# Validate dependencies for all tasks
+# Returns JSON array with validation results for each task
+# Usage: validate_all_dependencies [prd_file]
+validate_all_dependencies() {
+    local prd="${1:-prd.json}"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Get all task IDs from beads
+        echo "["
+        local first=true
+
+        bd list --json 2>/dev/null | jq -r '.[].id' | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_dependencies "$task_id" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    else
+        # Get all tasks from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        echo "["
+        local first=true
+
+        jq -r '.tasks[] | .id' "$prd" | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_dependencies "$task_id" "$prd" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    fi
+
+    return 0
+}
+
+# Get dependency order (topological sort)
+# Returns tasks in order such that all dependencies are satisfied
+# Usage: get_dependency_order [prd_file]
+get_dependency_order() {
+    local prd="${1:-prd.json}"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Use beads' built-in dependency ordering
+        bd list --json 2>/dev/null | jq -r '.[].id'
+    else
+        # Topological sort for prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        # Use jq to perform topological sort
+        # Strategy: repeatedly output tasks with no unresolved dependencies
+        jq -r '
+            .tasks as $tasks |
+            ($tasks | map(.id)) as $all_ids |
+            ($tasks | map(select(.status == "closed") | .id)) as $completed |
+
+            # Build a function to check if task has unresolved deps
+            def has_unresolved($completed):
+                (.dependsOn // []) | any(. as $dep | ($completed | contains([$dep])) | not);
+
+            # Topological sort via iterative removal
+            {remaining: $tasks, ordered: []} |
+            until(.remaining | length == 0;
+                .ready = [.remaining[] | select((has_unresolved($completed)) | not)] |
+                .ordered += (.ready | map(.id)) |
+                .remaining = [.remaining[] | select((has_unresolved($completed)) | not | not)]
+            ) |
+            .ordered
+        ' "$prd"
+    fi
+
+    return 0
+}
+
+# Get detailed report on blocked tasks
+# Shows which tasks are blocking which
+# Usage: get_blocked_tasks_report [prd_file]
+get_blocked_tasks_report() {
+    local prd="${1:-prd.json}"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Use beads' blocked command
+        bd blocked 2>/dev/null || echo "No blocked tasks"
+    else
+        # Report for prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "No tasks found"
+            return 0
+        fi
+
+        # Get all closed tasks
+        local closed_tasks
+        closed_tasks=$(jq -r '.tasks[] | select(.status == "closed") | .id' "$prd")
+
+        # Find open tasks with unresolved dependencies
+        echo "Blocked Tasks Report:"
+        echo "===================="
+        echo ""
+
+        local has_blocked=false
+        jq -r '.tasks[] | select(.status == "open") | .id' "$prd" | while read -r task_id; do
+            local task
+            task=$(json_get_task "$prd" "$task_id")
+
+            local deps
+            deps=$(echo "$task" | jq -r '.dependsOn // [] | .[]')
+
+            # Find which deps are not closed
+            local blocking_deps=()
+            while IFS= read -r dep; do
+                if [[ -n "$dep" ]] && ! echo "$closed_tasks" | grep -q "^${dep}$"; then
+                    blocking_deps+=("$dep")
+                fi
+            done <<< "$deps"
+
+            if [[ ${#blocking_deps[@]} -gt 0 ]]; then
+                has_blocked=true
+                echo "**$task_id** is blocked by:"
+                for dep in "${blocking_deps[@]}"; do
+                    local dep_status
+                    dep_status=$(json_get_task "$prd" "$dep" | jq -r '.status // "unknown"')
+                    echo "  - $dep (status: $dep_status)"
+                done
+                echo ""
+            fi
+        done
+
+        if [[ "$has_blocked" == "false" ]]; then
+            echo "No blocked tasks found."
+            return 0
+        fi
+    fi
+
+    return 0
+}
+
+# Internal helper: Detect cycles in JSON dependency graph using DFS
+# Returns cycle path if found, empty otherwise
+_detect_cycles_json() {
+    local prd="$1"
+    local task_id="$2"
+
+    # Build the dependency graph and check for cycles
+    jq --arg task "$task_id" '
+        def has_cycle($graph; $visited; $rec_stack; $node):
+            $visited[$node] = true |
+            $rec_stack[$node] = true |
+            (($graph[$node] // []) | map(
+                if $visited[.] == true then
+                    if $rec_stack[.] == true then
+                        {cycle: true, path: [$node, .]}
+                    else
+                        {cycle: false}
+                    end
+                else
+                    has_cycle($graph; $visited; $rec_stack; .)
+                end
+            ) | if any(.cycle) then . else empty end);
+
+        # Build adjacency list
+        (.tasks | map({id, deps: (.dependsOn // [])}) | map({(.id): .deps}) | add) as $graph |
+
+        # Check for cycles starting from given task
+        has_cycle($graph; {}; {}; $task)
+    ' "$prd" 2>/dev/null | jq -r 'select(.cycle == true) | .path | join(" -> ")'
+}
+
+# Get summary of all dependency issues
+# Returns markdown-formatted report
+# Usage: get_dependency_summary [prd_file]
+get_dependency_summary() {
+    local prd="${1:-prd.json}"
+
+    local results
+    results=$(validate_all_dependencies "$prd")
+
+    local invalid_count
+    invalid_count=$(echo "$results" | jq '[.[] | select(.is_valid == false)] | length')
+
+    if [[ "$invalid_count" -eq 0 ]]; then
+        echo "✓ All dependencies are valid"
+        return 0
+    fi
+
+    echo "⚠ Found $invalid_count task(s) with dependency issues:"
+    echo ""
+
+    echo "$results" | jq -r '.[] | select(.is_valid == false) | "**\(.id)**\n" + (.issues | map("  - \(.)") | join("\n"))' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            echo "$line"
+        fi
+    done
+
+    echo ""
+    echo "Blocked Tasks:"
+    echo ""
+    get_blocked_tasks_report "$prd"
+
+    return 1
+}
