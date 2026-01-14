@@ -20,8 +20,6 @@ teardown() {
 
 @test "cub-init creates project structure" {
     run "$PROJECT_ROOT/cub-init" --backend=json .
-    echo "status: $status"
-    echo "output: $output"
     [ "$status" -eq 0 ]
 
     # Should create key files (using json backend explicitly for prd.json)

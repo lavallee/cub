@@ -1338,7 +1338,7 @@ EOF
                 skill_name=$(basename "$skill_file")
                 if [[ ! -f "${commands_dir}/${skill_name}" ]]; then
                     cp "$skill_file" "${commands_dir}/${skill_name}"
-                    ((skills_installed++))
+                    ((++skills_installed))
                 fi
             fi
         done
