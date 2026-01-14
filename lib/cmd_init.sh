@@ -1153,15 +1153,78 @@ EOF
     log_info "Using project type: ${project_type}"
     echo ""
 
+    # ============================================================================
+    # Determine task backend early (affects which files we create)
+    # ============================================================================
+
+    local selected_backend
+    if [[ -n "$backend" ]]; then
+        # Explicit backend specified via --backend flag
+        case "$backend" in
+            beads|bd)
+                selected_backend="beads"
+                ;;
+            json|prd)
+                selected_backend="json"
+                ;;
+            auto)
+                # Auto-detect: prefer beads if available
+                if command -v bd >/dev/null 2>&1; then
+                    selected_backend="beads"
+                else
+                    selected_backend="json"
+                fi
+                ;;
+            *)
+                _log_error_console "Invalid backend: $backend"
+                _log_error_console "Supported backends: beads, json, auto"
+                return 1
+                ;;
+        esac
+    elif [[ -n "${CUB_BACKEND:-}" ]]; then
+        # Explicit backend specified via environment variable
+        case "$CUB_BACKEND" in
+            beads|bd)
+                selected_backend="beads"
+                ;;
+            json|prd)
+                selected_backend="json"
+                ;;
+            auto)
+                # Auto-detect: prefer beads if available
+                if command -v bd >/dev/null 2>&1; then
+                    selected_backend="beads"
+                else
+                    selected_backend="json"
+                fi
+                ;;
+            *)
+                _log_error_console "Invalid CUB_BACKEND: $CUB_BACKEND"
+                _log_error_console "Supported backends: beads, json, auto"
+                return 1
+                ;;
+        esac
+    else
+        # No explicit backend specified - auto-detect sensible default
+        if command -v bd >/dev/null 2>&1; then
+            selected_backend="beads"
+        else
+            selected_backend="json"
+        fi
+    fi
+
+    log_info "Using task backend: ${selected_backend}"
+
     # Create specs directory
     if [[ ! -d "specs" ]]; then
         mkdir -p specs
         log_success "Created specs/"
     fi
 
-    # Create prd.json if not exists
-    if [[ ! -f "prd.json" ]]; then
-        cat > prd.json <<EOF
+    # Create prd.json only for json backend
+    if [[ "$selected_backend" == "json" ]]; then
+        if [[ ! -f "prd.json" ]]; then
+            cat > prd.json <<EOF
 {
   "projectName": "${project_name}",
   "branchName": "feature/${project_name}",
@@ -1187,9 +1250,10 @@ EOF
   ]
 }
 EOF
-        log_success "Created prd.json with initial task"
-    else
-        log_warn "prd.json already exists, skipping"
+            log_success "Created prd.json with initial task"
+        else
+            log_warn "prd.json already exists, skipping"
+        fi
     fi
 
     # Detect layout and ensure layout root directory exists
@@ -1303,69 +1367,9 @@ EOF
     fi
 
     # ============================================================================
-    # Backend initialization (beads or json)
+    # Initialize the selected backend
     # ============================================================================
 
-    # Determine which backend to use
-    local selected_backend
-    if [[ -n "$backend" ]]; then
-        # Explicit backend specified via --backend flag
-        case "$backend" in
-            beads|bd)
-                selected_backend="beads"
-                ;;
-            json|prd)
-                selected_backend="json"
-                ;;
-            auto)
-                # Auto-detect: prefer beads if available
-                if command -v bd >/dev/null 2>&1; then
-                    selected_backend="beads"
-                else
-                    selected_backend="json"
-                fi
-                ;;
-            *)
-                _log_error_console "Invalid backend: $backend"
-                _log_error_console "Supported backends: beads, json, auto"
-                return 1
-                ;;
-        esac
-    elif [[ -n "${CUB_BACKEND:-}" ]]; then
-        # Explicit backend specified via environment variable
-        case "$CUB_BACKEND" in
-            beads|bd)
-                selected_backend="beads"
-                ;;
-            json|prd)
-                selected_backend="json"
-                ;;
-            auto)
-                # Auto-detect: prefer beads if available
-                if command -v bd >/dev/null 2>&1; then
-                    selected_backend="beads"
-                else
-                    selected_backend="json"
-                fi
-                ;;
-            *)
-                _log_error_console "Invalid CUB_BACKEND: $CUB_BACKEND"
-                _log_error_console "Supported backends: beads, json, auto"
-                return 1
-                ;;
-        esac
-    else
-        # No explicit backend specified - auto-detect sensible default
-        if command -v bd >/dev/null 2>&1; then
-            selected_backend="beads"
-        else
-            selected_backend="json"
-        fi
-    fi
-
-    log_debug "Using task backend: ${selected_backend}"
-
-    # Initialize the selected backend
     if [[ "$selected_backend" == "beads" ]]; then
         if ! command -v bd >/dev/null 2>&1; then
             _log_error_console "Error: beads (bd) is not installed"
@@ -1381,7 +1385,7 @@ EOF
             return 1
         fi
     fi
-    # json backend needs no initialization - prd.json is already created
+    # json backend already initialized via prd.json creation above
 
     echo ""
     log_success "Cub initialized!"
@@ -1390,10 +1394,17 @@ EOF
     echo "Backend: ${selected_backend}"
     echo ""
     echo "Next steps:"
-    echo "  1. Edit prd.json to add your tasks"
-    echo "  2. Add specifications to specs/"
-    echo "  3. Update AGENT.md with build instructions"
-    echo "  4. Run 'cub' to start the autonomous loop"
+    if [[ "$selected_backend" == "beads" ]]; then
+        echo "  1. Use 'bd create' to add tasks"
+        echo "  2. Add specifications to specs/"
+        echo "  3. Update AGENT.md with build instructions"
+        echo "  4. Run 'cub' to start the autonomous loop"
+    else
+        echo "  1. Edit prd.json to add your tasks"
+        echo "  2. Add specifications to specs/"
+        echo "  3. Update AGENT.md with build instructions"
+        echo "  4. Run 'cub' to start the autonomous loop"
+    fi
     echo ""
 
     return 0
