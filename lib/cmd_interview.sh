@@ -42,35 +42,35 @@ interview_load_questions() {
   {"category": "Error Handling", "question": "Are there retry scenarios?", "applies_to": ["feature", "task"]},
   {"category": "Error Handling", "question": "What's the fallback behavior?", "applies_to": ["feature", "task"]},
 
-  {"category": "User Experience", "question": "What does the user see during loading?", "applies_to": ["feature", "task"]},
-  {"category": "User Experience", "question": "What feedback indicates success?", "applies_to": ["feature", "task"]},
-  {"category": "User Experience", "question": "What feedback indicates failure?", "applies_to": ["feature", "task", "bugfix"]},
-  {"category": "User Experience", "question": "Is there a way to undo/cancel?", "applies_to": ["feature"]},
-  {"category": "User Experience", "question": "What accessibility considerations apply?", "applies_to": ["feature"]},
+  {"category": "User Experience", "question": "What does the user see during loading?", "applies_to": ["feature", "task"], "id": "ux_loading"},
+  {"category": "User Experience", "question": "What feedback indicates success?", "applies_to": ["feature", "task"], "id": "ux_success"},
+  {"category": "User Experience", "question": "What feedback indicates failure?", "applies_to": ["feature", "task", "bugfix"], "id": "ux_failure"},
+  {"category": "User Experience", "question": "Is there a way to undo/cancel?", "applies_to": ["feature"], "id": "ux_undo", "skip_if": {"question_ids": ["data_write"], "answers_match": ["^(none|n\\/a|no|not applicable|nothing)$"]}},
+  {"category": "User Experience", "question": "What accessibility considerations apply?", "applies_to": ["feature"], "requires_labels": ["ui", "frontend", "web"]},
 
-  {"category": "Data & State", "question": "What data does this feature read?", "applies_to": ["feature", "task"]},
-  {"category": "Data & State", "question": "What data does this feature write?", "applies_to": ["feature", "task"]},
-  {"category": "Data & State", "question": "How is state persisted?", "applies_to": ["feature", "task"]},
-  {"category": "Data & State", "question": "What happens to existing data on upgrade?", "applies_to": ["feature"]},
-  {"category": "Data & State", "question": "Are there data validation rules?", "applies_to": ["feature", "task"]},
+  {"category": "Data & State", "question": "What data does this feature read?", "applies_to": ["feature", "task"], "id": "data_read"},
+  {"category": "Data & State", "question": "What data does this feature write?", "applies_to": ["feature", "task"], "id": "data_write"},
+  {"category": "Data & State", "question": "How is state persisted?", "applies_to": ["feature", "task"], "id": "state_persist", "skip_if": {"question_ids": ["data_write"], "answers_match": ["^(none|n\\/a|no|not applicable|nothing)$"]}},
+  {"category": "Data & State", "question": "What happens to existing data on upgrade?", "applies_to": ["feature"], "skip_if": {"question_ids": ["data_read", "data_write"], "answers_match": ["^(none|n\\/a|no|not applicable|nothing)$"]}},
+  {"category": "Data & State", "question": "Are there data validation rules?", "applies_to": ["feature", "task"], "id": "data_validation"},
 
-  {"category": "Integration Points", "question": "What APIs does this call?", "applies_to": ["feature", "task"]},
-  {"category": "Integration Points", "question": "What APIs does this expose?", "applies_to": ["feature"]},
-  {"category": "Integration Points", "question": "What events does this emit?", "applies_to": ["feature"]},
-  {"category": "Integration Points", "question": "What events does this listen for?", "applies_to": ["feature"]},
-  {"category": "Integration Points", "question": "Are there rate limits to consider?", "applies_to": ["feature", "task"]},
+  {"category": "Integration Points", "question": "What APIs does this call?", "applies_to": ["feature", "task"], "requires_labels": ["api", "integration"], "id": "apis_call"},
+  {"category": "Integration Points", "question": "What APIs does this expose?", "applies_to": ["feature"], "requires_labels": ["api"], "id": "apis_expose"},
+  {"category": "Integration Points", "question": "What events does this emit?", "applies_to": ["feature"], "requires_labels": ["events", "pub-sub"], "id": "events_emit"},
+  {"category": "Integration Points", "question": "What events does this listen for?", "applies_to": ["feature"], "requires_labels": ["events", "pub-sub"], "id": "events_listen"},
+  {"category": "Integration Points", "question": "Are there rate limits to consider?", "applies_to": ["feature", "task"], "requires_labels": ["api", "external"], "id": "rate_limits", "skip_if": {"question_ids": ["apis_call"], "answers_match": ["^(none|n\\/a|no|not applicable)$"]}},
 
-  {"category": "Performance & Scale", "question": "What's the expected response time?", "applies_to": ["feature", "task"]},
-  {"category": "Performance & Scale", "question": "What's the expected throughput?", "applies_to": ["feature"]},
-  {"category": "Performance & Scale", "question": "Are there caching opportunities?", "applies_to": ["feature", "task"]},
-  {"category": "Performance & Scale", "question": "What are the memory constraints?", "applies_to": ["feature"]},
-  {"category": "Performance & Scale", "question": "How does this scale?", "applies_to": ["feature"]},
+  {"category": "Performance & Scale", "question": "What's the expected response time?", "applies_to": ["feature", "task"], "requires_labels": ["performance"]},
+  {"category": "Performance & Scale", "question": "What's the expected throughput?", "applies_to": ["feature"], "requires_labels": ["performance", "scalability"]},
+  {"category": "Performance & Scale", "question": "Are there caching opportunities?", "applies_to": ["feature", "task"], "requires_labels": ["performance", "caching"]},
+  {"category": "Performance & Scale", "question": "What are the memory constraints?", "applies_to": ["feature"], "requires_labels": ["performance", "memory"]},
+  {"category": "Performance & Scale", "question": "How does this scale?", "applies_to": ["feature"], "requires_labels": ["scalability"]},
 
-  {"category": "Security", "question": "What authentication is required?", "applies_to": ["feature"]},
-  {"category": "Security", "question": "What authorization rules apply?", "applies_to": ["feature"]},
-  {"category": "Security", "question": "Is there sensitive data involved?", "applies_to": ["feature", "task"]},
-  {"category": "Security", "question": "What input sanitization is needed?", "applies_to": ["feature", "task"]},
-  {"category": "Security", "question": "Are there rate limiting requirements?", "applies_to": ["feature"]},
+  {"category": "Security", "question": "What authentication is required?", "applies_to": ["feature"], "requires_labels": ["auth", "security"]},
+  {"category": "Security", "question": "What authorization rules apply?", "applies_to": ["feature"], "requires_labels": ["auth", "security"]},
+  {"category": "Security", "question": "Is there sensitive data involved?", "applies_to": ["feature", "task"], "requires_labels": ["security", "data"]},
+  {"category": "Security", "question": "What input sanitization is needed?", "applies_to": ["feature", "task"], "requires_labels": ["security", "validation"]},
+  {"category": "Security", "question": "Are there rate limiting requirements?", "applies_to": ["feature"], "requires_labels": ["security", "api"]},
 
   {"category": "Testing", "question": "What unit tests are needed?", "applies_to": ["feature", "task", "bugfix"]},
   {"category": "Testing", "question": "What integration tests are needed?", "applies_to": ["feature", "task"]},
@@ -85,22 +85,114 @@ interview_load_questions() {
 EOF
 }
 
-# Filter questions based on task type
-# Args: task_type all_questions
+# Detect technology stack from project files
+# Returns: JSON array of detected tech labels
+interview_detect_tech_stack() {
+    local tech_stack="[]"
+
+    # Check for common technology indicators
+    if [[ -f "package.json" ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["javascript", "nodejs"]')
+        # Check for specific frameworks
+        if grep -q "react" "package.json" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["react", "frontend"]')
+        fi
+        if grep -q "express" "package.json" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["express", "api", "backend"]')
+        fi
+        if grep -q "next" "package.json" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["nextjs", "frontend"]')
+        fi
+    fi
+
+    if [[ -f "go.mod" ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["go", "golang"]')
+    fi
+
+    if [[ -f "requirements.txt" || -f "pyproject.toml" || -f "setup.py" ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["python"]')
+    fi
+
+    if [[ -f "Cargo.toml" ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["rust"]')
+    fi
+
+    if [[ -f "pom.xml" || -f "build.gradle" ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["java"]')
+    fi
+
+    # Check for databases
+    if [[ -f "docker-compose.yml" ]]; then
+        if grep -q "postgres" "docker-compose.yml" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["postgres", "database"]')
+        fi
+        if grep -q "redis" "docker-compose.yml" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["redis", "cache"]')
+        fi
+        if grep -q "mongodb" "docker-compose.yml" 2>/dev/null; then
+            tech_stack=$(echo "$tech_stack" | jq '. + ["mongodb", "database"]')
+        fi
+    fi
+
+    # Check for bash/shell projects
+    if ls *.sh &>/dev/null || [[ -d "lib" && $(ls lib/*.sh 2>/dev/null | wc -l) -gt 0 ]]; then
+        tech_stack=$(echo "$tech_stack" | jq '. + ["bash", "shell"]')
+    fi
+
+    echo "$tech_stack"
+}
+
+# Filter questions based on task type, labels, and tech stack
+# Args: task_json all_questions
 interview_filter_questions() {
-    local task_type="$1"
+    local task_json="$1"
     local all_questions="$2"
+
+    # Extract task metadata
+    local task_type
+    task_type=$(echo "$task_json" | jq -r '.type // .issue_type // "task"')
+
+    local task_labels
+    task_labels=$(echo "$task_json" | jq -r '.labels // [] | @json')
 
     # Default to 'task' if type is not recognized
     local filter_type="$task_type"
-    if [[ ! "$filter_type" =~ ^(feature|task|bugfix)$ ]]; then
+    if [[ ! "$filter_type" =~ ^(feature|task|bugfix|epic)$ ]]; then
         filter_type="task"
     fi
 
-    echo "$all_questions" | jq --arg type "$filter_type" '
+    # Detect technology stack
+    local tech_stack
+    tech_stack=$(interview_detect_tech_stack)
+
+    # Combine task labels with detected tech stack
+    local combined_labels
+    combined_labels=$(jq -n --argjson task "$task_labels" --argjson tech "$tech_stack" '$task + $tech')
+
+    # Filter questions based on:
+    # 1. Task type (applies_to)
+    # 2. Labels (requires_labels) - question included if ANY label matches
+    # 3. Technology stack (requires_tech) - question included if ANY tech matches
+    echo "$all_questions" | jq --arg type "$filter_type" --argjson labels "$combined_labels" '
         [.[] | select(
-            (.applies_to == null) or
-            (.applies_to | contains([$type]))
+            # Check task type filter
+            (
+                (.applies_to == null) or
+                (.applies_to | contains([$type]))
+            ) and
+            # Check label filter (if question has requires_labels, at least one must match)
+            # Match if: exact match OR task label contains required label (e.g., "authentication" contains "auth")
+            (
+                (.requires_labels == null) or
+                ((.requires_labels | length) == 0) or
+                ([.requires_labels[] as $rlabel | $labels[] | select(. == $rlabel or (. | contains($rlabel)))] | length > 0)
+            ) and
+            # Check tech filter (if question has requires_tech, at least one must match)
+            (
+                (.requires_tech == null) or
+                ((.requires_tech | length) == 0) or
+                ([.requires_tech[] as $rtech | $labels[] | select(. == $rtech or (. | contains($rtech)))] | length > 0)
+            )
         )]
     '
 }
@@ -108,6 +200,49 @@ interview_filter_questions() {
 # ============================================================================
 # Interview Engine
 # ============================================================================
+
+# Check if a question should be skipped based on previous answers
+# Args: question_obj responses_json
+# Returns: 0 if should skip, 1 if should ask
+interview_should_skip_question() {
+    local question_obj="$1"
+    local responses_json="$2"
+
+    # Check if question has skip_if condition
+    local skip_if
+    skip_if=$(echo "$question_obj" | jq -r '.skip_if // "null"')
+
+    if [[ "$skip_if" == "null" ]]; then
+        return 1  # Don't skip
+    fi
+
+    # Extract skip condition
+    local question_ids
+    question_ids=$(echo "$skip_if" | jq -r '.question_ids[]')
+
+    local answers_match
+    answers_match=$(echo "$skip_if" | jq -r '.answers_match[]')
+
+    # Check if any of the referenced questions have matching answers
+    while read -r ref_id; do
+        # Find the answer for this question ID
+        local ref_answer
+        ref_answer=$(echo "$responses_json" | jq -r --arg id "$ref_id" '
+            .[] | select(.question_id == $id) | .answer
+        ')
+
+        # If we have an answer, check if it matches the skip pattern
+        if [[ -n "$ref_answer" ]]; then
+            while read -r pattern; do
+                if echo "$ref_answer" | grep -qiE "$pattern"; then
+                    return 0  # Skip this question
+                fi
+            done <<< "$answers_match"
+        fi
+    done <<< "$question_ids"
+
+    return 1  # Don't skip
+}
 
 # Run interactive interview
 # Args: task_id task_json questions
@@ -138,10 +273,20 @@ interview_run_interactive() {
 
     # Iterate through questions
     while read -r question_obj; do
+        # Check if we should skip this question based on previous answers
+        if interview_should_skip_question "$question_obj" "$responses_json"; then
+            local skipped_question
+            skipped_question=$(echo "$question_obj" | jq -r '.question')
+            echo -e "${BLUE}[Skipped] $skipped_question (not applicable based on previous answers)${NC}" >&2
+            continue
+        fi
+
         local category
         category=$(echo "$question_obj" | jq -r '.category')
         local question
         question=$(echo "$question_obj" | jq -r '.question')
+        local question_id
+        question_id=$(echo "$question_obj" | jq -r '.id // ""')
 
         # Print category header when it changes
         if [[ "$category" != "$current_category" ]]; then
@@ -163,9 +308,14 @@ interview_run_interactive() {
             # User entered something (or empty line)
             echo ""
 
-            # Store response (including empty answers for context)
-            responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
-                '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+            # Store response with question ID if available
+            if [[ -n "$question_id" ]]; then
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" --arg qid "$question_id" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans, "question_id": $qid}]')
+            else
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+            fi
         else
             # EOF or error (e.g., Ctrl+C handled by trap)
             echo ""
@@ -489,15 +639,11 @@ cmd_interview() {
         return 1
     fi
 
-    # Get task type for question filtering
-    local task_type
-    task_type=$(echo "$task_json" | jq -r '.type // "task"')
-
     # Load and filter questions
     local all_questions
     all_questions=$(interview_load_questions)
     local questions
-    questions=$(interview_filter_questions "$task_type" "$all_questions")
+    questions=$(interview_filter_questions "$task_json" "$all_questions")
 
     # Apply skip-categories filter if specified
     if [[ -n "$skip_categories" ]]; then
