@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-3ge.1",
+  "title": "Implement .cub/guardrails.md file support",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T23:35:59Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T23:43:43Z",
+  "exit_code": 0
+}
