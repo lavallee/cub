@@ -70,22 +70,138 @@ _doctor_fail() {
     echo -e "${RED}[XX]${NC} $1"
 }
 
+_doctor_check_bash_version() {
+    local major minor
+    major=$((BASH_VERSINFO[0]))
+    minor=$((BASH_VERSINFO[1]))
+
+    if [[ $major -lt 4 ]]; then
+        _doctor_fail "Bash version ${major}.${minor} (requires 4.0+)"
+        return 1
+    else
+        _doctor_ok "Bash v${major}.${minor}"
+        return 0
+    fi
+}
+
+_doctor_get_version() {
+    local tool="$1"
+
+    case "$tool" in
+        jq)
+            jq --version 2>/dev/null | sed 's/jq-//'
+            ;;
+        git)
+            git --version 2>/dev/null | sed 's/^git version //'
+            ;;
+        bd)
+            bd --version 2>/dev/null | head -1 || echo "unknown"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
+_doctor_install_hint() {
+    local tool="$1"
+    local os="$(uname -s)"
+
+    case "$tool" in
+        bash)
+            case "$os" in
+                Darwin)
+                    echo "  brew install bash"
+                    ;;
+                Linux)
+                    echo "  apt-get install bash  # or: dnf/yum install bash"
+                    ;;
+                *)
+                    echo "  See https://www.gnu.org/software/bash/"
+                    ;;
+            esac
+            ;;
+        jq)
+            case "$os" in
+                Darwin)
+                    echo "  brew install jq"
+                    ;;
+                Linux)
+                    echo "  apt-get install jq  # or: dnf/yum install jq"
+                    ;;
+                *)
+                    echo "  See https://github.com/stedolan/jq"
+                    ;;
+            esac
+            ;;
+        git)
+            case "$os" in
+                Darwin)
+                    echo "  brew install git"
+                    ;;
+                Linux)
+                    echo "  apt-get install git  # or: dnf/yum install git"
+                    ;;
+                *)
+                    echo "  See https://git-scm.com"
+                    ;;
+            esac
+            ;;
+        claude)
+            echo "  Install Claude Code from: https://console.anthropic.com"
+            ;;
+        codex)
+            echo "  Install Codex from: https://github.com/openai/codex"
+            ;;
+        bd)
+            echo "  Install beads from: https://github.com/DavidYKay/beads"
+            ;;
+        *)
+            echo "  See project documentation"
+            ;;
+    esac
+}
+
 _doctor_check_env() {
     local issues=0
     echo ""
-    echo "Environment:"
+    echo "System Requirements:"
+
+    # Check Bash version (4.0+)
+    if ! _doctor_check_bash_version; then
+        _doctor_fail "Install bash 4.0 or newer:"
+        _doctor_install_hint "bash"
+        ((issues++))
+    fi
+
+    # Check git
+    if command -v git &>/dev/null; then
+        local git_version
+        git_version=$(_doctor_get_version "git")
+        _doctor_ok "git v${git_version}"
+    else
+        _doctor_fail "git not installed (required)"
+        echo "  Install with:"
+        _doctor_install_hint "git"
+        ((issues++))
+    fi
 
     # Check jq
     if command -v jq &>/dev/null; then
         local jq_version
-        jq_version=$(jq --version 2>/dev/null | sed 's/jq-//')
-        _doctor_ok "jq installed (v${jq_version})"
+        jq_version=$(_doctor_get_version "jq")
+        _doctor_ok "jq v${jq_version}"
     else
         _doctor_fail "jq not installed (required)"
+        echo "  Install with:"
+        _doctor_install_hint "jq"
         ((issues++))
     fi
 
     # Check for at least one harness
+    echo ""
+    echo "AI Harnesses:"
+
     local harness_found=false
     if command -v claude &>/dev/null; then
         _doctor_ok "claude harness available"
@@ -106,14 +222,23 @@ _doctor_check_env() {
 
     if [[ "$harness_found" == "false" ]]; then
         _doctor_fail "No AI harness found (need claude, codex, gemini, or opencode)"
+        echo "  Install one of:"
+        _doctor_install_hint "claude"
         ((issues++))
     fi
 
     # Check beads (optional)
+    echo ""
+    echo "Optional Tools:"
+
     if command -v bd &>/dev/null; then
-        _doctor_ok "beads (bd) installed"
+        local bd_version
+        bd_version=$(_doctor_get_version "bd")
+        _doctor_ok "beads (bd) - ${bd_version}"
     else
-        _doctor_info "beads (bd) not installed (optional)"
+        _doctor_info "beads (bd) not installed (optional, required for beads backend)"
+        echo "  Install with:"
+        _doctor_install_hint "bd"
     fi
 
     return $issues
