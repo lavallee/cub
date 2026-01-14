@@ -11,28 +11,27 @@ _CUB_CMD_INIT_SH_LOADED=1
 
 cmd_init_help() {
     cat <<'EOF'
-cub init [--global] [--quick] [--type TYPE] [--backend BACKEND] [<directory>]
+cub init [--global] [--interactive] [--type TYPE] [--backend BACKEND] [<directory>]
 
 Initialize cub in a project or globally.
 
 USAGE:
-  cub init              Initialize in current directory (interactive)
+  cub init              Initialize in current directory (auto-detects project type)
   cub init --global    Set up global configuration
-  cub init <dir>       Initialize in specific directory (interactive)
-  cub init --type nextjs <dir>   Initialize with specific type (non-interactive)
-  cub init --quick --type nextjs  Quick initialization with sensible defaults
+  cub init <dir>       Initialize in specific directory (auto-detects)
+  cub init --interactive   Interactive mode with project type menu
+  cub init --type nextjs   Initialize with specific type
 
 OPTIONS:
   --global              Set up global configuration (~/.config/cub)
                         Creates config templates and hook directories.
                         Only needs to run once per system.
 
-  --quick               Non-interactive mode with sensible defaults
-                        Skips all prompts and uses auto-detection or provided flags.
-                        Works with --type and --backend flags.
+  --interactive, -i     Enable interactive mode with project type menu.
+                        By default, cub init auto-detects and runs without prompts.
 
   --type TYPE           Specify project type directly (nextjs, react, node, python, go, rust, generic, auto)
-                        Skips interactive prompts and auto-detects if not specified.
+                        By default, auto-detects from project files.
 
   --backend BACKEND     Specify task backend (beads, json, auto)
                         Default is auto-detection (beads if available, else json).
@@ -64,26 +63,21 @@ GLOBAL SETUP:
   ~/.config/cub/hooks/            Hook directories
 
 EXAMPLES:
-  # Initialize in current directory (with prompts)
+  # Initialize in current directory (auto-detects project type)
   cub init
 
-  # Initialize specific project (with prompts)
+  # Initialize specific project (auto-detects)
   cub init ~/my-project
 
-  # Initialize with auto-detection
-  cub init --type auto /path/to/project
+  # Interactive mode (prompts for project type)
+  cub init --interactive
+  cub init -i ~/my-project
 
-  # Initialize with specific type (no prompts)
+  # Initialize with specific type
   cub init --type nextjs /path/to/project
 
-  # Quick initialization with defaults (non-interactive)
-  cub init --quick
-
-  # Quick mode with specific type and backend
-  cub init --quick --type nextjs --backend beads
-
-  # Quick mode with auto-detection
-  cub init --quick --type auto --backend json
+  # Initialize with specific backend
+  cub init --backend beads
 
   # Set up system-wide defaults
   cub init --global
@@ -99,23 +93,29 @@ _prompt_project_type() {
     local detected_type="$1"
     local project_type=""
 
-    echo ""
-    echo "What type of project is this?"
-    echo ""
-    echo "  1) nextjs  - Next.js (React + framework)"
-    echo "  2) react   - React"
-    echo "  3) node    - Node.js / JavaScript"
-    echo "  4) python  - Python"
-    echo "  5) go      - Go"
-    echo "  6) rust    - Rust"
-    echo "  7) generic - Generic / Unknown"
-    echo ""
-    if [[ -n "$detected_type" && "$detected_type" != "generic" ]]; then
-        echo "Detected: $detected_type (press Enter to confirm)"
-    fi
-    echo ""
+    # Use a single printf block to ensure menu is fully printed before prompt
+    # This fixes buffering issues where read prompt appears before menu
+    {
+        printf '\n'
+        printf 'What type of project is this?\n'
+        printf '\n'
+        printf '  1) nextjs  - Next.js (React + framework)\n'
+        printf '  2) react   - React\n'
+        printf '  3) node    - Node.js / JavaScript\n'
+        printf '  4) python  - Python\n'
+        printf '  5) go      - Go\n'
+        printf '  6) rust    - Rust\n'
+        printf '  7) generic - Generic / Unknown\n'
+        printf '\n'
+        if [[ -n "$detected_type" && "$detected_type" != "generic" ]]; then
+            printf 'Detected: %s (press Enter to confirm)\n' "$detected_type"
+        fi
+        printf '\n'
+    } >&2
 
-    read -p "Select (1-7) [default: ${detected_type:-generic}]: " -r choice
+    # Read from /dev/tty to ensure we get user input even if stdin is redirected
+    printf 'Select (1-7) [default: %s]: ' "${detected_type:-generic}" >&2
+    read -r choice </dev/tty
 
     case "$choice" in
         1) project_type="nextjs" ;;
@@ -927,7 +927,7 @@ cmd_init() {
 
     # Parse flags
     local global_init=false
-    local quick_init=false
+    local interactive_init=false
     local project_type=""
     local backend=""
 
@@ -937,8 +937,8 @@ cmd_init() {
                 global_init=true
                 shift
                 ;;
-            --quick)
-                quick_init=true
+            --interactive|-i)
+                interactive_init=true
                 shift
                 ;;
             --type)
@@ -1100,13 +1100,6 @@ EOF
     # Project initialization (default behavior)
     # ============================================================================
 
-    # Validate quick mode constraints
-    if [[ "$quick_init" == "true" && -z "$project_type" && -z "$backend" ]]; then
-        # Quick mode without any explicit flags - just use sensible defaults
-        # (project_type and backend will be auto-detected)
-        :
-    fi
-
     # Get project name from directory
     local project_name
     project_name=$(basename "$(cd "$target_dir" && pwd)")
@@ -1126,17 +1119,19 @@ EOF
 
     if [[ -z "$project_type" ]]; then
         # No --type flag provided
-        if [[ "$quick_init" == "true" ]]; then
-            # Quick mode: use detected type without prompting
-            project_type="$detected_type"
-            log_debug "Quick mode: using auto-detected type: ${project_type}"
-        elif ! [ -t 0 ]; then
-            # Non-interactive (stdin not a TTY): use detected type without prompting
-            project_type="$detected_type"
-            log_debug "Non-interactive mode: using auto-detected type: ${project_type}"
+        if [[ "$interactive_init" == "true" ]]; then
+            # Interactive mode requested: show prompt
+            # Check if we have a TTY for interaction
+            if [[ -t 0 ]] || [[ -e /dev/tty ]]; then
+                project_type=$(_prompt_project_type "$detected_type") || return 1
+            else
+                _log_error_console "Error: --interactive requires a TTY"
+                return 1
+            fi
         else
-            # Interactive mode: show prompt
-            project_type=$(_prompt_project_type "$detected_type") || return 1
+            # Default: use auto-detected type without prompting
+            project_type="$detected_type"
+            log_info "Auto-detected project type: ${project_type}"
         fi
     elif [[ "$project_type" == "auto" ]]; then
         # --type auto was explicitly set, use detected type
@@ -1391,31 +1386,15 @@ EOF
     echo ""
     log_success "Cub initialized!"
     echo ""
+    echo "Project type: ${project_type}"
     echo "Backend: ${selected_backend}"
     echo ""
-
-    if [[ "$quick_init" == "true" ]]; then
-        echo "Quick initialization complete!"
-        echo ""
-        echo "To start using cub:"
-        echo "  1. Run: cub"
-        echo ""
-    else
-        echo "Next steps:"
-        echo "  1. Edit prd.json to add your tasks (use ChatPRD template output)"
-        echo "  2. Add specifications to specs/"
-        echo "  3. Update AGENT.md with build instructions"
-        echo "  4. Run 'cub status' to see task summary"
-        echo "  5. Run 'cub' to start the autonomous loop"
-        echo ""
-        echo "Useful commands:"
-        echo "  cub status        Show task progress"
-        echo "  cub run --ready   Show ready tasks"
-        echo "  cub run --once    Run single iteration"
-        echo "  cub run --plan    Run planning mode"
-        echo "  cub --harness codex Use OpenAI Codex instead of Claude"
-        echo ""
-    fi
+    echo "Next steps:"
+    echo "  1. Edit prd.json to add your tasks"
+    echo "  2. Add specifications to specs/"
+    echo "  3. Update AGENT.md with build instructions"
+    echo "  4. Run 'cub' to start the autonomous loop"
+    echo ""
 
     return 0
 }
