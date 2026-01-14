@@ -203,28 +203,67 @@ _doctor_check_env() {
     echo "AI Harnesses:"
 
     local harness_found=false
+    local missing_harnesses=()
+
+    # Check Claude
     if command -v claude &>/dev/null; then
-        _doctor_ok "claude harness available"
+        local claude_version
+        claude_version=$(claude --version 2>&1 || echo "unknown")
+        _doctor_ok "claude - v${claude_version}"
         harness_found=true
-    fi
-    if command -v codex &>/dev/null; then
-        _doctor_ok "codex harness available"
-        harness_found=true
-    fi
-    if command -v gemini &>/dev/null; then
-        _doctor_ok "gemini harness available"
-        harness_found=true
-    fi
-    if command -v opencode &>/dev/null; then
-        _doctor_ok "opencode harness available"
-        harness_found=true
+    else
+        missing_harnesses+=("claude")
     fi
 
+    # Check Codex
+    if command -v codex &>/dev/null; then
+        local codex_version
+        codex_version=$(codex --version 2>&1 || echo "unknown")
+        _doctor_ok "codex - v${codex_version}"
+        harness_found=true
+    else
+        missing_harnesses+=("codex")
+    fi
+
+    # Check Gemini
+    if command -v gemini &>/dev/null; then
+        local gemini_version
+        gemini_version=$(gemini --version 2>&1 || echo "unknown")
+        _doctor_ok "gemini - v${gemini_version}"
+        harness_found=true
+    else
+        missing_harnesses+=("gemini")
+    fi
+
+    # Check OpenCode
+    if command -v opencode &>/dev/null; then
+        local opencode_version
+        opencode_version=$(opencode --version 2>&1 || echo "unknown")
+        _doctor_ok "opencode - v${opencode_version}"
+        harness_found=true
+    else
+        missing_harnesses+=("opencode")
+    fi
+
+    # Report missing harnesses
     if [[ "$harness_found" == "false" ]]; then
         _doctor_fail "No AI harness found (need claude, codex, gemini, or opencode)"
-        echo "  Install one of:"
-        _doctor_install_hint "claude"
         ((issues++))
+    fi
+
+    # Show installation hints for missing harnesses
+    if [[ ${#missing_harnesses[@]} -gt 0 ]]; then
+        echo ""
+        if [[ "$harness_found" == "false" ]]; then
+            echo "  Install one of the missing harnesses:"
+        else
+            echo "  Optional harnesses not installed:"
+        fi
+        for harness in "${missing_harnesses[@]}"; do
+            echo ""
+            echo "  $harness:"
+            _doctor_install_hint "$harness" | sed 's/^/    /'
+        done
     fi
 
     # Check beads (optional)
