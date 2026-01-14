@@ -1,3 +1,68 @@
+# Cub Development Progress
+
+## Session: File Layout Detection System (cub-eke.3)
+
+### Task: Update all file references in codebase with layout detection
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Created `lib/layout.sh` - New layout detection module
+   - `detect_layout()` - Auto-detects new (.cub/) vs legacy (root-level) layout
+   - `get_layout()` - Returns cached layout type
+   - `get_layout_root()` - Returns appropriate directory for layout files
+   - `get_prompt_file()` - Resolves prompt.md location based on layout
+   - `get_agent_file()` - Resolves agent.md location based on layout
+   - `get_progress_file()` - Resolves progress.txt location
+   - `get_fix_plan_file()` - Resolves fix_plan.md location
+   - `is_new_layout()` / `is_legacy_layout()` - Layout type checks
+
+2. Updated main `cub` script to source `lib/layout.sh` early in load sequence
+
+3. Updated file references across codebase:
+   - `lib/cmd_run.sh`: generate_system_prompt() now uses get_prompt_file()
+   - `lib/project.sh`: validate_project() detects layout and uses proper file paths
+   - `lib/cmd_init.sh`: Project initialization with layout detection
+   - `lib/cmd_doctor.sh`: Project validation checks files per layout
+   - `lib/cmd_pipeline.sh`: Prompt/agent generation uses layout functions
+
+### Test Results:
+- All 631 tests PASS (no new test failures introduced)
+- All modified files pass bash -n syntax checks
+- Layout detection functions verified working correctly:
+  - Current layout detected as "new" (prefers .cub/ when available)
+  - File paths correctly resolved based on layout
+
+### Learnings:
+1. **Layout Detection Pattern**: Similar to backend detection in tasks.sh
+   - Check for explicit CUB_LAYOUT env var override
+   - Auto-detect based on file presence (.cub/prompt.md vs PROMPT.md)
+   - Default to preferred layout (new) when both exist
+
+2. **Backward Compatibility**: Symlinks at root provide fallback for tools
+   - PROMPT.md → .cub/prompt.md
+   - AGENT.md → .cub/agent.md
+   - AGENTS.md → .cub/agent.md (for Codex)
+   - CLAUDE.md → .cub/agent.md (for Claude Code)
+
+3. **Function Pattern**: Follows established cub patterns
+   - detect_*() and get_*() functions with caching
+   - Global state variable (_PROJECT_LAYOUT)
+   - Include guard to prevent re-sourcing
+   - Proper parameter documentation
+
+4. **Transition Strategy**:
+   - New code uses abstraction layer (get_prompt_file, etc.)
+   - Existing symlinks support legacy tools without changes
+   - No breaking changes - projects can use either layout
+
+### Dependencies & Next Tasks:
+- cub-eke.3 now complete, unblocks remaining tasks in cub-eke epic
+- Layout system ready for further project organization work
+- Foundation established for supporting multiple file layouts
+
+---
+
 # Curb Development Progress
 
 ## Session 1: XDG Directory Structure Implementation (curb-iwv)
