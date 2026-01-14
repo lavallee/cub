@@ -28,6 +28,11 @@ if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
     source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
 fi
 
+# Source criteria extraction library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/criteria.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/criteria.sh"
+fi
+
 # Helper function: Infer priorities for tasks where priority is not explicitly set
 # Input: JSON array of tasks
 # Output: JSON array with inferred priorities
@@ -116,6 +121,42 @@ _apply_priority_inference() {
     echo "$result"
 }
 
+# Helper function: Extract acceptance criteria from task descriptions
+# If acceptanceCriteria is empty or not provided, tries to extract from description
+# Uses the shared criteria extraction library
+_enhance_acceptance_criteria() {
+    local tasks_json="$1"
+
+    local result="[]"
+    while IFS= read -r task_line; do
+        if [[ -z "$task_line" ]]; then
+            continue
+        fi
+
+        local criteria
+        criteria=$(echo "$task_line" | jq '.acceptanceCriteria // []')
+
+        local description
+        description=$(echo "$task_line" | jq -r '.description // ""')
+
+        # If criteria is empty and description has content, try to extract criteria from description
+        if [[ $(echo "$criteria" | jq 'length') -eq 0 ]] && [[ -n "$description" ]]; then
+            # Use the shared extraction library if available
+            if declare -f extract_criteria_from_body >/dev/null 2>&1; then
+                criteria=$(extract_criteria_from_body "$description")
+            fi
+        fi
+
+        # Update the task with the criteria (extracted or preserved)
+        local updated_task
+        updated_task=$(echo "$task_line" | jq --argjson crit "$criteria" '.acceptanceCriteria = $crit')
+
+        result=$(jq --argjson task "$updated_task" '. += [$task]' <<<"$result")
+    done < <(jq -c '.[]' <<<"$tasks_json")
+
+    echo "$result"
+}
+
 # Parse a JSON file and extract epics, tasks, and dependencies
 # Supports both simple array and structured PRD formats
 # Output is JSON to stdout
@@ -194,6 +235,9 @@ _parse_array_format() {
 
     # Infer priorities from content where not explicitly specified
     tasks_json=$(_apply_priority_inference "$tasks_json")
+
+    # Extract acceptance criteria from descriptions where not explicitly provided
+    tasks_json=$(_enhance_acceptance_criteria "$tasks_json")
 
     # Extract dependencies from dependsOn fields
     local dependencies_json
@@ -281,6 +325,9 @@ _parse_prd_format() {
 
     # Infer priorities from content where not explicitly specified
     tasks_json=$(_apply_priority_inference "$tasks_json")
+
+    # Extract acceptance criteria from descriptions where not explicitly provided
+    tasks_json=$(_enhance_acceptance_criteria "$tasks_json")
 
     # Extract dependencies
     dependencies_json=$(jq -n \

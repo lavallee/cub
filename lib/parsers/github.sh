@@ -30,6 +30,11 @@ if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
     source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
 fi
 
+# Source criteria extraction library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/criteria.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/criteria.sh"
+fi
+
 # Check if gh CLI is available
 _check_gh_available() {
     if ! command -v gh &>/dev/null; then
@@ -149,9 +154,9 @@ parse_github_issues() {
             fi
         fi
 
-        # Parse acceptance criteria from body
+        # Parse acceptance criteria from body (using shared extraction library)
         local acceptance_criteria
-        acceptance_criteria=$(_parse_acceptance_criteria "$body")
+        acceptance_criteria=$(extract_criteria_from_body "$body")
 
         # Infer priority from title and body using shared library
         local priority
@@ -195,34 +200,6 @@ parse_github_issues() {
         '{epics: $epics, tasks: $tasks, dependencies: $dependencies}'
 }
 
-# Parse acceptance criteria from issue body
-# Looks for:
-# - Checkbox lists: - [ ] item
-# - "Acceptance criteria:" sections
-# - "Done when:" sections
-# Output: JSON array of criteria strings
-_parse_acceptance_criteria() {
-    local body="$1"
-    local criteria="[]"
-
-    if [[ -z "$body" ]]; then
-        echo "$criteria"
-        return
-    fi
-
-    # Extract checkbox items from body (- [ ] text)
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^-[[:space:]]*\[[[:space:]]*\][[:space:]]+ ]]; then
-            local criterion="${line#*\] }"
-            criterion="${criterion#[[:space:]]}"
-            if [[ -n "$criterion" ]]; then
-                criteria=$(jq --arg text "$criterion" '. += [$text]' <<<"$criteria")
-            fi
-        fi
-    done < <(echo "$body")
-
-    echo "$criteria"
-}
 
 # Extract just the epics from parsed GitHub issues
 # Input: JSON from parse_github_repo or parse_github_issues

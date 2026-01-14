@@ -29,6 +29,11 @@ if [[ -f "$(dirname "${BASH_SOURCE[0]}")/../priority.sh" ]]; then
     source "$(dirname "${BASH_SOURCE[0]}")/../priority.sh"
 fi
 
+# Source criteria extraction library
+if [[ -f "$(dirname "${BASH_SOURCE[0]}")/criteria.sh" ]]; then
+    source "$(dirname "${BASH_SOURCE[0]}")/criteria.sh"
+fi
+
 # Parse a markdown file and extract epics, tasks, and dependencies
 # Output is JSON to stdout
 parse_markdown_file() {
@@ -155,6 +160,20 @@ parse_markdown_file() {
             continue
         fi
 
+        # Match section headers for acceptance criteria (### Acceptance criteria:, ### Done when:)
+        # These appear within task description areas
+        if [[ "$line" =~ ^###[[:space:]]+(Acceptance[[:space:]]+[Cc]riteria|[Dd]one[[:space:]]+[Ww]hen) ]]; then
+            # When we encounter a section header, switch to section mode
+            # The next bullets will be parsed as section criteria
+            if [[ "$in_task" == "true" ]]; then
+                # Extract section name from the line
+                local section_type="${line#\#\#\# }"
+                # Mark that we're in a criteria section
+                # (inline criteria collection will continue until next section)
+            fi
+            continue
+        fi
+
         # Match bullet points (potential acceptance criteria or subtasks): ^-
         # But not checkboxes (those are handled above)
         if [[ "$line" =~ ^-[[:space:]]+ ]] && [[ ! "$line" =~ ^-[[:space:]]*\\\[ ]]; then
@@ -164,6 +183,19 @@ parse_markdown_file() {
             # If we're in a task, treat this as acceptance criteria
             if [[ "$in_task" == "true" ]]; then
                 acceptance_criteria=$(jq --arg text "$bullet_text" '. += [$text]' <<<"$acceptance_criteria")
+            fi
+
+            continue
+        fi
+
+        # Match numbered items (1. 2. 3. etc.) as acceptance criteria in task context
+        if [[ "$line" =~ ^[[:space:]]*[0-9]+\.[[:space:]]+ ]]; then
+            local criterion="${line#*. }"
+            criterion="${criterion#[[:space:]]}"
+
+            # If we're in a task, treat this as acceptance criteria
+            if [[ "$in_task" == "true" ]]; then
+                acceptance_criteria=$(jq --arg text "$criterion" '. += [$text]' <<<"$acceptance_criteria")
             fi
 
             continue
