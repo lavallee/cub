@@ -604,23 +604,34 @@ covering edge cases, error handling, and integration points.
 
 USAGE:
   cub interview <task-id>              Interactive interview mode
-  cub interview <task-id> --auto       AI-generated answers
+  cub interview <task-id> --auto       AI-generated answers with review flow
   cub interview <task-id> --output FILE   Save to specific file
   cub interview --all                  Interview all open tasks (batch mode)
 
 OPTIONS:
   --auto              Use AI to generate answers based on task context
+  --skip-review       Skip review/approval flow (use auto answers as-is)
   --output FILE       Save spec to specific file (default: specs/task-{id}-spec.md)
   --update-task       Update task description with spec (not implemented)
   --all               Interview all open tasks in batch mode
   --skip-categories   Skip specific categories (comma-separated)
 
+AUTO MODE WITH REVIEW FLOW:
+  When using --auto, generated answers are presented for your review:
+  - Accept answers you agree with
+  - Edit answers you want to change
+  - Regenerate answers you want AI to try again
+  - Skip to keep answers as-is
+
 EXAMPLES:
   # Interactive interview
   cub interview cub-h87.1
 
-  # Auto mode (AI-generated answers)
+  # Auto mode with review (recommended)
   cub interview cub-h87.1 --auto
+
+  # Auto mode, skip review phase
+  cub interview cub-h87.1 --auto --skip-review
 
   # Save to custom location
   cub interview cub-h87.1 --output docs/task-spec.md
@@ -646,6 +657,245 @@ SEE ALSO:
 EOF
 }
 
+# ============================================================================
+# Review and Approval Flow
+# ============================================================================
+
+# Display review menu for a single answer
+# Args: question_num total question answer index
+# Returns: User's choice (accept|edit|regenerate|skip)
+interview_review_answer() {
+    local question_num="$1"
+    local total="$2"
+    local question="$3"
+    local answer="$4"
+
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}Question $question_num/$total:${NC} $question"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "Generated answer:"
+    echo -e "${GREEN}\"$answer\"${NC}"
+    echo ""
+    echo "Options:"
+    echo -e "  ${YELLOW}a${NC} - Accept this answer"
+    echo -e "  ${YELLOW}e${NC} - Edit this answer"
+    echo -e "  ${YELLOW}r${NC} - Regenerate this answer"
+    echo -e "  ${YELLOW}s${NC} - Skip to next (keep as-is)"
+    echo -e "  ${YELLOW}q${NC} - Quit review"
+    echo ""
+    echo -n -e "${GREEN}>${NC} "
+
+    local choice=""
+    read -r choice
+    echo ""
+
+    case "$choice" in
+        a|A) echo "accept" ;;
+        e|E) echo "edit" ;;
+        r|R) echo "regenerate" ;;
+        s|S) echo "skip" ;;
+        q|Q) echo "quit" ;;
+        *)
+            echo -e "${RED}Invalid choice. Please enter a, e, r, s, or q.${NC}"
+            interview_review_answer "$question_num" "$total" "$question" "$answer"
+            ;;
+    esac
+}
+
+# Allow user to edit an answer
+# Args: original_answer
+# Returns: Edited answer
+interview_edit_answer() {
+    local original="$1"
+
+    echo -e "${YELLOW}Edit the answer below (press Ctrl+D to finish, Ctrl+C to cancel):${NC}"
+    echo ""
+    echo -e "${BLUE}Current answer:${NC}"
+    echo "$original"
+    echo ""
+    echo -e "${BLUE}Enter new answer:${NC}"
+
+    local edited=""
+    local line=""
+    while IFS= read -r line; do
+        if [[ -z "$edited" ]]; then
+            edited="$line"
+        else
+            edited="$edited"$'\n'"$line"
+        fi
+    done
+
+    # Clean up newlines and return
+    edited=$(echo -n "$edited" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    echo "$edited"
+}
+
+# Regenerate answer for a specific question
+# Args: task_id task_json category question
+# Returns: Regenerated answer
+interview_regenerate_answer() {
+    local task_id="$1"
+    local task_json="$2"
+    local category="$3"
+    local question="$4"
+
+    local title
+    title=$(echo "$task_json" | jq -r '.title')
+    local description
+    description=$(echo "$task_json" | jq -r '.description // ""')
+    local task_type
+    task_type=$(echo "$task_json" | jq -r '.type // "task"')
+    local labels
+    labels=$(echo "$task_json" | jq -r '.labels // [] | join(", ")')
+
+    # Gather codebase context
+    local codebase_context
+    codebase_context=$(interview_gather_codebase_context)
+
+    echo -e "${YELLOW}Regenerating answer for this question...${NC}"
+
+    # Build focused prompt for this specific question
+    local prompt
+    prompt="You are helping to refine a task specification by answering a specific question about it.
+
+Task Context:
+- Task ID: $task_id
+- Title: $title
+- Type: $task_type
+- Labels: $labels
+- Description: $description
+
+Codebase Context:
+$codebase_context
+
+Question Category: $category
+Question: $question
+
+Instructions:
+- Provide a concise, specific answer based on the task description and codebase context
+- If the question does not apply to this task, respond with \"N/A\" or \"Not applicable\"
+- Focus on practical implementation details
+- Consider the project's technology stack and structure
+- Be brief but comprehensive (1-3 sentences or a short list)
+
+Answer the question directly without repeating it. Respond with just the answer text, no JSON or additional formatting."
+
+    # Call Claude with sonnet model to generate answer
+    local ai_answer
+    local exit_code
+    ai_answer=$(echo "$prompt" | claude --print --model sonnet 2>&1)
+    exit_code=$?
+
+    if [[ $exit_code -eq 0 && -n "$ai_answer" ]]; then
+        # Clean up the answer (remove extra whitespace)
+        ai_answer=$(echo "$ai_answer" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        echo "$ai_answer"
+    else
+        log_warn "Failed to regenerate answer (exit code: $exit_code)"
+        echo "N/A"
+    fi
+}
+
+# Run review flow for generated answers
+# Args: task_id task_json responses_json questions
+# Returns: Updated responses_json after user review
+interview_run_review() {
+    local task_id="$1"
+    local task_json="$2"
+    local responses_json="$3"
+    local questions="$4"
+
+    local title
+    title=$(echo "$task_json" | jq -r '.title')
+
+    echo ""
+    echo -e "${BLUE}=========================================${NC}"
+    echo -e "${BLUE}Review Generated Answers${NC}"
+    echo -e "${BLUE}Task: $title${NC}"
+    echo -e "${BLUE}=========================================${NC}"
+    echo ""
+    echo "Review each AI-generated answer. You can accept, edit, or regenerate."
+    echo ""
+
+    local total
+    total=$(echo "$responses_json" | jq 'length')
+
+    local q_num=1
+    local updated_responses="[]"
+
+    while read -r response_obj; do
+        local question
+        question=$(echo "$response_obj" | jq -r '.question')
+        local answer
+        answer=$(echo "$response_obj" | jq -r '.answer')
+        local category
+        category=$(echo "$response_obj" | jq -r '.category')
+        local question_id
+        question_id=$(echo "$response_obj" | jq -r '.question_id // ""')
+
+        while true; do
+            local choice
+            choice=$(interview_review_answer "$q_num" "$total" "$question" "$answer")
+
+            case "$choice" in
+                accept)
+                    # Store unchanged
+                    if [[ -n "$question_id" ]]; then
+                        updated_responses=$(echo "$updated_responses" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" --arg qid "$question_id" \
+                            '. += [{"category": $cat, "question": $q, "answer": $ans, "question_id": $qid}]')
+                    else
+                        updated_responses=$(echo "$updated_responses" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
+                            '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+                    fi
+                    break
+                    ;;
+                edit)
+                    # Get edited answer from user
+                    local edited_answer
+                    edited_answer=$(interview_edit_answer "$answer")
+                    answer="$edited_answer"
+                    echo -e "${GREEN}✓ Answer updated${NC}"
+                    # Continue loop to show menu again
+                    ;;
+                regenerate)
+                    # Regenerate answer from AI
+                    echo ""
+                    local new_answer
+                    new_answer=$(interview_regenerate_answer "$task_id" "$task_json" "$category" "$question")
+                    answer="$new_answer"
+                    echo -e "${GREEN}✓ New answer generated:${NC}"
+                    echo "\"$new_answer\""
+                    # Continue loop to show menu again
+                    ;;
+                skip)
+                    # Keep original answer
+                    if [[ -n "$question_id" ]]; then
+                        updated_responses=$(echo "$updated_responses" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" --arg qid "$question_id" \
+                            '. += [{"category": $cat, "question": $q, "answer": $ans, "question_id": $qid}]')
+                    else
+                        updated_responses=$(echo "$updated_responses" | jq --arg cat "$category" --arg q "$question" --arg ans "$answer" \
+                            '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+                    fi
+                    break
+                    ;;
+                quit)
+                    echo -e "${YELLOW}Review cancelled. Discarding changes.${NC}"
+                    return 1
+                    ;;
+            esac
+        done
+
+        ((q_num++))
+    done < <(echo "$responses_json" | jq -c '.[]')
+
+    echo ""
+    echo -e "${GREEN}✓ Review complete!${NC}"
+    echo ""
+    echo "$updated_responses"
+}
+
 cmd_interview() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -659,6 +909,7 @@ cmd_interview() {
     local output_file=""
     local batch_mode=false
     local skip_categories=""
+    local skip_review=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -677,6 +928,10 @@ cmd_interview() {
             --skip-categories)
                 skip_categories="$2"
                 shift 2
+                ;;
+            --skip-review)
+                skip_review=true
+                shift
                 ;;
             --update-task)
                 log_warn "Warning: --update-task not yet implemented"
@@ -749,6 +1004,15 @@ cmd_interview() {
         if [[ $? -ne 0 ]]; then
             _log_error_console "Error: Failed to generate AI responses"
             return 1
+        fi
+
+        # Run review flow unless --skip-review specified
+        if [[ "$skip_review" == "false" ]]; then
+            responses_json=$(interview_run_review "$task_id" "$task_json" "$responses_json" "$questions")
+            if [[ $? -ne 0 ]]; then
+                # User cancelled review
+                return 1
+            fi
         fi
     else
         responses_json=$(interview_run_interactive "$task_id" "$task_json" "$questions")
