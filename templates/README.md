@@ -1,31 +1,43 @@
-# Project Setup Guide
+# .cub/ Quick Reference Guide
 
 <!--
-WHAT IS THIS FILE?
-This file is a quick reference guide for your project's cub configuration. It shows what each file in .cub/ does,
-which files you should edit, and common commands you'll use.
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT IS THIS FILE?                                              ║
+╚══════════════════════════════════════════════════════════════════╝
 
-WHAT TO EDIT:
-- Update the "Files in .cub/" table below with your project-specific information
-- Add project-specific commands to the "Common Commands" section
-- Update links if your documentation or specs are in different locations
+This is a quick reference guide for the .cub/ directory.
+It shows what each file does, which ones you should edit, and how to use cub effectively.
 
-WHAT NOT TO ADD:
-- Don't add build instructions here (that belongs in agent.md)
-- Don't add detailed architecture docs here (see architecture documentation in docs/)
-- Don't add deployment/operations info (that's in docs/ or team wikis)
+The .cub/ directory is where cub stores project-specific instructions and state.
+All files here are committed to git and shared across your team and sessions.
 
-FILE PURPOSES:
-- .cub/README.md (this file): Quick reference for cub files and commands
-- .cub/agent.md: How to build, test, and run the project
-- .cub/prompt.md: System prompt for the AI assistant working on this project
-- .cub/progress.txt: Learnings and discoveries from development sessions
-- .cub/fix_plan.md: Known issues, bugs, and technical debt
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT TO EDIT                                                    ║
+╚══════════════════════════════════════════════════════════════════╝
 
-WHEN TO UPDATE:
-- Update this file when you discover new cub commands you use regularly
-- Update file descriptions if the purpose of any .cub file changes
-- Add project-specific commands as you learn them
+1. Update the "Files in .cub/" table below if descriptions need updates
+2. Add project-specific commands to "Quick Start" → "Development Commands"
+3. Update links in "Learn More" if your docs/specs are in different locations
+4. Keep this file focused on cub-related tasks (not general project docs)
+
+WHAT TO EDIT ELSEWHERE (NOT HERE):
+- Build/test commands → Edit agent.md instead
+- Architecture documentation → Create docs/architecture.md
+- Deployment/operations → Create docs/operations.md or wiki
+- API documentation → Create docs/api.md or use OpenAPI spec
+- User guide/README → Create main README.md (root project level)
+
+WHEN TO UPDATE THIS FILE:
+- When you change what any .cub file is used for
+- When you discover new cub commands worth documenting
+- When you add or remove .cub files
+- Quarterly review to remove stale information
+
+WHY THIS FILE EXISTS:
+- New team members need to understand .cub/ structure
+- Developers context-switch between projects and need quick reminders
+- This file is the "home page" for cub-related information
+- It prevents hunting through documentation to find basic info
 -->
 
 ## Files in .cub/

@@ -1,27 +1,83 @@
 <!--
-=== SYSTEM PROMPT FOR CUB AUTONOMOUS CODING ===
+╔══════════════════════════════════════════════════════════════════╗
+║  SYSTEM PROMPT FOR CUB AUTONOMOUS CODING                         ║
+╚══════════════════════════════════════════════════════════════════╝
 
-This is the system prompt that appears in every autonomous coding session. It guides Claude Code
-(the AI assistant) through a structured workflow for completing tasks autonomously.
+This is the system prompt that appears in every autonomous coding session.
+It guides Claude Code (the AI assistant) through a structured workflow for completing
+tasks autonomously and maintaining code quality.
 
-WHAT TO EDIT:
-- The entire content is read by Claude Code at the start of each session
-- Update the Workflow, Critical Rules, and Context Files based on YOUR project's needs
-- Keep it concise and specific - vague prompts lead to unfocused work
-- Test changes on a real task before committing
+Think of this as:
+- INSTRUCTIONS: How the AI should approach work in your project
+- CONSTRAINTS: What the AI should never do (no breaking changes, etc.)
+- CONTEXT: Important patterns, architecture, and project-specific quirks
+- REFERENCE: How to find information and make decisions
 
-TIPS FOR CUSTOMIZATION:
-- Add project-specific rules in "Critical Rules" (e.g., "Never modify the API schema")
-- Adjust "Context Files" to match your project structure (specs, docs, etc.)
-- Include feedback loop commands that are actually run in your project
-- Mention important constraints (budget limits, time limits, team processes)
+Every session reads this file FIRST, before starting work on any task.
 
-SECTION GUIDE:
-- Context Files: Files the agent must read first. Link to @AGENT.md and key specs.
-- Workflow: Step-by-step process for completing a task
-- Critical Rules: Non-negotiables (don't break, always test, etc.)
-- Parallelism Guidance: When to use concurrent agents vs sequential
-- When You're Done: Final checklist and task closure instructions
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT TO EDIT                                                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+1. Context Files (line ~35):
+   - Link to @AGENT.md for build/test instructions
+   - Add paths to important docs (architecture, API specs, design patterns)
+   - Include links to specs/ directory if you have detailed task specs
+
+2. Workflow (line ~40):
+   - Add project-specific steps if needed
+   - Include your exact test/build/lint commands
+   - Add preprocessing steps if needed (environment setup, etc.)
+
+3. Critical Rules (line ~50):
+   - Add "Never modify X" if there are off-limits files
+   - Add architectural constraints: "Always use the Store for state, not Context"
+   - Add security rules: "Never commit secrets or API keys"
+   - Add team policies: "All PRs require 2 approvals before merge"
+   - Add performance requirements: "API endpoints must respond in <100ms"
+
+4. When You're Done (line ~70):
+   - Specify task closure method: bd close vs prd.json update
+   - Include any deployment/notification steps
+   - Add merge/PR creation steps if needed
+
+╔══════════════════════════════════════════════════════════════════╗
+║  HOW THIS FILE WORKS                                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+- This content is automatically included in every session's system prompt
+- AI assistants read this BEFORE starting work (not during)
+- Changes take effect on the NEXT session you create
+- Test changes on a practice task before using on real work
+
+╔══════════════════════════════════════════════════════════════════╗
+║  TIPS FOR EFFECTIVE CUSTOMIZATION                                ║
+╚══════════════════════════════════════════════════════════════════╝
+
+✅ DO:
+- Add project-specific rules that prevent common mistakes
+- Include exact commands (npm run test, not npm test)
+- Document critical architectural patterns
+- Mention constraints that would be obvious to a human but not to AI
+- Keep sections concise - verbosity is noise
+
+❌ DON'T:
+- Leave placeholder text (it gets passed to the AI!)
+- Add generic advice (AI already knows general programming)
+- Duplicate what's in AGENT.md (reference it instead)
+- Add things only visible in code (the AI will read your code)
+- Add lengthy architectural documents (use specs/ directory instead)
+
+EXAMPLES OF GOOD RULES:
+- "Use the Store in lib/store.ts for all state, never useState for global state"
+- "All API endpoints must validate input with lib/validators.ts, never trust user input directly"
+- "Database queries must use prepared statements - SQL injection is critical"
+- "Never add npm packages without checking package.json first for conflicts"
+
+EXAMPLES OF BAD RULES:
+- "Use best practices" (too vague)
+- "Don't write bad code" (not actionable)
+- "TypeScript is statically typed" (obvious from code)
 -->
 
 # Ralph Loop Iteration
