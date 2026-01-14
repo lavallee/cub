@@ -1,3 +1,82 @@
+## Task cub-1x4.10: Source reference preservation (2026-01-14)
+
+**Implementation:**
+- Added source reference preservation to all import formats (Markdown, JSON, GitHub)
+- Implemented file path and line number tracking for document-based sources
+- Implemented GitHub URL and platform tracking for GitHub issue sources
+- Preserved source information across both beads and JSON backends
+
+**Key Features:**
+1. **Markdown Source References**: Tasks include source object with {file: "path.md", line: N}
+   - Tracks exact line number in source document for each task
+   - Applied to epics, features, and individual tasks
+
+2. **JSON Source References**: Tasks include source object with {file: "path.json"}
+   - Since JSON doesn't have line numbers, only file path is preserved
+   - Applied to all parsed tasks and epics
+
+3. **GitHub Source References**: Tasks include source object with {url: "https://github.com/...", platform: "github"}
+   - Full URL to GitHub issue included for traceability
+   - Applied to both epics (from milestones) and tasks (from issues)
+
+4. **Beads Backend Compatibility**: Since beads doesn't support nested objects, source info converted to labels
+   - File-based: adds label `source:filename:line`
+   - URL-based: adds label `source:platform`
+
+**Implementation Details:**
+- Modified `lib/parsers/markdown.sh`:
+  - Added source_file variable with normalized file path
+  - Updated epic/task creation to include source objects
+  - Format: {source: {file: "absolute/path.md", line: lineNumber}}
+
+- Modified `lib/parsers/github.sh`:
+  - Updated parse_github_repo to pass repo to parse_github_issues
+  - Updated parse_github_issues to accept repo parameter
+  - Added source_url construction from repo
+  - Format: {source: {url: "https://github.com/owner/repo/issues/N", platform: "github"}}
+
+- Modified `lib/parsers/json.sh`:
+  - Added _add_source_references helper function
+  - Integrated source reference addition into parse flow
+  - Format: {source: {file: "absolute/path.json"}}
+
+- Modified `lib/cmd_import.sh _import_to_beads`:
+  - Extracts source object from parsed tasks/epics
+  - Converts to labels for beads storage
+  - Handles both file-based and URL-based sources
+
+**Files Modified:**
+- lib/parsers/markdown.sh: Source file tracking and object creation
+- lib/parsers/github.sh: Repo parameter passing and GitHub source objects
+- lib/parsers/json.sh: Added source reference helper function
+- lib/cmd_import.sh: Beads label conversion for source references
+
+**Testing:**
+- ✓ Markdown import preserves file path and exact line numbers
+- ✓ JSON import preserves file path for all tasks
+- ✓ GitHub import includes full issue URLs and platform identifier
+- ✓ Source information available in prd.json for JSON backend
+- ✓ Source information converted to labels in beads backend
+- ✓ Backward compatible with existing import functionality
+- ✓ All syntax checks pass
+- ✓ Import dry-run still works correctly
+- ✓ Multi-format import handling verified
+
+**Acceptance Criteria Met:**
+- ✓ File path and line number tracked in source references
+- ✓ Traceability information preserved in created tasks
+- ✓ Works across all import formats (Markdown, JSON, GitHub)
+- ✓ Supports both beads and JSON backends
+- ✓ Source references accessible for audit and navigation
+
+**Verdict:**
+Task complete. Source reference preservation is fully implemented across all import formats
+and both task backends. Tasks created from imports now include complete source traceability
+information, enabling users to navigate back to the source document and exact location where
+tasks were defined.
+
+---
+
 ## Task cub-1x4.9: Backend support (beads and json) (2026-01-14)
 
 **Implementation:**
