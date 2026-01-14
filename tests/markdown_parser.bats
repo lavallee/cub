@@ -175,8 +175,8 @@ EOF
     task_count=$(echo "$result" | jq '.tasks | length')
 
     [[ "$epic_count" -eq 1 ]]
-    # 1 epic + 2 features + 4 checkboxes = 7 total tasks
-    [[ "$task_count" -eq 7 ]]
+    # 2 features (## headings) + 4 checkboxes = 6 total tasks (epics are separate)
+    [[ "$task_count" -eq 6 ]]
 
     # Verify specific task
     local specific_task
