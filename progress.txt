@@ -5306,3 +5306,109 @@ cub interview <task-id> --skip-categories "Security,Operations"
 - Requires: tasks.sh (get_task), logger.sh (log_*), colors (CYAN, NC)
 - Unlocks: cub-h87.5 through cub-h87.12 (remaining interview features)
 
+
+## Session: Interview Mode Question Filtering (cub-h87.4)
+
+### Task: Question filtering by task type and labels
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Enhanced question filtering function (interview_filter_questions)
+   - Now accepts full task_json instead of just task_type
+   - Extracts task type, labels from task metadata
+   - Combines task labels with detected technology stack
+   - Filters questions based on applies_to, requires_labels, and requires_tech
+
+2. Technology stack detection (interview_detect_tech_stack)
+   - Detects bash/shell projects (*.sh files in project or lib/)
+   - Detects Node.js projects (package.json)
+   - Detects specific frameworks: React, Express, Next.js
+   - Detects Python (requirements.txt, pyproject.toml, setup.py)
+   - Detects Go (go.mod), Rust (Cargo.toml), Java (pom.xml, build.gradle)
+   - Detects databases from docker-compose.yml (postgres, redis, mongodb)
+   - Returns JSON array of detected technology labels
+
+3. Skip logic based on previous answers (interview_should_skip_question)
+   - Questions can have skip_if field with question_ids and answers_match
+   - Checks if referenced questions have answers matching regex patterns
+   - Case-insensitive regex matching (grep -iE)
+   - Returns 0 (skip) or 1 (don't skip) to control interview flow
+
+4. Question bank enhancements:
+   - Added requires_labels field to specialized questions
+   - Added question IDs (e.g., "data_read", "apis_call") for skip logic
+   - Added skip_if conditions to follow-up questions:
+     - "How is state persisted?" skipped if no data written
+     - "What happens to existing data on upgrade?" skipped if no data read/write
+     - "Is there a way to undo/cancel?" skipped if no data written
+     - "Are there rate limits to consider?" skipped if no APIs called
+   - Label requirements for specialized categories:
+     - Security questions require "security", "auth", "data", or "validation" labels
+     - Performance questions require "performance", "scalability", "caching", or "memory" labels
+     - Integration questions require "api", "integration", "events", or "pub-sub" labels
+     - Accessibility question requires "ui", "frontend", or "web" labels
+
+5. Interactive interview updates:
+   - Modified loop to check skip conditions before asking each question
+   - Stores question_id with responses for skip logic reference
+   - Shows "[Skipped]" message for questions that don't apply
+   - Maintains question numbering for non-skipped questions
+
+### Test Results:
+- Created tests/interview.bats with 13 comprehensive tests
+- All 13 interview tests PASS
+- All 41 total tests PASS (28 config + 13 interview)
+- Test coverage:
+  - Question filtering by task type
+  - Question filtering by task labels
+  - Label-based exclusion of questions
+  - Tech stack detection (bash, nodejs, python)
+  - Skip logic with and without conditions
+  - Skip logic with pattern matching
+  - Case-insensitive answer matching
+  - Question bank structure validation
+  - Combined filtering (type + labels + tech)
+
+### Learnings:
+- **jq substring matching gotcha**: Using both `(. | contains($rlabel))` and `($rlabel | contains(.))` creates false positives because it matches in both directions. For example, "security" contains "sh" (from "bash" label), leading to unintended matches. Solution: Only check if task label contains required label, not the reverse.
+
+- **Question filtering design**: Three-tier filtering approach works well:
+  1. Task type (applies_to) - broad categorization
+  2. Labels (requires_labels) - domain-specific filtering
+  3. Technology stack (detected from project files) - automatic context
+
+- **Skip logic implementation**: Return code convention (0 = skip, 1 = don't skip) aligns with bash conventions where 0 is success/true. The interview loop uses `if interview_should_skip_question ...; then continue; fi` which reads naturally.
+
+- **Technology detection trade-offs**: 
+  - File-based detection is fast and doesn't require parsing
+  - grep on package.json is sufficient for framework detection
+  - docker-compose.yml provides good insight into infrastructure
+  - Could be extended with more sophisticated detection (AST parsing, lock files)
+
+- **Label matching strategy**: Using substring matching allows flexibility (e.g., "auth" matches "authentication" label) but needs to be one-directional to avoid false positives. The pattern `(. == $rlabel or (. | contains($rlabel)))` means exact match OR task label contains required label.
+
+- **Test design for filtering**: Testing negative cases (questions that should be excluded) is just as important as positive cases. The test initially failed because it checked for ANY security question, when only some have label requirements.
+
+- **BATS test helpers**: The project uses `setup_test_dir` and `teardown_test_dir` (not `setup_test_environment`). The test_helper.bash file provides useful functions like `assert_json_equals` and `assert_json_length`.
+
+- **Question bank structure**: Adding metadata fields (id, requires_labels, skip_if) to questions makes them self-describing and enables smart filtering without hardcoding logic. This is more maintainable than switch statements or external mapping files.
+
+### Implementation Details:
+- Total changes: 464 insertions, 45 deletions
+- Files modified: lib/cmd_interview.sh, tests/interview.bats (new)
+- Question bank now has 50 questions with enhanced metadata
+- Tech stack detection supports 10+ technologies/frameworks
+- Skip logic implemented for 4 question pairs
+- Label requirements added to 15+ specialized questions
+
+### Next Steps:
+Per the epic (cub-h87), remaining tasks include:
+- cub-h87.5: Auto mode with AI-generated answers
+- cub-h87.6: Auto mode review and approval flow
+- cub-h87.7: Comprehensive spec document generation
+- cub-h87.8: Acceptance criteria extraction
+- cub-h87.9: Output options (file or update task description)
+- cub-h87.10: Batch interview multiple tasks
+- cub-h87.11: Custom question support
+- cub-h87.12: Skip categories option
