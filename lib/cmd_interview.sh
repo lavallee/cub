@@ -517,6 +517,155 @@ Answer the question directly without repeating it. Respond with just the answer 
 # Spec Document Generation
 # ============================================================================
 
+# Extract acceptance criteria from interview responses
+# Generates actionable checkbox list from various question types
+# Args: responses_json
+# Output: Markdown checkbox list to stdout
+interview_extract_acceptance_criteria() {
+    local responses_json="$1"
+    local temp_file="${TMPDIR:-/tmp}/cub_criteria_$$"
+
+    # Use temp file to collect criteria across subshells
+    : > "$temp_file"
+
+    # Extract from success criteria questions (highest priority)
+    echo "$responses_json" | jq -r '
+        .[] |
+        select(.question | test("success criteria"; "i")) |
+        .answer |
+        split("\n") |
+        .[] |
+        select(length > 0) |
+        select(. != "N/A" and . != "n/a" and . != "None" and . != "none")
+    ' 2>/dev/null | while IFS= read -r line; do
+        # Remove common bullet points and numbering
+        line=$(echo "$line" | sed -E 's/^[[:space:]]*[-*•][[:space:]]*//' | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        if [[ -n "$line" ]]; then
+            echo "- [ ] $line" >> "$temp_file"
+        fi
+    done
+
+    # Extract from testing requirements
+    echo "$responses_json" | jq -r '
+        .[] |
+        select(.question | test("unit tests|integration tests|edge cases.*tested"; "i")) |
+        .answer |
+        split("\n") |
+        .[] |
+        select(length > 0) |
+        select(. != "N/A" and . != "n/a" and . != "None" and . != "none")
+    ' 2>/dev/null | while IFS= read -r line; do
+        line=$(echo "$line" | sed -E 's/^[[:space:]]*[-*•][[:space:]]*//' | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        if [[ -n "$line" ]] && ! echo "$line" | grep -q "^\- \["; then
+            # Prefix with "Test:" if not already test-focused
+            if ! echo "$line" | grep -qi "test"; then
+                echo "- [ ] Test: $line" >> "$temp_file"
+            else
+                echo "- [ ] $line" >> "$temp_file"
+            fi
+        fi
+    done
+
+    # Extract from error handling requirements
+    local error_output
+    error_output=$(mktemp)
+    echo "$responses_json" | jq -r '
+        .[] |
+        select(.question | test("error.*handled|error messages|fallback"; "i")) |
+        select(.answer | test("^(N/A|n/a|None|none)$") | not) |
+        .answer |
+        split("\n") |
+        .[] |
+        select(length > 0)
+    ' 2>/dev/null | while IFS= read -r line; do
+        line=$(echo "$line" | sed -E 's/^[[:space:]]*[-*•][[:space:]]*//' | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        if [[ -n "$line" ]] && ! echo "$line" | grep -q "^\- \["; then
+            if ! echo "$line" | grep -qi "error"; then
+                echo "- [ ] Error handling: $line" >> "$error_output"
+            else
+                echo "- [ ] $line" >> "$error_output"
+            fi
+        fi
+    done
+
+    # Add error criteria to main file and add summary if any found
+    if [[ -s "$error_output" ]]; then
+        cat "$error_output" >> "$temp_file"
+        echo "- [ ] All error scenarios handled gracefully" >> "$temp_file"
+    fi
+    rm -f "$error_output"
+
+    # Extract from data validation requirements
+    echo "$responses_json" | jq -r '
+        .[] |
+        select(.question | test("validation rules|input.*accept"; "i")) |
+        select(.answer | test("^(N/A|n/a|None|none)$") | not) |
+        .answer |
+        split("\n") |
+        .[] |
+        select(length > 0)
+    ' 2>/dev/null | head -3 | while IFS= read -r line; do
+        line=$(echo "$line" | sed -E 's/^[[:space:]]*[-*•][[:space:]]*//' | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        if [[ -n "$line" ]] && ! echo "$line" | grep -q "^\- \["; then
+            if ! echo "$line" | grep -qi "validat"; then
+                echo "- [ ] Validate: $line" >> "$temp_file"
+            else
+                echo "- [ ] $line" >> "$temp_file"
+            fi
+        fi
+    done
+
+    # Extract from output/user feedback requirements
+    echo "$responses_json" | jq -r '
+        .[] |
+        select(.question | test("output.*produce|feedback.*success|feedback.*failure"; "i")) |
+        select(.answer | test("^(N/A|n/a|None|none)$") | not) |
+        .answer |
+        split("\n") |
+        .[] |
+        select(length > 0)
+    ' 2>/dev/null | head -2 | while IFS= read -r line; do
+        line=$(echo "$line" | sed -E 's/^[[:space:]]*[-*•][[:space:]]*//' | sed -E 's/^[[:space:]]*[0-9]+\.[[:space:]]*//' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+        if [[ -n "$line" ]] && ! echo "$line" | grep -q "^\- \["; then
+            if ! echo "$line" | grep -qi "feedback\|output\|display\|show"; then
+                echo "- [ ] Display: $line" >> "$temp_file"
+            else
+                echo "- [ ] $line" >> "$temp_file"
+            fi
+        fi
+    done
+
+    # Check if we found any criteria
+    if [[ -s "$temp_file" ]]; then
+        # Output collected criteria
+        cat "$temp_file"
+        # Always add test passing criterion
+        echo "- [ ] All tests passing"
+    else
+        # No criteria found - try primary goal
+        local primary_goal
+        primary_goal=$(echo "$responses_json" | jq -r '
+            .[] |
+            select(.question | test("primary.*goal|user goal"; "i")) |
+            .answer
+        ' 2>/dev/null | head -1 || true)
+
+        if [[ -n "$primary_goal" ]] && [[ "$primary_goal" != "N/A" ]] && [[ "$primary_goal" != "n/a" ]]; then
+            echo "- [ ] $primary_goal"
+            echo "- [ ] All tests passing"
+            echo "- [ ] Error handling implemented"
+        else
+            # Final fallback to generic criteria
+            echo "- [ ] Complete implementation as described"
+            echo "- [ ] All tests passing"
+            echo "- [ ] Error handling implemented"
+        fi
+    fi
+
+    # Cleanup
+    rm -f "$temp_file"
+}
+
 # Generate specification document from interview responses
 # Args: task_json responses_json output_file mode
 interview_generate_spec() {
@@ -622,23 +771,8 @@ HEADER
     echo "Based on interview responses:" >> "$output_file"
     echo "" >> "$output_file"
 
-    # Extract key acceptance criteria from success criteria and functional requirements
-    echo "$responses_json" | jq -r '
-        .[] |
-        select(.question | contains("success criteria") or contains("Success Criteria")) |
-        .answer |
-        split("\n") |
-        .[] |
-        select(length > 0) |
-        "- [ ] " + .
-    ' >> "$output_file" || true
-
-    # If no success criteria found, add a placeholder
-    if ! grep -q "^\- \[" "$output_file" 2>/dev/null; then
-        echo "- [ ] Complete implementation as described" >> "$output_file"
-        echo "- [ ] All tests passing" >> "$output_file"
-        echo "- [ ] Error handling implemented" >> "$output_file"
-    fi
+    # Extract acceptance criteria using the dedicated function
+    interview_extract_acceptance_criteria "$responses_json" >> "$output_file"
 }
 
 # ============================================================================

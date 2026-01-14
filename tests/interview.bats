@@ -381,3 +381,187 @@ teardown() {
     # Check that mode defaults to interactive (with markdown bold markers)
     grep -q "Interview Mode:.*interactive" "$output_file"
 }
+
+# ============================================================================
+# Acceptance Criteria Extraction Tests
+# ============================================================================
+
+@test "interview_extract_acceptance_criteria extracts from success criteria" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What are the success criteria?","answer":"Feature works correctly\nAll edge cases handled\nPerformance meets SLA"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should extract all three criteria
+    echo "$criteria" | grep -q "\- \[ \] Feature works correctly"
+    echo "$criteria" | grep -q "\- \[ \] All edge cases handled"
+    echo "$criteria" | grep -q "\- \[ \] Performance meets SLA"
+}
+
+@test "interview_extract_acceptance_criteria extracts from testing questions" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Testing","question":"What unit tests are needed?","answer":"Test happy path\nTest error conditions\nTest boundary values"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should extract test criteria
+    echo "$criteria" | grep -q "\- \[ \].*Test.*happy path"
+    echo "$criteria" | grep -q "\- \[ \].*Test.*error conditions"
+    echo "$criteria" | grep -q "\- \[ \].*Test.*boundary values"
+}
+
+@test "interview_extract_acceptance_criteria extracts from error handling" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Error Handling","question":"How should each error be handled?","answer":"Invalid input: show error message\nTimeout: retry with backoff\nAPI failure: use cached data"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should extract error handling criteria
+    echo "$criteria" | grep -q "\- \[ \].*Invalid input"
+    echo "$criteria" | grep -q "\- \[ \].*Timeout"
+    echo "$criteria" | grep -q "\- \[ \].*API failure"
+    # Should add general error handling criterion
+    echo "$criteria" | grep -q "\- \[ \] All error scenarios handled gracefully"
+}
+
+@test "interview_extract_acceptance_criteria extracts from validation rules" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Data & State","question":"Are there data validation rules?","answer":"Email must be valid format\nAge must be positive integer"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should extract validation criteria
+    echo "$criteria" | grep -q "\- \[ \].*Email must be valid format"
+    echo "$criteria" | grep -q "\- \[ \].*Age must be positive integer"
+}
+
+@test "interview_extract_acceptance_criteria extracts from output requirements" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What outputs does this feature produce?","answer":"JSON response with status\nHTTP 200 on success"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should extract output criteria
+    echo "$criteria" | grep -q "\- \[ \].*JSON response"
+    echo "$criteria" | grep -q "\- \[ \].*HTTP 200"
+}
+
+@test "interview_extract_acceptance_criteria handles bulleted lists" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What are the success criteria?","answer":"- Feature deployed\n- Users can access it\n- Metrics tracked"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should strip bullet points and create checkboxes
+    echo "$criteria" | grep -q "\- \[ \] Feature deployed"
+    echo "$criteria" | grep -q "\- \[ \] Users can access it"
+    echo "$criteria" | grep -q "\- \[ \] Metrics tracked"
+}
+
+@test "interview_extract_acceptance_criteria handles numbered lists" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What are the success criteria?","answer":"1. First requirement\n2. Second requirement\n3. Third requirement"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should strip numbers and create checkboxes
+    echo "$criteria" | grep -q "\- \[ \] First requirement"
+    echo "$criteria" | grep -q "\- \[ \] Second requirement"
+    echo "$criteria" | grep -q "\- \[ \] Third requirement"
+}
+
+@test "interview_extract_acceptance_criteria skips N/A answers" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Error Handling","question":"What errors can occur?","answer":"N/A"},
+        {"category":"Testing","question":"What unit tests are needed?","answer":"Test the main function"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should not include N/A
+    ! echo "$criteria" | grep -q "N/A"
+    # Should include valid answer
+    echo "$criteria" | grep -q "\- \[ \].*Test.*main function"
+}
+
+@test "interview_extract_acceptance_criteria combines multiple sources" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What are the success criteria?","answer":"Feature works"},
+        {"category":"Testing","question":"What unit tests are needed?","answer":"Test main path"},
+        {"category":"Error Handling","question":"How should each error be handled?","answer":"Show error message"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should include criteria from all sources
+    echo "$criteria" | grep -q "\- \[ \] Feature works"
+    echo "$criteria" | grep -q "\- \[ \].*Test.*main path"
+    echo "$criteria" | grep -q "\- \[ \].*error message"
+    # Should always add test passing
+    echo "$criteria" | grep -q "\- \[ \] All tests passing"
+}
+
+@test "interview_extract_acceptance_criteria provides fallback criteria" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Other","question":"Some question","answer":"Some answer"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should have generic fallback criteria
+    echo "$criteria" | grep -q "\- \[ \] Complete implementation as described"
+    echo "$criteria" | grep -q "\- \[ \] All tests passing"
+    echo "$criteria" | grep -q "\- \[ \] Error handling implemented"
+}
+
+@test "interview_extract_acceptance_criteria uses primary goal as fallback" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local responses='[
+        {"category":"Functional Requirements","question":"What is the primary user goal this feature enables?","answer":"Users can export their data"}
+    ]'
+
+    local criteria
+    criteria=$(interview_extract_acceptance_criteria "$responses")
+
+    # Should use primary goal if no explicit success criteria
+    echo "$criteria" | grep -q "\- \[ \] Users can export their data"
+    echo "$criteria" | grep -q "\- \[ \] All tests passing"
+}

@@ -5542,3 +5542,91 @@ The specification document generation now provides:
 5. ✅ Acceptance criteria generation from responses
 
 This completes the comprehensive spec document generation feature, making interview output more useful and organized for task execution.
+
+## Session: Acceptance Criteria Extraction Enhancement (cub-h87.8)
+
+### Task: Automatically extract actionable acceptance criteria from interview responses
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. **New Function**: `interview_extract_acceptance_criteria`
+   - Extracts acceptance criteria from multiple question categories
+   - Generates actionable checkbox lists for task tracking
+   - Handles various answer formats (bullets, numbered lists, plain text)
+
+2. **Multi-Source Extraction**
+   - Success criteria questions (highest priority)
+   - Testing requirements (unit tests, integration tests, edge cases)
+   - Error handling requirements (with automatic summary)
+   - Data validation rules
+   - Output and feedback requirements
+
+3. **Smart Formatting**
+   - Strips bullet points (-, *, •) and numbering
+   - Normalizes whitespace
+   - Adds contextual prefixes ("Test:", "Error handling:", "Validate:", "Display:")
+   - Filters out N/A and empty responses
+
+4. **Fallback Strategy**
+   - Uses primary goal if no explicit criteria found
+   - Generic fallback criteria if no useful responses
+   - Always includes "All tests passing" criterion
+
+5. **Comprehensive Test Suite** (11 new tests)
+   - Extraction from success criteria
+   - Extraction from testing questions
+   - Extraction from error handling
+   - Extraction from validation rules
+   - Extraction from output requirements
+   - Bulleted and numbered list handling
+   - N/A filtering
+   - Multi-source combination
+   - Fallback behaviors
+
+### Test Results:
+- All 31 interview tests PASS (20 existing + 11 new)
+- Test coverage for acceptance criteria extraction:
+  - Single-source extraction
+  - Multi-source combination
+  - Format normalization
+  - Fallback scenarios
+
+### Learnings:
+- **Bash subshell variable scoping**: Variables modified inside `while` loops (which run in subshells due to piping) don't persist to the parent shell. Solution: Use temp files to collect data across subshells, then check file size with `-s` flag.
+
+- **Whitespace normalization in sed**: When removing bullet points with `sed 's/^[-*•]\s*//'`, the `\s*` may not match all whitespace on older sed. Better to chain multiple sed commands: first remove bullets, then trim leading whitespace with `sed 's/^[[:space:]]*//'`, then trim trailing with `sed 's/[[:space:]]*$//'`.
+
+- **POSIX character classes**: Use `[[:space:]]` instead of `\s` for broader compatibility with BSD/macOS sed.
+
+- **Temp file cleanup**: Always remove temp files at function end. Use `${TMPDIR:-/tmp}` for portable temp directory location.
+
+- **Test data with newlines**: In BATS tests, use `jq -n` with `--arg` and `printf` to create proper JSON with actual newlines in values, not escaped `\n` literals:
+  ```bash
+  responses=$(jq -n --arg ans "$(printf 'Line 1\nLine 2')" '[{"answer":$ans}]')
+  ```
+
+- **Progressive extraction**: Extract from multiple sources sequentially, accumulating results. This allows combining criteria from different question types while maintaining priority order.
+
+- **Context-aware prefixing**: Adding prefixes like "Test:" or "Error handling:" when the criterion doesn't already contain those keywords makes the checkbox list more actionable and clear.
+
+### Implementation Details:
+- Function added: `interview_extract_acceptance_criteria` (~130 lines)
+- Function modified: `interview_generate_spec` (simplified criteria generation)
+- Tests added: 11 new tests covering extraction scenarios
+- Total changes: ~250 lines added/modified
+
+### Key Design Decisions:
+1. **Temp file approach**: Necessary due to bash subshell scoping limitations
+2. **Multi-pass extraction**: Separate passes for different question types maintains clarity
+3. **Contextual prefixes**: Makes criteria more actionable without being verbose
+4. **Error summary**: Automatically adds "All error scenarios handled gracefully" when specific error handling is mentioned
+5. **Always include testing**: "All tests passing" is always added as final criterion
+6. **Format normalization**: Handle bullets, numbers, and plain text uniformly
+
+### Integration:
+- Replaces simple success-criteria-only extraction
+- Maintains backward compatibility (same function signature)
+- Generates richer, more actionable acceptance criteria
+- Suitable for task tracking systems (checkbox format)
+
