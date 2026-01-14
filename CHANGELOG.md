@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.18.0] - 2026-01-14 (PR #18)
+
+### Added - Project Organization
+- **`.cub/` directory structure** - Centralized project configuration
+- **Backward-compatible symlinks** - CLAUDE.md, AGENT.md, AGENTS.md, PROMPT.md
+- **`cub migrate-layout`** - Migrate existing projects to new structure
+
+### Added - Project Initialization
+- **`cub init`** - Interactive project setup with type detection
+- **`cub init --quick`** - Non-interactive mode for automation
+- **Project-type templates** - Node.js, Python, Go, Rust-specific configs
+- **Contextual help** - In-file comments with project recommendations
+
+### Added - Doctor Command
+- **`cub doctor`** - System requirements check
+- **`cub doctor --config`** - Configuration validation
+- **`cub doctor --structure`** - Project layout verification
+- **Harness detection** - Claude, Codex version display
+- **Recommendations engine** - Project-specific suggestions
+
+### Added - Documentation
+- **QUICK_START.md** - 5-minute getting started guide
+- **TROUBLESHOOTING.md** - Common issues and solutions (~800 lines)
+- **.cub/README.md generation** - Auto-generated project documentation
+
+### Technical
+- `lib/cmd_init.sh` - ~1200 lines of initialization logic
+- `lib/cmd_doctor.sh` - ~500 lines of validation
+- `lib/layout.sh` - Directory structure management
+- `lib/recommendations.sh` - ~375 lines of recommendation engine
+- `tests/doctor.bats` - 284 lines of doctor tests
+- `tests/migrate_layout.bats` - 300 lines of migration tests
+
+---
+
 ## [0.17.0] - 2026-01-14 (PR #17)
 
 ### Added - PRD Import / Document Conversion
@@ -432,6 +467,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.18.0 | 2026-01-14 | #18 | Onboarding & Project Organization |
 | 0.17.0 | 2026-01-14 | #17 | PRD Import |
 | 0.16.0 | 2026-01-14 | #16 | Interview Mode |
 | 0.15.0 | 2026-01-14 | #15 | Plan Review |
