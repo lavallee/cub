@@ -71,14 +71,9 @@ EOF
 # Parse YAML to JSON (simple parser for our specific format)
 # Usage: _branches_yaml_to_json <yaml_content>
 # Note: This is a simple parser that handles our specific YAML structure
+# We deliberately don't use yq to ensure consistent output format across environments
 _branches_yaml_to_json() {
     local yaml_content="$1"
-
-    # Use yq if available, otherwise fall back to simple bash parsing
-    if command -v yq >/dev/null 2>&1; then
-        echo "$yaml_content" | yq -o json '.' 2>/dev/null
-        return $?
-    fi
 
     # Simple bash-based YAML parser for our specific format
     # Expected format:
@@ -197,14 +192,9 @@ _branches_yaml_to_json() {
 
 # Convert JSON to YAML for our format
 # Usage: _branches_json_to_yaml <json_content>
+# We deliberately don't use yq to ensure consistent output format across environments
 _branches_json_to_yaml() {
     local json_content="$1"
-
-    # Use yq if available
-    if command -v yq >/dev/null 2>&1; then
-        echo "$json_content" | yq -P '.' 2>/dev/null
-        return $?
-    fi
 
     # Simple bash-based JSON to YAML converter for our format
     local output="# Branch-Epic Bindings
