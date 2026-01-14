@@ -389,3 +389,147 @@ EOF
     run _doctor_check_required_fields config.json "$required"
     [[ $status -eq 0 ]]
 }
+
+# ============================================================================
+# Symlink validation tests
+# ============================================================================
+
+@test "_doctor_check_symlinks detects valid symlink CLAUDE.md" {
+    # Setup .cub directory with prompt.md and agent.md
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create valid symlink
+    ln -s .cub/agent.md CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"CLAUDE.md"* ]]
+}
+
+@test "_doctor_check_symlinks detects broken symlink" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create symlink pointing to wrong target
+    ln -s .cub/wrong.md CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"points to"* ]]
+}
+
+@test "_doctor_check_symlinks detects regular file instead of symlink" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create regular file instead of symlink
+    echo "content" > CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"regular file"* ]]
+}
+
+@test "_doctor_check_symlinks validates all required symlinks" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create all required symlinks
+    ln -s .cub/agent.md CLAUDE.md
+    ln -s .cub/agent.md AGENTS.md
+    ln -s .cub/agent.md AGENT.md
+    ln -s .cub/prompt.md PROMPT.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"CLAUDE.md"* ]]
+    [[ "$output" == *"AGENTS.md"* ]]
+    [[ "$output" == *"AGENT.md"* ]]
+    [[ "$output" == *"PROMPT.md"* ]]
+}
+
+# ============================================================================
+# .gitignore validation tests
+# ============================================================================
+
+@test "_doctor_check_gitignore detects missing .gitignore" {
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *".gitignore not found"* ]]
+}
+
+@test "_doctor_check_gitignore detects missing patterns" {
+    # Create .gitignore with incomplete patterns
+    cat > .gitignore <<'EOF'
+# Some patterns
+*.log
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"missing important patterns"* ]]
+    [[ "$output" == *".cub/runs"* ]]
+}
+
+@test "_doctor_check_gitignore validates complete gitignore" {
+    # Create .gitignore with all required patterns
+    cat > .gitignore <<'EOF'
+.cub/runs
+.bv/
+*.log
+.DS_Store
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"configured with required patterns"* ]]
+}
+
+@test "_doctor_check_gitignore handles patterns with leading whitespace" {
+    # Create .gitignore with patterns that have leading whitespace (should not match)
+    cat > .gitignore <<'EOF'
+ .cub/runs
+  .bv/
+*.log
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"missing important patterns"* ]]
+}

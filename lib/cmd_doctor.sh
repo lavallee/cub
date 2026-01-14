@@ -418,6 +418,90 @@ EOF
     return $issues
 }
 
+_doctor_check_symlinks() {
+    local issues=0
+
+    # Check root-level symlinks for new layout projects
+    local layout
+    layout=$(detect_layout "${PROJECT_DIR}")
+
+    if [[ "$layout" == "new" ]]; then
+        # For new layout, symlinks should point to .cub/
+        local symlinks=(
+            "CLAUDE.md:.cub/agent.md"
+            "AGENTS.md:.cub/agent.md"
+            "AGENT.md:.cub/agent.md"
+            "PROMPT.md:.cub/prompt.md"
+        )
+
+        for symlink_pair in "${symlinks[@]}"; do
+            local symlink_name="${symlink_pair%:*}"
+            local target="${symlink_pair#*:}"
+            local symlink_path="${PROJECT_DIR}/${symlink_name}"
+
+            if [[ -L "$symlink_path" ]]; then
+                # It's a symlink, check if it points to the right target
+                local actual_target
+                actual_target=$(readlink "$symlink_path" 2>/dev/null || echo "")
+
+                if [[ "$actual_target" == "$target" ]]; then
+                    _doctor_ok "Symlink ${symlink_name} → ${target}"
+                else
+                    _doctor_warn "Symlink ${symlink_name} points to ${actual_target} (expected ${target})"
+                    ((issues++))
+                fi
+            elif [[ -f "$symlink_path" ]]; then
+                # It's a regular file, not a symlink
+                _doctor_warn "${symlink_name} is a regular file, should be a symlink to ${target}"
+                ((issues++))
+            else
+                # Symlink doesn't exist
+                _doctor_info "Symlink ${symlink_name} not found (optional for new layout)"
+            fi
+        done
+    fi
+
+    return $issues
+}
+
+_doctor_check_gitignore() {
+    local issues=0
+    local gitignore="${PROJECT_DIR}/.gitignore"
+
+    if [[ ! -f "$gitignore" ]]; then
+        _doctor_warn ".gitignore not found"
+        ((issues++))
+        return $issues
+    fi
+
+    # Check for important patterns in .gitignore
+    local required_patterns=(
+        ".cub/runs"
+        ".bv/"
+    )
+
+    local missing_patterns=()
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -q "^${pattern}" "$gitignore"; then
+            missing_patterns+=("$pattern")
+        fi
+    done
+
+    if [[ ${#missing_patterns[@]} -gt 0 ]]; then
+        _doctor_warn ".gitignore missing important patterns"
+        ((issues++))
+        echo ""
+        echo "  Missing patterns in .gitignore:"
+        for pattern in "${missing_patterns[@]}"; do
+            echo "    $pattern"
+        done
+    else
+        _doctor_ok ".gitignore configured with required patterns"
+    fi
+
+    return $issues
+}
+
 _doctor_check_project() {
     local issues=0
     echo ""
@@ -467,6 +551,12 @@ _doctor_check_project() {
     else
         _doctor_info ".cub/ directory not found (will be created on first run)"
     fi
+
+    # Check symlinks
+    _doctor_check_symlinks || issues=$((issues + $?))
+
+    # Check .gitignore
+    _doctor_check_gitignore || issues=$((issues + $?))
 
     return $issues
 }
