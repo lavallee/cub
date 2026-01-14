@@ -199,22 +199,12 @@ pipeline_find_vision() {
 # ============================================================================
 
 cmd_triage() {
-    local vision_path=""
-    local depth="standard"
     local session_id=""
     local resume_session=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --depth)
-                depth="$2"
-                shift 2
-                ;;
-            --depth=*)
-                depth="${1#--depth=}"
-                shift
-                ;;
             --session)
                 resume_session="$2"
                 shift 2
@@ -233,20 +223,18 @@ cmd_triage() {
                 return 1
                 ;;
             *)
-                vision_path="$1"
+                # Ignore positional args (vision path handled by skill)
                 shift
                 ;;
         esac
     done
 
-    # Validate depth
-    case "$depth" in
-        light|standard|deep) ;;
-        *)
-            _log_error_console "Invalid depth: $depth (must be light, standard, or deep)"
-            return 1
-            ;;
-    esac
+    # Check that triage skill is installed
+    if [[ ! -f ".claude/commands/triage.md" ]]; then
+        _log_error_console "Triage skill not installed."
+        _log_error_console "Run 'cub init' to install Claude Code skills."
+        return 1
+    fi
 
     # Resume existing session or create new
     if [[ -n "$resume_session" ]]; then
@@ -264,42 +252,15 @@ cmd_triage() {
 
     local session_dir
     session_dir=$(pipeline_session_dir "$session_id")
-
-    # Find vision document
-    local vision_doc
-    if ! vision_doc=$(pipeline_find_vision "$vision_path"); then
-        log_warn "No vision document found. Please provide a path or create VISION.md"
-        vision_doc=""
-    fi
-
-    # Check for existing codebase
-    local is_existing_project="false"
-    if [[ -f "${PROJECT_DIR}/package.json" ]] || \
-       [[ -f "${PROJECT_DIR}/Cargo.toml" ]] || \
-       [[ -f "${PROJECT_DIR}/go.mod" ]] || \
-       [[ -f "${PROJECT_DIR}/requirements.txt" ]] || \
-       [[ -d "${PROJECT_DIR}/src" ]] || \
-       [[ -d "${PROJECT_DIR}/lib" ]]; then
-        is_existing_project="true"
-    fi
-
-    # Build the triage prompt
-    local prompt
-    prompt=$(_build_triage_prompt "$vision_doc" "$depth" "$session_id" "$is_existing_project")
-
-    # Save prompt to session directory for reference
-    local prompt_file="${session_dir}/.triage_prompt.md"
-    echo "$prompt" > "$prompt_file"
-
     local output_file="${session_dir}/triage.md"
 
-    # Run Claude interactively with the prompt
-    log_info "Starting triage interview (depth: ${depth})..."
-    log_info "Complete the interview with Claude, then exit when done."
+    # Invoke the triage skill with output path
+    log_info "Starting triage interview..."
+    log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude interactively - user completes the triage conversation
-    echo "$prompt" | claude
+    # Run claude with the /triage skill
+    claude "/triage ${output_file}"
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
@@ -319,136 +280,28 @@ cmd_triage() {
     return 0
 }
 
-_build_triage_prompt() {
-    local vision_doc="$1"
-    local depth="$2"
-    local session_id="$3"
-    local is_existing_project="$4"
-
-    local vision_content=""
-    if [[ -n "$vision_doc" && -f "$vision_doc" ]]; then
-        vision_content=$(cat "$vision_doc")
-    fi
-
-    cat <<EOF
-You are the **Triage Agent**. Your role is to ensure product clarity before technical work begins.
-
-Your job is to review the product vision, identify gaps, challenge assumptions, and produce a refined requirements document.
-
-## Session Information
-
-- **Session ID:** ${session_id}
-- **Session Directory:** .cub/sessions/${session_id}/
-- **Output File:** .cub/sessions/${session_id}/triage.md
-- **Triage Depth:** ${depth}
-- **Existing Project:** ${is_existing_project}
-
-## Vision Document
-
-${vision_content:-No vision document provided. Please ask the user to describe their idea.}
-
-## Instructions
-
-1. **Review the vision** - Understand what the user wants to build
-2. **Conduct interview** - Ask clarifying questions based on the triage depth:
-   - Light (5 min): Basic coherence check
-   - Standard (15 min): Full product review with gap analysis
-   - Deep (30 min): Include market analysis and feasibility
-3. **Synthesize requirements** - Organize into P0/P1/P2 priorities
-4. **Document risks** - Identify what could go wrong
-5. **Write output** - Create triage.md in the session directory
-
-## Interview Questions
-
-Ask these questions, waiting for response after each:
-
-1. **Triage Depth**: How thorough should this review be? (Light/Standard/Deep)
-2. **Core Problem**: In one sentence, what problem does this solve? Who has it?
-3. **Success Criteria**: How will you know this project succeeded?
-4. **Constraints**: Hard constraints? (timeline, budget, tech, regulations)
-
-## Output Template
-
-Write the output to: .cub/sessions/${session_id}/triage.md
-
-Use this structure:
-
-\`\`\`markdown
-# Triage Report: {Project Name}
-
-**Session:** ${session_id}
-**Date:** $(date +%Y-%m-%d)
-**Triage Depth:** ${depth}
-**Status:** Approved
-
----
-
-## Executive Summary
-{2-3 sentence summary}
-
-## Problem Statement
-{Clear articulation of the problem}
-
-## Requirements
-
-### P0 - Must Have
-- {requirement}
-
-### P1 - Should Have
-- {requirement}
-
-### P2 - Nice to Have
-- {requirement}
-
-## Constraints
-- {constraint}
-
-## Assumptions
-- {assumption}
-
-## Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| {risk} | {H/M/L} | {strategy} |
-
----
-
-**Next Step:** Run \`cub architect ${session_id}\` to proceed to technical design.
-\`\`\`
-
-Begin the triage interview now.
-EOF
-}
-
 _triage_help() {
     cat <<EOF
-Usage: cub triage [OPTIONS] [VISION.md]
+Usage: cub triage [OPTIONS]
 
 Stage 1: Requirements Refinement
 
-Conduct a product triage interview to clarify requirements, identify gaps,
-and produce a refined requirements document.
-
-Arguments:
-  VISION.md          Path to vision/PRD document (optional)
+Launches an interactive Claude session to conduct a product triage interview,
+clarify requirements, identify gaps, and produce a refined requirements document.
 
 Options:
-  --depth LEVEL      Triage depth: light, standard (default), or deep
   --session ID       Resume an existing session
   -h, --help         Show this help message
 
 Examples:
-  cub triage                      # Interactive triage, find vision doc
-  cub triage VISION.md            # Triage from specific document
-  cub triage --depth deep         # Deep triage with market analysis
+  cub triage                      # Start new triage session
   cub triage --session myproj-... # Resume existing session
 
 Output:
   .cub/sessions/{session-id}/triage.md
 
 Next Step:
-  cub architect {session-id}
+  cub architect --session {session-id}
 EOF
 }
 
@@ -458,31 +311,16 @@ EOF
 
 cmd_architect() {
     local session_id=""
-    local mindset=""
-    local scale=""
-    local review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --mindset)
-                mindset="$2"
+            --session)
+                session_id="$2"
                 shift 2
                 ;;
-            --mindset=*)
-                mindset="${1#--mindset=}"
-                shift
-                ;;
-            --scale)
-                scale="$2"
-                shift 2
-                ;;
-            --scale=*)
-                scale="${1#--scale=}"
-                shift
-                ;;
-            --review)
-                review="true"
+            --session=*)
+                session_id="${1#--session=}"
                 shift
                 ;;
             --help|-h)
@@ -500,6 +338,13 @@ cmd_architect() {
                 ;;
         esac
     done
+
+    # Check that architect skill is installed
+    if [[ ! -f ".claude/commands/architect.md" ]]; then
+        _log_error_console "Architect skill not installed."
+        _log_error_console "Run 'cub init' to install Claude Code skills."
+        return 1
+    fi
 
     # Get session ID
     if [[ -z "$session_id" ]]; then
@@ -527,28 +372,15 @@ cmd_architect() {
 
     local session_dir
     session_dir=$(pipeline_session_dir "$session_id")
-
-    # Read triage output
-    local triage_content
-    triage_content=$(cat "${session_dir}/triage.md")
-
-    # Build architect prompt
-    local prompt
-    prompt=$(_build_architect_prompt "$session_id" "$triage_content" "$mindset" "$scale")
-
-    # Save prompt to session directory for reference
-    local prompt_file="${session_dir}/.architect_prompt.md"
-    echo "$prompt" > "$prompt_file"
-
     local output_file="${session_dir}/architect.md"
 
-    # Run Claude interactively with the prompt
+    # Invoke the architect skill with output path
     log_info "Starting architecture design session..."
-    log_info "Complete the design with Claude, then exit when done."
+    log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude interactively - user completes the architecture conversation
-    echo "$prompt" | claude
+    # Run claude with the /architect skill
+    claude "/architect ${output_file}"
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
@@ -556,15 +388,6 @@ cmd_architect() {
         echo ""
         log_success "Architecture design complete!"
         log_info "Output: ${output_file}"
-
-        # If --review flag is set, validate the architect output
-        if [[ "$review" == "true" ]]; then
-            _architect_review "$session_id" "$session_dir"
-            if [[ $? -ne 0 ]]; then
-                log_warn "Architecture review found issues. Review: ${session_dir}/architect_review.md"
-            fi
-        fi
-
         log_info "Next step: cub plan --session ${session_id}"
     else
         echo ""
@@ -577,353 +400,31 @@ cmd_architect() {
     return 0
 }
 
-_build_architect_prompt() {
-    local session_id="$1"
-    local triage_content="$2"
-    local mindset="$3"
-    local scale="$4"
-
-    cat <<EOF
-You are the **Architect Agent**. Your role is to translate product requirements into a technical design.
-
-## Session Information
-
-- **Session ID:** ${session_id}
-- **Session Directory:** .cub/sessions/${session_id}/
-- **Output File:** .cub/sessions/${session_id}/architect.md
-
-## Triage Output
-
-${triage_content}
-
-## Instructions
-
-1. **Analyze context** - Is this a new project or extending existing code?
-2. **Conduct interview** - Ask about mindset and scale if not provided
-3. **Design architecture** - Create a pragmatic technical design
-4. **Identify risks** - Document what could be hard or uncertain
-5. **Write output** - Create architect.md in the session directory
-
-## Interview Questions
-
-Ask these questions, waiting for response after each:
-
-1. **Technical Mindset**: What context for this project?
-   - Prototype: Speed first, shortcuts OK
-   - MVP: Balance speed and quality
-   - Production: Quality first, maintainable
-   - Enterprise: Maximum rigor, security, compliance
-   ${mindset:+\n   (User specified: ${mindset})}
-
-2. **Scale Expectations**: What usage anticipated?
-   - Personal: Just you (1 user)
-   - Team: 10-100 users
-   - Product: 1,000+ users
-   - Internet-scale: Millions of users
-   ${scale:+\n   (User specified: ${scale})}
-
-3. **Tech Stack**: Preferences or constraints?
-4. **Integrations**: External systems to connect?
-
-## Output Template
-
-Write the output to: .cub/sessions/${session_id}/architect.md
-
-Use this structure:
-
-\`\`\`markdown
-# Architecture Design: {Project Name}
-
-**Session:** ${session_id}
-**Date:** $(date +%Y-%m-%d)
-**Mindset:** {prototype|mvp|production|enterprise}
-**Scale:** {personal|team|product|internet}
-**Status:** Approved
-
----
-
-## Technical Summary
-{2-3 paragraph overview}
-
-## Technology Stack
-
-| Layer | Choice | Rationale |
-|-------|--------|-----------|
-| Language | {choice} | {why} |
-| Framework | {choice} | {why} |
-| Database | {choice} | {why} |
-
-## System Architecture
-
-\`\`\`
-{ASCII diagram}
-\`\`\`
-
-## Components
-
-### {Component Name}
-- **Purpose:** {what it does}
-- **Responsibilities:** {list}
-- **Interface:** {how others interact}
-
-## Data Model
-
-### {Entity Name}
-{fields and types}
-
-## Implementation Phases
-
-### Phase 1: {Name}
-**Goal:** {what this achieves}
-- {task}
-
-## Technical Risks
-
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| {risk} | {H/M/L} | {H/M/L} | {strategy} |
-
----
-
-**Next Step:** Run \`cub plan ${session_id}\` to generate implementation tasks.
-\`\`\`
-
-Begin the architecture design now.
-EOF
-}
-
-_architect_review() {
-    local session_id="$1"
-    local session_dir="$2"
-    local architect_file="${session_dir}/architect.md"
-    local review_file="${session_dir}/architect_review.md"
-
-    log_info "Reviewing architecture design..."
-
-    # Initialize review report
-    {
-        echo "# Architecture Review"
-        echo ""
-        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        echo ""
-    } > "$review_file"
-
-    local has_concerns=false
-
-    # ========================================================================
-    # PHASE 1: BASIC CHECKS (HAIKU - Fast, Cost-Effective)
-    # ========================================================================
-    echo "## Basic Structure Validation" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local missing_sections=()
-    for section in "Technical Summary" "Technology Stack" "System Architecture" "Components"; do
-        if ! grep -q "## $section" "$architect_file"; then
-            missing_sections+=("$section")
-            has_concerns=true
-        fi
-    done
-
-    if [[ ${#missing_sections[@]} -eq 0 ]]; then
-        echo "✓ **PASS**: All required sections present" >> "$review_file"
-        log_info "✓ Structure validation passed"
-    else
-        echo "⚠ **CONCERNS**: Missing sections:" >> "$review_file"
-        printf ' - %s\n' "${missing_sections[@]}" >> "$review_file"
-        log_warn "⚠ Architecture missing sections: ${missing_sections[*]}"
-    fi
-    echo "" >> "$review_file"
-
-    # Check 2: Technical clarity
-    echo "## Technical Clarity" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local word_count
-    word_count=$(wc -w < "$architect_file")
-
-    if [[ $word_count -ge 500 ]]; then
-        echo "✓ **PASS**: Sufficient technical depth (${word_count} words)" >> "$review_file"
-        log_info "✓ Technical clarity validated"
-    else
-        echo "⚠ **CONCERNS**: Limited technical detail (only ${word_count} words, recommended 500+)" >> "$review_file"
-        has_concerns=true
-        log_warn "⚠ Architecture lacks sufficient technical depth"
-    fi
-    echo "" >> "$review_file"
-
-    # Check 3: Risk assessment
-    echo "## Risk Assessment" >> "$review_file"
-    echo "" >> "$review_file"
-
-    if grep -q "## Technical Risks\|risk\|Risk" "$architect_file"; then
-        echo "✓ **PASS**: Risks identified and documented" >> "$review_file"
-        log_info "✓ Risk assessment found"
-    else
-        echo "⚠ **CONCERNS**: No explicit risk documentation" >> "$review_file"
-        has_concerns=true
-        log_warn "⚠ Architecture lacks explicit risk assessment"
-    fi
-    echo "" >> "$review_file"
-
-    # ========================================================================
-    # PHASE 2: DEEP AI-ASSISTED ANALYSIS (SONNET - Capable, Thorough)
-    # ========================================================================
-    local ai_review_result
-    ai_review_result=$(_architect_deep_review "$session_id" "$architect_file" 2>/dev/null || echo "")
-
-    if [[ -n "$ai_review_result" ]]; then
-        echo "## AI-Assisted Architecture Analysis" >> "$review_file"
-        echo "" >> "$review_file"
-        echo "$ai_review_result" >> "$review_file"
-        echo "" >> "$review_file"
-
-        # Update concerns flag if AI found any
-        if echo "$ai_review_result" | grep -q "CONCERNS\|⚠"; then
-            has_concerns=true
-        fi
-    fi
-
-    # Generate verdict
-    echo "## Verdict" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local verdict="PASS"
-    if [[ "$has_concerns" == "true" ]]; then
-        verdict="CONCERNS"
-    fi
-
-    # Check for strict mode
-    local plan_strict
-    plan_strict=$(config_get_or "review.plan_strict" "false")
-    local block_on_concerns
-    block_on_concerns=$(config_get_or "review.block_on_concerns" "false")
-
-    case "$verdict" in
-        PASS)
-            echo "✓ **PASS**: Architecture is well-defined and ready for planning." >> "$review_file"
-            log_info "✓ VERDICT: PASS - Architecture ready for planning"
-            return 0
-            ;;
-        CONCERNS)
-            echo "⚠ **CONCERNS**: Architecture has issues but can proceed. Review recommended." >> "$review_file"
-
-            # In strict mode, pause for review on concerns
-            if [[ "$plan_strict" == "true" ]]; then
-                echo "" >> "$review_file"
-                echo "**STRICT MODE**: Pausing for review of architecture concerns." >> "$review_file"
-                log_warn "⚠ STRICT MODE: Pausing for architecture review"
-
-                # Prompt user to review
-                echo ""
-                echo "Architecture review found concerns. Review details in: $review_file"
-                read -p "Review architecture concerns and press Enter to continue, or Ctrl+C to abort: "
-            fi
-
-            log_warn "⚠ VERDICT: CONCERNS - Review issues before planning"
-            return 1
-            ;;
-    esac
-}
-
-# AI-assisted deep review of architecture (uses SONNET model for thorough analysis)
-#
-# Model Selection Strategy:
-# - PHASE 1 (HAIKU): Basic structure/format checks (fast, cost-effective)
-#   - Section validation, word count, keyword matching
-#   - Deterministic rules that don't require AI
-# - PHASE 2 (SONNET): Deep feasibility and quality analysis (thorough, capable)
-#   - AI-powered review of implementation feasibility, design quality, risks
-#   - Requires model sophistication to understand architectural implications
-#
-_architect_deep_review() {
-    local session_id="$1"
-    local architect_file="$2"
-
-    # Read architecture content
-    local architect_content
-    architect_content=$(cat "$architect_file" 2>/dev/null || echo "")
-
-    if [[ -z "$architect_content" ]]; then
-        return 1
-    fi
-
-    # Build AI review prompt
-    local prompt
-    prompt=$(cat <<'EOF'
-You are an expert software architect reviewing a technical design document.
-
-Please analyze this architecture for:
-1. **Feasibility**: Can this be realistically implemented? Are there technical blockers?
-2. **Completeness**: Are all major components addressed? Any obvious gaps?
-3. **Quality**: Does the design follow best practices? Are there anti-patterns?
-4. **Risks**: What are the main technical risks? Are mitigation strategies documented?
-
-Architecture Document:
----
-{{ARCHITECTURE}}
----
-
-Provide a concise, actionable review. Format your response as:
-
-**Feasibility**: [PASS/CONCERNS] - [brief explanation]
-**Completeness**: [PASS/CONCERNS] - [brief explanation]
-**Quality**: [PASS/CONCERNS] - [brief explanation]
-**Risks**: [PASS/CONCERNS] - [brief explanation]
-
-If any concerns found, include specific suggestions for improvement.
-EOF
-)
-
-    # Replace placeholder
-    prompt="${prompt//{{ARCHITECTURE}}/$architect_content}"
-
-    # Invoke Claude with SONNET model for deep analysis
-    # SONNET is used for deep analysis because it can:
-    # - Understand architectural patterns and best practices
-    # - Identify subtle feasibility issues
-    # - Assess design quality beyond surface-level checks
-    # - Provide sophisticated risk analysis
-    # Note: CUB_MODEL may be set globally, so we override it temporarily for this review
-    local sonnet_output
-    sonnet_output=$(echo "$prompt" | CUB_MODEL="sonnet" claude --print 2>/dev/null || echo "")
-
-    if [[ -n "$sonnet_output" ]]; then
-        echo "$sonnet_output"
-        return 0
-    fi
-
-    return 1
-}
-
 _architect_help() {
     cat <<EOF
 Usage: cub architect [OPTIONS] [SESSION_ID]
 
 Stage 2: Technical Design
 
-Translate requirements into a pragmatic technical architecture.
+Launches an interactive Claude session to design a technical architecture
+based on the triage output.
 
 Arguments:
   SESSION_ID         Session ID from triage (default: most recent)
 
 Options:
-  --mindset TYPE     prototype, mvp, production, or enterprise
-  --scale LEVEL      personal, team, product, or internet
-  --review           Validate architecture after generation
+  --session ID       Specify session ID
   -h, --help         Show this help message
 
 Examples:
   cub architect                        # Use most recent session
-  cub architect myproj-20260113-...    # Specific session
-  cub architect --mindset mvp          # Specify mindset upfront
-  cub architect --review               # With quality validation
+  cub architect --session myproj-...   # Specific session
 
 Output:
   .cub/sessions/{session-id}/architect.md
-  .cub/sessions/{session-id}/architect_review.md (if --review)
 
 Next Step:
-  cub plan {session-id}
+  cub plan --session {session-id}
 EOF
 }
 
@@ -933,31 +434,16 @@ EOF
 
 cmd_plan() {
     local session_id=""
-    local granularity="micro"
-    local prefix=""
-    local review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --granularity)
-                granularity="$2"
+            --session)
+                session_id="$2"
                 shift 2
                 ;;
-            --granularity=*)
-                granularity="${1#--granularity=}"
-                shift
-                ;;
-            --prefix)
-                prefix="$2"
-                shift 2
-                ;;
-            --prefix=*)
-                prefix="${1#--prefix=}"
-                shift
-                ;;
-            --review)
-                review="true"
+            --session=*)
+                session_id="${1#--session=}"
                 shift
                 ;;
             --help|-h)
@@ -976,14 +462,12 @@ cmd_plan() {
         esac
     done
 
-    # Validate granularity
-    case "$granularity" in
-        micro|standard|macro) ;;
-        *)
-            _log_error_console "Invalid granularity: $granularity (must be micro, standard, or macro)"
-            return 1
-            ;;
-    esac
+    # Check that plan skill is installed
+    if [[ ! -f ".claude/commands/plan.md" ]]; then
+        _log_error_console "Plan skill not installed."
+        _log_error_console "Run 'cub init' to install Claude Code skills."
+        return 1
+    fi
 
     # Get session ID
     if [[ -z "$session_id" ]]; then
@@ -1004,42 +488,22 @@ cmd_plan() {
     # Verify architect is complete
     if ! pipeline_has_architect "$session_id"; then
         _log_error_console "Architecture not complete for session: ${session_id}"
-        _log_error_console "Run 'cub architect ${session_id}' first."
+        _log_error_console "Run 'cub architect --session ${session_id}' first."
         return 1
     fi
 
     local session_dir
     session_dir=$(pipeline_session_dir "$session_id")
-
-    # Generate default prefix from project dir if not provided
-    if [[ -z "$prefix" ]]; then
-        prefix=$(basename "$PROJECT_DIR" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
-        prefix="${prefix:0:8}"
-    fi
-
-    # Read previous outputs
-    local triage_content architect_content
-    triage_content=$(cat "${session_dir}/triage.md")
-    architect_content=$(cat "${session_dir}/architect.md")
-
-    # Build plan prompt
-    local prompt
-    prompt=$(_build_plan_prompt "$session_id" "$triage_content" "$architect_content" "$granularity" "$prefix")
-
-    # Save prompt to session directory for reference
-    local prompt_file="${session_dir}/.plan_prompt.md"
-    echo "$prompt" > "$prompt_file"
-
     local jsonl_file="${session_dir}/plan.jsonl"
     local md_file="${session_dir}/plan.md"
 
-    # Run Claude interactively with the prompt
-    log_info "Starting plan generation session (granularity: ${granularity})..."
-    log_info "Complete the planning with Claude, then exit when done."
+    # Invoke the plan skill with session dir
+    log_info "Starting plan generation session..."
+    log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude interactively - user completes the planning conversation
-    echo "$prompt" | claude
+    # Run claude with the /plan skill
+    claude "/plan ${session_dir}"
 
     # Check if output was created
     if [[ -f "$jsonl_file" ]]; then
@@ -1054,15 +518,6 @@ cmd_plan() {
         log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
         log_info "JSONL: ${jsonl_file}"
         [[ -f "$md_file" ]] && log_info "Summary: ${md_file}"
-
-        # If --review flag is set, validate the plan
-        if [[ "$review" == "true" ]]; then
-            _plan_review "$session_id" "$session_dir" "$jsonl_file"
-            if [[ $? -ne 0 ]]; then
-                log_warn "Plan review found issues. Review: ${session_dir}/plan_review.md"
-            fi
-        fi
-
         log_info "Next step: cub bootstrap --session ${session_id}"
     else
         echo ""
@@ -1075,450 +530,32 @@ cmd_plan() {
     return 0
 }
 
-_build_plan_prompt() {
-    local session_id="$1"
-    local triage_content="$2"
-    local architect_content="$3"
-    local granularity="$4"
-    local prefix="$5"
-
-    cat <<EOF
-You are the **Planner Agent**. Your role is to break down the architecture into executable tasks.
-
-You output tasks in a format compatible with **Beads** task management system.
-
-## Session Information
-
-- **Session ID:** ${session_id}
-- **Session Directory:** .cub/sessions/${session_id}/
-- **JSONL Output:** .cub/sessions/${session_id}/plan.jsonl
-- **Summary Output:** .cub/sessions/${session_id}/plan.md
-- **Granularity:** ${granularity}
-- **Task Prefix:** ${prefix}
-
-## Triage Output
-
-${triage_content}
-
-## Architecture Output
-
-${architect_content}
-
-## Granularity Guidelines
-
-- **Micro (15-30 min)**: Optimal for AI agents - fits one context window
-- **Standard (1-2 hours)**: Good for humans or mixed workflows
-- **Macro (half-day+)**: High-level milestones
-
-## Instructions
-
-1. Transform phases into **epics**
-2. Break epics into **tasks** based on granularity
-3. Apply proper **labels** and **priorities**
-4. Wire **dependencies** (parent-child and blocking)
-5. Generate **JSONL** file (one JSON object per line)
-6. Generate **human-readable summary** (plan.md)
-
-## Required Labels
-
-Every task MUST have:
-- \`phase-N\` - Implementation phase
-- \`model:opus-4.5|sonnet|haiku\` - Recommended model
-- \`complexity:high|medium|low\` - Task complexity
-
-Optional labels:
-- \`domain:setup|model|api|ui|logic|test|docs\`
-- \`risk:high|medium\`
-- \`checkpoint\` - Validation pause point
-- \`v0.14\` - Version label
-
-## JSONL Schema
-
-Write to: .cub/sessions/${session_id}/plan.jsonl
-
-Each line is a complete JSON object:
-
-\`\`\`json
-{"id":"${prefix}-001","title":"Task title","description":"## Context\\n...","status":"open","priority":2,"issue_type":"task","labels":["phase-1","model:sonnet","complexity:medium","v0.14"],"dependencies":[{"depends_on_id":"${prefix}-E01","type":"parent-child"}]}
-\`\`\`
-
-**ID Format:**
-- Epics: \`${prefix}-E01\`, \`${prefix}-E02\`, etc.
-- Tasks: \`${prefix}-001\`, \`${prefix}-002\`, etc.
-
-**Dependencies Array:**
-- \`parent-child\`: Links task to its epic
-- \`blocks\`: Task dependency (blocked-by relationship)
-
-## Task Description Template
-
-\`\`\`markdown
-## Context
-{Why this task exists}
-
-## Implementation Hints
-**Recommended Model:** {opus-4.5|sonnet|haiku}
-**Estimated Duration:** {15m|30m|1h|2h}
-**Approach:** {Brief guidance}
-
-## Implementation Steps
-1. {Step}
-
-## Acceptance Criteria
-- [ ] {Criterion}
-
-## Files Likely Involved
-- {path}
-\`\`\`
-
-## Model Selection
-
-- **opus-4.5**: Complex, security-sensitive, novel problems
-- **sonnet**: Standard feature work, moderate complexity
-- **haiku**: Boilerplate, repetitive, simple changes
-
-## Summary Template
-
-Write to: .cub/sessions/${session_id}/plan.md
-
-\`\`\`markdown
-# Implementation Plan: {Project}
-
-**Session:** ${session_id}
-**Generated:** $(date +%Y-%m-%d)
-**Granularity:** ${granularity}
-
----
-
-## Summary
-{Overview}
-
-## Task Hierarchy
-
-### Phase 1: {Name}
-
-| ID | Task | Model | Est |
-|----|------|-------|-----|
-| ${prefix}-001 | {title} | haiku | 15m |
-
-## Model Distribution
-
-| Model | Count |
-|-------|-------|
-| opus-4.5 | {N} |
-| sonnet | {M} |
-| haiku | {K} |
-
-## Ready to Start
-- ${prefix}-001: {title}
-
----
-
-**Next Step:** Run \`cub bootstrap ${session_id}\` to initialize beads.
-\`\`\`
-
-Generate the plan now. First ask about task prefix if the default (${prefix}) isn't appropriate.
-EOF
-}
-
-_plan_review() {
-    local session_id="$1"
-    local session_dir="$2"
-    local jsonl_file="$3"
-    local review_file="${session_dir}/plan_review.md"
-
-    log_info "Reviewing generated plan..."
-
-    # Initialize review report
-    {
-        echo "# Plan Review"
-        echo ""
-        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-        echo ""
-    } > "$review_file"
-
-    local has_concerns=false
-
-    # ========================================================================
-    # PHASE 1: BASIC CHECKS (HAIKU - Fast, Cost-Effective)
-    # ========================================================================
-
-    # Check 1: JSONL validity
-    echo "## JSONL Format Validation" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local valid_lines=0
-    local invalid_lines=0
-    while IFS= read -r line; do
-        if jq empty <<< "$line" 2>/dev/null; then
-            ((valid_lines++))
-        else
-            ((invalid_lines++))
-        fi
-    done < "$jsonl_file"
-
-    if [[ $invalid_lines -eq 0 ]]; then
-        echo "✓ **PASS**: All ${valid_lines} JSONL lines are valid" >> "$review_file"
-        log_info "✓ JSONL format validation passed"
-    else
-        echo "⚠ **CONCERNS**: ${invalid_lines} invalid JSONL lines out of $((valid_lines + invalid_lines))" >> "$review_file"
-        has_concerns=true
-        log_warn "⚠ Plan has invalid JSONL lines"
-    fi
-    echo "" >> "$review_file"
-
-    # Check 2: Task completeness
-    echo "## Task Definition Completeness" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local missing_fields=0
-    while IFS= read -r line; do
-        # Check for required fields: id, title, description, issue_type
-        if ! echo "$line" | jq -e '.id and .title and .description and .issue_type' >/dev/null 2>&1; then
-            ((missing_fields++))
-        fi
-    done < "$jsonl_file"
-
-    if [[ $missing_fields -eq 0 ]]; then
-        echo "✓ **PASS**: All tasks have required fields (id, title, description, issue_type)" >> "$review_file"
-        log_info "✓ Task completeness validation passed"
-    else
-        echo "⚠ **CONCERNS**: ${missing_fields} tasks missing required fields" >> "$review_file"
-        has_concerns=true
-        log_warn "⚠ Plan has tasks with missing fields"
-    fi
-    echo "" >> "$review_file"
-
-    # Check 3: Label presence
-    echo "## Label Validation" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local tasks_missing_labels=0
-    while IFS= read -r line; do
-        # Check for at least one label
-        if ! echo "$line" | jq -e '.labels and (.labels | length) > 0' >/dev/null 2>&1; then
-            ((tasks_missing_labels++))
-        fi
-    done < "$jsonl_file"
-
-    if [[ $tasks_missing_labels -eq 0 ]]; then
-        echo "✓ **PASS**: All tasks have labels" >> "$review_file"
-        log_info "✓ Label validation passed"
-    else
-        echo "⚠ **CONCERNS**: ${tasks_missing_labels} tasks missing labels" >> "$review_file"
-        has_concerns=true
-        log_warn "⚠ Plan has tasks without labels"
-    fi
-    echo "" >> "$review_file"
-
-    # Check 4: Task hierarchy
-    echo "## Task Hierarchy" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local epic_count=0
-    local task_count=0
-    local other_count=0
-    while IFS= read -r line; do
-        local issue_type
-        issue_type=$(echo "$line" | jq -r '.issue_type // "unknown"')
-        case "$issue_type" in
-            epic) ((epic_count++)) ;;
-            task) ((task_count++)) ;;
-            *) ((other_count++)) ;;
-        esac
-    done < "$jsonl_file"
-
-    if [[ $epic_count -gt 0 && $task_count -gt 0 ]]; then
-        echo "✓ **PASS**: Plan has ${epic_count} epics and ${task_count} tasks" >> "$review_file"
-        log_info "✓ Task hierarchy valid (${epic_count} epics, ${task_count} tasks)"
-    else
-        if [[ $epic_count -eq 0 && $task_count -eq 0 ]]; then
-            echo "⚠ **CONCERNS**: Plan has no epics or tasks" >> "$review_file"
-            has_concerns=true
-        elif [[ $epic_count -eq 0 ]]; then
-            echo "⚠ **CONCERNS**: Plan has tasks but no epics (${task_count} tasks)" >> "$review_file"
-            has_concerns=true
-        else
-            echo "⚠ **CONCERNS**: Plan has epics but no tasks (${epic_count} epics)" >> "$review_file"
-            has_concerns=true
-        fi
-        log_warn "⚠ Plan hierarchy incomplete (epics: ${epic_count}, tasks: ${task_count})"
-    fi
-    echo "" >> "$review_file"
-
-    # ========================================================================
-    # PHASE 2: DEEP AI-ASSISTED ANALYSIS (SONNET - Capable, Thorough)
-    # ========================================================================
-    local ai_review_result
-    ai_review_result=$(_plan_deep_review "$session_id" "$jsonl_file" 2>/dev/null || echo "")
-
-    if [[ -n "$ai_review_result" ]]; then
-        echo "## AI-Assisted Plan Analysis" >> "$review_file"
-        echo "" >> "$review_file"
-        echo "$ai_review_result" >> "$review_file"
-        echo "" >> "$review_file"
-
-        # Update concerns flag if AI found any
-        if echo "$ai_review_result" | grep -q "CONCERNS\|⚠"; then
-            has_concerns=true
-        fi
-    fi
-
-    # Generate verdict
-    echo "## Verdict" >> "$review_file"
-    echo "" >> "$review_file"
-
-    local verdict="PASS"
-    if [[ "$has_concerns" == "true" ]]; then
-        verdict="CONCERNS"
-    fi
-
-    # Check for strict mode and block_on_concerns
-    local plan_strict
-    plan_strict=$(config_get_or "review.plan_strict" "false")
-    local block_on_concerns
-    block_on_concerns=$(config_get_or "review.block_on_concerns" "false")
-
-    case "$verdict" in
-        PASS)
-            echo "✓ **PASS**: Plan is well-formed and ready for bootstrap." >> "$review_file"
-            log_info "✓ VERDICT: PASS - Plan ready for bootstrap"
-            return 0
-            ;;
-        CONCERNS)
-            echo "⚠ **CONCERNS**: Plan has issues but can proceed. Review recommended." >> "$review_file"
-
-            # In strict mode, pause for review on concerns
-            if [[ "$plan_strict" == "true" ]]; then
-                echo "" >> "$review_file"
-                echo "**STRICT MODE**: Pausing for review of plan concerns." >> "$review_file"
-                log_warn "⚠ STRICT MODE: Pausing for plan review"
-
-                # Prompt user to review
-                echo ""
-                echo "Plan review found concerns. Review details in: $review_file"
-                read -p "Review plan concerns and press Enter to continue, or Ctrl+C to abort: "
-            fi
-
-            log_warn "⚠ VERDICT: CONCERNS - Review issues before bootstrap"
-            return 1
-            ;;
-    esac
-}
-
-# AI-assisted deep review of plan (uses SONNET model for thorough analysis)
-#
-# Model Selection Strategy:
-# - PHASE 1 (HAIKU): Basic format/structure checks (fast, cost-effective)
-#   - JSONL validity, field presence, label validation, hierarchy validation
-#   - Deterministic rules that don't require AI
-# - PHASE 2 (SONNET): Deep feasibility and readiness analysis (thorough, capable)
-#   - AI-powered review of task feasibility, completeness, implementation readiness
-#   - Requires model sophistication to understand task clarity for AI execution
-#
-_plan_deep_review() {
-    local session_id="$1"
-    local jsonl_file="$2"
-
-    # Read plan content and convert to readable format
-    local plan_tasks=""
-    local task_index=1
-    while IFS= read -r line; do
-        local task_id task_title task_desc
-        task_id=$(echo "$line" | jq -r '.id // ""')
-        task_title=$(echo "$line" | jq -r '.title // ""')
-        task_desc=$(echo "$line" | jq -r '.description // ""' | head -c 100)
-        if [[ -n "$task_id" && -n "$task_title" ]]; then
-            plan_tasks+="$task_index. **$task_id**: $task_title"$'\n'
-            if [[ -n "$task_desc" ]]; then
-                plan_tasks+="   $task_desc..."$'\n'
-            fi
-            ((task_index++))
-        fi
-    done < "$jsonl_file"
-
-    if [[ -z "$plan_tasks" ]]; then
-        return 1
-    fi
-
-    # Build AI review prompt
-    local prompt
-    prompt=$(cat <<'EOF'
-You are an expert software engineer reviewing a task plan for implementation.
-
-Please analyze this plan for:
-1. **Feasibility**: Can each task be realistically completed? Are dependencies properly ordered?
-2. **Completeness**: Does the plan address all requirements? Are there any gaps or missing tasks?
-3. **Implementation Readiness**: Are task descriptions clear enough for an AI agent to execute?
-4. **Risk Assessment**: Are there risky tasks? Should any tasks be split further?
-
-Plan Tasks:
----
-{{PLAN_TASKS}}
----
-
-Provide a concise, actionable review. Format your response as:
-
-**Feasibility**: [PASS/CONCERNS] - [brief explanation]
-**Completeness**: [PASS/CONCERNS] - [brief explanation]
-**Implementation Readiness**: [PASS/CONCERNS] - [brief explanation]
-**Risks**: [PASS/CONCERNS] - [brief explanation]
-
-If any concerns found, include specific suggestions for improvement.
-EOF
-)
-
-    # Replace placeholder
-    prompt="${prompt//{{PLAN_TASKS}}/$plan_tasks}"
-
-    # Invoke Claude with SONNET model for deep analysis
-    # SONNET is used for deep analysis because it can:
-    # - Understand task dependencies and ordering
-    # - Assess if descriptions are clear for AI execution
-    # - Identify gaps in coverage
-    # - Evaluate implementation risk and complexity
-    # Note: CUB_MODEL may be set globally, so we override it temporarily for this review
-    local sonnet_output
-    sonnet_output=$(echo "$prompt" | CUB_MODEL="sonnet" claude --print 2>/dev/null || echo "")
-
-    if [[ -n "$sonnet_output" ]]; then
-        echo "$sonnet_output"
-        return 0
-    fi
-
-    return 1
-}
-
 _plan_help() {
     cat <<EOF
 Usage: cub plan [OPTIONS] [SESSION_ID]
 
 Stage 3: Task Decomposition
 
-Break architecture into executable, AI-agent-friendly tasks.
+Launches an interactive Claude session to break architecture into
+executable, AI-agent-friendly tasks.
 
 Arguments:
   SESSION_ID         Session ID from architect (default: most recent)
 
 Options:
-  --granularity LVL  micro (default), standard, or macro
-  --prefix PREFIX    Task ID prefix (default: project name)
-  --review           Validate plan after generation
+  --session ID       Specify session ID
   -h, --help         Show this help message
 
 Examples:
   cub plan                             # Use most recent session
-  cub plan --granularity micro         # Small tasks for AI agents
-  cub plan --prefix myproj             # Custom task prefix
-  cub plan --review                    # With quality validation
+  cub plan --session myproj-...        # Specific session
 
 Output:
   .cub/sessions/{session-id}/plan.jsonl     (Beads-compatible)
   .cub/sessions/{session-id}/plan.md        (Human-readable)
-  .cub/sessions/{session-id}/plan_review.md (if --review)
 
 Next Step:
-  cub bootstrap {session-id}
+  cub bootstrap --session {session-id}
 EOF
 }
 
@@ -2319,104 +1356,6 @@ Checks:
   - Circular dependencies
   - Missing required labels (model, phase)
   - Invalid task references
-EOF
-}
-
-# ============================================================================
-# Migration Command (cmd_migrate)
-# ============================================================================
-
-cmd_migrate() {
-    local source="${1:-chopshop}"
-
-    case "$source" in
-        chopshop)
-            _migrate_from_chopshop
-            ;;
-        --help|-h|help)
-            _migrate_help
-            ;;
-        *)
-            _log_error_console "Unknown migration source: ${source}"
-            _migrate_help
-            return 1
-            ;;
-    esac
-}
-
-_migrate_from_chopshop() {
-    log_info "Migrating from chopshop..."
-
-    local chopshop_dir="${PROJECT_DIR}/.chopshop"
-    local cub_dir="${PROJECT_DIR}/.cub"
-
-    if [[ ! -d "$chopshop_dir" ]]; then
-        _log_error_console "No .chopshop directory found."
-        return 1
-    fi
-
-    # Create .cub if needed
-    mkdir -p "${cub_dir}/sessions"
-
-    # Migrate sessions
-    if [[ -d "${chopshop_dir}/sessions" ]]; then
-        log_info "Migrating sessions..."
-
-        for session_dir in "${chopshop_dir}/sessions"/*; do
-            if [[ -d "$session_dir" ]]; then
-                local session_name
-                session_name=$(basename "$session_dir")
-                local target_dir="${cub_dir}/sessions/${session_name}"
-
-                log_info "  Migrating: ${session_name}"
-
-                mkdir -p "$target_dir"
-
-                # Copy and rename files
-                [[ -f "${session_dir}/triage-output.md" ]] && \
-                    cp "${session_dir}/triage-output.md" "${target_dir}/triage.md"
-                [[ -f "${session_dir}/architect-output.md" ]] && \
-                    cp "${session_dir}/architect-output.md" "${target_dir}/architect.md"
-                [[ -f "${session_dir}/plan.jsonl" ]] && \
-                    cp "${session_dir}/plan.jsonl" "${target_dir}/plan.jsonl"
-                [[ -f "${session_dir}/plan-output.md" ]] && \
-                    cp "${session_dir}/plan-output.md" "${target_dir}/plan.md"
-            fi
-        done
-    fi
-
-    log_success "Migration complete!"
-    log_info "Original .chopshop directory preserved."
-    log_info "You can safely remove it with: rm -rf .chopshop"
-
-    # Update .gitignore if needed
-    if [[ -f "${PROJECT_DIR}/.gitignore" ]]; then
-        if ! grep -q ".cub/sessions/" "${PROJECT_DIR}/.gitignore"; then
-            echo ".cub/sessions/" >> "${PROJECT_DIR}/.gitignore"
-            log_info "Added .cub/sessions/ to .gitignore"
-        fi
-    fi
-
-    return 0
-}
-
-_migrate_help() {
-    cat <<EOF
-Usage: cub migrate [SOURCE]
-
-Migrate from other planning systems to cub.
-
-Sources:
-  chopshop           Migrate from .chopshop to .cub (default)
-
-Actions:
-  - Copy session artifacts to .cub/sessions/
-  - Rename files to cub conventions
-  - Update .gitignore
-
-Examples:
-  cub migrate                  # Migrate from chopshop
-  cub migrate chopshop         # Explicit source
 EOF
 }
 

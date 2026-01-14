@@ -7,7 +7,6 @@
 # - Prep stage commands (triage, architect, plan, bootstrap)
 # - Unified prep command
 # - Sessions management
-# - Migration from chopshop
 #
 
 load test_helper
@@ -351,39 +350,6 @@ teardown() {
 
     [[ "$status" -ne 0 ]]
     [[ "$output" =~ "Session not found" ]]
-}
-
-# ============================================================================
-# Migration Command Tests
-# ============================================================================
-
-@test "pipeline: migrate help shows usage" {
-    run cmd_migrate help
-
-    [[ "$status" -eq 0 ]]
-    [[ "$output" =~ "Migrate from other planning systems" ]]
-}
-
-@test "pipeline: migrate chopshop fails when no .chopshop directory" {
-    run cmd_migrate chopshop
-
-    [[ "$status" -ne 0 ]]
-    [[ "$output" =~ "No .chopshop directory" ]]
-}
-
-@test "pipeline: migrate chopshop copies session files" {
-    # Create .chopshop structure
-    mkdir -p "$TEST_DIR/.chopshop/sessions/test-session"
-    echo "# Triage" > "$TEST_DIR/.chopshop/sessions/test-session/triage-output.md"
-    echo "# Architect" > "$TEST_DIR/.chopshop/sessions/test-session/architect-output.md"
-
-    run cmd_migrate chopshop
-
-    [[ "$status" -eq 0 ]]
-
-    # Verify files were copied and renamed
-    [[ -f "$TEST_DIR/.cub/sessions/test-session/triage.md" ]]
-    [[ -f "$TEST_DIR/.cub/sessions/test-session/architect.md" ]]
 }
 
 # ============================================================================

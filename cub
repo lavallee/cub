@@ -291,11 +291,6 @@ main() {
                 cmd_validate "${args[@]:1}"
                 return $?
                 ;;
-            migrate)
-                # Migrate from other systems
-                cmd_migrate "${args[@]:1}"
-                return $?
-                ;;
             migrate-layout)
                 # Migrate project layout from legacy to new structure
                 cmd_migrate_layout "${args[@]:1}"
@@ -452,7 +447,6 @@ VISION-TO-TASKS PREP (v0.14):
   cub bootstrap [SESSION]       Stage 4: Initialize beads
   cub sessions                  List/manage prep sessions
   cub validate                  Validate beads state
-  cub migrate                   Migrate from chopshop
   cub migrate-layout            Migrate legacy layout to new .cub/ structure
 
 INTERVIEW MODE (v0.16):

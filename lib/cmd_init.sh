@@ -1267,6 +1267,28 @@ EOF
         log_warn "$(basename "$readme_file") already exists, skipping"
     fi
 
+    # Install Claude Code skills for prep workflow
+    if [[ -d "${CUB_DIR}/templates/commands" ]]; then
+        local commands_dir=".claude/commands"
+        mkdir -p "$commands_dir"
+
+        local skills_installed=0
+        for skill_file in "${CUB_DIR}/templates/commands"/*.md; do
+            if [[ -f "$skill_file" ]]; then
+                local skill_name
+                skill_name=$(basename "$skill_file")
+                if [[ ! -f "${commands_dir}/${skill_name}" ]]; then
+                    cp "$skill_file" "${commands_dir}/${skill_name}"
+                    ((skills_installed++))
+                fi
+            fi
+        done
+
+        if [[ $skills_installed -gt 0 ]]; then
+            log_success "Installed ${skills_installed} Claude Code skills to ${commands_dir}/"
+        fi
+    fi
+
     # Create .gitignore additions
     if [[ -f ".gitignore" ]]; then
         if ! grep -q "# Cub" .gitignore 2>/dev/null; then
