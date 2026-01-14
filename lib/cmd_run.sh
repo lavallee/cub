@@ -1044,6 +1044,138 @@ EOF
     log_debug "Execution end: $(date), duration: $((end_time - start_time))s, exit: ${exit_code}"
 }
 
+# Generate human-readable summary of review results by dimension
+# Outputs markdown with verdict, issues by dimension, and suggestions
+generate_review_summary() {
+    local verdict="$1"
+    local completeness_summary="$2"
+    local feasibility_summary="$3"
+    local dependency_summary="$4"
+    local architecture_summary="$5"
+
+    local summary=""
+
+    # Verdict header with status symbol
+    case "$verdict" in
+        PASS)
+            summary+="✓ **VERDICT: PASS**"$'\n'
+            summary+=$'\n'
+            summary+="All validations passed. Plan is ready for execution."$'\n'
+            ;;
+        CONCERNS)
+            summary+="⚠ **VERDICT: CONCERNS**"$'\n'
+            summary+=$'\n'
+            summary+="Plan has issues to review. See details below."$'\n'
+            ;;
+        BLOCK)
+            summary+="✗ **VERDICT: BLOCK**"$'\n'
+            summary+=$'\n'
+            summary+="Critical issues found. Plan cannot be executed."$'\n'
+            ;;
+    esac
+
+    summary+=$'\n'
+    summary+="---"$'\n'
+    summary+=$'\n'
+
+    # Issues by dimension
+    summary+="## Issues by Dimension"$'\n'
+    summary+=$'\n'
+
+    # Completeness
+    if [[ -z "$completeness_summary" || "$completeness_summary" == "✓ All tasks are complete" ]]; then
+        summary+="### ✓ Completeness"$'\n'
+        summary+="All tasks have title, description, and acceptance criteria."$'\n'
+    else
+        summary+="### ⚠ Completeness"$'\n'
+        summary+="$completeness_summary"$'\n'
+    fi
+    summary+=$'\n'
+
+    # Feasibility
+    if [[ -z "$feasibility_summary" || "$feasibility_summary" == "✓ All tasks are feasible" ]]; then
+        summary+="### ✓ Feasibility"$'\n'
+        summary+="All dependencies are resolved and required files exist."$'\n'
+    else
+        summary+="### ⚠ Feasibility"$'\n'
+        summary+="$feasibility_summary"$'\n'
+    fi
+    summary+=$'\n'
+
+    # Dependencies
+    if [[ -z "$dependency_summary" || "$dependency_summary" == "✓ All dependencies are valid" ]]; then
+        summary+="### ✓ Dependencies"$'\n'
+        summary+="All dependencies exist, no circular dependencies, correct order."$'\n'
+    else
+        summary+="### ⚠ Dependencies"$'\n'
+        summary+="$dependency_summary"$'\n'
+    fi
+    summary+=$'\n'
+
+    # Architecture
+    if [[ -z "$architecture_summary" || "$architecture_summary" == "✓ All tasks are architecturally aligned" ]]; then
+        summary+="### ✓ Architecture"$'\n'
+        summary+="Architecture patterns align with codebase."$'\n'
+    else
+        summary+="### ⚠ Architecture"$'\n'
+        summary+="$architecture_summary"$'\n'
+    fi
+    summary+=$'\n'
+
+    echo -e "$summary"
+}
+
+# Generate console-friendly verdict summary with checkmarks/warnings
+generate_verdict_summary() {
+    local verdict="$1"
+    local has_completeness_issues="$2"
+    local has_feasibility_issues="$3"
+    local has_dependency_issues="$4"
+    local has_architecture_issues="$5"
+
+    local summary=""
+    summary+="════════════════════════════════════════════════════════════════"$'\n'
+
+    # Verdict line with appropriate symbol
+    case "$verdict" in
+        PASS)
+            summary+="✓ VERDICT: PASS"$'\n'
+            summary+=$'\n'
+            summary+="Your plan is ready for execution. All validations passed:"$'\n'
+            summary+="  ✓ Completeness check"$'\n'
+            summary+="  ✓ Feasibility check"$'\n'
+            summary+="  ✓ Dependency validation"$'\n'
+            summary+="  ✓ Architecture alignment"$'\n'
+            ;;
+        CONCERNS)
+            summary+="⚠ VERDICT: CONCERNS"$'\n'
+            summary+=$'\n'
+            summary+="Your plan has issues to review:"$'\n'
+            [[ "$has_completeness_issues" == "true" ]] && summary+="  ⚠ Completeness issues found"$'\n'
+            [[ "$has_feasibility_issues" == "true" ]] && summary+="  ⚠ Feasibility issues found"$'\n'
+            [[ "$has_dependency_issues" == "true" ]] && summary+="  ⚠ Dependency issues found"$'\n'
+            [[ "$has_architecture_issues" == "true" ]] && summary+="  ⚠ Architecture issues found"$'\n'
+            summary+=$'\n'
+            summary+="Review the details above before proceeding."$'\n'
+            ;;
+        BLOCK)
+            summary+="✗ VERDICT: BLOCK"$'\n'
+            summary+=$'\n'
+            summary+="Critical issues found. Plan cannot be executed yet."$'\n'
+            [[ "$has_completeness_issues" == "true" ]] && summary+="  ✗ Completeness issues"$'\n'
+            [[ "$has_feasibility_issues" == "true" ]] && summary+="  ✗ Feasibility issues"$'\n'
+            [[ "$has_dependency_issues" == "true" ]] && summary+="  ✗ Dependency issues"$'\n'
+            [[ "$has_architecture_issues" == "true" ]] && summary+="  ✗ Architecture issues"$'\n'
+            summary+=$'\n'
+            summary+="Fix the issues above and try again."$'\n'
+            ;;
+    esac
+
+    summary+="════════════════════════════════════════════════════════════════"$'\n'
+
+    echo -e "$summary"
+}
+
 run_review_plans() {
     local prd="${PROJECT_DIR}/prd.json"
     local review_report="${PROJECT_DIR}/plan_review.md"
@@ -1060,13 +1192,12 @@ run_review_plans() {
     } > "$review_report"
 
     # Run all validation suites
-    local completeness_issues=()
-    local feasibility_issues=()
-    local dependency_issues=()
-    local architecture_issues=()
-
     local has_concerns=false
     local has_blocks=false
+    local has_completeness_issues=false
+    local has_feasibility_issues=false
+    local has_dependency_issues=false
+    local has_architecture_issues=false
 
     # 1. COMPLETENESS VALIDATION
     log_info "Checking completeness..."
@@ -1084,6 +1215,7 @@ run_review_plans() {
         echo "" >> "$review_report"
         echo "$completeness_summary" >> "$review_report"
         has_concerns=true
+        has_completeness_issues=true
         log_warn "⚠ Completeness check found issues"
     fi
     echo "" >> "$review_report"
@@ -1104,6 +1236,7 @@ run_review_plans() {
         echo "" >> "$review_report"
         echo "$feasibility_summary" >> "$review_report"
         has_concerns=true
+        has_feasibility_issues=true
         log_warn "⚠ Feasibility check found issues"
     fi
     echo "" >> "$review_report"
@@ -1124,6 +1257,7 @@ run_review_plans() {
         echo "" >> "$review_report"
         echo "$dependency_summary" >> "$review_report"
         has_concerns=true
+        has_dependency_issues=true
         log_warn "⚠ Dependency check found issues"
     fi
     echo "" >> "$review_report"
@@ -1144,12 +1278,13 @@ run_review_plans() {
         echo "" >> "$review_report"
         echo "$architecture_summary" >> "$review_report"
         has_concerns=true
+        has_architecture_issues=true
         log_warn "⚠ Architecture check found issues"
     fi
     echo "" >> "$review_report"
 
     # Generate verdict
-    echo "## Verdict" >> "$review_report"
+    echo "## Summary by Dimension" >> "$review_report"
     echo "" >> "$review_report"
 
     # Check for block_on_concerns config
@@ -1168,32 +1303,43 @@ run_review_plans() {
         fi
     fi
 
+    # Generate detailed markdown summary
+    local summary_markdown
+    summary_markdown=$(generate_review_summary \
+        "$verdict" \
+        "$completeness_summary" \
+        "$feasibility_summary" \
+        "$dependency_summary" \
+        "$architecture_summary")
+
+    echo "$summary_markdown" >> "$review_report"
+
+    # Add verdict explanation section
+    echo "" >> "$review_report"
+    echo "## Verdict Explanation" >> "$review_report"
+    echo "" >> "$review_report"
+
     case "$verdict" in
         PASS)
-            echo "✓ **PASS**: Plan is ready for execution. All validations passed." >> "$review_report"
-            echo "" >> "$review_report"
-            echo "All tasks are complete, feasible, have valid dependencies, and" >> "$review_report"
-            echo "follow established architectural patterns. Ready to proceed with" >> "$review_report"
-            echo "execution." >> "$review_report"
+            echo "Plan is ready for execution. All validations passed without issues." >> "$review_report"
+            echo "All tasks are complete, feasible, have valid dependencies, and follow" >> "$review_report"
+            echo "established architectural patterns. Proceed with confidence." >> "$review_report"
             log_info "✓ VERDICT: PASS - Plan is ready for execution"
             ;;
         CONCERNS)
-            echo "⚠ **CONCERNS**: Plan has issues but is executable. Review recommended." >> "$review_report"
-            echo "" >> "$review_report"
-            echo "Some tasks have completeness, feasibility, or architectural concerns." >> "$review_report"
-            echo "Review the issues above before proceeding. Consider fixing before" >> "$review_report"
-            echo "execution, but the plan is not blocked." >> "$review_report"
+            echo "Plan has issues to review but is executable. Issues found in one or more" >> "$review_report"
+            echo "dimensions. Review the summary above carefully. Consider fixing issues" >> "$review_report"
+            echo "before execution to improve code quality, but you may proceed if needed." >> "$review_report"
             log_warn "⚠ VERDICT: CONCERNS - Review issues before execution"
             ;;
         BLOCK)
-            echo "✗ **BLOCK**: Plan cannot be executed. Critical issues found." >> "$review_report"
-            echo "" >> "$review_report"
+            echo "Plan cannot be executed. Critical issues must be resolved first." >> "$review_report"
             if [[ "$block_on_concerns" == "true" && "$has_blocks" != "true" ]]; then
-                echo "Blocking issues detected because block_on_concerns is enabled." >> "$review_report"
-                echo "Review concerns above and fix them, or disable block_on_concerns." >> "$review_report"
+                echo "Issues are blocking because block_on_concerns is enabled." >> "$review_report"
+                echo "Either fix the concerns or disable block_on_concerns in config." >> "$review_report"
                 log_error "✗ VERDICT: BLOCK - Blocking on concerns (block_on_concerns=true)"
             else
-                echo "Critical blocking issues detected. Must be resolved before execution." >> "$review_report"
+                echo "Fix the issues in the summary above and try again." >> "$review_report"
                 log_error "✗ VERDICT: BLOCK - Critical issues must be resolved"
             fi
             ;;
@@ -1206,33 +1352,19 @@ run_review_plans() {
     log_info "Plan review completed: ${verdict}"
     log_info "Review report: ${review_report}"
 
-    # Display verdict summary in console
+    # Display human-readable verdict summary in console
+    local console_summary
+    console_summary=$(generate_verdict_summary \
+        "$verdict" \
+        "$has_completeness_issues" \
+        "$has_feasibility_issues" \
+        "$has_dependency_issues" \
+        "$has_architecture_issues")
+
     echo ""
-    echo "════════════════════════════════════════════════════════════════"
-    case "$verdict" in
-        PASS)
-            echo "✓ VERDICT: PASS"
-            echo ""
-            echo "Your plan is ready for execution. All tasks pass validation:"
-            echo "  ✓ Completeness check"
-            echo "  ✓ Feasibility check"
-            echo "  ✓ Dependency validation"
-            echo "  ✓ Architecture alignment"
-            ;;
-        CONCERNS)
-            echo "⚠ VERDICT: CONCERNS"
-            echo ""
-            echo "Your plan has some issues to review. See details above."
-            ;;
-        BLOCK)
-            echo "✗ VERDICT: BLOCK"
-            echo ""
-            echo "Critical issues found. Plan cannot be executed yet."
-            ;;
-    esac
-    echo "════════════════════════════════════════════════════════════════"
+    echo "$console_summary"
     echo ""
-    echo "Full review: ${review_report}"
+    echo "Full review report: ${review_report}"
     echo ""
 
     return 0
