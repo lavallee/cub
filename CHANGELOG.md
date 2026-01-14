@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.15.0] - 2026-01-14 (PR #15)
+
+### Added - Plan Review System
+- **`cub review --plan <task-id>`** - Review specific task before execution
+- **`cub review --plan --all`** - Review all ready tasks
+- **`cub run --review-plans`** - Auto-review during autonomous runs
+
+### Added - Validation Dimensions
+- **Completeness Check** - Title (≥10 chars), description, acceptance criteria
+- **Feasibility Check** - Dependencies complete, required files exist
+- **Dependency Validation** - No circular dependencies, correct ordering
+- **Architecture Review** - AI-assisted pattern checking (Sonnet model)
+
+### Added - Configuration
+- Configurable strictness levels (pass/warn/block)
+- Model selection: Haiku for structural, Sonnet for AI analysis
+- Pipeline integration (auto-review between stages)
+- Review results logging with timestamps
+
+### Added - Output Formats
+- Summary format (human-readable markdown)
+- JSON format (CI/CD integration)
+
+### Fixed
+- jq syntax bug in cycle detection (immutable variable binding)
+- Infinite loop in topological sort ($completed tracking)
+
+### Technical
+- `lib/tasks.sh` - ~1000 lines of validation functions
+- `tests/tasks.bats` - ~1100 lines of tests
+
+---
+
 ## [0.14.0] - 2026-01-13 (PR #14)
 
 ### Added - Vision-to-Tasks Pipeline (chopshop integration)
@@ -319,6 +352,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.15.0 | 2026-01-14 | #15 | Plan Review |
 | 0.14.0 | 2026-01-13 | #14 | Vision-to-Tasks Pipeline |
 | 0.13.0 | 2026-01-13 | #13 | Rename Curb → Cub |
 | 0.12.0 | 2026-01-13 | #12 | Modular architecture |
