@@ -1136,3 +1136,225 @@ get_completeness_summary() {
 
     return 1
 }
+
+# Validate feasibility of a task
+# Checks:
+#   1. All task dependencies are complete (status: closed)
+#   2. Required files referenced in description exist
+#   3. External dependencies are available (jq, harness, etc.)
+#
+# Returns JSON object with feasibility status:
+# {
+#   "id": "task-id",
+#   "is_feasible": true|false,
+#   "issues": ["issue1", "issue2"]
+# }
+# Usage: validate_task_feasibility task_id [prd_file]
+validate_task_feasibility() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    if [[ -z "$task_id" ]]; then
+        echo '{"error": "task_id is required"}' >&2
+        return 1
+    fi
+
+    local backend=$(get_backend)
+    local description=""
+    local depends_on=()
+    local issues=()
+
+    if [[ "$backend" == "beads" ]]; then
+        # Get task from beads
+        local task_json
+        task_json=$(bd show "$task_id" --json 2>/dev/null) || {
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        }
+
+        description=$(echo "$task_json" | jq -r '.description // ""')
+        # In beads, blocking is represented as "blocks" field (tasks that block this one)
+        # Get tasks that this task depends on
+        local blocking_tasks
+        blocking_tasks=$(echo "$task_json" | jq -r '.blocks // [] | .[]' 2>/dev/null)
+        while IFS= read -r dep; do
+            [[ -n "$dep" ]] && depends_on+=("$dep")
+        done <<< "$blocking_tasks"
+    else
+        # Get task from prd.json
+        local task
+        task=$(json_get_task "$prd" "$task_id")
+
+        if [[ -z "$task" || "$task" == "null" ]]; then
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        fi
+
+        description=$(echo "$task" | jq -r '.description // ""')
+        local depends_on_str
+        depends_on_str=$(echo "$task" | jq -r '.dependsOn // [] | .[]')
+        while IFS= read -r dep; do
+            [[ -n "$dep" ]] && depends_on+=("$dep")
+        done <<< "$depends_on_str"
+    fi
+
+    # Check dependency completeness
+    for dep in "${depends_on[@]}"; do
+        local dep_status
+        if [[ "$backend" == "beads" ]]; then
+            dep_status=$(bd show "$dep" --json 2>/dev/null | jq -r '.status // "unknown"')
+        else
+            dep_status=$(json_get_task "$prd" "$dep" | jq -r '.status // "unknown"')
+        fi
+
+        if [[ "$dep_status" != "closed" ]]; then
+            issues+=("Dependency '$dep' is not closed (status: $dep_status)")
+        fi
+    done
+
+    # Check for file references in description
+    # Look for patterns like [file: path/to/file] or @file:path/to/file or file paths in backticks
+    if [[ -n "$description" ]]; then
+        # Extract file references: [file: ...], @file:..., or `...` (code blocks)
+        # Pattern 1: [file: /path/to/file]
+        local file_refs
+        file_refs=$(echo "$description" | grep -o '\[file:[^]]*\]' | sed 's/\[file:[[:space:]]*//;s/\][[:space:]]*$//' || true)
+
+        while IFS= read -r file_ref; do
+            if [[ -n "$file_ref" ]]; then
+                # Expand ~ to home directory
+                file_ref="${file_ref/#\~/$HOME}"
+                # Skip relative paths starting with ./ or ../
+                if [[ "$file_ref" == ./* ]] || [[ "$file_ref" == ../* ]]; then
+                    # Relative paths are checked relative to project root
+                    if [[ ! -e "$file_ref" ]]; then
+                        issues+=("Referenced file not found: $file_ref")
+                    fi
+                elif [[ "$file_ref" == /* ]]; then
+                    # Absolute paths
+                    if [[ ! -e "$file_ref" ]]; then
+                        issues+=("Referenced file not found: $file_ref")
+                    fi
+                fi
+            fi
+        done <<< "$file_refs"
+    fi
+
+    # Check external dependencies
+    # These are always available in the environment where validation runs
+    # but we can check critical ones
+    if ! command -v jq &> /dev/null; then
+        issues+=("Required dependency 'jq' is not installed or not in PATH")
+    fi
+
+    # Build result JSON
+    local is_feasible="true"
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        is_feasible="false"
+    fi
+
+    # Output result as JSON
+    printf '{\n'
+    printf '  "id": "%s",\n' "$task_id"
+    printf '  "is_feasible": %s,\n' "$is_feasible"
+    printf '  "issues": ['
+
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        for i in "${!issues[@]}"; do
+            if [[ $i -gt 0 ]]; then
+                printf ', '
+            fi
+            printf '"%s"' "$(printf '%s\n' "${issues[$i]}" | sed 's/"/\\"/g')"
+        done
+    fi
+
+    printf ']\n'
+    printf '}\n'
+
+    return 0
+}
+
+# Validate feasibility for all tasks in a project
+# Returns JSON array with feasibility status for each task
+# Optional parameter: prd_file (defaults to prd.json)
+# Returns array of validation results:
+# [
+#   {"id": "task-1", "is_feasible": true, "issues": []},
+#   {"id": "task-2", "is_feasible": false, "issues": ["Dependency 'dep-1' is not closed"]}
+# ]
+validate_all_tasks_feasibility() {
+    local prd="${1:-prd.json}"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Get all tasks from beads
+        local tasks
+        tasks=$(bd list --json 2>/dev/null) || return 1
+
+        echo "["
+        local first=true
+
+        echo "$tasks" | jq -r '.[] | .id' | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_feasibility "$task_id" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    else
+        # Get all tasks from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        echo "["
+        local first=true
+
+        jq -r '.tasks[] | .id' "$prd" | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_feasibility "$task_id" "$prd" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    fi
+
+    return 0
+}
+
+# Get summary of feasibility issues across all tasks
+# Returns markdown-formatted list of infeasible tasks
+# Usage: get_feasibility_summary [prd_file]
+get_feasibility_summary() {
+    local prd="${1:-prd.json}"
+
+    local results
+    results=$(validate_all_tasks_feasibility "$prd")
+
+    local infeasible_count
+    infeasible_count=$(echo "$results" | jq '[.[] | select(.is_feasible == false)] | length')
+
+    if [[ "$infeasible_count" -eq 0 ]]; then
+        echo "✓ All tasks are feasible"
+        return 0
+    fi
+
+    echo "⚠ Found $infeasible_count infeasible task(s):"
+    echo ""
+
+    echo "$results" | jq -r '.[] | select(.is_feasible == false) | "**\(.id)**\n" + (.issues | map("  - \(.)") | join("\n"))' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            echo "$line"
+        fi
+    done
+
+    return 1
+}

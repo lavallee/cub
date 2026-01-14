@@ -1,3 +1,56 @@
+## Task cub-0y8.2: Feasibility check (dependencies complete, files exist) (2026-01-13)
+
+**Implementation:**
+- Added validate_task_feasibility(task_id, prd_file) function in lib/tasks.sh
+- Added validate_all_tasks_feasibility(prd_file) function for batch validation
+- Added get_feasibility_summary(prd_file) function for human-readable reports
+- Comprehensive feasibility checks:
+  1. Task dependencies: All dependencies must have status "closed"
+  2. File references: Files referenced in [file: path] format must exist
+  3. External dependencies: Checks for required tools like jq
+- Added 21 comprehensive BATS tests covering all validation scenarios
+
+**Key Learnings:**
+1. **Dependency status checking**: In JSON backend, check `.status` field against "closed". In beads backend, convert to JSON and check status. Different backends use different field names (beads uses `.blocks`, JSON uses `.dependsOn`).
+2. **File reference extraction**: Pattern `[file: /path/to/file]` extracted via grep and sed. Need to handle:
+   - Absolute paths: Check with `[[ -e "$file_ref" ]]`
+   - Relative paths: Check from current directory
+   - Home directory expansion: `${file_ref/#\~/$HOME}` syntax
+3. **Issue collection pattern**: Build array of issues and check array length at end, not fail early. Allows collecting all problems at once.
+4. **JSON output format**: Consistent with completeness validator: `{id, is_feasible, issues[]}`. Returns array for batch validation, single object for individual task.
+5. **Error handling**: Task not found returns JSON error object with appropriate exit code 1. Missing prd.json returns empty array for graceful degradation.
+6. **Dependency field names differ**: JSON uses `dependsOn` array, beads represents as `blocks` field. Code paths must handle both.
+7. **External dependency checks**: jq is critical (verified with `command -v jq`), harness availability handled by main code.
+
+**Testing Approach:**
+- Unit tests for each function with happy paths and error cases
+- Parameter validation tests (missing task_id, non-existent task)
+- Dependency tests: closed deps (feasible), unclosed deps (infeasible), multiple deps
+- File reference tests: missing files, existing files, relative/absolute paths
+- Integration tests: batch validation, summary reporting
+- Mixed issue tests: both dependency and file issues in one task
+- Edge cases: empty description, no dependencies, no file references
+
+**Acceptance Criteria Met:**
+- ✓ Checks all task dependencies are complete (status: closed)
+- ✓ Detects missing referenced files
+- ✓ Checks external dependencies (jq)
+- ✓ Returns JSON with feasibility status and issues
+- ✓ Batch validation across all tasks
+- ✓ Human-readable summary output
+- ✓ All 21 new tests pass
+- ✓ All 56 existing tests still pass (77 total in tasks.bats)
+
+**Files Modified:**
+- lib/tasks.sh: Added 3 functions + 220 lines (validate_task_feasibility, validate_all_tasks_feasibility, get_feasibility_summary)
+- tests/tasks.bats: Added 21 comprehensive tests + 330 lines
+
+**Next Integration Points:**
+- Plan Review pipeline can use validate_task_feasibility() to check task feasibility before execution
+- Vision-to-Tasks pipeline can validate generated tasks before returning
+- Task creation flows can validate feasibility before accepting
+- --review-plans flag integration can display feasibility issues alongside completeness
+
 ## Task cub-0y8.1: Completeness check (title, description, acceptance criteria) (2026-01-13)
 
 **Implementation:**

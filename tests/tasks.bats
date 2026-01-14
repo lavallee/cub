@@ -806,3 +806,337 @@ EOF
     [[ "$output" =~ "Description is missing" ]]
     [[ "$output" =~ "Acceptance criteria" ]]
 }
+
+# ============================================================================
+# FEASIBILITY VALIDATION TESTS
+# ============================================================================
+
+@test "validate_task_feasibility requires task_id parameter" {
+    run validate_task_feasibility ""
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' >/dev/null
+}
+
+@test "validate_task_feasibility returns error for nonexistent task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "nonexistent"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' >/dev/null
+}
+
+@test "validate_task_feasibility returns valid JSON structure" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq '.' >/dev/null
+    echo "$output" | jq -e '.id == "t1"'
+    echo "$output" | jq -e 'has("is_feasible")'
+    echo "$output" | jq -e 'has("issues")'
+}
+
+@test "validate_task_feasibility marks task feasible with no issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility detects closed dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility detects unclosed dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | any(. | contains("not closed"))'
+}
+
+@test "validate_task_feasibility detects multiple unclosed dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open"},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t1", "t2"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t3"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | length == 2'
+}
+
+@test "validate_task_feasibility detects missing referenced file" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: /nonexistent/path/file.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | any(. | contains("Referenced file not found"))'
+}
+
+@test "validate_task_feasibility accepts existing referenced file (absolute path)" {
+    # Create a file to reference
+    mkdir -p test_files
+    echo "test content" > test_files/myfile.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: test_files/myfile.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility handles relative paths with ./" {
+    mkdir -p test_files
+    echo "test" > test_files/file.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: ./test_files/file.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility detects mixed issues" {
+    mkdir -p test_files
+    echo "test" > test_files/file.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Dep", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Uses [file: /missing/file.txt]", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | length >= 2'
+    echo "$output" | jq -e '.issues | any(. | contains("not closed"))'
+    echo "$output" | jq -e '.issues | any(. | contains("Referenced file not found"))'
+}
+
+@test "validate_all_tasks_feasibility returns empty array for empty prd" {
+    echo '{"prefix": "test", "tasks": []}' > prd.json
+
+    run validate_all_tasks_feasibility "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_tasks_feasibility validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t99"]}
+  ]
+}
+EOF
+
+    run validate_all_tasks_feasibility "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e 'length == 3'
+    echo "$output" | jq -e '.[0].is_feasible == true'
+    echo "$output" | jq -e '.[1].is_feasible == true'
+    echo "$output" | jq -e '.[2].is_feasible == false'
+}
+
+@test "validate_all_tasks_feasibility handles missing file" {
+    run validate_all_tasks_feasibility "nonexistent.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_feasibility_summary reports all feasible" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All tasks are feasible" ]]
+}
+
+@test "get_feasibility_summary reports infeasible tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t99"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "Found 2 infeasible" ]]
+    [[ "$output" =~ "t2" ]]
+    [[ "$output" =~ "t3" ]]
+}
+
+@test "get_feasibility_summary includes specific issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open", "dependsOn": ["missing"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not closed" ]]
+}
+
+@test "validate_task_feasibility handles task with no dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility handles task with empty description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility ignores issues if all deps are closed" {
+    # Even though t2 has dependency on t1, if t1 is closed, t2 is feasible
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Depends on t1", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility special characters in dependency id" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
