@@ -296,6 +296,11 @@ main() {
                 cmd_migrate "${args[@]:1}"
                 return $?
                 ;;
+            migrate-layout)
+                # Migrate project layout from legacy to new structure
+                cmd_migrate_layout "${args[@]:1}"
+                return $?
+                ;;
             interview)
                 # Interview mode: Deep questioning for task specs
                 cmd_interview "${args[@]:1}"
@@ -448,6 +453,7 @@ VISION-TO-TASKS PIPELINE (v0.14):
   cub sessions                  List/manage pipeline sessions
   cub validate                  Validate beads state
   cub migrate                   Migrate from chopshop
+  cub migrate-layout            Migrate legacy layout to new .cub/ structure
 
 INTERVIEW MODE (v0.16):
   cub interview <task-id>       Deep dive on task specifications
