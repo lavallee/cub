@@ -5246,3 +5246,63 @@ Following tasks in epic cub-0y8:
 - cub-0y8.9: JSON output format
 - cub-0y8.10: Review results logging
 - cub-0y8.11: Review model selection
+
+## Task cub-h87.1: Interview Engine Implementation
+
+### Task: Build interview engine for Q&A flow
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Created `lib/cmd_interview.sh` with comprehensive interview functionality
+   - `interview_load_questions()` - Load full question bank (48 questions across 9 categories)
+   - `interview_filter_questions()` - Filter by task type (feature/task/bugfix)
+   - `interview_run_interactive()` - Interactive Q&A flow
+   - `interview_run_auto()` - AI-generated answers via Claude
+   - `interview_generate_spec()` - Generate markdown specification documents
+   - `cmd_interview()` - Main command handler with arg parsing
+
+2. Added interview command to main cub dispatcher
+   - Sourced cmd_interview.sh in cub main script
+   - Added 'interview' subcommand to case statement
+   - Updated help text with interview mode section
+
+3. Question Bank Categories:
+   - Functional Requirements (5 questions)
+   - Edge Cases (6 questions)
+   - Error Handling (6 questions)
+   - User Experience (5 questions)
+   - Data & State (5 questions)
+   - Integration Points (5 questions)
+   - Performance & Scale (5 questions)
+   - Security (5 questions)
+   - Testing (4 questions)
+   - Operations (4 questions)
+
+### Command Interface:
+```bash
+cub interview <task-id>              # Interactive mode
+cub interview <task-id> --auto       # AI-generated answers
+cub interview <task-id> --output FILE   # Custom output location
+cub interview --all                  # Batch mode (not yet implemented)
+cub interview <task-id> --skip-categories "Security,Operations"
+```
+
+### Learnings:
+- **Smart quotes in heredocs cause syntax errors**: Bash heredocs with unescaped smart quotes (', ') instead of straight quotes (', ') will cause "unexpected EOF while looking for matching quote" errors. Always use straight ASCII quotes.
+- **jq string interpolation in bash**: The jq syntax `\(.field)` looks like bash command substitution `$()` and can confuse the parser when used in non-quoted heredocs or certain contexts. Solution: use jq string concatenation `"[" + .field + "]"` instead of `"[\(.field)]"`.
+- **Command registration pattern**: New commands require:
+  1. Source the lib/cmd_*.sh file in main cub script
+  2. Add case in subcommand dispatcher
+  3. Add to help text
+  4. Follow help format convention (cmd_<name>_help function)
+- **Heredoc best practices**: 
+  - Use `<<'EOF'` (quoted) to prevent variable expansion
+  - Use `<<EOF` (unquoted) when you need expansion
+  - Extract complex command substitutions to separate variables before the heredoc
+- **Claude integration pattern**: Pipe prompts to `claude --print`, capture output, parse JSON responses
+
+### Dependencies:
+- Requires: tasks.sh (get_task), logger.sh (log_*), colors (CYAN, NC)
+- Unlocks: cub-h87.5 through cub-h87.12 (remaining interview features)
+
