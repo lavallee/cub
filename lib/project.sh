@@ -9,6 +9,48 @@ if [[ -n "${_CUB_PROJECT_SH_LOADED:-}" ]]; then
 fi
 _CUB_PROJECT_SH_LOADED=1
 
+detect_project_type() {
+    local dir="${1:-.}"
+
+    # Check for Next.js (must come before react check)
+    if [[ -f "${dir}/package.json" ]]; then
+        if grep -q '"next"' "${dir}/package.json" 2>/dev/null; then
+            echo "nextjs"
+            return 0
+        fi
+        # Check for React
+        if grep -q '"react"' "${dir}/package.json" 2>/dev/null; then
+            echo "react"
+            return 0
+        fi
+        # Default to Node.js if package.json exists
+        echo "node"
+        return 0
+    fi
+
+    # Check for Python
+    if [[ -f "${dir}/requirements.txt" ]] || [[ -f "${dir}/pyproject.toml" ]] || [[ -f "${dir}/setup.py" ]]; then
+        echo "python"
+        return 0
+    fi
+
+    # Check for Go
+    if [[ -f "${dir}/go.mod" ]]; then
+        echo "go"
+        return 0
+    fi
+
+    # Check for Rust
+    if [[ -f "${dir}/Cargo.toml" ]]; then
+        echo "rust"
+        return 0
+    fi
+
+    # Default to generic
+    echo "generic"
+    return 0
+}
+
 check_deps() {
     local missing=()
     command -v jq >/dev/null 2>&1 || missing+=("jq")
