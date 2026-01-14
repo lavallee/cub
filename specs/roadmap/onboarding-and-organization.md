@@ -128,7 +128,7 @@ check_requirement() {
 }
 
 # Required
-check_requirement "bash 4+" "bash" "brew install bash" true
+check_requirement "bash 3.2+" "bash" "brew install bash" true
 check_requirement "jq" "jq" "brew install jq" true
 check_requirement "git" "git" "brew install git" true
 

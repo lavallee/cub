@@ -257,7 +257,7 @@ bats --verbose-run tests/tasks.bats --filter "test name"
 Required for running tests:
 - `bats-core` (1.13.0+)
 - `jq` (JSON processor)
-- `bash` (4.0+)
+- `bash` (3.2+)
 
 Optional for integration tests:
 - Claude Code CLI (`claude`)

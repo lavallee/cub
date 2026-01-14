@@ -77,8 +77,8 @@ _doctor_check_bash_version() {
     major=$((BASH_VERSINFO[0]))
     minor=$((BASH_VERSINFO[1]))
 
-    if [[ $major -lt 4 ]]; then
-        _doctor_fail "Bash version ${major}.${minor} (requires 4.0+)"
+    if [[ $major -lt 3 ]] || [[ $major -eq 3 && $minor -lt 2 ]]; then
+        _doctor_fail "Bash version ${major}.${minor} (requires 3.2+)"
         return 1
     else
         _doctor_ok "Bash v${major}.${minor}"
@@ -169,9 +169,9 @@ _doctor_check_env() {
     echo ""
     echo "System Requirements:"
 
-    # Check Bash version (4.0+)
+    # Check Bash version (3.2+)
     if ! _doctor_check_bash_version; then
-        _doctor_fail "Install bash 4.0 or newer:"
+        _doctor_fail "Install bash 3.2 or newer:"
         _doctor_install_hint "bash"
         ((issues++))
     fi

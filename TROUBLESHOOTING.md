@@ -82,12 +82,12 @@ Verify Cub is accessible:
 cub --version
 ```
 
-### Problem: "Bash 4.0+" requirement not met
+### Problem: "Bash 3.2+" requirement not met
 
 **Symptoms**: Cub exits with an error about Bash version.
 
 **Solution**:
-Cub requires Bash 4.0 or later. Check your version:
+Cub requires Bash 3.2 or later. Check your version:
 
 ```bash
 bash --version
