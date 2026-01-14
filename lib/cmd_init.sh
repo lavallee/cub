@@ -11,7 +11,7 @@ _CUB_CMD_INIT_SH_LOADED=1
 
 cmd_init_help() {
     cat <<'EOF'
-cub init [--global] [--type TYPE] [<directory>]
+cub init [--global] [--quick] [--type TYPE] [--backend BACKEND] [<directory>]
 
 Initialize cub in a project or globally.
 
@@ -20,14 +20,22 @@ USAGE:
   cub init --global    Set up global configuration
   cub init <dir>       Initialize in specific directory (interactive)
   cub init --type nextjs <dir>   Initialize with specific type (non-interactive)
+  cub init --quick --type nextjs  Quick initialization with sensible defaults
 
 OPTIONS:
   --global              Set up global configuration (~/.config/cub)
                         Creates config templates and hook directories.
                         Only needs to run once per system.
 
-  --type TYPE           Specify project type directly (nextjs, react, node, python, go, rust, generic)
+  --quick               Non-interactive mode with sensible defaults
+                        Skips all prompts and uses auto-detection or provided flags.
+                        Works with --type and --backend flags.
+
+  --type TYPE           Specify project type directly (nextjs, react, node, python, go, rust, generic, auto)
                         Skips interactive prompts and auto-detects if not specified.
+
+  --backend BACKEND     Specify task backend (beads, json, auto)
+                        Default is auto-detection (beads if available, else json).
 
   <directory>           Directory to initialize (default: current dir)
                         Creates prd.json, PROMPT.md, AGENT.md, etc.
@@ -66,6 +74,15 @@ EXAMPLES:
 
   # Initialize with specific type (no prompts)
   cub init --type nextjs /path/to/project
+
+  # Quick initialization with defaults (non-interactive)
+  cub init --quick
+
+  # Quick mode with specific type and backend
+  cub init --quick --type nextjs --backend beads
+
+  # Quick mode with auto-detection
+  cub init --quick --type auto --backend json
 
   # Set up system-wide defaults
   cub init --global
@@ -790,12 +807,18 @@ cmd_init() {
 
     # Parse flags
     local global_init=false
+    local quick_init=false
     local project_type=""
+    local backend=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --global)
                 global_init=true
+                shift
+                ;;
+            --quick)
+                quick_init=true
                 shift
                 ;;
             --type)
@@ -804,6 +827,14 @@ cmd_init() {
                     return 1
                 fi
                 project_type="$2"
+                shift 2
+                ;;
+            --backend)
+                if [[ $# -lt 2 ]]; then
+                    _log_error_console "Error: --backend requires an argument"
+                    return 1
+                fi
+                backend="$2"
                 shift 2
                 ;;
             *)
@@ -949,6 +980,13 @@ EOF
     # Project initialization (default behavior)
     # ============================================================================
 
+    # Validate quick mode constraints
+    if [[ "$quick_init" == "true" && -z "$project_type" && -z "$backend" ]]; then
+        # Quick mode without any explicit flags - just use sensible defaults
+        # (project_type and backend will be auto-detected)
+        :
+    fi
+
     # Get project name from directory
     local project_name
     project_name=$(basename "$(cd "$target_dir" && pwd)")
@@ -967,8 +1005,19 @@ EOF
     log_debug "Auto-detected project type: ${detected_type}"
 
     if [[ -z "$project_type" ]]; then
-        # No --type flag provided, show interactive prompt
-        project_type=$(_prompt_project_type "$detected_type") || return 1
+        # No --type flag provided
+        if [[ "$quick_init" == "true" ]]; then
+            # Quick mode: use detected type without prompting
+            project_type="$detected_type"
+            log_debug "Quick mode: using auto-detected type: ${project_type}"
+        elif ! [ -t 0 ]; then
+            # Non-interactive (stdin not a TTY): use detected type without prompting
+            project_type="$detected_type"
+            log_debug "Non-interactive mode: using auto-detected type: ${project_type}"
+        else
+            # Interactive mode: show prompt
+            project_type=$(_prompt_project_type "$detected_type") || return 1
+        fi
     elif [[ "$project_type" == "auto" ]]; then
         # --type auto was explicitly set, use detected type
         project_type="$detected_type"
@@ -1130,23 +1179,115 @@ EOF
         log_success "Created .gitignore"
     fi
 
+    # ============================================================================
+    # Backend initialization (beads or json)
+    # ============================================================================
+
+    # Determine which backend to use
+    local selected_backend
+    if [[ -n "$backend" ]]; then
+        # Explicit backend specified via --backend flag
+        case "$backend" in
+            beads|bd)
+                selected_backend="beads"
+                ;;
+            json|prd)
+                selected_backend="json"
+                ;;
+            auto)
+                # Auto-detect: prefer beads if available
+                if command -v bd >/dev/null 2>&1; then
+                    selected_backend="beads"
+                else
+                    selected_backend="json"
+                fi
+                ;;
+            *)
+                _log_error_console "Invalid backend: $backend"
+                _log_error_console "Supported backends: beads, json, auto"
+                return 1
+                ;;
+        esac
+    elif [[ -n "${CUB_BACKEND:-}" ]]; then
+        # Explicit backend specified via environment variable
+        case "$CUB_BACKEND" in
+            beads|bd)
+                selected_backend="beads"
+                ;;
+            json|prd)
+                selected_backend="json"
+                ;;
+            auto)
+                # Auto-detect: prefer beads if available
+                if command -v bd >/dev/null 2>&1; then
+                    selected_backend="beads"
+                else
+                    selected_backend="json"
+                fi
+                ;;
+            *)
+                _log_error_console "Invalid CUB_BACKEND: $CUB_BACKEND"
+                _log_error_console "Supported backends: beads, json, auto"
+                return 1
+                ;;
+        esac
+    else
+        # No explicit backend specified - auto-detect sensible default
+        if command -v bd >/dev/null 2>&1; then
+            selected_backend="beads"
+        else
+            selected_backend="json"
+        fi
+    fi
+
+    log_debug "Using task backend: ${selected_backend}"
+
+    # Initialize the selected backend
+    if [[ "$selected_backend" == "beads" ]]; then
+        if ! command -v bd >/dev/null 2>&1; then
+            _log_error_console "Error: beads (bd) is not installed"
+            _log_error_console "Install with: npm install -g @beads/bd"
+            return 1
+        fi
+
+        # Initialize beads in silent mode
+        if bd init --stealth >/dev/null 2>&1; then
+            log_success "Initialized beads task backend"
+        else
+            _log_error_console "Error: Failed to initialize beads backend"
+            return 1
+        fi
+    fi
+    # json backend needs no initialization - prd.json is already created
+
     echo ""
     log_success "Cub initialized!"
     echo ""
-    echo "Next steps:"
-    echo "  1. Edit prd.json to add your tasks (use ChatPRD template output)"
-    echo "  2. Add specifications to specs/"
-    echo "  3. Update AGENT.md with build instructions"
-    echo "  4. Run 'cub status' to see task summary"
-    echo "  5. Run 'cub' to start the autonomous loop"
+    echo "Backend: ${selected_backend}"
     echo ""
-    echo "Useful commands:"
-    echo "  cub status        Show task progress"
-    echo "  cub run --ready   Show ready tasks"
-    echo "  cub run --once    Run single iteration"
-    echo "  cub run --plan    Run planning mode"
-    echo "  cub --harness codex Use OpenAI Codex instead of Claude"
-    echo ""
+
+    if [[ "$quick_init" == "true" ]]; then
+        echo "Quick initialization complete!"
+        echo ""
+        echo "To start using cub:"
+        echo "  1. Run: cub"
+        echo ""
+    else
+        echo "Next steps:"
+        echo "  1. Edit prd.json to add your tasks (use ChatPRD template output)"
+        echo "  2. Add specifications to specs/"
+        echo "  3. Update AGENT.md with build instructions"
+        echo "  4. Run 'cub status' to see task summary"
+        echo "  5. Run 'cub' to start the autonomous loop"
+        echo ""
+        echo "Useful commands:"
+        echo "  cub status        Show task progress"
+        echo "  cub run --ready   Show ready tasks"
+        echo "  cub run --once    Run single iteration"
+        echo "  cub run --plan    Run planning mode"
+        echo "  cub --harness codex Use OpenAI Codex instead of Claude"
+        echo ""
+    fi
 
     return 0
 }
