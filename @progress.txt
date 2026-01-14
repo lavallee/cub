@@ -1,3 +1,54 @@
+## Task cub-0y8.1: Completeness check (title, description, acceptance criteria) (2026-01-13)
+
+**Implementation:**
+- Added validate_task_completeness(task_id, prd_file) function in lib/tasks.sh
+- Added validate_all_tasks_completeness(prd_file) function for batch validation
+- Added get_completeness_summary(prd_file) function for human-readable reports
+- Comprehensive validation checks:
+  1. Title: Must be present and at least 10 characters
+  2. Description: Must be present and non-empty
+  3. Acceptance criteria: Must be defined via markdown checkboxes or acceptanceCriteria array
+- Added 17 comprehensive BATS tests covering all validation scenarios
+
+**Key Learnings:**
+1. **JQ array syntax matters**: `[.field // []] | length` counts the array wrapper (returns 1 for empty), while `(.field // []) | length` counts the actual items (returns 0 for empty). Use the latter for accurate counts.
+2. **Dual backend support**: Both JSON (prd.json) and beads backends require separate code paths. Beads uses `bd show --json` while JSON uses jq directly on prd.json.
+3. **Acceptance criteria detection**: Tasks can have criteria in two forms: markdown checkboxes in description (`- [ ] criterion`) or in an acceptanceCriteria array field. Both must be checked.
+4. **JSON output design**: Returning structured JSON (id, is_complete, issues[]) from validation functions allows:
+   - Machine parsing for automated pipelines
+   - Batch processing of multiple tasks
+   - Formatting flexibility (human-readable summaries, markdown reports)
+5. **Error reporting strategy**: Collect all issues first, then report them together. Don't fail early on first issue - users want complete validation results.
+6. **Graceful empty file handling**: When prd.json doesn't exist, return empty JSON array ([]) rather than error. Allows pipeline composition.
+7. **Return codes for summaries**: Summary function returns 0 if all complete, 1 if any incomplete. Allows shell scripting and CI/CD integration.
+
+**Testing Approach:**
+- Unit tests for each function with happy paths and error cases
+- Parameter validation tests (missing/empty parameters)
+- Edge cases: very short titles, empty descriptions, missing criteria formats
+- Integration tests: batch validation of mixed complete/incomplete tasks
+- JSON validation: ensure all outputs are valid, parseable JSON
+
+**Acceptance Criteria Met:**
+✓ Title validation (≥10 chars, descriptive)
+✓ Description validation (presence check)
+✓ Acceptance criteria validation (markdown + array fields)
+✓ Issues returned as JSON list
+✓ Batch validation across all tasks
+✓ Human-readable summary output
+✓ All 17 new tests pass
+✓ All 834 existing tests still pass
+
+**Files Modified:**
+- lib/tasks.sh: Added 3 functions + 178 lines (validate_task_completeness, validate_all_tasks_completeness, get_completeness_summary)
+- tests/tasks.bats: Added 17 comprehensive tests + 248 lines
+
+**Next Integration Points:**
+- Plan Review pipeline can use validate_task_completeness() to check task quality
+- Vision-to-Tasks pipeline can validate generated tasks before returning
+- CI/CD can run get_completeness_summary() as pre-execution validation
+- Task creation flows can validate completeness before accepting
+
 ## Task curb-050: Integrate beads assignee with session name (2026-01-11)
 
 **Implementation:**
