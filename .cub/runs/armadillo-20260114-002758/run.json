@@ -1,7 +1,7 @@
 {
-  "run_id": "cat-20260113-224435",
-  "session_name": "cat",
-  "started_at": "2026-01-14T03:44:35Z",
+  "run_id": "armadillo-20260114-002758",
+  "session_name": "armadillo",
+  "started_at": "2026-01-14T05:27:58Z",
   "status": "in_progress",
   "config": {
     "guardrails": {
@@ -17,6 +17,5 @@
         "credentials"
       ]
     }
-  },
-  "tasks_completed": 8
+  }
 }
