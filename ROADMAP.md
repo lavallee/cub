@@ -4,15 +4,21 @@ Features inspired by adjacent homegrown tools like [chopshop](https://github.com
 
 ---
 
-# Provisional sequencing of upcoming point releases
+# Completed
 
 0.14 - Vision-to-Tasks Pipeline          # Foundational - enables end-to-end lifecycle
 0.15 - Plan Review                       # Pipeline quality gate
 0.16 - Interview Mode                    # Pipeline complement (task-level depth)
 0.17 - PRD Import / Document Conversion  # Lightweight alternative to full pipeline
 0.18 - Onboarding & Project Organization # Clean file layout BEFORE migration
+
+# On deck
+
 0.19 - Git Workflow Integration          # Quick win, pairs with pipeline epics
 0.20 - Guardrails System                 # Quick win, institutional memory
+
+# Needs issues
+
 0.21 - Language Migration (Go + Python)  # Now working on clean file structure
 0.22 - Codebase Health Audit             # Useful during/after migration
 0.23 - Live Dashboard                    # Visibility into runs
