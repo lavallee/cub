@@ -81,7 +81,7 @@ source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
 source "${CUB_DIR}/lib/cmd_update.sh"
-source "${CUB_DIR}/lib/cmd_pipeline.sh"
+source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
 
@@ -255,10 +255,10 @@ main() {
                 cmd_update "${args[@]:1}"
                 return $?
                 ;;
-            # Vision-to-Tasks Pipeline commands (v0.14)
-            pipeline)
-                # Run full vision-to-tasks pipeline
-                cmd_pipeline "${args[@]:1}"
+            # Vision-to-Tasks Prep commands (v0.14)
+            prep)
+                # Run full vision-to-tasks prep pipeline
+                cmd_prep "${args[@]:1}"
                 return $?
                 ;;
             triage)
@@ -282,7 +282,7 @@ main() {
                 return $?
                 ;;
             sessions)
-                # Manage pipeline sessions
+                # Manage prep sessions
                 cmd_sessions "${args[@]:1}"
                 return $?
                 ;;
@@ -444,13 +444,13 @@ SUBCOMMANDS:
   cub update [--head|--local]   Update cub to newer version
   cub version                   Show version
 
-VISION-TO-TASKS PIPELINE (v0.14):
-  cub pipeline [VISION.md]      Run full pipeline (triage→architect→plan→bootstrap)
+VISION-TO-TASKS PREP (v0.14):
+  cub prep [VISION.md]          Run full prep (triage→architect→plan→bootstrap)
   cub triage [VISION.md]        Stage 1: Requirements refinement
   cub architect [SESSION]       Stage 2: Technical design
   cub plan [SESSION]            Stage 3: Task decomposition
   cub bootstrap [SESSION]       Stage 4: Initialize beads
-  cub sessions                  List/manage pipeline sessions
+  cub sessions                  List/manage prep sessions
   cub validate                  Validate beads state
   cub migrate                   Migrate from chopshop
   cub migrate-layout            Migrate legacy layout to new .cub/ structure
