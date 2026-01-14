@@ -96,6 +96,52 @@ check_deps() {
     fi
 }
 
+# Check if project has been initialized with cub
+is_project_initialized() {
+    local dir="${1:-$PROJECT_DIR}"
+
+    # Check for beads backend
+    if [[ -f "${dir}/.beads/issues.jsonl" ]]; then
+        return 0
+    fi
+
+    # Check for json backend
+    if [[ -f "${dir}/prd.json" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+# Prompt user to initialize if project is not set up
+prompt_init_if_needed() {
+    if is_project_initialized; then
+        return 0
+    fi
+
+    echo ""
+    log_warn "This directory hasn't been initialized with cub."
+    echo ""
+
+    # Check if we're in interactive mode
+    if ! [ -t 0 ]; then
+        _log_error_console "Run 'cub init' first to set up the project."
+        exit 1
+    fi
+
+    read -p "Would you like to run 'cub init' now? [Y/n] " -r response
+    echo ""
+
+    # Default to yes if empty
+    if [[ -z "$response" || "$response" =~ ^[Yy]$ ]]; then
+        cmd_init
+        return $?
+    else
+        log_info "Run 'cub init' when you're ready to set up the project."
+        exit 0
+    fi
+}
+
 validate_project() {
     log_debug "Validating project structure in ${PROJECT_DIR}"
 

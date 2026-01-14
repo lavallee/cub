@@ -29,7 +29,7 @@ _error_trap() {
 trap '_error_trap ${LINENO}' ERR
 
 # Version information
-CUB_VERSION="0.14.0"
+CUB_VERSION="0.18.0"
 
 # Resolve symlinks to find the real installation directory
 _resolve_symlink() {
@@ -560,7 +560,8 @@ EOF
             ;;
         *)
             # Default: run the main loop with all args
-            cmd_run "${args[@]}"
+            # Use safe array expansion to handle empty array with set -u
+            cmd_run ${args[@]+"${args[@]}"}
             ;;
     esac
 }
