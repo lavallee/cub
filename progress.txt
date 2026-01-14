@@ -1,0 +1,91 @@
+# Cub Project Progress
+
+## Session: Config Validation (cub-eke.13)
+
+### Task Completed
+Implemented comprehensive configuration validation for the 'cub doctor' command.
+
+### What Was Implemented
+
+1. **JSON Validation**
+   - `_doctor_validate_json()`: Checks if config files are valid JSON using jq
+   - Handles both global (~/.config/cub/config.json) and project (.cub.json) configs
+
+2. **Required Fields Check**
+   - `_doctor_check_required_fields()`: Validates presence of required config keys
+   - Uses jq's `has()` function to check top-level fields
+   - Outputs list of missing fields on failure
+
+3. **Deprecated Options Detection**
+   - `_doctor_check_deprecated_options()`: Scans for deprecated config options
+   - Maps deprecated keys to migration instructions
+   - Initial deprecated options:
+     - `harness.priority` → Use `harness.default` instead
+     - `budget.tokens` → Use `budget.max_tokens_per_task` instead
+     - `state.clean` → Use `state.require_clean` instead
+
+4. **Integration into cub doctor**
+   - Config validation runs as part of standard diagnostics
+   - Outputs clear [OK], [!!], or [XX] status indicators
+   - `--verbose` flag shows detailed deprecation messages
+
+### Testing
+
+- Added 9 new tests to tests/doctor.bats
+- All tests passing (32 total in doctor.bats)
+- Tests cover:
+  - Valid/invalid JSON detection
+  - Empty objects and arrays
+  - Deprecated option detection (single and multiple)
+  - Required fields checking (missing and present)
+
+### Implementation Details
+
+**Key Design Decisions:**
+1. Used jq's `has()` function to check for keys with dots (e.g., "harness.priority")
+   - Avoids treating dots as path separators
+   - Quoted field names properly in jq expressions
+
+2. Deprecated options stored as JSON map in function:
+   ```json
+   {
+     "harness.priority": "Use 'harness.default' instead",
+     "budget.tokens": "Use 'budget.max_tokens_per_task' instead",
+     "state.clean": "Use 'state.require_clean' instead"
+   }
+   ```
+
+3. Functions output results to stdout for consumption by tests/shell scripts
+   - Returns exit code 0 on success, 1 on validation failure
+   - Missing fields printed one per line
+
+### How to Use
+
+```bash
+# Run standard diagnostics including config validation
+cub doctor
+
+# Show detailed config issues
+cub doctor --verbose
+
+# Dry-run any fixes (not applicable to config validation yet)
+cub doctor --dry-run
+
+# See what would be fixed
+cub doctor --fix
+```
+
+### Future Enhancements
+
+The implementation provides the foundation for:
+1. Auto-fixing deprecated options (could write migration advice to .cub.json)
+2. Config file generation during `cub init`
+3. Config schema validation against expected structure
+4. Runtime config consistency checks
+
+### Files Modified
+- `lib/cmd_doctor.sh`: Added 3 helper functions and integrated into main check
+- `tests/doctor.bats`: Added 9 comprehensive tests
+
+### Commit
+e3b4d04 task(cub-eke.13): Config validation
