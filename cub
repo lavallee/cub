@@ -81,6 +81,7 @@ source "${CUB_DIR}/lib/cmd_doctor.sh"
 source "${CUB_DIR}/lib/cmd_update.sh"
 source "${CUB_DIR}/lib/cmd_pipeline.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
+source "${CUB_DIR}/lib/cmd_import.sh"
 
 # Load configuration early
 config_load
@@ -296,6 +297,11 @@ main() {
             interview)
                 # Interview mode: Deep questioning for task specs
                 cmd_interview "${args[@]:1}"
+                return $?
+                ;;
+            import)
+                # Import requirements from GitHub, Markdown, JSON, etc.
+                cmd_import "${args[@]:1}"
                 return $?
                 ;;
             version)
