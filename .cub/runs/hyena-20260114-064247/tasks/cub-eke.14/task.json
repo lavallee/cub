@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-eke.14",
+  "title": "Project structure validation",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T13:07:14Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T13:13:11Z",
+  "exit_code": 0
+}
