@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-h87.5",
+  "title": "Auto mode: AI-generated answers from codebase context",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T07:04:05Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T07:20:39Z",
+  "exit_code": 0
+}
