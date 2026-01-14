@@ -1,5 +1,84 @@
 # Cub Development Progress
 
+## Session: Layout Migration Script (cub-eke.4)
+
+### Task: Migration script for existing projects
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Created `cmd_migrate_layout()` function in `lib/cmd_pipeline.sh`
+   - `cmd_migrate_layout()` - Main command handler with flag parsing
+   - `_migrate_layout_impl()` - Core migration logic with dry-run support
+   - `_migrate_layout_help()` - Help text for the command
+
+2. Migration features:
+   - Detects legacy layout files and confirms project migration necessary
+   - Copies PROMPT.md → .cub/prompt.md
+   - Handles both AGENT.md and CLAUDE.md → .cub/agent.md (with preference)
+   - Migrates progress.txt/@progress.txt → .cub/progress.txt (with preference)
+   - Copies fix_plan.md → .cub/fix_plan.md
+   - Copies prd.json → .cub/prd.json
+   - Copies .cub.json → .cub/.cub.json (project config)
+   - Handles symlinks in legacy layout (resolves targets before copying)
+   - Creates backwards-compatibility symlinks after migration
+   - Idempotent - safe to run multiple times
+
+3. Added dispatcher entry in main `cub` script
+   - `migrate-layout` subcommand case handler
+   - Help text entry in command list
+
+4. Comprehensive test suite: `tests/migrate_layout.bats` (22 tests)
+   - Help flag tests (--help, -h, help)
+   - Error handling (unknown options)
+   - Dry-run mode (shows what would migrate, no changes)
+   - Individual file migration (PROMPT.md, AGENT.md, CLAUDE.md, etc.)
+   - Preference handling (AGENT.md over CLAUDE.md, progress.txt over @progress.txt)
+   - Symlink handling (source and destination)
+   - Edge cases (no legacy files, all files at once, idempotent)
+   - Content preservation verification
+
+### Test Results:
+- All 22 new migrate_layout tests PASS
+- All existing tests PASS (no regressions)
+- CLI tests verify new subcommand routing works
+- Complete end-to-end migration workflow tested
+
+### Learnings:
+1. **Legacy File Detection**: Need to check for all possible legacy files (including CLAUDE.md and @progress.txt variants)
+   - has_legacy check must include CLAUDE.md to properly handle projects with only CLAUDE.md
+   - Prefer conventional files when both variants exist
+
+2. **Symlink Handling**: Legacy layouts may use symlinks (as in current project)
+   - Detect with `-L` test
+   - Use `readlink()` to follow symlinks and copy actual content
+   - Only create symlinks if they don't already exist
+
+3. **Backwards Compatibility**: Create symlinks in root after migration
+   - Allows tools expecting root-level files to continue working
+   - User can gradually migrate their workflows
+   - Symlinks clearly indicate new canonical location
+
+4. **Dry-Run Pattern**: Useful for users to preview changes
+   - Change output message (e.g., "Would migrate" vs "Migrating")
+   - Skip all filesystem modifications
+   - Show summary of what would change
+   - Prefix with "DRY RUN:" to be clear
+
+5. **Idempotent Operations**: Migration is safe to run multiple times
+   - Check if project already in new layout
+   - Return gracefully if no legacy files exist
+   - Handles partial migrations (some files already moved)
+
+### Implementation Notes:
+- Used existing log_info, log_success patterns for consistency
+- Followed cmd_migrate() pattern for structure and help format
+- Integrated with existing PROJECT_DIR variable handling
+- No external dependencies beyond bash builtins and cub logging functions
+- All code handles bash 3.2 compatibility (no incompatible syntax)
+
+---
+
 ## Session: File Layout Detection System (cub-eke.3)
 
 ### Task: Update all file references in codebase with layout detection
