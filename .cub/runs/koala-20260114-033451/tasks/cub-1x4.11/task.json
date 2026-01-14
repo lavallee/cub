@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-1x4.11",
+  "title": "PDF support (using pdftotext)",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T10:12:29Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T10:21:35Z",
+  "exit_code": 0
+}
