@@ -534,7 +534,7 @@ interview_generate_spec() {
     local task_type
     task_type=$(echo "$task_json" | jq -r '.type // "task"')
 
-    # Generate markdown document
+    # Generate markdown document header
     cat > "$output_file" <<HEADER
 # Task Specification: $title
 
@@ -549,12 +549,62 @@ $description
 
 HEADER
 
-    # Group responses by category
-    local categories
-    categories=$(echo "$responses_json" | jq -r '[.[].category] | unique | .[]')
+    # Generate summary overview section
+    echo "" >> "$output_file"
+    echo "## Summary" >> "$output_file"
+    echo "" >> "$output_file"
 
-    while IFS= read -r category; do
-        if [[ -n "$category" ]]; then
+    # Extract key summary points from responses
+    local primary_goal
+    primary_goal=$(echo "$responses_json" | jq -r '.[] | select(.question | contains("primary") and contains("goal")) | .answer' | head -1)
+    if [[ -n "$primary_goal" && "$primary_goal" != "null" ]]; then
+        echo "**Primary Goal:** $primary_goal" >> "$output_file"
+        echo "" >> "$output_file"
+    fi
+
+    local inputs
+    inputs=$(echo "$responses_json" | jq -r '.[] | select(.question | contains("inputs") or contains("Inputs")) | .answer' | head -1)
+    if [[ -n "$inputs" && "$inputs" != "null" ]]; then
+        echo "**Inputs:** $inputs" >> "$output_file"
+        echo "" >> "$output_file"
+    fi
+
+    local outputs
+    outputs=$(echo "$responses_json" | jq -r '.[] | select(.question | contains("outputs") or contains("Outputs")) | .answer' | head -1)
+    if [[ -n "$outputs" && "$outputs" != "null" ]]; then
+        echo "**Outputs:** $outputs" >> "$output_file"
+        echo "" >> "$output_file"
+    fi
+
+    # Count responses by category for summary
+    local total_responses
+    total_responses=$(echo "$responses_json" | jq 'length')
+    local categories_covered
+    categories_covered=$(echo "$responses_json" | jq -r '[.[].category] | unique | length')
+    echo "**Coverage:** $total_responses responses across $categories_covered categories" >> "$output_file"
+    echo "" >> "$output_file"
+
+    # Define canonical category order (matches question bank order)
+    local category_order=(
+        "Functional Requirements"
+        "Edge Cases"
+        "Error Handling"
+        "User Experience"
+        "Data & State"
+        "Integration Points"
+        "Performance & Scale"
+        "Security"
+        "Testing"
+        "Operations"
+    )
+
+    # Output categories in logical order
+    for category in "${category_order[@]}"; do
+        # Check if this category has responses
+        local has_responses
+        has_responses=$(echo "$responses_json" | jq --arg cat "$category" '[.[] | select(.category == $cat)] | length')
+
+        if [[ "$has_responses" -gt 0 ]]; then
             echo "" >> "$output_file"
             echo "## $category" >> "$output_file"
             echo "" >> "$output_file"
@@ -563,7 +613,7 @@ HEADER
             echo "$responses_json" | jq -r --arg cat "$category" \
                 '.[] | select(.category == $cat) | "### " + .question + "\n\n" + .answer + "\n"' >> "$output_file"
         fi
-    done <<< "$categories"
+    done
 
     # Generate acceptance criteria from responses
     echo "" >> "$output_file"
