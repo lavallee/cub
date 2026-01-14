@@ -1423,3 +1423,281 @@ EOF
     [ "$status" -eq 0 ]
     echo "$output" | jq -e '. == []'
 }
+
+# =============================================================================
+# Architecture Review Tests
+# =============================================================================
+
+@test "validate_task_architecture requires task_id" {
+    run validate_task_architecture ""
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error'
+}
+
+@test "validate_task_architecture handles task not found" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test Task", "description": "Test", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_architecture "test-999"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error | contains("not found")'
+}
+
+@test "validate_task_architecture returns valid JSON structure" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {
+      "id": "test-1",
+      "title": "Implement new feature",
+      "description": "Add a new validation function to lib/tasks.sh",
+      "status": "open",
+      "type": "task",
+      "labels": ["model:sonnet", "phase-1"]
+    }
+  ]
+}
+EOF
+
+    # Mock harness_invoke to avoid actual AI calls in tests
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": ["Add function to lib/tasks.sh"]}'
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e 'has("is_aligned")'
+    echo "$output" | jq -e 'has("issues")'
+    echo "$output" | jq -e 'has("suggestions")'
+}
+
+@test "validate_task_architecture handles AI unavailable gracefully" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to fail
+    harness_invoke() {
+        return 1
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+    echo "$output" | jq -e '.issues | any(. == "AI review unavailable")'
+}
+
+@test "validate_task_architecture handles non-JSON AI response" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return non-JSON
+    harness_invoke() {
+        echo "This is not JSON but a text response"
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+    echo "$output" | jq -e '.suggestions | length > 0'
+}
+
+@test "validate_task_architecture handles missing prd.json" {
+    run validate_task_architecture "test-1" "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+}
+
+@test "validate_task_architecture parses AI issues and suggestions" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return structured response
+    harness_invoke() {
+        echo '{"is_aligned": false, "issues": ["Task description lacks specific file references", "No clear integration point specified"], "suggestions": ["Add implementation to lib/tasks.sh", "Follow validate_* naming pattern", "Add tests to tests/tasks.bats"]}'
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_aligned == false'
+    echo "$output" | jq -e '.issues | length == 2'
+    echo "$output" | jq -e '.suggestions | length == 3'
+    echo "$output" | jq -e '.issues[0] | contains("file references")'
+    echo "$output" | jq -e '.suggestions[0] | contains("lib/tasks.sh")'
+}
+
+@test "validate_all_architecture validates multiple tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "First", "description": "First task", "status": "open"},
+    {"id": "test-2", "title": "Second", "description": "Second task", "status": "open"},
+    {"id": "test-3", "title": "Third", "description": "Third task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": []}'
+    }
+    export -f harness_invoke
+
+    run validate_all_architecture
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. | length == 3'
+    echo "$output" | jq -e '.[0].id == "test-1"'
+    echo "$output" | jq -e '.[1].id == "test-2"'
+    echo "$output" | jq -e '.[2].id == "test-3"'
+}
+
+@test "validate_all_architecture handles empty task list" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": []
+}
+EOF
+
+    run validate_all_architecture
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_architecture handles file not found" {
+    run validate_all_architecture "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_architecture_summary shows pass with no issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": []}'
+    }
+    export -f harness_invoke
+
+    run get_architecture_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "Architecture Review Summary"
+    echo "$output" | grep -q "Total tasks: 1"
+    echo "$output" | grep -q "Architecturally aligned: 1"
+    echo "$output" | grep -q "✓ All tasks are architecturally aligned"
+}
+
+@test "get_architecture_summary shows concerns with issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return issues
+    harness_invoke() {
+        echo '{"is_aligned": false, "issues": ["Missing file reference"], "suggestions": ["Add to lib/"]}'
+    }
+    export -f harness_invoke
+
+    run get_architecture_summary
+    [ "$status" -eq 1 ]
+    echo "$output" | grep -q "Architecture Review Summary"
+    echo "$output" | grep -q "Total tasks: 1"
+    echo "$output" | grep -q "Tasks with concerns: 1"
+    echo "$output" | grep -q "architectural concerns:"
+    echo "$output" | grep -q "test-1"
+}
+
+@test "get_architecture_summary handles empty prd" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": []
+}
+EOF
+
+    run get_architecture_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "Total tasks: 0"
+    echo "$output" | grep -q "✓ All tasks are architecturally aligned"
+}
+
+@test "validate_task_architecture extracts task fields correctly" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {
+      "id": "test-123",
+      "title": "Implement user authentication",
+      "description": "Add OAuth2 authentication to the API endpoints",
+      "status": "open",
+      "type": "feature",
+      "labels": ["security", "api", "model:sonnet"]
+    }
+  ]
+}
+EOF
+
+    # Mock harness_invoke to capture what was passed
+    harness_invoke() {
+        # Verify task details are in prompt
+        if echo "$2" | grep -q "test-123" && \
+           echo "$2" | grep -q "Implement user authentication" && \
+           echo "$2" | grep -q "OAuth2 authentication" && \
+           echo "$2" | grep -q "feature"; then
+            echo '{"is_aligned": true, "issues": [], "suggestions": ["Task details verified"]}'
+        else
+            echo '{"is_aligned": false, "issues": ["Task details missing"], "suggestions": []}'
+        fi
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-123"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.suggestions | any(. == "Task details verified")'
+}

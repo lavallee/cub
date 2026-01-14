@@ -1710,3 +1710,272 @@ get_dependency_summary() {
 
     return 1
 }
+
+#
+# ============================================================================
+# ARCHITECTURE REVIEW
+# ============================================================================
+#
+
+# Validate architectural alignment for a single task
+# Uses AI (Sonnet) to review task against codebase patterns, conventions, and structure
+# Checks:
+#   1. Code location suggestions (where should implementation live)
+#   2. Pattern consistency (follows existing conventions)
+#   3. Naming conventions alignment
+#   4. Integration points identification
+# Returns JSON: {"id": "task-id", "is_aligned": true/false, "issues": ["issue1"], "suggestions": ["suggestion1"]}
+# Usage: validate_task_architecture <task_id> [prd_file]
+validate_task_architecture() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    if [[ -z "$task_id" ]]; then
+        echo '{"error": "task_id is required"}' >&2
+        return 1
+    fi
+
+    # Source harness if not already loaded
+    if ! command -v harness_invoke >/dev/null 2>&1; then
+        local lib_dir
+        lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # shellcheck source=lib/harness.sh
+        source "${lib_dir}/harness.sh"
+    fi
+
+    local backend=$(get_backend)
+    local task_json=""
+    local task_title=""
+    local task_description=""
+    local task_type=""
+    local task_labels=""
+
+    if [[ "$backend" == "beads" ]]; then
+        # Get task from beads
+        task_json=$(bd show "$task_id" --json 2>/dev/null) || {
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        }
+
+        task_title=$(echo "$task_json" | jq -r '.title // ""')
+        task_description=$(echo "$task_json" | jq -r '.description // ""')
+        task_type=$(echo "$task_json" | jq -r '.type // "task"')
+        task_labels=$(echo "$task_json" | jq -r '.labels // [] | join(", ")')
+    else
+        # Get task from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo '{"id": "'"$task_id"'", "is_aligned": true, "issues": [], "suggestions": []}'
+            return 0
+        fi
+
+        task_json=$(json_get_task "$prd" "$task_id")
+
+        if [[ -z "$task_json" || "$task_json" == "null" ]]; then
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        fi
+
+        task_title=$(echo "$task_json" | jq -r '.title // ""')
+        task_description=$(echo "$task_json" | jq -r '.description // ""')
+        task_type=$(echo "$task_json" | jq -r '.type // "task"')
+        task_labels=$(echo "$task_json" | jq -r '.labels // [] | join(", ")')
+    fi
+
+    # Build codebase context (file structure, patterns)
+    local codebase_context=""
+
+    # Get project structure
+    if [[ -d "lib" ]]; then
+        codebase_context+="Library modules:\n"
+        codebase_context+="$(find lib -type f -name "*.sh" 2>/dev/null | head -20 | sed 's/^/  /')\n\n"
+    fi
+
+    if [[ -d "tests" ]]; then
+        codebase_context+="Test files:\n"
+        codebase_context+="$(find tests -type f -name "*.bats" 2>/dev/null | head -10 | sed 's/^/  /')\n\n"
+    fi
+
+    # Get existing function patterns from lib/tasks.sh if this is a tasks-related feature
+    if echo "$task_description" | grep -qi "task\|validate\|plan\|review"; then
+        if [[ -f "lib/tasks.sh" ]]; then
+            codebase_context+="Existing validation patterns in lib/tasks.sh:\n"
+            codebase_context+="$(grep -E "^(validate_|get_|_detect_)" lib/tasks.sh | head -15 | sed 's/^/  /')\n\n"
+        fi
+    fi
+
+    # Build AI prompt for architecture review
+    local system_prompt="You are an expert code reviewer analyzing architectural alignment for a bash project.
+Your task is to review whether a planned task fits well with the existing codebase patterns and conventions.
+
+Output ONLY valid JSON with this structure:
+{
+  \"is_aligned\": true or false,
+  \"issues\": [\"issue1\", \"issue2\"],
+  \"suggestions\": [\"suggestion1\", \"suggestion2\"]
+}
+
+Issues should identify architectural problems or pattern violations.
+Suggestions should recommend where code should live and what patterns to follow."
+
+    local task_prompt="Review this task for architectural consistency:
+
+## Task
+ID: ${task_id}
+Title: ${task_title}
+Type: ${task_type}
+Labels: ${task_labels}
+
+Description:
+${task_description}
+
+## Codebase Structure
+${codebase_context}
+
+## Analysis Criteria
+1. Code Location: Where should implementation code live based on existing patterns?
+2. Naming Conventions: Does task align with bash function naming (snake_case, prefixes)?
+3. Module Organization: Which lib/*.sh file should contain the code?
+4. Test Location: Where should tests be added?
+5. Integration Points: How should this integrate with existing code?
+
+Provide architectural review as JSON."
+
+    # Invoke AI for architecture review (use sonnet for deeper analysis)
+    local ai_response=""
+    local original_model="${CUB_MODEL:-}"
+    export CUB_MODEL="sonnet"
+
+    ai_response=$(harness_invoke "$system_prompt" "$task_prompt" false 2>/dev/null) || {
+        # If AI fails, return a basic response
+        export CUB_MODEL="$original_model"
+        echo '{"id": "'"$task_id"'", "is_aligned": true, "issues": ["AI review unavailable"], "suggestions": []}'
+        return 0
+    }
+
+    export CUB_MODEL="$original_model"
+
+    # Parse AI response and validate JSON
+    local is_aligned="true"
+    local issues_json="[]"
+    local suggestions_json="[]"
+
+    if echo "$ai_response" | jq -e '.' >/dev/null 2>&1; then
+        # Extract fields (don't use -r for boolean or it becomes a string)
+        local aligned_raw
+        aligned_raw=$(echo "$ai_response" | jq '.is_aligned')
+        if [[ "$aligned_raw" == "null" || -z "$aligned_raw" ]]; then
+            is_aligned="true"
+        else
+            is_aligned="$aligned_raw"
+        fi
+        issues_json=$(echo "$ai_response" | jq -c '.issues // []')
+        suggestions_json=$(echo "$ai_response" | jq -c '.suggestions // []')
+    else
+        # AI returned non-JSON, treat as suggestion
+        is_aligned="true"
+        suggestions_json='["AI review: '"$(echo "$ai_response" | head -1 | sed 's/"/\\"/g')"'"]'
+    fi
+
+    # Build result JSON
+    printf '{\n'
+    printf '  "id": "%s",\n' "$task_id"
+    printf '  "is_aligned": %s,\n' "$is_aligned"
+    printf '  "issues": %s,\n' "$issues_json"
+    printf '  "suggestions": %s\n' "$suggestions_json"
+    printf '}\n'
+
+    return 0
+}
+
+# Validate architecture for all tasks
+# Returns JSON array of architecture validation results
+# Usage: validate_all_architecture [prd_file]
+validate_all_architecture() {
+    local prd="${1:-prd.json}"
+    local backend=$(get_backend)
+    local task_ids=()
+
+    if [[ "$backend" == "beads" ]]; then
+        # Get all task IDs from beads
+        local ids_str
+        ids_str=$(bd list --json 2>/dev/null | jq -r '.[].id')
+        while IFS= read -r id; do
+            [[ -n "$id" ]] && task_ids+=("$id")
+        done <<< "$ids_str"
+    else
+        # Get all task IDs from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        local ids_str
+        ids_str=$(jq -r '.tasks[].id' "$prd")
+        while IFS= read -r id; do
+            [[ -n "$id" ]] && task_ids+=("$id")
+        done <<< "$ids_str"
+    fi
+
+    # Validate each task
+    local results="["
+    local first=true
+
+    for task_id in "${task_ids[@]}"; do
+        if [[ "$first" == true ]]; then
+            first=false
+        else
+            results+=","
+        fi
+
+        local result
+        result=$(validate_task_architecture "$task_id" "$prd" | tr '\n' ' ')
+        results+="$result"
+    done
+
+    results+="]"
+    echo "$results"
+}
+
+# Get human-readable architecture review summary
+# Returns markdown-formatted summary with pass/fail and suggestions
+# Usage: get_architecture_summary [prd_file]
+get_architecture_summary() {
+    local prd="${1:-prd.json}"
+
+    local results
+    results=$(validate_all_architecture "$prd")
+
+    # Count total, aligned, and issues
+    local total
+    local aligned
+    local with_issues
+
+    total=$(echo "$results" | jq '. | length')
+    aligned=$(echo "$results" | jq '[.[] | select(.is_aligned == true)] | length')
+    with_issues=$(echo "$results" | jq '[.[] | select(.issues | length > 0)] | length')
+
+    echo "Architecture Review Summary"
+    echo "==========================="
+    echo ""
+    echo "Total tasks: $total"
+    echo "Architecturally aligned: $aligned"
+    echo "Tasks with concerns: $with_issues"
+    echo ""
+
+    if [[ "$with_issues" -eq 0 ]]; then
+        echo "✓ All tasks are architecturally aligned with the codebase."
+        return 0
+    fi
+
+    echo "Tasks with architectural concerns:"
+    echo ""
+
+    # Show tasks with issues
+    echo "$results" | jq -r '.[] | select(.issues | length > 0) | "**\(.id)**\nIssues:\n" + (.issues | map("  - \(.)") | join("\n")) + "\nSuggestions:\n" + (.suggestions | map("  - \(.)") | join("\n")) + "\n"' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            echo "$line"
+        fi
+    done
+
+    return 1
+}

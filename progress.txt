@@ -5134,3 +5134,115 @@ All acceptance criteria met:
 - `cub validate [--fix]` - State validation
 - `cub migrate [chopshop]` - Migration helper
 
+
+## Session: Task cub-0y8.4 - Architecture Review Implementation
+### Date: 2026-01-13
+
+### Task: Implement AI-assisted architecture review
+- **Status**: COMPLETED
+- **Epic**: cub-0y8 (v0.15: Plan Review)
+
+### What was implemented:
+1. Added three new functions to `lib/tasks.sh` (lines 1714-1974):
+   - `validate_task_architecture(task_id, prd_file)` - AI-powered architectural alignment check
+   - `validate_all_architecture(prd_file)` - Batch validation for all tasks
+   - `get_architecture_summary(prd_file)` - Human-readable markdown summary
+
+2. AI Integration:
+   - Uses Sonnet model for deep architectural analysis
+   - Builds comprehensive codebase context (lib/, tests/, function patterns)
+   - Analyzes code location, naming conventions, module organization, integration points
+   - Returns structured JSON: `{id, is_aligned, issues[], suggestions[]}`
+   - Graceful fallback when AI unavailable
+
+3. Backend Support:
+   - Works with both beads and JSON backends
+   - Sources harness.sh dynamically for AI invocation
+   - Follows established validation patterns from cub-0y8.1-3
+
+4. Test Suite:
+   - Added 14 comprehensive BATS tests in `tests/tasks.bats` (lines 1427-1717)
+   - Tests cover: error handling, JSON validation, AI mocking, edge cases
+   - All tests pass, including existing 97 tests
+
+### Test Results:
+- 14 new architecture review tests PASS
+- All existing validation tests continue to PASS
+- Total architecture tests: 111 (14 new + 97 existing)
+
+### Learnings:
+
+- **jq boolean handling**: When extracting boolean values from JSON, avoid using `-r` flag or `// default` operator incorrectly:
+  - WRONG: `jq -r '.is_aligned // true'` - The `-r` flag makes booleans into strings ("false" instead of false)
+  - WRONG: `jq '.is_aligned // true'` - The `//` operator checks if left side is false/null/empty and returns default
+  - RIGHT: `jq '.is_aligned'` then check if result is "null" and default to true
+  - The `//` operator in jq is for "alternative operator" not "default value" - it returns right side if left is false, null, or empty
+
+- **Function sourcing in libraries**: When one library depends on another (tasks.sh needs harness.sh), check if functions exist before sourcing:
+  ```bash
+  if ! command -v harness_invoke >/dev/null 2>&1; then
+      source "${lib_dir}/harness.sh"
+  fi
+  ```
+
+- **AI prompt structure**: Effective architecture review prompts include:
+  1. Clear system prompt defining role and output format
+  2. Task details (ID, title, type, labels, description)
+  3. Codebase context (file structure, existing patterns)
+  4. Analysis criteria (specific questions to answer)
+  5. JSON schema for structured output
+
+- **Codebase context building**: For architectural analysis, provide:
+  - Directory structure (`find lib -name "*.sh"`)
+  - Test file locations (`find tests -name "*.bats"`)
+  - Existing function patterns (`grep -E "^(validate_|get_)" lib/tasks.sh`)
+  - Context-specific files based on task domain
+
+- **Test mocking strategy**: Mock `harness_invoke` function in tests to avoid actual AI calls:
+  ```bash
+  harness_invoke() {
+      echo '{"is_aligned": true, "issues": [], "suggestions": []}'
+  }
+  export -f harness_invoke
+  ```
+
+- **Validation pattern consistency**: All four validators (completeness, feasibility, dependencies, architecture) follow the same pattern:
+  1. Single-task validator returns JSON: `{id, is_X, issues[]}`
+  2. Batch validator returns array: `[{...}, {...}]`
+  3. Summary function returns markdown with counts and details
+  4. All handle both beads and JSON backends
+  5. All return exit code 0 on success, 1 on issues found
+
+- **Model selection**: Architecture review uses Sonnet by temporarily setting `CUB_MODEL=sonnet` for deeper analysis, then restoring original model. This allows intelligent model routing based on task complexity.
+
+### Implementation Details:
+- Architecture review queries AI about:
+  - Code location (which file/directory)
+  - Naming conventions (snake_case, prefixes)
+  - Module organization (lib structure)
+  - Test location (tests/ structure)
+  - Integration points (how to connect with existing code)
+
+- Graceful degradation:
+  - AI unavailable → returns `is_aligned: true` with issue "AI review unavailable"
+  - Non-JSON response → extracts first line as suggestion
+  - Missing fields → defaults to safe values
+
+- Integration ready for:
+  - cub-0y8.5: Run loop integration
+  - cub-0y8.6: Pipeline integration
+  - cub-0y8.7: Configurable strictness
+
+### Files Changed:
+- `lib/tasks.sh` - Added 261 lines (architecture validation functions)
+- `tests/tasks.bats` - Added 291 lines (14 comprehensive tests)
+
+### Next Steps:
+Following tasks in epic cub-0y8:
+- cub-0y8.5: Run loop integration (`--review-plans` flag)
+- cub-0y8.6: Pipeline integration (auto-review between stages)
+- cub-0y8.7: Configurable strictness levels
+- cub-0y8.8: Summary output format
+- cub-0y8.9: JSON output format
+- cub-0y8.10: Review results logging
+- cub-0y8.11: Review model selection
