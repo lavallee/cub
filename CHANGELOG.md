@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.18.1] - 2026-01-14 (PR #22)
+
+### Changed - Prep Workflow
+- **Renamed `cub pipeline` to `cub prep`** - Clearer naming for project preparation
+- **Interactive Claude sessions** - Prep stages now launch as Claude Code skills
+- **One stage at a time** - `cub prep` runs the next incomplete stage, showing progress
+- **Enriched prep skills** - Triage, architect, and plan skills now include acceptance criteria, model preferences, complexity labels, and comprehensive guidance
+
+### Changed - Init Command
+- **Non-interactive by default** - Auto-detects project type without prompting
+- **Added `--interactive` / `-i` flag** - Opt-in to menu prompt for project type
+- **Removed `--quick` flag** - No longer needed since non-interactive is default
+- **Fixed backend selection** - Only creates `prd.json` for json backend; beads backend skips it
+- **Backend-aware help** - "Next steps" now shows appropriate commands per backend
+
+### Changed - Naming
+- **Renamed `cub update` to `cub upgrade`** - More intuitive naming for self-update
+
+### Fixed
+- **Bash 3.2 compatibility** - Lowered requirement from 4.0 to 3.2 for macOS
+- **Unbound variable errors** - Safe array expansion with `${array[@]+"${array[@]}"}`
+- **Pre-increment in init** - Fixed `((skills_installed++))` causing errexit failure
+
+### Technical
+- Added Claude Code skills: `cub:triage.md`, `cub:architect.md`, `cub:plan.md`
+- Renamed `lib/cmd_pipeline.sh` to `lib/cmd_prep.sh`
+- Renamed `lib/cmd_update.sh` to `lib/cmd_upgrade.sh`
+- Updated doctor command to check for bash 3.2+
+
+---
+
 ## [0.18.0] - 2026-01-14 (PR #18)
 
 ### Added - Project Organization
