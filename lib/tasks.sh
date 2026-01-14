@@ -1561,21 +1561,31 @@ get_dependency_order() {
 
         # Use jq to perform topological sort
         # Strategy: repeatedly output tasks with no unresolved dependencies
+        # Track completed within loop state to avoid infinite loop
         jq -r '
             .tasks as $tasks |
             ($tasks | map(.id)) as $all_ids |
-            ($tasks | map(select(.status == "closed") | .id)) as $completed |
+            ($tasks | map(select(.status == "closed") | .id)) as $initially_completed |
 
             # Build a function to check if task has unresolved deps
             def has_unresolved($completed):
                 (.dependsOn // []) | any(. as $dep | ($completed | contains([$dep])) | not);
 
             # Topological sort via iterative removal
-            {remaining: $tasks, ordered: []} |
+            # Include completed in state so it gets updated each iteration
+            {remaining: $tasks, ordered: [], completed: $initially_completed} |
             until(.remaining | length == 0;
-                .ready = [.remaining[] | select((has_unresolved($completed)) | not)] |
-                .ordered += (.ready | map(.id)) |
-                .remaining = [.remaining[] | select((has_unresolved($completed)) | not | not)]
+                .completed as $done |
+                ([.remaining[] | select((has_unresolved($done)) | not)]) as $ready_tasks |
+                if ($ready_tasks | length) == 0 then
+                    # No progress - remaining tasks have unresolvable deps (cycle or missing)
+                    .remaining = []
+                else
+                    ($ready_tasks | map(.id)) as $ready_ids |
+                    .ordered += $ready_ids |
+                    .completed += $ready_ids |
+                    .remaining = [.remaining[] | select(.id as $id | ($ready_ids | index($id)) == null)]
+                end
             ) |
             .ordered
         ' "$prd"
@@ -1653,24 +1663,26 @@ _detect_cycles_json() {
     local task_id="$2"
 
     # Build the dependency graph and check for cycles
+    # Uses proper jq recursive approach with immutable variable bindings
     jq --arg task "$task_id" '
         def has_cycle($graph; $visited; $rec_stack; $node):
-            $visited[$node] = true |
-            $rec_stack[$node] = true |
+            # jq variables are immutable - use proper recursive binding
+            ($visited | .[$node] = true) as $new_visited |
+            ($rec_stack | .[$node] = true) as $new_rec_stack |
             (($graph[$node] // []) | map(
-                if $visited[.] == true then
-                    if $rec_stack[.] == true then
+                if $new_visited[.] == true then
+                    if $new_rec_stack[.] == true then
                         {cycle: true, path: [$node, .]}
                     else
                         {cycle: false}
                     end
                 else
-                    has_cycle($graph; $visited; $rec_stack; .)
+                    has_cycle($graph; $new_visited; $new_rec_stack; .)
                 end
-            ) | if any(.cycle) then . else empty end);
+            ) | map(select(.cycle == true)) | first // {cycle: false});
 
         # Build adjacency list
-        (.tasks | map({id, deps: (.dependsOn // [])}) | map({(.id): .deps}) | add) as $graph |
+        (.tasks | map({id, deps: (.dependsOn // [])}) | map({(.id): .deps}) | add // {}) as $graph |
 
         # Check for cycles starting from given task
         has_cycle($graph; {}; {}; $task)
