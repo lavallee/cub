@@ -1612,3 +1612,51 @@ Task complete. Interactive interview mode now provides an excellent user experie
 **Verdict:**
 Task complete. Review and approval flow provides human-in-the-loop refinement for AI-generated answers. Users can accept, edit, or regenerate individual answers before finalizing the specification. The implementation is production-ready with all feedback loops passing. Interactive workflow is intuitive with clear visual feedback and options.
 
+
+## Task cub-h87.10: Batch interview multiple tasks (2026-01-14)
+
+**Implementation:**
+- Added `cmd_interview_batch()` function to process multiple tasks in batch mode
+- Implemented `--all` flag to interview all open tasks automatically using `bd list --status open`
+- Implemented `--output-dir` flag to specify custom output directory (defaults to `specs/`)
+- Batch mode processes tasks sequentially with AI-generated answers (auto mode)
+- Integrated with existing interview flow (question filtering, spec generation, task updates)
+- Updated help text and AGENT.md documentation
+- All 31 existing interview tests still pass
+
+**Batch Processing Flow:**
+1. Parse arguments including `--all`, `--output-dir`, `--auto`, `--skip-review`, `--update-task`
+2. Fetch all open tasks using `bd list --status open --json`
+3. For each task:
+   - Load and filter questions by task type and labels
+   - Generate AI responses using auto mode (skips review for autonomous operation)
+   - Generate markdown specification document
+   - Optionally update task description if `--update-task` specified
+4. Display summary with processed count, successes, and failures
+
+**Key Design Decisions:**
+1. **Batch mode always uses auto mode**: Interactive review not suitable for batch (requires user input)
+2. **Autonomous operation**: Designed to work with `--all --auto --skip-review` for unattended processing
+3. **Task enumeration via beads**: Uses `bd list --status open` to find tasks dynamically
+4. **Summary reporting**: Tracks successful/failed tasks and displays output location
+5. **Optional task updates**: `--update-task` flag appends specs to task descriptions during batch run
+
+**Features:**
+- Full integration with existing interview infrastructure (filtering, spec generation, updates)
+- Graceful error handling (continues processing on individual failures)
+- Customizable output directory with `--output-dir`
+- Optional category skipping with `--skip-categories`
+- Works with all interview modes (auto mode used for batch)
+
+**Testing:**
+- All 31 existing interview tests pass
+- Syntax check passes
+- Help text updated with batch examples
+- Command-line parsing verified
+
+**Integration:**
+- `cub interview --all --auto --skip-review` - Basic batch mode
+- `cub interview --all --auto --skip-review --output-dir specs/interviews` - Custom output
+- `cub interview --all --auto --skip-review --update-task` - With task updates
+- Batch mode compatible with all other interview options (--skip-categories, --update-task)
+
