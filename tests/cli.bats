@@ -21,8 +21,9 @@ EOF
     chmod +x "$TEST_DIR/claude"
 
     # Create minimal template files to avoid warnings
-    echo "System prompt" > PROMPT.md
-    echo "Build instructions" > AGENT.md
+    mkdir -p .cub
+    echo "System prompt" > .cub/prompt.md
+    echo "Build instructions" > .cub/agent.md
 }
 
 teardown() {
@@ -43,8 +44,8 @@ teardown() {
     run "$PROJECT_ROOT/cub" init .
     [ "$status" -eq 0 ]
     [ -f "prd.json" ]
-    [ -f "PROMPT.md" ]
-    [ -f "AGENT.md" ]
+    [ -f ".cub/prompt.md" ]
+    [ -f ".cub/agent.md" ]
 }
 
 @test "cub status subcommand shows task summary" {

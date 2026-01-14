@@ -9,6 +9,48 @@ if [[ -n "${_CUB_PROJECT_SH_LOADED:-}" ]]; then
 fi
 _CUB_PROJECT_SH_LOADED=1
 
+detect_project_type() {
+    local dir="${1:-.}"
+
+    # Check for Next.js (must come before react check)
+    if [[ -f "${dir}/package.json" ]]; then
+        if grep -q '"next"' "${dir}/package.json" 2>/dev/null; then
+            echo "nextjs"
+            return 0
+        fi
+        # Check for React
+        if grep -q '"react"' "${dir}/package.json" 2>/dev/null; then
+            echo "react"
+            return 0
+        fi
+        # Default to Node.js if package.json exists
+        echo "node"
+        return 0
+    fi
+
+    # Check for Python
+    if [[ -f "${dir}/requirements.txt" ]] || [[ -f "${dir}/pyproject.toml" ]] || [[ -f "${dir}/setup.py" ]]; then
+        echo "python"
+        return 0
+    fi
+
+    # Check for Go
+    if [[ -f "${dir}/go.mod" ]]; then
+        echo "go"
+        return 0
+    fi
+
+    # Check for Rust
+    if [[ -f "${dir}/Cargo.toml" ]]; then
+        echo "rust"
+        return 0
+    fi
+
+    # Default to generic
+    echo "generic"
+    return 0
+}
+
 check_deps() {
     local missing=()
     command -v jq >/dev/null 2>&1 || missing+=("jq")
@@ -79,16 +121,29 @@ validate_project() {
         log_debug "Found prd.json ($(wc -c < "${PROJECT_DIR}/prd.json") bytes)"
     fi
 
-    if [[ ! -f "${PROJECT_DIR}/PROMPT.md" ]]; then
-        log_warn "No PROMPT.md found, using default template"
-        cp "${CUB_DIR}/templates/PROMPT.md" "${PROJECT_DIR}/PROMPT.md"
-    fi
-    log_debug "Found PROMPT.md ($(wc -l < "${PROJECT_DIR}/PROMPT.md") lines)"
+    # Detect layout and ensure layout root directory exists
+    local layout
+    layout=$(detect_layout "${PROJECT_DIR}")
+    log_debug "Project layout: ${layout}"
 
-    if [[ ! -f "${PROJECT_DIR}/AGENT.md" ]]; then
-        log_warn "No AGENT.md found, using default template"
-        cp "${CUB_DIR}/templates/AGENT.md" "${PROJECT_DIR}/AGENT.md"
+    local layout_root
+    layout_root=$(get_layout_root "${PROJECT_DIR}")
+    mkdir -p "$layout_root"
+
+    local prompt_file
+    prompt_file=$(get_prompt_file "${PROJECT_DIR}")
+    if [[ ! -f "$prompt_file" ]]; then
+        log_warn "No prompt.md found at ${prompt_file}, using default template"
+        cp "${CUB_DIR}/templates/PROMPT.md" "$prompt_file"
     fi
-    log_debug "Found AGENT.md ($(wc -l < "${PROJECT_DIR}/AGENT.md") lines)"
+    log_debug "Found prompt.md ($(wc -l < "$prompt_file") lines)"
+
+    local agent_file
+    agent_file=$(get_agent_file "${PROJECT_DIR}")
+    if [[ ! -f "$agent_file" ]]; then
+        log_warn "No agent.md found at ${agent_file}, using default template"
+        cp "${CUB_DIR}/templates/AGENT.md" "$agent_file"
+    fi
+    log_debug "Found agent.md ($(wc -l < "$agent_file") lines)"
     log_debug "Project validation complete"
 }

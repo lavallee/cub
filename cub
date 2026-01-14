@@ -46,6 +46,8 @@ PROJECT_DIR="${CUB_PROJECT_DIR:-$(pwd)}"
 
 # Source task management library
 source "${CUB_DIR}/lib/tasks.sh"
+# Source layout detection (new vs legacy file organization)
+source "${CUB_DIR}/lib/layout.sh"
 # Source harness abstraction layer
 source "${CUB_DIR}/lib/harness.sh"
 # Source XDG directory helpers
@@ -294,6 +296,11 @@ main() {
                 cmd_migrate "${args[@]:1}"
                 return $?
                 ;;
+            migrate-layout)
+                # Migrate project layout from legacy to new structure
+                cmd_migrate_layout "${args[@]:1}"
+                return $?
+                ;;
             interview)
                 # Interview mode: Deep questioning for task specs
                 cmd_interview "${args[@]:1}"
@@ -446,6 +453,7 @@ VISION-TO-TASKS PIPELINE (v0.14):
   cub sessions                  List/manage pipeline sessions
   cub validate                  Validate beads state
   cub migrate                   Migrate from chopshop
+  cub migrate-layout            Migrate legacy layout to new .cub/ structure
 
 INTERVIEW MODE (v0.16):
   cub interview <task-id>       Deep dive on task specifications
@@ -525,11 +533,15 @@ ENVIRONMENT VARIABLES:
 PROJECT FILES:
   prd.json                       Task backlog (json backend)
   .beads/                        Task tracking (beads backend)
-  PROMPT.md                      System prompt template
-  AGENT.md                       Build/run instructions
+  .cub/
+    ├── prompt.md                System prompt template
+    ├── agent.md                 Build/run instructions
+    ├── progress.txt             Progress log
+    ├── fix_plan.md              Issue tracking
+    ├── progress.md              Beads progress tracking
+    ├── sessions/                Pipeline session artifacts
+    └── runs/                    Execution runs
   specs/                         Specification files
-  progress.txt                   Progress log
-  fix_plan.md                    Issue tracking
 
 LEARN MORE:
   README.md                      Overview and features

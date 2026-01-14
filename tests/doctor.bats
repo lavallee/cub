@@ -249,3 +249,287 @@ teardown() {
     [[ $status -eq 0 ]]
     [[ "$output" == *"newfile.txt"* ]]
 }
+
+# ============================================================================
+# Config validation tests
+# ============================================================================
+
+@test "_doctor_validate_json accepts valid JSON" {
+    echo '{"test": "value"}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_validate_json rejects invalid JSON" {
+    echo '{invalid json}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -ne 0 ]]
+}
+
+@test "_doctor_validate_json accepts empty object" {
+    echo '{}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_validate_json accepts arrays" {
+    echo '[]' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_check_deprecated_options detects deprecated fields" {
+    cat > config.json <<'EOF'
+{
+  "harness.priority": "claude",
+  "budget.tokens": 100000
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "harness.priority": "Use 'harness.default' instead",
+  "budget.tokens": "Use 'budget.max_tokens_per_task' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"harness.priority"* ]]
+    [[ "$output" == *"budget.tokens"* ]]
+}
+
+@test "_doctor_check_deprecated_options passes clean config" {
+    cat > config.json <<'EOF'
+{
+  "harness": {
+    "default": "claude"
+  },
+  "budget": {
+    "max_tokens_per_task": 100000
+  }
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "harness.priority": "Use 'harness.default' instead",
+  "budget.tokens": "Use 'budget.max_tokens_per_task' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_check_deprecated_options finds single deprecated option" {
+    cat > config.json <<'EOF'
+{
+  "state.clean": true
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "state.clean": "Use 'state.require_clean' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"state.clean"* ]]
+}
+
+@test "_doctor_check_required_fields detects missing fields" {
+    cat > config.json <<'EOF'
+{
+  "harness": "claude"
+}
+EOF
+
+    local required='["harness", "budget", "state"]'
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_required_fields config.json "$required"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"budget"* ]]
+    [[ "$output" == *"state"* ]]
+}
+
+@test "_doctor_check_required_fields passes with all required fields" {
+    cat > config.json <<'EOF'
+{
+  "harness": "claude",
+  "budget": {
+    "max_tokens_per_task": 100000
+  },
+  "state": {
+    "require_clean": true
+  }
+}
+EOF
+
+    local required='["harness", "budget", "state"]'
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_required_fields config.json "$required"
+    [[ $status -eq 0 ]]
+}
+
+# ============================================================================
+# Symlink validation tests
+# ============================================================================
+
+@test "_doctor_check_symlinks detects valid symlink CLAUDE.md" {
+    # Setup .cub directory with prompt.md and agent.md
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create valid symlink
+    ln -s .cub/agent.md CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"CLAUDE.md"* ]]
+}
+
+@test "_doctor_check_symlinks detects broken symlink" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create symlink pointing to wrong target
+    ln -s .cub/wrong.md CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"points to"* ]]
+}
+
+@test "_doctor_check_symlinks detects regular file instead of symlink" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create regular file instead of symlink
+    echo "content" > CLAUDE.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"regular file"* ]]
+}
+
+@test "_doctor_check_symlinks validates all required symlinks" {
+    # Setup .cub directory with files
+    mkdir -p .cub
+    touch .cub/prompt.md
+    touch .cub/agent.md
+
+    # Create all required symlinks
+    ln -s .cub/agent.md CLAUDE.md
+    ln -s .cub/agent.md AGENTS.md
+    ln -s .cub/agent.md AGENT.md
+    ln -s .cub/prompt.md PROMPT.md
+
+    source "${PROJECT_ROOT}/lib/layout.sh"
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_symlinks
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"CLAUDE.md"* ]]
+    [[ "$output" == *"AGENTS.md"* ]]
+    [[ "$output" == *"AGENT.md"* ]]
+    [[ "$output" == *"PROMPT.md"* ]]
+}
+
+# ============================================================================
+# .gitignore validation tests
+# ============================================================================
+
+@test "_doctor_check_gitignore detects missing .gitignore" {
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *".gitignore not found"* ]]
+}
+
+@test "_doctor_check_gitignore detects missing patterns" {
+    # Create .gitignore with incomplete patterns
+    cat > .gitignore <<'EOF'
+# Some patterns
+*.log
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"missing important patterns"* ]]
+    [[ "$output" == *".cub/runs"* ]]
+}
+
+@test "_doctor_check_gitignore validates complete gitignore" {
+    # Create .gitignore with all required patterns
+    cat > .gitignore <<'EOF'
+.cub/runs
+.bv/
+*.log
+.DS_Store
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -eq 0 ]]
+    [[ "$output" == *"configured with required patterns"* ]]
+}
+
+@test "_doctor_check_gitignore handles patterns with leading whitespace" {
+    # Create .gitignore with patterns that have leading whitespace (should not match)
+    cat > .gitignore <<'EOF'
+ .cub/runs
+  .bv/
+*.log
+EOF
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+
+    PROJECT_DIR="."
+    run _doctor_check_gitignore
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"missing important patterns"* ]]
+}

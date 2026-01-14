@@ -24,8 +24,9 @@ setup() {
         # Create minimal test project if fixtures don't exist
         create_sample_prd
         cp prd.json "$E2E_PROJECT/"
-        echo "# Test Project" > "$E2E_PROJECT/PROMPT.md"
-        echo "# Agent Instructions" > "$E2E_PROJECT/AGENT.md"
+        mkdir -p "$E2E_PROJECT/.cub"
+        echo "# Test Project" > "$E2E_PROJECT/.cub/prompt.md"
+        echo "# Agent Instructions" > "$E2E_PROJECT/.cub/agent.md"
     fi
 
     # Initialize git repo (required for clean state)
@@ -49,8 +50,8 @@ teardown() {
 # Test: E2E project structure is valid
 @test "e2e test project has required files" {
     [ -f "$PROJECT_ROOT/tests/e2e/project/prd.json" ]
-    [ -f "$PROJECT_ROOT/tests/e2e/project/PROMPT.md" ]
-    [ -f "$PROJECT_ROOT/tests/e2e/project/AGENT.md" ]
+    [ -f "$PROJECT_ROOT/tests/e2e/project/.cub/prompt.md" ]
+    [ -f "$PROJECT_ROOT/tests/e2e/project/.cub/agent.md" ]
     [ -f "$PROJECT_ROOT/tests/e2e/project/.cub.json" ]
 }
 

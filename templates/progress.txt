@@ -1,0 +1,119 @@
+# Session Progress Log
+
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT IS THIS FILE?                                              ║
+╚══════════════════════════════════════════════════════════════════╝
+
+This file documents learnings and discoveries made during autonomous coding sessions.
+It's a "knowledge base" that helps you and future sessions understand:
+- How to solve problems that came up before (no need to repeat work)
+- Gotchas that would waste time if discovered again
+- Build/test system quirks and workarounds
+- Architecture decisions and WHY they were made
+- Performance characteristics and optimization opportunities
+- Commands and techniques that actually work (vs. what the docs say)
+
+This file is committed to git and read by every session. It's one of the most valuable
+artifacts your project has - don't let it get stale!
+
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT TO ADD                                                     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Add entries for DISCOVERIES, not obvious facts:
+
+✅ DO ADD:
+- A bug was found, here's the workaround (or fix)
+- This command fails in certain conditions with solution
+- Performance characteristic: "Auth check takes 200ms, add caching to speed up"
+- Dependency incompatibility: "Library X breaks with Node 16, upgrade or downgrade"
+- Test flakiness: "Integration tests are flaky on Mondays due to X, add --retries=3"
+- Build quirk: "TypeScript cache breaks after git checkout, run npm run clean first"
+- Architecture insight: "State management uses Redux for X reason, not Context"
+- Timing: "Deploy takes 5min on Friday, 10min on Monday due to background jobs"
+
+❌ DON'T ADD:
+- Obvious facts from code: "The project uses React" (obvious from package.json)
+- General programming knowledge: "Async/await is better than callbacks"
+- Deprecated completed work: "We used to use webpack, now use Vite" (unless context matters)
+- Team policies that belong elsewhere: "Code review policy: 2 approvals" (see wiki)
+
+╔══════════════════════════════════════════════════════════════════╗
+║  HOW TO WRITE GOOD ENTRIES                                       ║
+╚══════════════════════════════════════════════════════════════════╝
+
+STRUCTURE: [Category]: [Discovery] - [Impact] - [Workaround/Solution]
+
+Example (Good):
+- Build System: npm run build is slow (~2min) - slows down iteration
+  Root cause: Not using incremental compilation
+  Solution: Add --incremental flag to tsc (reduces rebuild time to 10s)
+  See: package.json "build" script
+
+Example (Good):
+- Testing: Integration tests timeout on slow networks
+  Symptom: Random CI failures with "30000ms timeout"
+  Workaround: Add TIMEOUT=60000 environment variable
+  Command: TIMEOUT=60000 npm test
+
+Example (Good):
+- API: The POST /users endpoint requires email to be lowercase
+  Context: Database has UNIQUE constraint on lower(email)
+  Impact: Uppercase email submissions silently fail
+  Workaround: Always call normalizeEmail() before submission (see lib/email.ts:42)
+
+Example (Bad - too vague):
+- "The API is weird" ← What specifically? This doesn't help
+
+Example (Bad - obvious):
+- "The project uses TypeScript" ← Visible from any file, not a discovery
+
+TIPS FOR EFFECTIVE ENTRIES:
+- Be SPECIFIC: "The API requires X format" is better than "API is weird"
+- Include IMPACT: Why this matters and what breaks if you ignore it
+- Provide SOLUTIONS: "If Y fails, try Z instead"
+- Link to CODE: "See src/api.ts:42 for how retries work"
+- Add DATES if time-bound: "As of 2024-01, Library X version 2.0 breaks with Node 18"
+- Keep entries BRIEF: 1-2 sentences max - verbose logs aren't useful
+- Use CATEGORIES: "Build System", "Testing", "Performance", "API", "Dependencies", etc.
+
+FORMAT:
+Use the example format shown below. Add NEW discoveries at the TOP.
+Each entry should be ACTIONABLE for the next session - they're busy, help them!
+-->
+
+## Session History
+
+### [Session Name/Date]
+- [Discoverytype]: [What was learned and why it matters]
+- [Action taken]: [How to apply this in future]
+- [Related files]: [Where in the codebase this applies]
+
+---
+
+## Common Discoveries (Examples)
+
+### Build System
+- npm build is slow (~45s); use npm run build:fast for development
+- Tests must run sequentially due to shared database; -j1 flag is required
+
+### Dependencies
+- Library X is incompatible with Node <16; upgrade or use version 1.2.3
+- Database driver requires libssl-dev on Ubuntu; brew install openssl on macOS
+
+### Performance
+- Queries over 50ms timeout; add --timeout=5000 to client config
+- Large files (>100MB) cause memory issues; process in chunks
+
+### Testing
+- Integration tests need real API keys in .env.test; see README setup section
+- E2E tests are flaky on CI; add --retries=3 flag
+
+### Architecture
+- State management uses Redux with thunk middleware; see docs/architecture.md
+- API responses always wrapped in {data, error} object per src/api/schema.ts
+
+### Team/Process
+- Pull requests require 2 approvals before merge per company policy
+- Database migrations must be reviewed by DBA before deployment

@@ -24,10 +24,10 @@ teardown() {
 
     # Should create key files
     [ -f "prd.json" ]
-    [ -f "PROMPT.md" ]
-    [ -f "AGENT.md" ]
-    [ -f "progress.txt" ]
-    [ -f "fix_plan.md" ]
+    [ -f ".cub/prompt.md" ]
+    [ -f ".cub/agent.md" ]
+    [ -f ".cub/progress.txt" ]
+    [ -f ".cub/fix_plan.md" ]
     [ -d "specs" ]
     [ -f ".gitignore" ]
 }
@@ -45,7 +45,7 @@ teardown() {
     "$PROJECT_ROOT/cub-init" custom_project >/dev/null 2>&1
 
     [ -f "custom_project/prd.json" ]
-    [ -f "custom_project/PROMPT.md" ]
+    [ -f "custom_project/.cub/prompt.md" ]
 }
 
 # =============================================================================
@@ -207,12 +207,13 @@ EOF
 # Prompt Generation Tests
 # =============================================================================
 
-@test "cub generates system prompt from PROMPT.md" {
+@test "cub generates system prompt from .cub/prompt.md" {
     use_fixture "valid_prd.json" "prd.json"
-    echo "System instructions here" > PROMPT.md
+    mkdir -p .cub
+    echo "System instructions here" > .cub/prompt.md
 
     # cub should read this file when generating prompts
-    [ -f "PROMPT.md" ]
+    [ -f ".cub/prompt.md" ]
 }
 
 @test "cub generates task prompt with all required fields" {
