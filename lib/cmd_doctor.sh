@@ -23,6 +23,7 @@ USAGE:
 
 CHECKS:
   - Environment: jq, harness availability, beads (if used)
+  - Configuration: JSON validity, required fields, deprecated options
   - Project structure: prd.json/.beads, .cub/prompt.md, .cub/agent.md
   - Git state: uncommitted files categorized as:
     * session files (progress.txt, fix_plan.md) - safe to commit
@@ -278,6 +279,140 @@ _doctor_check_env() {
         _doctor_info "beads (bd) not installed (optional, required for beads backend)"
         echo "  Install with:"
         _doctor_install_hint "bd"
+    fi
+
+    return $issues
+}
+
+_doctor_validate_json() {
+    local file="$1"
+
+    # Check if file is valid JSON
+    if ! jq empty "$file" 2>/dev/null; then
+        return 1
+    fi
+    return 0
+}
+
+_doctor_check_required_fields() {
+    local file="$1"
+    local required_fields="$2"  # JSON array of field names
+
+    local missing_fields=()
+
+    # Check each required field
+    while IFS= read -r field; do
+        # Quote the field name to handle dots and special characters
+        # Use has() to check if key exists at top level
+        if ! jq -e "has(\"$field\")" "$file" >/dev/null 2>&1; then
+            missing_fields+=("$field")
+        fi
+    done < <(echo "$required_fields" | jq -r '.[]')
+
+    if [[ ${#missing_fields[@]} -gt 0 ]]; then
+        printf '%s\n' "${missing_fields[@]}"
+        return 1
+    fi
+
+    return 0
+}
+
+_doctor_check_deprecated_options() {
+    local file="$1"
+    local deprecated_map="$2"  # JSON object mapping old names to info
+
+    local found_deprecated=()
+
+    # Check for deprecated options
+    while IFS= read -r field; do
+        # Quote the field name to handle dots and special characters
+        # Use has() to check if key exists
+        if jq -e "has(\"$field\")" "$file" >/dev/null 2>&1; then
+            found_deprecated+=("$field")
+        fi
+    done < <(echo "$deprecated_map" | jq -r 'keys[]')
+
+    if [[ ${#found_deprecated[@]} -gt 0 ]]; then
+        printf '%s\n' "${found_deprecated[@]}"
+        return 1
+    fi
+
+    return 0
+}
+
+_doctor_check_config() {
+    local verbose="${1:-false}"
+    local issues=0
+    echo ""
+    echo "Configuration Files:"
+
+    local global_config
+    global_config="$(cub_config_dir)/config.json"
+
+    local project_config="${PROJECT_DIR}/.cub.json"
+
+    # Define deprecated options (these are example deprecated keys)
+    local deprecated_options=$(cat <<'EOF'
+{
+  "harness.priority": "Use 'harness.default' instead",
+  "budget.tokens": "Use 'budget.max_tokens_per_task' instead",
+  "state.clean": "Use 'state.require_clean' instead"
+}
+EOF
+)
+
+    # Check global config
+    if [[ -f "$global_config" ]]; then
+        if _doctor_validate_json "$global_config"; then
+            _doctor_ok "Global config valid JSON (${global_config})"
+        else
+            _doctor_fail "Global config has invalid JSON (${global_config})"
+            ((issues++))
+        fi
+
+        # Check for deprecated options in global config
+        local deprecated_found
+        deprecated_found=$(_doctor_check_deprecated_options "$global_config" "$deprecated_options")
+        if [[ -n "$deprecated_found" ]]; then
+            _doctor_warn "Global config has deprecated options:"
+            ((issues++))
+            if [[ "$verbose" == "true" ]]; then
+                while IFS= read -r option; do
+                    local msg
+                    msg=$(echo "$deprecated_options" | jq -r ".[\"$option\"]")
+                    echo "    $option - $msg"
+                done <<< "$deprecated_found"
+            fi
+        fi
+    else
+        _doctor_info "No global config found (${global_config})"
+    fi
+
+    # Check project config
+    if [[ -f "$project_config" ]]; then
+        if _doctor_validate_json "$project_config"; then
+            _doctor_ok "Project config valid JSON (${project_config})"
+        else
+            _doctor_fail "Project config has invalid JSON (${project_config})"
+            ((issues++))
+        fi
+
+        # Check for deprecated options in project config
+        local deprecated_found
+        deprecated_found=$(_doctor_check_deprecated_options "$project_config" "$deprecated_options")
+        if [[ -n "$deprecated_found" ]]; then
+            _doctor_warn "Project config has deprecated options:"
+            ((issues++))
+            if [[ "$verbose" == "true" ]]; then
+                while IFS= read -r option; do
+                    local msg
+                    msg=$(echo "$deprecated_options" | jq -r ".[\"$option\"]")
+                    echo "    $option - $msg"
+                done <<< "$deprecated_found"
+            fi
+        fi
+    else
+        _doctor_info "No project config found (${project_config})"
     fi
 
     return $issues
@@ -589,6 +724,7 @@ cmd_doctor() {
     # Run checks
     local total_issues=0
     _doctor_check_env || total_issues=$((total_issues + $?))
+    _doctor_check_config "$verbose" || total_issues=$((total_issues + $?))
     _doctor_check_project || total_issues=$((total_issues + $?))
     _doctor_check_git "$verbose" || total_issues=$((total_issues + $?))
     _doctor_check_tasks || total_issues=$((total_issues + $?))

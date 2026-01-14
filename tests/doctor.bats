@@ -249,3 +249,143 @@ teardown() {
     [[ $status -eq 0 ]]
     [[ "$output" == *"newfile.txt"* ]]
 }
+
+# ============================================================================
+# Config validation tests
+# ============================================================================
+
+@test "_doctor_validate_json accepts valid JSON" {
+    echo '{"test": "value"}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_validate_json rejects invalid JSON" {
+    echo '{invalid json}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -ne 0 ]]
+}
+
+@test "_doctor_validate_json accepts empty object" {
+    echo '{}' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_validate_json accepts arrays" {
+    echo '[]' > test.json
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_validate_json test.json
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_check_deprecated_options detects deprecated fields" {
+    cat > config.json <<'EOF'
+{
+  "harness.priority": "claude",
+  "budget.tokens": 100000
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "harness.priority": "Use 'harness.default' instead",
+  "budget.tokens": "Use 'budget.max_tokens_per_task' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"harness.priority"* ]]
+    [[ "$output" == *"budget.tokens"* ]]
+}
+
+@test "_doctor_check_deprecated_options passes clean config" {
+    cat > config.json <<'EOF'
+{
+  "harness": {
+    "default": "claude"
+  },
+  "budget": {
+    "max_tokens_per_task": 100000
+  }
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "harness.priority": "Use 'harness.default' instead",
+  "budget.tokens": "Use 'budget.max_tokens_per_task' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -eq 0 ]]
+}
+
+@test "_doctor_check_deprecated_options finds single deprecated option" {
+    cat > config.json <<'EOF'
+{
+  "state.clean": true
+}
+EOF
+
+    local deprecated=$(cat <<'EOF'
+{
+  "state.clean": "Use 'state.require_clean' instead"
+}
+EOF
+)
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_deprecated_options config.json "$deprecated"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"state.clean"* ]]
+}
+
+@test "_doctor_check_required_fields detects missing fields" {
+    cat > config.json <<'EOF'
+{
+  "harness": "claude"
+}
+EOF
+
+    local required='["harness", "budget", "state"]'
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_required_fields config.json "$required"
+    [[ $status -ne 0 ]]
+    [[ "$output" == *"budget"* ]]
+    [[ "$output" == *"state"* ]]
+}
+
+@test "_doctor_check_required_fields passes with all required fields" {
+    cat > config.json <<'EOF'
+{
+  "harness": "claude",
+  "budget": {
+    "max_tokens_per_task": 100000
+  },
+  "state": {
+    "require_clean": true
+  }
+}
+EOF
+
+    local required='["harness", "budget", "state"]'
+
+    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    run _doctor_check_required_fields config.json "$required"
+    [[ $status -eq 0 ]]
+}
