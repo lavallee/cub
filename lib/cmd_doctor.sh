@@ -29,8 +29,9 @@ CHECKS:
     * session files (progress.txt, fix_plan.md) - safe to commit
     * source code - needs review before committing
     * cruft (.bak, .tmp, .DS_Store, etc.) - safe to clean
-    * config files - needs careful review
+    * config files - needs carefully review
   - Task state: tasks stuck in "in_progress"
+  - Recommendations: build commands, hooks, optional files, project improvements
 
 FIX ACTIONS:
   --fix will:
@@ -777,6 +778,81 @@ _doctor_fix() {
     return $issues
 }
 
+_doctor_check_recommendations() {
+    local verbose="${1:-false}"
+    echo ""
+    echo "Recommendations:"
+
+    # Source recommendations library
+    source "${CUB_DIR}/lib/recommendations.sh"
+
+    local agent_file
+    agent_file=$(get_agent_file "${PROJECT_DIR}")
+
+    # Generate recommendations
+    local recommendations_json
+    recommendations_json=$(recommendations_generate "${PROJECT_DIR}" "$agent_file")
+
+    # Check if we have any recommendations
+    local recommendation_count
+    recommendation_count=$(echo "$recommendations_json" | jq '.recommendations | length')
+
+    if [[ $recommendation_count -eq 0 ]]; then
+        _doctor_ok "No recommendations at this time"
+        return 0
+    fi
+
+    # Display recommendations by category
+    local current_category=""
+    echo "$recommendations_json" | jq -r '.recommendations[]' | while IFS= read -r rec; do
+        if [[ -z "$rec" ]]; then
+            continue
+        fi
+
+        # Parse category and message
+        local category="${rec%%:*}"
+        local message="${rec#*: }"
+
+        # Show category header if changed
+        case "$category" in
+            BUILD)
+                if [[ "$current_category" != "BUILD" ]]; then
+                    echo ""
+                    echo "  Build Commands:"
+                    current_category="BUILD"
+                fi
+                echo "    • $message"
+                ;;
+            HOOKS)
+                if [[ "$current_category" != "HOOKS" ]]; then
+                    echo ""
+                    echo "  Hooks Configuration:"
+                    current_category="HOOKS"
+                fi
+                echo "    • $message"
+                ;;
+            FILES)
+                if [[ "$current_category" != "FILES" ]]; then
+                    echo ""
+                    echo "  Optional Files:"
+                    current_category="FILES"
+                fi
+                echo "    • $message"
+                ;;
+            PROJECT)
+                if [[ "$current_category" != "PROJECT" ]]; then
+                    echo ""
+                    echo "  Project Improvements:"
+                    current_category="PROJECT"
+                fi
+                echo "    • $message"
+                ;;
+        esac
+    done
+
+    return 0
+}
+
 cmd_doctor() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -818,6 +894,7 @@ cmd_doctor() {
     _doctor_check_project || total_issues=$((total_issues + $?))
     _doctor_check_git "$verbose" || total_issues=$((total_issues + $?))
     _doctor_check_tasks || total_issues=$((total_issues + $?))
+    _doctor_check_recommendations "$verbose" || total_issues=$((total_issues + $?))
 
     # Run fixes if requested
     if [[ "$fix" == "true" || "$dry_run" == "true" ]]; then
