@@ -1205,3 +1205,81 @@ All 34 tests pass successfully:
 
 **Future Integration:**
 These handlers will be integrated into the main loop to dispatch failures based on failure_get_mode(). The retry and triage modes will build on this foundation in future tasks.
+
+## Task cub-0y8.10: Review results logging (2026-01-14)
+
+**Implementation:**
+- Added log_plan_review_event() function to lib/logger.sh for structured event logging
+- Integrated event logging into run_review_plans() to capture all review results
+- Tracks verdict (pass/concerns/block) and dimension-specific issue counts
+- Events logged to JSONL format with ISO 8601 timestamps for analytics
+
+**Log Event Structure:**
+```json
+{
+  "timestamp": "2026-01-14T05:29:11Z",
+  "event_type": "plan_review",
+  "data": {
+    "verdict": "pass|concerns|block",
+    "task_count": number,
+    "dimensions": {
+      "completeness": {"status": "pass|concerns", "issues": N},
+      "feasibility": {"status": "pass|concerns", "issues": N},
+      "dependencies": {"status": "pass|concerns", "issues": N},
+      "architecture": {"status": "pass|concerns", "issues": N}
+    },
+    "has_issues": boolean,
+    "ready_to_implement": boolean,
+    "review_reason": "optional string"
+  }
+}
+```
+
+**Key Learnings:**
+1. **Event-driven architecture**: Logging events to JSONL enables downstream analytics and accuracy tracking without disrupting the review flow
+2. **Dimension granularity**: Tracking issues per dimension (not just overall count) enables targeted analysis of which dimensions are most problematic
+3. **Verdict semantics**: ready_to_implement is deterministically derived from verdict (true only for PASS) for consistency
+4. **Issue counting**: Using grep -c "^- " pattern on markdown summaries to extract issue counts without parsing JSON
+5. **Graceful task count**: When prd.json doesn't exist, count defaults to 0 rather than failing
+
+**Testing Approach:**
+- Bash syntax validation: ✓ (bash -n on both modified files)
+- Logger tests: ✓ (82 tests pass, including all logger functionality)
+- CLI tests: ✓ (58 tests pass, no regressions)
+- Manual test: ✓ (verified plan_review events logged correctly to JSONL with all required fields)
+- Integration: ✓ (run_review_plans() successfully calls log_plan_review_event() with proper data)
+
+**Acceptance Criteria Met:**
+- ✓ Logging implemented for plan_review_passed (verdict="pass")
+- ✓ Logging implemented for plan_review_concerns (verdict="concerns")
+- ✓ Logging implemented for plan_review_blocked (verdict="block")
+- ✓ Review history stored in JSONL format for future analysis
+- ✓ Dimension-specific issue tracking for accuracy analysis
+- ✓ All feedback loops pass (syntax, tests)
+
+**Files Modified:**
+- lib/logger.sh: Added log_plan_review_event() function (115 lines added)
+- lib/cmd_run.sh: Integrated event logging into run_review_plans() (dimension tracking + logging call, ~40 lines added)
+- .beads/issues.jsonl: Task status updated to closed
+
+**Integration Points:**
+- Events automatically logged whenever cub run --review-plans is executed
+- Events stored in ~/.local/share/cub/logs/{project}/{session}.jsonl
+- Can be queried with jq for analytics: jq 'select(.event_type == "plan_review")' logfile.jsonl
+- ready_to_implement flag enables CI/CD integration decisions
+- Dimension tracking enables quality trend analysis over time
+
+**Example Usage:**
+```bash
+# Query all plan reviews with concerns
+jq 'select(.event_type == "plan_review" and .data.verdict == "concerns")' ~/.local/share/cub/logs/*/*.jsonl
+
+# Count total issues by dimension across all reviews
+jq '[.event_type == "plan_review"] | group_by(.data.dimensions.feasibility.issues) | map(length)'
+
+# Find reviews that blocked execution
+jq 'select(.event_type == "plan_review" and .data.verdict == "block")'
+```
+
+**Verdict:**
+Task complete. Plan review logging is now fully operational with events being recorded for all three verdict types (pass/concerns/block). The structured logging enables future analysis of review accuracy, concern patterns, and blocking issues.
