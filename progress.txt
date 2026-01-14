@@ -1,5 +1,97 @@
 # Cub Project Progress
 
+## Session: Project Structure Validation (cub-eke.14)
+
+### Task Completed
+Implemented comprehensive project structure validation in 'cub doctor' command.
+
+### What Was Implemented
+
+1. **Symlink Validation (`_doctor_check_symlinks`)**
+   - Validates root-level symlinks for new layout projects
+   - Checks CLAUDE.md, AGENTS.md, AGENT.md → .cub/agent.md
+   - Checks PROMPT.md → .cub/prompt.md
+   - Detects and reports:
+     - Valid symlinks (passing checks)
+     - Broken symlinks (pointing to wrong target)
+     - Regular files instead of symlinks
+     - Missing symlinks (optional warnings)
+   - Uses `readlink` to verify symlink targets
+
+2. **.gitignore Validation (`_doctor_check_gitignore`)**
+   - Validates .gitignore exists
+   - Checks for required patterns:
+     - `.cub/runs` - Session run artifacts
+     - `.bv/` - Beads viewer cache
+   - Detects missing patterns and reports them
+   - Uses grep with `^` anchor to ensure patterns are at line start
+
+3. **Integration into cub doctor**
+   - Both validations integrated into `_doctor_check_project()`
+   - Outputs clear [OK] and [!!] status indicators
+   - Non-blocking warnings (project can work without perfect symlinks/gitignore)
+
+### Testing
+
+- Added 8 new tests to tests/doctor.bats
+- All 40 tests passing in doctor.bats
+- Tests cover:
+  - Valid symlinks (single and multiple)
+  - Broken/incorrect symlinks
+  - Regular files instead of symlinks
+  - Missing .gitignore
+  - Missing patterns in .gitignore
+  - Complete .gitignore validation
+  - Edge cases (leading whitespace in patterns)
+
+### Implementation Details
+
+**Symlink Validation:**
+1. Only runs for new layout (`_PROJECT_LAYOUT == "new"`)
+2. Uses bash `-L` test to check if path is symlink
+3. Uses `readlink` to get actual target
+4. String comparison of targets (avoiding path resolution complexity)
+
+**Gitignore Validation:**
+1. Checks for file existence first
+2. Uses `grep -q "^${pattern}"` for exact line matching
+3. Accumulates missing patterns in array
+4. Provides detailed report of what's missing
+
+### How to Use
+
+```bash
+# Run standard diagnostics including structure validation
+cub doctor
+
+# Show detailed information
+cub doctor --verbose
+
+# View what would be fixed (currently informational only)
+cub doctor --dry-run
+
+# Check specific validations by examining output
+cub doctor | grep -A 10 "Project Structure"
+```
+
+### Future Enhancements
+
+The implementation provides foundation for:
+1. Auto-fix of broken symlinks (--fix flag)
+2. Auto-generation of missing symlinks
+3. Auto-addition of missing .gitignore patterns
+4. Validation of symlink targets existence
+5. .gitignore comment/whitespace handling improvements
+
+### Files Modified
+- `lib/cmd_doctor.sh`: Added `_doctor_check_symlinks()` and `_doctor_check_gitignore()` functions, integrated into `_doctor_check_project()`
+- `tests/doctor.bats`: Added 8 comprehensive tests for new validation functions
+
+### Commit
+e17d239 task(cub-eke.14): Project structure validation
+
+---
+
 ## Session: Config Validation (cub-eke.13)
 
 ### Task Completed
