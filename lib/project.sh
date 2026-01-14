@@ -79,16 +79,19 @@ validate_project() {
         log_debug "Found prd.json ($(wc -c < "${PROJECT_DIR}/prd.json") bytes)"
     fi
 
-    if [[ ! -f "${PROJECT_DIR}/PROMPT.md" ]]; then
-        log_warn "No PROMPT.md found, using default template"
-        cp "${CUB_DIR}/templates/PROMPT.md" "${PROJECT_DIR}/PROMPT.md"
-    fi
-    log_debug "Found PROMPT.md ($(wc -l < "${PROJECT_DIR}/PROMPT.md") lines)"
+    # Ensure .cub directory exists
+    mkdir -p "${PROJECT_DIR}/.cub"
 
-    if [[ ! -f "${PROJECT_DIR}/AGENT.md" ]]; then
-        log_warn "No AGENT.md found, using default template"
-        cp "${CUB_DIR}/templates/AGENT.md" "${PROJECT_DIR}/AGENT.md"
+    if [[ ! -f "${PROJECT_DIR}/.cub/prompt.md" ]]; then
+        log_warn "No .cub/prompt.md found, using default template"
+        cp "${CUB_DIR}/templates/PROMPT.md" "${PROJECT_DIR}/.cub/prompt.md"
     fi
-    log_debug "Found AGENT.md ($(wc -l < "${PROJECT_DIR}/AGENT.md") lines)"
+    log_debug "Found .cub/prompt.md ($(wc -l < "${PROJECT_DIR}/.cub/prompt.md") lines)"
+
+    if [[ ! -f "${PROJECT_DIR}/.cub/agent.md" ]]; then
+        log_warn "No .cub/agent.md found, using default template"
+        cp "${CUB_DIR}/templates/AGENT.md" "${PROJECT_DIR}/.cub/agent.md"
+    fi
+    log_debug "Found .cub/agent.md ($(wc -l < "${PROJECT_DIR}/.cub/agent.md") lines)"
     log_debug "Project validation complete"
 }

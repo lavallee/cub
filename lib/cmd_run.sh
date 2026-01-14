@@ -259,7 +259,7 @@ cmd_run() {
 }
 
 generate_system_prompt() {
-    cat "${PROJECT_DIR}/PROMPT.md"
+    cat "${PROJECT_DIR}/.cub/prompt.md"
 }
 
 generate_task_prompt() {

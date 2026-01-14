@@ -23,7 +23,7 @@ USAGE:
 
 CHECKS:
   - Environment: jq, harness availability, beads (if used)
-  - Project structure: prd.json/.beads, PROMPT.md, AGENT.md
+  - Project structure: prd.json/.beads, .cub/prompt.md, .cub/agent.md
   - Git state: uncommitted files categorized as:
     * session files (progress.txt, fix_plan.md) - safe to commit
     * source code - needs review before committing
@@ -138,19 +138,19 @@ _doctor_check_project() {
         ((issues++))
     fi
 
-    # Check PROMPT.md
-    if [[ -f "${PROJECT_DIR}/PROMPT.md" ]]; then
-        _doctor_ok "PROMPT.md found"
+    # Check .cub/prompt.md
+    if [[ -f "${PROJECT_DIR}/.cub/prompt.md" ]]; then
+        _doctor_ok ".cub/prompt.md found"
     else
-        _doctor_warn "PROMPT.md not found (run 'cub init')"
+        _doctor_warn ".cub/prompt.md not found (run 'cub init')"
         ((issues++))
     fi
 
-    # Check AGENT.md
-    if [[ -f "${PROJECT_DIR}/AGENT.md" ]]; then
-        _doctor_ok "AGENT.md found"
+    # Check .cub/agent.md
+    if [[ -f "${PROJECT_DIR}/.cub/agent.md" ]]; then
+        _doctor_ok ".cub/agent.md found"
     else
-        _doctor_warn "AGENT.md not found (run 'cub init')"
+        _doctor_warn ".cub/agent.md not found (run 'cub init')"
         ((issues++))
     fi
 

@@ -30,10 +30,11 @@ OPTIONS:
 
 WHAT IT CREATES:
   prd.json              Task backlog in JSON format
-  PROMPT.md             System prompt template
-  AGENT.md              Build/run instructions
-  progress.txt          Progress tracking (auto-updated)
-  fix_plan.md           Issue tracking (auto-updated)
+  .cub/
+    ├── prompt.md        System prompt template
+    ├── agent.md         Build/run instructions
+    ├── progress.txt     Progress tracking (auto-updated)
+    └── fix_plan.md      Issue tracking (auto-updated)
   .gitignore            With cub patterns
 
 GLOBAL SETUP:
@@ -260,26 +261,29 @@ EOF
         log_warn "prd.json already exists, skipping"
     fi
 
-    # Create PROMPT.md
-    if [[ ! -f "PROMPT.md" ]]; then
-        cp "${CUB_DIR}/templates/PROMPT.md" PROMPT.md
-        log_success "Created PROMPT.md"
+    # Ensure .cub directory exists
+    mkdir -p .cub
+
+    # Create .cub/prompt.md
+    if [[ ! -f ".cub/prompt.md" ]]; then
+        cp "${CUB_DIR}/templates/PROMPT.md" .cub/prompt.md
+        log_success "Created .cub/prompt.md"
     else
-        log_warn "PROMPT.md already exists, skipping"
+        log_warn ".cub/prompt.md already exists, skipping"
     fi
 
-    # Create AGENT.md
-    if [[ ! -f "AGENT.md" ]]; then
-        cp "${CUB_DIR}/templates/AGENT.md" AGENT.md
-        log_success "Created AGENT.md"
+    # Create .cub/agent.md
+    if [[ ! -f ".cub/agent.md" ]]; then
+        cp "${CUB_DIR}/templates/AGENT.md" .cub/agent.md
+        log_success "Created .cub/agent.md"
     else
-        log_warn "AGENT.md already exists, skipping"
+        log_warn ".cub/agent.md already exists, skipping"
     fi
 
     # Create AGENTS.md symlink for Codex compatibility
     # Codex CLI looks for AGENTS.md in the project root
     if [[ ! -f "AGENTS.md" && ! -L "AGENTS.md" ]]; then
-        ln -s AGENT.md AGENTS.md
+        ln -s .cub/agent.md AGENTS.md
         log_success "Created AGENTS.md symlink (for Codex compatibility)"
     elif [[ -L "AGENTS.md" ]]; then
         log_warn "AGENTS.md symlink already exists, skipping"
@@ -287,9 +291,9 @@ EOF
         log_warn "AGENTS.md already exists as file, skipping symlink"
     fi
 
-    # Create progress.txt
-    if [[ ! -f "progress.txt" ]]; then
-        cat > progress.txt <<EOF
+    # Create .cub/progress.txt
+    if [[ ! -f ".cub/progress.txt" ]]; then
+        cat > .cub/progress.txt <<EOF
 # Progress Log
 Started: $(date -u +"%Y-%m-%d")
 
@@ -301,14 +305,14 @@ Started: $(date -u +"%Y-%m-%d")
 
 ---
 EOF
-        log_success "Created progress.txt"
+        log_success "Created .cub/progress.txt"
     else
-        log_warn "progress.txt already exists, skipping"
+        log_warn ".cub/progress.txt already exists, skipping"
     fi
 
-    # Create fix_plan.md
-    if [[ ! -f "fix_plan.md" ]]; then
-        cat > fix_plan.md <<EOF
+    # Create .cub/fix_plan.md
+    if [[ ! -f ".cub/fix_plan.md" ]]; then
+        cat > .cub/fix_plan.md <<EOF
 # Fix Plan
 
 Discovered issues and planned improvements.
@@ -322,9 +326,9 @@ Agent maintains this file during development.
 
 ## Completed
 EOF
-        log_success "Created fix_plan.md"
+        log_success "Created .cub/fix_plan.md"
     else
-        log_warn "fix_plan.md already exists, skipping"
+        log_warn ".cub/fix_plan.md already exists, skipping"
     fi
 
     # Create .gitignore additions
