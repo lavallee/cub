@@ -187,12 +187,23 @@ parse_json_file() {
     source_file="$source_file/$(basename "$file")"
 
     local parsed
+    local parse_status
     if [[ "$has_features" == "true" ]]; then
         # Structured PRD format with features
         parsed=$(_parse_prd_format "$file")
+        parse_status=$?
+        if [[ $parse_status -ne 0 ]]; then
+            echo "$parsed"
+            return 1
+        fi
     elif [[ "$has_tasks" == "true" ]]; then
         # Simple array format
         parsed=$(_parse_array_format "$file")
+        parse_status=$?
+        if [[ $parse_status -ne 0 ]]; then
+            echo "$parsed"
+            return 1
+        fi
     else
         echo '{"error":"JSON must contain either \"tasks\" or \"features\" array"}' >&2
         return 1

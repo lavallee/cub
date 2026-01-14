@@ -337,14 +337,14 @@ EOF
     local result
     result=$(parse_markdown_file "$TEST_DIR/test.md")
 
-    # Verify line numbers are present in epic
-    local epic_has_line
-    epic_has_line=$(echo "$result" | jq '.epics[0] | has("line")')
-    [[ "$epic_has_line" == "true" ]]
+    # Verify line numbers are present in epic (in source object)
+    local epic_has_source
+    epic_has_source=$(echo "$result" | jq '.epics[0] | has("source")')
+    [[ "$epic_has_source" == "true" ]]
 
     # Verify line number is correct
     local line_num
-    line_num=$(echo "$result" | jq '.epics[0].line')
+    line_num=$(echo "$result" | jq '.epics[0].source.line')
     [[ "$line_num" -eq 1 ]]
 }
 
