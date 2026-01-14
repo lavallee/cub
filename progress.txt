@@ -5499,3 +5499,46 @@ Per the epic (cub-h87), remaining tasks include:
 - cub-h87.10: Batch interview multiple tasks
 - cub-h87.11: Custom question support
 - cub-h87.12: Skip categories option (implemented but not tested)
+
+## Session: Comprehensive Spec Document Generation (cub-h87.7)
+
+### Task: Generate formatted markdown specification document from interview responses
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Enhanced `interview_generate_spec()` in `lib/cmd_interview.sh` to generate comprehensive spec documents
+   - Added Summary section with primary goal, inputs, outputs, and coverage statistics
+   - Changed category output from alphabetical to logical order (matching question bank structure)
+   - Categories now appear in order: Functional Requirements → Edge Cases → Error Handling → User Experience → Data & State → Integration Points → Performance & Scale → Security → Testing → Operations
+   - Preserved existing acceptance criteria extraction from success criteria responses
+
+### Test Results:
+- All 20 interview tests PASS
+- Verified spec generation with comprehensive test covering all categories
+- Categories output in correct logical order (not alphabetical)
+- Summary section includes key information extracted from responses
+
+### Learnings:
+- **Bash array iteration**: Used bash array to maintain canonical category order instead of relying on JSON sort
+- **Conditional sections**: Summary section items are only included if they exist (no "null" or empty values shown)
+- **jq filtering**: Used `jq --arg` to filter responses by category, combined with array length check to skip empty categories
+- **Markdown structure**: Clear hierarchy with Overview → Summary → Categories → Acceptance Criteria
+- **Spec comprehensiveness**: "Comprehensive" means including summary overview, logical category ordering, and full structured sections
+
+### Implementation Details:
+- Summary section extracts: primary goal, inputs, outputs, and coverage stats (response count and category count)
+- Category order defined in bash array matching question bank order (lines 588-599)
+- Each category only shown if it has responses (no empty sections)
+- Acceptance criteria still extracted from success criteria questions (unchanged behavior)
+- Mode parameter (interactive/auto) displayed in Overview section
+
+### Task Completion:
+The specification document generation now provides:
+1. ✅ Formatted markdown output with clear structure
+2. ✅ All categories included (in logical order, only non-empty ones shown)
+3. ✅ Summary overview section with key details
+4. ✅ Structured sections with proper hierarchy
+5. ✅ Acceptance criteria generation from responses
+
+This completes the comprehensive spec document generation feature, making interview output more useful and organized for task execution.
