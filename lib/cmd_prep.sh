@@ -287,26 +287,33 @@ cmd_triage() {
     local prompt
     prompt=$(_build_triage_prompt "$vision_doc" "$depth" "$session_id" "$is_existing_project")
 
-    # Run triage with Claude
-    log_info "Running triage interview (depth: ${depth})..."
+    # Save prompt to session directory for reference
+    local prompt_file="${session_dir}/.triage_prompt.md"
+    echo "$prompt" > "$prompt_file"
 
     local output_file="${session_dir}/triage.md"
 
-    # Pipe prompt to Claude and capture output
-    if echo "$prompt" | claude --print > "${session_dir}/.triage_response.txt" 2>&1; then
-        # The prompt instructs Claude to write the file directly
-        if [[ -f "$output_file" ]]; then
-            pipeline_update_session "$session_id" "triage" "complete"
-            log_success "Triage complete!"
-            log_info "Output: ${output_file}"
-            log_info "Next step: cub architect ${session_id}"
-        else
-            log_warn "Triage session completed but output file not created."
-            log_info "Response saved to: ${session_dir}/.triage_response.txt"
-        fi
+    # Run Claude interactively with the prompt
+    log_info "Starting triage interview (depth: ${depth})..."
+    log_info "Complete the interview with Claude, then exit when done."
+    echo ""
+
+    # Run claude interactively - user completes the triage conversation
+    echo "$prompt" | claude
+
+    # Check if output was created
+    if [[ -f "$output_file" ]]; then
+        pipeline_update_session "$session_id" "triage" "complete"
+        echo ""
+        log_success "Triage complete!"
+        log_info "Output: ${output_file}"
+        log_info "Next step: cub architect --session ${session_id}"
     else
-        _log_error_console "Triage failed"
-        return 1
+        echo ""
+        log_warn "Triage session ended but output file not created."
+        log_info "Session: ${session_id}"
+        log_info "Expected output: ${output_file}"
+        log_info "Resume with: cub triage --session ${session_id}"
     fi
 
     return 0
@@ -529,33 +536,42 @@ cmd_architect() {
     local prompt
     prompt=$(_build_architect_prompt "$session_id" "$triage_content" "$mindset" "$scale")
 
-    # Run architect with Claude
-    log_info "Running architecture design..."
+    # Save prompt to session directory for reference
+    local prompt_file="${session_dir}/.architect_prompt.md"
+    echo "$prompt" > "$prompt_file"
 
     local output_file="${session_dir}/architect.md"
 
-    if echo "$prompt" | claude --print > "${session_dir}/.architect_response.txt" 2>&1; then
-        if [[ -f "$output_file" ]]; then
-            pipeline_update_session "$session_id" "architect" "complete"
-            log_success "Architecture design complete!"
-            log_info "Output: ${output_file}"
+    # Run Claude interactively with the prompt
+    log_info "Starting architecture design session..."
+    log_info "Complete the design with Claude, then exit when done."
+    echo ""
 
-            # If --review flag is set, validate the architect output
-            if [[ "$review" == "true" ]]; then
-                _architect_review "$session_id" "$session_dir"
-                if [[ $? -ne 0 ]]; then
-                    log_warn "Architecture review found issues. Review: ${session_dir}/architect_review.md"
-                fi
+    # Run claude interactively - user completes the architecture conversation
+    echo "$prompt" | claude
+
+    # Check if output was created
+    if [[ -f "$output_file" ]]; then
+        pipeline_update_session "$session_id" "architect" "complete"
+        echo ""
+        log_success "Architecture design complete!"
+        log_info "Output: ${output_file}"
+
+        # If --review flag is set, validate the architect output
+        if [[ "$review" == "true" ]]; then
+            _architect_review "$session_id" "$session_dir"
+            if [[ $? -ne 0 ]]; then
+                log_warn "Architecture review found issues. Review: ${session_dir}/architect_review.md"
             fi
-
-            log_info "Next step: cub plan ${session_id}"
-        else
-            log_warn "Architect session completed but output file not created."
-            log_info "Response saved to: ${session_dir}/.architect_response.txt"
         fi
+
+        log_info "Next step: cub plan --session ${session_id}"
     else
-        _log_error_console "Architecture design failed"
-        return 1
+        echo ""
+        log_warn "Architect session ended but output file not created."
+        log_info "Session: ${session_id}"
+        log_info "Expected output: ${output_file}"
+        log_info "Resume with: cub architect --session ${session_id}"
     fi
 
     return 0
@@ -1010,41 +1026,50 @@ cmd_plan() {
     local prompt
     prompt=$(_build_plan_prompt "$session_id" "$triage_content" "$architect_content" "$granularity" "$prefix")
 
-    # Run planner with Claude
-    log_info "Generating implementation plan (granularity: ${granularity})..."
+    # Save prompt to session directory for reference
+    local prompt_file="${session_dir}/.plan_prompt.md"
+    echo "$prompt" > "$prompt_file"
 
     local jsonl_file="${session_dir}/plan.jsonl"
     local md_file="${session_dir}/plan.md"
 
-    if echo "$prompt" | claude --print > "${session_dir}/.plan_response.txt" 2>&1; then
-        if [[ -f "$jsonl_file" ]]; then
-            pipeline_update_session "$session_id" "plan" "complete"
+    # Run Claude interactively with the prompt
+    log_info "Starting plan generation session (granularity: ${granularity})..."
+    log_info "Complete the planning with Claude, then exit when done."
+    echo ""
 
-            # Count tasks
-            local epic_count task_count
-            epic_count=$(grep -c '"issue_type":"epic"' "$jsonl_file" 2>/dev/null || echo "0")
-            task_count=$(grep -c '"issue_type":"task"' "$jsonl_file" 2>/dev/null || echo "0")
+    # Run claude interactively - user completes the planning conversation
+    echo "$prompt" | claude
 
-            log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
-            log_info "JSONL: ${jsonl_file}"
-            [[ -f "$md_file" ]] && log_info "Summary: ${md_file}"
+    # Check if output was created
+    if [[ -f "$jsonl_file" ]]; then
+        pipeline_update_session "$session_id" "plan" "complete"
+        echo ""
 
-            # If --review flag is set, validate the plan
-            if [[ "$review" == "true" ]]; then
-                _plan_review "$session_id" "$session_dir" "$jsonl_file"
-                if [[ $? -ne 0 ]]; then
-                    log_warn "Plan review found issues. Review: ${session_dir}/plan_review.md"
-                fi
+        # Count tasks
+        local epic_count task_count
+        epic_count=$(grep -c '"issue_type":"epic"' "$jsonl_file" 2>/dev/null || echo "0")
+        task_count=$(grep -c '"issue_type":"task"' "$jsonl_file" 2>/dev/null || echo "0")
+
+        log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
+        log_info "JSONL: ${jsonl_file}"
+        [[ -f "$md_file" ]] && log_info "Summary: ${md_file}"
+
+        # If --review flag is set, validate the plan
+        if [[ "$review" == "true" ]]; then
+            _plan_review "$session_id" "$session_dir" "$jsonl_file"
+            if [[ $? -ne 0 ]]; then
+                log_warn "Plan review found issues. Review: ${session_dir}/plan_review.md"
             fi
-
-            log_info "Next step: cub bootstrap ${session_id}"
-        else
-            log_warn "Plan session completed but JSONL file not created."
-            log_info "Response saved to: ${session_dir}/.plan_response.txt"
         fi
+
+        log_info "Next step: cub bootstrap --session ${session_id}"
     else
-        _log_error_console "Plan generation failed"
-        return 1
+        echo ""
+        log_warn "Plan session ended but JSONL file not created."
+        log_info "Session: ${session_id}"
+        log_info "Expected output: ${jsonl_file}"
+        log_info "Resume with: cub plan --session ${session_id}"
     fi
 
     return 0
