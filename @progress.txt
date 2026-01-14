@@ -1,3 +1,83 @@
+## Task cub-0y8.3: Dependency validation (no circular deps, correct order) (2026-01-13)
+
+**Implementation:**
+- Added validate_task_dependencies(task_id, prd_file) function for single task validation
+- Added validate_all_dependencies(prd_file) for batch validation across all tasks
+- Implemented circular dependency detection using DFS algorithm for JSON backend
+- Added get_dependency_order(prd_file) for topological sort of tasks
+- Added get_blocked_tasks_report(prd_file) for detailed blocking information
+- Added get_dependency_summary(prd_file) for human-readable validation summary
+- Added internal _detect_cycles_json() helper for DFS-based cycle detection
+- Added 20 comprehensive BATS tests covering all new functionality
+
+**Key Learnings:**
+1. **Circular dependency detection strategies differ by backend**:
+   - Beads backend: Use `bd dep cycles` command (built-in)
+   - JSON backend: Implement DFS algorithm using jq recursive functions
+   - Both require building adjacency graphs from dependency data
+
+2. **Dependency order validation requires task list position checking**:
+   - Use `to_entries` and `.key` in jq to get task positions
+   - Check that all dependencies appear before dependents in task list
+   - Useful for early detection of ordering issues before execution
+
+3. **Topological sort implementation in jq**:
+   - Use iterative removal strategy rather than depth-first traversal
+   - Repeatedly find ready tasks (no unresolved deps) and output them
+   - Continue until all tasks processed
+   - Better for batch processing in jq than recursive algorithms
+
+4. **Blocked task reporting needs bidirectional dependency checking**:
+   - Get all closed tasks first for efficient lookups
+   - For each open task, check which dependencies are not closed
+   - Report blocking tasks with their current status
+   - Helps with debugging and dependency resolution planning
+
+5. **JSON validation structure pattern**:
+   - Consistent with validate_task_completeness() and validate_task_feasibility()
+   - Return format: `{"id": "task-id", "is_valid": true/false, "issues": []}`
+   - Batch validation returns JSON array of individual results
+   - Allows flexible formatting (markdown summaries, JSON exports, etc.)
+
+6. **Backend abstraction pattern**:
+   - Each function checks `get_backend()` and delegates to appropriate implementation
+   - Beads functions use `bd` CLI commands
+   - JSON functions use jq for all data extraction and processing
+   - Error handling consistent across both backends
+
+**Testing Approach:**
+- Unit tests for parameter validation (missing/empty parameters)
+- Single task validation tests (valid deps, missing deps, order issues)
+- Batch validation tests (empty prd, multiple tasks, multiple invalid)
+- Dependency ordering tests (with/without dependencies, empty prd)
+- Blocked task reporting tests (with blocking, all ready, empty prd)
+- Summary output tests (no issues, with issues, formatting)
+- Edge case tests (multiple dependencies, missing files, empty tasks)
+- All 20 new tests pass, plus all 77 existing tests still pass
+
+**Acceptance Criteria Met:**
+- ✓ All dependencies must exist - validate_task_dependencies checks against task list
+- ✓ No circular dependencies - DFS algorithm detects cycles for JSON, bd dep cycles for beads
+- ✓ Dependency order is correct - Tasks checked against position in task list
+- ✓ Blocked tasks identified - get_blocked_tasks_report shows blocking relationships
+- ✓ JSON output returned - All functions return structured JSON for machine parsing
+- ✓ Batch validation - validate_all_dependencies processes entire project
+- ✓ Human-readable reports - get_dependency_summary provides markdown output
+- ✓ All 20 new tests pass
+- ✓ All 77 existing tests still pass (97 total in tasks.bats)
+
+**Files Modified:**
+- lib/tasks.sh: Added 7 new functions + helper (350 lines added)
+- tests/tasks.bats: Added 20 comprehensive tests (280 lines added)
+- .beads/issues.jsonl: Task status updated to closed
+
+**Next Integration Points:**
+- Plan Review pipeline can use validate_task_dependencies() for dependency validation
+- Vision-to-Tasks pipeline can validate generated task dependencies before returning
+- --review-plans flag can display dependency issues alongside completeness/feasibility
+- get_blocked_tasks_report() can be used in cub explain to show blocking info
+- get_dependency_order() can inform task execution ordering in main loop
+
 ## Task cub-0y8.2: Feasibility check (dependencies complete, files exist) (2026-01-13)
 
 **Implementation:**
