@@ -1152,11 +1152,20 @@ run_review_plans() {
     echo "## Verdict" >> "$review_report"
     echo "" >> "$review_report"
 
+    # Check for block_on_concerns config
+    local block_on_concerns
+    block_on_concerns=$(config_get_or "review.block_on_concerns" "false")
+
     local verdict="PASS"
     if [[ "$has_blocks" == "true" ]]; then
         verdict="BLOCK"
     elif [[ "$has_concerns" == "true" ]]; then
-        verdict="CONCERNS"
+        # If block_on_concerns is enabled, upgrade CONCERNS to BLOCK
+        if [[ "$block_on_concerns" == "true" ]]; then
+            verdict="BLOCK"
+        else
+            verdict="CONCERNS"
+        fi
     fi
 
     case "$verdict" in
@@ -1179,8 +1188,14 @@ run_review_plans() {
         BLOCK)
             echo "✗ **BLOCK**: Plan cannot be executed. Critical issues found." >> "$review_report"
             echo "" >> "$review_report"
-            echo "Critical blocking issues detected. Must be resolved before execution." >> "$review_report"
-            log_error "✗ VERDICT: BLOCK - Critical issues must be resolved"
+            if [[ "$block_on_concerns" == "true" && "$has_blocks" != "true" ]]; then
+                echo "Blocking issues detected because block_on_concerns is enabled." >> "$review_report"
+                echo "Review concerns above and fix them, or disable block_on_concerns." >> "$review_report"
+                log_error "✗ VERDICT: BLOCK - Blocking on concerns (block_on_concerns=true)"
+            else
+                echo "Critical blocking issues detected. Must be resolved before execution." >> "$review_report"
+                log_error "✗ VERDICT: BLOCK - Critical issues must be resolved"
+            fi
             ;;
     esac
     echo "" >> "$review_report"

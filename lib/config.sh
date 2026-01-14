@@ -54,6 +54,10 @@ config_load() {
       "authorization",
       "credentials"
     ]
+  },
+  "review": {
+    "plan_strict": false,
+    "block_on_concerns": false
   }
 }
 EOF
@@ -84,6 +88,18 @@ EOF
         if [[ $? -ne 0 ]]; then
             # If jq fails (e.g., invalid JSON), try creating the structure
             merged_config=$(echo "$merged_config" | jq --argjson budget "$CUB_BUDGET" '. + {budget: {default: $budget}}' 2>/dev/null)
+        fi
+    fi
+
+    # CUB_REVIEW_STRICT overrides review.plan_strict
+    if [[ -n "${CUB_REVIEW_STRICT:-}" ]]; then
+        local strict_value="true"
+        if [[ "${CUB_REVIEW_STRICT}" == "false" || "${CUB_REVIEW_STRICT}" == "0" ]]; then
+            strict_value="false"
+        fi
+        merged_config=$(echo "$merged_config" | jq ".review.plan_strict = $strict_value" 2>/dev/null)
+        if [[ $? -ne 0 ]]; then
+            merged_config=$(echo "$merged_config" | jq ". + {review: {plan_strict: $strict_value}}" 2>/dev/null)
         fi
     fi
 

@@ -756,6 +756,12 @@ _architect_review() {
         verdict="CONCERNS"
     fi
 
+    # Check for strict mode
+    local plan_strict
+    plan_strict=$(config_get_or "review.plan_strict" "false")
+    local block_on_concerns
+    block_on_concerns=$(config_get_or "review.block_on_concerns" "false")
+
     case "$verdict" in
         PASS)
             echo "✓ **PASS**: Architecture is well-defined and ready for planning." >> "$review_file"
@@ -764,6 +770,19 @@ _architect_review() {
             ;;
         CONCERNS)
             echo "⚠ **CONCERNS**: Architecture has issues but can proceed. Review recommended." >> "$review_file"
+
+            # In strict mode, pause for review on concerns
+            if [[ "$plan_strict" == "true" ]]; then
+                echo "" >> "$review_file"
+                echo "**STRICT MODE**: Pausing for review of architecture concerns." >> "$review_file"
+                log_warn "⚠ STRICT MODE: Pausing for architecture review"
+
+                # Prompt user to review
+                echo ""
+                echo "Architecture review found concerns. Review details in: $review_file"
+                read -p "Review architecture concerns and press Enter to continue, or Ctrl+C to abort: "
+            fi
+
             log_warn "⚠ VERDICT: CONCERNS - Review issues before planning"
             return 1
             ;;
@@ -1217,6 +1236,12 @@ _plan_review() {
         verdict="CONCERNS"
     fi
 
+    # Check for strict mode and block_on_concerns
+    local plan_strict
+    plan_strict=$(config_get_or "review.plan_strict" "false")
+    local block_on_concerns
+    block_on_concerns=$(config_get_or "review.block_on_concerns" "false")
+
     case "$verdict" in
         PASS)
             echo "✓ **PASS**: Plan is well-formed and ready for bootstrap." >> "$review_file"
@@ -1225,6 +1250,19 @@ _plan_review() {
             ;;
         CONCERNS)
             echo "⚠ **CONCERNS**: Plan has issues but can proceed. Review recommended." >> "$review_file"
+
+            # In strict mode, pause for review on concerns
+            if [[ "$plan_strict" == "true" ]]; then
+                echo "" >> "$review_file"
+                echo "**STRICT MODE**: Pausing for review of plan concerns." >> "$review_file"
+                log_warn "⚠ STRICT MODE: Pausing for plan review"
+
+                # Prompt user to review
+                echo ""
+                echo "Plan review found concerns. Review details in: $review_file"
+                read -p "Review plan concerns and press Enter to continue, or Ctrl+C to abort: "
+            fi
+
             log_warn "⚠ VERDICT: CONCERNS - Review issues before bootstrap"
             return 1
             ;;
