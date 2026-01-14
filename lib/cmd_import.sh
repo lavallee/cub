@@ -169,8 +169,7 @@ _import_github() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        echo "Dry-run mode: No tasks created" >&2
-        echo "$parsed"
+        _show_import_preview "$parsed"
         return 0
     fi
 
@@ -200,8 +199,7 @@ _import_markdown() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        echo "Dry-run mode: No tasks created" >&2
-        echo "$parsed"
+        _show_import_preview "$parsed"
         return 0
     fi
 
@@ -243,13 +241,61 @@ _import_json() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        echo "Dry-run mode: No tasks created" >&2
-        echo "$parsed"
+        _show_import_preview "$parsed"
         return 0
     fi
 
     # Import to task backend
     _import_to_backend "$parsed"
+}
+
+# Show a detailed preview of what would be imported in dry-run mode
+_show_import_preview() {
+    local parsed="$1"
+
+    local epic_count
+    local task_count
+
+    epic_count=$(echo "$parsed" | jq '.epics | length // 0')
+    task_count=$(echo "$parsed" | jq '.tasks | length // 0')
+
+    # Determine backend
+    local backend="beads"
+    if ! command -v bd &>/dev/null; then
+        backend="json"
+    fi
+
+    cat >&2 <<EOF
+
+╭─ DRY-RUN PREVIEW ─────────────────────────────────────────────╮
+│                                                                  │
+│ Backend: $backend
+│ Total items: $((epic_count + task_count)) ($epic_count epics, $task_count tasks)
+│
+EOF
+
+    # Show epics
+    if [[ "$epic_count" -gt 0 ]]; then
+        echo "│ EPICS:" >&2
+        echo "$parsed" | jq -r '.epics[] | "│   • " + (.title // "Untitled")' >&2
+        echo "│" >&2
+    fi
+
+    # Show tasks with summary
+    if [[ "$task_count" -gt 0 ]]; then
+        echo "│ TASKS:" >&2
+        echo "$parsed" | jq -r '.tasks[] |
+            "│   • " + (.title // "Untitled") +
+            " [" + (.priority // "P2") + "]"' >&2
+        echo "│" >&2
+    fi
+
+    cat >&2 <<EOF
+│ To create these items, run without --dry-run                   │
+│                                                                  │
+╰──────────────────────────────────────────────────────────────────╯
+
+EOF
 }
 
 # Import parsed data to task backend (beads or JSON)
@@ -381,7 +427,8 @@ Format Flags:
   --github <repo>       Import GitHub issues (owner/repo format)
 
 Options:
-  --dry-run             Preview import without creating tasks
+  --dry-run             Preview import results without creating tasks
+                       Shows detailed preview with all items and acceptance criteria
   --backend beads|json  Override backend detection
   --include-closed      Include closed issues (GitHub only)
   --labels <filter>     Filter by comma-separated labels (GitHub only)
