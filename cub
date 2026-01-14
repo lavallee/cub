@@ -75,6 +75,7 @@ source "${CUB_DIR}/lib/project.sh"
 # Source guardrails (institutional memory)
 source "${CUB_DIR}/lib/guardrails.sh"
 # Source command implementations
+source "${CUB_DIR}/lib/cmd_guardrails.sh"
 source "${CUB_DIR}/lib/cmd_init.sh"
 source "${CUB_DIR}/lib/cmd_run.sh"
 source "${CUB_DIR}/lib/cmd_status.sh"
@@ -337,6 +338,11 @@ main() {
                 cmd_pr "${args[@]:1}"
                 return $?
                 ;;
+            guardrails)
+                # Manage institutional memory
+                cmd_guardrails "${args[@]:1}"
+                return $?
+                ;;
             version)
                 # Show version
                 cmd_version
@@ -467,6 +473,7 @@ SUBCOMMANDS:
   cub agent-close <task-id>     Close a task (for agent use)
   cub agent-verify <task-id>    Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
+  cub guardrails show           Display institutional memory
   cub upgrade [--head|--local]  Upgrade cub to newer version
   cub version                   Show version
 
