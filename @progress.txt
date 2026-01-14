@@ -1735,3 +1735,105 @@ cub interview --all --auto --skip-categories "Security,Operations"
 - Works seamlessly with existing interview modes (interactive, auto, batch)
 - Compatible with all existing options (--output, --update-task, etc.)
 - No impact on existing functionality (backward compatible)
+
+## Task cub-1x4.3: GitHub issues import (via gh CLI) (2026-01-14)
+
+**Implementation:**
+- Created GitHub issues parser (lib/parsers/github.sh) with full gh CLI integration
+- Implemented import command (lib/cmd_import.sh) supporting multiple formats
+- Integrated import subcommand into main CLI dispatcher
+
+**Key Features Implemented:**
+
+1. **GitHub Issues Parser (lib/parsers/github.sh)**
+   - `parse_github_repo(owner/repo)`: Fetch issues via gh CLI
+   - `parse_github_issues(json_data)`: Parse GitHub issues from JSON
+   - Issue number preservation: Automatically tags issues with `gh-issue-#NNN` labels
+   - Label preservation: Converts GitHub labels to task labels
+   - Milestone as epics: Creates epics from milestone titles
+   - Acceptance criteria extraction: Parses checkboxes from issue body
+   - Priority inference: Detects [P0-P4] markers and keywords (critical, blocker, high, low, etc.)
+   - Helper functions: `extract_epics()`, `extract_tasks()`, `count_items()`, `format_parsed_github()`
+
+2. **Import Command (lib/cmd_import.sh)**
+   - Multi-format support: GitHub (via gh CLI), Markdown, JSON
+   - Auto-detection: Detects format from file extension or `owner/repo` pattern
+   - GitHub-specific options:
+     * `--include-closed`: Include closed issues (default: open only)
+     * `--labels`: Filter by comma-separated labels
+   - Dry-run mode: `--dry-run` previews import without creating tasks
+   - Backend flexibility: `--backend beads|json` to override auto-detection
+   - Integration with existing parsers: Leverages markdown.sh and json.sh parsers
+   - Help documentation: Comprehensive `--help` flag with usage examples
+
+3. **CLI Integration**
+   - Registered `cub import` subcommand in main dispatcher
+   - Proper argument parsing with positional source + optional flags
+   - Consistent with other cub commands
+
+**Architecture Decisions:**
+
+1. **Parser Pattern Consistency**: Followed existing markdown.sh and json.sh patterns
+   - All parsers output normalized JSON: `{epics: [], tasks: [], dependencies: []}`
+   - Helper functions for extraction and formatting
+   - Error handling with JSON error messages
+
+2. **Library Structure**: cmd_import.sh sources all parsers at load time
+   - Single file manages all import logic
+   - Clear separation of concerns (parsers vs command)
+
+3. **Argument Handling**: Custom parser for positional + optional arguments
+   - First non-flag argument = source (file path or owner/repo)
+   - Remaining arguments are options
+   - Works with both `cub import file.md --dry-run` and `cub import --github owner/repo`
+
+**Testing & Validation:**
+- ✓ Bash syntax validation: All files pass `bash -n`
+- ✓ GitHub parser tested with mock issue data
+- ✓ Priority inference working (P0-P4 markers detected)
+- ✓ Acceptance criteria extraction from checkboxes functional
+- ✓ Milestone → epic conversion working
+- ✓ Dry-run mode produces correct JSON output
+- ✓ Help flag working correctly
+- ✓ Argument parsing handles positional + optional correctly
+
+**Debugging Notes:**
+- **Issue Found**: cmd_import.sh had `cmd_import "$@"` at the end, causing double execution when sourced
+  - Fixed by removing the call from library file (should only be called from CLI)
+  - This is correct pattern - library files should define functions, not call them
+- **Global flag parsing**: The --debug and --harness flags are properly filtered out before subcommand dispatch
+
+**Integration Points:**
+- Works with beads task backend (via `bd create` and `bd import`)
+- Works with JSON backend (prd.json)
+- Uses existing task management layer (lib/tasks.sh)
+- Compatible with harness abstraction
+
+**Acceptance Criteria Met:**
+- ✓ GitHub issues import via gh CLI
+- ✓ Issue numbers preserved as references
+- ✓ Labels preserved in task metadata
+- ✓ Milestones converted to epics
+- ✓ Body parsed for acceptance criteria (checkbox lists)
+- ✓ Priority inferred from markers and keywords
+- ✓ Markdown and JSON imports also supported
+- ✓ Dry-run mode implemented
+- ✓ Backend flexibility (beads/json)
+- ✓ CLI properly integrated
+- ✓ Documentation/help provided
+
+**Future Enhancements:**
+- PDF support (cub-1x4.11)
+- Priority inference (cub-1x4.5) - already partially implemented
+- Dependency detection (cub-1x4.6)
+- Acceptance criteria extraction (cub-1x4.7) - partially implemented
+- Backend support abstraction (cub-1x4.9)
+- Linear/Jira integration (roadmap)
+
+**Code Quality:**
+- No external dependencies beyond bash, jq, and gh CLI
+- Follows project coding standards
+- Comprehensive error handling
+- Proper use of functions and variable scoping
+- Clear code comments and documentation
+
