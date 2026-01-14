@@ -453,6 +453,7 @@ cmd_architect() {
     local session_id=""
     local mindset=""
     local scale=""
+    local review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -471,6 +472,10 @@ cmd_architect() {
                 ;;
             --scale=*)
                 scale="${1#--scale=}"
+                shift
+                ;;
+            --review)
+                review="true"
                 shift
                 ;;
             --help|-h)
@@ -534,6 +539,15 @@ cmd_architect() {
             pipeline_update_session "$session_id" "architect" "complete"
             log_success "Architecture design complete!"
             log_info "Output: ${output_file}"
+
+            # If --review flag is set, validate the architect output
+            if [[ "$review" == "true" ]]; then
+                _architect_review "$session_id" "$session_dir"
+                if [[ $? -ne 0 ]]; then
+                    log_warn "Architecture review found issues. Review: ${session_dir}/architect_review.md"
+                fi
+            fi
+
             log_info "Next step: cub plan ${session_id}"
         else
             log_warn "Architect session completed but output file not created."
@@ -662,6 +676,100 @@ Begin the architecture design now.
 EOF
 }
 
+_architect_review() {
+    local session_id="$1"
+    local session_dir="$2"
+    local architect_file="${session_dir}/architect.md"
+    local review_file="${session_dir}/architect_review.md"
+
+    log_info "Reviewing architecture design..."
+
+    # Initialize review report
+    {
+        echo "# Architecture Review"
+        echo ""
+        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        echo ""
+    } > "$review_file"
+
+    local has_concerns=false
+
+    # Check 1: Section structure
+    echo "## Structure Validation" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local missing_sections=()
+    for section in "Technical Summary" "Technology Stack" "System Architecture" "Components"; do
+        if ! grep -q "## $section" "$architect_file"; then
+            missing_sections+=("$section")
+            has_concerns=true
+        fi
+    done
+
+    if [[ ${#missing_sections[@]} -eq 0 ]]; then
+        echo "✓ **PASS**: All required sections present" >> "$review_file"
+        log_info "✓ Structure validation passed"
+    else
+        echo "⚠ **CONCERNS**: Missing sections:" >> "$review_file"
+        printf ' - %s\n' "${missing_sections[@]}" >> "$review_file"
+        log_warn "⚠ Architecture missing sections: ${missing_sections[*]}"
+    fi
+    echo "" >> "$review_file"
+
+    # Check 2: Technical clarity
+    echo "## Technical Clarity" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local word_count
+    word_count=$(wc -w < "$architect_file")
+
+    if [[ $word_count -ge 500 ]]; then
+        echo "✓ **PASS**: Sufficient technical depth (${word_count} words)" >> "$review_file"
+        log_info "✓ Technical clarity validated"
+    else
+        echo "⚠ **CONCERNS**: Limited technical detail (only ${word_count} words, recommended 500+)" >> "$review_file"
+        has_concerns=true
+        log_warn "⚠ Architecture lacks sufficient technical depth"
+    fi
+    echo "" >> "$review_file"
+
+    # Check 3: Risk assessment
+    echo "## Risk Assessment" >> "$review_file"
+    echo "" >> "$review_file"
+
+    if grep -q "## Technical Risks\|risk\|Risk" "$architect_file"; then
+        echo "✓ **PASS**: Risks identified and documented" >> "$review_file"
+        log_info "✓ Risk assessment found"
+    else
+        echo "⚠ **CONCERNS**: No explicit risk documentation" >> "$review_file"
+        has_concerns=true
+        log_warn "⚠ Architecture lacks explicit risk assessment"
+    fi
+    echo "" >> "$review_file"
+
+    # Generate verdict
+    echo "## Verdict" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local verdict="PASS"
+    if [[ "$has_concerns" == "true" ]]; then
+        verdict="CONCERNS"
+    fi
+
+    case "$verdict" in
+        PASS)
+            echo "✓ **PASS**: Architecture is well-defined and ready for planning." >> "$review_file"
+            log_info "✓ VERDICT: PASS - Architecture ready for planning"
+            return 0
+            ;;
+        CONCERNS)
+            echo "⚠ **CONCERNS**: Architecture has issues but can proceed. Review recommended." >> "$review_file"
+            log_warn "⚠ VERDICT: CONCERNS - Review issues before planning"
+            return 1
+            ;;
+    esac
+}
+
 _architect_help() {
     cat <<EOF
 Usage: cub architect [OPTIONS] [SESSION_ID]
@@ -676,15 +784,18 @@ Arguments:
 Options:
   --mindset TYPE     prototype, mvp, production, or enterprise
   --scale LEVEL      personal, team, product, or internet
+  --review           Validate architecture after generation
   -h, --help         Show this help message
 
 Examples:
   cub architect                        # Use most recent session
   cub architect myproj-20260113-...    # Specific session
   cub architect --mindset mvp          # Specify mindset upfront
+  cub architect --review               # With quality validation
 
 Output:
   .cub/sessions/{session-id}/architect.md
+  .cub/sessions/{session-id}/architect_review.md (if --review)
 
 Next Step:
   cub plan {session-id}
@@ -699,6 +810,7 @@ cmd_plan() {
     local session_id=""
     local granularity="micro"
     local prefix=""
+    local review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -717,6 +829,10 @@ cmd_plan() {
                 ;;
             --prefix=*)
                 prefix="${1#--prefix=}"
+                shift
+                ;;
+            --review)
+                review="true"
                 shift
                 ;;
             --help|-h)
@@ -803,6 +919,15 @@ cmd_plan() {
             log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
             log_info "JSONL: ${jsonl_file}"
             [[ -f "$md_file" ]] && log_info "Summary: ${md_file}"
+
+            # If --review flag is set, validate the plan
+            if [[ "$review" == "true" ]]; then
+                _plan_review "$session_id" "$session_dir" "$jsonl_file"
+                if [[ $? -ne 0 ]]; then
+                    log_warn "Plan review found issues. Review: ${session_dir}/plan_review.md"
+                fi
+            fi
+
             log_info "Next step: cub bootstrap ${session_id}"
         else
             log_warn "Plan session completed but JSONL file not created."
@@ -962,6 +1087,150 @@ Generate the plan now. First ask about task prefix if the default (${prefix}) is
 EOF
 }
 
+_plan_review() {
+    local session_id="$1"
+    local session_dir="$2"
+    local jsonl_file="$3"
+    local review_file="${session_dir}/plan_review.md"
+
+    log_info "Reviewing generated plan..."
+
+    # Initialize review report
+    {
+        echo "# Plan Review"
+        echo ""
+        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        echo ""
+    } > "$review_file"
+
+    local has_concerns=false
+
+    # Check 1: JSONL validity
+    echo "## JSONL Format Validation" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local valid_lines=0
+    local invalid_lines=0
+    while IFS= read -r line; do
+        if jq empty <<< "$line" 2>/dev/null; then
+            ((valid_lines++))
+        else
+            ((invalid_lines++))
+        fi
+    done < "$jsonl_file"
+
+    if [[ $invalid_lines -eq 0 ]]; then
+        echo "✓ **PASS**: All ${valid_lines} JSONL lines are valid" >> "$review_file"
+        log_info "✓ JSONL format validation passed"
+    else
+        echo "⚠ **CONCERNS**: ${invalid_lines} invalid JSONL lines out of $((valid_lines + invalid_lines))" >> "$review_file"
+        has_concerns=true
+        log_warn "⚠ Plan has invalid JSONL lines"
+    fi
+    echo "" >> "$review_file"
+
+    # Check 2: Task completeness
+    echo "## Task Definition Completeness" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local missing_fields=0
+    while IFS= read -r line; do
+        # Check for required fields: id, title, description, issue_type
+        if ! echo "$line" | jq -e '.id and .title and .description and .issue_type' >/dev/null 2>&1; then
+            ((missing_fields++))
+        fi
+    done < "$jsonl_file"
+
+    if [[ $missing_fields -eq 0 ]]; then
+        echo "✓ **PASS**: All tasks have required fields (id, title, description, issue_type)" >> "$review_file"
+        log_info "✓ Task completeness validation passed"
+    else
+        echo "⚠ **CONCERNS**: ${missing_fields} tasks missing required fields" >> "$review_file"
+        has_concerns=true
+        log_warn "⚠ Plan has tasks with missing fields"
+    fi
+    echo "" >> "$review_file"
+
+    # Check 3: Label presence
+    echo "## Label Validation" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local tasks_missing_labels=0
+    while IFS= read -r line; do
+        # Check for at least one label
+        if ! echo "$line" | jq -e '.labels and (.labels | length) > 0' >/dev/null 2>&1; then
+            ((tasks_missing_labels++))
+        fi
+    done < "$jsonl_file"
+
+    if [[ $tasks_missing_labels -eq 0 ]]; then
+        echo "✓ **PASS**: All tasks have labels" >> "$review_file"
+        log_info "✓ Label validation passed"
+    else
+        echo "⚠ **CONCERNS**: ${tasks_missing_labels} tasks missing labels" >> "$review_file"
+        has_concerns=true
+        log_warn "⚠ Plan has tasks without labels"
+    fi
+    echo "" >> "$review_file"
+
+    # Check 4: Task hierarchy
+    echo "## Task Hierarchy" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local epic_count=0
+    local task_count=0
+    local other_count=0
+    while IFS= read -r line; do
+        local issue_type
+        issue_type=$(echo "$line" | jq -r '.issue_type // "unknown"')
+        case "$issue_type" in
+            epic) ((epic_count++)) ;;
+            task) ((task_count++)) ;;
+            *) ((other_count++)) ;;
+        esac
+    done < "$jsonl_file"
+
+    if [[ $epic_count -gt 0 && $task_count -gt 0 ]]; then
+        echo "✓ **PASS**: Plan has ${epic_count} epics and ${task_count} tasks" >> "$review_file"
+        log_info "✓ Task hierarchy valid (${epic_count} epics, ${task_count} tasks)"
+    else
+        if [[ $epic_count -eq 0 && $task_count -eq 0 ]]; then
+            echo "⚠ **CONCERNS**: Plan has no epics or tasks" >> "$review_file"
+            has_concerns=true
+        elif [[ $epic_count -eq 0 ]]; then
+            echo "⚠ **CONCERNS**: Plan has tasks but no epics (${task_count} tasks)" >> "$review_file"
+            has_concerns=true
+        else
+            echo "⚠ **CONCERNS**: Plan has epics but no tasks (${epic_count} epics)" >> "$review_file"
+            has_concerns=true
+        fi
+        log_warn "⚠ Plan hierarchy incomplete (epics: ${epic_count}, tasks: ${task_count})"
+    fi
+    echo "" >> "$review_file"
+
+    # Generate verdict
+    echo "## Verdict" >> "$review_file"
+    echo "" >> "$review_file"
+
+    local verdict="PASS"
+    if [[ "$has_concerns" == "true" ]]; then
+        verdict="CONCERNS"
+    fi
+
+    case "$verdict" in
+        PASS)
+            echo "✓ **PASS**: Plan is well-formed and ready for bootstrap." >> "$review_file"
+            log_info "✓ VERDICT: PASS - Plan ready for bootstrap"
+            return 0
+            ;;
+        CONCERNS)
+            echo "⚠ **CONCERNS**: Plan has issues but can proceed. Review recommended." >> "$review_file"
+            log_warn "⚠ VERDICT: CONCERNS - Review issues before bootstrap"
+            return 1
+            ;;
+    esac
+}
+
 _plan_help() {
     cat <<EOF
 Usage: cub plan [OPTIONS] [SESSION_ID]
@@ -976,16 +1245,19 @@ Arguments:
 Options:
   --granularity LVL  micro (default), standard, or macro
   --prefix PREFIX    Task ID prefix (default: project name)
+  --review           Validate plan after generation
   -h, --help         Show this help message
 
 Examples:
   cub plan                             # Use most recent session
   cub plan --granularity micro         # Small tasks for AI agents
   cub plan --prefix myproj             # Custom task prefix
+  cub plan --review                    # With quality validation
 
 Output:
-  .cub/sessions/{session-id}/plan.jsonl  (Beads-compatible)
-  .cub/sessions/{session-id}/plan.md     (Human-readable)
+  .cub/sessions/{session-id}/plan.jsonl     (Beads-compatible)
+  .cub/sessions/{session-id}/plan.md        (Human-readable)
+  .cub/sessions/{session-id}/plan_review.md (if --review)
 
 Next Step:
   cub bootstrap {session-id}
@@ -1340,6 +1612,7 @@ cmd_pipeline() {
     local granularity="micro"
     local prefix=""
     local auto="false"
+    local auto_review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -1378,6 +1651,10 @@ cmd_pipeline() {
                 ;;
             --auto)
                 auto="true"
+                shift
+                ;;
+            --auto-review)
+                auto_review="true"
                 shift
                 ;;
             --help|-h)
@@ -1427,6 +1704,7 @@ cmd_pipeline() {
 
     local architect_args=("$session_id")
     [[ -n "$mindset" ]] && architect_args=("--mindset" "$mindset" "${architect_args[@]}")
+    [[ "$auto_review" == "true" ]] && architect_args+=("--review")
 
     if ! cmd_architect "${architect_args[@]}"; then
         _log_error_console "Architecture failed. Pipeline stopped."
@@ -1443,6 +1721,7 @@ cmd_pipeline() {
 
     local plan_args=("--granularity" "$granularity" "$session_id")
     [[ -n "$prefix" ]] && plan_args=("--prefix" "$prefix" "${plan_args[@]}")
+    [[ "$auto_review" == "true" ]] && plan_args+=("--review")
 
     if ! cmd_plan "${plan_args[@]}"; then
         _log_error_console "Planning failed. Pipeline stopped."
@@ -1487,8 +1766,8 @@ Run the complete Vision-to-Tasks pipeline.
 
 Stages:
   1. Triage    - Refine requirements from vision document
-  2. Architect - Design technical architecture
-  3. Plan      - Decompose into executable tasks
+  2. Architect - Design technical architecture (--auto-review validates here)
+  3. Plan      - Decompose into executable tasks (--auto-review validates here)
   4. Bootstrap - Initialize beads and import tasks
 
 Arguments:
@@ -1500,19 +1779,23 @@ Options:
   --granularity LVL  Task size: micro, standard, macro
   --prefix PREFIX    Task ID prefix
   --auto             Non-interactive mode (use defaults)
+  --auto-review      Enable automatic review gates between stages
   -h, --help         Show this help message
 
 Examples:
   cub pipeline VISION.md              # Full pipeline from vision doc
   cub pipeline --depth deep           # Deep triage, default others
   cub pipeline --mindset mvp          # Pre-set mindset for architect
+  cub pipeline --auto-review          # With quality validation gates
 
 Output:
   .cub/sessions/{session-id}/
-    ├── triage.md      # Refined requirements
-    ├── architect.md   # Technical design
-    ├── plan.jsonl     # Beads-compatible tasks
-    └── plan.md        # Human-readable plan
+    ├── triage.md            # Refined requirements
+    ├── architect.md         # Technical design
+    ├── architect_review.md  # (with --auto-review)
+    ├── plan.jsonl           # Beads-compatible tasks
+    ├── plan.md              # Human-readable plan
+    └── plan_review.md       # (with --auto-review)
 
 Next:
   cub run              # Start autonomous execution
