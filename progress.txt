@@ -5630,3 +5630,83 @@ This completes the comprehensive spec document generation feature, making interv
 - Generates richer, more actionable acceptance criteria
 - Suitable for task tracking systems (checkbox format)
 
+
+## Task cub-h87.11: Custom Question Support (2026-01-14)
+
+**Status**: COMPLETED
+
+### Implementation Summary
+
+Added comprehensive custom question support to the interview mode system, allowing projects to define project-specific interview questions in configuration.
+
+### What was implemented:
+
+1. **Custom Question Loading** (`interview_load_custom_questions()`)
+   - Loads custom questions from `.cub.json` via `interview.custom_questions` path
+   - Returns empty array if no custom questions configured
+   - Integrates seamlessly with existing configuration system
+
+2. **Question Merging** (`interview_merge_questions()`)
+   - Merges built-in and custom questions into single array
+   - Preserves order: built-in questions first, then custom
+   - Handles empty custom question arrays gracefully
+
+3. **Integration Points**
+   - Updated `cmd_interview()` single task mode to use merged questions
+   - Updated `cmd_interview_batch()` batch mode to use merged questions
+   - Custom questions participate fully in filtering system
+
+4. **Custom Question Features**
+   - **category**: Required - groups questions in output
+   - **question**: Required - the actual question text
+   - **applies_to**: Required - array of task types (feature, task, bugfix)
+   - **requires_labels**: Optional - question only appears for tasks with matching labels
+   - **requires_tech**: Optional - question only appears when tech stack matches
+   - **skip_if**: Optional - conditional skip based on previous answers
+
+5. **Test Coverage**
+   - Added 6 comprehensive tests to `tests/interview.bats`
+   - Tests cover: loading, merging, filtering, label matching
+   - All 37 interview tests pass
+
+### Configuration Example
+
+```json
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Project Specific",
+        "question": "What is the business impact?",
+        "applies_to": ["feature", "task"]
+      },
+      {
+        "category": "Compliance",
+        "question": "What regulatory requirements apply?",
+        "applies_to": ["feature"],
+        "requires_labels": ["compliance"]
+      }
+    ]
+  }
+}
+```
+
+### Design Decisions
+
+1. **Configuration Location**: Used `.cub.json` under `interview.custom_questions` to align with existing config structure
+2. **Merging Strategy**: Simple array concatenation with built-in questions first ensures backward compatibility
+3. **Filtering Integration**: Custom questions use identical filtering system (applies_to, requires_labels, requires_tech, skip_if) as built-in questions
+4. **No Breaking Changes**: Fully backward compatible - projects without custom questions are unaffected
+
+### Key Insights
+
+- The existing filtering system is flexible and extensible - custom questions automatically benefit from all filtering logic
+- Configuration approach via `.cub.json` is consistent with the project's config precedence system
+- Test-driven approach was critical - tests validated both the new functionality and existing behavior
+- The interview system's separation of concerns (loading, filtering, merging, displaying) made this feature straightforward to add
+
+### Test Results
+- All 37 interview tests pass (including 6 new custom question tests)
+- Bash syntax validation: Valid
+- No breaking changes to existing functionality
+
