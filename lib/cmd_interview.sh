@@ -14,6 +14,39 @@ fi
 _CUB_CMD_INTERVIEW_SH_LOADED=1
 
 # ============================================================================
+# Custom Question Support
+# ============================================================================
+
+# Load custom questions from configuration file
+# Returns: JSON array of custom question objects (empty array if none configured)
+interview_load_custom_questions() {
+    local custom_questions=""
+
+    # Try to load from project config file (.cub.json)
+    if [[ -f ".cub.json" ]]; then
+        custom_questions=$(jq '.interview.custom_questions // []' ".cub.json" 2>/dev/null)
+    fi
+
+    # Fallback to empty array if not found or jq fails
+    if [[ -z "$custom_questions" ]]; then
+        custom_questions="[]"
+    fi
+
+    echo "$custom_questions"
+}
+
+# Merge custom questions with built-in questions
+# Args: built_in_questions custom_questions
+# Returns: JSON array with merged questions (custom questions added to the end)
+interview_merge_questions() {
+    local built_in="$1"
+    local custom="$2"
+
+    # Merge arrays: built-in first, then custom questions
+    echo "$built_in" | jq --argjson custom "$custom" '. + $custom'
+}
+
+# ============================================================================
 # Question Bank
 # ============================================================================
 
@@ -909,8 +942,12 @@ cmd_interview_batch() {
         echo -e "${CYAN}[$((processed+1))/$task_count]${NC} Interviewing: ${GREEN}$task_id${NC} - $title"
 
         # Load and filter questions
+        local built_in_questions
+        built_in_questions=$(interview_load_questions)
+        local custom_questions
+        custom_questions=$(interview_load_custom_questions)
         local all_questions
-        all_questions=$(interview_load_questions)
+        all_questions=$(interview_merge_questions "$built_in_questions" "$custom_questions")
         local questions
         questions=$(interview_filter_questions "$task_json" "$all_questions")
 
@@ -1392,8 +1429,12 @@ cmd_interview() {
     fi
 
     # Load and filter questions
+    local built_in_questions
+    built_in_questions=$(interview_load_questions)
+    local custom_questions
+    custom_questions=$(interview_load_custom_questions)
     local all_questions
-    all_questions=$(interview_load_questions)
+    all_questions=$(interview_merge_questions "$built_in_questions" "$custom_questions")
     local questions
     questions=$(interview_filter_questions "$task_json" "$all_questions")
 

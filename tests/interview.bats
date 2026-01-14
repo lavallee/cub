@@ -565,3 +565,202 @@ teardown() {
     echo "$criteria" | grep -q "\- \[ \] Users can export their data"
     echo "$criteria" | grep -q "\- \[ \] All tests passing"
 }
+
+# ============================================================================
+# Custom Question Tests
+# ============================================================================
+
+@test "interview_load_custom_questions returns empty array when no config exists" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    cd "${BATS_TMPDIR}"
+    local custom_questions
+    custom_questions=$(interview_load_custom_questions)
+
+    # Should return empty array
+    [ "$custom_questions" == "[]" ]
+}
+
+@test "interview_load_custom_questions loads custom questions from .cub.json" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create a test directory with .cub.json
+    local test_dir="${BATS_TMPDIR}/custom_questions_test"
+    mkdir -p "$test_dir"
+    cd "$test_dir"
+
+    # Create .cub.json with custom questions
+    cat > .cub.json <<'EOF'
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Custom Category",
+        "question": "Custom question 1?",
+        "applies_to": ["feature", "task"]
+      },
+      {
+        "category": "Custom Category",
+        "question": "Custom question 2?",
+        "applies_to": ["feature"]
+      }
+    ]
+  }
+}
+EOF
+
+    local custom_questions
+    custom_questions=$(interview_load_custom_questions)
+
+    # Should return the custom questions array
+    local count
+    count=$(echo "$custom_questions" | jq 'length')
+    [ "$count" -eq 2 ]
+
+    # Check first custom question
+    local first_question
+    first_question=$(echo "$custom_questions" | jq -r '.[0].question')
+    [ "$first_question" == "Custom question 1?" ]
+
+    # Check category
+    local category
+    category=$(echo "$custom_questions" | jq -r '.[0].category')
+    [ "$category" == "Custom Category" ]
+}
+
+@test "interview_merge_questions combines built-in and custom questions" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local built_in='[{"category":"A","question":"Q1"},{"category":"B","question":"Q2"}]'
+    local custom='[{"category":"C","question":"Q3"}]'
+
+    local merged
+    merged=$(interview_merge_questions "$built_in" "$custom")
+
+    # Should have 3 total questions
+    local count
+    count=$(echo "$merged" | jq 'length')
+    [ "$count" -eq 3 ]
+
+    # Built-in questions should be first
+    local first
+    first=$(echo "$merged" | jq -r '.[0].question')
+    [ "$first" == "Q1" ]
+
+    # Custom questions should be at the end
+    local last
+    last=$(echo "$merged" | jq -r '.[-1].question')
+    [ "$last" == "Q3" ]
+}
+
+@test "interview_merge_questions handles empty custom questions" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local built_in='[{"category":"A","question":"Q1"}]'
+    local custom='[]'
+
+    local merged
+    merged=$(interview_merge_questions "$built_in" "$custom")
+
+    # Should only have built-in question
+    local count
+    count=$(echo "$merged" | jq 'length')
+    [ "$count" -eq 1 ]
+
+    local first
+    first=$(echo "$merged" | jq -r '.[0].question')
+    [ "$first" == "Q1" ]
+}
+
+@test "custom questions are included in filtering by task type" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test directory with custom questions
+    local test_dir="${BATS_TMPDIR}/custom_filter_test"
+    mkdir -p "$test_dir"
+    cd "$test_dir"
+
+    cat > .cub.json <<'EOF'
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Custom",
+        "question": "Custom feature question?",
+        "applies_to": ["feature"]
+      },
+      {
+        "category": "Custom",
+        "question": "Custom universal question?",
+        "applies_to": ["feature", "task", "bugfix"]
+      }
+    ]
+  }
+}
+EOF
+
+    local task_json='{"id":"test-1","type":"feature","title":"Test"}'
+    local built_in
+    built_in=$(interview_load_questions)
+    local custom
+    custom=$(interview_load_custom_questions)
+    local all_questions
+    all_questions=$(interview_merge_questions "$built_in" "$custom")
+
+    local filtered
+    filtered=$(interview_filter_questions "$task_json" "$all_questions")
+
+    # Both custom questions should be in results for feature
+    local custom_count
+    custom_count=$(echo "$filtered" | jq '[.[] | select(.category == "Custom")] | length')
+    [ "$custom_count" -eq 2 ]
+}
+
+@test "custom questions support requires_labels filtering" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test directory
+    local test_dir="${BATS_TMPDIR}/custom_labels_test"
+    mkdir -p "$test_dir"
+    cd "$test_dir"
+
+    cat > .cub.json <<'EOF'
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Custom API",
+        "question": "Custom API question?",
+        "applies_to": ["feature"],
+        "requires_labels": ["api"]
+      }
+    ]
+  }
+}
+EOF
+
+    # Task without API label
+    local task_json='{"id":"test-1","type":"feature","title":"Test","labels":["ui"]}'
+    local built_in
+    built_in=$(interview_load_questions)
+    local custom
+    custom=$(interview_load_custom_questions)
+    local all_questions
+    all_questions=$(interview_merge_questions "$built_in" "$custom")
+
+    local filtered
+    filtered=$(interview_filter_questions "$task_json" "$all_questions")
+
+    # Custom API question should be filtered out
+    local custom_count
+    custom_count=$(echo "$filtered" | jq '[.[] | select(.category == "Custom API")] | length')
+    [ "$custom_count" -eq 0 ]
+
+    # Now test with API label
+    task_json='{"id":"test-2","type":"feature","title":"Test","labels":["api"]}'
+    filtered=$(interview_filter_questions "$task_json" "$all_questions")
+
+    # Custom API question should now be included
+    custom_count=$(echo "$filtered" | jq '[.[] | select(.category == "Custom API")] | length')
+    [ "$custom_count" -eq 1 ]
+}

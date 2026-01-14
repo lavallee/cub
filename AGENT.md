@@ -116,6 +116,36 @@ cub interview --all --auto --skip-review --update-task
 
 Batch mode uses `bd list --status open` to find tasks and processes them sequentially with AI-generated answers.
 
+### Custom Questions Support
+
+Add project-specific interview questions to `.cub.json`:
+
+```json
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Project Specific",
+        "question": "What is the business impact?",
+        "applies_to": ["feature", "task"]
+      },
+      {
+        "category": "Project Specific",
+        "question": "What third-party integrations are affected?",
+        "applies_to": ["feature"],
+        "requires_labels": ["integration"]
+      }
+    ]
+  }
+}
+```
+
+Custom questions support:
+- **applies_to**: Array of task types (feature, task, bugfix) - required
+- **requires_labels**: Array of labels - question only appears for tasks with matching labels (optional)
+- **requires_tech**: Array of tech stack tags - question only appears when tech stack matches (optional)
+- **skip_if**: Conditional skip logic based on previous answers (optional)
+
 ## Gotchas & Learnings
 
 - **Bash 3.2 compatibility**: macOS ships with bash 3.2 which has bugs with `${2:-{}}` syntax when the default contains braces. Use explicit if-checks instead.
