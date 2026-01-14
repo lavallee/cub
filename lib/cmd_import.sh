@@ -6,12 +6,14 @@
 # - GitHub issues (via gh CLI)
 # - Markdown documents
 # - JSON files
+# - PDF documents
 #
 # Usage:
 #   cub import <source> [options]
 #   cub import --github owner/repo [--include-closed] [--labels "label1,label2"]
 #   cub import requirements.md
 #   cub import tasks.json
+#   cub import document.pdf
 #   cub import <source> --dry-run
 #   cub import <source> --backend beads|json
 #
@@ -27,6 +29,8 @@ source "$CUB_LIB_DIR/parsers/markdown.sh" || return 1
 source "$CUB_LIB_DIR/parsers/json.sh" || return 1
 # shellcheck source=lib/parsers/github.sh
 source "$CUB_LIB_DIR/parsers/github.sh" || return 1
+# shellcheck source=lib/parsers/pdf.sh
+source "$CUB_LIB_DIR/parsers/pdf.sh" || return 1
 
 # Main import command handler
 cmd_import() {
@@ -106,6 +110,9 @@ cmd_import() {
             *.json)
                 format="json"
                 ;;
+            *.pdf)
+                format="pdf"
+                ;;
             *)
                 echo "Error: Unknown file format for $source" >&2
                 return 1
@@ -141,6 +148,10 @@ cmd_import() {
         ;;
     json)
         _import_json "$source" "$dry_run" "$backend"
+        return $?
+        ;;
+    pdf)
+        _import_pdf "$source" "$dry_run" "$backend"
         return $?
         ;;
     *)
@@ -246,6 +257,37 @@ _import_json() {
     task_count=$(echo "$parsed" | jq '.tasks | length')
     echo "Tasks: $task_count" >&2
     echo "$parsed" | jq -r '.tasks[] | "  [\(.id)] \(.title)"' >&2
+    echo "" >&2
+
+    if [[ "$dry_run" == "true" ]]; then
+        _show_import_preview "$parsed" "$backend"
+        return 0
+    fi
+
+    # Import to task backend
+    _import_to_backend "$parsed" "$backend"
+}
+
+# Import PDF file
+_import_pdf() {
+    local source="$1"
+    local dry_run="$2"
+    local backend="$3"
+
+    echo "Importing from PDF: $source" >&2
+
+    # Parse PDF
+    local parsed
+    parsed=$(parse_pdf_file "$source")
+
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to parse PDF" >&2
+        echo "$parsed" | jq '.error' 2>/dev/null
+        return 1
+    fi
+
+    # Show preview using format_parsed_pdf
+    format_parsed_pdf "$parsed"
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
@@ -475,7 +517,7 @@ Import requirements from various sources and convert to tasks.
 
 Positional Arguments:
   <source>              File path or repository (auto-detected)
-                       Examples: requirements.md, tasks.json, owner/repo
+                       Examples: requirements.md, tasks.json, document.pdf, owner/repo
 
 Format Flags:
   --github <repo>       Import GitHub issues (owner/repo format)
@@ -490,14 +532,16 @@ Options:
 Examples:
   cub import requirements.md
   cub import tasks.json
+  cub import document.pdf
   cub import --github anthropics/claude-code
   cub import --github anthropics/claude-code --labels "bug,priority:high"
   cub import requirements.md --dry-run
-  cub import requirements.md --backend beads
+  cub import document.pdf --backend beads
 
 Supported Formats:
   - Markdown (.md)
   - JSON (.json)
+  - PDF (.pdf) - requires pdftotext (poppler-utils)
   - GitHub issues (via gh CLI)
 
 EOF
