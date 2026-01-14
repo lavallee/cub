@@ -5048,3 +5048,89 @@ All acceptance criteria met:
 - Added `beads_get_in_progress_tasks()` to lib/beads.sh (beads backend).
 - Added `json_get_in_progress_tasks()` to lib/tasks.sh (JSON backend).
 - All 23 doctor tests pass; cub doctor works correctly.
+
+## Session: v0.14 Vision-to-Tasks Pipeline Implementation (cub-48a)
+
+### Task: Implement complete Vision-to-Tasks Pipeline
+- **Status**: COMPLETED
+- **Date**: 2026-01-13
+
+### What was implemented:
+
+1. **Session Management System** (`lib/cmd_pipeline.sh`)
+   - `pipeline_new_session_id()` - Generate session IDs in format `{project}-{YYYYMMDD-HHMMSS}`
+   - `pipeline_create_session()` - Create session directory with metadata
+   - `pipeline_session_exists()`, `pipeline_session_dir()`, `pipeline_list_sessions()`
+   - `pipeline_has_triage()`, `pipeline_has_architect()`, `pipeline_has_plan()`
+   - `pipeline_find_vision()` - Auto-detect vision documents (VISION.md, docs/PRD.md, README.md)
+
+2. **Triage Stage** (`cmd_triage`)
+   - Interview flow with depth options (light/standard/deep)
+   - Requirements synthesis with P0/P1/P2 prioritization
+   - Outputs `triage.md` with refined requirements
+
+3. **Architect Stage** (`cmd_architect`)
+   - Mindset framework (prototype/mvp/production/enterprise)
+   - Scale expectations (personal/team/product/internet)
+   - Outputs `architect.md` with technical design and ASCII diagrams
+
+4. **Plan Stage** (`cmd_plan`)
+   - Task decomposition logic with vertical slices
+   - Granularity options (micro/standard/macro)
+   - Label system (phase, model, complexity, domain, risk)
+   - Outputs `plan.jsonl` (beads-compatible) and `plan.md` (human-readable)
+
+5. **Bootstrap Stage** (`cmd_bootstrap`)
+   - Pre-flight checks (git, tools, existing beads)
+   - Beads initialization and plan import
+   - PROMPT.md and AGENT.md generation
+   - Atomic git commit for bootstrap
+
+6. **Unified Pipeline Command** (`cmd_pipeline`)
+   - Runs all four stages in sequence
+   - Progress indicators between stages
+
+7. **Session Management Commands** (`cmd_sessions`)
+   - list, show, delete subcommands
+
+8. **Validation Command** (`cmd_validate`)
+   - Checks orphaned tasks, circular dependencies, missing labels
+
+9. **Migration Command** (`cmd_migrate`)
+   - Migrates from .chopshop to .cub directory structure
+   - Renames files (triage-output.md → triage.md, etc.)
+
+### Test Results:
+- 24 new pipeline tests added in `tests/pipeline.bats`
+- All existing 810+ tests continue to pass
+- Total test count: 831 tests
+
+### Learnings:
+
+- **Session-based workflow**: Each pipeline run creates a session with unique ID containing all artifacts. This enables resuming, comparing, and managing multiple planning sessions.
+
+- **Prompt engineering for AI stages**: Each stage (triage, architect, plan) works by generating a structured prompt that instructs Claude to conduct an interview and produce output in a specific format.
+
+- **Pre-flight checks importance**: Bootstrap stage validates git state, required tools, and existing beads state before making changes - prevents partial failures.
+
+- **Label taxonomy**: Consistent labeling (phase-N, model:X, complexity:Y) enables filtering and routing tasks to appropriate AI models.
+
+- **Migration path**: Supporting migration from existing chopshop installations smooths the transition for users who already adopted the planning workflow.
+
+- **Version bumping**: Updated CUB_VERSION from 0.13.0 to 0.14.0 to reflect the new major feature.
+
+### Files Changed:
+- `cub` - Added pipeline subcommands to dispatcher and help text
+- `lib/cmd_pipeline.sh` - New file with all pipeline functionality (1300+ lines)
+- `tests/pipeline.bats` - New test file with 41 test cases
+
+### Commands Added:
+- `cub pipeline [VISION.md]` - Full pipeline
+- `cub triage [--depth] [--session]` - Stage 1
+- `cub architect [--mindset] [--scale]` - Stage 2
+- `cub plan [--granularity] [--prefix]` - Stage 3
+- `cub bootstrap [--skip-prompt] [--dry-run]` - Stage 4
+- `cub sessions [list|show|delete]` - Session management
+- `cub validate [--fix]` - State validation
+- `cub migrate [chopshop]` - Migration helper
+
