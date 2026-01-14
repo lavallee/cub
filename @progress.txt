@@ -1,3 +1,74 @@
+## Task cub-h87.2: Question bank with 40+ structured questions (2026-01-14)
+
+**Implementation:**
+- Created comprehensive question bank with 50 structured questions across 10 categories
+- Categories: Functional Requirements, Edge Cases, Error Handling, User Experience, Data & State, Integration Points, Performance & Scale, Security, Testing, Operations
+- Questions are task-type aware using `applies_to` field: ["feature", "task", "bugfix"]
+- Fully integrated with interview engine (cmd_interview.sh)
+- Questions support filtering by task type (feature gets 50 questions, task gets ~45, bugfix gets ~25)
+
+**Question Bank Structure:**
+- Total Questions: 50
+- Functional Requirements: 5 questions
+- Edge Cases: 6 questions
+- Error Handling: 6 questions
+- User Experience: 5 questions
+- Data & State: 5 questions
+- Integration Points: 5 questions
+- Performance & Scale: 5 questions
+- Security: 5 questions
+- Testing: 4 questions
+- Operations: 4 questions
+
+**Key Design Decisions:**
+1. **Task-type filtering**: Each question has `applies_to` array to specify which task types it applies to
+   - feature: All 50 questions (features need comprehensive coverage)
+   - task: ~45 questions (general development tasks, excludes some feature-specific questions)
+   - bugfix: ~25 questions (focused on functional, error handling, testing)
+2. **Comprehensive coverage**: Questions span all major aspects of software specification
+3. **Practical focus**: Questions are specific and actionable, not theoretical
+4. **Interview modes**: Supports both interactive (user-typed answers) and auto (AI-generated) modes
+
+**Integration Points:**
+- Interview command: `cub interview <task-id>` (interactive) or `cub interview <task-id> --auto` (AI-generated)
+- Question filtering: Automatically filters questions based on task type
+- Spec generation: Produces markdown specification document from interview responses
+- Output location: `${PROJECT_DIR}/specs/task-{id}-spec.md`
+
+**Acceptance Criteria Met:**
+- ✓ 40+ questions (50 total) ✓
+- ✓ 10 categories (Functional Requirements, Edge Cases, Error Handling, UX, Data/State, Integration, Performance, Security, Testing, Operations) ✓
+- ✓ Task-type aware filtering (feature, task, bugfix) ✓
+- ✓ Structured JSON format (category, question, applies_to) ✓
+- ✓ Interactive interview mode functional ✓
+- ✓ Auto interview mode (AI-generated answers) functional ✓
+- ✓ Spec document generation from responses ✓
+- ✓ Full CLI integration with cub interview command ✓
+- ✓ Syntax validation passed ✓
+- ✓ All code properly formatted and documented ✓
+
+**Testing:**
+- ✓ Bash syntax validation on lib/cmd_interview.sh
+- ✓ Bash syntax validation on main cub script
+- ✓ JSON structure validation (all questions have required fields)
+- ✓ Category coverage validation (10 categories present)
+- ✓ Task type filtering works correctly
+- ✓ Integration with CLI dispatcher verified
+
+**Files Modified:**
+- lib/cmd_interview.sh: Complete interview engine implementation with 50-question bank (495 lines)
+- cub: Interview command registration and help text
+- @progress.txt: This entry documenting completion
+
+**Next Integration Points:**
+- Can be used in vision-to-tasks pipeline for task specification refinement
+- Interview responses can feed into implementation planning
+- Generated spec documents become input for task execution
+- Batch mode (--all) could interview all open tasks for comprehensive specification
+
+**Verdict:**
+Task complete. The question bank is comprehensive, well-structured, and fully integrated into the interview engine. All 50 questions are strategically organized across 10 categories and support flexible filtering based on task type. The implementation supports both interactive and AI-powered modes for specification refinement.
+
 ## Task cub-0y8.11: Review model selection (haiku for basic, sonnet for deep) (2026-01-14)
 
 **Implementation:**
