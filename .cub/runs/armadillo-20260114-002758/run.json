@@ -1,0 +1,21 @@
+{
+  "run_id": "armadillo-20260114-002758",
+  "session_name": "armadillo",
+  "started_at": "2026-01-14T05:27:58Z",
+  "status": "in_progress",
+  "config": {
+    "guardrails": {
+      "max_task_iterations": 3,
+      "max_run_iterations": 50,
+      "iteration_warning_threshold": 0.8,
+      "secret_patterns": [
+        "api[_-]?key",
+        "password",
+        "token",
+        "secret",
+        "authorization",
+        "credentials"
+      ]
+    }
+  }
+}

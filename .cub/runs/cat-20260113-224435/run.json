@@ -1,0 +1,22 @@
+{
+  "run_id": "cat-20260113-224435",
+  "session_name": "cat",
+  "started_at": "2026-01-14T03:44:35Z",
+  "status": "in_progress",
+  "config": {
+    "guardrails": {
+      "max_task_iterations": 3,
+      "max_run_iterations": 50,
+      "iteration_warning_threshold": 0.8,
+      "secret_patterns": [
+        "api[_-]?key",
+        "password",
+        "token",
+        "secret",
+        "authorization",
+        "credentials"
+      ]
+    }
+  },
+  "tasks_completed": 9
+}

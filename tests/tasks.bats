@@ -558,3 +558,1146 @@ EOF
     [ "$t1_status" = "closed" ]
     [ "$t2_status" = "open" ]
 }
+
+# =============================================================================
+# Task Completeness Validation Tests
+# =============================================================================
+
+@test "validate_task_completeness requires task_id parameter" {
+    create_minimal_prd
+    run validate_task_completeness ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "error" ]]
+}
+
+@test "validate_task_completeness returns error for non-existent task" {
+    create_minimal_prd
+    run validate_task_completeness "nonexistent-task"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not found" ]]
+}
+
+@test "validate_task_completeness reports missing title" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. == "Title is missing")'
+}
+
+@test "validate_task_completeness reports title too short" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Short", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. | startswith("Title is too short"))'
+}
+
+@test "validate_task_completeness accepts title with 10+ characters" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "This is exactly ten character title", "description": "Desc", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness reports missing description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. == "Description is missing")'
+}
+
+@test "validate_task_completeness reports missing acceptance criteria" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. | contains("Acceptance criteria are not defined"))'
+}
+
+@test "validate_task_completeness accepts markdown checkboxes in description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Desc\n- [ ] Criterion 1\n- [ ] Criterion 2", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness accepts acceptanceCriteria field" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "acceptanceCriteria": ["criterion 1", "criterion 2"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness returns all issues together" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Bad", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | length == 3'
+}
+
+@test "validate_task_completeness returns valid JSON" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    # Should be valid JSON that can be parsed
+    echo "$output" | jq '.' >/dev/null
+    echo "$output" | jq -e '.id == "t1"'
+    echo "$output" | jq -e 'has("is_complete")'
+    echo "$output" | jq -e 'has("issues")'
+}
+
+@test "validate_all_tasks_completeness returns empty array for empty prd" {
+    echo '{"prefix": "test", "tasks": []}' > prd.json
+
+    run validate_all_tasks_completeness "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_tasks_completeness validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Bad", "description": "", "status": "open"},
+    {"id": "t3", "title": "Valid Title 3", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_all_tasks_completeness "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e 'length == 3'
+    echo "$output" | jq -e '.[0].is_complete == true'
+    echo "$output" | jq -e '.[1].is_complete == false'
+    echo "$output" | jq -e '.[2].is_complete == true'
+}
+
+@test "validate_all_tasks_completeness handles missing file" {
+    run validate_all_tasks_completeness "nonexistent.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_completeness_summary reports all complete" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Valid Title 2", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All tasks are complete" ]]
+}
+
+@test "get_completeness_summary reports incomplete tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Bad", "description": "", "status": "open"},
+    {"id": "t3", "title": "Bad3", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "Found 2 incomplete" ]]
+    [[ "$output" =~ "t2" ]]
+    [[ "$output" =~ "t3" ]]
+}
+
+@test "get_completeness_summary includes specific issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Bad", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "too short" ]]
+    [[ "$output" =~ "Description is missing" ]]
+    [[ "$output" =~ "Acceptance criteria" ]]
+}
+
+# ============================================================================
+# FEASIBILITY VALIDATION TESTS
+# ============================================================================
+
+@test "validate_task_feasibility requires task_id parameter" {
+    run validate_task_feasibility ""
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' >/dev/null
+}
+
+@test "validate_task_feasibility returns error for nonexistent task" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "nonexistent"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' >/dev/null
+}
+
+@test "validate_task_feasibility returns valid JSON structure" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq '.' >/dev/null
+    echo "$output" | jq -e '.id == "t1"'
+    echo "$output" | jq -e 'has("is_feasible")'
+    echo "$output" | jq -e 'has("issues")'
+}
+
+@test "validate_task_feasibility marks task feasible with no issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility detects closed dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility detects unclosed dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | any(. | contains("not closed"))'
+}
+
+@test "validate_task_feasibility detects multiple unclosed dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open"},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t1", "t2"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t3"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | length == 2'
+}
+
+@test "validate_task_feasibility detects missing referenced file" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: /nonexistent/path/file.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | any(. | contains("Referenced file not found"))'
+}
+
+@test "validate_task_feasibility accepts existing referenced file (absolute path)" {
+    # Create a file to reference
+    mkdir -p test_files
+    echo "test content" > test_files/myfile.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: test_files/myfile.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_feasibility handles relative paths with ./" {
+    mkdir -p test_files
+    echo "test" > test_files/file.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Uses [file: ./test_files/file.txt]", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility detects mixed issues" {
+    mkdir -p test_files
+    echo "test" > test_files/file.txt
+
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Dep", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Uses [file: /missing/file.txt]", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == false'
+    echo "$output" | jq -e '.issues | length >= 2'
+    echo "$output" | jq -e '.issues | any(. | contains("not closed"))'
+    echo "$output" | jq -e '.issues | any(. | contains("Referenced file not found"))'
+}
+
+@test "validate_all_tasks_feasibility returns empty array for empty prd" {
+    echo '{"prefix": "test", "tasks": []}' > prd.json
+
+    run validate_all_tasks_feasibility "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_tasks_feasibility validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t99"]}
+  ]
+}
+EOF
+
+    run validate_all_tasks_feasibility "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e 'length == 3'
+    echo "$output" | jq -e '.[0].is_feasible == true'
+    echo "$output" | jq -e '.[1].is_feasible == true'
+    echo "$output" | jq -e '.[2].is_feasible == false'
+}
+
+@test "validate_all_tasks_feasibility handles missing file" {
+    run validate_all_tasks_feasibility "nonexistent.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_feasibility_summary reports all feasible" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All tasks are feasible" ]]
+}
+
+@test "get_feasibility_summary reports infeasible tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Title 3", "description": "Desc", "status": "open", "dependsOn": ["t99"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "Found 2 infeasible" ]]
+    [[ "$output" =~ "t2" ]]
+    [[ "$output" =~ "t3" ]]
+}
+
+@test "get_feasibility_summary includes specific issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "open", "dependsOn": ["missing"]}
+  ]
+}
+EOF
+
+    run get_feasibility_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not closed" ]]
+}
+
+@test "validate_task_feasibility handles task with no dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility handles task with empty description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility ignores issues if all deps are closed" {
+    # Even though t2 has dependency on t1, if t1 is closed, t2 is feasible
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Depends on t1", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+@test "validate_task_feasibility special characters in dependency id" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Title 1", "description": "Desc", "status": "closed"},
+    {"id": "t2", "title": "Title 2", "description": "Desc", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_feasibility "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_feasible == true'
+}
+
+# =============================================================================
+# DEPENDENCY GRAPH VALIDATION TESTS
+# =============================================================================
+
+@test "validate_task_dependencies returns error for missing task_id" {
+    create_minimal_prd
+    run validate_task_dependencies
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' | grep -q "task_id is required"
+}
+
+@test "validate_task_dependencies returns error for nonexistent task" {
+    create_sample_prd
+    run validate_task_dependencies "nonexistent"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error' | grep -q "task not found"
+}
+
+@test "validate_task_dependencies marks valid task as valid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies detects missing dependency" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1", "nonexistent"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues[] | select(. | contains("does not exist"))' | grep -q "nonexistent"
+}
+
+@test "validate_task_dependencies handles task with no dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies returns valid JSON structure" {
+    create_sample_prd
+    run validate_task_dependencies "test-0001"
+    [ "$status" -eq 0 ]
+    # Verify JSON structure
+    echo "$output" | jq -e '.id == "test-0001"'
+    echo "$output" | jq -e '.is_valid != null'
+    echo "$output" | jq -e '.issues != null'
+}
+
+@test "validate_task_dependencies detects dependency order issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t1", "title": "First", "status": "closed"}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues[] | select(. | contains("order"))' | grep -q "order issue"
+}
+
+@test "validate_all_dependencies returns empty array for empty prd" {
+    create_minimal_prd
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_dependencies validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t2"]}
+  ]
+}
+EOF
+
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    # Should have 3 results
+    echo "$output" | jq -e 'length == 3'
+    # All should be valid
+    echo "$output" | jq -e 'all(.is_valid == true)'
+}
+
+@test "validate_all_dependencies detects multiple invalid tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["nonexistent1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["nonexistent2"]}
+  ]
+}
+EOF
+
+    run validate_all_dependencies
+    [ "$status" -eq 0 ]
+    # Should have 3 results
+    echo "$output" | jq -e 'length == 3'
+    # Two should be invalid
+    echo "$output" | jq -e '[.[] | select(.is_valid == false)] | length == 2'
+}
+
+@test "get_dependency_order returns list of task ids" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t2"]}
+  ]
+}
+EOF
+
+    run get_dependency_order
+    [ "$status" -eq 0 ]
+    # Should contain task IDs
+    echo "$output" | grep -q "t1"
+    echo "$output" | grep -q "t2"
+    echo "$output" | grep -q "t3"
+}
+
+@test "get_dependency_order handles empty prd" {
+    create_minimal_prd
+    run get_dependency_order
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_blocked_tasks_report shows blocked tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "open"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+    # Should mention blocked task
+    echo "$output" | grep -q "t2"
+    echo "$output" | grep -q "t1"
+}
+
+@test "get_blocked_tasks_report shows no blocked tasks when all ready" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "No blocked"
+}
+
+@test "get_blocked_tasks_report handles empty prd" {
+    create_minimal_prd
+    run get_blocked_tasks_report
+    [ "$status" -eq 0 ]
+}
+
+@test "get_dependency_summary reports no issues when all valid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["t1"]}
+  ]
+}
+EOF
+
+    run get_dependency_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "All dependencies are valid"
+}
+
+@test "get_dependency_summary reports issues when dependencies invalid" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["nonexistent"]}
+  ]
+}
+EOF
+
+    run get_dependency_summary
+    [ "$status" -eq 1 ]
+    echo "$output" | grep -q "dependency issues"
+    echo "$output" | grep -q "t2"
+}
+
+@test "validate_task_dependencies handles multiple dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "closed"},
+    {"id": "t3", "title": "Third", "status": "open", "dependsOn": ["t1", "t2"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t3"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == true'
+    echo "$output" | jq -e '.issues | length == 0'
+}
+
+@test "validate_task_dependencies detects multiple missing dependencies" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed"},
+    {"id": "t2", "title": "Second", "status": "open", "dependsOn": ["missing1", "missing2"]}
+  ]
+}
+EOF
+
+    run validate_task_dependencies "t2"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_valid == false'
+    echo "$output" | jq -e '.issues | length == 2'
+}
+
+@test "validate_all_dependencies handles file not found" {
+    run validate_all_dependencies "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+# =============================================================================
+# Architecture Review Tests
+# =============================================================================
+
+@test "validate_task_architecture requires task_id" {
+    run validate_task_architecture ""
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error'
+}
+
+@test "validate_task_architecture handles task not found" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test Task", "description": "Test", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_architecture "test-999"
+    [ "$status" -eq 1 ]
+    echo "$output" | jq -e '.error | contains("not found")'
+}
+
+@test "validate_task_architecture returns valid JSON structure" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {
+      "id": "test-1",
+      "title": "Implement new feature",
+      "description": "Add a new validation function to lib/tasks.sh",
+      "status": "open",
+      "type": "task",
+      "labels": ["model:sonnet", "phase-1"]
+    }
+  ]
+}
+EOF
+
+    # Mock harness_invoke to avoid actual AI calls in tests
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": ["Add function to lib/tasks.sh"]}'
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e 'has("is_aligned")'
+    echo "$output" | jq -e 'has("issues")'
+    echo "$output" | jq -e 'has("suggestions")'
+}
+
+@test "validate_task_architecture handles AI unavailable gracefully" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to fail
+    harness_invoke() {
+        return 1
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+    echo "$output" | jq -e '.issues | any(. == "AI review unavailable")'
+}
+
+@test "validate_task_architecture handles non-JSON AI response" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return non-JSON
+    harness_invoke() {
+        echo "This is not JSON but a text response"
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+    echo "$output" | jq -e '.suggestions | length > 0'
+}
+
+@test "validate_task_architecture handles missing prd.json" {
+    run validate_task_architecture "test-1" "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.id == "test-1"'
+    echo "$output" | jq -e '.is_aligned == true'
+}
+
+@test "validate_task_architecture parses AI issues and suggestions" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return structured response
+    harness_invoke() {
+        echo '{"is_aligned": false, "issues": ["Task description lacks specific file references", "No clear integration point specified"], "suggestions": ["Add implementation to lib/tasks.sh", "Follow validate_* naming pattern", "Add tests to tests/tasks.bats"]}'
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_aligned == false'
+    echo "$output" | jq -e '.issues | length == 2'
+    echo "$output" | jq -e '.suggestions | length == 3'
+    echo "$output" | jq -e '.issues[0] | contains("file references")'
+    echo "$output" | jq -e '.suggestions[0] | contains("lib/tasks.sh")'
+}
+
+@test "validate_all_architecture validates multiple tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "First", "description": "First task", "status": "open"},
+    {"id": "test-2", "title": "Second", "description": "Second task", "status": "open"},
+    {"id": "test-3", "title": "Third", "description": "Third task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": []}'
+    }
+    export -f harness_invoke
+
+    run validate_all_architecture
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. | length == 3'
+    echo "$output" | jq -e '.[0].id == "test-1"'
+    echo "$output" | jq -e '.[1].id == "test-2"'
+    echo "$output" | jq -e '.[2].id == "test-3"'
+}
+
+@test "validate_all_architecture handles empty task list" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": []
+}
+EOF
+
+    run validate_all_architecture
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_architecture handles file not found" {
+    run validate_all_architecture "/nonexistent/prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_architecture_summary shows pass with no issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke
+    harness_invoke() {
+        echo '{"is_aligned": true, "issues": [], "suggestions": []}'
+    }
+    export -f harness_invoke
+
+    run get_architecture_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "Architecture Review Summary"
+    echo "$output" | grep -q "Total tasks: 1"
+    echo "$output" | grep -q "Architecturally aligned: 1"
+    echo "$output" | grep -q "✓ All tasks are architecturally aligned"
+}
+
+@test "get_architecture_summary shows concerns with issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "test-1", "title": "Test", "description": "Test task", "status": "open"}
+  ]
+}
+EOF
+
+    # Mock harness_invoke to return issues
+    harness_invoke() {
+        echo '{"is_aligned": false, "issues": ["Missing file reference"], "suggestions": ["Add to lib/"]}'
+    }
+    export -f harness_invoke
+
+    run get_architecture_summary
+    [ "$status" -eq 1 ]
+    echo "$output" | grep -q "Architecture Review Summary"
+    echo "$output" | grep -q "Total tasks: 1"
+    echo "$output" | grep -q "Tasks with concerns: 1"
+    echo "$output" | grep -q "architectural concerns:"
+    echo "$output" | grep -q "test-1"
+}
+
+@test "get_architecture_summary handles empty prd" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": []
+}
+EOF
+
+    run get_architecture_summary
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "Total tasks: 0"
+    echo "$output" | grep -q "✓ All tasks are architecturally aligned"
+}
+
+@test "validate_task_architecture extracts task fields correctly" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {
+      "id": "test-123",
+      "title": "Implement user authentication",
+      "description": "Add OAuth2 authentication to the API endpoints",
+      "status": "open",
+      "type": "feature",
+      "labels": ["security", "api", "model:sonnet"]
+    }
+  ]
+}
+EOF
+
+    # Mock harness_invoke to capture what was passed
+    harness_invoke() {
+        # Verify task details are in prompt
+        if echo "$2" | grep -q "test-123" && \
+           echo "$2" | grep -q "Implement user authentication" && \
+           echo "$2" | grep -q "OAuth2 authentication" && \
+           echo "$2" | grep -q "feature"; then
+            echo '{"is_aligned": true, "issues": [], "suggestions": ["Task details verified"]}'
+        else
+            echo '{"is_aligned": false, "issues": ["Task details missing"], "suggestions": []}'
+        fi
+    }
+    export -f harness_invoke
+
+    run validate_task_architecture "test-123"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.suggestions | any(. == "Task details verified")'
+}

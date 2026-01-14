@@ -1,0 +1,22 @@
+{
+  "run_id": "shark-20260113-222330",
+  "session_name": "shark",
+  "started_at": "2026-01-14T03:23:30Z",
+  "status": "in_progress",
+  "config": {
+    "guardrails": {
+      "max_task_iterations": 3,
+      "max_run_iterations": 50,
+      "iteration_warning_threshold": 0.8,
+      "secret_patterns": [
+        "api[_-]?key",
+        "password",
+        "token",
+        "secret",
+        "authorization",
+        "credentials"
+      ]
+    }
+  },
+  "tasks_completed": 1
+}
