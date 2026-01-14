@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.17.0] - 2026-01-14 (PR #17)
+
+### Added - PRD Import / Document Conversion
+- **`cub import <file>`** - Import tasks from various document formats
+- **`cub import --format markdown|json|github|pdf`** - Explicit format selection
+- **`cub import --dry-run`** - Preview import without making changes
+
+### Added - Parsers
+- **Markdown parser** - H1 headings to epics, H2 to features, checkboxes to tasks
+- **JSON parser** - Array and structured PRD formats with validation
+- **GitHub issues import** - Via `gh` CLI for external project migration
+- **PDF support** - Extract tasks from PDF documents using pdftotext
+
+### Added - Intelligent Processing
+- **Priority inference** - Automatic priority detection from content keywords
+- **Dependency detection** - Extract task relationships from text patterns
+- **Acceptance criteria extraction** - Parse requirements from descriptions
+- **Source reference preservation** - Track import origin for audit trails
+
+### Added - Backend Support
+- Works with both beads and JSON backends
+- Validates task structure (IDs, titles, status)
+- Detects duplicate IDs and circular dependencies
+
+### Technical
+- `lib/cmd_import.sh` - ~550 lines of implementation
+- `lib/parsers/` - Markdown, JSON, GitHub, PDF parsers
+- `lib/priority.sh` - ~220 lines of priority inference
+- `lib/dependencies.sh` - ~360 lines of dependency detection
+- 5 new test files with ~1600 lines of tests
+
+---
+
 ## [0.16.0] - 2026-01-14 (PR #16)
 
 ### Added - Interview Mode
@@ -399,6 +432,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.17.0 | 2026-01-14 | #17 | PRD Import |
 | 0.16.0 | 2026-01-14 | #16 | Interview Mode |
 | 0.15.0 | 2026-01-14 | #15 | Plan Review |
 | 0.14.0 | 2026-01-13 | #14 | Vision-to-Tasks Pipeline |
