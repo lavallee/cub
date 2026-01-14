@@ -84,6 +84,14 @@ source "${CUB_DIR}/lib/cmd_upgrade.sh"
 source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
+# Source branch management (v0.19)
+source "${CUB_DIR}/lib/branches.sh"
+source "${CUB_DIR}/lib/cmd_branch.sh"
+# Source checkpoint management (v0.19)
+source "${CUB_DIR}/lib/checkpoints.sh"
+source "${CUB_DIR}/lib/cmd_checkpoint.sh"
+# Source PR management (v0.19)
+source "${CUB_DIR}/lib/cmd_pr.sh"
 
 # Load configuration early
 config_load
@@ -304,6 +312,27 @@ main() {
             import)
                 # Import requirements from GitHub, Markdown, JSON, etc.
                 cmd_import "${args[@]:1}"
+                return $?
+                ;;
+            # Branch management commands (v0.19)
+            branch)
+                # Create/bind a branch to an epic
+                cmd_branch "${args[@]:1}"
+                return $?
+                ;;
+            branches)
+                # List and manage branch bindings
+                cmd_branches "${args[@]:1}"
+                return $?
+                ;;
+            checkpoints)
+                # List and manage checkpoints
+                cmd_checkpoints "${args[@]:1}"
+                return $?
+                ;;
+            pr)
+                # Create pull request for an epic
+                cmd_pr "${args[@]:1}"
                 return $?
                 ;;
             version)

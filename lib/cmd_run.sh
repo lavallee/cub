@@ -429,15 +429,46 @@ run_iteration() {
         local current_branch
         current_branch=$(git_get_run_branch 2>/dev/null) || true
         if [[ -z "$current_branch" ]]; then
-            log_debug "Initializing git run branch..."
-            local session_name
-            session_name=$(session_get_name)
-            if git_init_run_branch "$session_name"; then
-                local branch_name
-                branch_name=$(git_get_run_branch)
-                log_info "Git branch: ${branch_name}"
-            else
-                log_warn "Failed to initialize git run branch"
+            # v0.19: Check if epic has a bound branch
+            if [[ -n "$EPIC" ]]; then
+                local bound_branch
+                bound_branch=$(branches_get_branch "$EPIC" "${PROJECT_DIR:-.}")
+                if [[ -n "$bound_branch" ]]; then
+                    log_info "Epic $EPIC bound to branch: ${bound_branch}"
+                    local on_branch
+                    on_branch=$(git_get_current_branch)
+                    if [[ "$on_branch" != "$bound_branch" ]]; then
+                        # Check for uncommitted changes
+                        if git_has_changes; then
+                            log_warn "Uncommitted changes detected, stashing before branch switch..."
+                            git_stash_changes "cub-epic-switch"
+                        fi
+                        # Switch to epic's bound branch
+                        if git checkout "$bound_branch" >/dev/null 2>&1; then
+                            log_info "Switched to epic branch: ${bound_branch}"
+                            _GIT_RUN_BRANCH="$bound_branch"
+                        else
+                            log_warn "Failed to switch to epic branch, creating new branch instead"
+                        fi
+                    else
+                        log_debug "Already on epic's bound branch"
+                        _GIT_RUN_BRANCH="$bound_branch"
+                    fi
+                fi
+            fi
+
+            # If we didn't switch to a bound branch, initialize a new one
+            if [[ -z "${_GIT_RUN_BRANCH:-}" ]]; then
+                log_debug "Initializing git run branch..."
+                local session_name
+                session_name=$(session_get_name)
+                if git_init_run_branch "$session_name"; then
+                    local branch_name
+                    branch_name=$(git_get_run_branch)
+                    log_info "Git branch: ${branch_name}"
+                else
+                    log_warn "Failed to initialize git run branch"
+                fi
             fi
         fi
     else
@@ -461,9 +492,19 @@ run_iteration() {
 
         # Verify the in-progress task is not blocked
         if is_task_ready "$prd" "$task_id"; then
-            log_warn "Resuming in-progress task: ${task_id}"
-            log_info "  ${task_type}: ${task_title}"
-            log_debug "Task JSON: $current_task"
+            # v0.19: Check for checkpoint blocking
+            local blocking_checkpoint
+            blocking_checkpoint=$(get_blocking_checkpoint "$task_id" "$prd")
+            if [[ -n "$blocking_checkpoint" ]]; then
+                log_warn "Task ${task_id} blocked by checkpoint: ${blocking_checkpoint}"
+                log_info "Run 'cub checkpoints approve ${blocking_checkpoint}' to continue"
+                update_task_status "$prd" "$task_id" "open"
+                current_task=""
+            else
+                log_warn "Resuming in-progress task: ${task_id}"
+                log_info "  ${task_type}: ${task_title}"
+                log_debug "Task JSON: $current_task"
+            fi
         else
             log_warn "In-progress task ${task_id} is blocked, resetting to open"
             update_task_status "$prd" "$task_id" "open"
@@ -502,8 +543,37 @@ run_iteration() {
             fi
         fi
 
-        # Pick highest priority ready task
-        current_task=$(echo "$ready_tasks" | jq 'first')
+        # Pick highest priority ready task (filtering out checkpoint-blocked tasks)
+        # v0.19: Filter out tasks blocked by checkpoints
+        local filtered_tasks="[]"
+        while IFS= read -r task; do
+            [[ -z "$task" ]] && continue
+            local tid
+            tid=$(echo "$task" | jq -r '.id')
+            local blocking_checkpoint
+            blocking_checkpoint=$(get_blocking_checkpoint "$tid" "$prd")
+            if [[ -z "$blocking_checkpoint" ]]; then
+                filtered_tasks=$(echo "$filtered_tasks" | jq --argjson t "$task" '. + [$t]')
+            else
+                log_debug "Task $tid blocked by checkpoint: $blocking_checkpoint"
+            fi
+        done < <(echo "$ready_tasks" | jq -c '.[]')
+
+        # Check if all tasks are checkpoint-blocked
+        if [[ "$filtered_tasks" == "[]" ]]; then
+            local checkpoint_count
+            checkpoint_count=$(checkpoint_list "$EPIC" "$prd" | jq '[.[] | select(.status != "closed")] | length')
+            if [[ -n "$checkpoint_count" ]] && [[ "$checkpoint_count" -gt 0 ]]; then
+                log_warn "All ready tasks are blocked by checkpoints"
+                log_info "Run 'cub checkpoints' to see blocking checkpoints"
+                log_info "Run 'cub checkpoints approve <id>' to approve"
+                return 1
+            fi
+            _log_error_console "No ready tasks after checkpoint filtering"
+            return 1
+        fi
+
+        current_task=$(echo "$filtered_tasks" | jq 'first')
         local task_id
         task_id=$(echo "$current_task" | jq -r '.id')
         local task_title

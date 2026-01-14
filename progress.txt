@@ -248,3 +248,45 @@ The implementation provides the foundation for:
 
 ### Commit
 e3b4d04 task(cub-eke.13): Config validation
+
+## Session: v0.19 Git Workflow Integration (cub-vd6)
+
+### Summary
+Implemented comprehensive git workflow integration for cub v0.19, adding branch-epic bindings, checkpoint/gate support, and PR management.
+
+### What Was Implemented
+
+**Branch Management:**
+- `lib/branches.sh` - Branch-epic binding library with YAML storage
+- `lib/cmd_branch.sh` - Commands for `cub branch` and `cub branches`
+- `.beads/branches.yaml` - YAML file for storing branch bindings
+- Auto-switch to epic's bound branch in `cub run`
+
+**Checkpoint Support:**
+- `lib/checkpoints.sh` - Checkpoint/gate detection and blocking logic
+- `lib/cmd_checkpoint.sh` - Commands for `cub checkpoints`
+- Integration with `cub run` to filter out checkpoint-blocked tasks
+- Support for `gate`, `checkpoint`, and `review` task types
+
+**PR Management:**
+- `lib/cmd_pr.sh` - Commands for `cub pr <epic-id>`
+- Auto-generated PR body from epic's completed tasks
+- PR number tracking in branch metadata
+
+### Key Learnings
+- BATS tests use `status` as a read-only variable - avoid naming variables `status` in library code
+- YAML parsing in bash is fragile - kept it simple with jq for JSON operations
+- Beads already supports `gate` type which is equivalent to checkpoints
+- Branch bindings should be 1:1 (one branch per epic, one epic per branch)
+
+### Files Added/Modified
+- lib/branches.sh (new)
+- lib/checkpoints.sh (new)
+- lib/cmd_branch.sh (new)
+- lib/cmd_checkpoint.sh (new)
+- lib/cmd_pr.sh (new)
+- lib/cmd_run.sh (modified - branch switching, checkpoint filtering)
+- cub (modified - new command dispatch)
+- tests/branches.bats (new - 27 tests)
+- CLAUDE.md (updated - documentation)
+
