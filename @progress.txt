@@ -2322,3 +2322,97 @@ JSON:
 
 **Verdict:**
 Task complete. Acceptance criteria extraction is fully functional across all parsers with comprehensive test coverage and bash 3.2 compatibility. The shared library design enables reuse across contexts and maintains consistency in criteria handling.
+
+---
+
+## Task cub-1x4.11: PDF support (using pdftotext) (2026-01-14)
+
+**Implementation:**
+- Created new PDF parser module (lib/parsers/pdf.sh) for extracting and parsing PDF documents
+- Integrated PDF parser into cmd_import.sh with automatic format detection (.pdf extension)
+- Implemented PDF text extraction using pdftotext command-line tool with layout preservation
+- Converted extracted PDF text to markdown-like structure for consistent parsing
+
+**Key Features:**
+1. **PDF Text Extraction**: Uses pdftotext with -layout flag to preserve document structure
+   - Handles extraction errors gracefully with JSON error responses
+   - Creates temporary files for processing (cleaned up automatically)
+
+2. **Section Structure Detection**: Heuristic-based detection of document sections
+   - ALL-CAPS lines detected as section headers (converted to H1 markdown)
+   - Numbered sections (1. 2. etc.) detected and converted to headers
+   - Bullet points and numbered lists recognized as content
+   - Indented content handled appropriately
+
+3. **Markdown-like Content Parsing**: Reuses existing markdown parser logic after text conversion
+   - Parsed PDF content converted to markdown format first
+   - Then processed through established markdown parsing pipeline
+   - Ensures consistency with existing markdown import functionality
+
+4. **Task Hierarchy**: Supports epics, features, and tasks
+   - H1 sections become epics
+   - H2 sections become features/tasks
+   - Bullet points become acceptance criteria
+   - Numbered items treated as content items
+
+5. **Source Reference Preservation**: Tracks source PDF file path
+   - All created tasks include source object with file path
+   - Line numbers tracked from PDF parsing (document-level)
+   - Compatible with both beads and JSON backends
+
+**Implementation Details:**
+- Created `lib/parsers/pdf.sh`:
+  - `parse_pdf_file()`: Main entry point, calls pdftotext and processes output
+  - `_pdf_to_markdown()`: Converts raw PDF text to markdown structure
+  - `_check_pdftotext()`: Validates pdftotext availability
+  - `extract_epics()`, `extract_tasks()`: Helper functions for output extraction
+  - `count_items()`: Counts total parsed items
+  - `format_parsed_pdf()`: Formats output for display
+
+- Modified `lib/cmd_import.sh`:
+  - Added PDF parser sourcing
+  - Added .pdf extension detection in format detection logic
+  - Added _import_pdf() function following pattern of _import_markdown()
+  - Updated help text with PDF examples
+  - Added PDF to supported formats list
+
+**Pattern Reuse:**
+- PDF parser follows identical patterns as markdown parser:
+  - Same JSON output structure
+  - Same helper function signatures
+  - Same error handling approach
+  - Same source reference format
+
+**Dependencies:**
+- Requires `pdftotext` command (from poppler-utils package)
+- Installation: `brew install poppler-utils` (macOS) or `apt-get install poppler-utils` (Linux)
+
+**Testing:**
+- ✓ PDF parser loads successfully with correct syntax
+- ✓ All parser functions available and callable
+- ✓ Integration with cmd_import successful
+- ✓ Format detection recognizes .pdf files correctly
+- ✓ Help text includes PDF documentation and examples
+- ✓ Pattern matching works for section detection (caps, numbered, bullets)
+- ✓ No regression in existing parsers (markdown, JSON, GitHub still work)
+
+**Files Created:**
+- lib/parsers/pdf.sh: New PDF parser module (305 lines)
+
+**Files Modified:**
+- lib/cmd_import.sh: PDF support integration (47 lines added)
+
+**Acceptance Criteria Met:**
+- ✓ Extract text from PDF using pdftotext
+- ✓ Parse extracted text as markdown after conversion
+- ✓ Preserve section structure where possible (headings, bullets, lists)
+- ✓ Support both beads and JSON backends
+- ✓ Include source references for audit trail
+- ✓ Follow existing parser patterns for consistency
+
+**Verdict:**
+Task complete. PDF support is fully implemented with pdftotext-based extraction,
+markdown-like parsing, and section structure preservation. PDF files can now be imported
+as first-class sources alongside Markdown, JSON, and GitHub issues, with full support
+for both task backends and source reference tracking.
+
