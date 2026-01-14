@@ -1837,3 +1837,60 @@ cub interview --all --auto --skip-categories "Security,Operations"
 - Proper use of functions and variable scoping
 - Clear code comments and documentation
 
+
+## Task cub-1x4.5: Priority inference from content (2026-01-14)
+
+**Implementation:**
+- Created lib/priority.sh - Generic priority inference engine
+- Implemented three-tier priority detection strategy:
+  1. Explicit markers: [P0], [P1], [P2], [P3], [P4]
+  2. Contextual patterns: "critical", "blocker", "must fix", "breaking change", "security issue"
+  3. Keyword-based: Maps keywords to priority levels (high→P1, low→P3, optional→P3, someday→P4)
+- Case-insensitive pattern matching for all keywords
+- Utility functions: validate, normalize, get_description, get_numeric_value
+
+**Integration:**
+- Updated lib/parsers/json.sh to infer priority from task title/description
+- Updated lib/parsers/markdown.sh to infer priority for epics, features, and tasks
+- Updated lib/parsers/github.sh to use shared priority library instead of local function
+- All parsers now use consistent priority inference strategy
+
+**Key Design Decisions:**
+1. **Explicit markers first**: [P0-P4] always take precedence (highest confidence)
+2. **Contextual patterns second**: More specific than keywords, handles phrases like "must fix"
+3. **Keywords third**: Broader matching for general sentiment (critical, high, low, etc.)
+4. **Safe default**: P2 (medium priority) when no keywords detected
+
+**Priority Levels:**
+- P0 (Critical): Blockers, must-fix, critical, urgent, breaking changes
+- P1 (High): Important, required, high priority items
+- P2 (Medium): Default priority when no keywords present
+- P3 (Low): Optional, nice-to-have, cosmetic, enhancement
+- P4 (Backlog): Someday, defer, eventually, backlog items
+
+**Testing:**
+- ✓ Manual functional tests: All 9 test cases pass
+- ✓ Bash syntax validation on all modified files
+- ✓ JSON parser integration verified
+- ✓ Markdown parser integration verified
+- ✓ GitHub parser backward compatibility maintained
+
+**Files Modified:**
+- lib/priority.sh (NEW): 225 lines - Generic priority inference engine
+- lib/parsers/json.sh: Added header docs, helper functions, priority inference integration
+- lib/parsers/markdown.sh: Added header docs, priority inference for all task types
+- lib/parsers/github.sh: Removed duplicate _infer_priority, now uses shared library
+
+**Backwards Compatibility:**
+- All parsers still accept explicit priority field in task definitions
+- Inference is fallback only - explicit priorities always respected
+- GitHub parser maintains same behavior but uses shared implementation
+
+**Next Integration Points:**
+- Parsers now consistently infer priority across all document types
+- When import command processes tasks, all priorities are intelligently inferred
+- Priority can influence task ordering in workflow
+- Basis for future priority-aware task scheduling
+
+**Verdict:**
+Task complete. The priority inference system is unified, well-tested, and integrated across all parsers. It provides intelligent priority detection from content while maintaining backward compatibility with explicit priority specifications.
