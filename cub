@@ -80,7 +80,7 @@ source "${CUB_DIR}/lib/cmd_explain.sh"
 source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
-source "${CUB_DIR}/lib/cmd_update.sh"
+source "${CUB_DIR}/lib/cmd_upgrade.sh"
 source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
@@ -250,9 +250,9 @@ main() {
                 cmd_doctor "${args[@]:1}"
                 return $?
                 ;;
-            update)
-                # Update cub to a newer version
-                cmd_update "${args[@]:1}"
+            upgrade)
+                # Upgrade cub to a newer version
+                cmd_upgrade "${args[@]:1}"
                 return $?
                 ;;
             # Vision-to-Tasks Prep commands (v0.14)
@@ -436,7 +436,7 @@ SUBCOMMANDS:
   cub agent-close <task-id>     Close a task (for agent use)
   cub agent-verify <task-id>    Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
-  cub update [--head|--local]   Update cub to newer version
+  cub upgrade [--head|--local]  Upgrade cub to newer version
   cub version                   Show version
 
 VISION-TO-TASKS PREP (v0.14):
@@ -465,7 +465,7 @@ USE --help WITH ANY SUBCOMMAND:
   cub status --help             Status subcommand help
   cub explain --help            Explain subcommand help
   cub artifacts --help          Artifacts subcommand help
-  cub update --help             Update subcommand help
+  cub upgrade --help            Upgrade subcommand help
 
 EXECUTION MODES:
   cub                           Run continuous loop
