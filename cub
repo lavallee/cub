@@ -29,7 +29,7 @@ _error_trap() {
 trap '_error_trap ${LINENO}' ERR
 
 # Version information
-CUB_VERSION="0.13.0"
+CUB_VERSION="0.14.0"
 
 # Resolve symlinks to find the real installation directory
 _resolve_symlink() {
@@ -79,6 +79,7 @@ source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
 source "${CUB_DIR}/lib/cmd_update.sh"
+source "${CUB_DIR}/lib/cmd_pipeline.sh"
 
 # Load configuration early
 config_load
@@ -250,6 +251,47 @@ main() {
                 cmd_update "${args[@]:1}"
                 return $?
                 ;;
+            # Vision-to-Tasks Pipeline commands (v0.14)
+            pipeline)
+                # Run full vision-to-tasks pipeline
+                cmd_pipeline "${args[@]:1}"
+                return $?
+                ;;
+            triage)
+                # Stage 1: Requirements refinement
+                cmd_triage "${args[@]:1}"
+                return $?
+                ;;
+            architect)
+                # Stage 2: Technical design
+                cmd_architect "${args[@]:1}"
+                return $?
+                ;;
+            plan)
+                # Stage 3: Task decomposition
+                cmd_plan "${args[@]:1}"
+                return $?
+                ;;
+            bootstrap)
+                # Stage 4: Initialize beads from plan
+                cmd_bootstrap "${args[@]:1}"
+                return $?
+                ;;
+            sessions)
+                # Manage pipeline sessions
+                cmd_sessions "${args[@]:1}"
+                return $?
+                ;;
+            validate)
+                # Validate beads state
+                cmd_validate "${args[@]:1}"
+                return $?
+                ;;
+            migrate)
+                # Migrate from other systems
+                cmd_migrate "${args[@]:1}"
+                return $?
+                ;;
             version)
                 # Show version
                 cmd_version
@@ -382,6 +424,16 @@ SUBCOMMANDS:
   cub doctor [--fix]            Diagnose and fix issues
   cub update [--head|--local]   Update cub to newer version
   cub version                   Show version
+
+VISION-TO-TASKS PIPELINE (v0.14):
+  cub pipeline [VISION.md]      Run full pipeline (triage→architect→plan→bootstrap)
+  cub triage [VISION.md]        Stage 1: Requirements refinement
+  cub architect [SESSION]       Stage 2: Technical design
+  cub plan [SESSION]            Stage 3: Task decomposition
+  cub bootstrap [SESSION]       Stage 4: Initialize beads
+  cub sessions                  List/manage pipeline sessions
+  cub validate                  Validate beads state
+  cub migrate                   Migrate from chopshop
 
 QUICK START:
   cub init                      Initialize in current directory
