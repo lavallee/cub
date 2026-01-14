@@ -230,7 +230,7 @@ cmd_triage() {
     done
 
     # Check that triage skill is installed
-    if [[ ! -f ".claude/commands/triage.md" ]]; then
+    if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
         _log_error_console "Triage skill not installed."
         _log_error_console "Run 'cub init' to install Claude Code skills."
         return 1
@@ -260,7 +260,7 @@ cmd_triage() {
     echo ""
 
     # Run claude with the /triage skill
-    claude "/triage ${output_file}"
+    claude "/cub:triage ${output_file}"
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
@@ -340,7 +340,7 @@ cmd_architect() {
     done
 
     # Check that architect skill is installed
-    if [[ ! -f ".claude/commands/architect.md" ]]; then
+    if [[ ! -f ".claude/commands/cub:architect.md" ]]; then
         _log_error_console "Architect skill not installed."
         _log_error_console "Run 'cub init' to install Claude Code skills."
         return 1
@@ -380,7 +380,7 @@ cmd_architect() {
     echo ""
 
     # Run claude with the /architect skill
-    claude "/architect ${output_file}"
+    claude "/cub:architect ${output_file}"
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
@@ -463,7 +463,7 @@ cmd_plan() {
     done
 
     # Check that plan skill is installed
-    if [[ ! -f ".claude/commands/plan.md" ]]; then
+    if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
         _log_error_console "Plan skill not installed."
         _log_error_console "Run 'cub init' to install Claude Code skills."
         return 1
@@ -503,7 +503,7 @@ cmd_plan() {
     echo ""
 
     # Run claude with the /plan skill
-    claude "/plan ${session_dir}"
+    claude "/cub:plan ${session_dir}"
 
     # Check if output was created
     if [[ -f "$jsonl_file" ]]; then
@@ -903,55 +903,17 @@ EOF
 # ============================================================================
 
 cmd_prep() {
-    local vision_path=""
-    local depth="standard"
-    local mindset=""
-    local granularity="micro"
     local prefix=""
-    local auto="false"
-    local auto_review="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --depth)
-                depth="$2"
-                shift 2
-                ;;
-            --depth=*)
-                depth="${1#--depth=}"
-                shift
-                ;;
-            --mindset)
-                mindset="$2"
-                shift 2
-                ;;
-            --mindset=*)
-                mindset="${1#--mindset=}"
-                shift
-                ;;
-            --granularity)
-                granularity="$2"
-                shift 2
-                ;;
-            --granularity=*)
-                granularity="${1#--granularity=}"
-                shift
-                ;;
             --prefix)
                 prefix="$2"
                 shift 2
                 ;;
             --prefix=*)
                 prefix="${1#--prefix=}"
-                shift
-                ;;
-            --auto)
-                auto="true"
-                shift
-                ;;
-            --auto-review)
-                auto_review="true"
                 shift
                 ;;
             --help|-h)
@@ -964,7 +926,7 @@ cmd_prep() {
                 return 1
                 ;;
             *)
-                vision_path="$1"
+                # Ignore positional args (vision path is found by skill)
                 shift
                 ;;
         esac
@@ -972,7 +934,7 @@ cmd_prep() {
 
     echo ""
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    log_info "         CUB VISION-TO-TASKS PIPELINE"
+    log_info "         CUB VISION-TO-TASKS PREP"
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
@@ -980,11 +942,8 @@ cmd_prep() {
     log_info "[1/4] TRIAGE - Requirements Refinement"
     echo ""
 
-    local triage_args=("--depth" "$depth")
-    [[ -n "$vision_path" ]] && triage_args+=("$vision_path")
-
-    if ! cmd_triage "${triage_args[@]}"; then
-        _log_error_console "Triage failed. Pipeline stopped."
+    if ! cmd_triage; then
+        _log_error_console "Triage failed. Prep stopped."
         return 1
     fi
 
@@ -999,12 +958,8 @@ cmd_prep() {
     log_info "[2/4] ARCHITECT - Technical Design"
     echo ""
 
-    local architect_args=("$session_id")
-    [[ -n "$mindset" ]] && architect_args=("--mindset" "$mindset" "${architect_args[@]}")
-    [[ "$auto_review" == "true" ]] && architect_args+=("--review")
-
-    if ! cmd_architect "${architect_args[@]}"; then
-        _log_error_console "Architecture failed. Pipeline stopped."
+    if ! cmd_architect --session "$session_id"; then
+        _log_error_console "Architecture failed. Prep stopped."
         return 1
     fi
 
@@ -1016,12 +971,8 @@ cmd_prep() {
     log_info "[3/4] PLAN - Task Decomposition"
     echo ""
 
-    local plan_args=("--granularity" "$granularity" "$session_id")
-    [[ -n "$prefix" ]] && plan_args=("--prefix" "$prefix" "${plan_args[@]}")
-    [[ "$auto_review" == "true" ]] && plan_args+=("--review")
-
-    if ! cmd_plan "${plan_args[@]}"; then
-        _log_error_console "Planning failed. Pipeline stopped."
+    if ! cmd_plan --session "$session_id"; then
+        _log_error_console "Planning failed. Prep stopped."
         return 1
     fi
 
@@ -1057,42 +1008,33 @@ cmd_prep() {
 
 _prep_help() {
     cat <<EOF
-Usage: cub prep [OPTIONS] [VISION.md]
+Usage: cub prep [OPTIONS]
 
 Run the complete Vision-to-Tasks prep pipeline.
 
-Stages:
-  1. Triage    - Refine requirements from vision document
-  2. Architect - Design technical architecture (--auto-review validates here)
-  3. Plan      - Decompose into executable tasks (--auto-review validates here)
-  4. Bootstrap - Initialize beads and import tasks
+Each stage launches an interactive Claude session using skills installed
+in .claude/commands/. Questions are asked one at a time.
 
-Arguments:
-  VISION.md          Path to vision/PRD document (optional)
+Stages:
+  1. Triage    - Interactive requirements refinement (/cub:triage)
+  2. Architect - Interactive technical design (/cub:architect)
+  3. Plan      - Interactive task decomposition (/cub:plan)
+  4. Bootstrap - Initialize beads and import tasks (shell)
 
 Options:
-  --depth LEVEL      Triage depth: light, standard, deep
-  --mindset TYPE     prototype, mvp, production, enterprise
-  --granularity LVL  Task size: micro, standard, macro
-  --prefix PREFIX    Task ID prefix
-  --auto             Non-interactive mode (use defaults)
-  --auto-review      Enable automatic review gates between stages
+  --prefix PREFIX    Task ID prefix for beads import
   -h, --help         Show this help message
 
 Examples:
-  cub prep VISION.md              # Full prep from vision doc
-  cub prep --depth deep           # Deep triage, default others
-  cub prep --mindset mvp          # Pre-set mindset for architect
-  cub prep --auto-review          # With quality validation gates
+  cub prep                        # Run full prep workflow
+  cub prep --prefix myproj        # Use custom task ID prefix
 
 Output:
   .cub/sessions/{session-id}/
     ├── triage.md            # Refined requirements
     ├── architect.md         # Technical design
-    ├── architect_review.md  # (with --auto-review)
     ├── plan.jsonl           # Beads-compatible tasks
-    ├── plan.md              # Human-readable plan
-    └── plan_review.md       # (with --auto-review)
+    └── plan.md              # Human-readable plan
 
 Next:
   cub run              # Start autonomous execution
