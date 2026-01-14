@@ -261,23 +261,33 @@ EOF
         log_warn "prd.json already exists, skipping"
     fi
 
-    # Ensure .cub directory exists
-    mkdir -p .cub
+    # Detect layout and ensure layout root directory exists
+    local layout
+    layout=$(detect_layout ".")
+    log_debug "Using layout: ${layout}"
 
-    # Create .cub/prompt.md
-    if [[ ! -f ".cub/prompt.md" ]]; then
-        cp "${CUB_DIR}/templates/PROMPT.md" .cub/prompt.md
-        log_success "Created .cub/prompt.md"
+    local layout_root
+    layout_root=$(get_layout_root ".")
+    mkdir -p "$layout_root"
+
+    # Create prompt.md in layout root
+    local prompt_file
+    prompt_file=$(get_prompt_file ".")
+    if [[ ! -f "$prompt_file" ]]; then
+        cp "${CUB_DIR}/templates/PROMPT.md" "$prompt_file"
+        log_success "Created $(basename "$prompt_file")"
     else
-        log_warn ".cub/prompt.md already exists, skipping"
+        log_warn "$(basename "$prompt_file") already exists, skipping"
     fi
 
-    # Create .cub/agent.md
-    if [[ ! -f ".cub/agent.md" ]]; then
-        cp "${CUB_DIR}/templates/AGENT.md" .cub/agent.md
-        log_success "Created .cub/agent.md"
+    # Create agent.md in layout root
+    local agent_file
+    agent_file=$(get_agent_file ".")
+    if [[ ! -f "$agent_file" ]]; then
+        cp "${CUB_DIR}/templates/AGENT.md" "$agent_file"
+        log_success "Created $(basename "$agent_file")"
     else
-        log_warn ".cub/agent.md already exists, skipping"
+        log_warn "$(basename "$agent_file") already exists, skipping"
     fi
 
     # Create AGENTS.md symlink for Codex compatibility
@@ -291,9 +301,11 @@ EOF
         log_warn "AGENTS.md already exists as file, skipping symlink"
     fi
 
-    # Create .cub/progress.txt
-    if [[ ! -f ".cub/progress.txt" ]]; then
-        cat > .cub/progress.txt <<EOF
+    # Create progress.txt in layout root
+    local progress_file
+    progress_file=$(get_progress_file ".")
+    if [[ ! -f "$progress_file" ]]; then
+        cat > "$progress_file" <<EOF
 # Progress Log
 Started: $(date -u +"%Y-%m-%d")
 
@@ -305,14 +317,16 @@ Started: $(date -u +"%Y-%m-%d")
 
 ---
 EOF
-        log_success "Created .cub/progress.txt"
+        log_success "Created $(basename "$progress_file")"
     else
-        log_warn ".cub/progress.txt already exists, skipping"
+        log_warn "$(basename "$progress_file") already exists, skipping"
     fi
 
-    # Create .cub/fix_plan.md
-    if [[ ! -f ".cub/fix_plan.md" ]]; then
-        cat > .cub/fix_plan.md <<EOF
+    # Create fix_plan.md in layout root
+    local fix_plan_file
+    fix_plan_file=$(get_fix_plan_file ".")
+    if [[ ! -f "$fix_plan_file" ]]; then
+        cat > "$fix_plan_file" <<EOF
 # Fix Plan
 
 Discovered issues and planned improvements.
@@ -326,9 +340,9 @@ Agent maintains this file during development.
 
 ## Completed
 EOF
-        log_success "Created .cub/fix_plan.md"
+        log_success "Created $(basename "$fix_plan_file")"
     else
-        log_warn ".cub/fix_plan.md already exists, skipping"
+        log_warn "$(basename "$fix_plan_file") already exists, skipping"
     fi
 
     # Create .gitignore additions

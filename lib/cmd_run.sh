@@ -259,7 +259,9 @@ cmd_run() {
 }
 
 generate_system_prompt() {
-    cat "${PROJECT_DIR}/.cub/prompt.md"
+    local prompt_file
+    prompt_file=$(get_prompt_file "${PROJECT_DIR}")
+    cat "$prompt_file"
 }
 
 generate_task_prompt() {

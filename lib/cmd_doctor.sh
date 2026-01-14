@@ -138,19 +138,27 @@ _doctor_check_project() {
         ((issues++))
     fi
 
-    # Check .cub/prompt.md
-    if [[ -f "${PROJECT_DIR}/.cub/prompt.md" ]]; then
-        _doctor_ok ".cub/prompt.md found"
+    # Detect layout and check files
+    local layout
+    layout=$(detect_layout "${PROJECT_DIR}")
+    local prompt_file
+    prompt_file=$(get_prompt_file "${PROJECT_DIR}")
+    local agent_file
+    agent_file=$(get_agent_file "${PROJECT_DIR}")
+
+    # Check prompt.md
+    if [[ -f "$prompt_file" ]]; then
+        _doctor_ok "prompt.md found (${layout} layout)"
     else
-        _doctor_warn ".cub/prompt.md not found (run 'cub init')"
+        _doctor_warn "prompt.md not found at ${prompt_file} (run 'cub init')"
         ((issues++))
     fi
 
-    # Check .cub/agent.md
-    if [[ -f "${PROJECT_DIR}/.cub/agent.md" ]]; then
-        _doctor_ok ".cub/agent.md found"
+    # Check agent.md
+    if [[ -f "$agent_file" ]]; then
+        _doctor_ok "agent.md found (${layout} layout)"
     else
-        _doctor_warn ".cub/agent.md not found (run 'cub init')"
+        _doctor_warn "agent.md not found at ${agent_file} (run 'cub init')"
         ((issues++))
     fi
 

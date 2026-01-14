@@ -46,6 +46,8 @@ PROJECT_DIR="${CUB_PROJECT_DIR:-$(pwd)}"
 
 # Source task management library
 source "${CUB_DIR}/lib/tasks.sh"
+# Source layout detection (new vs legacy file organization)
+source "${CUB_DIR}/lib/layout.sh"
 # Source harness abstraction layer
 source "${CUB_DIR}/lib/harness.sh"
 # Source XDG directory helpers
