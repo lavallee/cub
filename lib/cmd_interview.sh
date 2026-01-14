@@ -853,6 +853,137 @@ APPEND_EOF
 }
 
 # ============================================================================
+# Batch Mode Implementation
+# ============================================================================
+
+# Interview multiple tasks in batch mode
+# Args: mode output_dir skip_categories skip_review update_task
+cmd_interview_batch() {
+    local mode="$1"
+    local output_dir="$2"
+    local skip_categories="$3"
+    local skip_review="$4"
+    local update_task="$5"
+
+    # Default output directory
+    if [[ -z "$output_dir" ]]; then
+        output_dir="${PROJECT_DIR}/specs"
+    fi
+
+    # Create output directory
+    mkdir -p "$output_dir"
+
+    echo ""
+    echo -e "${BLUE}=========================================${NC}"
+    echo -e "${BLUE}Batch Interview Mode${NC}"
+    echo -e "${BLUE}=========================================${NC}"
+    echo ""
+
+    # Get all open tasks
+    log_info "Fetching open tasks..."
+    local open_tasks
+    open_tasks=$(bd list --status open --json 2>/dev/null) || true
+
+    if [[ -z "$open_tasks" || "$open_tasks" == "null" ]]; then
+        log_warn "No open tasks found"
+        return 0
+    fi
+
+    local task_count
+    task_count=$(echo "$open_tasks" | jq 'length')
+    log_info "Found $task_count open tasks"
+    echo ""
+
+    # Process each task
+    local processed=0
+    local successful=0
+    local failed=0
+    local skipped=0
+
+    while read -r task_json; do
+        local task_id
+        task_id=$(echo "$task_json" | jq -r '.id')
+        local title
+        title=$(echo "$task_json" | jq -r '.title')
+
+        echo -e "${CYAN}[$((processed+1))/$task_count]${NC} Interviewing: ${GREEN}$task_id${NC} - $title"
+
+        # Load and filter questions
+        local all_questions
+        all_questions=$(interview_load_questions)
+        local questions
+        questions=$(interview_filter_questions "$task_json" "$all_questions")
+
+        # Apply skip-categories filter if specified
+        if [[ -n "$skip_categories" ]]; then
+            local skip_array
+            skip_array=$(echo "$skip_categories" | jq -R 'split(",")')
+            questions=$(echo "$questions" | jq --argjson skip "$skip_array" '
+                [.[] | select(.category as $cat | $skip | contains([$cat]) | not)]
+            ')
+        fi
+
+        # Run interview in auto mode for batch processing
+        local responses_json
+        responses_json=$(interview_run_auto "$task_id" "$task_json" "$questions" 2>/dev/null) || true
+
+        if [[ -z "$responses_json" || "$responses_json" == "null" ]]; then
+            echo -e "${RED}✗ Failed to generate responses for $task_id${NC}"
+            ((failed++))
+            ((processed++))
+            continue
+        fi
+
+        # Skip review in batch mode (autonomous operation)
+        # Review flow is designed for interactive use, not batch
+
+        # Determine output file
+        local task_output_file
+        task_output_file="${output_dir}/task-${task_id}-spec.md"
+
+        # Generate spec document
+        interview_generate_spec "$task_json" "$responses_json" "$task_output_file" "auto"
+
+        # Update task description if requested
+        if [[ "$update_task" == "true" ]]; then
+            if interview_update_task_description "$task_id" "$task_output_file" 2>/dev/null; then
+                log_info "Updated $task_id description"
+            else
+                log_warn "Failed to update $task_id description"
+            fi
+        fi
+
+        ((successful++))
+        ((processed++))
+        echo ""
+    done < <(echo "$open_tasks" | jq -c '.[]')
+
+    # Summary
+    echo ""
+    echo -e "${BLUE}=========================================${NC}"
+    echo -e "${BLUE}Batch Interview Summary${NC}"
+    echo -e "${BLUE}=========================================${NC}"
+    echo ""
+    echo "Tasks processed: $processed"
+    echo -e "  ${GREEN}Successful: $successful${NC}"
+    if [[ $failed -gt 0 ]]; then
+        echo -e "  ${RED}Failed: $failed${NC}"
+    fi
+    if [[ $skipped -gt 0 ]]; then
+        echo -e "  ${YELLOW}Skipped: $skipped${NC}"
+    fi
+    echo ""
+    log_info "Specifications saved to: $output_dir"
+    echo ""
+
+    if [[ $successful -eq 0 ]]; then
+        return 1
+    fi
+
+    return 0
+}
+
+# ============================================================================
 # Command Implementation
 # ============================================================================
 
@@ -868,11 +999,13 @@ USAGE:
   cub interview <task-id> --auto       AI-generated answers with review flow
   cub interview <task-id> --output FILE   Save to specific file
   cub interview --all                  Interview all open tasks (batch mode)
+  cub interview --all --output-dir DIR Interview all tasks, save to directory
 
 OPTIONS:
   --auto              Use AI to generate answers based on task context
   --skip-review       Skip review/approval flow (use auto answers as-is)
   --output FILE       Save spec to specific file (default: specs/task-{id}-spec.md)
+  --output-dir DIR    Save all specs to directory (for batch mode)
   --update-task       Append generated spec to task description
   --all               Interview all open tasks in batch mode
   --skip-categories   Skip specific categories (comma-separated)
@@ -883,6 +1016,10 @@ AUTO MODE WITH REVIEW FLOW:
   - Edit answers you want to change
   - Regenerate answers you want AI to try again
   - Skip to keep answers as-is
+
+BATCH MODE:
+  Use --all to interview all open tasks. Recommended with --auto --skip-review
+  for autonomous operation. Optionally use --output-dir to customize spec location.
 
 EXAMPLES:
   # Interactive interview
@@ -900,8 +1037,11 @@ EXAMPLES:
   # Auto mode with spec appended to task description
   cub interview cub-h87.1 --auto --update-task
 
-  # Interview all open tasks
-  cub interview --all --auto
+  # Interview all open tasks (autonomous)
+  cub interview --all --auto --skip-review
+
+  # Batch interview with custom output directory
+  cub interview --all --auto --skip-review --output-dir specs/interviews
 
 OUTPUT:
   Generates comprehensive markdown specification covering:
@@ -1171,6 +1311,7 @@ cmd_interview() {
     local task_id=""
     local mode="interactive"
     local output_file=""
+    local output_dir=""
     local batch_mode=false
     local skip_categories=""
     local skip_review=false
@@ -1184,6 +1325,10 @@ cmd_interview() {
                 ;;
             --output)
                 output_file="$2"
+                shift 2
+                ;;
+            --output-dir)
+                output_dir="$2"
                 shift 2
                 ;;
             --all)
@@ -1221,10 +1366,9 @@ cmd_interview() {
         return 1
     fi
 
-    # Batch mode not implemented yet
+    # Batch mode: interview all open tasks
     if [[ "$batch_mode" == "true" ]]; then
-        _log_error_console "Error: Batch mode (--all) not yet implemented"
-        return 1
+        return cmd_interview_batch "$mode" "$output_dir" "$skip_categories" "$skip_review" "$update_task"
     fi
 
     # Get task
