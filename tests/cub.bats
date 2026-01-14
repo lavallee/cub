@@ -19,10 +19,10 @@ teardown() {
 # =============================================================================
 
 @test "cub-init creates project structure" {
-    run "$PROJECT_ROOT/cub-init" .
+    run "$PROJECT_ROOT/cub-init" --backend=json .
     [ "$status" -eq 0 ]
 
-    # Should create key files
+    # Should create key files (using json backend explicitly for prd.json)
     [ -f "prd.json" ]
     [ -f ".cub/prompt.md" ]
     [ -f ".cub/agent.md" ]
@@ -33,7 +33,7 @@ teardown() {
 }
 
 @test "cub-init creates valid prd.json" {
-    "$PROJECT_ROOT/cub-init" . >/dev/null 2>&1
+    "$PROJECT_ROOT/cub-init" --backend=json . >/dev/null 2>&1
 
     source "$LIB_DIR/tasks.sh"
     run validate_prd "prd.json"
@@ -42,7 +42,7 @@ teardown() {
 
 @test "cub-init can be run in custom directory" {
     mkdir custom_project
-    "$PROJECT_ROOT/cub-init" custom_project >/dev/null 2>&1
+    "$PROJECT_ROOT/cub-init" --backend=json custom_project >/dev/null 2>&1
 
     [ -f "custom_project/prd.json" ]
     [ -f "custom_project/.cub/prompt.md" ]
