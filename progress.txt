@@ -1,5 +1,72 @@
 # Cub Project Progress
 
+## Session: Quick-Start Guide (cub-eke.16)
+
+### Task Completed
+Created standalone quick-start guide for Cub - a focused 5-minute onboarding document.
+
+### What Was Implemented
+
+**QUICK_START.md** - A separate quick-start guide covering:
+
+1. **Prerequisites (1 min)**
+   - Bash 4+, jq, Claude Code CLI
+   - Optional: beads CLI
+
+2. **Installation (1 min)**
+   - Clone to tools directory
+   - Add to PATH or create symlinks
+   - Verification with `cub --version`
+
+3. **Global Setup (1 min)**
+   - `cub init --global`
+   - Explains what's created
+
+4. **Project Initialization (1 min)**
+   - `cub init` in project directory
+   - Lists created files
+
+5. **Task Setup (1 min)**
+   - Two options: prd.json or beads
+   - Simple task examples for both
+
+6. **Running Cub (1 min)**
+   - Basic commands: `cub run`, `cub run --once`
+   - What Cub does step-by-step
+
+7. **Additional Sections**
+   - Check Status (cub status, cub explain, cub artifacts)
+   - Common Commands table
+   - Beads Commands reference
+   - Practical Tips for success
+   - Next Steps (links to detailed docs)
+   - Getting Help
+
+### Design Philosophy
+
+- **Minimal and focused**: 5-minute target, no overwhelming detail
+- **Separate from README**: Complements rather than duplicates
+- **Action-oriented**: Shows exact commands to run
+- **Two paths**: Both prd.json and beads support
+- **Quick feedback**: `run --once` option for testing
+- **Clear progression**: Setup → Initialize → Add Tasks → Run → Check
+
+### Why This Works
+
+1. **New users can get started immediately** without reading 30KB of documentation
+2. **Practical examples** (e.g., sample task in prd.json) reduce friction
+3. **Time estimates** (1 min per step) set expectations
+4. **Two-path approach** respects user preference (prd.json vs beads)
+5. **Safety valves** (`run --once`) let users test before committing
+
+### Files Created
+- `QUICK_START.md` - Standalone quick-start guide (182 lines)
+
+### Commit
+af4e7d9 task(cub-eke.16): Quick-start guide
+
+---
+
 ## Session: Project Structure Validation (cub-eke.14)
 
 ### Task Completed
