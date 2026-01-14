@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.16.0] - 2026-01-14 (PR #16)
+
+### Added - Interview Mode
+- **`cub interview <task-id>`** - Deep questioning to refine task specifications
+- **`cub interview <task-id> --auto`** - AI-generated answers with review
+- **`cub interview --all --auto`** - Batch mode for all open tasks
+
+### Added - Question Engine
+- **40+ built-in questions** across 9 categories:
+  - Context & Background
+  - Requirements Clarity
+  - Technical Approach
+  - Edge Cases & Error Handling
+  - Testing Strategy
+  - Integration Points
+  - Security & Performance
+  - User Experience
+  - Documentation & Maintenance
+- Task-type filtering (feature/task/bugfix questions)
+- Category-based organization with skip support
+
+### Added - Custom Questions
+- Project-specific questions via `.cub.json` configuration
+- `applies_to` filtering by task type
+- `requires_labels` conditional filtering
+- `requires_tech` tech stack filtering
+- `skip_if` conditional skip logic
+
+### Added - Output Options
+- **`--output-dir`** - Custom output directory (default: specs/)
+- **`--update-task`** - Append generated specs to task descriptions
+- **`--skip-review`** - Skip interactive review for autonomous operation
+- **`--skip-categories`** - Skip specific question categories
+- Markdown specification file generation
+
+### Added - Batch Processing
+- `--all` flag processes all open tasks
+- Uses `bd list --status open` to enumerate tasks
+- Sequential processing with AI-generated answers
+- Progress tracking and summary output
+
+### Technical
+- `lib/cmd_interview.sh` - ~1570 lines of implementation
+- `tests/interview.bats` - ~970 lines of tests
+
+---
+
 ## [0.15.0] - 2026-01-14 (PR #15)
 
 ### Added - Plan Review System
@@ -352,6 +399,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.16.0 | 2026-01-14 | #16 | Interview Mode |
 | 0.15.0 | 2026-01-14 | #15 | Plan Review |
 | 0.14.0 | 2026-01-13 | #14 | Vision-to-Tasks Pipeline |
 | 0.13.0 | 2026-01-13 | #13 | Rename Curb → Cub |
