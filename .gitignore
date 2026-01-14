@@ -1,3 +1,10 @@
-# bv (beads viewer) local config and caches
+# Runtime artifacts - .cub/ directory structure
+.cub/runs/                  # Session runs with logs, output, etc.
+.cub/*.log                  # Log files
+.cub/*.tmp                  # Temporary files
+.cub/cache/                 # Cache directory
+.cub/temp/                  # Temporary working directory
+
+# Beads viewer local config and caches
 .bv/
 .beads/.bv.lock
