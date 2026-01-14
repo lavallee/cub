@@ -776,6 +776,83 @@ HEADER
 }
 
 # ============================================================================
+# Task Update Functionality
+# ============================================================================
+
+# Update task description with generated spec
+# Args: task_id spec_file
+interview_update_task_description() {
+    local task_id="$1"
+    local spec_file="$2"
+
+    if ! command -v bd &>/dev/null; then
+        _log_error_console "Error: beads (bd) command not found"
+        return 1
+    fi
+
+    if [[ ! -f "$spec_file" ]]; then
+        _log_error_console "Error: Spec file not found: $spec_file"
+        return 1
+    fi
+
+    # Get current task to retrieve existing description
+    local current_task
+    current_task=$(bd show "$task_id" --json 2>/dev/null) || true
+
+    if [[ -z "$current_task" ]]; then
+        _log_error_console "Error: Could not retrieve task: $task_id"
+        return 1
+    fi
+
+    # Extract existing description
+    local current_description
+    current_description=$(echo "$current_task" | jq -r '.[0].description // ""')
+
+    # Read the spec content
+    local spec_content
+    spec_content=$(cat "$spec_file")
+
+    # Append spec to existing description with separator
+    local new_description
+    if [[ -z "$current_description" ]]; then
+        # If no existing description, just use the spec with header
+        new_description=$(cat <<APPEND_EOF
+## Generated Specification
+
+$spec_content
+APPEND_EOF
+        )
+    else
+        # Append spec to existing description with separator
+        new_description=$(cat <<APPEND_EOF
+$current_description
+
+---
+
+## Generated Specification
+
+$spec_content
+APPEND_EOF
+        )
+    fi
+
+    # Create temporary file with appended description
+    local temp_file
+    temp_file=$(mktemp)
+    echo "$new_description" > "$temp_file"
+
+    # Update task description using beads with --body-file flag
+    local result=0
+    if ! bd update "$task_id" --body-file "$temp_file" 2>/dev/null; then
+        _log_error_console "Error: Failed to update task description for $task_id"
+        result=1
+    fi
+
+    rm -f "$temp_file"
+    return $result
+}
+
+# ============================================================================
 # Command Implementation
 # ============================================================================
 
@@ -796,7 +873,7 @@ OPTIONS:
   --auto              Use AI to generate answers based on task context
   --skip-review       Skip review/approval flow (use auto answers as-is)
   --output FILE       Save spec to specific file (default: specs/task-{id}-spec.md)
-  --update-task       Update task description with spec (not implemented)
+  --update-task       Append generated spec to task description
   --all               Interview all open tasks in batch mode
   --skip-categories   Skip specific categories (comma-separated)
 
@@ -819,6 +896,9 @@ EXAMPLES:
 
   # Save to custom location
   cub interview cub-h87.1 --output docs/task-spec.md
+
+  # Auto mode with spec appended to task description
+  cub interview cub-h87.1 --auto --update-task
 
   # Interview all open tasks
   cub interview --all --auto
@@ -1094,6 +1174,7 @@ cmd_interview() {
     local batch_mode=false
     local skip_categories=""
     local skip_review=false
+    local update_task=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1118,7 +1199,7 @@ cmd_interview() {
                 shift
                 ;;
             --update-task)
-                log_warn "Warning: --update-task not yet implemented"
+                update_task=true
                 shift
                 ;;
             -*)
@@ -1219,6 +1300,19 @@ cmd_interview() {
     echo -e "${GREEN}✓ Interview complete!${NC}"
     log_info "Specification saved to: $output_file"
     echo ""
+
+    # Update task description if requested
+    if [[ "$update_task" == "true" ]]; then
+        echo "Updating task description..."
+        if interview_update_task_description "$task_id" "$output_file"; then
+            echo -e "${GREEN}✓ Task description updated${NC}"
+            log_info "Task $task_id description updated with generated specification"
+        else
+            _log_error_console "Warning: Failed to update task description"
+            return 1
+        fi
+        echo ""
+    fi
 
     # Show preview
     if [[ -f "$output_file" ]]; then
