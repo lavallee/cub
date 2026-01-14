@@ -1,3 +1,51 @@
+## Task cub-1x4.9: Backend support (beads and json) (2026-01-14)
+
+**Implementation:**
+- Added full backend support to the import command with `--backend` flag
+- Implemented three backend modes: "auto" (auto-detection), "beads" (.beads backend), and "json" (prd.json backend)
+- Integrated global BACKEND variable into import workflow
+- Updated all import functions to accept and pass backend parameter through the chain
+
+**Key Features:**
+1. **Backend Flag Support**: Users can specify `--backend auto|beads|json` in import command
+2. **Global Backend Integration**: Global `--backend` flag in cub main command is now passed to import
+3. **Auto-Detection**: "auto" mode detects which backend is available (beads by default if `bd` CLI is present)
+4. **Fallback Logic**: All functions use auto-detection as fallback when backend not specified
+5. **Consistent Preview**: Dry-run preview now correctly shows which backend would be used
+
+**Implementation Details:**
+- Modified `cmd_import()` to accept backend parameter and use global BACKEND as default
+- Updated `_import_github()`, `_import_markdown()`, `_import_json()` to accept and pass backend
+- Modified `_show_import_preview()` to accept backend with auto-detection fallback
+- Modified `_import_to_backend()` to accept backend with auto-detection fallback
+- Updated help text to document all three backend options
+
+**Files Modified:**
+- lib/cmd_import.sh: Added backend parameter passing, auto-detection logic, and updated help text
+
+**Testing:**
+- Verified `--backend beads` correctly selects beads backend ✓
+- Verified `--backend json` correctly selects json backend ✓
+- Verified `--backend auto` correctly auto-detects backend (beads present) ✓
+- Verified default behavior (no flag) uses auto-detection ✓
+- Verified global `cub --backend json import` correctly passes backend ✓
+- All syntax checks passed ✓
+
+**Acceptance Criteria Met:**
+- ✓ Support for beads backend
+- ✓ Support for json backend
+- ✓ --backend flag to select backend
+- ✓ Auto-detection as default
+- ✓ Consistent across all import formats (Markdown, JSON, GitHub)
+- ✓ Help text updated with backend options
+
+**Verdict:**
+Task complete. Backend support is fully integrated into the import command. Users can now:
+1. Use `cub import file --backend beads` to force beads backend
+2. Use `cub import file --backend json` to force json backend
+3. Use `cub import file --backend auto` or omit flag for auto-detection
+4. Use `cub --backend json import file` to set backend globally
+
 ## Task cub-1x4.8: Dry-run mode for preview (2026-01-14)
 
 **Implementation:**
