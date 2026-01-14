@@ -1,6 +1,6 @@
 # Live Dashboard (tmux)
 
-**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code)
+**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code), [ralph](https://github.com/iannuttall/ralph)
 **Dependencies:** None
 **Complexity:** Medium
 

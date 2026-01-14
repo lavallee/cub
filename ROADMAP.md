@@ -1,10 +1,47 @@
 # Cub Roadmap
 
-Features inspired by adjacent homegrown tools like [chopshop](https://github.com/lavallee/chopshop), and analysis of similar efforts like [ralph-claude-code](https://github.com/frankbria/ralph-claude-code) and [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace), and [chopshop](https://github.com/lavallee/chopshop), plus original cub features.
+Features inspired by adjacent homegrown tools like [chopshop](https://github.com/lavallee/chopshop), and analysis of similar efforts like [ralph-claude-code](https://github.com/frankbria/ralph-claude-code), [ralph](https://github.com/iannuttall/ralph), [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace), and [chopshop](https://github.com/lavallee/chopshop), plus original cub features.
 
 ---
 
 ## Point Releases
+
+### Onboarding & Project Organization
+**Source:** Original (cub)
+**Dependencies:** None (foundational)
+**Priority:** High (affects all users)
+
+Improve installation, initialization, and file organization:
+
+**File Organization:**
+- Move all cub-managed files into `.cub/` directory
+- Clear separation: `.cub/prompt.md`, `.cub/agent.md`, `.cub/progress.md`, etc.
+- Symlinks at root for harness compatibility (`CLAUDE.md`, `AGENTS.md`)
+- No more file scatter at project root
+
+**Enhanced Installation:**
+- Pre-flight dependency checks with clear feedback
+- Installation verification (`cub doctor`)
+- One-line curl install option
+- Clear next-steps guidance
+
+**Guided Initialization:**
+- Interactive `cub init` with project type detection
+- Smart templates for Node/Python/Go/Rust projects
+- Quick mode for non-interactive use
+- Contextual help in generated files
+
+**Documentation:**
+- `.cub/README.md` quick reference in every project
+- In-file comments explaining each section
+- Enhanced `cub doctor` with recommendations
+
+Commands:
+- `cub doctor` - Comprehensive health check
+- `cub migrate-layout` - Migrate from old file layout
+- `cub init --quick --type nextjs`
+
+---
 
 ### Vision-to-Tasks Pipeline (chopshop integration)
 **Source:** [chopshop](~/Projects/chopshop) - integrated into cub
@@ -56,6 +93,27 @@ Implementation: `cub run --monitor` launches integrated tmux session with dashbo
 
 ---
 
+### Guardrails System (Institutional Memory)
+**Source:** [ralph](https://github.com/iannuttall/ralph)
+**Dependencies:** None
+**Priority:** High (quick win)
+
+Persistent file of "lessons learned" that accumulates across runs and sessions:
+- `.cub/guardrails.md` stores curated lessons from failures
+- Read before each task iteration to avoid repeating mistakes
+- Auto-learn from failures (AI-extracted lessons)
+- Persists across context window limits and sessions
+- Can be imported/shared between projects
+
+Unlike ephemeral error logs, guardrails are **curated lessons** that inform future behavior.
+
+Commands:
+- `cub guardrails show|add|learn|import|clear`
+
+Configuration: `guardrails.enabled`, `guardrails.auto_learn`
+
+---
+
 ### Circuit Breaker / Stagnation Detection
 **Source:** Ralph
 **Dependencies:** None
@@ -65,8 +123,9 @@ Detect when the loop is stuck without making progress:
 - Configurable threshold (e.g., 3 loops without progress)
 - Actions: pause, alert, escalate, or auto-abort
 - Distinguish between "working but slow" vs "truly stuck"
+- **Stale task recovery:** Auto-reopen tasks stuck `in_progress` beyond timeout
 
-Configuration: `stagnation.threshold`, `stagnation.action`
+Configuration: `stagnation.threshold`, `stagnation.action`, `stagnation.stale_task_recovery`
 
 ---
 
@@ -376,6 +435,7 @@ Commands:
 
 ```
 FOUNDATIONAL:
+[Onboarding & Organization]         (foundational - affects all users, first impression)
 [Vision-to-Tasks Pipeline]          (foundational - enables end-to-end lifecycle)
 [Language Migration]                (foundational - enables performance + new features)
 
@@ -385,6 +445,7 @@ MAINTENANCE & INTELLIGENCE:
 
 STANDALONE:
 [Live Dashboard]                    (standalone)
+[Guardrails System]                 (standalone, quick win)
 [Circuit Breaker]                   (standalone)
 [PRD Import]                        (standalone, lightweight alt to Pipeline)
 [Re-anchoring]                      (standalone)
@@ -409,15 +470,22 @@ SYNERGIES:
 [Verification] + [Receipt-Based Gating] (verifiers can be receipts)
 [Runs Analysis] + [Codebase Health Audit] (runtime + static quality signals)
 [Runs Analysis] + [Vision-to-Tasks Pipeline] (feedback improves future planning)
+[Guardrails] + [Circuit Breaker] (failures feed guardrails)
+[Guardrails] + [Fresh Context Mode] (guardrails persist when context clears)
+[Guardrails] + [Re-anchoring] (guardrails are part of anchoring context)
+[Onboarding] + [Guardrails] (guardrails.md in .cub/ from start)
+[Onboarding] + [Runs Analysis] (enhanced artifacts in .cub/runs/)
 ```
 
 ## Priority Suggestions
 
-**Foundational (enables full lifecycle + performance):**
+**Foundational (start here):**
+- Onboarding & Organization (file cleanup, better init, doctor command)
 - Vision-to-Tasks Pipeline (chopshop integration)
 - Language Migration Phase 1 (Go core: tasks + config)
 
-**High Value, Low Complexity:**
+**High Value, Low Complexity (Quick Wins):**
+- Guardrails System (institutional memory - low effort, high impact)
 - Live Dashboard
 - Circuit Breaker
 - Re-anchoring Mechanism
@@ -467,6 +535,12 @@ SYNERGIES:
 - Verification uses plugin architecture: cub defines protocol, ecosystem builds verifiers
 - Key insight from Ramp: "closing the loop" on verification is what enables 30% of PRs from AI
 - Circuit Breaker + Dual-Condition Exit together provide robust loop termination
+
+**Ralph Contributions:**
+- Guardrails System: Persistent "lessons learned" that accumulates across runs
+- Enhanced run artifacts: rendered prompts, git state before/after, separated error logs
+- Stale task recovery: Auto-reopen tasks stuck `in_progress` beyond timeout
+- Agent abstraction layer: Multi-backend support (Claude, Codex, Droid, OpenCode)
 
 **Chopshop Integration:**
 - Vision-to-Tasks Pipeline absorbs chopshop functionality

@@ -1,6 +1,6 @@
 # Circuit Breaker / Stagnation Detection
 
-**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code)
+**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code), [ralph](https://github.com/iannuttall/ralph)
 **Dependencies:** None
 **Complexity:** Medium
 
@@ -18,6 +18,25 @@ Ralph tracks:
 - File changes per iteration
 - Test-only loops (>30% threshold triggers concern)
 - Consecutive "done" signals without actual completion
+
+## Additional Reference: Stale Task Recovery
+
+From Ralph's implementation:
+- Tasks marked `in_progress` track a `startedAt` timestamp
+- Configurable `STALE_SECONDS` parameter (default: disabled)
+- If a task has been `in_progress` longer than the threshold, it's considered "stale"
+- Stale tasks are automatically reopened for retry
+- Prevents orphaned tasks when processes die unexpectedly
+
+This pattern is valuable for:
+- Long-running autonomous sessions
+- Process crashes or interruptions
+- Multi-machine setups where one worker dies
+- CI/CD pipelines with timeouts
+
+**Integration with beads:** The `bd ready` command could surface stale `in_progress` tasks alongside truly ready tasks, allowing automatic recovery.
+
+---
 
 ## Problem Statement
 
@@ -168,6 +187,11 @@ Attempt automatic recovery:
     "notifications": {
       "desktop": true,
       "webhook": null
+    },
+    "stale_task_recovery": {
+      "enabled": true,
+      "stale_seconds": 3600,
+      "action": "reopen"
     }
   }
 }
@@ -209,6 +233,7 @@ extract_error_signature() {
 
 ## Acceptance Criteria
 
+### Stagnation Detection
 - [ ] Track file changes per iteration
 - [ ] Detect repeated identical errors
 - [ ] Configurable stagnation threshold
@@ -217,6 +242,13 @@ extract_error_signature() {
 - [ ] Resume capability after pause
 - [ ] Model escalation on stagnation (optional)
 - [ ] Desktop/webhook notifications (optional)
+
+### Stale Task Recovery
+- [ ] Track `started_at` timestamp on `in_progress` tasks
+- [ ] Configurable `stale_seconds` threshold
+- [ ] `bd ready` surfaces stale tasks as available
+- [ ] `cub doctor` warns about stale tasks
+- [ ] Optional auto-reopen of stale tasks
 
 ## Future Enhancements
 

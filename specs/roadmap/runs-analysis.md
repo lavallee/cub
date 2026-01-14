@@ -1,6 +1,6 @@
 # Runs Analysis & Intelligence
 
-**Source:** Original feature for cub
+**Source:** Original feature for cub, enhanced artifacts pattern from [ralph](https://github.com/iannuttall/ralph)
 **Dependencies:** None (uses existing run artifacts)
 **Complexity:** Medium-High
 
@@ -679,8 +679,127 @@ npm test || {
 | `harness_output.log` | Agent reasoning, confusion signals |
 | `task.json` | Task specs for comparison |
 | `changes.patch` | Actual implementation diff |
+| `rendered_prompt.md` | Exact prompt sent to agent (see Enhanced Artifacts) |
+| `git_state.json` | Git state before/after task (see Enhanced Artifacts) |
 | Git history | Commit patterns, file changes |
 | `progress.txt` (if exists) | Progress tracking attempts |
+| `.cub/guardrails.md` | Lessons learned (see Guardrails System spec) |
+
+### Enhanced Artifacts (from Ralph)
+
+Ralph captures additional artifacts that significantly improve debugging and analysis. These should be incorporated into cub's artifact system:
+
+#### 1. Rendered Prompt Capture
+
+Store the exact prompt sent to the agent for each iteration:
+
+```
+.cub/runs/{session}/tasks/{task-id}/
+├── rendered_prompt.md      # Exact prompt sent to agent
+├── harness_output.log      # (existing) Agent response
+└── ...
+```
+
+**Benefits:**
+- Debug prompt issues ("what did the agent actually see?")
+- Compare prompt variations across runs
+- Reproduce exact conditions that caused failures
+- Analyze prompt length vs performance correlation
+
+**Implementation:**
+```bash
+artifacts_capture_rendered_prompt() {
+  local task_id=$1
+  local prompt_content=$2
+  local task_dir=$(artifacts_get_task_dir "$task_id")
+  echo "$prompt_content" > "${task_dir}/rendered_prompt.md"
+}
+```
+
+#### 2. Git State Before/After
+
+Capture git commit hash at start and end of each task:
+
+```json
+// git_state.json
+{
+  "before": {
+    "commit": "abc123...",
+    "branch": "main",
+    "dirty": false
+  },
+  "after": {
+    "commit": "def456...",
+    "branch": "main",
+    "dirty": false,
+    "files_changed": ["src/auth.js", "tests/auth.test.js"],
+    "insertions": 42,
+    "deletions": 7
+  }
+}
+```
+
+**Benefits:**
+- Precise before/after comparison
+- Detect uncommitted changes at task start
+- Measure actual impact (insertions/deletions)
+- Identify which commits belong to which task
+
+**Implementation:**
+```bash
+artifacts_capture_git_state() {
+  local task_id=$1
+  local phase=$2  # "before" or "after"
+  local task_dir=$(artifacts_get_task_dir "$task_id")
+
+  local state=$(jq -n \
+    --arg commit "$(git rev-parse HEAD)" \
+    --arg branch "$(git rev-parse --abbrev-ref HEAD)" \
+    --argjson dirty "$(git diff --quiet && echo false || echo true)" \
+    '{commit: $commit, branch: $branch, dirty: $dirty}')
+
+  if [[ "$phase" == "after" ]]; then
+    # Add diff stats
+    state=$(echo "$state" | jq \
+      --argjson insertions "$(git diff --stat HEAD~1 | tail -1 | grep -oE '[0-9]+ insertion' | cut -d' ' -f1 || echo 0)" \
+      --argjson deletions "$(git diff --stat HEAD~1 | tail -1 | grep -oE '[0-9]+ deletion' | cut -d' ' -f1 || echo 0)" \
+      '. + {insertions: $insertions, deletions: $deletions}')
+  fi
+
+  # Update git_state.json
+  local state_file="${task_dir}/git_state.json"
+  if [[ -f "$state_file" ]]; then
+    jq --argjson new "$state" --arg phase "$phase" '.[$phase] = $new' "$state_file" > "${state_file}.tmp"
+    mv "${state_file}.tmp" "$state_file"
+  else
+    jq -n --argjson state "$state" --arg phase "$phase" '{($phase): $state}' > "$state_file"
+  fi
+}
+```
+
+#### 3. Separated Error Log
+
+Extract errors from harness output into a structured file:
+
+```json
+// errors.json
+[
+  {
+    "timestamp": "2026-01-13T14:32:01Z",
+    "type": "runtime",
+    "message": "TypeError: undefined is not a function",
+    "file": "src/auth.js",
+    "line": 42,
+    "signature": "TypeError:undefined:src/auth.js:42"
+  }
+]
+```
+
+**Benefits:**
+- Quick error analysis without parsing full output
+- Error signature tracking for repeated error detection
+- Correlation with Circuit Breaker stagnation detection
+- Aggregate error statistics across runs
 
 ### Analysis Pipeline
 
