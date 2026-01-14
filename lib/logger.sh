@@ -459,3 +459,121 @@ logger_stream() {
 
     return 0
 }
+
+# Log plan review event with results and metadata
+# Records plan review verdict, dimensions status, and issues found
+# Used to track review accuracy, concerns raised, and blocking issues for future analysis
+#
+# Args:
+#   $1 - verdict: Review verdict (pass, concerns, or block)
+#   $2 - task_count: Number of tasks reviewed
+#   $3 - dimensions_json: JSON object with dimension results
+#        Format: {"completeness":{"status":"pass|concerns","issues":N},
+#                 "feasibility":{"status":"pass|concerns","issues":N},
+#                 "dependencies":{"status":"pass|concerns","issues":N},
+#                 "architecture":{"status":"pass|concerns","issues":N}}
+#   $4 - has_issues: Boolean indicating if any issues were found
+#   $5 - review_reason: Optional reason or summary of the review
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   dimensions_json='{"completeness":{"status":"pass","issues":0},"feasibility":{"status":"concerns","issues":2},"dependencies":{"status":"pass","issues":0},"architecture":{"status":"pass","issues":0}}'
+#   log_plan_review_event "concerns" "15" "$dimensions_json" "true" "Feasibility issues found"
+#
+# Notes:
+#   - Events are stored in JSONL format for analytics and accuracy tracking
+#   - Review history can be queried later for trend analysis
+#   - Verdict values: "pass" (ready_to_implement=true), "concerns" (review recommended), "block" (cannot execute)
+log_plan_review_event() {
+    local verdict="$1"
+    local task_count="$2"
+    local dimensions_json="$3"
+    local has_issues="$4"
+    local review_reason="${5:-}"
+
+    # Validate required arguments
+    if [[ -z "$verdict" ]]; then
+        echo "ERROR: verdict is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_count" ]]; then
+        echo "ERROR: task_count is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$dimensions_json" ]]; then
+        echo "ERROR: dimensions_json is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$has_issues" ]]; then
+        echo "ERROR: has_issues is required" >&2
+        return 1
+    fi
+
+    # Normalize verdict to lowercase for consistency
+    verdict=$(echo "$verdict" | tr '[:upper:]' '[:lower:]')
+
+    # Validate verdict is one of the allowed values
+    if [[ ! "$verdict" =~ ^(pass|concerns|block)$ ]]; then
+        echo "ERROR: verdict must be one of: pass, concerns, block" >&2
+        return 1
+    fi
+
+    # Validate dimensions_json is valid JSON
+    if ! echo "$dimensions_json" | jq -e '.' > /dev/null 2>&1; then
+        echo "ERROR: dimensions_json is not valid JSON: $dimensions_json" >&2
+        return 1
+    fi
+
+    # Validate task_count is numeric
+    if ! [[ "$task_count" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: task_count must be numeric" >&2
+        return 1
+    fi
+
+    # Normalize has_issues to boolean
+    if [[ "$has_issues" =~ ^(true|1|yes|on)$ ]]; then
+        has_issues="true"
+    else
+        has_issues="false"
+    fi
+
+    # Determine ready_to_implement flag based on verdict
+    local ready_to_implement="false"
+    if [[ "$verdict" == "pass" ]]; then
+        ready_to_implement="true"
+    fi
+
+    # Build JSON data using jq for safe construction
+    local data_json
+    if [[ -n "$review_reason" ]]; then
+        data_json=$(jq -cn \
+            --arg verdict "$verdict" \
+            --argjson task_count "$task_count" \
+            --argjson dimensions "$dimensions_json" \
+            --argjson has_issues "$has_issues" \
+            --argjson ready_to_implement "$ready_to_implement" \
+            --arg review_reason "$review_reason" \
+            '{verdict: $verdict, task_count: $task_count, dimensions: $dimensions, has_issues: $has_issues, ready_to_implement: $ready_to_implement, review_reason: $review_reason}')
+    else
+        data_json=$(jq -cn \
+            --arg verdict "$verdict" \
+            --argjson task_count "$task_count" \
+            --argjson dimensions "$dimensions_json" \
+            --argjson has_issues "$has_issues" \
+            --argjson ready_to_implement "$ready_to_implement" \
+            '{verdict: $verdict, task_count: $task_count, dimensions: $dimensions, has_issues: $has_issues, ready_to_implement: $ready_to_implement}')
+    fi
+
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to construct plan_review JSON" >&2
+        return 1
+    fi
+
+    # Write log entry
+    logger_write "plan_review" "$data_json"
+}

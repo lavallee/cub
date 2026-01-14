@@ -1317,6 +1317,8 @@ run_review_plans() {
     fi
 
     local completeness_summary
+    local completeness_status="pass"
+    local completeness_issue_count=0
     completeness_summary=$(get_completeness_summary "$prd" 2>/dev/null || echo "")
 
     if [[ -z "$completeness_summary" || "$completeness_summary" == "✓ All tasks are complete" ]]; then
@@ -1331,6 +1333,8 @@ run_review_plans() {
             echo "$completeness_summary" >> "$review_report"
             log_warn "⚠ Completeness check found issues"
         fi
+        completeness_status="concerns"
+        completeness_issue_count=$(echo "$completeness_summary" | grep -c "^- " || echo "0")
         has_concerns=true
         has_completeness_issues=true
     fi
@@ -1346,6 +1350,8 @@ run_review_plans() {
     fi
 
     local feasibility_summary
+    local feasibility_status="pass"
+    local feasibility_issue_count=0
     feasibility_summary=$(get_feasibility_summary "$prd" 2>/dev/null || echo "")
 
     if [[ -z "$feasibility_summary" || "$feasibility_summary" == "✓ All tasks are feasible" ]]; then
@@ -1360,6 +1366,8 @@ run_review_plans() {
             echo "$feasibility_summary" >> "$review_report"
             log_warn "⚠ Feasibility check found issues"
         fi
+        feasibility_status="concerns"
+        feasibility_issue_count=$(echo "$feasibility_summary" | grep -c "^- " || echo "0")
         has_concerns=true
         has_feasibility_issues=true
     fi
@@ -1375,6 +1383,8 @@ run_review_plans() {
     fi
 
     local dependency_summary
+    local dependency_status="pass"
+    local dependency_issue_count=0
     dependency_summary=$(get_dependency_summary "$prd" 2>/dev/null || echo "")
 
     if [[ -z "$dependency_summary" || "$dependency_summary" == "✓ All dependencies are valid" ]]; then
@@ -1389,6 +1399,8 @@ run_review_plans() {
             echo "$dependency_summary" >> "$review_report"
             log_warn "⚠ Dependency check found issues"
         fi
+        dependency_status="concerns"
+        dependency_issue_count=$(echo "$dependency_summary" | grep -c "^- " || echo "0")
         has_concerns=true
         has_dependency_issues=true
     fi
@@ -1404,6 +1416,8 @@ run_review_plans() {
     fi
 
     local architecture_summary
+    local architecture_status="pass"
+    local architecture_issue_count=0
     architecture_summary=$(get_architecture_summary "$prd" 2>/dev/null || echo "")
 
     if [[ -z "$architecture_summary" || "$architecture_summary" == "✓ All tasks are architecturally aligned" ]]; then
@@ -1418,6 +1432,8 @@ run_review_plans() {
             echo "$architecture_summary" >> "$review_report"
             log_warn "⚠ Architecture check found issues"
         fi
+        architecture_status="concerns"
+        architecture_issue_count=$(echo "$architecture_summary" | grep -c "^- " || echo "0")
         has_concerns=true
         has_architecture_issues=true
     fi
@@ -1526,6 +1542,31 @@ run_review_plans() {
         echo "Full review report: ${review_report}"
         echo ""
     fi
+
+    # Log plan review event for analytics and accuracy tracking
+    local task_count=0
+    if [[ -f "$prd" ]]; then
+        task_count=$(jq '[.tasks[]] | length' "$prd" 2>/dev/null || echo "0")
+    fi
+
+    local dimensions_json
+    dimensions_json=$(jq -cn \
+        --arg completeness_status "$completeness_status" \
+        --argjson completeness_issues "$completeness_issue_count" \
+        --arg feasibility_status "$feasibility_status" \
+        --argjson feasibility_issues "$feasibility_issue_count" \
+        --arg dependency_status "$dependency_status" \
+        --argjson dependency_issues "$dependency_issue_count" \
+        --arg architecture_status "$architecture_status" \
+        --argjson architecture_issues "$architecture_issue_count" \
+        '{
+            completeness: {status: $completeness_status, issues: $completeness_issues},
+            feasibility: {status: $feasibility_status, issues: $feasibility_issues},
+            dependencies: {status: $dependency_status, issues: $dependency_issues},
+            architecture: {status: $architecture_status, issues: $architecture_issues}
+        }')
+
+    log_plan_review_event "$verdict" "$task_count" "$dimensions_json" "$has_concerns"
 
     return 0
 }
