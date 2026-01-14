@@ -69,14 +69,20 @@ bats tests/*.bats
 │   ├── logger.sh     # Structured JSONL logging
 │   ├── harness.sh    # Harness abstraction (claude, codex)
 │   ├── tasks.sh      # Task management interface
-│   └── beads.sh      # Beads backend wrapper
+│   ├── beads.sh      # Beads backend wrapper
+│   ├── branches.sh   # Branch-epic binding management (v0.19)
+│   ├── checkpoints.sh # Checkpoint/gate management (v0.19)
+│   ├── cmd_branch.sh  # Branch commands (v0.19)
+│   ├── cmd_checkpoint.sh # Checkpoint commands (v0.19)
+│   └── cmd_pr.sh      # PR commands (v0.19)
 ├── tests/            # BATS test files
 │   ├── *.bats        # Test suites
 │   ├── test_helper.bash  # Common test setup
 │   └── fixtures/     # Test fixtures
 ├── templates/        # Template files
 ├── .beads/           # Beads task tracking
-│   └── issues.jsonl  # Task database
+│   ├── issues.jsonl  # Task database
+│   └── branches.yaml # Branch-epic bindings (v0.19)
 ├── progress.txt      # Session learnings
 └── AGENT.md          # This file
 ```
@@ -145,6 +151,71 @@ Custom questions support:
 - **requires_labels**: Array of labels - question only appears for tasks with matching labels (optional)
 - **requires_tech**: Array of tech stack tags - question only appears when tech stack matches (optional)
 - **skip_if**: Conditional skip logic based on previous answers (optional)
+
+## Git Workflow Integration (v0.19)
+
+v0.19 adds branch-epic bindings, checkpoints, and PR management:
+
+### Branch Management
+
+```bash
+# Create and bind a branch to an epic
+cub branch cub-vd6                    # Create new branch
+cub branch cub-vd6 --bind-only        # Bind current branch
+cub branch cub-vd6 --name feature/v19 # Custom branch name
+
+# List all branch bindings
+cub branches
+cub branches --status active
+cub branches --json
+
+# Cleanup merged branches
+cub branches --cleanup
+
+# Sync branch status with git
+cub branches --sync
+
+# Remove binding
+cub branches --unbind cub-vd6
+```
+
+Branch bindings are stored in `.beads/branches.yaml`.
+
+### Checkpoints
+
+Checkpoints are review/approval gates that block downstream tasks:
+
+```bash
+# Create a checkpoint (gate type in beads)
+bd create "Review: feature complete" --type gate
+
+# List checkpoints
+cub checkpoints
+cub checkpoints --epic cub-vd6
+cub checkpoints --blocking
+
+# Approve a checkpoint (unblocks dependent tasks)
+cub checkpoints approve <checkpoint-id>
+```
+
+When running `cub run`, tasks blocked by unapproved checkpoints are skipped.
+
+### Pull Request Management
+
+```bash
+# Create PR for an epic
+cub pr cub-vd6
+cub pr cub-vd6 --draft
+cub pr cub-vd6 --push          # Push branch first
+cub pr cub-vd6 --base develop  # Target branch
+
+# PR body is auto-generated from epic's completed tasks
+```
+
+Requirements:
+- Epic must have a bound branch
+- Branch must be pushed to remote
+- GitHub CLI (`gh`) must be installed and authenticated
 
 ## Gotchas & Learnings
 

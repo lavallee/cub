@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-vd6",
+  "title": "v0.19: Git Workflow Integration",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-14T21:57:53Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T22:51:33Z",
+  "exit_code": 0
+}
