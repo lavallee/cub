@@ -186,7 +186,8 @@ _run_install() {
     fi
 
     log_info "Running installer..."
-    if ! bash "${source_dir}/install.sh" "${install_args[@]}"; then
+    # Use safe array expansion to handle empty array with set -u
+    if ! bash "${source_dir}/install.sh" ${install_args[@]+"${install_args[@]}"}; then
         _log_error_console "Installation failed"
         return 1
     fi
