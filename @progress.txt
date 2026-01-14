@@ -1,3 +1,79 @@
+## Task cub-0y8.9: JSON output format (2026-01-14)
+
+**Implementation:**
+- Added --json flag to 'cub run --review-plans' command for machine-readable output
+- Implemented generate_review_json() function that builds JSON structure with all required fields
+- Updated run_review_plans() to conditionally output JSON or markdown based on --json flag
+- When JSON mode enabled, all logging and file operations are skipped for clean stdout
+- Help text updated to document the new --json flag
+
+**JSON Output Structure:**
+```json
+{
+  "task_id": "plan-review-N-tasks",
+  "verdict": "pass|concerns|block",
+  "dimensions": {
+    "completeness": {"status": "pass|concerns", "issues": [...], "suggestions": [...]},
+    "feasibility": {"status": "pass|concerns", "issues": [...], "suggestions": [...]},
+    "dependencies": {"status": "pass|concerns", "issues": [...], "suggestions": [...]},
+    "architecture": {"status": "pass|concerns", "issues": [...], "suggestions": [...]}
+  },
+  "ready_to_implement": boolean,
+  "reviewed_at": "ISO 8601 UTC timestamp"
+}
+```
+
+**Key Learnings:**
+1. **Conditional mode handling**: Using a flag parameter to run_review_plans() keeps the function clean by skipping all logging/file operations in JSON mode
+2. **Status fields vs issues**: Since extracting structured issue data from summary text is complex, simpler to use boolean status flags and include summary text in issues array when needed
+3. **ready_to_implement semantics**: Should be true only for PASS verdict, false for both CONCERNS and BLOCK verdicts (user expectation is "ready" = can execute safely)
+4. **JSON construction in bash**: Using jq -n with --arg parameters is much safer than trying to escape bash variables for manual JSON construction
+5. **Timestamp consistency**: Using jq's now | todate function ensures ISO 8601 format automatically, matching other cub timestamps
+
+**Testing Approach:**
+- Bash syntax validation: ✓ (bash -n on cmd_run.sh and cub)
+- CLI tests: ✓ (all 58 tests pass, no regressions)
+- Manual validation: ✓ (tested JSON output with empty prd.json, verified all fields present and correctly formatted)
+- Backward compatibility: ✓ (markdown output unchanged when --json not used)
+
+**Acceptance Criteria Met:**
+- ✓ --json flag added to --review-plans mode
+- ✓ JSON includes task_id (format: plan-review-N-tasks)
+- ✓ JSON includes verdict (pass/concerns/block)
+- ✓ JSON includes dimensions with status/issues/suggestions for each
+- ✓ JSON includes ready_to_implement (boolean, true only for PASS)
+- ✓ JSON includes reviewed_at (ISO 8601 UTC timestamp)
+- ✓ All feedback loops pass (syntax check, CLI tests)
+- ✓ Help text updated
+- ✓ Task marked complete
+
+**Files Modified:**
+- lib/cmd_run.sh:
+  - Added --json flag parsing in cmd_run() (added 3 lines)
+  - Added review_plans_json variable to track mode (added 1 line)
+  - Updated help text to document --json flag (added 1 line)
+  - Added generate_review_json() function (61 lines)
+  - Updated run_review_plans() to accept --json parameter and conditionally output JSON vs markdown (added ~50 lines, updated ~100 lines)
+- .beads/issues.jsonl: Task status updated to closed
+
+**Integration Points:**
+- CLI: cub run --review-plans --json outputs JSON to stdout for machine parsing
+- Scripting: Users can pipe JSON to jq for further processing
+- Future: Could be used by CI/CD systems, external monitoring tools, or integration with other systems
+- Consistent with: cub status --json which uses similar pattern
+
+**Example Usage:**
+```bash
+# Output JSON review results
+cub run --review-plans --json
+
+# Parse specific field
+cub run --review-plans --json | jq '.ready_to_implement'
+
+# Check verdict programmatically
+cub run --review-plans --json | jq 'select(.verdict == "pass")'
+```
+
 ## Task cub-0y8.8: Summary output format (2026-01-13)
 
 **Implementation:**
