@@ -93,6 +93,40 @@ Implementation: `cub run --monitor` launches integrated tmux session with dashbo
 
 ---
 
+### Git Workflow Integration
+**Source:** Original (cub)
+**Dependencies:** None
+**Priority:** High (quick win)
+
+Tightly integrate git workflow with beads task lifecycle:
+
+**Branch-Per-Epic:**
+- `bd branch <epic-id>` creates and binds a branch to an epic
+- `cub run --epic X` auto-switches to the epic's branch
+- Clean isolation: one epic = one branch = one PR
+
+**Checkpoint Tasks:**
+- New task type `--type checkpoint` for natural pause points
+- Checkpoints block downstream tasks until closed
+- Closing a checkpoint prompts for PR/review
+
+**Auto-PR on Epic Close:**
+- `bd close <epic-id>` offers to create PR
+- PR body auto-generated from completed tasks
+- Branch-to-PR lifecycle fully tracked
+
+**Git Hygiene:**
+- `bd branches` shows epic-branch mappings
+- `bd branches --cleanup` removes merged branches
+- `bd branches --sync` syncs with remote state
+
+Commands:
+- `bd branch <epic-id>` - Bind branch to epic
+- `bd branches [--cleanup|--sync]` - Manage branches
+- `bd pr <epic-id>` - Create PR for epic
+
+---
+
 ### Guardrails System (Institutional Memory)
 **Source:** [ralph](https://github.com/iannuttall/ralph)
 **Dependencies:** None
@@ -445,6 +479,7 @@ MAINTENANCE & INTELLIGENCE:
 
 STANDALONE:
 [Live Dashboard]                    (standalone)
+[Git Workflow Integration]          (standalone, quick win)
 [Guardrails System]                 (standalone, quick win)
 [Circuit Breaker]                   (standalone)
 [PRD Import]                        (standalone, lightweight alt to Pipeline)
@@ -475,6 +510,8 @@ SYNERGIES:
 [Guardrails] + [Re-anchoring] (guardrails are part of anchoring context)
 [Onboarding] + [Guardrails] (guardrails.md in .cub/ from start)
 [Onboarding] + [Runs Analysis] (enhanced artifacts in .cub/runs/)
+[Git Workflow] + [Vision-to-Tasks] (epics from pipeline get branches)
+[Git Workflow] + [Live Dashboard] (show branch/PR status in dashboard)
 ```
 
 ## Priority Suggestions
@@ -485,6 +522,7 @@ SYNERGIES:
 - Language Migration Phase 1 (Go core: tasks + config)
 
 **High Value, Low Complexity (Quick Wins):**
+- Git Workflow Integration (branch-per-epic, auto-PR on close)
 - Guardrails System (institutional memory - low effort, high impact)
 - Live Dashboard
 - Circuit Breaker
