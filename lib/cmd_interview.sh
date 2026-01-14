@@ -333,6 +333,48 @@ interview_run_interactive() {
     echo "$responses_json"
 }
 
+# Gather codebase context for AI interview
+# Returns: String with relevant codebase information
+interview_gather_codebase_context() {
+    local context=""
+
+    # Detect project structure
+    context+="Project Structure:\n"
+    if [[ -f "package.json" ]]; then
+        context+="- Node.js project with package.json\n"
+        if [[ -f "package-lock.json" ]]; then
+            context+="- Uses npm for package management\n"
+        fi
+    fi
+    if [[ -f "go.mod" ]]; then
+        context+="- Go project\n"
+    fi
+    if [[ -f "requirements.txt" || -f "pyproject.toml" ]]; then
+        context+="- Python project\n"
+    fi
+    if [[ -f "Cargo.toml" ]]; then
+        context+="- Rust project\n"
+    fi
+    if [[ -d "tests" ]]; then
+        context+="- Has tests/ directory\n"
+    fi
+    if [[ -f "docker-compose.yml" ]]; then
+        context+="- Uses Docker Compose\n"
+    fi
+
+    # List key files (limit to avoid overwhelming the prompt)
+    local key_files
+    key_files=$(find . -maxdepth 2 -type f -name "*.md" -o -name "*.sh" -o -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.go" 2>/dev/null | head -20 | sed 's|^\./||')
+    if [[ -n "$key_files" ]]; then
+        context+="\nKey Files:\n"
+        while IFS= read -r file; do
+            context+="- $file\n"
+        done <<< "$key_files"
+    fi
+
+    echo -e "$context"
+}
+
 # Run auto interview (AI-generated answers)
 # Args: task_id task_json questions
 interview_run_auto() {
@@ -344,6 +386,10 @@ interview_run_auto() {
     title=$(echo "$task_json" | jq -r '.title')
     local description
     description=$(echo "$task_json" | jq -r '.description // ""')
+    local task_type
+    task_type=$(echo "$task_json" | jq -r '.type // "task"')
+    local labels
+    labels=$(echo "$task_json" | jq -r '.labels // [] | join(", ")')
 
     echo ""
     echo -e "${BLUE}=========================================${NC}"
@@ -351,79 +397,120 @@ interview_run_auto() {
     echo -e "${BLUE}Task ID: ${GREEN}$task_id${BLUE}${NC}"
     echo -e "${BLUE}=========================================${NC}"
     echo ""
-    log_info "Generating AI responses based on task context..."
-    echo -e "${YELLOW}Processing $(echo "$questions" | jq 'length') questions...${NC}"
+    log_info "Analyzing codebase context..."
+
+    # Gather codebase context
+    local codebase_context
+    codebase_context=$(interview_gather_codebase_context)
+
+    log_info "Generating AI responses based on task and codebase context..."
+    echo -e "${YELLOW}Processing $(echo "$questions" | jq 'length') questions with Sonnet model...${NC}"
     echo ""
 
-    # Build prompt for Claude to answer all questions
-    local prompt
-    local questions_list
-    questions_list=$(echo "$questions" | jq -r '.[] | "[" + .category + "] " + .question')
+    # Process questions one by one with skip logic support
+    local responses_json="[]"
+    local q_num=1
+    local total
+    total=$(echo "$questions" | jq 'length')
+    local current_category=""
 
-    prompt=$(cat <<PROMPT
-You are helping to refine a task specification by answering questions about it.
-
-Task ID: $task_id
-Title: $title
-Description:
-$description
-
-Please answer the following questions about this task. Provide concise, specific answers based on the task description and common software engineering practices. If a question does not apply, say "N/A".
-
-Questions:
-$questions_list
-
-Respond in JSON format as an array of objects with "category", "question", and "answer" fields:
-[
-  {"category": "...", "question": "...", "answer": "..."},
-  ...
-]
-PROMPT
-)
-
-    # Call Claude to generate answers
-    local ai_response
-    local exit_code
-    ai_response=$(echo "$prompt" | claude --print 2>&1)
-    exit_code=$?
-
-    if [[ $exit_code -eq 0 && -n "$ai_response" ]]; then
-        # Try to extract JSON from response
-        local responses_json
-
-        # First, try to parse the whole response as JSON
-        if echo "$ai_response" | jq empty 2>/dev/null; then
-            echo "$ai_response"
-            return 0
+    while read -r question_obj; do
+        # Check if we should skip this question based on previous answers
+        if interview_should_skip_question "$question_obj" "$responses_json"; then
+            local skipped_question
+            skipped_question=$(echo "$question_obj" | jq -r '.question')
+            echo -e "${BLUE}[Skipped $q_num/$total] $skipped_question${NC}" >&2
+            ((q_num++))
+            continue
         fi
 
-        # Look for JSON array in the response (between [ and ])
-        # Extract content between first [ and last ]
-        responses_json=$(echo "$ai_response" | grep -o '\[.*' | head -1)
-        if [[ -n "$responses_json" ]]; then
-            # Ensure it ends with ]
-            if [[ ! "$responses_json" == *"]" ]]; then
-                responses_json="${responses_json%\]*}]"
+        local category
+        category=$(echo "$question_obj" | jq -r '.category')
+        local question
+        question=$(echo "$question_obj" | jq -r '.question')
+        local question_id
+        question_id=$(echo "$question_obj" | jq -r '.id // ""')
+
+        # Print category header when it changes
+        if [[ "$category" != "$current_category" ]]; then
+            if [[ -n "$current_category" ]]; then
+                echo ""
             fi
-            # Try to validate as JSON
-            if echo "$responses_json" | jq empty 2>/dev/null; then
-                echo "$responses_json"
-                return 0
+            echo -e "${YELLOW}## $category${NC}"
+            current_category="$category"
+        fi
+
+        echo -e "${CYAN}[$q_num/$total]${NC} $question"
+
+        # Build focused prompt for this specific question
+        local prompt
+        prompt="You are helping to refine a task specification by answering a specific question about it.
+
+Task Context:
+- Task ID: $task_id
+- Title: $title
+- Type: $task_type
+- Labels: $labels
+- Description: $description
+
+Codebase Context:
+$codebase_context
+
+Question Category: $category
+Question: $question
+
+Instructions:
+- Provide a concise, specific answer based on the task description and codebase context
+- If the question does not apply to this task, respond with \"N/A\" or \"Not applicable\"
+- Focus on practical implementation details
+- Consider the project's technology stack and structure
+- Be brief but comprehensive (1-3 sentences or a short list)
+
+Answer the question directly without repeating it. Respond with just the answer text, no JSON or additional formatting."
+
+        # Call Claude with sonnet model to generate answer
+        local ai_answer
+        local exit_code
+        ai_answer=$(echo "$prompt" | claude --print --model sonnet 2>&1)
+        exit_code=$?
+
+        if [[ $exit_code -eq 0 && -n "$ai_answer" ]]; then
+            # Clean up the answer (remove extra whitespace)
+            ai_answer=$(echo "$ai_answer" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            echo -e "${GREEN}>${NC} $ai_answer"
+            echo ""
+
+            # Store response with question ID if available
+            if [[ -n "$question_id" ]]; then
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$ai_answer" --arg qid "$question_id" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans, "question_id": $qid}]')
+            else
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "$ai_answer" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans}]')
+            fi
+        else
+            log_warn "Failed to get AI response for question (exit code: $exit_code)"
+            echo -e "${RED}> [Error generating answer]${NC}"
+            echo ""
+
+            # Store error response
+            if [[ -n "$question_id" ]]; then
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "N/A" --arg qid "$question_id" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans, "question_id": $qid}]')
+            else
+                responses_json=$(echo "$responses_json" | jq --arg cat "$category" --arg q "$question" --arg ans "N/A" \
+                    '. += [{"category": $cat, "question": $q, "answer": $ans}]')
             fi
         fi
 
-        # If JSON parsing fails, show warning and return error
-        log_warn "AI response parsing failed. Response was:"
-        echo "$ai_response" | head -10 >&2
-        echo "ERROR: Failed to parse AI response as JSON" >&2
-        return 1
-    else
-        echo "ERROR: Failed to get AI response (exit code: $exit_code)" >&2
-        if [[ -n "$ai_response" ]]; then
-            echo "Response: $ai_response" >&2
-        fi
-        return 1
-    fi
+        ((q_num++))
+    done < <(echo "$questions" | jq -c '.[]')
+
+    echo ""
+    echo -e "${GREEN}✓ All questions processed${NC}"
+    echo ""
+    echo "$responses_json"
 }
 
 # ============================================================================
@@ -431,11 +518,12 @@ PROMPT
 # ============================================================================
 
 # Generate specification document from interview responses
-# Args: task_json responses_json output_file
+# Args: task_json responses_json output_file mode
 interview_generate_spec() {
     local task_json="$1"
     local responses_json="$2"
     local output_file="$3"
+    local mode="${4:-interactive}"
 
     local task_id
     task_id=$(echo "$task_json" | jq -r '.id')
@@ -454,7 +542,7 @@ interview_generate_spec() {
 **Task ID:** $task_id
 **Type:** $task_type
 **Generated:** $(date +%Y-%m-%d)
-**Interview Mode:** interactive
+**Interview Mode:** $mode
 
 ## Original Description
 $description
@@ -677,7 +765,7 @@ cmd_interview() {
     fi
 
     # Generate spec document
-    interview_generate_spec "$task_json" "$responses_json" "$output_file"
+    interview_generate_spec "$task_json" "$responses_json" "$output_file" "$mode"
 
     echo ""
     echo -e "${GREEN}✓ Interview complete!${NC}"

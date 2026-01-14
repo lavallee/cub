@@ -5412,3 +5412,90 @@ Per the epic (cub-h87), remaining tasks include:
 - cub-h87.10: Batch interview multiple tasks
 - cub-h87.11: Custom question support
 - cub-h87.12: Skip categories option
+
+## Session 17: Auto Mode with AI-Generated Answers (cub-h87.5)
+
+### Task: Implement auto mode (--auto flag) that uses AI to generate answers based on codebase context
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. **Codebase Context Gathering** (`interview_gather_codebase_context`)
+   - Detects project structure (Node.js, Python, Go, Rust, Java, Bash)
+   - Lists key files (limited to 20 to avoid overwhelming prompts)
+   - Detects infrastructure (Docker Compose, tests directory)
+   - Returns formatted context string for AI prompts
+
+2. **Enhanced Auto Mode** (`interview_run_auto` rewrite)
+   - Question-by-question processing with skip logic support
+   - Uses `--model sonnet` flag for Claude CLI calls
+   - Rich context injection: task details + codebase structure
+   - Better prompt engineering with focused, single-question prompts
+   - Error handling with fallback to "N/A" answers
+   - Progress display with category headers and question counters
+
+3. **Improved Prompt Engineering**
+   - Concise, specific prompts for each question
+   - Includes task context (ID, title, type, labels, description)
+   - Includes codebase context (tech stack, key files)
+   - Clear instructions to respond with N/A when not applicable
+   - Direct text responses (not JSON) for better parsing
+
+4. **Spec Generation Enhancement**
+   - Added mode parameter to `interview_generate_spec`
+   - Spec documents now show "Interview Mode: auto" or "interactive"
+   - Defaults to "interactive" if mode not specified
+
+5. **Comprehensive Test Suite** (8 new tests)
+   - Codebase context detection tests (bash, nodejs, docker, tests dir)
+   - File list limiting test (max 20 files)
+   - Spec generation with mode parameter
+   - All tests use proper TEST_DIR from test_helper
+
+### Test Results:
+- All 20 interview tests PASS (13 existing + 7 new)
+- Test coverage for auto mode functionality:
+  - Codebase context gathering
+  - Technology stack detection
+  - Spec generation with mode tracking
+
+### Learnings:
+- **Heredoc vs string literals**: Bash 3.2 on macOS has issues with nested heredocs and backslash escaping. Using simple quoted strings with escaped quotes is more reliable than complex heredoc constructions with variable substitution.
+
+- **Claude CLI model selection**: The `--model sonnet` flag works reliably for specifying the model. Setting `CUB_MODEL` environment variable is also supported but CLI flag is more explicit.
+
+- **Prompt engineering for AI interviews**: 
+  - Single question per API call is more reliable than batch processing
+  - Including codebase context significantly improves answer quality
+  - Focused prompts with clear instructions ("respond with N/A if not applicable") reduce parsing errors
+  - Direct text responses are easier to handle than JSON extraction
+
+- **Skip logic in auto mode**: The same `interview_should_skip_question` function works for both interactive and auto modes. This ensures consistency - if "data write" is "none", both modes skip the "state persist" question.
+
+- **Test directory management**: BATS tests should use `$TEST_DIR` (set by `setup_test_dir` in test_helper.bash), not `$BATS_TMPDIR` or `$BATS_TEST_TMPDIR`. Each test gets a fresh temp directory that's cleaned up in teardown.
+
+- **Progress visibility**: Showing category headers, question counters, and AI responses as they're generated provides good user feedback during potentially slow auto mode execution.
+
+### Implementation Details:
+- Function added: `interview_gather_codebase_context` (40 lines)
+- Function rewritten: `interview_run_auto` (from 92 lines to 148 lines)
+- Function signature changed: `interview_generate_spec` (added 4th parameter)
+- Tests added: 8 new tests covering auto mode functionality
+- Total changes: ~200 lines added/modified
+
+### Key Design Decisions:
+1. **Per-question API calls**: Trade latency for reliability and context awareness
+2. **Codebase context inclusion**: Automatic tech detection without manual configuration
+3. **Sonnet model**: Balance between cost and quality for specification generation
+4. **Error handling**: Graceful degradation with N/A fallbacks rather than failing
+5. **Skip logic preservation**: Same logic for interactive and auto ensures consistency
+
+### Next Steps:
+Per the epic (cub-h87), remaining tasks include:
+- cub-h87.6: Auto mode review and approval flow
+- cub-h87.7: Comprehensive spec document generation (mostly done)
+- cub-h87.8: Acceptance criteria extraction (basic version done)
+- cub-h87.9: Output options (file or update task description)
+- cub-h87.10: Batch interview multiple tasks
+- cub-h87.11: Custom question support
+- cub-h87.12: Skip categories option (implemented but not tested)

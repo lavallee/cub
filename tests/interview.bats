@@ -271,3 +271,113 @@ teardown() {
     security_count=$(echo "$filtered" | jq '[.[] | select(.category == "Security")] | length')
     [ "$security_count" -gt 0 ]
 }
+
+# ============================================================================
+# Auto Mode and Codebase Context Tests
+# ============================================================================
+
+@test "interview_gather_codebase_context detects bash project" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test bash project in TEST_DIR (already set by setup_test_dir)
+    mkdir -p "lib"
+    touch "script.sh"
+    touch "lib/utils.sh"
+
+    local context
+    context=$(interview_gather_codebase_context)
+
+    # Should mention key files
+    echo "$context" | grep -q "script.sh"
+    echo "$context" | grep -q "lib/utils.sh"
+}
+
+@test "interview_gather_codebase_context detects nodejs project" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test nodejs project in TEST_DIR
+    echo '{"name":"test"}' > "package.json"
+    touch "package-lock.json"
+
+    local context
+    context=$(interview_gather_codebase_context)
+
+    # Should mention Node.js and npm
+    echo "$context" | grep -q "Node.js"
+    echo "$context" | grep -q "npm"
+}
+
+@test "interview_gather_codebase_context detects test directory" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test project with tests in TEST_DIR
+    mkdir -p "tests"
+    touch "tests/test_sample.sh"
+
+    local context
+    context=$(interview_gather_codebase_context)
+
+    # Should mention tests directory
+    echo "$context" | grep -q "tests/"
+}
+
+@test "interview_gather_codebase_context detects docker compose" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test project with docker-compose in TEST_DIR
+    echo 'version: "3"' > "docker-compose.yml"
+
+    local context
+    context=$(interview_gather_codebase_context)
+
+    # Should mention Docker Compose
+    echo "$context" | grep -q "Docker Compose"
+}
+
+@test "interview_gather_codebase_context limits file list" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    # Create test project with many files in TEST_DIR
+    for i in {1..30}; do
+        touch "file${i}.sh"
+    done
+
+    local context
+    context=$(interview_gather_codebase_context)
+
+    # Should not overwhelm with too many files (limited to 20 in implementation)
+    local file_count
+    file_count=$(echo "$context" | grep -c "^- file[0-9]" || true)
+    [ "$file_count" -le 20 ]
+}
+
+@test "interview_generate_spec includes mode in output" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local task_json='{"id":"test-1","type":"task","title":"Test Task","description":"Test description"}'
+    local responses='[{"category":"Test","question":"Q1","answer":"A1"}]'
+    local output_file="${TEST_DIR}/spec.md"
+
+    # Generate spec in auto mode
+    interview_generate_spec "$task_json" "$responses" "$output_file" "auto"
+
+    # Check that file was created
+    [ -f "$output_file" ]
+
+    # Check that mode is included (with markdown bold markers)
+    grep -q "Interview Mode:.*auto" "$output_file"
+}
+
+@test "interview_generate_spec defaults to interactive mode" {
+    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+
+    local task_json='{"id":"test-1","type":"task","title":"Test Task","description":"Test description"}'
+    local responses='[{"category":"Test","question":"Q1","answer":"A1"}]'
+    local output_file="${TEST_DIR}/spec_default.md"
+
+    # Generate spec without mode parameter (should default to interactive)
+    interview_generate_spec "$task_json" "$responses" "$output_file"
+
+    # Check that mode defaults to interactive (with markdown bold markers)
+    grep -q "Interview Mode:.*interactive" "$output_file"
+}
