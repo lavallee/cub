@@ -355,7 +355,27 @@ _import_to_beads() {
         epic_id=$(echo "$epic" | jq -r '.id')
         epic_title=$(echo "$epic" | jq -r '.title')
 
-        if bd create --title "$epic_title" --type epic >/dev/null 2>&1; then
+        # Build bd create command
+        local bd_args=("--title" "$epic_title" "--type" "epic")
+
+        # Add source reference as labels
+        local file=$(echo "$epic" | jq -r '.source.file // empty')
+        local line=$(echo "$epic" | jq -r '.source.line // empty')
+        local url=$(echo "$epic" | jq -r '.source.url // empty')
+        local platform=$(echo "$epic" | jq -r '.source.platform // empty')
+
+        if [[ -n "$file" ]]; then
+            local filename=$(basename "$file")
+            if [[ -n "$line" ]]; then
+                bd_args+=("--label" "source:$filename:$line")
+            else
+                bd_args+=("--label" "source:$filename")
+            fi
+        elif [[ -n "$url" && -n "$platform" ]]; then
+            bd_args+=("--label" "source:$platform")
+        fi
+
+        if bd create "${bd_args[@]}" >/dev/null 2>&1; then
             ((epics_created++))
             echo "  ✓ Created epic: $epic_title" >&2
         fi
@@ -389,6 +409,26 @@ _import_to_beads() {
                 bd_args+=("--label" "$label")
             fi
         done
+
+        # Add source reference as labels
+        # Format: source:file:line or source:url:platform
+        local source_label=""
+        local file=$(echo "$task" | jq -r '.source.file // empty')
+        local line=$(echo "$task" | jq -r '.source.line // empty')
+        local url=$(echo "$task" | jq -r '.source.url // empty')
+        local platform=$(echo "$task" | jq -r '.source.platform // empty')
+
+        if [[ -n "$file" ]]; then
+            # Extract just the filename for cleaner labels
+            local filename=$(basename "$file")
+            if [[ -n "$line" ]]; then
+                bd_args+=("--label" "source:$filename:$line")
+            else
+                bd_args+=("--label" "source:$filename")
+            fi
+        elif [[ -n "$url" && -n "$platform" ]]; then
+            bd_args+=("--label" "source:$platform")
+        fi
 
         if bd create "${bd_args[@]}" >/dev/null 2>&1; then
             ((tasks_created++))

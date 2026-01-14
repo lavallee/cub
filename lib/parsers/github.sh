@@ -73,16 +73,17 @@ parse_github_repo() {
         return 1
     fi
 
-    # Parse the fetched issues
-    parse_github_issues "$issues_json" "$label_filter"
+    # Parse the fetched issues (pass repo for source reference)
+    parse_github_issues "$issues_json" "$label_filter" "$repo"
 }
 
 # Parse GitHub issues from JSON data
-# Usage: parse_github_issues "$json_data" [--labels "label1,label2"]
+# Usage: parse_github_issues "$json_data" [--labels "label1,label2"] [repo]
 # Expects JSON array from gh CLI with: number, title, body, labels[], milestone, author
 parse_github_issues() {
     local issues_json="$1"
     local label_filter="${2:-}"
+    local repo="${3:-unknown/unknown}"
 
     if [[ -z "$issues_json" ]]; then
         echo '{"error":"No issues data provided"}' >&2
@@ -94,6 +95,9 @@ parse_github_issues() {
     local tasks_json="[]"
     local dependencies_json="[]"
     local milestone_to_epic_map="{}"
+
+    # Create source URL for GitHub repo
+    local source_url="https://github.com/$repo"
 
     # Process each issue
     while IFS= read -r issue_line; do
@@ -148,7 +152,8 @@ parse_github_issues() {
                 epic_obj=$(jq -n \
                     --arg id "$epic_id" \
                     --arg title "$milestone" \
-                    '{id: $id, title: $title, description: "", type: "epic", priority: "P2"}')
+                    --arg source_url "$source_url" \
+                    '{id: $id, title: $title, description: "", type: "epic", priority: "P2", source: {url: $source_url, platform: "github"}}')
                 epics_json=$(jq --argjson obj "$epic_obj" '. += [$obj]' <<<"$epics_json")
                 milestone_to_epic_map=$(jq --arg id "$epic_id" '. += {($id): true}' <<<"$milestone_to_epic_map")
             fi
@@ -184,9 +189,11 @@ parse_github_issues() {
             --arg description "GitHub issue #$issue_number\n\nAuthor: $author\n\n$body" \
             --arg epic "$epic_id" \
             --arg priority "$priority" \
+            --arg source_url "$source_url" \
+            --arg issue_num "$issue_number" \
             --argjson labels "$labels_array" \
             --argjson acceptance_criteria "$acceptance_criteria" \
-            '{id: $id, title: $title, description: $description, type: "task", epic: (if $epic != "" then $epic else null end), priority: $priority, labels: $labels, acceptanceCriteria: $acceptance_criteria, status: "open"}')
+            '{id: $id, title: $title, description: $description, type: "task", epic: (if $epic != "" then $epic else null end), priority: $priority, labels: $labels, acceptanceCriteria: $acceptance_criteria, status: "open", source: {url: ($source_url + "/issues/" + $issue_num), platform: "github"}}')
 
         tasks_json=$(jq --argjson obj "$task_obj" '. += [$obj]' <<<"$tasks_json")
 

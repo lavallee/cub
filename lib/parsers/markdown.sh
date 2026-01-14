@@ -59,6 +59,11 @@ parse_markdown_file() {
 
     local line_number=0
 
+    # Store normalized file path for source reference
+    local source_file
+    source_file=$(cd "$(dirname "$file")" && pwd)
+    source_file="$source_file/$(basename "$file")"
+
     while IFS= read -r line || [[ -n "$line" ]]; do
         ((line_number++))
 
@@ -87,9 +92,10 @@ parse_markdown_file() {
             local epic_obj=$(jq -n \
                 --arg id "$current_epic" \
                 --arg title "$epic_title" \
+                --arg file "$source_file" \
                 --arg line "$line_number" \
                 --arg priority "$priority_epic" \
-                '{id: $id, title: $title, description: "", type: "epic", priority: $priority, line: ($line | tonumber)}')
+                '{id: $id, title: $title, description: "", type: "epic", priority: $priority, source: {file: $file, line: ($line | tonumber)}}')
             epics_json=$(jq --argjson obj "$epic_obj" '. += [$obj]' <<<"$epics_json")
             current_feature=""
 
@@ -117,9 +123,10 @@ parse_markdown_file() {
                 --arg id "$current_feature" \
                 --arg title "$feature_title" \
                 --arg epic "$current_epic" \
+                --arg file "$source_file" \
                 --arg line "$line_number" \
                 --arg priority "$priority_feature" \
-                '{id: $id, title: $title, description: "", type: "task", parent: $epic, priority: $priority, line: ($line | tonumber)}')
+                '{id: $id, title: $title, description: "", type: "task", parent: $epic, priority: $priority, source: {file: $file, line: ($line | tonumber)}}')
             tasks_json=$(jq --argjson obj "$feature_obj" '. += [$obj]' <<<"$tasks_json")
 
             continue
@@ -152,9 +159,10 @@ parse_markdown_file() {
                 --arg title "$task_title" \
                 --arg parent "$current_feature" \
                 --arg epic "$current_epic" \
+                --arg file "$source_file" \
                 --arg line "$line_number" \
                 --arg priority "$priority_task" \
-                '{id: $id, title: $title, description: "", type: "task", parent: $parent, epic: $epic, priority: $priority, acceptanceCriteria: [], line: ($line | tonumber)}')
+                '{id: $id, title: $title, description: "", type: "task", parent: $parent, epic: $epic, priority: $priority, acceptanceCriteria: [], source: {file: $file, line: ($line | tonumber)}}')
             tasks_json=$(jq --argjson obj "$task_obj" '. += [$obj]' <<<"$tasks_json")
 
             continue

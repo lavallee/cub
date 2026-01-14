@@ -181,16 +181,25 @@ parse_json_file() {
     local has_tasks
     has_tasks=$(jq 'has("tasks")' "$file" 2>/dev/null)
 
+    # Get normalized source file path
+    local source_file
+    source_file=$(cd "$(dirname "$file")" && pwd)
+    source_file="$source_file/$(basename "$file")"
+
+    local parsed
     if [[ "$has_features" == "true" ]]; then
         # Structured PRD format with features
-        _parse_prd_format "$file"
+        parsed=$(_parse_prd_format "$file")
     elif [[ "$has_tasks" == "true" ]]; then
         # Simple array format
-        _parse_array_format "$file"
+        parsed=$(_parse_array_format "$file")
     else
         echo '{"error":"JSON must contain either \"tasks\" or \"features\" array"}' >&2
         return 1
     fi
+
+    # Add source file reference to all tasks and epics
+    echo "$parsed" | _add_source_references "$source_file"
 }
 
 # Parse simple array format: { "prefix": "...", "tasks": [...] }
@@ -459,4 +468,17 @@ format_parsed_json() {
         echo "Dependencies:"
         echo "$parsed" | jq -r '.dependencies[] | "  \(.from) -> \(.to)"'
     fi
+}
+
+# Add source file references to all tasks and epics
+# Input: JSON from stdin with structure {epics: [], tasks: [], dependencies: []}
+# Parameter: source_file path
+# Output: Same JSON with source field added to epics and tasks
+_add_source_references() {
+    local source_file="$1"
+
+    jq --arg file "$source_file" '
+        .epics |= map(. + {source: {file: $file}}) |
+        .tasks |= map(. + {source: {file: $file}})
+    '
 }
