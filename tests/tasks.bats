@@ -558,3 +558,251 @@ EOF
     [ "$t1_status" = "closed" ]
     [ "$t2_status" = "open" ]
 }
+
+# =============================================================================
+# Task Completeness Validation Tests
+# =============================================================================
+
+@test "validate_task_completeness requires task_id parameter" {
+    create_minimal_prd
+    run validate_task_completeness ""
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "error" ]]
+}
+
+@test "validate_task_completeness returns error for non-existent task" {
+    create_minimal_prd
+    run validate_task_completeness "nonexistent-task"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "not found" ]]
+}
+
+@test "validate_task_completeness reports missing title" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. == "Title is missing")'
+}
+
+@test "validate_task_completeness reports title too short" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Short", "description": "Desc", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. | startswith("Title is too short"))'
+}
+
+@test "validate_task_completeness accepts title with 10+ characters" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "This is exactly ten character title", "description": "Desc", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness reports missing description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. == "Description is missing")'
+}
+
+@test "validate_task_completeness reports missing acceptance criteria" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | any(. | contains("Acceptance criteria are not defined"))'
+}
+
+@test "validate_task_completeness accepts markdown checkboxes in description" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Desc\n- [ ] Criterion 1\n- [ ] Criterion 2", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness accepts acceptanceCriteria field" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "acceptanceCriteria": ["criterion 1", "criterion 2"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == true'
+}
+
+@test "validate_task_completeness returns all issues together" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Bad", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '.is_complete == false'
+    echo "$output" | jq -e '.issues | length == 3'
+}
+
+@test "validate_task_completeness returns valid JSON" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title Here", "description": "Valid description", "acceptanceCriteria": ["crit1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_task_completeness "t1"
+    [ "$status" -eq 0 ]
+    # Should be valid JSON that can be parsed
+    echo "$output" | jq '.' >/dev/null
+    echo "$output" | jq -e '.id == "t1"'
+    echo "$output" | jq -e 'has("is_complete")'
+    echo "$output" | jq -e 'has("issues")'
+}
+
+@test "validate_all_tasks_completeness returns empty array for empty prd" {
+    echo '{"prefix": "test", "tasks": []}' > prd.json
+
+    run validate_all_tasks_completeness "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "validate_all_tasks_completeness validates all tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Bad", "description": "", "status": "open"},
+    {"id": "t3", "title": "Valid Title 3", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run validate_all_tasks_completeness "prd.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e 'length == 3'
+    echo "$output" | jq -e '.[0].is_complete == true'
+    echo "$output" | jq -e '.[1].is_complete == false'
+    echo "$output" | jq -e '.[2].is_complete == true'
+}
+
+@test "validate_all_tasks_completeness handles missing file" {
+    run validate_all_tasks_completeness "nonexistent.json"
+    [ "$status" -eq 0 ]
+    echo "$output" | jq -e '. == []'
+}
+
+@test "get_completeness_summary reports all complete" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Valid Title 2", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "All tasks are complete" ]]
+}
+
+@test "get_completeness_summary reports incomplete tasks" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Valid Title 1", "description": "Desc", "acceptanceCriteria": ["c1"], "status": "open"},
+    {"id": "t2", "title": "Bad", "description": "", "status": "open"},
+    {"id": "t3", "title": "Bad3", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "Found 2 incomplete" ]]
+    [[ "$output" =~ "t2" ]]
+    [[ "$output" =~ "t3" ]]
+}
+
+@test "get_completeness_summary includes specific issues" {
+    cat > prd.json << 'EOF'
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "Bad", "description": "", "status": "open"}
+  ]
+}
+EOF
+
+    run get_completeness_summary "prd.json"
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "too short" ]]
+    [[ "$output" =~ "Description is missing" ]]
+    [[ "$output" =~ "Acceptance criteria" ]]
+}

@@ -935,3 +935,204 @@ format_acceptance_criteria_for_prompt() {
     echo ""
     echo "Please verify each criterion is satisfied before marking the task as done."
 }
+
+# ============================================================================
+# Task Completeness Validation
+# ============================================================================
+#
+# Functions to validate task completeness across title, description,
+# and acceptance criteria fields.
+
+# Validate task completeness for a single task
+# Checks:
+#   1. Title is present and at least 10 characters
+#   2. Description is present and non-empty
+#   3. Acceptance criteria are defined (via description markdown or acceptanceCriteria field)
+#
+# Returns JSON object with completeness status:
+# {
+#   "id": "task-id",
+#   "is_complete": true|false,
+#   "issues": ["issue1", "issue2"]
+# }
+# Usage: validate_task_completeness task_id [prd_file]
+validate_task_completeness() {
+    local task_id="$1"
+    local prd="${2:-prd.json}"
+
+    if [[ -z "$task_id" ]]; then
+        echo '{"error": "task_id is required"}' >&2
+        return 1
+    fi
+
+    local backend=$(get_backend)
+    local title=""
+    local description=""
+    local criteria_count=0
+    local issues=()
+
+    if [[ "$backend" == "beads" ]]; then
+        # Get task from beads
+        local task_json
+        task_json=$(bd show "$task_id" --json 2>/dev/null) || {
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        }
+
+        title=$(echo "$task_json" | jq -r '.title // ""')
+        description=$(echo "$task_json" | jq -r '.description // ""')
+
+        # Check for acceptance_criteria field if present
+        criteria_count=$(echo "$task_json" | jq '(.acceptance_criteria // []) | length')
+    else
+        # Get task from prd.json
+        local task
+        task=$(json_get_task "$prd" "$task_id")
+
+        if [[ -z "$task" || "$task" == "null" ]]; then
+            echo "{\"error\": \"task not found: $task_id\"}" >&2
+            return 1
+        fi
+
+        title=$(echo "$task" | jq -r '.title // ""')
+        description=$(echo "$task" | jq -r '.description // ""')
+
+        # Check for acceptanceCriteria field
+        criteria_count=$(echo "$task" | jq '(.acceptanceCriteria // []) | length')
+    fi
+
+    # Validate title
+    if [[ -z "$title" ]]; then
+        issues+=("Title is missing")
+    elif [[ ${#title} -lt 10 ]]; then
+        issues+=("Title is too short (${#title} chars, minimum 10 required)")
+    fi
+
+    # Validate description
+    if [[ -z "$description" ]]; then
+        issues+=("Description is missing")
+    fi
+
+    # Validate acceptance criteria
+    # Check if there are no criteria AND no markdown in description
+    if [[ "$criteria_count" -eq 0 ]]; then
+        # No criteria in dedicated field, check markdown in description
+        local markdown_criteria
+        markdown_criteria=$(parse_acceptance_criteria "$description")
+
+        if [[ -z "$markdown_criteria" ]]; then
+            issues+=("Acceptance criteria are not defined (no markdown checkboxes or acceptanceCriteria field)")
+        fi
+    fi
+
+    # Build result JSON
+    local is_complete="true"
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        is_complete="false"
+    fi
+
+    # Output result as JSON
+    printf '{\n'
+    printf '  "id": "%s",\n' "$task_id"
+    printf '  "is_complete": %s,\n' "$is_complete"
+    printf '  "issues": ['
+
+    if [[ ${#issues[@]} -gt 0 ]]; then
+        for i in "${!issues[@]}"; do
+            if [[ $i -gt 0 ]]; then
+                printf ', '
+            fi
+            printf '"%s"' "$(printf '%s\n' "${issues[$i]}" | sed 's/"/\\"/g')"
+        done
+    fi
+
+    printf ']\n'
+    printf '}\n'
+
+    return 0
+}
+
+# Validate completeness for all tasks in a project
+# Returns JSON array with completeness status for each task
+# Optional parameter: prd_file (defaults to prd.json)
+# Returns array of validation results:
+# [
+#   {"id": "task-1", "is_complete": true, "issues": []},
+#   {"id": "task-2", "is_complete": false, "issues": ["Title is missing"]}
+# ]
+validate_all_tasks_completeness() {
+    local prd="${1:-prd.json}"
+
+    if [[ "$(get_backend)" == "beads" ]]; then
+        # Get all tasks from beads
+        local tasks
+        tasks=$(bd list --json 2>/dev/null) || return 1
+
+        echo "["
+        local first=true
+
+        echo "$tasks" | jq -r '.[] | .id' | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_completeness "$task_id" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    else
+        # Get all tasks from prd.json
+        if [[ ! -f "$prd" ]]; then
+            echo "[]"
+            return 0
+        fi
+
+        echo "["
+        local first=true
+
+        jq -r '.tasks[] | .id' "$prd" | while read -r task_id; do
+            if [[ "$first" != "true" ]]; then
+                echo ","
+            fi
+            first=false
+
+            validate_task_completeness "$task_id" "$prd" | tr '\n' ' '
+        done
+
+        echo ""
+        echo "]"
+    fi
+
+    return 0
+}
+
+# Get summary of completeness issues across all tasks
+# Returns markdown-formatted list of incomplete tasks
+# Usage: get_completeness_summary [prd_file]
+get_completeness_summary() {
+    local prd="${1:-prd.json}"
+
+    local results
+    results=$(validate_all_tasks_completeness "$prd")
+
+    local incomplete_count
+    incomplete_count=$(echo "$results" | jq '[.[] | select(.is_complete == false)] | length')
+
+    if [[ "$incomplete_count" -eq 0 ]]; then
+        echo "✓ All tasks are complete"
+        return 0
+    fi
+
+    echo "⚠ Found $incomplete_count incomplete task(s):"
+    echo ""
+
+    echo "$results" | jq -r '.[] | select(.is_complete == false) | "**\(.id)**\n" + (.issues | map("  - \(.)") | join("\n"))' | while read -r line; do
+        if [[ -n "$line" ]]; then
+            echo "$line"
+        fi
+    done
+
+    return 1
+}
