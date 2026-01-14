@@ -89,6 +89,62 @@ bats tests/*.bats
 - `lib/xdg.sh` - XDG directory helpers for config/data/cache paths
 - `lib/harness.sh` - Harness detection and invocation
 - `lib/tasks.sh` - Unified task interface (abstracts beads vs JSON backend)
+- `lib/cmd_interview.sh` - Interview mode for task specifications (v0.16)
+
+## Interview Mode (v0.16)
+
+The interview command provides deep questioning to refine task specifications:
+
+```bash
+# Single task interview
+cub interview <task-id>              # Interactive mode
+cub interview <task-id> --auto       # AI-generated answers with review
+
+# Batch mode (interview all open tasks)
+cub interview --all --auto --skip-review --output-dir specs/interviews
+
+# With task description update
+cub interview --all --auto --skip-review --update-task
+```
+
+**Batch Processing Features:**
+- `--all`: Interview all open tasks automatically
+- `--output-dir`: Specify custom output directory (default: specs/)
+- `--auto`: Use AI to generate answers
+- `--skip-review`: Skip interactive review (for autonomous operation)
+- `--update-task`: Append generated specs to task descriptions
+
+Batch mode uses `bd list --status open` to find tasks and processes them sequentially with AI-generated answers.
+
+### Custom Questions Support
+
+Add project-specific interview questions to `.cub.json`:
+
+```json
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Project Specific",
+        "question": "What is the business impact?",
+        "applies_to": ["feature", "task"]
+      },
+      {
+        "category": "Project Specific",
+        "question": "What third-party integrations are affected?",
+        "applies_to": ["feature"],
+        "requires_labels": ["integration"]
+      }
+    ]
+  }
+}
+```
+
+Custom questions support:
+- **applies_to**: Array of task types (feature, task, bugfix) - required
+- **requires_labels**: Array of labels - question only appears for tasks with matching labels (optional)
+- **requires_tech**: Array of tech stack tags - question only appears when tech stack matches (optional)
+- **skip_if**: Conditional skip logic based on previous answers (optional)
 
 ## Gotchas & Learnings
 
@@ -97,6 +153,7 @@ bats tests/*.bats
 - **Task management**: This project uses `bd` (beads) instead of `prd.json`. Use `bd close <id> -r "reason"` to close tasks.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: BATS tests use `${BATS_TMPDIR}` for temp directories and `PROJECT_ROOT` (from test_helper) for paths.
+- **Interview batch mode**: Uses `bd list --status open --json` to enumerate tasks. Processes each task with auto mode and skips review for autonomous operation.
 
 ## Common Commands
 

@@ -5246,3 +5246,467 @@ Following tasks in epic cub-0y8:
 - cub-0y8.9: JSON output format
 - cub-0y8.10: Review results logging
 - cub-0y8.11: Review model selection
+
+## Task cub-h87.1: Interview Engine Implementation
+
+### Task: Build interview engine for Q&A flow
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Created `lib/cmd_interview.sh` with comprehensive interview functionality
+   - `interview_load_questions()` - Load full question bank (48 questions across 9 categories)
+   - `interview_filter_questions()` - Filter by task type (feature/task/bugfix)
+   - `interview_run_interactive()` - Interactive Q&A flow
+   - `interview_run_auto()` - AI-generated answers via Claude
+   - `interview_generate_spec()` - Generate markdown specification documents
+   - `cmd_interview()` - Main command handler with arg parsing
+
+2. Added interview command to main cub dispatcher
+   - Sourced cmd_interview.sh in cub main script
+   - Added 'interview' subcommand to case statement
+   - Updated help text with interview mode section
+
+3. Question Bank Categories:
+   - Functional Requirements (5 questions)
+   - Edge Cases (6 questions)
+   - Error Handling (6 questions)
+   - User Experience (5 questions)
+   - Data & State (5 questions)
+   - Integration Points (5 questions)
+   - Performance & Scale (5 questions)
+   - Security (5 questions)
+   - Testing (4 questions)
+   - Operations (4 questions)
+
+### Command Interface:
+```bash
+cub interview <task-id>              # Interactive mode
+cub interview <task-id> --auto       # AI-generated answers
+cub interview <task-id> --output FILE   # Custom output location
+cub interview --all                  # Batch mode (not yet implemented)
+cub interview <task-id> --skip-categories "Security,Operations"
+```
+
+### Learnings:
+- **Smart quotes in heredocs cause syntax errors**: Bash heredocs with unescaped smart quotes (', ') instead of straight quotes (', ') will cause "unexpected EOF while looking for matching quote" errors. Always use straight ASCII quotes.
+- **jq string interpolation in bash**: The jq syntax `\(.field)` looks like bash command substitution `$()` and can confuse the parser when used in non-quoted heredocs or certain contexts. Solution: use jq string concatenation `"[" + .field + "]"` instead of `"[\(.field)]"`.
+- **Command registration pattern**: New commands require:
+  1. Source the lib/cmd_*.sh file in main cub script
+  2. Add case in subcommand dispatcher
+  3. Add to help text
+  4. Follow help format convention (cmd_<name>_help function)
+- **Heredoc best practices**: 
+  - Use `<<'EOF'` (quoted) to prevent variable expansion
+  - Use `<<EOF` (unquoted) when you need expansion
+  - Extract complex command substitutions to separate variables before the heredoc
+- **Claude integration pattern**: Pipe prompts to `claude --print`, capture output, parse JSON responses
+
+### Dependencies:
+- Requires: tasks.sh (get_task), logger.sh (log_*), colors (CYAN, NC)
+- Unlocks: cub-h87.5 through cub-h87.12 (remaining interview features)
+
+
+## Session: Interview Mode Question Filtering (cub-h87.4)
+
+### Task: Question filtering by task type and labels
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Enhanced question filtering function (interview_filter_questions)
+   - Now accepts full task_json instead of just task_type
+   - Extracts task type, labels from task metadata
+   - Combines task labels with detected technology stack
+   - Filters questions based on applies_to, requires_labels, and requires_tech
+
+2. Technology stack detection (interview_detect_tech_stack)
+   - Detects bash/shell projects (*.sh files in project or lib/)
+   - Detects Node.js projects (package.json)
+   - Detects specific frameworks: React, Express, Next.js
+   - Detects Python (requirements.txt, pyproject.toml, setup.py)
+   - Detects Go (go.mod), Rust (Cargo.toml), Java (pom.xml, build.gradle)
+   - Detects databases from docker-compose.yml (postgres, redis, mongodb)
+   - Returns JSON array of detected technology labels
+
+3. Skip logic based on previous answers (interview_should_skip_question)
+   - Questions can have skip_if field with question_ids and answers_match
+   - Checks if referenced questions have answers matching regex patterns
+   - Case-insensitive regex matching (grep -iE)
+   - Returns 0 (skip) or 1 (don't skip) to control interview flow
+
+4. Question bank enhancements:
+   - Added requires_labels field to specialized questions
+   - Added question IDs (e.g., "data_read", "apis_call") for skip logic
+   - Added skip_if conditions to follow-up questions:
+     - "How is state persisted?" skipped if no data written
+     - "What happens to existing data on upgrade?" skipped if no data read/write
+     - "Is there a way to undo/cancel?" skipped if no data written
+     - "Are there rate limits to consider?" skipped if no APIs called
+   - Label requirements for specialized categories:
+     - Security questions require "security", "auth", "data", or "validation" labels
+     - Performance questions require "performance", "scalability", "caching", or "memory" labels
+     - Integration questions require "api", "integration", "events", or "pub-sub" labels
+     - Accessibility question requires "ui", "frontend", or "web" labels
+
+5. Interactive interview updates:
+   - Modified loop to check skip conditions before asking each question
+   - Stores question_id with responses for skip logic reference
+   - Shows "[Skipped]" message for questions that don't apply
+   - Maintains question numbering for non-skipped questions
+
+### Test Results:
+- Created tests/interview.bats with 13 comprehensive tests
+- All 13 interview tests PASS
+- All 41 total tests PASS (28 config + 13 interview)
+- Test coverage:
+  - Question filtering by task type
+  - Question filtering by task labels
+  - Label-based exclusion of questions
+  - Tech stack detection (bash, nodejs, python)
+  - Skip logic with and without conditions
+  - Skip logic with pattern matching
+  - Case-insensitive answer matching
+  - Question bank structure validation
+  - Combined filtering (type + labels + tech)
+
+### Learnings:
+- **jq substring matching gotcha**: Using both `(. | contains($rlabel))` and `($rlabel | contains(.))` creates false positives because it matches in both directions. For example, "security" contains "sh" (from "bash" label), leading to unintended matches. Solution: Only check if task label contains required label, not the reverse.
+
+- **Question filtering design**: Three-tier filtering approach works well:
+  1. Task type (applies_to) - broad categorization
+  2. Labels (requires_labels) - domain-specific filtering
+  3. Technology stack (detected from project files) - automatic context
+
+- **Skip logic implementation**: Return code convention (0 = skip, 1 = don't skip) aligns with bash conventions where 0 is success/true. The interview loop uses `if interview_should_skip_question ...; then continue; fi` which reads naturally.
+
+- **Technology detection trade-offs**: 
+  - File-based detection is fast and doesn't require parsing
+  - grep on package.json is sufficient for framework detection
+  - docker-compose.yml provides good insight into infrastructure
+  - Could be extended with more sophisticated detection (AST parsing, lock files)
+
+- **Label matching strategy**: Using substring matching allows flexibility (e.g., "auth" matches "authentication" label) but needs to be one-directional to avoid false positives. The pattern `(. == $rlabel or (. | contains($rlabel)))` means exact match OR task label contains required label.
+
+- **Test design for filtering**: Testing negative cases (questions that should be excluded) is just as important as positive cases. The test initially failed because it checked for ANY security question, when only some have label requirements.
+
+- **BATS test helpers**: The project uses `setup_test_dir` and `teardown_test_dir` (not `setup_test_environment`). The test_helper.bash file provides useful functions like `assert_json_equals` and `assert_json_length`.
+
+- **Question bank structure**: Adding metadata fields (id, requires_labels, skip_if) to questions makes them self-describing and enables smart filtering without hardcoding logic. This is more maintainable than switch statements or external mapping files.
+
+### Implementation Details:
+- Total changes: 464 insertions, 45 deletions
+- Files modified: lib/cmd_interview.sh, tests/interview.bats (new)
+- Question bank now has 50 questions with enhanced metadata
+- Tech stack detection supports 10+ technologies/frameworks
+- Skip logic implemented for 4 question pairs
+- Label requirements added to 15+ specialized questions
+
+### Next Steps:
+Per the epic (cub-h87), remaining tasks include:
+- cub-h87.5: Auto mode with AI-generated answers
+- cub-h87.6: Auto mode review and approval flow
+- cub-h87.7: Comprehensive spec document generation
+- cub-h87.8: Acceptance criteria extraction
+- cub-h87.9: Output options (file or update task description)
+- cub-h87.10: Batch interview multiple tasks
+- cub-h87.11: Custom question support
+- cub-h87.12: Skip categories option
+
+## Session 17: Auto Mode with AI-Generated Answers (cub-h87.5)
+
+### Task: Implement auto mode (--auto flag) that uses AI to generate answers based on codebase context
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. **Codebase Context Gathering** (`interview_gather_codebase_context`)
+   - Detects project structure (Node.js, Python, Go, Rust, Java, Bash)
+   - Lists key files (limited to 20 to avoid overwhelming prompts)
+   - Detects infrastructure (Docker Compose, tests directory)
+   - Returns formatted context string for AI prompts
+
+2. **Enhanced Auto Mode** (`interview_run_auto` rewrite)
+   - Question-by-question processing with skip logic support
+   - Uses `--model sonnet` flag for Claude CLI calls
+   - Rich context injection: task details + codebase structure
+   - Better prompt engineering with focused, single-question prompts
+   - Error handling with fallback to "N/A" answers
+   - Progress display with category headers and question counters
+
+3. **Improved Prompt Engineering**
+   - Concise, specific prompts for each question
+   - Includes task context (ID, title, type, labels, description)
+   - Includes codebase context (tech stack, key files)
+   - Clear instructions to respond with N/A when not applicable
+   - Direct text responses (not JSON) for better parsing
+
+4. **Spec Generation Enhancement**
+   - Added mode parameter to `interview_generate_spec`
+   - Spec documents now show "Interview Mode: auto" or "interactive"
+   - Defaults to "interactive" if mode not specified
+
+5. **Comprehensive Test Suite** (8 new tests)
+   - Codebase context detection tests (bash, nodejs, docker, tests dir)
+   - File list limiting test (max 20 files)
+   - Spec generation with mode parameter
+   - All tests use proper TEST_DIR from test_helper
+
+### Test Results:
+- All 20 interview tests PASS (13 existing + 7 new)
+- Test coverage for auto mode functionality:
+  - Codebase context gathering
+  - Technology stack detection
+  - Spec generation with mode tracking
+
+### Learnings:
+- **Heredoc vs string literals**: Bash 3.2 on macOS has issues with nested heredocs and backslash escaping. Using simple quoted strings with escaped quotes is more reliable than complex heredoc constructions with variable substitution.
+
+- **Claude CLI model selection**: The `--model sonnet` flag works reliably for specifying the model. Setting `CUB_MODEL` environment variable is also supported but CLI flag is more explicit.
+
+- **Prompt engineering for AI interviews**: 
+  - Single question per API call is more reliable than batch processing
+  - Including codebase context significantly improves answer quality
+  - Focused prompts with clear instructions ("respond with N/A if not applicable") reduce parsing errors
+  - Direct text responses are easier to handle than JSON extraction
+
+- **Skip logic in auto mode**: The same `interview_should_skip_question` function works for both interactive and auto modes. This ensures consistency - if "data write" is "none", both modes skip the "state persist" question.
+
+- **Test directory management**: BATS tests should use `$TEST_DIR` (set by `setup_test_dir` in test_helper.bash), not `$BATS_TMPDIR` or `$BATS_TEST_TMPDIR`. Each test gets a fresh temp directory that's cleaned up in teardown.
+
+- **Progress visibility**: Showing category headers, question counters, and AI responses as they're generated provides good user feedback during potentially slow auto mode execution.
+
+### Implementation Details:
+- Function added: `interview_gather_codebase_context` (40 lines)
+- Function rewritten: `interview_run_auto` (from 92 lines to 148 lines)
+- Function signature changed: `interview_generate_spec` (added 4th parameter)
+- Tests added: 8 new tests covering auto mode functionality
+- Total changes: ~200 lines added/modified
+
+### Key Design Decisions:
+1. **Per-question API calls**: Trade latency for reliability and context awareness
+2. **Codebase context inclusion**: Automatic tech detection without manual configuration
+3. **Sonnet model**: Balance between cost and quality for specification generation
+4. **Error handling**: Graceful degradation with N/A fallbacks rather than failing
+5. **Skip logic preservation**: Same logic for interactive and auto ensures consistency
+
+### Next Steps:
+Per the epic (cub-h87), remaining tasks include:
+- cub-h87.6: Auto mode review and approval flow
+- cub-h87.7: Comprehensive spec document generation (mostly done)
+- cub-h87.8: Acceptance criteria extraction (basic version done)
+- cub-h87.9: Output options (file or update task description)
+- cub-h87.10: Batch interview multiple tasks
+- cub-h87.11: Custom question support
+- cub-h87.12: Skip categories option (implemented but not tested)
+
+## Session: Comprehensive Spec Document Generation (cub-h87.7)
+
+### Task: Generate formatted markdown specification document from interview responses
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. Enhanced `interview_generate_spec()` in `lib/cmd_interview.sh` to generate comprehensive spec documents
+   - Added Summary section with primary goal, inputs, outputs, and coverage statistics
+   - Changed category output from alphabetical to logical order (matching question bank structure)
+   - Categories now appear in order: Functional Requirements → Edge Cases → Error Handling → User Experience → Data & State → Integration Points → Performance & Scale → Security → Testing → Operations
+   - Preserved existing acceptance criteria extraction from success criteria responses
+
+### Test Results:
+- All 20 interview tests PASS
+- Verified spec generation with comprehensive test covering all categories
+- Categories output in correct logical order (not alphabetical)
+- Summary section includes key information extracted from responses
+
+### Learnings:
+- **Bash array iteration**: Used bash array to maintain canonical category order instead of relying on JSON sort
+- **Conditional sections**: Summary section items are only included if they exist (no "null" or empty values shown)
+- **jq filtering**: Used `jq --arg` to filter responses by category, combined with array length check to skip empty categories
+- **Markdown structure**: Clear hierarchy with Overview → Summary → Categories → Acceptance Criteria
+- **Spec comprehensiveness**: "Comprehensive" means including summary overview, logical category ordering, and full structured sections
+
+### Implementation Details:
+- Summary section extracts: primary goal, inputs, outputs, and coverage stats (response count and category count)
+- Category order defined in bash array matching question bank order (lines 588-599)
+- Each category only shown if it has responses (no empty sections)
+- Acceptance criteria still extracted from success criteria questions (unchanged behavior)
+- Mode parameter (interactive/auto) displayed in Overview section
+
+### Task Completion:
+The specification document generation now provides:
+1. ✅ Formatted markdown output with clear structure
+2. ✅ All categories included (in logical order, only non-empty ones shown)
+3. ✅ Summary overview section with key details
+4. ✅ Structured sections with proper hierarchy
+5. ✅ Acceptance criteria generation from responses
+
+This completes the comprehensive spec document generation feature, making interview output more useful and organized for task execution.
+
+## Session: Acceptance Criteria Extraction Enhancement (cub-h87.8)
+
+### Task: Automatically extract actionable acceptance criteria from interview responses
+- **Status**: COMPLETED
+- **Date**: 2026-01-14
+
+### What was implemented:
+1. **New Function**: `interview_extract_acceptance_criteria`
+   - Extracts acceptance criteria from multiple question categories
+   - Generates actionable checkbox lists for task tracking
+   - Handles various answer formats (bullets, numbered lists, plain text)
+
+2. **Multi-Source Extraction**
+   - Success criteria questions (highest priority)
+   - Testing requirements (unit tests, integration tests, edge cases)
+   - Error handling requirements (with automatic summary)
+   - Data validation rules
+   - Output and feedback requirements
+
+3. **Smart Formatting**
+   - Strips bullet points (-, *, •) and numbering
+   - Normalizes whitespace
+   - Adds contextual prefixes ("Test:", "Error handling:", "Validate:", "Display:")
+   - Filters out N/A and empty responses
+
+4. **Fallback Strategy**
+   - Uses primary goal if no explicit criteria found
+   - Generic fallback criteria if no useful responses
+   - Always includes "All tests passing" criterion
+
+5. **Comprehensive Test Suite** (11 new tests)
+   - Extraction from success criteria
+   - Extraction from testing questions
+   - Extraction from error handling
+   - Extraction from validation rules
+   - Extraction from output requirements
+   - Bulleted and numbered list handling
+   - N/A filtering
+   - Multi-source combination
+   - Fallback behaviors
+
+### Test Results:
+- All 31 interview tests PASS (20 existing + 11 new)
+- Test coverage for acceptance criteria extraction:
+  - Single-source extraction
+  - Multi-source combination
+  - Format normalization
+  - Fallback scenarios
+
+### Learnings:
+- **Bash subshell variable scoping**: Variables modified inside `while` loops (which run in subshells due to piping) don't persist to the parent shell. Solution: Use temp files to collect data across subshells, then check file size with `-s` flag.
+
+- **Whitespace normalization in sed**: When removing bullet points with `sed 's/^[-*•]\s*//'`, the `\s*` may not match all whitespace on older sed. Better to chain multiple sed commands: first remove bullets, then trim leading whitespace with `sed 's/^[[:space:]]*//'`, then trim trailing with `sed 's/[[:space:]]*$//'`.
+
+- **POSIX character classes**: Use `[[:space:]]` instead of `\s` for broader compatibility with BSD/macOS sed.
+
+- **Temp file cleanup**: Always remove temp files at function end. Use `${TMPDIR:-/tmp}` for portable temp directory location.
+
+- **Test data with newlines**: In BATS tests, use `jq -n` with `--arg` and `printf` to create proper JSON with actual newlines in values, not escaped `\n` literals:
+  ```bash
+  responses=$(jq -n --arg ans "$(printf 'Line 1\nLine 2')" '[{"answer":$ans}]')
+  ```
+
+- **Progressive extraction**: Extract from multiple sources sequentially, accumulating results. This allows combining criteria from different question types while maintaining priority order.
+
+- **Context-aware prefixing**: Adding prefixes like "Test:" or "Error handling:" when the criterion doesn't already contain those keywords makes the checkbox list more actionable and clear.
+
+### Implementation Details:
+- Function added: `interview_extract_acceptance_criteria` (~130 lines)
+- Function modified: `interview_generate_spec` (simplified criteria generation)
+- Tests added: 11 new tests covering extraction scenarios
+- Total changes: ~250 lines added/modified
+
+### Key Design Decisions:
+1. **Temp file approach**: Necessary due to bash subshell scoping limitations
+2. **Multi-pass extraction**: Separate passes for different question types maintains clarity
+3. **Contextual prefixes**: Makes criteria more actionable without being verbose
+4. **Error summary**: Automatically adds "All error scenarios handled gracefully" when specific error handling is mentioned
+5. **Always include testing**: "All tests passing" is always added as final criterion
+6. **Format normalization**: Handle bullets, numbers, and plain text uniformly
+
+### Integration:
+- Replaces simple success-criteria-only extraction
+- Maintains backward compatibility (same function signature)
+- Generates richer, more actionable acceptance criteria
+- Suitable for task tracking systems (checkbox format)
+
+
+## Task cub-h87.11: Custom Question Support (2026-01-14)
+
+**Status**: COMPLETED
+
+### Implementation Summary
+
+Added comprehensive custom question support to the interview mode system, allowing projects to define project-specific interview questions in configuration.
+
+### What was implemented:
+
+1. **Custom Question Loading** (`interview_load_custom_questions()`)
+   - Loads custom questions from `.cub.json` via `interview.custom_questions` path
+   - Returns empty array if no custom questions configured
+   - Integrates seamlessly with existing configuration system
+
+2. **Question Merging** (`interview_merge_questions()`)
+   - Merges built-in and custom questions into single array
+   - Preserves order: built-in questions first, then custom
+   - Handles empty custom question arrays gracefully
+
+3. **Integration Points**
+   - Updated `cmd_interview()` single task mode to use merged questions
+   - Updated `cmd_interview_batch()` batch mode to use merged questions
+   - Custom questions participate fully in filtering system
+
+4. **Custom Question Features**
+   - **category**: Required - groups questions in output
+   - **question**: Required - the actual question text
+   - **applies_to**: Required - array of task types (feature, task, bugfix)
+   - **requires_labels**: Optional - question only appears for tasks with matching labels
+   - **requires_tech**: Optional - question only appears when tech stack matches
+   - **skip_if**: Optional - conditional skip based on previous answers
+
+5. **Test Coverage**
+   - Added 6 comprehensive tests to `tests/interview.bats`
+   - Tests cover: loading, merging, filtering, label matching
+   - All 37 interview tests pass
+
+### Configuration Example
+
+```json
+{
+  "interview": {
+    "custom_questions": [
+      {
+        "category": "Project Specific",
+        "question": "What is the business impact?",
+        "applies_to": ["feature", "task"]
+      },
+      {
+        "category": "Compliance",
+        "question": "What regulatory requirements apply?",
+        "applies_to": ["feature"],
+        "requires_labels": ["compliance"]
+      }
+    ]
+  }
+}
+```
+
+### Design Decisions
+
+1. **Configuration Location**: Used `.cub.json` under `interview.custom_questions` to align with existing config structure
+2. **Merging Strategy**: Simple array concatenation with built-in questions first ensures backward compatibility
+3. **Filtering Integration**: Custom questions use identical filtering system (applies_to, requires_labels, requires_tech, skip_if) as built-in questions
+4. **No Breaking Changes**: Fully backward compatible - projects without custom questions are unaffected
+
+### Key Insights
+
+- The existing filtering system is flexible and extensible - custom questions automatically benefit from all filtering logic
+- Configuration approach via `.cub.json` is consistent with the project's config precedence system
+- Test-driven approach was critical - tests validated both the new functionality and existing behavior
+- The interview system's separation of concerns (loading, filtering, merging, displaying) made this feature straightforward to add
+
+### Test Results
+- All 37 interview tests pass (including 6 new custom question tests)
+- Bash syntax validation: Valid
+- No breaking changes to existing functionality
+

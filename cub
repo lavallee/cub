@@ -80,6 +80,7 @@ source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
 source "${CUB_DIR}/lib/cmd_update.sh"
 source "${CUB_DIR}/lib/cmd_pipeline.sh"
+source "${CUB_DIR}/lib/cmd_interview.sh"
 
 # Load configuration early
 config_load
@@ -292,6 +293,11 @@ main() {
                 cmd_migrate "${args[@]:1}"
                 return $?
                 ;;
+            interview)
+                # Interview mode: Deep questioning for task specs
+                cmd_interview "${args[@]:1}"
+                return $?
+                ;;
             version)
                 # Show version
                 cmd_version
@@ -434,6 +440,10 @@ VISION-TO-TASKS PIPELINE (v0.14):
   cub sessions                  List/manage pipeline sessions
   cub validate                  Validate beads state
   cub migrate                   Migrate from chopshop
+
+INTERVIEW MODE (v0.16):
+  cub interview <task-id>       Deep dive on task specifications
+  cub interview <task-id> --auto   AI-generated answers
 
 QUICK START:
   cub init                      Initialize in current directory
