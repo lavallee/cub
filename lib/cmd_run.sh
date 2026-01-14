@@ -20,11 +20,13 @@ USAGE:
   cub run --once       Run exactly one iteration then exit
   cub run --ready      Show ready (unblocked) tasks without running
   cub run --plan       Run planning mode to analyze codebase
+  cub run --review-plans  Validate plan completeness, dependencies, and feasibility
 
 EXECUTION OPTIONS:
   --once, -1            Run single iteration then exit
   --ready, -r           List tasks ready to work on
   --plan, -p            Generate fix_plan.md with code analysis
+  --review-plans        Full validation suite (completeness, feasibility, dependencies)
   --push                Push completed work to remote (experimental)
 
 FILTERING:
@@ -85,6 +87,7 @@ cmd_run() {
     local run_once=false
     local run_plan=false
     local run_ready=false
+    local run_review_plans=false
 
     # Local copies of flag variables (can be overridden per-run)
     local cmd_epic="${EPIC}"
@@ -105,6 +108,9 @@ cmd_run() {
                 ;;
             --ready|-r)
                 run_ready=true
+                ;;
+            --review-plans)
+                run_review_plans=true
                 ;;
             --push)
                 cmd_push=true
@@ -232,6 +238,8 @@ cmd_run() {
     # Execute based on mode
     if [[ "$run_ready" == "true" ]]; then
         show_ready
+    elif [[ "$run_review_plans" == "true" ]]; then
+        run_review_plans
     elif [[ "$run_plan" == "true" ]]; then
         run_planning
     elif [[ "$run_once" == "true" ]]; then
@@ -1034,6 +1042,185 @@ EOF
     local end_time
     end_time=$(date +%s)
     log_debug "Execution end: $(date), duration: $((end_time - start_time))s, exit: ${exit_code}"
+}
+
+run_review_plans() {
+    local prd="${PROJECT_DIR}/prd.json"
+    local review_report="${PROJECT_DIR}/plan_review.md"
+
+    log_debug "Starting plan review mode"
+    log_info "Running plan validation suite..."
+
+    # Initialize report file
+    {
+        echo "# Plan Review Report"
+        echo ""
+        echo "Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        echo ""
+    } > "$review_report"
+
+    # Run all validation suites
+    local completeness_issues=()
+    local feasibility_issues=()
+    local dependency_issues=()
+    local architecture_issues=()
+
+    local has_concerns=false
+    local has_blocks=false
+
+    # 1. COMPLETENESS VALIDATION
+    log_info "Checking completeness..."
+    echo "## Completeness Validation" >> "$review_report"
+    echo "" >> "$review_report"
+
+    local completeness_summary
+    completeness_summary=$(get_completeness_summary "$prd" 2>/dev/null || echo "")
+
+    if [[ -z "$completeness_summary" || "$completeness_summary" == "✓ All tasks are complete" ]]; then
+        echo "✓ **PASS**: All tasks have title, description, and acceptance criteria" >> "$review_report"
+        log_info "✓ Completeness check passed"
+    else
+        echo "⚠ **CONCERNS**: Some tasks are incomplete:" >> "$review_report"
+        echo "" >> "$review_report"
+        echo "$completeness_summary" >> "$review_report"
+        has_concerns=true
+        log_warn "⚠ Completeness check found issues"
+    fi
+    echo "" >> "$review_report"
+
+    # 2. FEASIBILITY VALIDATION
+    log_info "Checking feasibility..."
+    echo "## Feasibility Validation" >> "$review_report"
+    echo "" >> "$review_report"
+
+    local feasibility_summary
+    feasibility_summary=$(get_feasibility_summary "$prd" 2>/dev/null || echo "")
+
+    if [[ -z "$feasibility_summary" || "$feasibility_summary" == "✓ All tasks are feasible" ]]; then
+        echo "✓ **PASS**: All dependencies are resolved and files exist" >> "$review_report"
+        log_info "✓ Feasibility check passed"
+    else
+        echo "⚠ **CONCERNS**: Some tasks are not feasible:" >> "$review_report"
+        echo "" >> "$review_report"
+        echo "$feasibility_summary" >> "$review_report"
+        has_concerns=true
+        log_warn "⚠ Feasibility check found issues"
+    fi
+    echo "" >> "$review_report"
+
+    # 3. DEPENDENCY VALIDATION
+    log_info "Checking dependencies..."
+    echo "## Dependency Validation" >> "$review_report"
+    echo "" >> "$review_report"
+
+    local dependency_summary
+    dependency_summary=$(get_dependency_summary "$prd" 2>/dev/null || echo "")
+
+    if [[ -z "$dependency_summary" || "$dependency_summary" == "✓ All dependencies are valid" ]]; then
+        echo "✓ **PASS**: All dependencies exist, no cycles, correct order" >> "$review_report"
+        log_info "✓ Dependency check passed"
+    else
+        echo "⚠ **CONCERNS**: Some dependencies are invalid:" >> "$review_report"
+        echo "" >> "$review_report"
+        echo "$dependency_summary" >> "$review_report"
+        has_concerns=true
+        log_warn "⚠ Dependency check found issues"
+    fi
+    echo "" >> "$review_report"
+
+    # 4. ARCHITECTURE VALIDATION
+    log_info "Checking architecture alignment..."
+    echo "## Architecture Alignment" >> "$review_report"
+    echo "" >> "$review_report"
+
+    local architecture_summary
+    architecture_summary=$(get_architecture_summary "$prd" 2>/dev/null || echo "")
+
+    if [[ -z "$architecture_summary" || "$architecture_summary" == "✓ All tasks are architecturally aligned" ]]; then
+        echo "✓ **PASS**: Architecture patterns align with codebase" >> "$review_report"
+        log_info "✓ Architecture check passed"
+    else
+        echo "⚠ **CONCERNS**: Architecture alignment issues found:" >> "$review_report"
+        echo "" >> "$review_report"
+        echo "$architecture_summary" >> "$review_report"
+        has_concerns=true
+        log_warn "⚠ Architecture check found issues"
+    fi
+    echo "" >> "$review_report"
+
+    # Generate verdict
+    echo "## Verdict" >> "$review_report"
+    echo "" >> "$review_report"
+
+    local verdict="PASS"
+    if [[ "$has_blocks" == "true" ]]; then
+        verdict="BLOCK"
+    elif [[ "$has_concerns" == "true" ]]; then
+        verdict="CONCERNS"
+    fi
+
+    case "$verdict" in
+        PASS)
+            echo "✓ **PASS**: Plan is ready for execution. All validations passed." >> "$review_report"
+            echo "" >> "$review_report"
+            echo "All tasks are complete, feasible, have valid dependencies, and" >> "$review_report"
+            echo "follow established architectural patterns. Ready to proceed with" >> "$review_report"
+            echo "execution." >> "$review_report"
+            log_info "✓ VERDICT: PASS - Plan is ready for execution"
+            ;;
+        CONCERNS)
+            echo "⚠ **CONCERNS**: Plan has issues but is executable. Review recommended." >> "$review_report"
+            echo "" >> "$review_report"
+            echo "Some tasks have completeness, feasibility, or architectural concerns." >> "$review_report"
+            echo "Review the issues above before proceeding. Consider fixing before" >> "$review_report"
+            echo "execution, but the plan is not blocked." >> "$review_report"
+            log_warn "⚠ VERDICT: CONCERNS - Review issues before execution"
+            ;;
+        BLOCK)
+            echo "✗ **BLOCK**: Plan cannot be executed. Critical issues found." >> "$review_report"
+            echo "" >> "$review_report"
+            echo "Critical blocking issues detected. Must be resolved before execution." >> "$review_report"
+            log_error "✗ VERDICT: BLOCK - Critical issues must be resolved"
+            ;;
+    esac
+    echo "" >> "$review_report"
+    echo "---" >> "$review_report"
+    echo "Review generated at: $(date)" >> "$review_report"
+
+    # Log verdict result
+    log_info "Plan review completed: ${verdict}"
+    log_info "Review report: ${review_report}"
+
+    # Display verdict summary in console
+    echo ""
+    echo "════════════════════════════════════════════════════════════════"
+    case "$verdict" in
+        PASS)
+            echo "✓ VERDICT: PASS"
+            echo ""
+            echo "Your plan is ready for execution. All tasks pass validation:"
+            echo "  ✓ Completeness check"
+            echo "  ✓ Feasibility check"
+            echo "  ✓ Dependency validation"
+            echo "  ✓ Architecture alignment"
+            ;;
+        CONCERNS)
+            echo "⚠ VERDICT: CONCERNS"
+            echo ""
+            echo "Your plan has some issues to review. See details above."
+            ;;
+        BLOCK)
+            echo "✗ VERDICT: BLOCK"
+            echo ""
+            echo "Critical issues found. Plan cannot be executed yet."
+            ;;
+    esac
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "Full review: ${review_report}"
+    echo ""
+
+    return 0
 }
 
 run_loop() {
