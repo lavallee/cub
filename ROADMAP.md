@@ -4,6 +4,30 @@ Features inspired by adjacent homegrown tools like [chopshop](https://github.com
 
 ---
 
+# Provisional sequencing of upcoming point releases
+
+0.14 - Vision-to-Tasks Pipeline          # Foundational - enables end-to-end lifecycle
+0.15 - Plan Review                       # Pipeline quality gate
+0.16 - Interview Mode                    # Pipeline complement (task-level depth)
+0.17 - PRD Import / Document Conversion  # Lightweight alternative to full pipeline
+0.18 - Onboarding & Project Organization # Clean file layout BEFORE migration
+0.19 - Git Workflow Integration          # Quick win, pairs with pipeline epics
+0.20 - Guardrails System                 # Quick win, institutional memory
+0.21 - Language Migration (Go + Python)  # Now working on clean file structure
+0.22 - Codebase Health Audit             # Useful during/after migration
+0.23 - Live Dashboard                    # Visibility into runs
+0.24 - Sandbox Mode                      # Safe execution, pairs with dashboard
+0.25 - Re-anchoring Mechanism            # Standalone
+0.26 - Fresh Context Mode                # Depends on Re-anchoring
+0.27 - Circuit Breaker / Stagnation      # Standalone
+0.28 - Dual-Condition Exit Gate          # Soft dependency on Circuit Breaker
+0.29 - Advanced Error Detection          # Standalone
+0.30 - Runs Analysis & Intelligence      # Post-run insights
+0.31 - Implementation Review             # Code review automation
+0.32 - Receipt-Based Gating              # Depends on Implementation Review
+0.33 - Multi-Model Review                # Depends on Implementation Review
+0.34 - Verification Integrations         # Protocol + plugins
+
 ## Point Releases
 
 ### Onboarding & Project Organization
