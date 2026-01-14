@@ -43,6 +43,7 @@ OPTIONS:
 WHAT IT CREATES:
   prd.json              Task backlog in JSON format
   .cub/
+    ├── README.md        Quick reference guide (editable)
     ├── prompt.md        System prompt template
     ├── agent.md         Build/run instructions (customized by project type)
     ├── progress.txt     Progress tracking (auto-updated)
@@ -1254,6 +1255,16 @@ EOF
         log_success "Created $(basename "$fix_plan_file")"
     else
         log_warn "$(basename "$fix_plan_file") already exists, skipping"
+    fi
+
+    # Create README.md in layout root
+    local readme_file
+    readme_file="${layout_root}/README.md"
+    if [[ ! -f "$readme_file" ]]; then
+        cp "${CUB_DIR}/templates/README.md" "$readme_file"
+        log_success "Created $(basename "$readme_file")"
+    else
+        log_warn "$(basename "$readme_file") already exists, skipping"
     fi
 
     # Create .gitignore additions
