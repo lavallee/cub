@@ -72,6 +72,8 @@ source "${CUB_DIR}/lib/artifacts.sh"
 source "${CUB_DIR}/lib/failure.sh"
 # Source project checks
 source "${CUB_DIR}/lib/project.sh"
+# Source guardrails (institutional memory)
+source "${CUB_DIR}/lib/guardrails.sh"
 # Source command implementations
 source "${CUB_DIR}/lib/cmd_init.sh"
 source "${CUB_DIR}/lib/cmd_run.sh"

@@ -290,3 +290,131 @@ Implemented comprehensive git workflow integration for cub v0.19, adding branch-
 - tests/branches.bats (new - 27 tests)
 - CLAUDE.md (updated - documentation)
 
+## Session: Guardrails System - File Support (cub-3ge.1)
+
+### Task Completed
+Implemented full support for reading and parsing the `.cub/guardrails.md` file - the core data structure for storing institutional memory.
+
+### What Was Implemented
+
+**Integration:**
+- Added `lib/guardrails.sh` sourcing to main `cub` script (line 75-76)
+- Guardrails library was already fully implemented (498 lines, 19 functions)
+- Library provides complete markdown file parsing and manipulation
+
+**Test Suite:**
+- Created `tests/guardrails.bats` with 39 comprehensive tests
+- Tests cover all 14 public functions:
+  - `guardrails_exists()` - Check file existence
+  - `guardrails_init()` - Create with template structure
+  - `guardrails_read()` - Read full content
+  - `guardrails_add()` - Append lessons with timestamps
+  - `guardrails_add_from_failure()` - Capture error-formatted lessons
+  - `guardrails_size_kb()` - Get file size (platform-aware Darwin/Linux)
+  - `guardrails_count()` - Count dated lesson entries
+  - `guardrails_check_size()` - Enforce size limits (default 50KB)
+  - `guardrails_clear()` - Clear with backups
+  - `guardrails_import()` - Import from other projects
+  - `guardrails_export()` - Export to shareable format
+  - `guardrails_search()` - Case-insensitive pattern matching
+  - `guardrails_list_json()` - Parse lessons to JSON array
+  - `guardrails_for_prompt()` - Format for task prompt injection
+
+**File Format:**
+```markdown
+# Guardrails
+
+## Project-Specific
+[Human-curated lessons and guidance]
+
+## Learned from Failures
+### 2026-01-14 - task-id
+**Error:** Description
+**Exit code:** N
+**Lesson:** Actionable guidance
+```
+
+**Features:**
+- Automatic timestamp generation (YYYY-MM-DD format)
+- Optional task ID linking
+- Platform-aware file size checking (Darwin uses `stat -f`, Linux uses `stat -c`)
+- JSON parsing with regex matching: `^### ([0-9]{4}-[0-9]{2}-[0-9]{2})(\ -\ (.+))?$`
+- Backup creation before clearing
+- Case-insensitive search with grep
+
+### Testing
+
+All 39 tests passing:
+- 11 core functionality tests (init, read, add, exists)
+- 9 failure handling tests (add_from_failure, error formatting)
+- 8 file operations tests (import, export, clear, size)
+- 7 advanced feature tests (search, list_json, for_prompt)
+- 4 integration tests (custom directories, PROJECT_DIR env var)
+
+Test coverage includes:
+- File creation and initialization
+- Timestamp generation and formatting
+- JSON output validation
+- Platform compatibility (Darwin/Linux stat differences)
+- Regex parsing of lesson headers
+- Backup creation before clearing
+- Import/export across projects
+
+### Key Implementation Details
+
+**Regex Pattern for Lesson Headers:**
+```bash
+^### ([0-9]{4}-[0-9]{2}-[0-9]{2})(\ -\ (.+))?$
+```
+- Captures: date, optional task ID
+- Used in `guardrails_list_json()` to parse markdown to JSON
+- Handles both dated and task-linked entries
+
+**Platform Compatibility:**
+- Darwin (macOS): `stat -f %z` for file size
+- Linux: `stat -c %s` for file size
+- Both converted to KB with rounding up: `(bytes + 1023) / 1024`
+
+**Lesson Entry Format:**
+```
+### YYYY-MM-DD [- task-id]
+[Lesson content - can be multi-line]
+
+[Next lesson or section]
+```
+
+### Files Modified
+- `cub` - Added guardrails.sh sourcing (line 75)
+- `tests/guardrails.bats` - New test suite (39 tests)
+
+### How to Use
+
+```bash
+# Initialize guardrails for a project
+guardrails_init
+
+# Add a lesson from current session
+guardrails_add "Always validate JSON responses" "task-123"
+
+# Capture a lesson from failure
+guardrails_add_from_failure "task-1" "1" "JSON parse failed" "Validate API responses are JSON"
+
+# Get lessons formatted for prompt injection
+guardrails_for_prompt | head -20
+
+# Search for specific guidance
+guardrails_search "validation"
+
+# Export to share with another project
+guardrails_export ~/other-project/.cub/guardrails.md
+
+# List all lessons as JSON
+guardrails_list_json | jq '.[] | .content' -r
+```
+
+### Files Created
+- `tests/guardrails.bats` - 39 comprehensive tests (440 lines)
+
+### Commit
+task(cub-3ge.1): Implement .cub/guardrails.md file support
+
