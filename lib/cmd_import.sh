@@ -118,24 +118,29 @@ cmd_import() {
     fi
 
     # Validate backend (if specified)
-    if [[ -n "$backend" ]] && [[ "$backend" != "beads" ]] && [[ "$backend" != "json" ]]; then
-        echo "Error: Invalid backend. Must be 'beads' or 'json'" >&2
+    if [[ -n "$backend" ]] && [[ "$backend" != "beads" ]] && [[ "$backend" != "json" ]] && [[ "$backend" != "auto" ]]; then
+        echo "Error: Invalid backend. Must be 'auto', 'beads', or 'json'" >&2
         return 1
+    fi
+
+    # Use command-line backend or fall back to global BACKEND
+    if [[ -z "$backend" ]]; then
+        backend="${BACKEND:-auto}"
     fi
 
     # Parse based on format
     local parsed
     case "$format" in
     github)
-        _import_github "$source" "$include_closed" "$label_filter" "$dry_run"
+        _import_github "$source" "$include_closed" "$label_filter" "$dry_run" "$backend"
         return $?
         ;;
     markdown)
-        _import_markdown "$source" "$dry_run"
+        _import_markdown "$source" "$dry_run" "$backend"
         return $?
         ;;
     json)
-        _import_json "$source" "$dry_run"
+        _import_json "$source" "$dry_run" "$backend"
         return $?
         ;;
     *)
@@ -151,6 +156,7 @@ _import_github() {
     local include_closed="$2"
     local label_filter="$3"
     local dry_run="$4"
+    local backend="$5"
 
     echo "Importing GitHub issues from $repo..." >&2
 
@@ -169,18 +175,19 @@ _import_github() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        _show_import_preview "$parsed"
+        _show_import_preview "$parsed" "$backend"
         return 0
     fi
 
     # Import to task backend
-    _import_to_backend "$parsed"
+    _import_to_backend "$parsed" "$backend"
 }
 
 # Import Markdown file
 _import_markdown() {
     local source="$1"
     local dry_run="$2"
+    local backend="$3"
 
     echo "Importing from Markdown: $source" >&2
 
@@ -199,18 +206,19 @@ _import_markdown() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        _show_import_preview "$parsed"
+        _show_import_preview "$parsed" "$backend"
         return 0
     fi
 
     # Import to task backend
-    _import_to_backend "$parsed"
+    _import_to_backend "$parsed" "$backend"
 }
 
 # Import JSON file
 _import_json() {
     local source="$1"
     local dry_run="$2"
+    local backend="$3"
 
     echo "Importing from JSON: $source" >&2
 
@@ -241,17 +249,18 @@ _import_json() {
     echo "" >&2
 
     if [[ "$dry_run" == "true" ]]; then
-        _show_import_preview "$parsed"
+        _show_import_preview "$parsed" "$backend"
         return 0
     fi
 
     # Import to task backend
-    _import_to_backend "$parsed"
+    _import_to_backend "$parsed" "$backend"
 }
 
 # Show a detailed preview of what would be imported in dry-run mode
 _show_import_preview() {
     local parsed="$1"
+    local backend="$2"
 
     local epic_count
     local task_count
@@ -259,10 +268,12 @@ _show_import_preview() {
     epic_count=$(echo "$parsed" | jq '.epics | length // 0')
     task_count=$(echo "$parsed" | jq '.tasks | length // 0')
 
-    # Determine backend
-    local backend="beads"
-    if ! command -v bd &>/dev/null; then
-        backend="json"
+    # Determine backend (with auto-detection if not specified)
+    if [[ -z "$backend" ]] || [[ "$backend" == "auto" ]]; then
+        backend="beads"
+        if ! command -v bd &>/dev/null; then
+            backend="json"
+        fi
     fi
 
     cat >&2 <<EOF
@@ -301,11 +312,14 @@ EOF
 # Import parsed data to task backend (beads or JSON)
 _import_to_backend() {
     local parsed="$1"
+    local backend="$2"
 
-    # Determine which backend to use
-    local backend="beads"
-    if ! command -v bd &>/dev/null; then
-        backend="json"
+    # Determine which backend to use (with auto-detection if not specified)
+    if [[ -z "$backend" ]] || [[ "$backend" == "auto" ]]; then
+        backend="beads"
+        if ! command -v bd &>/dev/null; then
+            backend="json"
+        fi
     fi
 
     # Count items
@@ -429,7 +443,7 @@ Format Flags:
 Options:
   --dry-run             Preview import results without creating tasks
                        Shows detailed preview with all items and acceptance criteria
-  --backend beads|json  Override backend detection
+  --backend auto|beads|json  Task backend (auto=detect, beads=.beads, json=prd.json)
   --include-closed      Include closed issues (GitHub only)
   --labels <filter>     Filter by comma-separated labels (GitHub only)
 
