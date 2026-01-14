@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-eke.13",
+  "title": "Config validation",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T12:58:07Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T13:07:09Z",
+  "exit_code": 0
+}
