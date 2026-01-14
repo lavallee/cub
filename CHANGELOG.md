@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.14.0] - 2026-01-13 (PR #14)
+
+### Added - Vision-to-Tasks Pipeline (chopshop integration)
+- **`cub pipeline VISION.md`** - Full interactive pipeline from vision to executable tasks
+- **`cub triage`** - Requirements refinement with depth options (light/standard/deep)
+- **`cub architect`** - Technical design with mindset framework
+- **`cub plan`** - Task decomposition into AI-friendly micro-tasks
+- **`cub bootstrap`** - Beads initialization, PROMPT.md/AGENT.md generation
+- **`cub validate`** - Validate beads state after import
+
+### Added - Mindset Framework
+- Prototype → MVP → Production → Enterprise progression
+- Architecture decisions guided by project maturity level
+- Appropriate rigor for each stage (testing, structure, security)
+
+### Added - Task Generation
+- Vertical slice organization (features deliver end-to-end value)
+- Rich task descriptions with context, hints, acceptance criteria
+- Label system: `phase-*`, `model:*`, `complexity:*`, `domain:*`, `risk:*`
+- JSONL generation compatible with beads import
+- Model recommendations per task (opus/sonnet/haiku)
+
+### Added - Session Management
+- Session artifacts stored in `.cub/sessions/{id}/`
+- triage.md, architect.md, plan.jsonl, plan.md outputs
+- Session ID format: `{project}-{YYYYMMDD-HHMMSS}`
+
+### Added - Migration
+- chopshop → cub migration path
+- `.chopshop/sessions/` → `.cub/sessions/` artifact migration
+
+### Technical
+- `lib/cmd_pipeline.sh` - ~1900 lines of implementation
+- `tests/pipeline.bats` - ~430 lines of tests
+
+---
+
 ## [0.13.0] - 2026-01-13 (PR #13)
 
 ### Changed
@@ -282,6 +319,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.14.0 | 2026-01-13 | #14 | Vision-to-Tasks Pipeline |
 | 0.13.0 | 2026-01-13 | #13 | Rename Curb → Cub |
 | 0.12.0 | 2026-01-13 | #12 | Modular architecture |
 | 0.11.1 | 2026-01-11 | - | Doctor command, auto-commit |
