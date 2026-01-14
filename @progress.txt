@@ -1996,3 +1996,146 @@ Task complete. The priority inference system is unified, well-tested, and integr
 
 **Verdict:**
 Task complete. The dependency detection module is fully functional with comprehensive pattern matching, smart task name resolution, numbered sequence detection, and excellent test coverage. The implementation handles edge cases gracefully and maintains bash 3.2 compatibility across macOS and Linux.
+
+## Task cub-1x4.7: Acceptance criteria extraction (2026-01-14)
+
+**Implementation:**
+- Created shared criteria.sh library providing reusable acceptance criteria extraction
+- Implements multiple extraction patterns for comprehensive coverage
+- Fully integrated with existing parsers (Markdown, JSON, GitHub)
+
+**Extraction Patterns Supported:**
+1. **Checkbox items**: `- [ ] criterion text`
+   - Matches both unchecked and completed items
+   - Strips checkbox markers and normalizes whitespace
+2. **Section headers**: Detects and extracts from sections:
+   - "Acceptance criteria:" / "Acceptance Criteria:" / "ACCEPTANCE CRITERIA:"
+   - "Done when:" / "Done When:"
+   - Case-insensitive matching (bash 3.2 compatible)
+3. **Numbered lists**: `1. 2. 3.` format within sections
+4. **Bullet lists**: Standard markdown bullets within criteria sections
+5. **Deduplication**: Automatically removes duplicate criteria across patterns
+
+**Architecture:**
+- New file: `lib/parsers/criteria.sh` (182 lines)
+  - Main function: `extract_criteria_from_body()`
+  - Helper functions: `_extract_checkbox_criteria()`, `_extract_section_criteria()`, `_extract_bullet_criteria()`
+  - Bash 3.2 compatible (no bash 4+ syntax like `${var,,}`)
+  - Uses grep -i for case-insensitive pattern matching
+
+**Parser Integration:**
+1. **GitHub Parser** (`lib/parsers/github.sh`):
+   - Replaced simple checkbox-only extraction with full criteria.sh integration
+   - Now extracts from sections and numbered lists in issue bodies
+   - Simplified code: 30 lines removed, now uses shared library
+
+2. **Markdown Parser** (`lib/parsers/markdown.sh`):
+   - Enhanced to recognize section headers (### Acceptance criteria:, ### Done when:)
+   - Added support for numbered list items (1. 2. 3.)
+   - Maintains existing inline bullet extraction
+   - Section headers recognized but content extracted via inline parsing
+
+3. **JSON Parser** (`lib/parsers/json.sh`):
+   - Added `_enhance_acceptance_criteria()` function
+   - Extracts criteria from task descriptions when not explicitly provided
+   - Uses criteria.sh library when available
+   - Applied to both array and PRD format parsers
+
+**Testing:**
+- New test file: `tests/acceptance_criteria.bats` (316 lines, 15 tests)
+- All tests passing (✓ 15/15):
+  1. Extract checkbox items
+  2. Extract from "Acceptance criteria:" section
+  3. Extract from "Done when:" section
+  4. Combine checkbox and section criteria
+  5. Case-insensitive section matching
+  6. Avoid duplicates
+  7. Empty content returns empty array
+  8. Extract from multiple sections
+  9. Extract numbered items from section
+  10. Stop at next section header
+  11. Handle whitespace in items
+  12. Complex markdown with mixed formats
+  13. Output is valid JSON
+  14. Each item is a string
+  15. Works with markdown parser
+
+- All existing parser tests continue to pass:
+  - Markdown parser: ✓ 18/18 tests
+  - JSON parser: ✓ 22/22 tests
+  - Acceptance criteria: ✓ 15/15 tests
+
+**Key Technical Decisions:**
+1. **Bash 3.2 Compatibility**: Critical for macOS support
+   - Avoided `${var,,}` syntax (not in bash 3.2)
+   - Used `grep -i` for case-insensitive matching
+   - Proper quoting and escaping throughout
+
+2. **JSON Deduplication**: Each pattern checks before adding
+   - Uses jq to test if criterion already exists
+   - Prevents duplicate entries when multiple patterns match
+
+3. **Section Boundary Detection**: 
+   - Sections end at next H1/H2 heading
+   - Allows unlimited content within section
+   - Works with various section formats
+
+4. **Error Handling**:
+   - Returns empty array gracefully for empty input
+   - Validates JSON output with jq
+   - No silent failures
+
+**Files Modified:**
+- `lib/parsers/criteria.sh` - NEW: Shared criteria extraction (182 lines)
+- `lib/parsers/github.sh` - MODIFIED: -30 lines, uses new library
+- `lib/parsers/json.sh` - MODIFIED: +39 lines, added enhancement function
+- `lib/parsers/markdown.sh` - MODIFIED: +32 lines, section header support
+- `tests/acceptance_criteria.bats` - NEW: Comprehensive test suite (316 lines)
+
+**Acceptance Criteria Met:**
+- ✓ Parse from sub-bullets under tasks
+- ✓ Parse from 'Acceptance criteria:' sections
+- ✓ Parse from 'Done when:' markers
+- ✓ Parse from checkbox sublists
+- ✓ Shared extraction library
+- ✓ Integration with all parsers
+- ✓ Comprehensive test coverage
+- ✓ Bash 3.2 compatibility
+- ✓ No regressions in existing tests
+
+**Integration Examples:**
+
+Markdown:
+```markdown
+- [ ] Implement feature
+- Bullet criterion 1
+- Bullet criterion 2
+```
+→ Extracts both bullet criteria
+
+GitHub Issue:
+```
+## Acceptance Criteria:
+- User can login
+- Form validates
+
+## Done When:
+1. Tests pass
+2. Reviewed
+```
+→ Extracts all 4 criteria from sections
+
+JSON:
+```json
+{"description": "## Acceptance Criteria:\n- Criterion 1\n- Criterion 2"}
+```
+→ Automatically extracts 2 criteria from description
+
+**Next Steps / Future Enhancements:**
+- cub-1x4.8: Dry-run mode for preview (blocks on this task)
+- cub-1x4.9: Backend support (beads and json)
+- cub-1x4.10: Source reference preservation
+- cub-1x4.11: PDF support
+
+**Verdict:**
+Task complete. Acceptance criteria extraction is fully functional across all parsers with comprehensive test coverage and bash 3.2 compatibility. The shared library design enables reuse across contexts and maintains consistency in criteria handling.
