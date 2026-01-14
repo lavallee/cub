@@ -1,3 +1,80 @@
+## Task cub-0y8.6: Pipeline integration (auto-review between stages) (2026-01-13)
+
+**Implementation:**
+- Added --review flag to cmd_architect for validating architecture design quality
+- Added --review flag to cmd_plan for validating generated task plans
+- Added --auto-review flag to cmd_pipeline to enable automatic validation gates between stages
+- Implemented _architect_review() function for architecture validation
+- Implemented _plan_review() function for plan validation
+- Updated help text for architect, plan, and pipeline commands to document new flags
+
+**Architecture Review (_architect_review):**
+- Validates required sections: Technical Summary, Technology Stack, System Architecture, Components
+- Checks technical clarity (minimum 500 words recommended)
+- Verifies risk assessment documentation
+- Generates architect_review.md with PASS/CONCERNS verdict
+- Returns 0 on PASS, 1 on CONCERNS for exit code signaling
+
+**Plan Review (_plan_review):**
+- Validates JSONL format integrity (all lines must be valid JSON)
+- Checks task definition completeness (requires id, title, description, issue_type)
+- Verifies label coverage (all tasks should have labels)
+- Validates task hierarchy (epics and tasks present)
+- Generates plan_review.md with PASS/CONCERNS verdict
+- Handles missing jsonl file gracefully
+
+**Pipeline Integration:**
+- --auto-review flag enables review for both architect and plan stages
+- Review flags pass through to individual stage commands
+- Creates intermediate validation reports before proceeding to next stage
+- Provides quality gates without blocking execution (CONCERNS allow continue)
+
+**Key Learnings:**
+1. **Review placement in pipeline**: Review gates should run AFTER generation completes, not instead of generation. This allows AI to complete its work even if validation finds issues.
+2. **Verdict strategy for pipeline**: PASS means continue immediately, CONCERNS means warn but allow continue. This maintains automation while surfacing quality issues.
+3. **Architecture review scope**: Focus on structure, technical depth, and risk documentation rather than correctness. AI generates good architecture but needs human validation.
+4. **Plan review validation**: JSONL format validation catches malformed data early. Task hierarchy validation (epics vs tasks) catches major structural issues.
+5. **Exit code convention**: Using exit code 1 for concerns/issues allows shell scripts to detect warnings without blocking flow. Separate from errors (2) and success (0).
+6. **Modular review functions**: Each stage has its own review function, enabling:
+   - Individual flag control (--review on architect or plan alone)
+   - Composable pipeline stages
+   - Reusable validation logic
+7. **Help documentation**: Updated all three commands (architect, plan, pipeline) to document review flags and output files. Critical for discoverability.
+
+**Testing Approach:**
+- Bash syntax validation passed (bash -n)
+- Pipeline tests pass (41 tests)
+- CLI tests pass (58 tests)
+- No regressions in existing test suite
+- New validation functions handle both happy path and error cases
+
+**Acceptance Criteria Met:**
+- ✓ --review flag added to cmd_architect
+- ✓ --review flag added to cmd_plan
+- ✓ --auto-review flag added to cmd_pipeline
+- ✓ Architect review validates architecture quality
+- ✓ Plan review validates task plan quality
+- ✓ Pipeline integration enables automatic review gates
+- ✓ Help text updated for all affected commands
+- ✓ All existing tests pass with no regressions
+
+**Files Modified:**
+- lib/cmd_pipeline.sh: Added --review to architect/plan, --auto-review to pipeline
+  - Added _architect_review() function (90 lines)
+  - Added _plan_review() function (140 lines)
+  - Updated cmd_architect() to parse --review flag
+  - Updated cmd_plan() to parse --review flag
+  - Updated cmd_pipeline() to parse --auto-review flag and pass to stages
+  - Updated help text for all three commands (architect, plan, pipeline)
+- .beads/issues.jsonl: Task status updated to closed
+
+**Next Integration Points:**
+- Vision-to-tasks pipeline can use --auto-review for end-to-end validation
+- Review reports (architect_review.md, plan_review.md) available for human inspection
+- Verdict system (PASS/CONCERNS) enables downstream automation decisions
+- Review validation could integrate with CI/CD for quality gates
+- Additional review validators could be added for triage stage in future
+
 ## Task cub-0y8.5: Run loop integration (--review-plans flag) (2026-01-13)
 
 **Implementation:**
