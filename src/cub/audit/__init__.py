@@ -28,20 +28,26 @@ from .docs import (
     validate_docs,
 )
 from .models import (
+    AuditReport,
+    CategoryScore,
     CodeBlockFinding,
     DeadCodeFinding,
     DeadCodeReport,
     DocsReport,
+    Grade,
     LinkFinding,
 )
 
 __all__ = [
+    "AuditReport",
+    "CategoryScore",
     "CodeBlockFinding",
     "CoverageFile",
     "CoverageReport",
     "DeadCodeFinding",
     "DeadCodeReport",
     "DocsReport",
+    "Grade",
     "LinkFinding",
     "check_links",
     "detect_unused",

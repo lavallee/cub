@@ -4,9 +4,14 @@ Data models for code audit reports.
 These models define the structure of dead code detection and other audit findings.
 """
 
-from typing import Literal
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from cub.audit.coverage import CoverageReport
 
 
 class DeadCodeFinding(BaseModel):
@@ -99,3 +104,62 @@ class DocsReport(BaseModel):
     def total_issues(self) -> int:
         """Return total count of all issues."""
         return len(self.link_findings) + len(self.code_findings)
+
+
+Grade = Literal["A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"]
+
+
+class CategoryScore(BaseModel):
+    """Score for a single audit category."""
+
+    score: Grade = Field(description="Letter grade for this category")
+    issues: int = Field(ge=0, description="Number of issues found")
+    details: str = Field(default="", description="Brief summary of findings")
+
+
+class AuditReport(BaseModel):
+    """
+    Unified report combining all audit checks.
+
+    Contains individual reports for dead code, documentation, and coverage,
+    plus an overall health assessment.
+    """
+
+    # Individual reports
+    dead_code: DeadCodeReport | None = Field(
+        default=None, description="Dead code detection results"
+    )
+    documentation: DocsReport | None = Field(
+        default=None, description="Documentation validation results"
+    )
+    coverage: CoverageReport | None = Field(
+        default=None, description="Test coverage results"
+    )
+
+    # Summary scores
+    dead_code_score: CategoryScore | None = Field(
+        default=None, description="Dead code category score"
+    )
+    docs_score: CategoryScore | None = Field(default=None, description="Docs category score")
+    coverage_score: CategoryScore | None = Field(
+        default=None, description="Coverage category score"
+    )
+
+    overall_grade: Grade | None = Field(default=None, description="Overall health grade")
+
+    @property
+    def total_issues(self) -> int:
+        """Return total count of all issues across all categories."""
+        count = 0
+        if self.dead_code:
+            count += len(self.dead_code.findings)
+        if self.documentation:
+            count += self.documentation.total_issues
+        return count
+
+    @property
+    def has_failures(self) -> bool:
+        """Return True if any category has critical issues (grade D or F)."""
+        critical_grades = {"D", "F"}
+        scores = [self.dead_code_score, self.docs_score, self.coverage_score]
+        return any(score and score.score in critical_grades for score in scores)
