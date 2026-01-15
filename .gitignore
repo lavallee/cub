@@ -13,3 +13,4 @@
 
 # Cub
 *.cub.tmp
+__pycache__/
