@@ -953,3 +953,58 @@ task(cub-3ge.11): Implement guardrails import/export between projects
 4. **Integration with Existing Systems:** The import process correctly triggers guardrails_warn_size_if_exceeded(), which means users get immediate feedback if importing causes the file to exceed size limits.
 
 5. **Error Messages Matter:** Clear error messages for missing files and arguments help users understand what went wrong and how to fix it.
+
+# Session: 2026-01-14 - cub-054: Create Task and Config Pydantic Models
+
+## What Was Done
+- Created complete Pydantic v2 models for cub's core data structures
+- Implemented Task, TaskStatus, TaskPriority, TaskType models in src/cub/core/tasks/models.py
+- Implemented CubConfig and all nested config models in src/cub/core/config/models.py
+- Implemented RunStatus and dashboard models in src/cub/core/status/models.py
+- Created comprehensive test suite with 30 tests covering all models
+- Added field validators for:
+  - Priority conversion (handles both numeric 0-4 and string "P0"-"P4" formats)
+  - Harness config shorthand (accepts both "claude" string and full config object)
+- Used Pydantic v2 best practices:
+  - ConfigDict instead of deprecated class Config
+  - @field_validator for custom validation
+  - @computed_field for derived properties
+  - populate_by_name for alias support (dependsOn/depends_on)
+
+## Key Learnings
+1. **Beads JSON compatibility**: Priority comes as integer (0-4), need validator to convert to TaskPriority enum
+2. **Config flexibility**: Users can specify harness as either "claude" string or full HarnessConfig object
+3. **Pydantic v2 migration**: ConfigDict is the modern way to configure models (no more class Config)
+4. **Alias support**: Using populate_by_name=True allows both snake_case and camelCase field names
+5. **Computed fields**: Can access model fields but need to handle both enum and string forms after serialization
+
+## Files Created
+- src/cub/core/__init__.py - Core library entry point
+- src/cub/core/tasks/__init__.py - Task models exports
+- src/cub/core/tasks/models.py - Task, TaskStatus, TaskPriority, TaskCounts models (216 lines)
+- src/cub/core/config/__init__.py - Config models exports
+- src/cub/core/config/models.py - All config models (270 lines)
+- src/cub/core/status/__init__.py - Status models exports
+- src/cub/core/status/models.py - RunStatus, BudgetStatus, etc. (320 lines)
+- src/cub/__init__.py - Main package entry point
+- pyproject.toml - Python project configuration (created as prerequisite was incomplete)
+- tests/test_models.py - Comprehensive test suite (30 tests, all passing)
+
+## Acceptance Criteria Met
+- ✅ Task model can parse existing prd.json tasks
+- ✅ Task model can parse beads JSON format
+- ✅ CubConfig model can parse existing .cub.json
+- ✅ All enums have correct values matching existing code (open, in_progress, closed; P0-P4)
+- ✅ Pydantic validation catches invalid data (empty titles, invalid enums, etc.)
+- ✅ Tests pass for happy path and error cases (30/30 passing)
+
+## Test Results
+All 30 tests passing:
+- 9 Task model tests (creation, validation, serialization, beads compatibility)
+- 2 TaskCounts tests (computed fields, edge cases)
+- 8 Config model tests (all config types, validation, parsing)
+- 9 Status model tests (event logs, budgets, run status, state transitions)
+- 2 Integration tests (round-trip serialization)
+
+## Next Steps
+Task cub-054 is complete. Next task (cub-055) will implement the TaskBackend protocol and registry.
