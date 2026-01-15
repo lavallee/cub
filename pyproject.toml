@@ -1,6 +1,6 @@
 [project]
 name = "cub"
-version = "0.23.1"
+version = "0.23.2"
 description = "AI Coding Assistant Loop - autonomous task execution with Claude, Codex, and more"
 readme = "README.md"
 requires-python = ">=3.10"

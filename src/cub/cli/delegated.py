@@ -114,6 +114,14 @@ def guardrails(args: list[str] | None = typer.Argument(None)) -> None:
     _delegate("guardrails", args or [])
 
 
+# Project Initialization
+
+
+def init(args: list[str] | None = typer.Argument(None)) -> None:
+    """Initialize cub in a project or globally."""
+    _delegate("init", args or [])
+
+
 # Utility & Maintenance
 
 
