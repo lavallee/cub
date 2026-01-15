@@ -36,18 +36,21 @@ class TestFindBashCub:
             find_bash_cub()
 
     def test_finds_bundled_script(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test finding bundled bash script next to package."""
+        """Test finding bundled bash script in package bash/ directory."""
         # Unset CUB_BASH_PATH
         monkeypatch.delenv("CUB_BASH_PATH", raising=False)
 
-        # Mock __file__ location and bundled path check
+        # Mock __file__ location to simulate package structure
+        # __file__ = .../cub/core/bash_delegate.py
+        # bundled = .../cub/bash/cub (i.e., __file__.parent.parent / "bash" / "cub")
         mock_file = tmp_path / "src" / "cub" / "core" / "bash_delegate.py"
-        bash_script = tmp_path / "cub"
+        bash_dir = tmp_path / "src" / "cub" / "bash"
+        bash_dir.mkdir(parents=True, exist_ok=True)
+        bash_script = bash_dir / "cub"
         bash_script.write_text("#!/usr/bin/env bash\n")
 
         with patch("cub.core.bash_delegate.__file__", str(mock_file)):
             result = find_bash_cub()
-            # The bundled path should be tmp_path / "cub"
             assert result == bash_script
 
     def test_finds_system_path_bash_script(
