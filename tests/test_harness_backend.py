@@ -4,7 +4,6 @@ Tests for harness backend protocol and registry.
 Tests the backend registry, auto-detection, and backend management functions.
 """
 
-
 import pytest
 
 from cub.core.harness import backend as harness_backend

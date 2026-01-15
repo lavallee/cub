@@ -35,9 +35,7 @@ class TestFindBashCub:
         with pytest.raises(BashCubNotFoundError, match="non-existent file"):
             find_bash_cub()
 
-    def test_finds_bundled_script(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_finds_bundled_script(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test finding bundled bash script next to package."""
         # Unset CUB_BASH_PATH
         monkeypatch.delenv("CUB_BASH_PATH", raising=False)
@@ -70,9 +68,7 @@ class TestFindBashCub:
                 result = find_bash_cub()
                 assert result == bash_script.resolve()
 
-    def test_raises_if_not_found(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_raises_if_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that BashCubNotFoundError is raised when script not found."""
         monkeypatch.delenv("CUB_BASH_PATH", raising=False)
 
@@ -156,9 +152,7 @@ class TestDelegateToBash:
 
             assert exc_info.value.code == 42
 
-    def test_preserves_debug_flag(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_preserves_debug_flag(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that debug flag is preserved in environment."""
         bash_script = tmp_path / "cub"
         bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
@@ -191,9 +185,7 @@ class TestDelegateToBash:
 
             assert exc_info.value.code == 130
 
-    def test_handles_file_not_found(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_handles_file_not_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that FileNotFoundError is handled gracefully."""
         bash_script = tmp_path / "cub"
         bash_script.write_text("#!/usr/bin/env bash\n")
@@ -222,9 +214,7 @@ class TestDelegateToBash:
             assert "Error: Not found" in captured.err
             assert "bash version of cub is required" in captured.err
 
-    def test_passes_additional_args(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_passes_additional_args(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that additional arguments are passed correctly."""
         bash_script = tmp_path / "cub"
         bash_script.write_text("#!/usr/bin/env bash\n")

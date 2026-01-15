@@ -65,9 +65,7 @@ class BeadsBackend:
         """Check if bd CLI is available in PATH."""
         return shutil.which("bd") is not None
 
-    def _run_bd(
-        self, args: list[str], check: bool = True
-    ) -> dict[str, Any] | list[dict[str, Any]]:
+    def _run_bd(self, args: list[str], check: bool = True) -> dict[str, Any] | list[dict[str, Any]]:
         """
         Run a bd CLI command and return parsed JSON output.
 
