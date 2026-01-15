@@ -290,6 +290,22 @@ generate_task_prompt() {
     local failure_context=""
     failure_context=$(failure_get_context "$task_id" 2>/dev/null)
 
+    # Get guardrails if they exist
+    local guardrails_content=""
+    guardrails_content=$(guardrails_for_prompt "${PROJECT_DIR}" 2>/dev/null || true)
+
+    # Include guardrails as "Lessons from Previous Runs" section
+    if [[ -n "$guardrails_content" ]]; then
+        cat <<EOF
+## Lessons from Previous Runs
+
+${guardrails_content}
+
+---
+
+EOF
+    fi
+
     # Generate focused task prompt (minimal - just the task)
     cat <<EOF
 ## CURRENT TASK
