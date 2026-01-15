@@ -81,6 +81,9 @@ EOF
 @test "guardrails_init creates .cub directory if missing" {
     source_guardrails
 
+    # Remove directory created by setup for this specific test
+    rm -rf .cub
+
     # Directory should not exist
     [[ ! -d .cub ]]
 
