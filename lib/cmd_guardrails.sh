@@ -21,6 +21,7 @@ sessions to prevent repeating past mistakes.
 USAGE:
   cub guardrails show [--format]     Display current guardrails
   cub guardrails add "lesson text"   Add a new lesson
+  cub guardrails learn               Interactively learn from recent failures
   cub guardrails --help              Show this help
 
 SUBCOMMANDS:
@@ -31,6 +32,11 @@ SUBCOMMANDS:
                             Creates guardrails.md if it doesn't exist
                             Lesson text must be provided as a string argument
 
+  learn                     Interactively learn from recent failures
+                            Shows recent task failures, lets you select one,
+                            uses AI to extract a lesson, and prompts for
+                            confirmation before adding to guardrails.md
+
 OUTPUT:
   show:  Displays the .cub/guardrails.md file with:
          - Project-specific guidance and conventions
@@ -40,6 +46,8 @@ OUTPUT:
          If no guardrails file exists, shows informational message.
 
   add:   Appends the lesson to the Project-Specific section and confirms success
+
+  learn: Interactive workflow to extract lessons from failures
 
 EXAMPLES:
   # Display guardrails
@@ -56,6 +64,9 @@ EXAMPLES:
 
   # Add a lesson with special characters
   cub guardrails add "Use jq for JSON parsing, not sed/awk"
+
+  # Learn from recent failures interactively
+  cub guardrails learn
 
 SEE ALSO:
   cub status    Check task progress
@@ -157,6 +168,166 @@ cmd_guardrails_add() {
     fi
 }
 
+# Get recent failures from run artifacts
+# Returns: Array of failure.json paths (newest first)
+_cmd_guardrails_get_recent_failures() {
+    local max_results="${1:-10}"
+    local runs_dir="${PROJECT_DIR}/.cub/runs"
+
+    if [[ ! -d "$runs_dir" ]]; then
+        return 0
+    fi
+
+    # Find all failure.json files, sort by modification time (newest first)
+    # Use different stat format for macOS vs Linux
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS
+        find "$runs_dir" -type f -name "failure.json" -exec stat -f "%m %N" {} \; 2>/dev/null | \
+            sort -rn | \
+            head -n "$max_results" | \
+            cut -d' ' -f2-
+    else
+        # Linux
+        find "$runs_dir" -type f -name "failure.json" -exec stat -c "%Y %n" {} \; 2>/dev/null | \
+            sort -rn | \
+            head -n "$max_results" | \
+            cut -d' ' -f2-
+    fi
+}
+
+# Interactive learn from failures command
+cmd_guardrails_learn() {
+    # Check for help flag
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        cmd_guardrails_help
+        return 0
+    fi
+
+    # Source required libraries
+    source "${CUB_DIR}/lib/guardrails.sh"
+    source "${CUB_DIR}/lib/logger.sh"
+
+    log_info "Searching for recent task failures..."
+
+    # Get recent failures
+    local failures=()
+    while IFS= read -r failure_file; do
+        if [[ -n "$failure_file" ]]; then
+            failures+=("$failure_file")
+        fi
+    done < <(_cmd_guardrails_get_recent_failures 10)
+
+    # Check if any failures were found
+    if [[ ${#failures[@]} -eq 0 ]]; then
+        log_info "No recent failures found"
+        log_info "Failures are recorded when tasks fail during 'cub run'"
+        return 0
+    fi
+
+    # Display failures for selection
+    echo ""
+    echo "Recent failures:"
+    echo ""
+
+    local -a failure_data=()
+    local i=1
+    for failure_file in "${failures[@]}"; do
+        # Parse failure data
+        local task_id exit_code output timestamp
+        task_id=$(jq -r '.task_id' "$failure_file" 2>/dev/null || echo "unknown")
+        exit_code=$(jq -r '.exit_code' "$failure_file" 2>/dev/null || echo "?")
+        output=$(jq -r '.output' "$failure_file" 2>/dev/null || echo "")
+        timestamp=$(jq -r '.timestamp' "$failure_file" 2>/dev/null || echo "unknown")
+
+        # Get task title if available
+        local task_dir
+        task_dir=$(dirname "$failure_file")
+        local task_title=""
+        if [[ -f "${task_dir}/task.json" ]]; then
+            task_title=$(jq -r '.title // ""' "${task_dir}/task.json" 2>/dev/null || echo "")
+        fi
+
+        # Store data for later use
+        failure_data+=("${failure_file}|${task_id}|${exit_code}|${output}|${task_title}")
+
+        # Display formatted entry
+        echo "  ${i}. Task: ${task_id}${task_title:+ - ${task_title}}"
+        echo "     Exit code: ${exit_code}"
+        echo "     Time: ${timestamp}"
+        if [[ -n "$output" && "$output" != "null" ]]; then
+            # Truncate long output
+            local display_output="$output"
+            if [[ ${#display_output} -gt 100 ]]; then
+                display_output="${display_output:0:100}..."
+            fi
+            echo "     Error: ${display_output}"
+        fi
+        echo ""
+
+        i=$((i + 1))
+    done
+
+    # Prompt for selection
+    echo -n "Select a failure to learn from (1-${#failures[@]}, or 'q' to quit): "
+    read -r selection
+
+    # Check for quit
+    if [[ "$selection" == "q" || "$selection" == "Q" ]]; then
+        log_info "Cancelled"
+        return 0
+    fi
+
+    # Validate selection
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || [[ "$selection" -lt 1 ]] || [[ "$selection" -gt ${#failures[@]} ]]; then
+        _log_error_console "Error: Invalid selection"
+        return 1
+    fi
+
+    # Get selected failure data
+    local selected_index=$((selection - 1))
+    local selected_data="${failure_data[$selected_index]}"
+
+    IFS='|' read -r failure_file task_id exit_code output task_title <<< "$selected_data"
+
+    # Extract lesson using AI
+    log_info "Extracting lesson from failure using AI..."
+
+    local lesson
+    lesson=$(guardrails_extract_lesson_ai "$task_id" "$task_title" "$output" "${PROJECT_DIR}")
+    local extract_result=$?
+
+    if [[ $extract_result -ne 0 ]]; then
+        _log_error_console "Error: Failed to extract lesson"
+        return 1
+    fi
+
+    # Display extracted lesson
+    echo ""
+    log_info "Extracted lesson:"
+    echo ""
+    echo "  ${lesson}"
+    echo ""
+
+    # Prompt for confirmation
+    echo -n "Add this lesson to guardrails? (y/n): "
+    read -r confirmation
+
+    if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
+        log_info "Cancelled - lesson not added"
+        return 0
+    fi
+
+    # Add the lesson to guardrails
+    if guardrails_add "$lesson" "$task_id" "${PROJECT_DIR}"; then
+        log_success "Lesson added to guardrails"
+        log_info "Location: $(guardrails_get_file "${PROJECT_DIR}")"
+        return 0
+    else
+        _log_error_console "Error: Failed to add lesson to guardrails"
+        return 1
+    fi
+}
+
 cmd_guardrails() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -189,6 +360,11 @@ cmd_guardrails() {
             # Shift to pass lesson text to add
             shift
             cmd_guardrails_add "$@"
+            ;;
+        learn)
+            # Shift to pass remaining args to learn
+            shift
+            cmd_guardrails_learn "$@"
             ;;
         *)
             _log_error_console "Unknown subcommand: ${subcommand}"
