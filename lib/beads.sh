@@ -307,15 +307,28 @@ beads_all_tasks_complete() {
 }
 
 # Get count of remaining (non-closed) tasks
+# Optional filters: epic (parent ID), label (label name)
 # Returns -1 on error (caller should handle gracefully)
 beads_get_remaining_count() {
+    local epic="${1:-}"
+    local label="${2:-}"
+    local flags=""
+
+    # Build flags based on optional filters
+    if [[ -n "$epic" ]]; then
+        flags="${flags} --parent ${epic}"
+    fi
+    if [[ -n "$label" ]]; then
+        flags="${flags} --label ${label}"
+    fi
+
     local output
-    output=$(bd list --json 2>&1)
+    output=$(bd list ${flags} --json 2>&1)
     local exit_code=$?
 
     # Debug: always log what we got from bd list
     if [[ "${DEBUG:-}" == "true" ]]; then
-        echo "[beads_get_remaining_count] bd list exit=$exit_code output_len=${#output}" >&2
+        echo "[beads_get_remaining_count] flags='$flags' exit=$exit_code output_len=${#output}" >&2
         echo "[beads_get_remaining_count] first 200 chars: ${output:0:200}" >&2
     fi
 

@@ -539,11 +539,11 @@ run_iteration() {
 
         if [[ -z "$ready_tasks" || "$ready_tasks" == "[]" ]]; then
             echo "[cub] NO READY TASKS: ready_tasks is empty or [], checking remaining..." >&2
-            # Check if we're done
+            # Check if we're done (respecting epic/label filters)
             local open_count
-            open_count=$(get_remaining_count "$prd")
-            echo "[cub] OPEN COUNT: open_count='$open_count'" >&2
-            log_debug "Open task count: ${open_count}"
+            open_count=$(get_remaining_count "$prd" "$EPIC" "$LABEL")
+            echo "[cub] OPEN COUNT: open_count='$open_count' (epic='$EPIC' label='$LABEL')" >&2
+            log_debug "Open task count: ${open_count} (epic=${EPIC:-all} label=${LABEL:-all})"
 
             # Handle error case (-1 or empty means backend query failed)
             if [[ -z "$open_count" || "$open_count" == "-1" ]]; then
@@ -551,7 +551,11 @@ run_iteration() {
                 return 1
             elif [[ "$open_count" -eq 0 ]]; then
                 echo "[cub] EXIT REASON: open_count is 0 in run_iteration" >&2
-                log_success "All tasks complete!"
+                if [[ -n "$EPIC" ]]; then
+                    log_success "All tasks for epic ${EPIC} complete!"
+                else
+                    log_success "All tasks complete!"
+                fi
                 return 0
             else
                 _log_error_console "No ready tasks but ${open_count} tasks not closed. Check dependencies."
@@ -1741,15 +1745,15 @@ run_loop() {
         log_info "=== Iteration ${iteration} ==="
         log_debug "--- Iteration ${iteration} start: $(date) ---"
 
-        # Check if all tasks complete
+        # Check if all tasks complete (respecting epic/label filters)
         local prd="${PROJECT_DIR}/prd.json"
         log_debug "Querying remaining tasks..."
         local remaining
-        remaining=$(get_remaining_count "$prd")
+        remaining=$(get_remaining_count "$prd" "$EPIC" "$LABEL")
 
         # Always log this to stderr so it's visible even with streaming
-        echo "[cub] REMAINING CHECK: remaining='$remaining' (empty='$([ -z "$remaining" ] && echo yes || echo no)')" >&2
-        log_debug "Remaining tasks: ${remaining}"
+        echo "[cub] REMAINING CHECK: remaining='$remaining' (epic='$EPIC' label='$LABEL')" >&2
+        log_debug "Remaining tasks: ${remaining} (epic=${EPIC:-all} label=${LABEL:-all})"
 
         # Handle error case (-1 or empty string means backend query failed)
         if [[ -z "$remaining" || "$remaining" == "-1" ]]; then
@@ -1757,7 +1761,11 @@ run_loop() {
             remaining=1  # Continue loop on error
         elif [[ "$remaining" -eq 0 ]]; then
             echo "[cub] EXIT REASON: remaining count is 0, exiting loop" >&2
-            log_success "All tasks complete! Exiting loop."
+            if [[ -n "$EPIC" ]]; then
+                log_success "All tasks for epic ${EPIC} complete! Exiting loop."
+            else
+                log_success "All tasks complete! Exiting loop."
+            fi
             show_status
             # Capture guardrails snapshot before run completion
             log_debug "Capturing guardrails snapshot..."

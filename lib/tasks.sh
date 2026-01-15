@@ -244,13 +244,16 @@ all_tasks_complete() {
 }
 
 # Get count of remaining (non-closed) tasks
+# Optional filters: epic (parent ID), label (label name)
 get_remaining_count() {
     local prd="$1"
+    local epic="${2:-}"
+    local label="${3:-}"
 
     if [[ "$(get_backend)" == "beads" ]]; then
-        beads_get_remaining_count
+        beads_get_remaining_count "$epic" "$label"
     else
-        json_get_remaining_count "$prd"
+        json_get_remaining_count "$prd" "$epic" "$label"
     fi
 }
 
@@ -530,8 +533,17 @@ json_all_tasks_complete() {
 # Get count of remaining (non-closed) tasks from prd.json
 json_get_remaining_count() {
     local prd="$1"
+    local epic="${2:-}"
+    local label="${3:-}"
 
-    jq '[.tasks[] | select(.status != "closed")] | length' "$prd"
+    # Build jq filter based on optional epic/label
+    if [[ -n "$epic" ]]; then
+        jq --arg epic "$epic" '[.tasks[] | select(.status != "closed") | select(.parent == $epic or .epic == $epic)] | length' "$prd"
+    elif [[ -n "$label" ]]; then
+        jq --arg label "$label" '[.tasks[] | select(.status != "closed") | select(.labels | contains([$label]))] | length' "$prd"
+    else
+        jq '[.tasks[] | select(.status != "closed")] | length' "$prd"
+    fi
 }
 
 # Get blocked tasks from prd.json
