@@ -1,48 +1,54 @@
 # Agent Instructions
 
-This file contains instructions for building and running the project.
+This file contains instructions for building and running the Cub project.
 Update this file as you learn new things about the codebase.
 
 ## Project Overview
 
-Cub is a CLI tool that wraps AI coding assistants (Claude Code, Codex, etc.) to provide a reliable "set and forget" loop for autonomous coding sessions. It handles task management, clean state verification, budget tracking, and structured logging.
+Cub is a Python-based CLI tool that wraps AI coding assistants (Claude Code, Codex, Gemini, etc.) to provide a reliable "set and forget" loop for autonomous coding sessions. It handles task management, clean state verification, budget tracking, and structured logging.
 
 ## Tech Stack
 
-- **Language**: Bash (compatible with bash 3.2 on macOS)
-- **Test Framework**: BATS (Bash Automated Testing System)
-- **Task Management**: Beads (`bd` CLI) - stores tasks in `.beads/issues.jsonl`
-- **JSON Processing**: `jq` (required dependency)
-- **Harnesses**: Claude Code, Codex (more planned)
+- **Language**: Python 3.10+
+- **CLI Framework**: Typer (for subcommands and type-safe CLI)
+- **Data Models**: Pydantic v2 (validation and serialization)
+- **Terminal UI**: Rich (progress bars, tables, live output)
+- **Test Framework**: pytest with pytest-mock
+- **Type Checking**: mypy (strict mode)
+- **Linting**: ruff
+- **Task Management**: Beads CLI (`bd`) - stores tasks in `.beads/issues.jsonl`
+- **Harnesses**: Claude Code, Codex, Google Gemini, OpenCode
 
 ## Development Setup
 
 ```bash
-# No package manager - just bash scripts
-# Ensure jq is installed
-brew install jq  # or apt-get install jq
+# Using uv (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
 
-# Clone and make scripts executable
-chmod +x cub cub-init
+# Or using pip
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
 ## Running the Project
 
 ```bash
-# Run cub in a project directory
-./cub
+# Run cub from source (after setup)
+cub --help
 
 # Single iteration mode
-./cub --once
+cub run --once
 
 # Specify harness
-./cub --harness claude
+cub run --harness claude
 
 # Global setup for first-time users
-./cub-init --global
+cub init --global
 
 # Initialize a project
-./cub-init .
+cub init
 ```
 
 ## Feedback Loops
@@ -50,52 +56,74 @@ chmod +x cub cub-init
 Run these before committing:
 
 ```bash
-# Tests (primary feedback loop)
-bats tests/*.bats
+# Type checking
+mypy src/cub
 
-# No type checking for bash scripts
-# shellcheck is recommended but not required:
-# shellcheck cub cub-init lib/*.sh
+# Tests (primary feedback loop)
+pytest tests/ -v
+
+# Linting
+ruff check src/ tests/
+
+# Code formatting
+ruff format src/ tests/
 ```
 
 ## Project Structure
 
 ```
-├── cub              # Main CLI script
-├── cub-init         # Project/global initialization
-├── lib/              # Bash libraries
-│   ├── xdg.sh        # XDG Base Directory helpers
-│   ├── config.sh     # Configuration loading/merging
-│   ├── logger.sh     # Structured JSONL logging
-│   ├── harness.sh    # Harness abstraction (claude, codex)
-│   ├── tasks.sh      # Task management interface
-│   ├── beads.sh      # Beads backend wrapper
-│   ├── branches.sh   # Branch-epic binding management (v0.19)
-│   ├── checkpoints.sh # Checkpoint/gate management (v0.19)
-│   ├── cmd_branch.sh  # Branch commands (v0.19)
-│   ├── cmd_checkpoint.sh # Checkpoint commands (v0.19)
-│   └── cmd_pr.sh      # PR commands (v0.19)
-├── tests/            # BATS test files
-│   ├── *.bats        # Test suites
-│   ├── test_helper.bash  # Common test setup
-│   └── fixtures/     # Test fixtures
-├── templates/        # Template files
-├── .beads/           # Beads task tracking
-│   ├── issues.jsonl  # Task database
-│   └── branches.yaml # Branch-epic bindings (v0.19)
-├── progress.txt      # Session learnings
-└── AGENT.md          # This file
+├── src/cub/              # Main package
+│   ├── cli/              # Typer CLI subcommands
+│   │   ├── __init__.py
+│   │   ├── app.py        # Main Typer app
+│   │   ├── run.py        # cub run subcommand
+│   │   ├── status.py     # cub status subcommand
+│   │   ├── init.py       # cub init subcommand
+│   │   └── ...          # Other subcommands
+│   ├── core/             # Core logic (independent of CLI)
+│   │   ├── config.py     # Configuration loading/merging
+│   │   ├── models.py     # Pydantic models (Task, Config, etc.)
+│   │   ├── tasks/        # Task backends
+│   │   │   ├── backend.py    # Task backend interface (Protocol)
+│   │   │   ├── beads.py      # Beads backend implementation
+│   │   │   └── json.py       # JSON backend implementation
+│   │   ├── harness/      # AI harness backends
+│   │   │   ├── backend.py    # Harness interface (Protocol)
+│   │   │   ├── claude.py     # Claude Code harness
+│   │   │   ├── codex.py      # OpenAI Codex harness
+│   │   │   ├── gemini.py     # Google Gemini harness
+│   │   │   └── opencode.py   # OpenCode harness
+│   │   ├── logger.py     # JSONL structured logging
+│   │   └── git_utils.py  # Git operations
+│   ├── utils/            # Utilities
+│   │   ├── hooks.py      # Hook execution system
+│   │   ├── status.py     # Status display (Rich tables)
+│   │   └── ...
+│   ├── __init__.py
+│   ├── __main__.py       # Entry point for python -m cub
+│   └── cli.py            # Main app factory
+├── tests/                # pytest test suite
+│   ├── test_*.py         # Test files
+│   ├── conftest.py       # pytest fixtures and configuration
+│   └── fixtures/         # Test data files
+├── .beads/              # Beads task tracking
+│   ├── issues.jsonl     # Task database
+│   └── branches.yaml    # Branch-epic bindings
+├── pyproject.toml       # Python project metadata and config
+├── README.md            # User documentation
+├── UPGRADING.md         # Migration guide from Bash version
+└── CLAUDE.md            # This file (agent instructions)
 ```
 
-## Key Files
+## Key Modules
 
-- `cub` - Main entry point, contains the main loop
-- `lib/config.sh` - Config loading with precedence: env vars > project > global > defaults
-- `lib/logger.sh` - JSONL logging with task_start/end events
-- `lib/xdg.sh` - XDG directory helpers for config/data/cache paths
-- `lib/harness.sh` - Harness detection and invocation
-- `lib/tasks.sh` - Unified task interface (abstracts beads vs JSON backend)
-- `lib/cmd_interview.sh` - Interview mode for task specifications (v0.16)
+- `cub.cli.app` - Main Typer CLI application
+- `cub.core.config` - Configuration loading with precedence: env vars > project > global > defaults
+- `cub.core.models` - Pydantic data models (Task, Config, RunMetadata, etc.)
+- `cub.core.logger` - JSONL logging with structured events
+- `cub.core.tasks.backend` - Abstract task backend interface
+- `cub.core.harness.backend` - Abstract harness interface
+- `cub.utils.hooks` - Hook execution system
 
 ## Interview Mode (v0.16)
 
@@ -219,33 +247,49 @@ Requirements:
 
 ## Gotchas & Learnings
 
-- **Bash 3.2 compatibility**: macOS ships with bash 3.2 which has bugs with `${2:-{}}` syntax when the default contains braces. Use explicit if-checks instead.
-- **File-based caching**: Bash command substitution creates subshells, so variable modifications aren't preserved. Use temp files for caching (see `config.sh`).
-- **Task management**: This project uses `bd` (beads) instead of `prd.json`. Use `bd close <id> -r "reason"` to close tasks.
+- **Python 3.10+**: Cub requires Python 3.10+ for features like match statements and type unions (`|` syntax)
+- **Pydantic v2**: Models use Pydantic v2 API with `model_validate`, `model_dump`, etc. Not v1 compatible.
+- **Protocol classes**: Harness and task backends use `typing.Protocol` for pluggability. No ABC inheritance.
+- **mypy strict mode**: All code must pass `mypy --strict`. Use explicit types, no `Any`.
+- **Relative imports**: Use absolute imports from `cub.core`, not relative imports between packages.
+- **Task management**: This project uses `bd` (beads) as the primary backend. JSON backend is legacy. Use `bd close <id> -r "reason"` for task closure.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
-- **Test isolation**: BATS tests use `${BATS_TMPDIR}` for temp directories and `PROJECT_ROOT` (from test_helper) for paths.
-- **Interview batch mode**: Uses `bd list --status open --json` to enumerate tasks. Processes each task with auto mode and skips review for autonomous operation.
+- **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
+- **Rich for terminal output**: Use Rich tables, progress bars, and console for all user-facing output.
 
 ## Common Commands
 
 ```bash
+# Development setup
+uv sync                    # Install dependencies (recommended)
+source .venv/bin/activate # Activate virtual environment
+
 # Run all tests
-bats tests/*.bats
+pytest tests/ -v
 
 # Run specific test file
-bats tests/config.bats
+pytest tests/test_config_loader.py -v
 
-# List tasks
-bd list
+# Run with coverage
+pytest tests/ --cov=src/cub --cov-report=html
 
-# List open tasks
-bd list --status open
+# Type checking
+mypy src/cub
 
-# Close a task
-bd close <task-id> -r "reason"
+# Linting
+ruff check src/ tests/
+ruff format src/ tests/
 
-# View task details
-bd show <task-id>
+# Task management (beads)
+bd list                    # List all tasks
+bd list --status open     # List open tasks
+bd close <task-id> -r "reason"  # Close a task
+bd show <task-id>          # View task details
+
+# Run cub from source
+cub run --once            # Single iteration
+cub status                # Show task progress
+cub init --global         # Set up global config
 ```
 
 ## Landing the Plane (Session Completion)

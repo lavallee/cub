@@ -31,27 +31,76 @@ Combines the [Ralph Wiggum technique](https://ghuntley.com/ralph/) (running an A
 
 ## Prerequisites
 
-- **Required**: [jq](https://jqlang.github.io/jq/) for JSON processing
-- **Required**: Bash 3.2+
+- **Python 3.10+** (required)
 - **Harness** (at least one):
   - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Recommended
   - [OpenAI Codex CLI](https://github.com/openai/codex) (`codex`)
+  - [Google Gemini CLI](https://github.com/google-gemini-cli) (`gemini`)
+  - [OpenCode CLI](https://github.com/opencode) (`opencode`)
 - **Task Backend** (optional):
   - [beads CLI](https://github.com/steveyegge/beads) (`bd`) - For advanced task management
 
 ## Installation
 
+### Using `uv` (Recommended - Fastest)
+
 ```bash
-# Clone cub to your tools directory
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and install cub
 git clone https://github.com/lavallee/cub ~/tools/cub
+cd ~/tools/cub
+uv sync
 
-# Add to PATH (add to ~/.bashrc or ~/.zshrc)
-export PATH="$PATH:$HOME/tools/cub"
-
-# Or create symlinks
-ln -s ~/tools/cub/cub /usr/local/bin/cub
-ln -s ~/tools/cub/cub-init /usr/local/bin/cub-init
+# Add to PATH
+export PATH="$HOME/tools/cub/.venv/bin:$PATH"
 ```
+
+### Using `pip`
+
+```bash
+# Clone cub
+git clone https://github.com/lavallee/cub ~/tools/cub
+cd ~/tools/cub
+
+# Create virtual environment
+python3.10 -m venv .venv
+source .venv/bin/activate
+
+# Install
+pip install -e .
+
+# Add to PATH
+export PATH="$HOME/tools/cub/.venv/bin:$PATH"
+```
+
+### Add to Shell Configuration
+
+Add the PATH export to your `~/.bashrc`, `~/.zshrc`, or equivalent:
+
+```bash
+# Add this line to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/tools/cub/.venv/bin:$PATH"
+```
+
+Then reload your shell:
+
+```bash
+source ~/.bashrc  # or source ~/.zshrc
+```
+
+### Legacy Bash Version
+
+For the older Bash-based version of cub (pre-0.21), use:
+
+```bash
+# Checkout the bash version
+cd ~/tools/cub
+git checkout bash-legacy
+```
+
+The Bash version requires [jq](https://jqlang.github.io/jq/) but does not require Python.
 
 ## Quick Start
 
@@ -63,9 +112,13 @@ cub init --global
 cd my-project
 cub init
 
-# Edit prd.json with your tasks (or use beads: bd init && bd create "Task")
+# Create tasks using beads (recommended)
+bd init
+bd create "Your first task" --type task --priority 2
+
+# Or edit prd.json (legacy JSON backend)
 # Add specifications to specs/
-# Update AGENT.md with build instructions
+# Update CLAUDE.md with build instructions
 
 # Check status
 cub status
@@ -83,7 +136,7 @@ cub run --epic my-epic-id
 cub run --label phase-1
 ```
 
-**Upgrading from an earlier version?** See [UPGRADING.md](UPGRADING.md) for migration guide and breaking changes.
+**Upgrading from v0.20 (Bash)?** See [UPGRADING.md](UPGRADING.md) for v0.21 migration guide and what changed.
 
 ## Usage
 
