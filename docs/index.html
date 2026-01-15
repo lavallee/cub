@@ -4,107 +4,744 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cub - Work ahead of your AI agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0d1117;
-            --fg: #c9d1d9;
-            --accent: #58a6ff;
-            --green: #3fb950;
-            --code-bg: #161b22;
-            --border: #30363d;
+            --bg-deep: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-terminal: #0f0f1a;
+            --honey: #f6b93b;
+            --honey-glow: #f8c864;
+            --coral: #e17055;
+            --mint: #00d9a5;
+            --sky: #74b9ff;
+            --lavender: #a29bfe;
+            --text: #e8e8e8;
+            --text-dim: #8b8b9e;
+            --wire-red: #ff6b6b;
+            --wire-blue: #4ecdc4;
+            --wire-yellow: #ffe66d;
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--fg);
-            max-width: 700px;
-            margin: 0 auto;
-            padding: 2rem;
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
             line-height: 1.6;
         }
-        h1 {
-            color: #fff;
+
+        /* Animated wire background */
+        .wire-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.08;
+        }
+
+        .wire {
+            position: absolute;
+            width: 3px;
+            border-radius: 3px;
+            transform-origin: top center;
+        }
+
+        .wire-1 { left: 5%; height: 60%; background: var(--wire-red); animation: sway 4s ease-in-out infinite; }
+        .wire-2 { left: 15%; height: 80%; background: var(--wire-blue); animation: sway 5s ease-in-out infinite reverse; top: -10%; }
+        .wire-3 { right: 10%; height: 70%; background: var(--wire-yellow); animation: sway 4.5s ease-in-out infinite; }
+        .wire-4 { right: 20%; height: 50%; background: var(--wire-red); animation: sway 3.5s ease-in-out infinite reverse; top: 20%; }
+        .wire-5 { left: 40%; height: 40%; background: var(--wire-blue); animation: sway 6s ease-in-out infinite; top: 60%; }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        /* Main content */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Hero section */
+        .hero {
+            text-align: center;
+            padding: 3rem 0 2rem;
+        }
+
+        .mascot {
+            width: 280px;
+            height: auto;
+            margin-bottom: 1.5rem;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 20px 40px rgba(246, 185, 59, 0.2));
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        .logo-text {
+            font-family: 'Baloo 2', cursive;
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--honey) 0%, var(--coral) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 30px rgba(246, 185, 59, 0.3);
+        }
+
+        .tagline {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
             margin-bottom: 0.5rem;
         }
-        .tagline {
-            color: var(--accent);
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin: 0 auto 2rem;
         }
+
+        /* Install box */
         .install-box {
-            background: var(--code-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            background: var(--bg-terminal);
+            border: 2px solid var(--honey);
+            border-radius: 12px;
             padding: 1.5rem;
-            margin: 2rem 0;
+            margin: 2rem auto;
+            max-width: 720px;
+            position: relative;
+            box-shadow:
+                0 0 0 4px var(--bg-deep),
+                0 0 30px rgba(246, 185, 59, 0.15);
         }
-        .install-box code {
-            display: block;
-            font-family: 'SF Mono', 'Fira Code', monospace;
+
+        .install-box::before {
+            content: '$ install';
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--bg-deep);
+            padding: 0 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--honey);
+            font-weight: 600;
+        }
+
+        .install-prompt {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .prompt-symbol {
+            color: var(--mint);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+
+        .install-cmd {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.95rem;
-            color: var(--green);
+            color: var(--text);
+            flex: 1;
             word-break: break-all;
         }
+
         .copy-btn {
-            background: var(--accent);
-            color: #fff;
+            background: var(--honey);
+            color: var(--bg-deep);
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-family: 'Baloo 2', cursive;
+            font-size: 0.95rem;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 1rem;
-            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
         }
+
         .copy-btn:hover {
-            opacity: 0.9;
+            background: var(--honey-glow);
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(246, 185, 59, 0.4);
         }
-        a {
-            color: var(--accent);
-            text-decoration: none;
+
+        .copy-btn.copied {
+            background: var(--mint);
         }
-        a:hover {
-            text-decoration: underline;
-        }
-        ul {
-            padding-left: 1.5rem;
-        }
-        li {
-            margin: 0.5rem 0;
-        }
-        .footer {
-            margin-top: 3rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
+
+        /* Ralph reference */
+        .ralph-note {
+            text-align: center;
+            margin: 1.5rem 0;
             font-size: 0.9rem;
-            color: #8b949e;
+            color: var(--text-dim);
+        }
+
+        .ralph-note a {
+            color: var(--sky);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--sky);
+        }
+
+        .ralph-note a:hover {
+            color: var(--honey);
+            border-color: var(--honey);
+        }
+
+        /* The problem section */
+        .section {
+            margin: 4rem 0;
+        }
+
+        .section-title {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title .icon {
+            font-size: 1.5rem;
+        }
+
+        /* The gap visualization */
+        .the-gap {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin: 2rem 0;
+        }
+
+        .gap-side {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .gap-side:hover {
+            transform: translateY(-4px);
+        }
+
+        .gap-side.hands-on {
+            border-color: var(--coral);
+        }
+
+        .gap-side.hands-off {
+            border-color: var(--lavender);
+        }
+
+        .gap-side h4 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .gap-side.hands-on h4 { color: var(--coral); }
+        .gap-side.hands-off h4 { color: var(--lavender); }
+
+        .gap-side p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .gap-middle {
+            font-size: 2rem;
+            color: var(--text-dim);
+        }
+
+        .gap-solution {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .gap-solution .cub-way {
+            font-family: 'Baloo 2', cursive;
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, var(--honey) 0%, var(--coral) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Two workflows */
+        .workflows {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .workflow-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .workflow-card.prep {
+            border-color: var(--mint);
+        }
+
+        .workflow-card.prep:hover {
+            box-shadow: 0 20px 40px rgba(0, 217, 165, 0.15);
+        }
+
+        .workflow-card.run {
+            border-color: var(--sky);
+        }
+
+        .workflow-card.run:hover {
+            box-shadow: 0 20px 40px rgba(116, 185, 255, 0.15);
+        }
+
+        .workflow-card h3 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.6rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .workflow-card.prep h3 { color: var(--mint); }
+        .workflow-card.run h3 { color: var(--sky); }
+
+        .workflow-card .arrow {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+        }
+
+        .workflow-card p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .workflow-steps {
+            list-style: none;
+            font-size: 0.9rem;
+        }
+
+        .workflow-steps li {
+            padding: 0.4rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .workflow-steps li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--text-dim);
+        }
+
+        .workflow-card.prep .workflow-steps li::before { color: var(--mint); }
+        .workflow-card.run .workflow-steps li::before { color: var(--sky); }
+
+        /* The Loop visualization */
+        .loop-container {
+            margin: 2rem 0;
+        }
+
+        .loop-intro {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        .loop-intro strong {
+            color: var(--text);
+        }
+
+        .loop-visual {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        .loop-code {
+            color: var(--text-dim);
+        }
+
+        .loop-code .keyword {
+            color: var(--coral);
+        }
+
+        .loop-code .comment {
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+
+        .loop-code .cub-part {
+            color: var(--mint);
+        }
+
+        .loop-code .agent-part {
+            color: var(--sky);
+        }
+
+        .loop-steps {
+            display: grid;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .loop-step {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-card);
+            border: 2px solid var(--honey);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Baloo 2', cursive;
+            font-weight: 700;
+            color: var(--honey);
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-content p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .step-content .tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .tag.cub { background: rgba(0, 217, 165, 0.15); color: var(--mint); }
+        .tag.agent { background: rgba(116, 185, 255, 0.15); color: var(--sky); }
+        .tag.you { background: rgba(246, 185, 59, 0.15); color: var(--honey); }
+
+        /* Features grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .feature {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border-left: 3px solid var(--honey);
+            transition: all 0.2s ease;
+        }
+
+        .feature:hover {
+            transform: translateX(4px);
+            background: rgba(246, 185, 59, 0.05);
+        }
+
+        .feature h4 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1rem;
+            color: var(--honey);
+            margin-bottom: 0.3rem;
+        }
+
+        .feature p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 0;
+            border-top: 1px solid var(--bg-card);
+            margin-top: 4rem;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-family: 'Baloo 2', cursive;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--honey);
+        }
+
+        .footer-note {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .footer-note code {
+            background: var(--bg-terminal);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .logo-text { font-size: 3rem; }
+            .tagline { font-size: 1.2rem; }
+            .mascot { width: 200px; }
+            .the-gap { grid-template-columns: 1fr; }
+            .gap-middle { transform: rotate(90deg); }
+            .workflows { grid-template-columns: 1fr; }
+            .features { grid-template-columns: 1fr; }
+            .install-cmd { font-size: 0.8rem; }
+            .install-prompt { flex-wrap: wrap; }
+            .copy-btn { width: 100%; margin-top: 1rem; }
+        }
+
+        /* Little easter egg animation on mascot hover */
+        .mascot:hover {
+            animation: wiggle 0.5s ease-in-out;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Cub</h1>
-    <p class="tagline">Work ahead of your AI agents, then let them run.</p>
-
-    <p>Cub helps developers who are already running AI coding CLIs (Claude Code, Codex, Gemini)
-       in autonomous mode and want more structure.</p>
-
-    <div class="install-box">
-        <strong>Install:</strong>
-        <code id="install-cmd">curl -LsSf https://lavallee.github.io/cub/install.sh | sh</code>
-        <button class="copy-btn" onclick="copyCommand()">Copy to clipboard</button>
+    <!-- Animated wire background -->
+    <div class="wire-bg">
+        <div class="wire wire-1"></div>
+        <div class="wire wire-2"></div>
+        <div class="wire wire-3"></div>
+        <div class="wire wire-4"></div>
+        <div class="wire wire-5"></div>
     </div>
 
-    <h3>What it does:</h3>
-    <ul>
-        <li><strong>Prep</strong> &mdash; Turn ideas into structured, agent-sized tasks through a guided interview</li>
-        <li><strong>Run</strong> &mdash; Execute tasks autonomously with dependency ordering, retries, and logging</li>
-        <li><strong>Model routing</strong> &mdash; Route simple tasks to fast models, complex work to capable ones</li>
-        <li><strong>Multi-harness</strong> &mdash; Works with Claude Code, Codex, Gemini, and OpenCode</li>
-    </ul>
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <img src="assets/img/cub-full.png" alt="Cub mascot - a bear cub tangled in server wires holding a lightbulb" class="mascot">
+            <h1 class="logo-text">cub</h1>
+            <p class="tagline">Work ahead of your AI agents, then let them run.</p>
+            <p class="subtitle">For devs already running AI coding CLIs who want more structure and less chaos.</p>
+        </section>
 
-    <p><a href="https://github.com/lavallee/cub">View on GitHub &rarr;</a></p>
+        <!-- Install -->
+        <div class="install-box">
+            <div class="install-prompt">
+                <span class="prompt-symbol">$</span>
+                <code class="install-cmd" id="install-cmd">curl -LsSf https://lavallee.github.io/cub/install.sh | sh</code>
+                <button class="copy-btn" onclick="copyCommand()">Copy</button>
+            </div>
+        </div>
 
-    <div class="footer">
-        <p>Requires Python 3.10+ and at least one AI coding CLI installed.</p>
+        <p class="ralph-note">
+            Built on the <a href="https://ghuntley.com/ralph/" target="_blank">Ralph Wiggum technique</a> —
+            running AI agents in a while loop, but with guardrails.
+        </p>
+
+        <!-- The Problem -->
+        <section class="section">
+            <h2 class="section-title"><span class="icon">🎯</span> The Gap</h2>
+
+            <div class="the-gap">
+                <div class="gap-side hands-on">
+                    <h4>Too Hands-On</h4>
+                    <p>Sitting in IDE, approving every tool call, babysitting the agent</p>
+                </div>
+                <div class="gap-middle">⚡</div>
+                <div class="gap-side hands-off">
+                    <h4>Too Hands-Off</h4>
+                    <p>Agents run amok with vague instructions, chaos ensues</p>
+                </div>
+            </div>
+
+            <div class="gap-solution">
+                <span class="cub-way">Cub finds the balance</span>
+            </div>
+        </section>
+
+        <!-- Two Workflows -->
+        <section class="section">
+            <h2 class="section-title"><span class="icon">🔄</span> Two Main Events</h2>
+
+            <div class="workflows">
+                <div class="workflow-card prep">
+                    <h3>PREP</h3>
+                    <div class="arrow">Vision → Structured Tasks</div>
+                    <p>Turn your ideas into agent-sized chunks through a guided interview.</p>
+                    <ul class="workflow-steps">
+                        <li><strong>Triage</strong> — What are we building?</li>
+                        <li><strong>Architect</strong> — How should it work?</li>
+                        <li><strong>Plan</strong> — Break it into tasks</li>
+                        <li><strong>Bootstrap</strong> — Write to backend</li>
+                    </ul>
+                </div>
+
+                <div class="workflow-card run">
+                    <h3>RUN</h3>
+                    <div class="arrow">Tasks → Working Code</div>
+                    <p>Let AI execute autonomously with dependency ordering and retries.</p>
+                    <ul class="workflow-steps">
+                        <li>Pick ready tasks</li>
+                        <li>Generate prompts</li>
+                        <li>Invoke AI harness</li>
+                        <li>Commit, log, repeat</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Cub - The Loop -->
+        <section class="section">
+            <h2 class="section-title"><span class="icon">✨</span> Why Cub?</h2>
+
+            <div class="loop-container">
+                <p class="loop-intro">
+                    The <strong>Ralph Wiggum technique</strong> is elegantly simple:
+                    run an AI agent in a while loop until the work is done.
+                    The trick is making that loop <em>reliable</em>.
+                </p>
+
+                <div class="loop-visual">
+                    <pre class="loop-code"><span class="keyword">while</span> tasks_remain():
+    task = <span class="cub-part">cub.pick_ready_task()</span>     <span class="comment"># respect dependencies, priorities</span>
+    prompt = <span class="cub-part">cub.generate_prompt(task)</span>  <span class="comment"># structured context, guardrails</span>
+    result = <span class="agent-part">agent.run(prompt)</span>          <span class="comment"># Claude, Codex, Gemini...</span>
+    <span class="cub-part">cub.verify_and_commit(result)</span>     <span class="comment"># clean state, logging</span></pre>
+                </div>
+
+                <div class="loop-steps">
+                    <div class="loop-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Pick Ready Task</h4>
+                            <p><span class="tag cub">cub</span> Finds the next task with no blockers. Respects P0-P4 priority, epic filtering, and the dependency graph.</p>
+                        </div>
+                    </div>
+                    <div class="loop-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Generate Prompt</h4>
+                            <p><span class="tag cub">cub</span> Builds a structured prompt with task context, acceptance criteria, and project guardrails. Right-sizes the model for the task.</p>
+                        </div>
+                    </div>
+                    <div class="loop-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Run Agent</h4>
+                            <p><span class="tag agent">agent</span> Your AI coding CLI does the work—Claude Code, Codex, Gemini, or OpenCode. Cub invokes it and waits.</p>
+                        </div>
+                    </div>
+                    <div class="loop-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Verify & Commit</h4>
+                            <p><span class="tag cub">cub</span> Checks for clean git state, commits changes, logs to structured JSONL, marks task complete.</p>
+                        </div>
+                    </div>
+                    <div class="loop-step">
+                        <div class="step-number">→</div>
+                        <div class="step-content">
+                            <h4>Repeat</h4>
+                            <p><span class="tag you">you</span> Walk away. Cub keeps looping until blocked, budget exhausted, or all tasks done.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="https://github.com/lavallee/cub" target="_blank">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    GitHub
+                </a>
+                <a href="https://github.com/lavallee/cub#installation" target="_blank">
+                    Docs
+                </a>
+            </div>
+            <p class="footer-note">
+                Requires <code>Python 3.10+</code> and at least one AI coding CLI installed.
+            </p>
+        </footer>
     </div>
 
     <script>
@@ -113,9 +750,30 @@
             navigator.clipboard.writeText(cmd).then(() => {
                 const btn = document.querySelector('.copy-btn');
                 btn.textContent = 'Copied!';
-                setTimeout(() => { btn.textContent = 'Copy to clipboard'; }, 2000);
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
             });
         }
+
+        // Add a little fun - mascot follows cursor slightly
+        const mascot = document.querySelector('.mascot');
+        document.addEventListener('mousemove', (e) => {
+            const rect = mascot.getBoundingClientRect();
+            const mascotCenterX = rect.left + rect.width / 2;
+            const mascotCenterY = rect.top + rect.height / 2;
+
+            const deltaX = (e.clientX - mascotCenterX) / 50;
+            const deltaY = (e.clientY - mascotCenterY) / 50;
+
+            // Clamp the values
+            const clampedX = Math.max(-10, Math.min(10, deltaX));
+            const clampedY = Math.max(-10, Math.min(10, deltaY));
+
+            mascot.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+        });
     </script>
 </body>
 </html>
