@@ -28,8 +28,9 @@ def find_bash_cub() -> Path:
 
     Search order:
     1. CUB_BASH_PATH environment variable (explicit override)
-    2. Next to Python installation (bundled)
-    3. System PATH (installed version)
+    2. Bundled with Python package (src/cub/bash/cub)
+    3. Project root (for development - editable install)
+    4. System PATH (installed version)
 
     Returns:
         Path to bash cub script
@@ -42,18 +43,22 @@ def find_bash_cub() -> Path:
         path = Path(bash_path)
         if path.exists() and path.is_file():
             return path
-        raise BashCubNotFoundError(
-            f"CUB_BASH_PATH points to non-existent file: {bash_path}"
-        )
+        raise BashCubNotFoundError(f"CUB_BASH_PATH points to non-existent file: {bash_path}")
 
-    # 2. Check bundled location (next to Python package)
+    # 2. Check bundled location (installed with package)
+    # When installed via pip, bash files are at cub/bash/cub
+    package_bundled_path = Path(__file__).parent.parent / "bash" / "cub"
+    if package_bundled_path.exists() and package_bundled_path.is_file():
+        return package_bundled_path
+
+    # 3. Check project root (for editable install / development)
     # The bash script should be at the project root, so we need to go up from src/cub/core
     package_dir = Path(__file__).parent.parent.parent.parent
-    bundled_path = package_dir / "cub"
-    if bundled_path.exists() and bundled_path.is_file():
-        return bundled_path
+    dev_path = package_dir / "cub"
+    if dev_path.exists() and dev_path.is_file():
+        return dev_path
 
-    # 3. Check system PATH
+    # 4. Check system PATH
     if system_path := shutil.which("cub"):
         # Make sure it's the bash version, not this Python script
         path = Path(system_path).resolve()
@@ -69,8 +74,7 @@ def find_bash_cub() -> Path:
             pass
 
     raise BashCubNotFoundError(
-        "Could not locate bash cub script. "
-        "Install it or set CUB_BASH_PATH environment variable."
+        "Could not locate bash cub script. Install it or set CUB_BASH_PATH environment variable."
     )
 
 

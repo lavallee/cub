@@ -4,11 +4,14 @@ Cub CLI - Main application entry point.
 This module sets up the Typer CLI application with all subcommands.
 """
 
+import sys
+
 import typer
 from rich.console import Console
 
 from cub import __version__
 from cub.cli import init_cmd, monitor, run, status
+from cub.core.bash_delegate import delegate_to_bash, is_bash_command
 
 # Create the main Typer app
 app = typer.Typer(
@@ -53,4 +56,24 @@ app.add_typer(init_cmd.app, name="init")
 app.add_typer(monitor.app, name="monitor")
 
 
-__all__ = ["app"]
+def cli_main() -> None:
+    """
+    Main CLI entry point with bash delegation support.
+
+    This checks if the command should be delegated to bash before
+    invoking the Typer app.
+    """
+    # Check if we have a command and if it should be delegated
+    if len(sys.argv) > 1:
+        command = sys.argv[1]
+        # Skip if it's a flag (starts with -)
+        if not command.startswith("-") and is_bash_command(command):
+            # Delegate to bash with all arguments after the command
+            delegate_to_bash(command, sys.argv[2:])
+            # delegate_to_bash never returns (exits with bash exit code)
+
+    # Not a bash command, proceed with Python CLI
+    app()
+
+
+__all__ = ["app", "cli_main"]
