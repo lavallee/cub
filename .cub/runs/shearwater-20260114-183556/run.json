@@ -1,0 +1,26 @@
+{
+  "run_id": "shearwater-20260114-183556",
+  "session_name": "shearwater",
+  "started_at": "2026-01-14T23:35:56Z",
+  "status": "in_progress",
+  "config": {
+    "guardrails": {
+      "max_task_iterations": 3,
+      "max_run_iterations": 50,
+      "iteration_warning_threshold": 0.8,
+      "secret_patterns": [
+        "api[_-]?key",
+        "password",
+        "token",
+        "secret",
+        "authorization",
+        "credentials"
+      ]
+    },
+    "review": {
+      "plan_strict": false,
+      "block_on_concerns": false
+    }
+  },
+  "tasks_completed": 12
+}

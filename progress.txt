@@ -1,5 +1,258 @@
 # Cub Project Progress
 
+## 2026-01-14 - cub-3ge.9: Implement guardrails size monitoring and curation warnings
+
+### Task Completed
+Implemented comprehensive size monitoring for guardrails.md file with user-friendly warnings and curation suggestions.
+
+### What Was Implemented
+
+**New Function: guardrails_warn_size_if_exceeded()**
+- Checks guardrails file size against configurable limit (default 50KB)
+- Returns 0 always (informational warning, never fails)
+- Shows warning with current size, limit, and lesson count
+- Suggests 'cub guardrails curate' command for cleanup
+- Gracefully handles missing files
+
+**Integration Points:**
+1. **After adding lessons:**
+   - guardrails_add() warns after appending each lesson
+   - guardrails_add_from_failure() warns after appending
+   - cmd_guardrails_add() warns after project-specific lessons
+
+2. **During task execution:**
+   - cmd_run.sh checks size before running harness
+   - Warning appears early in task output when limit exceeded
+   - User sees guidance while actively working on task
+
+**Warning Message Format:**
+```
+⚠️  Guardrails file is getting large (65KB / 50KB limit, 23 lessons)
+
+To keep guardrails focused and relevant, consider running:
+  cub guardrails curate
+
+This will help you review and archive old lessons to improve performance.
+```
+
+### Key Design Decisions
+
+1. **Non-blocking warnings:** Size checks always return 0 - they inform but never prevent operations
+2. **Dual placement:** Checks happen both when adding and during task runs (maximum visibility)
+3. **Configurable limits:** max_size_kb parameter allows projects to set custom limits
+4. **Lesson count display:** Shows users how many lessons they've accumulated
+5. **Actionable guidance:** Suggests 'cub guardrails curate' instead of forcing deletion
+
+### Testing
+
+Added 6 new tests to tests/guardrails.bats:
+- `guardrails_warn_size_if_exceeded outputs nothing when under limit`
+- `guardrails_warn_size_if_exceeded warns when over limit`
+- `guardrails_warn_size_if_exceeded shows lesson count`
+- `guardrails_add calls warn function after adding`
+- `guardrails_add_from_failure calls warn function after adding`
+- Tests verify warning message includes all key information
+
+All 54 guardrails tests passing ✓
+
+### Benefits
+
+1. **Prevents bloat:** Users are proactively warned before guardrails becomes unwieldy
+2. **Maintains focus:** Encourages curation of lessons to keep file lean and relevant
+3. **Non-intrusive:** Warnings are informational, never blocks operations
+4. **Discoverability:** Suggests new 'cub guardrails curate' feature to users
+5. **Visibility:** Warnings appear both when adding and during task runs
+
+### Files Modified
+
+- `lib/guardrails.sh` - Added guardrails_warn_size_if_exceeded(), integrated into guardrails_add() and guardrails_add_from_failure()
+- `lib/cmd_guardrails.sh` - Integrated warning into cmd_guardrails_add()
+- `lib/cmd_run.sh` - Added size check before task execution
+- `tests/guardrails.bats` - Added 6 comprehensive tests for size monitoring
+
+### Commit
+34a09db task(cub-3ge.9): Implement guardrails size monitoring and curation warnings
+
+### Learnings
+
+1. **Informational vs Blocking:** When introducing system limits, making warnings informational (always return 0) encourages adoption better than blocking operations.
+
+2. **Multiple Touch Points:** Size monitoring is most effective when users see warnings in multiple contexts:
+   - When actively adding lessons (immediate feedback)
+   - During normal task runs (contextual reminder)
+   - This dual placement ensures visibility without being annoying
+
+3. **Actionable Guidance:** Users respond better to specific suggestions ("run cub guardrails curate") than vague warnings. The progress.txt mentions a 'curate' command even though it doesn't exist yet, making this a natural discovery path.
+
+4. **Default Limits:** 50KB is a reasonable default that:
+   - Allows 20-30 detailed lessons (with provenance)
+   - Remains fast to parse and include in prompts
+   - Is large enough not to trigger immediately
+   - Gives clear warning before becoming problematic
+
+5. **Integration Patterns:** Size checks work well when:
+   - Integrated into the functions that grow the file (guardrails_add)
+   - Also checked at decision points (before task execution)
+   - Output goes to stdout for visibility in logs
+
+---
+
+## 2026-01-14 - cub-3ge.8: Link guardrails to source tasks/failures
+
+### Task Completed
+Implemented comprehensive provenance tracking for guardrails, enabling complete traceability of where each lesson came from.
+
+### What Was Implemented
+
+**New Functions:**
+1. `guardrails_add_with_provenance()` - Add lessons with explicit provenance metadata
+   - Requires: lesson text, task ID, error summary
+   - Creates structured entries with all provenance data
+
+2. Updated `guardrails_add_from_failure()` - Enhanced with full metadata
+   - Now includes task ID in header: `### YYYY-MM-DD - task-id`
+   - Exit code: `**Exit Code:** <code>`
+   - Error source: `**Source Error:** <summary>`
+   - Actionable lesson: `**Lesson:** <text>`
+
+3. Enhanced `guardrails_list_json()` - Parses provenance metadata
+   - Extracts error_summary from entries for JSON output
+   - Returns entries with date, task_id, error_summary, and content
+   - Enables filtering and analysis of guardrails by source
+
+4. Updated `guardrails_learn_from_failure()` - Uses provenance format
+   - Now calls `guardrails_add_from_failure()` instead of generic `guardrails_add()`
+   - Ensures AI-extracted lessons include complete provenance tracking
+
+### Provenance Structure
+
+Guardrail entries now include complete traceability:
+
+```markdown
+### 2026-01-14 - task-123
+**Exit Code:** 1
+**Source Error:** Configuration file not found
+**Lesson:** Always verify config files exist before opening
+```
+
+JSON representation:
+```json
+{
+  "date": "2026-01-14",
+  "task_id": "task-123",
+  "error_summary": "Configuration file not found",
+  "content": "[Full content including all metadata]"
+}
+```
+
+### Key Design Decisions
+
+1. **Metadata in Header**: Task ID and date in the markdown header (###) makes them quickly visible
+2. **Structured Fields**: Using **Field:** syntax for consistency and easy parsing
+3. **Backward Compatible**: Existing guardrails without provenance still work, just don't have error_summary
+4. **JSON Extraction**: guardrails_list_json() extracts error_summary via regex for programmatic access
+5. **Two Functions**: guardrails_add_with_provenance() for explicit use, guardrails_add_from_failure() for auto-learning
+
+### Testing
+
+- All 49 guardrails tests pass
+- Updated test for guardrails_add_from_failure to check new format
+- Verified JSON parsing correctly extracts provenance fields
+- Manual testing confirms proper entry format and JSON structure
+
+### Benefits
+
+1. **Traceability** - Know exactly which failure caused each guardrail
+2. **Cleanup** - Can identify obsolete guardrails from resolved issues
+3. **Analysis** - Query guardrails by error type or task
+4. **Learning** - Understand patterns of failures across sessions
+5. **Documentation** - Error summary provides context for why the lesson exists
+
+### Files Modified
+
+- `lib/guardrails.sh` - Added guardrails_add_with_provenance(), enhanced guardrails_add_from_failure(), updated guardrails_list_json(), fixed guardrails_learn_from_failure()
+- `tests/guardrails.bats` - Updated test to check new provenance format
+
+### Commit
+1d2f16f task(cub-3ge.8): Link guardrails to source tasks/failures
+
+---
+
+## Session: Guardrails System - Task Prompt Integration (cub-3ge.4)
+
+### Task Completed
+Successfully integrated guardrails content into task prompt rendering, enabling agents to see institutional memory lessons before tackling each task.
+
+### What Was Implemented
+
+**Modified `lib/cmd_run.sh`** - Enhanced `generate_task_prompt()` function:
+1. Added guardrails retrieval via `guardrails_for_prompt()` call
+2. Guardrails are now injected as "Lessons from Previous Runs" section
+3. Section is placed before the "CURRENT TASK" section
+4. Section is only rendered if guardrails file exists and has content
+5. Clear formatting with section header and separator line
+
+### Key Implementation Details
+
+**Integration Point:** `generate_task_prompt()` function (line 270)
+- Called whenever a task is about to be executed
+- Runs after task selection but before harness invocation
+- Ensures agents see institutional memory early
+
+**Guardrails Retrieval:**
+- Uses existing `guardrails_for_prompt()` from lib/guardrails.sh
+- Function returns formatted guardrails with header and guidance
+- Falls back gracefully if guardrails don't exist
+- Uses error suppression (`2>/dev/null || true`) for safety
+
+**Prompt Structure:**
+```
+## Lessons from Previous Runs
+
+[Guardrails content with institutional memory]
+
+---
+
+## CURRENT TASK
+
+[Task details as before]
+```
+
+### Design Decisions
+
+1. **Placement Before Task Details**: Guardrails appear first so agents absorb lessons before focusing on the specific task at hand
+
+2. **Optional Rendering**: Only included if guardrails file exists, preventing clutter in fresh projects
+
+3. **Clear Separation**: Separator (---) between guardrails and task details makes distinction clear
+
+4. **Minimal Changes**: Only 16 lines added, keeping the function clean and maintainable
+
+### Testing
+
+- Verified bash syntax: ✓ No errors
+- Tested `guardrails_for_prompt()` output: ✓ Properly formatted
+- Verified integration points: ✓ Function called correctly in prompt generation
+- Checked graceful fallback: ✓ Works with and without guardrails file
+
+### Files Modified
+- `lib/cmd_run.sh` - Enhanced `generate_task_prompt()` function
+
+### Commit
+1f8087e task(cub-3ge.4): Include guardrails in task prompts
+
+### Learnings
+
+1. **Prompt Injection Strategy**: Guardrails are most effective when placed at the beginning of task context, before specific task details. This ensures agents consider institutional memory before becoming focused on particular requirements.
+
+2. **Graceful Degradation**: Conditional inclusion of guardrails prevents breaking existing functionality for projects without guardrails files.
+
+3. **Separation of Concerns**: The guardrails system (files, parsing, formatting) is cleanly separated from the prompt generation logic, making both easier to maintain.
+
+4. **Integration Pattern**: When adding features that should inject content into prompts, wrapping in a dedicated function (`guardrails_for_prompt()`) is cleaner than scattering logic throughout the codebase.
+
+---
+
 ## Session: Quick-Start Guide (cub-eke.16)
 
 ### Task Completed
@@ -290,3 +543,413 @@ Implemented comprehensive git workflow integration for cub v0.19, adding branch-
 - tests/branches.bats (new - 27 tests)
 - CLAUDE.md (updated - documentation)
 
+## Session: Guardrails System - File Support (cub-3ge.1)
+
+### Task Completed
+Implemented full support for reading and parsing the `.cub/guardrails.md` file - the core data structure for storing institutional memory.
+
+### What Was Implemented
+
+**Integration:**
+- Added `lib/guardrails.sh` sourcing to main `cub` script (line 75-76)
+- Guardrails library was already fully implemented (498 lines, 19 functions)
+- Library provides complete markdown file parsing and manipulation
+
+**Test Suite:**
+- Created `tests/guardrails.bats` with 39 comprehensive tests
+- Tests cover all 14 public functions:
+  - `guardrails_exists()` - Check file existence
+  - `guardrails_init()` - Create with template structure
+  - `guardrails_read()` - Read full content
+  - `guardrails_add()` - Append lessons with timestamps
+  - `guardrails_add_from_failure()` - Capture error-formatted lessons
+  - `guardrails_size_kb()` - Get file size (platform-aware Darwin/Linux)
+  - `guardrails_count()` - Count dated lesson entries
+  - `guardrails_check_size()` - Enforce size limits (default 50KB)
+  - `guardrails_clear()` - Clear with backups
+  - `guardrails_import()` - Import from other projects
+  - `guardrails_export()` - Export to shareable format
+  - `guardrails_search()` - Case-insensitive pattern matching
+  - `guardrails_list_json()` - Parse lessons to JSON array
+  - `guardrails_for_prompt()` - Format for task prompt injection
+
+**File Format:**
+```markdown
+# Guardrails
+
+## Project-Specific
+[Human-curated lessons and guidance]
+
+## Learned from Failures
+### 2026-01-14 - task-id
+**Error:** Description
+**Exit code:** N
+**Lesson:** Actionable guidance
+```
+
+**Features:**
+- Automatic timestamp generation (YYYY-MM-DD format)
+- Optional task ID linking
+- Platform-aware file size checking (Darwin uses `stat -f`, Linux uses `stat -c`)
+- JSON parsing with regex matching: `^### ([0-9]{4}-[0-9]{2}-[0-9]{2})(\ -\ (.+))?$`
+- Backup creation before clearing
+- Case-insensitive search with grep
+
+### Testing
+
+All 39 tests passing:
+- 11 core functionality tests (init, read, add, exists)
+- 9 failure handling tests (add_from_failure, error formatting)
+- 8 file operations tests (import, export, clear, size)
+- 7 advanced feature tests (search, list_json, for_prompt)
+- 4 integration tests (custom directories, PROJECT_DIR env var)
+
+Test coverage includes:
+- File creation and initialization
+- Timestamp generation and formatting
+- JSON output validation
+- Platform compatibility (Darwin/Linux stat differences)
+- Regex parsing of lesson headers
+- Backup creation before clearing
+- Import/export across projects
+
+### Key Implementation Details
+
+**Regex Pattern for Lesson Headers:**
+```bash
+^### ([0-9]{4}-[0-9]{2}-[0-9]{2})(\ -\ (.+))?$
+```
+- Captures: date, optional task ID
+- Used in `guardrails_list_json()` to parse markdown to JSON
+- Handles both dated and task-linked entries
+
+**Platform Compatibility:**
+- Darwin (macOS): `stat -f %z` for file size
+- Linux: `stat -c %s` for file size
+- Both converted to KB with rounding up: `(bytes + 1023) / 1024`
+
+**Lesson Entry Format:**
+```
+### YYYY-MM-DD [- task-id]
+[Lesson content - can be multi-line]
+
+[Next lesson or section]
+```
+
+### Files Modified
+- `cub` - Added guardrails.sh sourcing (line 75)
+- `tests/guardrails.bats` - New test suite (39 tests)
+
+### How to Use
+
+```bash
+# Initialize guardrails for a project
+guardrails_init
+
+# Add a lesson from current session
+guardrails_add "Always validate JSON responses" "task-123"
+
+# Capture a lesson from failure
+guardrails_add_from_failure "task-1" "1" "JSON parse failed" "Validate API responses are JSON"
+
+# Get lessons formatted for prompt injection
+guardrails_for_prompt | head -20
+
+# Search for specific guidance
+guardrails_search "validation"
+
+# Export to share with another project
+guardrails_export ~/other-project/.cub/guardrails.md
+
+# List all lessons as JSON
+guardrails_list_json | jq '.[] | .content' -r
+```
+
+### Files Created
+- `tests/guardrails.bats` - 39 comprehensive tests (440 lines)
+
+### Commit
+task(cub-3ge.1): Implement .cub/guardrails.md file support
+
+
+## Task: Update 'cub init' to create empty guardrails file (cub-3ge.5)
+
+### Task Completed
+Successfully implemented guardrails file initialization during project setup.
+
+### What Was Implemented
+
+**Created `templates/guardrails.md`:**
+- Template file with standard guardrails structure
+- Contains three main sections:
+  - Header explaining purpose (persistent lessons from previous runs)
+  - Project-Specific section for manual guidelines
+  - Learned from Failures section for recording lessons from actual failures
+- Includes example format for failure entries (date, task-id, error, lesson)
+
+**Modified `lib/cmd_init.sh`:**
+- Added guardrails.md file creation in `cmd_init` function
+- Placed after fix_plan.md and before README.md for logical grouping
+- Uses layout_root variable to ensure correct placement in .cub/ directory
+- Follows existing pattern: copy from template, check if already exists, log result
+
+### Key Implementation Details
+
+**File Location:** `.cub/guardrails.md` (in new layout)
+
+**Integration:**
+- Follows established pattern used for progress.txt, fix_plan.md, and README.md
+- Uses layout helpers (get_fix_plan_file, layout_root) for flexibility
+- Skips creation if file already exists (idempotent)
+- Provides success logging with log_success()
+
+**Testing:**
+- All 238 existing tests pass
+- Verified manually: cub init creates .cub/guardrails.md with correct content
+- Template structure matches guardrails-system.md specification
+
+### Key Learnings
+
+1. **Template Pattern:** The cub init system uses a clean template-copy pattern for static files:
+   - Templates stored in templates/
+   - Copied to .cub/ (new layout) or root (legacy layout)
+   - Skipped if already exist (safe for re-runs)
+
+2. **Layout Abstraction:** Using layout_root variable ensures compatibility with both:
+   - New layout: `.cub/` subdirectory
+   - Legacy layout: project root with symlinks
+   - Current cub defaults to new layout but supports both
+
+3. **File Creation Ordering:** Logical grouping matters:
+   - prompt.md - system prompt
+   - agent.md - build instructions
+   - progress.txt - session tracking
+   - fix_plan.md - bug tracking
+   - guardrails.md - institutional memory (NEW)
+   - README.md - quick reference
+
+4. **Guard Clauses:** Each file creation uses consistent pattern:
+   - Check if file exists with [[ ! -f "$file" ]]
+   - Copy from template or generate content
+   - Log success or warn about skipping
+   - Prevents data loss from accidental re-runs
+
+
+## 2026-01-14 - cub-3ge.7: Implement 'cub guardrails learn' interactive command
+
+### What Was Done
+
+Implemented interactive command `cub guardrails learn` that:
+- Finds recent failures from .cub/runs/*/tasks/*/failure.json
+- Displays them in numbered list with task info, exit code, error message
+- Prompts user to select one or quit
+- Uses AI (via guardrails_extract_lesson_ai) to extract actionable lesson
+- Shows extracted lesson for review
+- Prompts for confirmation before adding to guardrails.md
+
+### Implementation Details
+
+Added to lib/cmd_guardrails.sh:
+1. `_cmd_guardrails_get_recent_failures()` - Finds failure.json files sorted by mtime
+   - Cross-platform: stat -f (macOS) vs stat -c (Linux)
+   - Returns up to 10 most recent failures
+2. `cmd_guardrails_learn()` - Interactive workflow
+   - Parses failure.json and task.json to get context
+   - Displays formatted list with truncated error messages
+   - Interactive prompts with validation
+   - Integrates with existing guardrails_extract_lesson_ai and guardrails_add functions
+
+Updated cmd_guardrails_help() to document new subcommand
+
+### Key Learnings
+
+1. **Cross-Platform Compatibility:** When using stat for file times:
+   - macOS: stat -f "%m %N" (modification time + name)
+   - Linux: stat -c "%Y %n" (same but different flags)
+   - Check with [[ "$(uname)" == "Darwin" ]]
+
+2. **Global Variables:** Command modules use CUB_DIR not SCRIPT_DIR:
+   - Source libs: source "${CUB_DIR}/lib/guardrails.sh"
+   - PROJECT_DIR is available for project-specific paths
+
+3. **Interactive UX Pattern:**
+   - Display numbered list (1-indexed for users)
+   - Offer 'q' to quit at selection
+   - Validate numeric input is in range
+   - Show preview before confirmation
+   - Use y/n confirmation for destructive actions
+
+4. **Data Piping Pattern:** Use process substitution for reading find results:
+   ```bash
+   while IFS= read -r failure_file; do
+       failures+=("$failure_file")
+   done < <(_cmd_guardrails_get_recent_failures 10)
+   ```
+
+5. **Array Indexing:** Bash arrays are 0-indexed internally, display 1-indexed for users:
+   - Display: i=1, i++ for each item
+   - Access: selected_index=$((selection - 1))
+
+### Testing
+
+- All 49 guardrails.bats tests pass
+- Manual test confirms:
+  - Finds failure.json files correctly
+  - Displays formatted list
+  - Handles 'q' to quit
+  - Validates numeric input
+  - Integrates with existing AI extraction
+
+
+## cub-3ge.10: Implement 'cub guardrails curate' AI-assisted cleanup
+
+### Implementation
+- Added 'curate' subcommand to cmd_guardrails.sh with full help text
+- Implemented guardrails_curate_ai() in guardrails.sh using Claude Sonnet API
+- Function reads current guardrails, sends to AI for consolidation, shows diff, and requires confirmation
+- Creates timestamped backup before applying changes
+- Uses claude CLI with --model sonnet --no-stream flags (consistent with existing patterns)
+
+### Key Design Decisions
+- Used Sonnet (not Haiku) for better quality curation of institutional memory
+- Implemented interactive diff preview using standard diff command
+- Required explicit user confirmation before applying changes (safety first)
+- Target under 50 entries as specified in task requirements
+- Maintains markdown structure and lesson provenance (dates, task IDs)
+
+### Patterns Learned
+- AI prompts should be explicit about output format ("Start with '# Guardrails' and nothing before it")
+- Diff preview improves user confidence before destructive operations
+- Backup files use timestamp format: .backup.YYYYMMDD-HHMMSS
+- Function returns 0 for both success and user cancellation (not an error to cancel)
+
+### Testing
+- Verified both lib files load without syntax errors
+- Confirmed function exists in namespace (declare -F)
+- Help text displays correctly with proper formatting
+
+---
+
+## 2026-01-14 - cub-3ge.11: Implement guardrails import/export between projects
+
+### Task Completed
+Successfully implemented import/export CLI commands for guardrails to enable sharing institutional memory between projects.
+
+### What Was Implemented
+
+**Added Two New Subcommands:**
+
+1. **`cub guardrails import <path>`**
+   - Imports guardrails lessons from another project's guardrails.md file
+   - Validates source file exists before importing
+   - Marks imported lessons with source file path and date as HTML comment
+   - Warns about file size after import if it exceeds limit
+   - Non-destructive: doesn't modify source file, only appends to destination
+
+2. **`cub guardrails export <path>`**
+   - Exports current project's guardrails to a specified file
+   - Useful for sharing lessons across teams or with other projects
+   - Validates guardrails file exists before exporting
+   - Simple copy operation preserving all formatting
+
+**Updated Help Text:**
+- Added both commands to cmd_guardrails_help() with usage examples
+- Documented parameters and behavior
+- Added practical examples for both import and export
+
+**Integration:**
+- Added cmd_guardrails_import() function to cmd_guardrails.sh
+- Added cmd_guardrails_export() function to cmd_guardrails.sh
+- Updated main cmd_guardrails() dispatcher to handle import/export cases
+- Leveraged existing guardrails_import() and guardrails_export() functions from guardrails.sh
+
+### Implementation Details
+
+**Import Function (cmd_guardrails_import):**
+- Takes source file path as first argument
+- Validates path is provided and file exists
+- Sources guardrails.sh and logger.sh for dependencies
+- Calls guardrails_import() which:
+  - Extracts lessons from source's "Learned from Failures" section
+  - Appends HTML comment with source attribution: `<!-- Imported from: <path> on <date> -->`
+  - Preserves all lesson metadata (dates, task IDs, error summaries)
+  - Returns 0 on success, 1 on failure
+
+**Export Function (cmd_guardrails_export):**
+- Takes destination file path as first argument
+- Validates path is provided and guardrails file exists
+- Calls guardrails_export() which:
+  - Copies entire guardrails.md to destination
+  - Preserves all sections (Project-Specific and Learned from Failures)
+  - Works with any file path (relative or absolute)
+
+**Source Attribution:**
+The imported lessons section shows:
+```markdown
+<!-- Imported from: /tmp/project_source/.cub/guardrails.md on 2026-01-14 -->
+
+### 2026-01-14 - source-task-1
+Source lesson 1
+```
+
+This makes it clear where lessons came from and when they were imported.
+
+### Testing
+
+**Manual Testing:**
+- Tested export: Verified .cub/guardrails.md copied to /tmp/shared-guardrails.md
+- Tested import: Verified lessons from source file added with proper attribution
+- Tested error cases: Non-existent files, missing arguments handled correctly
+- Verified source attribution comments appear in destination file
+- Verified size warnings work after import
+
+**Automated Tests:**
+- All 54 existing guardrails.bats tests still pass
+- Tests confirm guardrails_import() and guardrails_export() work correctly:
+  - `guardrails_import requires source file` ✓
+  - `guardrails_import fails if source doesn't exist` ✓
+  - `guardrails_import adds lessons from source file` ✓
+  - `guardrails_export copies file to destination` ✓
+  - `guardrails_export fails without source file` ✓
+
+### Key Design Decisions
+
+1. **Source Attribution via Comments:** Used HTML comments instead of modifying lesson content, keeping original lessons intact
+2. **Simple Copy for Export:** Export is a straightforward file copy, making it portable and shareable
+3. **Non-Destructive Import:** Only appends to destination, never overwrites existing lessons
+4. **Leveraging Existing Functions:** Reused guardrails_import/export from guardrails.sh rather than duplicating logic
+5. **Error Validation:** Check for file existence and required arguments before attempting operations
+6. **Size Warnings:** Integrated with existing guardrails_warn_size_if_exceeded() to alert users if import causes size limit to be exceeded
+
+### Benefits
+
+1. **Cross-Team Knowledge Sharing:** Teams can export lessons and share across projects
+2. **Multi-Project Consistency:** Import shared guardrails to maintain consistent practices
+3. **Onboarding:** New projects can import guardrails from mature projects
+4. **Audit Trail:** Source attribution shows where lessons originated
+5. **Non-Destructive:** Safe to import from multiple sources without losing existing lessons
+
+### Files Modified
+
+- `lib/cmd_guardrails.sh` - Added cmd_guardrails_import(), cmd_guardrails_export(), updated help text and dispatcher
+- No changes needed to lib/guardrails.sh (functions already existed)
+- No new tests needed (existing import/export tests in guardrails.bats verify functionality)
+
+### Commit
+task(cub-3ge.11): Implement guardrails import/export between projects
+
+### Learnings
+
+1. **Leveraging Existing Code:** The guardrails_import() and guardrails_export() functions were already fully implemented in the library layer - this task was just about exposing them as CLI commands. This pattern of separating library functions from CLI commands allows for flexible reuse.
+
+2. **Source Attribution:** Using HTML comments for attribution is elegant because:
+   - Preserves lesson integrity (doesn't modify actual lessons)
+   - Shows in markdown viewers as comments (non-intrusive)
+   - Easy to parse programmatically if needed
+   - Respects the markdown structure
+
+3. **Non-Destructive Imports:** Always appending rather than merging prevents data loss and allows multiple imports from different sources. Users can always curate afterwards if there are duplicates.
+
+4. **Integration with Existing Systems:** The import process correctly triggers guardrails_warn_size_if_exceeded(), which means users get immediate feedback if importing causes the file to exceed size limits.
+
+5. **Error Messages Matter:** Clear error messages for missing files and arguments help users understand what went wrong and how to fix it.

@@ -1316,6 +1316,16 @@ EOF
         log_warn "$(basename "$fix_plan_file") already exists, skipping"
     fi
 
+    # Create guardrails.md in layout root
+    local guardrails_file
+    guardrails_file="${layout_root}/guardrails.md"
+    if [[ ! -f "$guardrails_file" ]]; then
+        cp "${CUB_DIR}/templates/guardrails.md" "$guardrails_file"
+        log_success "Created $(basename "$guardrails_file")"
+    else
+        log_warn "$(basename "$guardrails_file") already exists, skipping"
+    fi
+
     # Create README.md in layout root
     local readme_file
     readme_file="${layout_root}/README.md"

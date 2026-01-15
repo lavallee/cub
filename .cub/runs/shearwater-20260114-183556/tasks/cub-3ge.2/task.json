@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-3ge.2",
+  "title": "Implement 'cub guardrails show' command",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-14T23:43:49Z",
+  "iterations": 1,
+  "completed_at": "2026-01-14T23:51:00Z",
+  "exit_code": 0
+}

@@ -290,6 +290,22 @@ generate_task_prompt() {
     local failure_context=""
     failure_context=$(failure_get_context "$task_id" 2>/dev/null)
 
+    # Get guardrails if they exist
+    local guardrails_content=""
+    guardrails_content=$(guardrails_for_prompt "${PROJECT_DIR}" 2>/dev/null || true)
+
+    # Include guardrails as "Lessons from Previous Runs" section
+    if [[ -n "$guardrails_content" ]]; then
+        cat <<EOF
+## Lessons from Previous Runs
+
+${guardrails_content}
+
+---
+
+EOF
+    fi
+
     # Generate focused task prompt (minimal - just the task)
     cat <<EOF
 ## CURRENT TASK
@@ -663,6 +679,11 @@ run_iteration() {
     log_info "Running ${harness}..."
     echo ""
 
+    # Check guardrails size and warn if it's getting large
+    if guardrails_exists "${PROJECT_DIR}" 2>/dev/null; then
+        guardrails_warn_size_if_exceeded "" "${PROJECT_DIR}" 2>/dev/null || true
+    fi
+
     if [[ "$DEBUG" == "true" ]]; then
         # Pre-flight check
         log_debug "Pre-flight: ${harness} version"
@@ -944,7 +965,7 @@ run_iteration() {
                 failure_result=$?
                 ;;
             retry)
-                failure_handle_retry "$task_id" "$exit_code" "$harness_output"
+                failure_handle_retry "$task_id" "$exit_code" "$harness_output" "$task_title"
                 failure_result=$?
                 ;;
             triage)
@@ -1738,6 +1759,9 @@ run_loop() {
             echo "[cub] EXIT REASON: remaining count is 0, exiting loop" >&2
             log_success "All tasks complete! Exiting loop."
             show_status
+            # Capture guardrails snapshot before run completion
+            log_debug "Capturing guardrails snapshot..."
+            artifacts_capture_guardrails_snapshot || log_warn "Failed to capture guardrails snapshot"
             # Run post-loop hooks
             log_debug "Running post-loop hooks..."
             hooks_run "post-loop"
@@ -1754,6 +1778,9 @@ run_loop() {
             # Failure handler requested halt
             log_warn "Failure handler requested run halt"
             show_status
+            # Capture guardrails snapshot before run completion
+            log_debug "Capturing guardrails snapshot..."
+            artifacts_capture_guardrails_snapshot || log_warn "Failed to capture guardrails snapshot"
             # Run post-loop hooks
             log_debug "Running post-loop hooks..."
             hooks_run "post-loop"
@@ -1786,6 +1813,9 @@ run_loop() {
                 log_success "Budget exceeded (used ${used} of ${limit} tokens)"
                 log_info "Stopping gracefully due to budget limit"
                 show_status
+                # Capture guardrails snapshot before run completion
+                log_debug "Capturing guardrails snapshot..."
+                artifacts_capture_guardrails_snapshot || log_warn "Failed to capture guardrails snapshot"
                 # Run post-loop hooks
                 log_debug "Running post-loop hooks..."
                 hooks_run "post-loop"
@@ -1802,6 +1832,9 @@ run_loop() {
     log_warn "Reached max iterations (${max_iterations})"
     log_debug "Loop terminated at: $(date)"
     show_status
+    # Capture guardrails snapshot before run completion
+    log_debug "Capturing guardrails snapshot..."
+    artifacts_capture_guardrails_snapshot || log_warn "Failed to capture guardrails snapshot"
     # Run post-loop hooks
     log_debug "Running post-loop hooks..."
     hooks_run "post-loop"
