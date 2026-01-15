@@ -48,6 +48,9 @@ from .models import (
     TokenUsage,
 )
 
+# Import backends to trigger registration
+from . import claude  # noqa: F401
+
 __all__ = [
     # Backend interface
     "HarnessBackend",
