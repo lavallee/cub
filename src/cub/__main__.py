@@ -1,4 +1,6 @@
-"""Entry point for cub module."""
+"""
+Cub CLI - Main entry point for python -m cub.
+"""
 
 from cub.cli import app
 
