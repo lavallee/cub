@@ -182,6 +182,9 @@ class TestStatusWatcher:
 
     def test_poll_handles_partial_write(self, temp_dir):
         """Test poll() handles incomplete JSON writes."""
+        import os
+        import time
+
         status_path = temp_dir / "status.json"
         status = RunStatus(
             run_id="test-run-001",
@@ -203,7 +206,12 @@ class TestStatusWatcher:
         with status_path.open("w") as f:
             f.write("{ incomplete")
 
-        # Poll should handle gracefully and return last valid status
+        # Force mtime change - filesystem mtime resolution can be 1 second on some systems
+        # Set mtime to 2 seconds in the future to ensure poll() sees the change
+        future_time = time.time() + 2
+        os.utime(status_path, (future_time, future_time))
+
+        # Poll should handle gracefully and return None for invalid JSON
         result2 = watcher.poll()
         assert result2 is None
 
