@@ -340,35 +340,11 @@ class TestGetBackendAutoDetect:
         beads_dir = project_dir / ".beads"
         beads_dir.mkdir()
 
-        # Register beads backend if not already registered
-        if "beads" not in list_backends():
+        # Mock _is_bd_available to return True so the real BeadsBackend can be instantiated
+        # even when bd CLI isn't installed (e.g., in CI)
+        from cub.core.tasks.beads import BeadsBackend as RealBeadsBackend
 
-            @register_backend("beads")
-            class BeadsBackend:
-                def list_tasks(self, **kwargs):
-                    return []
-
-                def get_task(self, task_id: str):
-                    return None
-
-                def get_ready_tasks(self, **kwargs):
-                    return []
-
-                def update_task(self, task_id: str, **kwargs):
-                    return Task(id=task_id, title="")
-
-                def close_task(self, task_id: str, reason=None):
-                    return Task(id=task_id, title="", status=TaskStatus.CLOSED)
-
-                def create_task(self, title: str, **kwargs):
-                    return Task(id="test-001", title=title)
-
-                def get_task_counts(self):
-                    return TaskCounts(total=0, open=0, in_progress=0, closed=0)
-
-                def add_task_note(self, task_id: str, note: str):
-                    return Task(id=task_id, title="")
-
+        monkeypatch.setattr(RealBeadsBackend, "_is_bd_available", lambda self: True)
         monkeypatch.chdir(project_dir)
 
         backend = get_backend(None, project_dir)
