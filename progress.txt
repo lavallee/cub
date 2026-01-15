@@ -1216,3 +1216,83 @@ Implemented the HarnessBackend protocol and registry, mirroring the TaskBackend 
 - Port bash harness functions to Python implementations
 - Add comprehensive tests for backend behavior
 
+
+## cub-060: Claude Harness Backend Implementation (2026-01-14)
+
+Successfully implemented the Claude Code harness backend - the primary AI assistant integration for cub.
+
+**Key Implementation Details:**
+
+**ClaudeBackend Class:**
+- Registered via `@register_backend("claude")` decorator
+- Full capabilities: streaming, token reporting, system prompt, auto mode, model selection
+- Wraps `claude` CLI with subprocess management
+- Two invocation modes: blocking (`invoke`) and streaming (`invoke_streaming`)
+
+**Blocking Invocation (`invoke`):**
+- Uses `--output-format json` for structured output
+- Parses JSON response for result text and token usage
+- Extracts cache metrics (read/creation tokens)
+- Handles model selection via `--model` flag or `CUB_MODEL` env var
+- Supports `CLAUDE_FLAGS` env var for additional CLI flags
+
+**Streaming Invocation (`invoke_streaming`):**
+- Uses `--output-format stream-json` for real-time output
+- Parses JSONL events: `content_block_delta`, `message`, `result`
+- Accumulates token usage across multiple message events
+- Optional callback for each text chunk (enables progress tracking)
+- Line-buffered subprocess with proper stdin/stdout/stderr handling
+
+**Stream Event Types Handled:**
+- `content_block_delta` with `text_delta`: Extract and yield text chunks
+- `assistant`/`message`: Extract token usage from `.usage` field
+- `result`: Extract final cost from `.cost_usd` field
+
+**Type Safety:**
+- All code passes `mypy --strict`
+- Proper None checking for subprocess stdin/stdout/stderr
+- RuntimeError raised when stdout capture fails
+
+**Testing:**
+- Comprehensive test suite with 13 tests
+- Mock-based testing for subprocess calls
+- Tests cover: basic invoke, model selection, streaming, callbacks, error handling, version checking
+- Integration tests for backend registration and availability detection
+
+**Key Learnings:**
+
+1. **Subprocess Type Safety**: Popen stdin/stdout/stderr are `IO[str] | None` when `text=True`. Must check for None before reading/writing to satisfy mypy --strict.
+
+2. **Stream Parsing Robustness**: Claude's stream-json format can have multiple `message` events with usage data. Must accumulate token counts across all events rather than taking the last one.
+
+3. **Model Selection Flexibility**: Support both explicit parameter and environment variable for model selection. This matches bash implementation and allows easy testing with different models.
+
+4. **Error Handling Strategy**: Return HarnessResult with error field populated rather than raising exceptions. This enables logging/retry logic at higher layers.
+
+5. **Callback Pattern for Streaming**: Optional callback parameter enables real-time progress display without forcing all callers to handle streaming output.
+
+6. **Cost Tracking**: Claude reports cost_usd in result events. Capture this for budget tracking even though it's optional.
+
+**Files Created:**
+- src/cub/core/harness/claude.py (350 lines)
+- tests/test_harness_claude.py (238 lines, 13 tests)
+
+**Files Modified:**
+- src/cub/core/harness/__init__.py (added claude import for registration)
+
+**Test Results:**
+All 13 tests passing:
+- Backend properties (name, capabilities)
+- Availability detection (installed/not installed)
+- Basic invoke with token parsing
+- Model selection via parameter
+- Error handling
+- Streaming with event parsing
+- Callback invocation
+- Version retrieval
+- Registry integration
+
+**Next Steps:**
+- Implement additional harness backends (Codex, Gemini, OpenCode)
+- Add end-to-end integration tests with real claude CLI
+- Port remaining bash harness functions to Python
