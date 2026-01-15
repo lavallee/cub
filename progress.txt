@@ -1503,3 +1503,47 @@ a39ace2 task(cub-062): Create Typer CLI structure with core commands
 
 7. **Rich Console Integration**: Using Rich console for output gives consistent formatting across commands and enables colored output with simple markup.
 
+
+## 2026-01-15 - cub-063: Implement cub run command with main loop
+
+### Task Completed
+Implemented the core `cub run` command that executes the autonomous task loop in Python.
+
+### What Was Implemented
+
+**Run Command (src/cub/cli/run.py)**
+- All CLI flags: --harness, --once, --task, --budget, --budget-tokens, --epic, --label, --model, --name, --ready, --stream
+- Main autonomous loop with task selection, harness invocation, and status tracking
+- Prompt generation for both system and task prompts
+- Task claiming (mark as in_progress) and status updates
+- Budget tracking for tokens and cost
+- Rich terminal output with panels and tables
+
+**Status Writer (src/cub/core/status/writer.py)**
+- Writes status.json to .cub/runs/{session}/status.json
+- Atomic writes using temp file + rename pattern
+- Helper functions: get_latest_status(), list_runs()
+
+**Signal Handling**
+- Graceful SIGINT handling (Ctrl+C)
+- First interrupt finishes current task, second force exits
+
+### Key Design Decisions
+
+1. **Task Selection**: Uses get_ready_tasks() from task backend with epic/label filtering
+2. **Prompt Generation**: System prompt from PROMPT.md, task prompt generated dynamically
+3. **Backend Detection**: Automatically detects beads vs json backend by checking for _run_bd method
+4. **Status Persistence**: Status.json written after each iteration for real-time monitoring
+5. **Budget Tracking**: Accumulates tokens and cost from harness results
+
+### Mypy Configuration Updates
+- Added pydantic.mypy plugin for proper Pydantic v2 support
+- Disabled prop-decorator error (known issue with @computed_field)
+- Fixed json.py to use correct field names (type vs issue_type alias)
+
+### Files Modified
+- src/cub/cli/run.py (major update - 568 lines)
+- src/cub/core/status/writer.py (new - 163 lines)
+- src/cub/core/status/__init__.py (exports added)
+- src/cub/core/tasks/json.py (field name fix)
+- pyproject.toml (mypy config)
