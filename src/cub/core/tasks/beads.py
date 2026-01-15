@@ -9,7 +9,7 @@ import json
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .backend import register_backend
 from .models import Task, TaskCounts, TaskStatus
@@ -17,15 +17,17 @@ from .models import Task, TaskCounts, TaskStatus
 
 class BeadsNotAvailableError(Exception):
     """Raised when beads CLI is not installed or not available."""
+
     pass
 
 
 class BeadsCommandError(Exception):
     """Raised when a beads CLI command fails."""
+
     pass
 
 
-@register_backend('beads')
+@register_backend("beads")
 class BeadsBackend:
     """
     Task backend that uses the beads CLI (`bd`).
@@ -40,7 +42,7 @@ class BeadsBackend:
         >>> task = backend.get_task("cub-001")
     """
 
-    def __init__(self, project_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Path | None = None):
         """
         Initialize the beads backend.
 
@@ -63,7 +65,9 @@ class BeadsBackend:
         """Check if bd CLI is available in PATH."""
         return shutil.which("bd") is not None
 
-    def _run_bd(self, args: list[str], check: bool = True) -> Union[dict[str, Any], list[dict[str, Any]]]:
+    def _run_bd(
+        self, args: list[str], check: bool = True
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """
         Run a bd CLI command and return parsed JSON output.
 
@@ -91,7 +95,7 @@ class BeadsBackend:
             # Parse JSON output
             if result.stdout:
                 try:
-                    parsed: Union[dict[str, Any], list[dict[str, Any]]] = json.loads(result.stdout)
+                    parsed: dict[str, Any] | list[dict[str, Any]] = json.loads(result.stdout)
                     return parsed
                 except json.JSONDecodeError as e:
                     raise BeadsCommandError(
@@ -105,10 +109,7 @@ class BeadsBackend:
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr.strip() if e.stderr else str(e)
-            raise BeadsCommandError(
-                f"bd command failed: {' '.join(cmd)}\n"
-                f"Error: {error_msg}"
-            )
+            raise BeadsCommandError(f"bd command failed: {' '.join(cmd)}\nError: {error_msg}")
 
     def _transform_beads_task(self, raw_task: dict[str, Any]) -> Task:
         """
@@ -159,9 +160,9 @@ class BeadsBackend:
 
     def list_tasks(
         self,
-        status: Optional[TaskStatus] = None,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        status: TaskStatus | None = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         List all tasks, optionally filtered.
@@ -193,7 +194,7 @@ class BeadsBackend:
 
         return [self._transform_beads_task(t) for t in raw_tasks]
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         """
         Get a specific task by ID.
 
@@ -220,8 +221,8 @@ class BeadsBackend:
 
     def get_ready_tasks(
         self,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         Get all tasks that are ready to work on.
@@ -268,10 +269,10 @@ class BeadsBackend:
     def update_task(
         self,
         task_id: str,
-        status: Optional[TaskStatus] = None,
-        assignee: Optional[str] = None,
-        description: Optional[str] = None,
-        labels: Optional[list[str]] = None,
+        status: TaskStatus | None = None,
+        assignee: str | None = None,
+        description: str | None = None,
+        labels: list[str] | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -314,7 +315,7 @@ class BeadsBackend:
         except BeadsCommandError as e:
             raise ValueError(f"Failed to update task {task_id}: {e}")
 
-    def close_task(self, task_id: str, reason: Optional[str] = None) -> Task:
+    def close_task(self, task_id: str, reason: str | None = None) -> Task:
         """
         Close a task.
 
@@ -353,9 +354,9 @@ class BeadsBackend:
         description: str = "",
         task_type: str = "task",
         priority: int = 2,
-        labels: Optional[list[str]] = None,
-        depends_on: Optional[list[str]] = None,
-        parent: Optional[str] = None,
+        labels: list[str] | None = None,
+        depends_on: list[str] | None = None,
+        parent: str | None = None,
     ) -> Task:
         """
         Create a new task.

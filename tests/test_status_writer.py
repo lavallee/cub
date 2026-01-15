@@ -6,7 +6,6 @@ Tests StatusWriter, get_latest_status, and list_runs functions.
 
 import json
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 
@@ -76,6 +75,7 @@ class TestStatusWriter:
 
         # Second write (should update timestamp)
         import time
+
         time.sleep(0.01)  # Small delay to ensure different timestamp
         writer.write(status)
         second_updated = status.updated_at

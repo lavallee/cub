@@ -6,6 +6,11 @@ including the Task model, status enums, and priority levels, as well
 as the TaskBackend protocol for pluggable backend implementations.
 """
 
+# Import backend implementations to trigger registration
+from . import (
+    beads,  # noqa: F401
+    json,  # noqa: F401
+)
 from .backend import (
     TaskBackend,
     detect_backend,
@@ -15,10 +20,6 @@ from .backend import (
     register_backend,
 )
 from .models import Task, TaskCounts, TaskPriority, TaskStatus, TaskType
-
-# Import backend implementations to trigger registration
-from . import beads  # noqa: F401
-from . import json  # noqa: F401
 
 __all__ = [
     # Models

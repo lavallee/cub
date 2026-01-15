@@ -5,7 +5,6 @@ Show current session status, task progress, and budget usage.
 """
 
 import json as json_module
-from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -109,10 +108,7 @@ def status(
         summary_table.add_row("Closed", f"[green]{counts.closed}[/green]")
         summary_table.add_row("In Progress", f"[yellow]{counts.in_progress}[/yellow]")
         summary_table.add_row("Open", str(counts.open))
-        summary_table.add_row(
-            "Completion",
-            f"[cyan]{counts.completion_percentage:.1f}%[/cyan]"
-        )
+        summary_table.add_row("Completion", f"[cyan]{counts.completion_percentage:.1f}%[/cyan]")
 
         console.print(summary_table)
         console.print()

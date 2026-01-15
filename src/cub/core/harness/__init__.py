@@ -26,6 +26,11 @@ Usage:
     print(f"Used {result.usage.total_tokens} tokens")
 """
 
+# Import backends to trigger registration
+from . import (
+    claude,  # noqa: F401
+    codex,  # noqa: F401
+)
 from .backend import (
     HarnessBackend,
     detect_harness,
@@ -47,10 +52,6 @@ from .models import (
     HarnessResult,
     TokenUsage,
 )
-
-# Import backends to trigger registration
-from . import claude  # noqa: F401
-from . import codex  # noqa: F401
 
 __all__ = [
     # Backend interface

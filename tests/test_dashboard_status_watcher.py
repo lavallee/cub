@@ -7,10 +7,7 @@ Tests StatusWatcher polling, change detection, and error handling.
 import json
 import time
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import Mock
-
-import pytest
 
 from cub.core.status.models import EventLevel, RunPhase, RunStatus
 from cub.dashboard.status import StatusWatcher

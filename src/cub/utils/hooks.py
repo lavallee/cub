@@ -29,7 +29,6 @@ import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 from cub.core.config import load_config
 from cub.core.config.loader import get_xdg_config_home
@@ -43,13 +42,14 @@ class HookContext:
     This provides all the information a hook script might need to make
     decisions or perform side effects.
     """
+
     hook_name: str
     project_dir: Path = field(default_factory=Path.cwd)
-    task_id: Optional[str] = None
-    task_title: Optional[str] = None
-    exit_code: Optional[int] = None
-    harness: Optional[str] = None
-    session_id: Optional[str] = None
+    task_id: str | None = None
+    task_title: str | None = None
+    exit_code: int | None = None
+    harness: str | None = None
+    session_id: str | None = None
 
     def to_env_dict(self) -> dict[str, str]:
         """
@@ -69,7 +69,7 @@ class HookContext:
         }
 
 
-def find_hook_scripts(hook_name: str, project_dir: Optional[Path] = None) -> list[Path]:
+def find_hook_scripts(hook_name: str, project_dir: Path | None = None) -> list[Path]:
     """
     Find all executable hook scripts for a given hook name.
 
@@ -120,8 +120,8 @@ def find_hook_scripts(hook_name: str, project_dir: Optional[Path] = None) -> lis
 
 def run_hooks(
     hook_name: str,
-    context: Optional[HookContext] = None,
-    project_dir: Optional[Path] = None,
+    context: HookContext | None = None,
+    project_dir: Path | None = None,
 ) -> bool:
     """
     Run all scripts in a hook directory.

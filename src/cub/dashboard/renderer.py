@@ -4,7 +4,6 @@ Rich-based dashboard renderer for cub.
 Provides real-time terminal UI for monitoring autonomous cub run sessions.
 """
 
-
 from rich.console import Console, Group, RenderableType
 from rich.layout import Layout
 from rich.live import Live
@@ -128,9 +127,7 @@ class DashboardRenderer:
                     style="bold yellow",
                 )
 
-            panel_content: RenderableType = (
-                Group(content, warning) if warning else content
-            )
+            panel_content: RenderableType = Group(content, warning) if warning else content
         else:
             # No active task
             panel_content = Text(
@@ -172,9 +169,7 @@ class DashboardRenderer:
             )
             content.append(token_bar)
             if status.budget.tokens_percentage is not None:
-                content.append(
-                    Text(f"{status.budget.tokens_percentage:.1f}% used\n", style="dim")
-                )
+                content.append(Text(f"{status.budget.tokens_percentage:.1f}% used\n", style="dim"))
 
         # Cost tracking
         if status.budget.cost_limit or status.budget.cost_usd > 0:
@@ -187,17 +182,13 @@ class DashboardRenderer:
                 )
                 content.append(cost_bar)
                 if status.budget.cost_percentage is not None:
-                    content.append(
-                        Text(f"{status.budget.cost_percentage:.1f}% spent", style="dim")
-                    )
+                    content.append(Text(f"{status.budget.cost_percentage:.1f}% spent", style="dim"))
             else:
                 content.append(Text(f"${status.budget.cost_usd:.2f}", style="dim"))
 
         # Budget warning
         if status.budget.is_over_budget:
-            content.append(
-                Text("\n⚠️  Budget limit exceeded", style="bold red")
-            )
+            content.append(Text("\n⚠️  Budget limit exceeded", style="bold red"))
 
         panel_content: RenderableType = (
             Group(*content) if content else Text("No budget limits set", style="dim italic")

@@ -16,11 +16,8 @@ from cub.core.config.models import (
     CubConfig,
     GuardrailsConfig,
     HarnessConfig,
-    HooksConfig,
-    InterviewConfig,
     InterviewQuestion,
     LoopConfig,
-    ReviewConfig,
     StateConfig,
 )
 from cub.core.status.models import (
@@ -38,7 +35,6 @@ from cub.core.tasks.models import (
     TaskStatus,
     TaskType,
 )
-
 
 # ==============================================================================
 # Task Model Tests
@@ -94,11 +90,7 @@ class TestTaskModel:
 
     def test_model_label_extraction(self):
         """Test model_label computed field."""
-        task = Task(
-            id="cub-001",
-            title="Test",
-            labels=["bug", "model:haiku", "urgent"]
-        )
+        task = Task(id="cub-001", title="Test", labels=["bug", "model:haiku", "urgent"])
         assert task.model_label == "haiku"
 
         task_no_model = Task(id="cub-002", title="Test", labels=["bug"])
@@ -112,19 +104,12 @@ class TestTaskModel:
 
         # Task with dependencies is not ready (even if status is open)
         task2 = Task(
-            id="cub-002",
-            title="Blocked task",
-            status=TaskStatus.OPEN,
-            depends_on=["cub-001"]
+            id="cub-002", title="Blocked task", status=TaskStatus.OPEN, depends_on=["cub-001"]
         )
         assert task2.is_ready is False
 
         # In-progress task is not ready
-        task3 = Task(
-            id="cub-003",
-            title="In progress",
-            status=TaskStatus.IN_PROGRESS
-        )
+        task3 = Task(id="cub-003", title="In progress", status=TaskStatus.IN_PROGRESS)
         assert task3.is_ready is False
 
     def test_task_methods(self):
@@ -156,11 +141,7 @@ class TestTaskModel:
     def test_alias_support(self):
         """Test that both depends_on and dependsOn work."""
         # Using snake_case
-        task1 = Task(
-            id="cub-001",
-            title="Test",
-            depends_on=["cub-000"]
-        )
+        task1 = Task(id="cub-001", title="Test", depends_on=["cub-000"])
         assert task1.depends_on == ["cub-000"]
 
         # Using camelCase (from beads JSON)
@@ -169,7 +150,7 @@ class TestTaskModel:
             "title": "Test",
             "dependsOn": ["cub-001"],
             "issue_type": "feature",
-            "acceptanceCriteria": ["criterion 1"]
+            "acceptanceCriteria": ["criterion 1"],
         }
         task2 = Task(**data)
         assert task2.depends_on == ["cub-001"]
@@ -187,7 +168,7 @@ class TestTaskModel:
             "issue_type": "task",
             "assignee": "camel",
             "labels": ["model:sonnet", "phase-1"],
-            "blocks": ["cub-055"]
+            "blocks": ["cub-055"],
         }
         task = Task(**beads_data)
         assert task.id == "cub-054"
@@ -244,20 +225,14 @@ class TestConfigModels:
 
     def test_budget_config(self):
         """Test BudgetConfig model."""
-        config = BudgetConfig(
-            max_tokens_per_task=500000,
-            max_total_cost=50.0
-        )
+        config = BudgetConfig(max_tokens_per_task=500000, max_total_cost=50.0)
         assert config.max_tokens_per_task == 500000
         assert config.max_total_cost == 50.0
         assert config.max_tasks_per_session is None
 
     def test_state_config(self):
         """Test StateConfig model."""
-        config = StateConfig(
-            require_clean=True,
-            run_tests=True
-        )
+        config = StateConfig(require_clean=True, run_tests=True)
         assert config.require_clean is True
         assert config.run_tests is True
         assert config.run_typecheck is False
@@ -277,7 +252,7 @@ class TestConfigModels:
             category="Technical",
             question="What is the impact?",
             applies_to=["feature", "task"],
-            requires_labels=["backend"]
+            requires_labels=["backend"],
         )
         assert question.category == "Technical"
         assert len(question.applies_to) == 2
@@ -288,7 +263,7 @@ class TestConfigModels:
             harness=HarnessConfig(name="claude"),
             budget=BudgetConfig(max_tokens_per_task=500000),
             state=StateConfig(require_clean=True, run_tests=True),
-            loop=LoopConfig(max_iterations=50)
+            loop=LoopConfig(max_iterations=50),
         )
         assert config.harness.name == "claude"
         assert config.budget.max_tokens_per_task == 500000
@@ -302,25 +277,17 @@ class TestConfigModels:
             "budget": {
                 "max_tokens_per_task": 500000,
                 "max_tasks_per_session": None,
-                "max_total_cost": None
+                "max_total_cost": None,
             },
             "state": {
                 "require_clean": True,
                 "run_tests": True,
                 "run_typecheck": False,
-                "run_lint": False
+                "run_lint": False,
             },
-            "loop": {
-                "max_iterations": 100,
-                "on_task_failure": "stop"
-            },
-            "hooks": {
-                "enabled": True,
-                "fail_fast": False
-            },
-            "interview": {
-                "custom_questions": []
-            }
+            "loop": {"max_iterations": 100, "on_task_failure": "stop"},
+            "hooks": {"enabled": True, "fail_fast": False},
+            "interview": {"custom_questions": []},
         }
         config = CubConfig(**cub_json)
         assert config.state.require_clean is True
@@ -337,11 +304,7 @@ class TestStatusModels:
 
     def test_event_log_creation(self):
         """Test EventLog model."""
-        event = EventLog(
-            message="Task started",
-            level=EventLevel.INFO,
-            task_id="cub-001"
-        )
+        event = EventLog(message="Task started", level=EventLevel.INFO, task_id="cub-001")
         assert event.message == "Task started"
         assert event.level == EventLevel.INFO
         assert event.task_id == "cub-001"
@@ -365,7 +328,7 @@ class TestStatusModels:
             cost_usd=2.5,
             cost_limit=10.0,
             tasks_completed=3,
-            tasks_limit=5
+            tasks_limit=5,
         )
         assert budget.tokens_percentage == 50.0
         assert budget.cost_percentage == 25.0
@@ -375,17 +338,11 @@ class TestStatusModels:
     def test_budget_status_over_budget(self):
         """Test budget over-limit detection."""
         # Over token limit
-        budget1 = BudgetStatus(
-            tokens_used=250000,
-            tokens_limit=200000
-        )
+        budget1 = BudgetStatus(tokens_used=250000, tokens_limit=200000)
         assert budget1.is_over_budget is True
 
         # Over cost limit
-        budget2 = BudgetStatus(
-            cost_usd=15.0,
-            cost_limit=10.0
-        )
+        budget2 = BudgetStatus(cost_usd=15.0, cost_limit=10.0)
         assert budget2.is_over_budget is True
 
     def test_budget_status_no_limits(self):
@@ -402,7 +359,7 @@ class TestStatusModels:
             session_name="camel",
             phase=RunPhase.RUNNING,
             current_task_id="cub-001",
-            current_task_title="Test task"
+            current_task_title="Test task",
         )
         assert status.run_id == "test-run-001"
         assert status.phase == RunPhase.RUNNING
@@ -412,11 +369,7 @@ class TestStatusModels:
     def test_run_status_computed_fields(self):
         """Test RunStatus computed fields."""
         status = RunStatus(
-            run_id="test-001",
-            tasks_total=10,
-            tasks_closed=6,
-            tasks_open=3,
-            tasks_in_progress=1
+            run_id="test-001", tasks_total=10, tasks_closed=6, tasks_open=3, tasks_in_progress=1
         )
         assert status.tasks_remaining == 4
         assert status.completion_percentage == 60.0
@@ -444,11 +397,7 @@ class TestStatusModels:
 
     def test_run_status_serialization(self):
         """Test RunStatus can be serialized to JSON."""
-        status = RunStatus(
-            run_id="test-001",
-            current_task_id="cub-001",
-            phase=RunPhase.RUNNING
-        )
+        status = RunStatus(run_id="test-001", current_task_id="cub-001", phase=RunPhase.RUNNING)
         status.add_event("Test event")
 
         # Serialize to JSON
@@ -477,7 +426,7 @@ class TestModelIntegration:
             status=TaskStatus.IN_PROGRESS,
             priority=TaskPriority.P1,
             labels=["bug", "model:sonnet"],
-            depends_on=["cub-000"]
+            depends_on=["cub-000"],
         )
 
         # Serialize to dict
@@ -495,8 +444,7 @@ class TestModelIntegration:
     def test_config_to_json_and_back(self):
         """Test config serialization round-trip."""
         original = CubConfig(
-            budget=BudgetConfig(max_tokens_per_task=500000),
-            state=StateConfig(require_clean=True)
+            budget=BudgetConfig(max_tokens_per_task=500000), state=StateConfig(require_clean=True)
         )
 
         # Serialize to JSON string

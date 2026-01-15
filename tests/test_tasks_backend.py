@@ -4,14 +4,11 @@ Tests for task backend protocol and registry.
 Tests the backend registry, auto-detection, and backend management functions.
 """
 
-import os
-from pathlib import Path
 
 import pytest
 
 from cub.core.tasks import backend as tasks_backend
 from cub.core.tasks.backend import (
-    TaskBackend,
     detect_backend,
     get_backend,
     is_backend_available,

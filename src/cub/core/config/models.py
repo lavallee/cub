@@ -5,7 +5,7 @@ These models define the structure of .cub.json and ~/.config/cub/config.json
 files, with validation and type safety via Pydantic.
 """
 
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -16,21 +16,18 @@ class GuardrailsConfig(BaseModel):
 
     These settings prevent runaway costs and infinite loops.
     """
+
     max_task_iterations: int = Field(
-        default=3,
-        ge=1,
-        description="Maximum iterations per task before failing"
+        default=3, ge=1, description="Maximum iterations per task before failing"
     )
     max_run_iterations: int = Field(
-        default=50,
-        ge=1,
-        description="Maximum total iterations before stopping the run"
+        default=50, ge=1, description="Maximum total iterations before stopping the run"
     )
     iteration_warning_threshold: float = Field(
         default=0.8,
         ge=0.0,
         le=1.0,
-        description="Warn when iterations reach this fraction of max (0.0-1.0)"
+        description="Warn when iterations reach this fraction of max (0.0-1.0)",
     )
     secret_patterns: list[str] = Field(
         default_factory=lambda: [
@@ -39,9 +36,9 @@ class GuardrailsConfig(BaseModel):
             "token",
             "secret",
             "authorization",
-            "credentials"
+            "credentials",
         ],
-        description="Regex patterns for detecting secrets in code"
+        description="Regex patterns for detecting secrets in code",
     )
 
 
@@ -51,25 +48,20 @@ class BudgetConfig(BaseModel):
 
     Controls spending limits for autonomous sessions.
     """
-    max_tokens_per_task: Optional[int] = Field(
+
+    max_tokens_per_task: int | None = Field(
+        default=None, ge=1, description="Stop if a single task uses more than this many tokens"
+    )
+    max_tasks_per_session: int | None = Field(
+        default=None, ge=1, description="Stop after completing this many tasks in one session"
+    )
+    max_total_cost: float | None = Field(
+        default=None, ge=0.0, description="Stop if total spend exceeds this amount (in dollars)"
+    )
+    default: int | None = Field(
         default=None,
         ge=1,
-        description="Stop if a single task uses more than this many tokens"
-    )
-    max_tasks_per_session: Optional[int] = Field(
-        default=None,
-        ge=1,
-        description="Stop after completing this many tasks in one session"
-    )
-    max_total_cost: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        description="Stop if total spend exceeds this amount (in dollars)"
-    )
-    default: Optional[int] = Field(
-        default=None,
-        ge=1,
-        description="Default budget if not specified (for backward compatibility)"
+        description="Default budget if not specified (for backward compatibility)",
     )
 
 
@@ -79,22 +71,13 @@ class StateConfig(BaseModel):
 
     Ensures repository is in a safe state before autonomous execution.
     """
-    require_clean: bool = Field(
-        default=True,
-        description="Fail if git has uncommitted changes"
-    )
-    run_tests: bool = Field(
-        default=False,
-        description="Run tests and fail if they don't pass"
-    )
+
+    require_clean: bool = Field(default=True, description="Fail if git has uncommitted changes")
+    run_tests: bool = Field(default=False, description="Run tests and fail if they don't pass")
     run_typecheck: bool = Field(
-        default=False,
-        description="Run type checker and fail if there are errors"
+        default=False, description="Run type checker and fail if there are errors"
     )
-    run_lint: bool = Field(
-        default=False,
-        description="Run linter and fail if there are issues"
-    )
+    run_lint: bool = Field(default=False, description="Run linter and fail if there are issues")
 
 
 class LoopConfig(BaseModel):
@@ -103,15 +86,14 @@ class LoopConfig(BaseModel):
 
     Determines how cub handles the task processing loop.
     """
+
     max_iterations: int = Field(
-        default=100,
-        ge=1,
-        description="Stop after N iterations (prevents infinite loops)"
+        default=100, ge=1, description="Stop after N iterations (prevents infinite loops)"
     )
     on_task_failure: str = Field(
         default="stop",
         pattern="^(stop|continue)$",
-        description="What to do when a task fails: 'stop' or 'continue'"
+        description="What to do when a task fails: 'stop' or 'continue'",
     )
 
 
@@ -121,35 +103,28 @@ class HooksConfig(BaseModel):
 
     Enables running custom scripts before/after events.
     """
-    enabled: bool = Field(
-        default=True,
-        description="Enable/disable all hooks"
-    )
-    fail_fast: bool = Field(
-        default=False,
-        description="Stop execution if a hook fails"
-    )
+
+    enabled: bool = Field(default=True, description="Enable/disable all hooks")
+    fail_fast: bool = Field(default=False, description="Stop execution if a hook fails")
 
 
 class InterviewQuestion(BaseModel):
     """A custom interview question for task planning."""
+
     category: str = Field(..., description="Question category/section")
     question: str = Field(..., description="The question to ask")
     applies_to: list[str] = Field(
         default_factory=list,
-        description="Task types this question applies to (feature, task, bugfix)"
+        description="Task types this question applies to (feature, task, bugfix)",
     )
     requires_labels: list[str] = Field(
-        default_factory=list,
-        description="Only ask if task has these labels"
+        default_factory=list, description="Only ask if task has these labels"
     )
     requires_tech: list[str] = Field(
-        default_factory=list,
-        description="Only ask if task involves these technologies"
+        default_factory=list, description="Only ask if task involves these technologies"
     )
-    skip_if: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="Conditional skip logic based on previous answers"
+    skip_if: dict[str, Any] | None = Field(
+        default=None, description="Conditional skip logic based on previous answers"
     )
 
 
@@ -159,9 +134,9 @@ class InterviewConfig(BaseModel):
 
     Defines custom questions to ask during task planning.
     """
+
     custom_questions: list[InterviewQuestion] = Field(
-        default_factory=list,
-        description="Project-specific interview questions"
+        default_factory=list, description="Project-specific interview questions"
     )
 
 
@@ -171,13 +146,10 @@ class ReviewConfig(BaseModel):
 
     Controls how strict cub is about reviewing work.
     """
-    plan_strict: bool = Field(
-        default=False,
-        description="Require plan approval before execution"
-    )
+
+    plan_strict: bool = Field(default=False, description="Require plan approval before execution")
     block_on_concerns: bool = Field(
-        default=False,
-        description="Block execution if review raises concerns"
+        default=False, description="Block execution if review raises concerns"
     )
 
 
@@ -187,17 +159,15 @@ class HarnessConfig(BaseModel):
 
     Specifies which AI assistant to use and how to invoke it.
     """
-    name: Optional[str] = Field(
-        default=None,
-        description="Harness name: 'claude', 'codex', 'gemini', 'opencode', etc."
+
+    name: str | None = Field(
+        default=None, description="Harness name: 'claude', 'codex', 'gemini', 'opencode', etc."
     )
     priority: list[str] = Field(
-        default_factory=lambda: ["claude", "codex"],
-        description="Auto-detection priority order"
+        default_factory=lambda: ["claude", "codex"], description="Auto-detection priority order"
     )
-    model: Optional[str] = Field(
-        default=None,
-        description="Specific model to use (e.g., 'sonnet', 'haiku')"
+    model: str | None = Field(
+        default=None, description="Specific model to use (e.g., 'sonnet', 'haiku')"
     )
 
 
@@ -217,42 +187,27 @@ class CubConfig(BaseModel):
         >>> config.state.require_clean
         True
     """
+
     # Core settings
     harness: HarnessConfig = Field(
-        default_factory=HarnessConfig,
-        description="AI harness configuration"
+        default_factory=HarnessConfig, description="AI harness configuration"
     )
-    budget: BudgetConfig = Field(
-        default_factory=BudgetConfig,
-        description="Token and cost budgets"
-    )
+    budget: BudgetConfig = Field(default_factory=BudgetConfig, description="Token and cost budgets")
     guardrails: GuardrailsConfig = Field(
-        default_factory=GuardrailsConfig,
-        description="Safety limits and guardrails"
+        default_factory=GuardrailsConfig, description="Safety limits and guardrails"
     )
 
     # Execution control
-    state: StateConfig = Field(
-        default_factory=StateConfig,
-        description="Pre-flight state checks"
-    )
-    loop: LoopConfig = Field(
-        default_factory=LoopConfig,
-        description="Autonomous loop behavior"
-    )
+    state: StateConfig = Field(default_factory=StateConfig, description="Pre-flight state checks")
+    loop: LoopConfig = Field(default_factory=LoopConfig, description="Autonomous loop behavior")
 
     # Optional features
-    hooks: HooksConfig = Field(
-        default_factory=HooksConfig,
-        description="Lifecycle hooks"
-    )
+    hooks: HooksConfig = Field(default_factory=HooksConfig, description="Lifecycle hooks")
     interview: InterviewConfig = Field(
-        default_factory=InterviewConfig,
-        description="Task interview questions"
+        default_factory=InterviewConfig, description="Task interview questions"
     )
     review: ReviewConfig = Field(
-        default_factory=ReviewConfig,
-        description="Review and approval settings"
+        default_factory=ReviewConfig, description="Review and approval settings"
     )
 
     model_config = ConfigDict(
@@ -260,9 +215,11 @@ class CubConfig(BaseModel):
         validate_assignment=True,  # Validate on field assignment
     )
 
-    @field_validator('harness', mode='before')
+    @field_validator("harness", mode="before")
     @classmethod
-    def validate_harness(cls, v: Union[str, dict[str, Any], HarnessConfig]) -> Union[dict[str, Any], HarnessConfig]:
+    def validate_harness(
+        cls, v: str | dict[str, Any] | HarnessConfig
+    ) -> dict[str, Any] | HarnessConfig:
         """Convert string harness name to HarnessConfig."""
         if isinstance(v, str):
             return {"name": v}

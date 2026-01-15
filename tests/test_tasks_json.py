@@ -6,16 +6,12 @@ caching, task CRUD operations, and error handling.
 """
 
 import json
-import os
-import tempfile
-from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from cub.core.tasks.json import JsonBackend, PrdFileCorruptedError, PrdFileNotFoundError
-from cub.core.tasks.models import Task, TaskPriority, TaskStatus, TaskType
-
+from cub.core.tasks.json import JsonBackend, PrdFileCorruptedError
+from cub.core.tasks.models import TaskPriority, TaskStatus, TaskType
 
 # ==============================================================================
 # Initialization Tests
@@ -63,9 +59,7 @@ class TestLoadPrd:
         prd_file = temp_dir / "prd.json"
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task 1", "status": "open"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task 1", "status": "open"}],
         }
         prd_file.write_text(json.dumps(prd_data))
 
@@ -158,6 +152,7 @@ class TestLoadPrd:
 
         # Modify file
         import time
+
         time.sleep(0.01)  # Ensure mtime changes
         prd_file.write_text(json.dumps({"prefix": "v2", "tasks": []}))
 
@@ -245,9 +240,21 @@ class TestListTasks:
         prd_data = {
             "prefix": "test",
             "tasks": [
-                {"id": "test-001", "title": "Task 1", "status": "open", "priority": "P0", "type": "task"},
-                {"id": "test-002", "title": "Task 2", "status": "closed", "priority": "P1", "type": "feature"}
-            ]
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "status": "open",
+                    "priority": "P0",
+                    "type": "task",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "status": "closed",
+                    "priority": "P1",
+                    "type": "feature",
+                },
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -265,8 +272,8 @@ class TestListTasks:
             "tasks": [
                 {"id": "test-001", "title": "Open", "status": "open"},
                 {"id": "test-002", "title": "Closed", "status": "closed"},
-                {"id": "test-003", "title": "In Progress", "status": "in_progress"}
-            ]
+                {"id": "test-003", "title": "In Progress", "status": "in_progress"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -284,8 +291,8 @@ class TestListTasks:
                 {"id": "epic-001", "title": "Epic", "type": "epic"},
                 {"id": "test-001", "title": "Child 1", "parent": "epic-001"},
                 {"id": "test-002", "title": "Child 2", "parent": "epic-001"},
-                {"id": "test-003", "title": "Orphan"}
-            ]
+                {"id": "test-003", "title": "Orphan"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -302,8 +309,8 @@ class TestListTasks:
             "tasks": [
                 {"id": "test-001", "title": "Task 1", "labels": ["backend", "urgent"]},
                 {"id": "test-002", "title": "Task 2", "labels": ["frontend"]},
-                {"id": "test-003", "title": "Task 3", "labels": ["backend", "low"]}
-            ]
+                {"id": "test-003", "title": "Task 3", "labels": ["backend", "low"]},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -320,8 +327,8 @@ class TestListTasks:
             "tasks": [
                 {"id": "test-001", "title": "Valid Task"},
                 {"id": "test-002"},  # Missing required 'title'
-                {"id": "test-003", "title": "Another Valid Task"}
-            ]
+                {"id": "test-003", "title": "Another Valid Task"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -353,10 +360,7 @@ class TestGetTask:
         """Test successfully getting a task by ID."""
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task 1"},
-                {"id": "test-002", "title": "Task 2"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task 1"}, {"id": "test-002", "title": "Task 2"}],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -383,7 +387,7 @@ class TestGetTask:
             "prefix": "test",
             "tasks": [
                 {"id": "test-001"}  # Missing required 'title'
-            ]
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -408,8 +412,8 @@ class TestGetReadyTasks:
             "tasks": [
                 {"id": "test-001", "title": "Task 1", "status": "open", "priority": "P2"},
                 {"id": "test-002", "title": "Task 2", "status": "open", "priority": "P0"},
-                {"id": "test-003", "title": "Task 3", "status": "in_progress"}
-            ]
+                {"id": "test-003", "title": "Task 3", "status": "in_progress"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -429,8 +433,8 @@ class TestGetReadyTasks:
                 {"id": "test-001", "title": "Task 1", "status": "open"},
                 {"id": "test-002", "title": "Task 2", "status": "open", "depends_on": ["test-001"]},
                 {"id": "test-003", "title": "Task 3", "status": "closed"},
-                {"id": "test-004", "title": "Task 4", "status": "open", "depends_on": ["test-003"]}
-            ]
+                {"id": "test-004", "title": "Task 4", "status": "open", "depends_on": ["test-003"]},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -453,8 +457,8 @@ class TestGetReadyTasks:
             "tasks": [
                 {"id": "test-001", "title": "Low", "status": "open", "priority": "P4"},
                 {"id": "test-002", "title": "High", "status": "open", "priority": "P0"},
-                {"id": "test-003", "title": "Med", "status": "open", "priority": "P2"}
-            ]
+                {"id": "test-003", "title": "Med", "status": "open", "priority": "P2"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -500,7 +504,7 @@ class TestCreateTask:
             priority=0,
             labels=["backend", "urgent"],
             depends_on=["test-000"],
-            parent="epic-001"
+            parent="epic-001",
         )
 
         assert task.type == TaskType.FEATURE
@@ -546,9 +550,7 @@ class TestUpdateTask:
         """Test updating task status."""
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task", "status": "open"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task", "status": "open"}],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -565,9 +567,7 @@ class TestUpdateTask:
         """Test updating multiple fields at once."""
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task", "status": "open"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task", "status": "open"}],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -576,7 +576,7 @@ class TestUpdateTask:
             "test-001",
             status=TaskStatus.IN_PROGRESS,
             assignee="alice",
-            labels=["backend", "urgent"]
+            labels=["backend", "urgent"],
         )
 
         assert updated.assignee == "alice"
@@ -603,9 +603,7 @@ class TestCloseTask:
         """Test closing a task."""
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task", "status": "open"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task", "status": "open"}],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -619,9 +617,7 @@ class TestCloseTask:
         """Test closing task with reason."""
         prd_data = {
             "prefix": "test",
-            "tasks": [
-                {"id": "test-001", "title": "Task", "status": "open"}
-            ]
+            "tasks": [{"id": "test-001", "title": "Task", "status": "open"}],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -656,8 +652,8 @@ class TestGetTaskCounts:
                 {"id": "test-002", "title": "Open 2", "status": "open"},
                 {"id": "test-003", "title": "In Progress", "status": "in_progress"},
                 {"id": "test-004", "title": "Closed 1", "status": "closed"},
-                {"id": "test-005", "title": "Closed 2", "status": "closed"}
-            ]
+                {"id": "test-005", "title": "Closed 2", "status": "closed"},
+            ],
         }
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 

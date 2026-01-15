@@ -7,13 +7,14 @@ serialized to status.json for consumption by the dashboard UI.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class RunPhase(str, Enum):
     """Current phase of a cub run."""
+
     INITIALIZING = "initializing"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -23,6 +24,7 @@ class RunPhase(str, Enum):
 
 class EventLevel(str, Enum):
     """Event log severity levels."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -36,23 +38,12 @@ class EventLog(BaseModel):
     Events track significant occurrences during task execution,
     such as task starts, completions, errors, and state changes.
     """
-    timestamp: datetime = Field(
-        default_factory=datetime.now,
-        description="When the event occurred"
-    )
-    level: EventLevel = Field(
-        default=EventLevel.INFO,
-        description="Event severity level"
-    )
+
+    timestamp: datetime = Field(default_factory=datetime.now, description="When the event occurred")
+    level: EventLevel = Field(default=EventLevel.INFO, description="Event severity level")
     message: str = Field(..., description="Event description")
-    task_id: Optional[str] = Field(
-        default=None,
-        description="Associated task ID, if applicable"
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional event metadata"
-    )
+    task_id: str | None = Field(default=None, description="Associated task ID, if applicable")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional event metadata")
 
 
 class IterationInfo(BaseModel):
@@ -61,18 +52,11 @@ class IterationInfo(BaseModel):
 
     Tracks progress through the task processing loop.
     """
+
     current: int = Field(default=0, ge=0, description="Current iteration number")
     max: int = Field(default=100, ge=1, description="Maximum allowed iterations")
-    task_iteration: int = Field(
-        default=0,
-        ge=0,
-        description="Current iteration within the task"
-    )
-    max_task_iteration: int = Field(
-        default=3,
-        ge=1,
-        description="Maximum iterations per task"
-    )
+    task_iteration: int = Field(default=0, ge=0, description="Current iteration within the task")
+    max_task_iteration: int = Field(default=3, ge=1, description="Maximum iterations per task")
 
     @computed_field
     @property
@@ -103,32 +87,19 @@ class BudgetStatus(BaseModel):
 
     Monitors spending during autonomous execution.
     """
+
     tokens_used: int = Field(default=0, ge=0, description="Total tokens consumed")
-    tokens_limit: Optional[int] = Field(
-        default=None,
-        ge=1,
-        description="Maximum allowed tokens"
-    )
+    tokens_limit: int | None = Field(default=None, ge=1, description="Maximum allowed tokens")
     cost_usd: float = Field(default=0.0, ge=0.0, description="Total cost in USD")
-    cost_limit: Optional[float] = Field(
-        default=None,
-        ge=0.0,
-        description="Maximum allowed cost in USD"
+    cost_limit: float | None = Field(
+        default=None, ge=0.0, description="Maximum allowed cost in USD"
     )
-    tasks_completed: int = Field(
-        default=0,
-        ge=0,
-        description="Number of tasks completed"
-    )
-    tasks_limit: Optional[int] = Field(
-        default=None,
-        ge=1,
-        description="Maximum tasks per session"
-    )
+    tasks_completed: int = Field(default=0, ge=0, description="Number of tasks completed")
+    tasks_limit: int | None = Field(default=None, ge=1, description="Maximum tasks per session")
 
     @computed_field
     @property
-    def tokens_percentage(self) -> Optional[float]:
+    def tokens_percentage(self) -> float | None:
         """Percentage of token budget used (0-100), or None if no limit."""
         if self.tokens_limit is None or self.tokens_limit == 0:
             return None
@@ -136,7 +107,7 @@ class BudgetStatus(BaseModel):
 
     @computed_field
     @property
-    def cost_percentage(self) -> Optional[float]:
+    def cost_percentage(self) -> float | None:
         """Percentage of cost budget used (0-100), or None if no limit."""
         if self.cost_limit is None or self.cost_limit == 0:
             return None
@@ -144,7 +115,7 @@ class BudgetStatus(BaseModel):
 
     @computed_field
     @property
-    def tasks_percentage(self) -> Optional[float]:
+    def tasks_percentage(self) -> float | None:
         """Percentage of task limit used (0-100), or None if no limit."""
         if self.tasks_limit is None or self.tasks_limit == 0:
             return None
@@ -183,70 +154,42 @@ class RunStatus(BaseModel):
         >>> status.is_active
         True
     """
+
     # Run identification
     run_id: str = Field(..., description="Unique run identifier")
-    session_name: str = Field(
-        default="default",
-        description="Session/branch name"
-    )
-    started_at: datetime = Field(
-        default_factory=datetime.now,
-        description="When the run started"
-    )
+    session_name: str = Field(default="default", description="Session/branch name")
+    started_at: datetime = Field(default_factory=datetime.now, description="When the run started")
     updated_at: datetime = Field(
-        default_factory=datetime.now,
-        description="Last status update time"
+        default_factory=datetime.now, description="Last status update time"
     )
-    completed_at: Optional[datetime] = Field(
-        default=None,
-        description="When the run completed/failed/stopped"
+    completed_at: datetime | None = Field(
+        default=None, description="When the run completed/failed/stopped"
     )
 
     # Current state
-    phase: RunPhase = Field(
-        default=RunPhase.INITIALIZING,
-        description="Current run phase"
+    phase: RunPhase = Field(default=RunPhase.INITIALIZING, description="Current run phase")
+    current_task_id: str | None = Field(
+        default=None, description="ID of currently executing task"
     )
-    current_task_id: Optional[str] = Field(
-        default=None,
-        description="ID of currently executing task"
-    )
-    current_task_title: Optional[str] = Field(
-        default=None,
-        description="Title of currently executing task"
+    current_task_title: str | None = Field(
+        default=None, description="Title of currently executing task"
     )
 
     # Progress tracking
-    iteration: IterationInfo = Field(
-        default_factory=IterationInfo,
-        description="Iteration state"
-    )
-    budget: BudgetStatus = Field(
-        default_factory=BudgetStatus,
-        description="Budget tracking"
-    )
+    iteration: IterationInfo = Field(default_factory=IterationInfo, description="Iteration state")
+    budget: BudgetStatus = Field(default_factory=BudgetStatus, description="Budget tracking")
 
     # Task statistics
     tasks_open: int = Field(default=0, ge=0, description="Open tasks remaining")
-    tasks_in_progress: int = Field(
-        default=0,
-        ge=0,
-        description="Tasks currently in progress"
-    )
+    tasks_in_progress: int = Field(default=0, ge=0, description="Tasks currently in progress")
     tasks_closed: int = Field(default=0, ge=0, description="Tasks completed")
     tasks_total: int = Field(default=0, ge=0, description="Total number of tasks")
 
     # Event history
-    events: list[EventLog] = Field(
-        default_factory=list,
-        description="Chronological event log"
-    )
+    events: list[EventLog] = Field(default_factory=list, description="Chronological event log")
 
     # Error tracking
-    last_error: Optional[str] = Field(
-        default=None,
-        description="Most recent error message, if any"
-    )
+    last_error: str | None = Field(default=None, description="Most recent error message, if any")
 
     model_config = ConfigDict(
         validate_assignment=True,
@@ -289,16 +232,11 @@ class RunStatus(BaseModel):
         self,
         message: str,
         level: EventLevel = EventLevel.INFO,
-        task_id: Optional[str] = None,
-        **metadata: Any
+        task_id: str | None = None,
+        **metadata: Any,
     ) -> None:
         """Add an event to the event log."""
-        event = EventLog(
-            message=message,
-            level=level,
-            task_id=task_id,
-            metadata=metadata
-        )
+        event = EventLog(message=message, level=level, task_id=task_id, metadata=metadata)
         self.events.append(event)
         self.updated_at = datetime.now()
 

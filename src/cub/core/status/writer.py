@@ -147,14 +147,16 @@ def list_runs(project_dir: Path) -> list[dict[str, Any]]:
         try:
             with status_file.open() as f:
                 data = json.load(f)
-            runs.append({
-                "run_id": data.get("run_id"),
-                "session_name": data.get("session_name"),
-                "phase": data.get("phase"),
-                "started_at": data.get("started_at"),
-                "completed_at": data.get("completed_at"),
-                "tasks_completed": data.get("budget", {}).get("tasks_completed", 0),
-            })
+            runs.append(
+                {
+                    "run_id": data.get("run_id"),
+                    "session_name": data.get("session_name"),
+                    "phase": data.get("phase"),
+                    "started_at": data.get("started_at"),
+                    "completed_at": data.get("completed_at"),
+                    "tasks_completed": data.get("budget", {}).get("tasks_completed", 0),
+                }
+            )
         except (json.JSONDecodeError, Exception):
             continue
 

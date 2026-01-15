@@ -10,13 +10,12 @@ This matches the behavior of the Bash lib/config.sh implementation.
 import json
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .models import CubConfig
 
-
 # Global cache to avoid reloading config multiple times per session
-_config_cache: Optional[CubConfig] = None
+_config_cache: CubConfig | None = None
 
 
 def get_xdg_config_home() -> Path:
@@ -41,7 +40,7 @@ def get_user_config_path() -> Path:
     return get_xdg_config_home() / "cub" / "config.json"
 
 
-def get_project_config_path(cwd: Optional[Path] = None) -> Path:
+def get_project_config_path(cwd: Path | None = None) -> Path:
     """
     Get path to project configuration file.
 
@@ -89,7 +88,7 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     return result
 
 
-def load_json_file(path: Path) -> Optional[dict[str, Any]]:
+def load_json_file(path: Path) -> dict[str, Any] | None:
     """
     Load a JSON file, returning None if it doesn't exist or is invalid.
 
@@ -173,20 +172,14 @@ def get_default_config() -> dict[str, Any]:
                 "token",
                 "secret",
                 "authorization",
-                "credentials"
-            ]
+                "credentials",
+            ],
         },
-        "review": {
-            "plan_strict": False,
-            "block_on_concerns": False
-        }
+        "review": {"plan_strict": False, "block_on_concerns": False},
     }
 
 
-def load_config(
-    project_dir: Optional[Path] = None,
-    use_cache: bool = True
-) -> CubConfig:
+def load_config(project_dir: Path | None = None, use_cache: bool = True) -> CubConfig:
     """
     Load configuration with multi-layer merging.
 

@@ -6,8 +6,9 @@ must implement, enabling pluggable task storage (beads, JSON, etc.).
 """
 
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from .models import Task, TaskCounts, TaskStatus
 
@@ -29,9 +30,9 @@ class TaskBackend(Protocol):
 
     def list_tasks(
         self,
-        status: Optional[TaskStatus] = None,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        status: TaskStatus | None = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         List all tasks, optionally filtered.
@@ -46,7 +47,7 @@ class TaskBackend(Protocol):
         """
         ...
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         """
         Get a specific task by ID.
 
@@ -60,8 +61,8 @@ class TaskBackend(Protocol):
 
     def get_ready_tasks(
         self,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         Get all tasks that are ready to work on.
@@ -84,10 +85,10 @@ class TaskBackend(Protocol):
     def update_task(
         self,
         task_id: str,
-        status: Optional[TaskStatus] = None,
-        assignee: Optional[str] = None,
-        description: Optional[str] = None,
-        labels: Optional[list[str]] = None,
+        status: TaskStatus | None = None,
+        assignee: str | None = None,
+        description: str | None = None,
+        labels: list[str] | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -107,7 +108,7 @@ class TaskBackend(Protocol):
         """
         ...
 
-    def close_task(self, task_id: str, reason: Optional[str] = None) -> Task:
+    def close_task(self, task_id: str, reason: str | None = None) -> Task:
         """
         Close a task.
 
@@ -131,9 +132,9 @@ class TaskBackend(Protocol):
         description: str = "",
         task_type: str = "task",
         priority: int = 2,
-        labels: Optional[list[str]] = None,
-        depends_on: Optional[list[str]] = None,
-        parent: Optional[str] = None,
+        labels: list[str] | None = None,
+        depends_on: list[str] | None = None,
+        parent: str | None = None,
     ) -> Task:
         """
         Create a new task.
@@ -210,8 +211,8 @@ def register_backend(name: str) -> Callable[[type[TaskBackend]], type[TaskBacken
 
 
 def get_backend(
-    name: Optional[str] = None,
-    project_dir: Optional[Path] = None,
+    name: str | None = None,
+    project_dir: Path | None = None,
 ) -> TaskBackend:
     """
     Get a task backend by name or auto-detect.
@@ -240,15 +241,14 @@ def get_backend(
     backend_class = _backends.get(name)
     if backend_class is None:
         raise ValueError(
-            f"Backend '{name}' not registered. "
-            f"Available backends: {', '.join(_backends.keys())}"
+            f"Backend '{name}' not registered. Available backends: {', '.join(_backends.keys())}"
         )
 
     # Instantiate and return
     return backend_class()
 
 
-def detect_backend(project_dir: Optional[Path] = None) -> str:
+def detect_backend(project_dir: Path | None = None) -> str:
     """
     Auto-detect which task backend to use.
 

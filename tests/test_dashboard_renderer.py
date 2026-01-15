@@ -4,7 +4,6 @@ Unit tests for dashboard renderer.
 Tests the Rich-based dashboard rendering for cub run monitoring.
 """
 
-from datetime import datetime
 from io import StringIO
 
 import pytest
@@ -14,7 +13,6 @@ from rich.layout import Layout
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
-    EventLog,
     IterationInfo,
     RunPhase,
     RunStatus,
@@ -84,9 +82,7 @@ class TestDashboardRenderer:
         status.add_event("Task cub-072 completed", EventLevel.INFO, task_id="cub-072")
         status.add_event("Committed: feat(cub-072): Add status writer", EventLevel.INFO)
         status.add_event("Task cub-073 started", EventLevel.INFO, task_id="cub-073")
-        status.add_event(
-            "Warning: Approaching token limit", EventLevel.WARNING, task_id="cub-073"
-        )
+        status.add_event("Warning: Approaching token limit", EventLevel.WARNING, task_id="cub-073")
 
         return status
 
@@ -101,7 +97,9 @@ class TestDashboardRenderer:
         renderer = DashboardRenderer(console=console)
         assert renderer.console is console
 
-    def test_render_returns_layout(self, renderer: DashboardRenderer, basic_status: RunStatus) -> None:
+    def test_render_returns_layout(
+        self, renderer: DashboardRenderer, basic_status: RunStatus
+    ) -> None:
         """Test that render() returns a Layout."""
         layout = renderer.render(basic_status)
         assert isinstance(layout, Layout)

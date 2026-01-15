@@ -44,8 +44,7 @@ class TestCubLoggerInit:
         logger = CubLogger.init("testproject", "session-456")
 
         expected_path = (
-            Path.home() / ".local" / "share" / "cub" / "logs" / "testproject"
-            / "session-456.jsonl"
+            Path.home() / ".local" / "share" / "cub" / "logs" / "testproject" / "session-456.jsonl"
         )
         assert logger.log_file == expected_path
 
@@ -132,11 +131,7 @@ class TestCubLoggerLogEvent:
 
         data = {
             "task_id": "cub-001",
-            "metadata": {
-                "labels": ["python", "urgent"],
-                "budget": 5000,
-                "options": None
-            }
+            "metadata": {"labels": ["python", "urgent"], "budget": 5000, "options": None},
         }
         logger.log_event(EventType.TASK_START, data)
 
@@ -208,7 +203,7 @@ class TestCubLoggerConvenienceMethods:
             duration_sec=42.5,
             tokens_used=1500,
             budget_remaining=3500,
-            budget_total=5000
+            budget_total=5000,
         )
 
         with open(log_file) as f:
@@ -266,10 +261,7 @@ class TestCubLoggerConvenienceMethods:
         log_file = tmp_path / "test.jsonl"
         logger = CubLogger(log_file)
 
-        logger.log_error(
-            "Task failed",
-            context={"task_id": "cub-001", "reason": "timeout"}
-        )
+        logger.log_error("Task failed", context={"task_id": "cub-001", "reason": "timeout"})
 
         with open(log_file) as f:
             entry = json.loads(f.readline())
@@ -311,7 +303,7 @@ class TestCubLoggerJqQueryability:
         result = subprocess.run(
             ["jq", "-s", 'map(select(.event_type == "task_start"))', str(log_file)],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0
@@ -336,7 +328,7 @@ class TestCubLoggerJqQueryability:
         result = subprocess.run(
             ["jq", "-s", 'map(select(.data.task_id == "cub-001"))', str(log_file)],
             capture_output=True,
-            text=True
+            text=True,
         )
 
         assert result.returncode == 0

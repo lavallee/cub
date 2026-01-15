@@ -9,9 +9,9 @@ import json
 import shutil
 import subprocess
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
-from .backend import HarnessBackend, register_backend
+from .backend import register_backend
 from .models import HarnessCapabilities, HarnessResult, TokenUsage
 
 
@@ -67,7 +67,7 @@ class CodexBackend:
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
     ) -> HarnessResult:
         """
@@ -99,6 +99,7 @@ class CodexBackend:
 
         # Add extra flags from environment
         import os
+
         extra_flags = os.environ.get("CODEX_FLAGS", "").strip()
         if extra_flags:
             flags.extend(extra_flags.split())
@@ -154,9 +155,9 @@ class CodexBackend:
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
-        callback: Optional[Callable[[str], None]] = None,
+        callback: Callable[[str], None] | None = None,
     ) -> HarnessResult:
         """
         Invoke Codex with streaming output.
@@ -188,6 +189,7 @@ class CodexBackend:
 
         # Add extra flags from environment
         import os
+
         extra_flags = os.environ.get("CODEX_FLAGS", "").strip()
         if extra_flags:
             flags.extend(extra_flags.split())
