@@ -4,6 +4,8 @@
 .cub/*.tmp                  # Temporary files
 .cub/cache/                 # Cache directory
 .cub/temp/                  # Temporary working directory
+.cub/logs/
+.cub/runs/
 
 # Beads viewer local config and caches
 .bv/
