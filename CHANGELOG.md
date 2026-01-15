@@ -6,6 +6,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.20.0] - 2026-01-14 (PR #24)
+
+### Added - Guardrails System (Institutional Memory)
+
+A complete system for capturing, preserving, and applying project-specific lessons learned. Guardrails are automatically included in task prompts to prevent repeat mistakes and share institutional knowledge with AI coding assistants.
+
+- **Core Guardrails File** (`.cub/guardrails.md`)
+  - Markdown format with structured lessons
+  - YAML frontmatter for metadata (source, task_id, timestamp, category)
+  - Auto-created during `cub init`
+
+- **`cub guardrails show`** - Display current guardrails
+  - `--category <name>` - Filter by category
+  - `--search <term>` - Full-text search
+  - `--count` - Show lesson count only
+  - `--raw` - Output raw markdown
+
+- **`cub guardrails add`** - Add new guardrails manually
+  - `--category <name>` - Specify category (default: "Manual")
+  - `--task <id>` - Link to source task
+  - Interactive prompts for lesson text
+
+- **`cub guardrails learn`** - Interactive lesson capture
+  - Reviews recent task completions
+  - Prompts for lessons learned
+  - Links lessons to source tasks
+
+- **`cub guardrails curate`** - AI-assisted guardrails cleanup
+  - Detects duplicate lessons
+  - Suggests merges for similar entries
+  - Recommends pruning of outdated items
+  - `--dry-run` - Preview changes without applying
+
+- **`cub guardrails import/export`** - Share guardrails between projects
+  - `cub guardrails export <file>` - Export to file
+  - `cub guardrails import <file>` - Import from file
+  - `--merge` - Combine with existing (default)
+  - `--replace` - Overwrite existing
+
+- **Auto-Learn from Failures** - AI extracts lessons from task failures
+  - Triggered on non-zero exit codes
+  - Captures error context and exit code
+  - Links to source task automatically
+
+- **Size Monitoring** - Warns when guardrails grow too large
+  - Configurable threshold in `.cub.json`
+  - Suggests running `cub guardrails curate`
+
+- **Task Prompt Integration** - Guardrails included automatically
+  - Appended to task prompts during `cub run`
+  - Helps AI avoid known pitfalls
+
+- **Run Artifacts** - Guardrails snapshot with each run
+  - Captured in `.cub/runs/<session>/guardrails.md`
+  - Enables debugging and audit trails
+
+### Technical
+
+- Added `lib/guardrails.sh` - Core guardrails functionality
+- Added `lib/cmd_guardrails.sh` - CLI command implementation
+- Added `lib/artifacts.sh` - Run artifact capture
+- Updated `lib/cmd_init.sh` - Create empty guardrails on init
+- Updated `lib/cmd_run.sh` - Include guardrails in prompts
+- Updated `lib/failure.sh` - Auto-learn from failures
+- Added `templates/guardrails.md` - Template for new projects
+- Added comprehensive test suite in `tests/guardrails.bats` (80+ tests)
+
+---
+
 ## [0.19.0] - 2026-01-14 (PR #23)
 
 ### Added - Git Workflow Integration
