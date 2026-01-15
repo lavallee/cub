@@ -29,7 +29,7 @@ _error_trap() {
 trap '_error_trap ${LINENO}' ERR
 
 # Version information
-CUB_VERSION="0.21.0"
+CUB_VERSION="0.23.0"
 
 # Resolve symlinks to find the real installation directory
 _resolve_symlink() {

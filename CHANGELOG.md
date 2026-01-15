@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.23.0] - 2026-01-15
+
+### Added - Live Dashboard
+
+Real-time monitoring dashboard for cub runs, with Rich-based terminal UI and tmux integration for split-pane workflows.
+
+- **Rich-Based Dashboard Renderer** (`src/cub/dashboard/renderer.py`)
+  - Live terminal UI with Rich library
+  - Task progress visualization
+  - Token usage and budget tracking
+  - Event log with color-coded levels
+  - Auto-refresh with configurable intervals
+
+- **Status File Polling** (`src/cub/dashboard/status.py`)
+  - Watches `.cub/runs/<session>/status.json` for changes
+  - Event-driven updates via file system monitoring
+  - Graceful handling of file changes during writes
+
+- **Tmux Integration** (`src/cub/dashboard/tmux.py`)
+  - `--monitor` flag creates split pane with live dashboard
+  - Automatic pane management (create/resize/close)
+  - Works with existing tmux sessions
+  - Fallback to standalone mode outside tmux
+
+- **`cub monitor` Command** (`src/cub/cli/monitor.py`)
+  - `cub monitor` - Watch current/latest run
+  - `cub monitor <session>` - Watch specific session
+  - `--refresh <seconds>` - Set refresh interval
+  - Standalone dashboard without running tasks
+
+### Technical
+
+- `src/cub/dashboard/` - New dashboard module
+- `src/cub/cli/monitor.py` - Monitor command implementation
+- `tests/test_dashboard_renderer.py` - Dashboard renderer tests
+- `tests/test_dashboard_status_watcher.py` - Status watcher tests
+- Updated `src/cub/cli/run.py` with `--monitor` flag support
+
+### Tasks Completed
+
+- cub-074: Implement Rich-based dashboard renderer
+- cub-075: Implement status file polling
+- cub-076: Implement tmux integration for --monitor
+- cub-077: Implement cub monitor command
+
+---
+
 ## [0.21.0] - 2026-01-15
 
 ### Added - Python Core Migration
@@ -677,6 +724,7 @@ A complete system for capturing, preserving, and applying project-specific lesso
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.23.0 | 2026-01-15 | - | Live Dashboard |
 | 0.21.0 | 2026-01-15 | - | Python Core Migration |
 | 0.20.0 | 2026-01-14 | #24 | Guardrails System |
 | 0.19.0 | 2026-01-14 | #23 | Git Workflow Integration |
