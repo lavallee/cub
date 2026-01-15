@@ -7,6 +7,12 @@
 #   ./scripts/release-pipeline.sh --start 0.22 # Start from 0.22
 #   ./scripts/release-pipeline.sh --only 0.23  # Only run 0.23
 #   ./scripts/release-pipeline.sh --dry-run    # Show what would be done
+#   ./scripts/release-pipeline.sh --max-retries 10  # More retries per epic
+#   ./scripts/release-pipeline.sh --retry-delay 30  # Wait longer between retries
+#
+# Environment variables:
+#   CUB_MAX_RETRIES  - Max retry attempts per epic (default: 5)
+#   CUB_RETRY_DELAY  - Seconds between retries (default: 10)
 #
 # Each release cycle:
 #   1. Run cub to implement epic tasks
@@ -53,6 +59,10 @@ DRY_RUN=false
 START_VERSION=""
 ONLY_VERSION=""
 
+# Retry configuration
+MAX_RETRIES="${CUB_MAX_RETRIES:-5}"
+RETRY_DELAY="${CUB_RETRY_DELAY:-10}"  # seconds between retries
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -80,8 +90,16 @@ while [[ $# -gt 0 ]]; do
             ONLY_VERSION="$2"
             shift 2
             ;;
+        --max-retries)
+            MAX_RETRIES="$2"
+            shift 2
+            ;;
+        --retry-delay)
+            RETRY_DELAY="$2"
+            shift 2
+            ;;
         --help|-h)
-            head -20 "$0" | tail -n +2 | sed 's/^# //' | sed 's/^#//'
+            head -25 "$0" | tail -n +2 | sed 's/^# //' | sed 's/^#//'
             exit 0
             ;;
         *)
@@ -162,13 +180,50 @@ run_epic_implementation() {
     # Create release branch
     git checkout -b "$branch" 2>/dev/null || git checkout "$branch"
 
-    # Run cub for this epic
+    # Run cub for this epic with retry loop
     log_info "Running cub for epic ${epic}..."
     log_info "Log file: ${log_file}"
+    log_info "Max retries: ${MAX_RETRIES}, delay: ${RETRY_DELAY}s"
 
-    # Run cub - it will work on tasks until epic is complete
-    if ! cub run --epic "$epic" --stream --debug 2>&1 | tee -a "$log_file"; then
-        log_error "cub run failed for ${epic}"
+    local attempt=1
+    local epic_complete=false
+
+    while [[ $attempt -le $MAX_RETRIES ]]; do
+        log_info "━━━ Attempt ${attempt}/${MAX_RETRIES} ━━━"
+
+        # Run cub - it will work on tasks until epic is complete or fails
+        if cub run --epic "$epic" --stream --debug 2>&1 | tee -a "$log_file"; then
+            # cub exited cleanly - check if epic is actually complete
+            local open_tasks
+            open_tasks=$(bd list --epic "$epic" --status open --count 2>/dev/null || echo "0")
+
+            if [[ "$open_tasks" == "0" ]]; then
+                epic_complete=true
+                break
+            else
+                log_warn "cub exited but ${open_tasks} tasks still open for ${epic}"
+            fi
+        else
+            log_warn "cub run exited with error for ${epic}"
+        fi
+
+        # Check if we should retry
+        if [[ $attempt -lt $MAX_RETRIES ]]; then
+            log_info "Waiting ${RETRY_DELAY}s before retry..."
+            sleep "$RETRY_DELAY"
+        fi
+
+        ((attempt++))
+    done
+
+    if [[ "$epic_complete" != "true" ]]; then
+        log_error "Epic ${epic} not complete after ${MAX_RETRIES} attempts"
+        log_error "Check log: ${log_file}"
+
+        # Show remaining tasks
+        log_error "Remaining open tasks:"
+        bd list --epic "$epic" --status open 2>/dev/null || true
+
         return 1
     fi
 
