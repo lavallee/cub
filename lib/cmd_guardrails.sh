@@ -19,11 +19,13 @@ Manage institutional memory guardrails that persist lessons learned across
 sessions to prevent repeating past mistakes.
 
 USAGE:
-  cub guardrails show [--format]     Display current guardrails
-  cub guardrails add "lesson text"   Add a new lesson
-  cub guardrails learn               Interactively learn from recent failures
-  cub guardrails curate              AI-assisted cleanup of guardrails
-  cub guardrails --help              Show this help
+  cub guardrails show [--format]           Display current guardrails
+  cub guardrails add "lesson text"         Add a new lesson
+  cub guardrails learn                     Interactively learn from recent failures
+  cub guardrails curate                    AI-assisted cleanup of guardrails
+  cub guardrails import <path>             Import guardrails from another project
+  cub guardrails export <path>             Export guardrails to a file
+  cub guardrails --help                    Show this help
 
 SUBCOMMANDS:
   show [--format FORMAT]    Display guardrails file contents
@@ -44,17 +46,30 @@ SUBCOMMANDS:
                             Shows diff and requires confirmation before applying
                             Target: under 50 entries
 
+  import <path>             Import guardrails from another project
+                            Adds lessons from source file to current project
+                            Marks imported lessons with source file and date
+                            Does not modify source file
+
+  export <path>             Export guardrails to a file
+                            Copies current guardrails.md to specified path
+                            Useful for sharing across projects
+
 OUTPUT:
-  show:  Displays the .cub/guardrails.md file with:
-         - Project-specific guidance and conventions
-         - Lessons learned from previous task failures
-         - Linked task IDs and dates for traceability
+  show:   Displays the .cub/guardrails.md file with:
+          - Project-specific guidance and conventions
+          - Lessons learned from previous task failures
+          - Linked task IDs and dates for traceability
 
-         If no guardrails file exists, shows informational message.
+          If no guardrails file exists, shows informational message.
 
-  add:   Appends the lesson to the Project-Specific section and confirms success
+  add:    Appends the lesson to the Project-Specific section and confirms success
 
-  learn: Interactive workflow to extract lessons from failures
+  learn:  Interactive workflow to extract lessons from failures
+
+  import: Appends imported lessons with source attribution
+
+  export: Saves guardrails file to specified location
 
 EXAMPLES:
   # Display guardrails
@@ -77,6 +92,12 @@ EXAMPLES:
 
   # Curate and consolidate guardrails with AI assistance
   cub guardrails curate
+
+  # Import guardrails from another project
+  cub guardrails import /path/to/other/project/.cub/guardrails.md
+
+  # Export guardrails to share with another project
+  cub guardrails export /tmp/shared-guardrails.md
 
 SEE ALSO:
   cub status    Check task progress
@@ -370,6 +391,105 @@ cmd_guardrails_curate() {
     fi
 }
 
+# Import guardrails from another project
+cmd_guardrails_import() {
+    local source_path="$1"
+
+    # Check for help flag
+    if [[ "${source_path}" == "--help" || "${source_path}" == "-h" ]]; then
+        cmd_guardrails_help
+        return 0
+    fi
+
+    # Validate source path was provided
+    if [[ -z "$source_path" ]]; then
+        _log_error_console "Error: source path is required"
+        _log_error_console "Usage: cub guardrails import <path>"
+        return 1
+    fi
+
+    # Validate source path exists
+    if [[ ! -f "$source_path" ]]; then
+        _log_error_console "Error: Source file does not exist: $source_path"
+        return 1
+    fi
+
+    # Source required libraries
+    source "${CUB_DIR}/lib/guardrails.sh"
+    source "${CUB_DIR}/lib/logger.sh"
+
+    log_info "Importing guardrails from: $source_path"
+
+    # Call the import function from guardrails.sh
+    if guardrails_import "$source_path" "${PROJECT_DIR}"; then
+        log_success "Guardrails imported successfully"
+
+        # Get source file basename for feedback
+        local source_name
+        source_name=$(basename "$source_path")
+        local import_location
+        import_location=$(guardrails_get_file "${PROJECT_DIR}")
+
+        log_info "Source: $source_path"
+        log_info "Destination: $import_location"
+
+        # Check and warn about size after import
+        guardrails_warn_size_if_exceeded "" "${PROJECT_DIR}"
+
+        return 0
+    else
+        _log_error_console "Error: Failed to import guardrails"
+        return 1
+    fi
+}
+
+# Export guardrails to a file
+cmd_guardrails_export() {
+    local dest_path="$1"
+
+    # Check for help flag
+    if [[ "${dest_path}" == "--help" || "${dest_path}" == "-h" ]]; then
+        cmd_guardrails_help
+        return 0
+    fi
+
+    # Validate destination path was provided
+    if [[ -z "$dest_path" ]]; then
+        _log_error_console "Error: destination path is required"
+        _log_error_console "Usage: cub guardrails export <path>"
+        return 1
+    fi
+
+    # Source required libraries
+    source "${CUB_DIR}/lib/guardrails.sh"
+    source "${CUB_DIR}/lib/logger.sh"
+
+    # Check if guardrails file exists
+    if ! guardrails_exists "${PROJECT_DIR}"; then
+        _log_error_console "Error: No guardrails file to export"
+        _log_error_console "Run 'cub guardrails add' to create one first"
+        return 1
+    fi
+
+    log_info "Exporting guardrails to: $dest_path"
+
+    # Call the export function from guardrails.sh
+    if guardrails_export "$dest_path" "${PROJECT_DIR}"; then
+        log_success "Guardrails exported successfully"
+
+        local source_location
+        source_location=$(guardrails_get_file "${PROJECT_DIR}")
+
+        log_info "Source: $source_location"
+        log_info "Destination: $dest_path"
+
+        return 0
+    else
+        _log_error_console "Error: Failed to export guardrails"
+        return 1
+    fi
+}
+
 cmd_guardrails() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -412,6 +532,16 @@ cmd_guardrails() {
             # Shift to pass remaining args to curate
             shift
             cmd_guardrails_curate "$@"
+            ;;
+        import)
+            # Shift to pass source path to import
+            shift
+            cmd_guardrails_import "$@"
+            ;;
+        export)
+            # Shift to pass destination path to export
+            shift
+            cmd_guardrails_export "$@"
             ;;
         *)
             _log_error_console "Unknown subcommand: ${subcommand}"

@@ -827,3 +827,129 @@ Updated cmd_guardrails_help() to document new subcommand
 - Verified both lib files load without syntax errors
 - Confirmed function exists in namespace (declare -F)
 - Help text displays correctly with proper formatting
+
+---
+
+## 2026-01-14 - cub-3ge.11: Implement guardrails import/export between projects
+
+### Task Completed
+Successfully implemented import/export CLI commands for guardrails to enable sharing institutional memory between projects.
+
+### What Was Implemented
+
+**Added Two New Subcommands:**
+
+1. **`cub guardrails import <path>`**
+   - Imports guardrails lessons from another project's guardrails.md file
+   - Validates source file exists before importing
+   - Marks imported lessons with source file path and date as HTML comment
+   - Warns about file size after import if it exceeds limit
+   - Non-destructive: doesn't modify source file, only appends to destination
+
+2. **`cub guardrails export <path>`**
+   - Exports current project's guardrails to a specified file
+   - Useful for sharing lessons across teams or with other projects
+   - Validates guardrails file exists before exporting
+   - Simple copy operation preserving all formatting
+
+**Updated Help Text:**
+- Added both commands to cmd_guardrails_help() with usage examples
+- Documented parameters and behavior
+- Added practical examples for both import and export
+
+**Integration:**
+- Added cmd_guardrails_import() function to cmd_guardrails.sh
+- Added cmd_guardrails_export() function to cmd_guardrails.sh
+- Updated main cmd_guardrails() dispatcher to handle import/export cases
+- Leveraged existing guardrails_import() and guardrails_export() functions from guardrails.sh
+
+### Implementation Details
+
+**Import Function (cmd_guardrails_import):**
+- Takes source file path as first argument
+- Validates path is provided and file exists
+- Sources guardrails.sh and logger.sh for dependencies
+- Calls guardrails_import() which:
+  - Extracts lessons from source's "Learned from Failures" section
+  - Appends HTML comment with source attribution: `<!-- Imported from: <path> on <date> -->`
+  - Preserves all lesson metadata (dates, task IDs, error summaries)
+  - Returns 0 on success, 1 on failure
+
+**Export Function (cmd_guardrails_export):**
+- Takes destination file path as first argument
+- Validates path is provided and guardrails file exists
+- Calls guardrails_export() which:
+  - Copies entire guardrails.md to destination
+  - Preserves all sections (Project-Specific and Learned from Failures)
+  - Works with any file path (relative or absolute)
+
+**Source Attribution:**
+The imported lessons section shows:
+```markdown
+<!-- Imported from: /tmp/project_source/.cub/guardrails.md on 2026-01-14 -->
+
+### 2026-01-14 - source-task-1
+Source lesson 1
+```
+
+This makes it clear where lessons came from and when they were imported.
+
+### Testing
+
+**Manual Testing:**
+- Tested export: Verified .cub/guardrails.md copied to /tmp/shared-guardrails.md
+- Tested import: Verified lessons from source file added with proper attribution
+- Tested error cases: Non-existent files, missing arguments handled correctly
+- Verified source attribution comments appear in destination file
+- Verified size warnings work after import
+
+**Automated Tests:**
+- All 54 existing guardrails.bats tests still pass
+- Tests confirm guardrails_import() and guardrails_export() work correctly:
+  - `guardrails_import requires source file` ✓
+  - `guardrails_import fails if source doesn't exist` ✓
+  - `guardrails_import adds lessons from source file` ✓
+  - `guardrails_export copies file to destination` ✓
+  - `guardrails_export fails without source file` ✓
+
+### Key Design Decisions
+
+1. **Source Attribution via Comments:** Used HTML comments instead of modifying lesson content, keeping original lessons intact
+2. **Simple Copy for Export:** Export is a straightforward file copy, making it portable and shareable
+3. **Non-Destructive Import:** Only appends to destination, never overwrites existing lessons
+4. **Leveraging Existing Functions:** Reused guardrails_import/export from guardrails.sh rather than duplicating logic
+5. **Error Validation:** Check for file existence and required arguments before attempting operations
+6. **Size Warnings:** Integrated with existing guardrails_warn_size_if_exceeded() to alert users if import causes size limit to be exceeded
+
+### Benefits
+
+1. **Cross-Team Knowledge Sharing:** Teams can export lessons and share across projects
+2. **Multi-Project Consistency:** Import shared guardrails to maintain consistent practices
+3. **Onboarding:** New projects can import guardrails from mature projects
+4. **Audit Trail:** Source attribution shows where lessons originated
+5. **Non-Destructive:** Safe to import from multiple sources without losing existing lessons
+
+### Files Modified
+
+- `lib/cmd_guardrails.sh` - Added cmd_guardrails_import(), cmd_guardrails_export(), updated help text and dispatcher
+- No changes needed to lib/guardrails.sh (functions already existed)
+- No new tests needed (existing import/export tests in guardrails.bats verify functionality)
+
+### Commit
+task(cub-3ge.11): Implement guardrails import/export between projects
+
+### Learnings
+
+1. **Leveraging Existing Code:** The guardrails_import() and guardrails_export() functions were already fully implemented in the library layer - this task was just about exposing them as CLI commands. This pattern of separating library functions from CLI commands allows for flexible reuse.
+
+2. **Source Attribution:** Using HTML comments for attribution is elegant because:
+   - Preserves lesson integrity (doesn't modify actual lessons)
+   - Shows in markdown viewers as comments (non-intrusive)
+   - Easy to parse programmatically if needed
+   - Respects the markdown structure
+
+3. **Non-Destructive Imports:** Always appending rather than merging prevents data loss and allows multiple imports from different sources. Users can always curate afterwards if there are duplicates.
+
+4. **Integration with Existing Systems:** The import process correctly triggers guardrails_warn_size_if_exceeded(), which means users get immediate feedback if importing causes the file to exceed size limits.
+
+5. **Error Messages Matter:** Clear error messages for missing files and arguments help users understand what went wrong and how to fix it.
