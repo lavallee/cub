@@ -194,7 +194,7 @@ run_epic_implementation() {
     log_info "═══════════════════════════════════════════════════════════"
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would run: cub run --epic ${epic} --stream --debug"
+        log_info "[DRY-RUN] Would run: cub --debug run --epic ${epic} --stream"
         return 0
     fi
 
@@ -227,7 +227,7 @@ run_epic_implementation() {
         log_info "━━━ Attempt ${attempt}/${MAX_RETRIES} ━━━"
 
         # Run cub - it will work on tasks until epic is complete or fails
-        if cub run --epic "$epic" --stream --debug 2>&1 | tee -a "$log_file"; then
+        if cub --debug run --epic "$epic" --stream 2>&1 | tee -a "$log_file"; then
             # cub exited cleanly - check if epic is actually complete
             local open_tasks
             open_tasks=$(bd list --epic "$epic" --status open --count 2>/dev/null || echo "0")
