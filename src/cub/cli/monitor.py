@@ -84,6 +84,12 @@ def monitor(
 
         # Get the most recent session (first in the list as they're sorted by mtime)
         session_id = runs[0]["run_id"]
+        if session_id is None:
+            console.print(
+                "[red]Error: Found session with missing run_id. "
+                "Status file may be corrupted.[/red]"
+            )
+            raise typer.Exit(1)
         if debug:
             console.print(f"[dim]Auto-detected session: {session_id}[/dim]")
 
