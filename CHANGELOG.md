@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.23.2] - 2026-01-15
+
+### Fixed - Unimplemented Commands
+
+Commands that printed "not yet implemented" now delegate to bash.
+
+- **`cub init`** - Now properly delegates to bash implementation
+  - Was previously printing "Init command not yet implemented"
+  - Now runs the full bash init workflow
+
+### Changed
+
+- Removed `init_cmd.py` from active CLI registration
+- Added `init` to delegated commands module
+
+---
+
 ## [0.23.1] - 2026-01-15
 
 ### Added - Hybrid Python/Bash CLI
