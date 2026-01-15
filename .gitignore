@@ -14,3 +14,4 @@
 # Cub
 *.cub.tmp
 __pycache__/
+build/
