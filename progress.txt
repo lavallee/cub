@@ -1065,3 +1065,34 @@ Implemented BeadsBackend for task management, wrapping the `bd` CLI with full Ta
 - Tested all CRUD operations against live .beads/ data
 - Confirmed all 7 acceptance criteria
 - No unit tests yet (will add in future task)
+
+## Task cub-057: Implement JsonBackend for task management
+
+### Key Learnings
+
+1. **Pydantic Serialization**: When serializing Pydantic models to JSON, use `model_dump(mode='json')` to properly handle datetime objects - they get converted to ISO strings automatically.
+
+2. **Atomic File Writes**: Use tempfile.mkstemp() in the same directory as the target file, then os.replace() for atomic writes. This prevents corruption on write failures.
+
+3. **Field Aliases**: Pydantic's `populate_by_name=True` allows models to accept both snake_case and camelCase fields (e.g., depends_on and dependsOn). When constructing Task objects programmatically, use the alias name (dependsOn, issue_type) to avoid type errors.
+
+4. **Dependency Resolution**: For get_ready_tasks(), build a set of closed task IDs first, then filter tasks where all dependencies are in that set. This is more efficient than repeated lookups.
+
+5. **File Caching**: Cache parsed JSON with mtime tracking to avoid re-parsing on every operation. Invalidate cache on writes.
+
+6. **Backend Registration**: The @register_backend decorator must be applied to the class, and the module must be imported in __init__.py to trigger registration (even with noqa: F401).
+
+7. **TaskPriority Enum**: When creating tasks, convert integer priority (0-4) to TaskPriority enum: TaskPriority(f"P{priority}")
+
+### What Went Well
+
+- All acceptance criteria met on first implementation
+- Integration tests passed without major issues
+- Type checking clean (no new errors in json.py)
+- Backend registration and auto-detection working correctly
+
+### What Could Be Improved
+
+- Initial datetime serialization issue - should have remembered Pydantic's mode='json' parameter
+- Could add more robust error handling for corrupted JSON files
+- Might want to add migration tooling from prd.json to beads in the future
