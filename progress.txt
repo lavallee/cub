@@ -1186,3 +1186,33 @@ Type checking clean (mypy)
 ### Next Steps
 Task cub-058 is complete. Ready for next task in Python migration (likely harness layer or CLI implementation).
 
+
+## cub-059: HarnessBackend Protocol (2026-01-14)
+
+Implemented the HarnessBackend protocol and registry, mirroring the TaskBackend pattern:
+
+**Key Components:**
+- `HarnessCapabilities`: Feature detection (streaming, token_reporting, system_prompt, auto_mode, json_output, model_selection)
+- `TokenUsage`: Token tracking with cache metrics (read/creation) and cost estimation
+- `HarnessResult`: Invocation results with output, usage, timing, exit code, and error handling
+- `HarnessBackend` Protocol: Properties (name, capabilities) + methods (invoke, invoke_streaming, is_available, get_version)
+- Registry pattern: `@register_backend` decorator + factory functions (get_backend, detect_harness)
+
+**Architecture Decisions:**
+- Follows TaskBackend pattern for consistency
+- Protocol-based design enables pluggable harness implementations
+- Auto-detection order: HARNESS env var > priority list > default (claude > opencode > codex > gemini)
+- Capability constants match existing bash conventions for easy migration
+- TokenUsage includes cache metrics and estimated flag for backends without native reporting
+
+**Type Safety:**
+- All code passes `mypy --strict`
+- Runtime checkable protocols via `@runtime_checkable`
+- Proper Optional typing for nullable fields
+
+**Next Steps (for future tasks):**
+- Implement concrete backends (ClaudeBackend, CodexBackend, etc.)
+- Add streaming callback support with real-time output handling
+- Port bash harness functions to Python implementations
+- Add comprehensive tests for backend behavior
+
