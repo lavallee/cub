@@ -2,7 +2,9 @@
   "task_id": "cub-064",
   "title": "Implement cub status command",
   "priority": "P1",
-  "status": "in_progress",
+  "status": "completed",
   "started_at": "2026-01-15T05:09:48Z",
-  "iterations": 0
+  "iterations": 1,
+  "completed_at": "2026-01-15T05:11:15Z",
+  "exit_code": 0
 }
