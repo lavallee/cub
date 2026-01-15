@@ -1397,3 +1397,109 @@ Successfully implemented the Codex CLI harness backend following the same patter
 - Consider model name translation (Claude names → OpenAI equivalents)
 - Port bash model translation function (_codex_translate_model)
 
+
+## 2026-01-14 - cub-062: Create Typer CLI structure with core commands
+
+### Task Completed
+Successfully created the Typer CLI structure with core commands (run, status, init, version).
+
+### What Was Implemented
+
+**CLI Structure:**
+- Created `src/cub/cli/` directory with modular command structure
+- Main CLI app in `cli/__init__.py` with global options (--debug)
+- Separate modules for each command:
+  - `run.py` - Execute autonomous task loop
+  - `status.py` - Show current session status
+  - `init_cmd.py` - Initialize cub in a project (avoiding init.py conflict)
+- Created `src/cub/__main__.py` entry point for `python -m cub`
+- Added `version` command to show cub version
+
+**Global Options:**
+- `--debug` flag available on all commands via callback context
+- Shell completion support via Typer's built-in `--install-completion`
+- Help text generation automatic via Typer decorators
+
+**Command Stubs:**
+- All commands show "not yet implemented" messages
+- All accept their specified options and show help correctly
+- Options use modern Python type hints (PEP 604: `str | None` instead of `Optional[str]`)
+
+### Key Implementation Details
+
+**Entry Point Configuration:**
+- pyproject.toml defines `cub = "cub.cli:app"` as script entry point
+- Enables both `python -m cub` and installed `cub` command to work
+- __main__.py simply imports and calls app() from cli module
+
+**CLI Architecture:**
+- Each command is a separate Typer app registered as subcommand
+- Context object passes global options (debug) to subcommands
+- Rich console used for colored output and formatting
+- Type annotations enable auto-generated help text
+
+**Import Structure:**
+- cli/__init__.py imports subcommand modules at top level
+- Avoids circular imports by importing after app creation
+- app.add_typer() registers each subcommand with main app
+
+### Linting Fixes Applied
+
+**Auto-fixed by ruff:**
+- Converted `Optional[X]` → `X | None` (PEP 604 modern syntax)
+- Removed extraneous f-string prefixes on non-interpolated strings
+- Removed unused imports
+
+**Manual fixes:**
+- Moved imports to top of file (cli/__init__.py)
+- Removed unused `Optional` import
+
+### Testing
+
+**Manual Testing:**
+- ✓ `python -m cub --help` shows all commands
+- ✓ `python -m cub version` shows version string
+- ✓ `python -m cub run --help` shows run options
+- ✓ `python -m cub status --help` shows status options
+- ✓ `python -m cub init --help` shows init options
+- ✓ Exit codes correct (0 for success, 2 for usage errors)
+
+**Automated Testing:**
+- ✓ All 77 existing tests pass (pytest)
+- ✓ Linting passes (ruff check)
+- ✓ Type checking has pre-existing errors in core/tasks/models.py (not related to CLI)
+
+### Key Design Decisions
+
+1. **Separate Command Modules**: Each command in its own file for maintainability as they grow
+2. **init_cmd.py Naming**: Avoid conflicts with Python's init.py while keeping command as `init`
+3. **Version as Command**: Created `cub version` command rather than using `--version` flag (better fits Typer's no_args_is_help pattern)
+4. **Modern Type Hints**: Used PEP 604 union syntax (X | None) for Python 3.10+ compatibility
+5. **Stub Implementation**: All commands show "not implemented" messages with exit code 0 (success) so CLI structure can be validated
+
+### Files Created
+- src/cub/cli/__init__.py (55 lines) - Main CLI app with callback and version command
+- src/cub/cli/run.py (75 lines) - Run command with harness/budget/task options
+- src/cub/cli/status.py (85 lines) - Status command with verbose/json/session options
+- src/cub/cli/init_cmd.py (79 lines) - Init command with global/harness/force options
+- src/cub/__main__.py (7 lines) - Entry point for python -m cub
+
+### Commit
+a39ace2 task(cub-062): Create Typer CLI structure with core commands
+
+### Learnings
+
+1. **Typer's no_args_is_help Pattern**: When using `no_args_is_help=True`, eager options with `is_eager=True` can cause issues. Better to create explicit commands for things like version.
+
+2. **Context Objects for Global Options**: Typer's callback pattern with `ctx.obj` is clean way to pass global options (like --debug) to all subcommands without repeating parameters.
+
+3. **Import Placement Matters**: Imports must be at module top for linters. Subcommand imports should happen after app creation but before registration to avoid circular dependencies.
+
+4. **Shell Completion Requires Shell Detection**: `--install-completion` tries to auto-detect shell which can fail in some environments. This is a Typer limitation, not our bug.
+
+5. **Stub Commands Should Succeed**: When creating command structure before implementation, stubs should return exit code 0 (not errors) so help text and structure can be validated.
+
+6. **Type Hints Enable Auto-Help**: Typer uses type annotations to generate help text automatically. Using `str | None` and default values creates clean option documentation.
+
+7. **Rich Console Integration**: Using Rich console for output gives consistent formatting across commands and enables colored output with simple markup.
+
