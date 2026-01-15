@@ -5,6 +5,7 @@ These commands are not yet ported to Python, so they delegate to the
 bash cub script with proper argument passing.
 """
 
+import click
 import typer
 
 from cub.core.bash_delegate import delegate_to_bash
@@ -122,9 +123,18 @@ def guardrails(ctx: typer.Context, args: list[str] | None = typer.Argument(None)
 # Project Initialization
 
 
-def init(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+def init(
+    ctx: typer.Context,
+    global_: bool = typer.Option(False, "--global", "-g", help="Set up global configuration"),
+    args: list[str] | None = typer.Argument(None),
+) -> None:
     """Initialize cub in a project or globally."""
-    _delegate("init", args or [], ctx)
+    all_args = []
+    if global_:
+        all_args.append("--global")
+    if args:
+        all_args.extend(args)
+    _delegate("init", all_args, ctx)
 
 
 # Utility & Maintenance

@@ -1,39 +1,112 @@
 # Cub
 
-**C**oding **U**nder **R**alph + **B**eads
+**Work ahead of your AI coding agents, then let them run.**
 
+Cub is for developers who are already running AI coding CLIs (Claude Code, Codex, OpenCode) in autonomous mode and want more structure. If you're juggling multiple agent sessions, manually routing work to different models, or finding that fully hands-off agents tend to run amok—Cub helps you work *ahead* of execution so you can be more hands-off *during* execution.
 
-An autonomous AI coding agent harness that drives AI coding CLIs in a loop to build software from a structured task backlog.
+%% should we do a very brief quickstart here? %%
 
-Combines the [Ralph Wiggum technique](https://ghuntley.com/ralph/) (running an AI agent in a while loop) with [beads-style](https://github.com/steveyegge/beads) task management (hash IDs, P0-P4 priorities, dependency tracking).
+## The Problem
+
+AI coding agents in 2026 are powerful. They can operate for hours, produce working code, run tests, and iterate toward production quality. But there's a gap:
+
+- **Too hands-on**: Sitting in an IDE, approving every tool call, staying close to the work
+- **Too hands-off**: Letting agents run wild with vague instructions, hoping for the best
+
+Cub finds the balance. You invest time *before* code starts flying—breaking work into agent-sized tasks, routing complexity to the right models, reviewing the plan—then step back and let execution happen more seamlessly.
+
+## Two Main Steps: Prep and Run
+
+### Step 1. `cub prep`: Go From a Vision to Structured Tasks
+
+Bring your ideas (a sentence, a spec, a whole design doc) and go through a structured interview to generate clear tasks for an LLM:
+
+1. **Triage** — What are we trying to accomplish? What are the goals?
+2. **Architect** — What makes sense technically? What's the implementation approach?
+3. **Plan** — Break it into agent-sized chunks with clear acceptance criteria
+4. **Bootstrap** — Write tasks to your chosen backend (beads or JSON)
+
+The goal: observable, reviewable work *before* any code is written. No gaps in understanding slip through.
+
+```bash
+cub prep                    # Run full pipeline
+cub triage                  # Or run stages individually
+cub architect
+cub plan
+cub bootstrap
+```
+
+### Step 2: `cub run`: Turn Tasks Into Code
+
+Once you have structured tasks, Cub runs the [Ralph Wiggum loop](https://ghuntley.com/ralph/)—picking ready tasks, generating prompts, invoking your chosen AI harness, and iterating until done or budget exhausted.
+
+```bash
+cub run                     # Run until complete
+cub run --once              # Single iteration
+cub run --epic my-feature   # Target specific work
+```
+
+The execution loop handles dependency ordering, failure recovery, git commits, and structured logging. You can watch it stream or check in later.
+
+## Key Features
+
+### Right Model for the Task
+
+Not everything needs Opus. Cub supports per-task model selection:
+
+```bash
+bd label add cub-abc model:haiku     # Simple rename, use fast model
+bd label add cub-xyz model:sonnet    # Medium complexity
+bd label add cub-123 model:opus      # Complex architecture work
+```
+
+Route simple refactoring to Haiku, medium tasks to Sonnet, reserve Opus for planning and complex work. Manage tokens as a resource.
+
+### Multi-Harness Flexibility
+
+Cub abstracts across multiple AI coding CLIs:
+
+- **Claude Code** — General coding, complex refactoring (default)
+- **OpenAI Codex** — Quick fixes, OpenAI ecosystem
+- **Google Gemini** — Alternative perspective
+- **OpenCode** — Open-source option
+
+Each harness evolves rapidly. New capabilities emerge in one that may not exist in others. Cub lets you use the right tool without vendor lock-in.
+
+```bash
+cub run --harness claude    # Explicit selection
+cub run --harness codex
+```
+
+### Deterministic Control Layer
+
+Building outside any single harness means the core loop—task selection, success/failure detection, retry logic, state transitions—runs as traditional software, not LLM inference. This enables:
+
+- **Reliable hooks**: Email when a task completes, not "hopefully the agent remembers"
+- **Consistent logging**: Structured JSONL, not scattered console output
+- **Predictable budgets**: Hard limits that actually stop execution
 
 ## Features
 
-- **Multi-Harness Support**: Works with Claude Code, OpenAI Codex, Google Gemini, or OpenCode
-- **Dual Task Backend**: Use beads CLI or simple prd.json for task management
-- **Autonomous Loop**: Runs until all tasks are complete or budget exhausted
+- **Autonomous Loop**: Runs until all tasks complete or budget exhausted
 - **Dependency Tracking**: Respects task dependencies, picks ready tasks
 - **Priority Scheduling**: P0-P4 priority-based task selection
 - **Epic/Label Filtering**: Target specific epics or labeled tasks
-- **Per-Task Model Selection**: Tasks with `model:X` labels auto-select the model
-- **Budget Management**: Token budget tracking with configurable limits and warnings
-- **Guardrails**: Iteration limits, secret redaction, and safety controls
+- **Budget Management**: Token tracking with configurable limits and warnings
+- **Guardrails**: Iteration limits, secret redaction, safety controls
 - **Failure Handling**: Configurable modes (stop, move-on, retry, triage)
-- **Session Management**: Named sessions with animal names, artifact bundles per task
+- **Session Management**: Named sessions, artifact bundles per task
 - **Git Workflow**: Auto-branching, commit per task, clean state enforcement
-- **Hooks System**: Custom scripts at 5 lifecycle points (pre/post loop, pre/post task, on-error)
-- **Structured Logging**: JSONL logs with timestamps, durations, and git SHAs
-- **Global + Project Config**: XDG-compliant configuration with overrides
-- **Subcommand CLI**: Clear organization with init, run, status, explain, artifacts
-- **Planning Mode**: Analyze codebase and generate fix plans
+- **Hooks System**: Custom scripts at 5 lifecycle points
+- **Structured Logging**: JSONL logs with timestamps, durations, git SHAs
+- **Dual Task Backend**: Use [beads](https://github.com/steveyegge/beads) CLI or simple JSON file
 - **Streaming Output**: Watch agent activity in real-time
-- **Migration Tools**: Convert between prd.json and beads formats
 
 ## Prerequisites
 
 - **Python 3.10+** (required)
-- **Harness** (at least one):
-  - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Recommended
+- **Harness** (Claude and others):
+  - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Required for `cub prep`, recommended for `cub run`.
   - [OpenAI Codex CLI](https://github.com/openai/codex) (`codex`)
   - [Google Gemini CLI](https://github.com/google-gemini-cli) (`gemini`)
   - [OpenCode CLI](https://github.com/opencode) (`opencode`)
@@ -42,170 +115,168 @@ Combines the [Ralph Wiggum technique](https://ghuntley.com/ralph/) (running an A
 
 ## Installation
 
-### Using `uv` (Recommended - Fastest)
+### One-Liner (Recommended)
 
 ```bash
-# Install uv if you don't have it
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://lavallee.github.io/cub/install.sh | sh
+```
 
-# Clone and install cub
+This will:
+- Install cub via pipx (installing pipx if needed)
+- Add cub to your PATH
+- Run `cub init --global` to set up config directories
+
+Restart your shell after installation.
+
+### Alternative Methods
+
+<details>
+<summary>Using pipx manually</summary>
+
+```bash
+pipx install git+https://github.com/lavallee/cub.git
+cub init --global
+```
+</details>
+
+<details>
+<summary>Using uv</summary>
+
+```bash
+uv tool install git+https://github.com/lavallee/cub.git
+cub init --global
+```
+</details>
+
+<details>
+<summary>From source (for development)</summary>
+
+```bash
 git clone https://github.com/lavallee/cub ~/tools/cub
 cd ~/tools/cub
-uv sync
-
-# Add to PATH
+uv sync  # or: python3.10 -m venv .venv && source .venv/bin/activate && pip install -e .
 export PATH="$HOME/tools/cub/.venv/bin:$PATH"
+cub init --global
 ```
 
-### Using `pip`
-
-```bash
-# Clone cub
-git clone https://github.com/lavallee/cub ~/tools/cub
-cd ~/tools/cub
-
-# Create virtual environment
-python3.10 -m venv .venv
-source .venv/bin/activate
-
-# Install
-pip install -e .
-
-# Add to PATH
-export PATH="$HOME/tools/cub/.venv/bin:$PATH"
-```
-
-### Add to Shell Configuration
-
-Add the PATH export to your `~/.bashrc`, `~/.zshrc`, or equivalent:
-
-```bash
-# Add this line to ~/.bashrc or ~/.zshrc
-export PATH="$HOME/tools/cub/.venv/bin:$PATH"
-```
-
-Then reload your shell:
-
-```bash
-source ~/.bashrc  # or source ~/.zshrc
-```
-
-### Legacy Bash Version
-
-For the older Bash-based version of cub (pre-0.21), use:
-
-```bash
-# Checkout the bash version
-cd ~/tools/cub
-git checkout bash-legacy
-```
-
-The Bash version requires [jq](https://jqlang.github.io/jq/) but does not require Python.
+Add the PATH export to your `~/.bashrc` or `~/.zshrc`.
+</details>
 
 ## Quick Start
 
 ```bash
-# First-time setup (creates global config and directories)
-cub init --global
-
-# Initialize a new project
 cd my-project
-cub init
-
-# Create tasks using beads (recommended)
-bd init
-bd create "Your first task" --type task --priority 2
-
-# Or edit prd.json (legacy JSON backend)
-# Add specifications to specs/
-# Update CLAUDE.md with build instructions
-
-# Check status
-cub status
-
-# Run the autonomous loop
-cub run
-
-# Or run a single iteration
-cub run --once
-
-# Or target a specific epic
-cub run --epic my-epic-id
-
-# Or filter by label
-cub run --label phase-1
+cub init                    # Initialize project
 ```
 
-**Upgrading from v0.20 (Bash)?** See [UPGRADING.md](UPGRADING.md) for v0.21 migration guide and what changed.
+### Path A: Start with Prep (Recommended)
+
+When starting new work, use the prep pipeline to turn your ideas into structured tasks:
+
+```bash
+# Run the full prep interview
+cub prep
+
+# Or run stages individually for more control
+cub triage      # Clarify goals and requirements
+cub architect   # Design technical approach
+cub plan        # Break into agent-sized tasks
+cub bootstrap   # Write tasks to backend
+```
+
+### Path B: Create Tasks Directly
+
+If you already know what needs doing:
+
+```bash
+# Using beads (recommended)
+bd init
+bd create "Implement user authentication" --type feature --priority 2
+bd create "Add login form" --type task --priority 2
+
+# Or edit prd.json directly (JSON backend)
+```
+
+### Run the Loop
+
+```bash
+cub status              # Check what's ready
+cub run                 # Run until complete
+cub run --once          # Single iteration
+cub run --epic my-epic  # Target specific work
+cub run --stream        # Watch in real-time
+```
+
+**Upgrading from v0.20 (Bash)?** See [UPGRADING.md](UPGRADING.md) for migration guide.
 
 ## Usage
 
-Cub uses a subcommand structure for clear organization:
+### Prep Commands (Vision → Tasks)
 
 ```bash
-# SUBCOMMANDS
-cub init           # Initialize project or global config
-cub run            # Run the main loop (default)
-cub status         # Show task progress
-cub explain <id>   # Show task details
-cub artifacts      # List task outputs
-cub version        # Show version
+# Full prep pipeline
+cub prep                    # Run triage → architect → plan → bootstrap
 
-# CUB INIT - Initialize project or system
-cub init                    # Initialize current directory
-cub init --global           # Set up global config
-cub init /path/to/project   # Initialize specific directory
+# Individual stages (for more control)
+cub triage                  # Clarify requirements and goals
+cub architect               # Design technical implementation
+cub plan                    # Break into agent-sized tasks
+cub bootstrap               # Write tasks to backend
 
-# CUB RUN - Execute tasks (this is the default if no subcommand)
-cub run                     # Run loop until all tasks complete
-cub run --once              # Run single iteration
+# Manage prep sessions
+cub sessions                # List prep sessions
+cub interview <task-id>     # Deep-dive on a specific task
+cub interview --all --auto  # Batch interview all open tasks
+```
+
+### Run Commands (Tasks → Code)
+
+```bash
+# Execute the loop
+cub run                     # Run until all tasks complete
+cub run --once              # Single iteration
 cub run --ready             # Show ready (unblocked) tasks
 cub run --plan              # Run planning mode
-cub run --name myname       # Use custom session name
+cub run --name myname       # Custom session name
 
-# CUB STATUS - Show progress
-cub status                  # Show task summary
-cub status --json           # JSON output for scripting
-
-# CUB EXPLAIN - Task details
-cub explain cub-abc        # Show full task details
-
-# CUB ARTIFACTS - View task outputs
-cub artifacts               # List all artifacts
-cub artifacts cub-abc      # Show artifacts for specific task
-
-# FILTERING (works with beads or JSON backend)
+# Filtering
 cub run --epic <id>         # Target tasks within a specific epic
 cub run --label <name>      # Target tasks with a specific label
 cub run --epic cub-1gq --label phase-1  # Combine filters
 
-# HARNESS SELECTION
+# Harness selection
 cub run --harness claude    # Use Claude Code (default)
 cub run --harness codex     # Use OpenAI Codex CLI
 cub run --harness gemini    # Use Google Gemini
 cub run --harness opencode  # Use OpenCode
 
-# BACKEND SELECTION
-cub run --backend beads     # Force beads backend
-cub run --backend json      # Force JSON backend
-
-# OUTPUT MODES
+# Output modes
 cub run --stream            # Stream harness activity in real-time
 cub run --debug             # Enable verbose debug logging
+```
 
-# MIGRATION TOOLS
-cub --migrate-to-beads          # Migrate prd.json to beads
-cub --migrate-to-beads-dry-run  # Preview migration
+### Other Commands
 
-# DEBUGGING
-cub run --test              # Test harness invocation
-cub run --dump-prompt       # Save prompts to files for inspection
+```bash
+# Setup
+cub init                    # Initialize current project
+cub init --global           # Set up global config
 
-# HELP
-cub --help                  # Main help
-cub init --help             # Init subcommand help
-cub run --help              # Run subcommand help
-cub status --help           # Status subcommand help
+# Status and inspection
+cub status                  # Show task progress
+cub status --json           # JSON output for scripting
+cub explain <task-id>       # Show full task details
+cub artifacts               # List task outputs
+
+# Git workflow
+cub branch <epic-id>        # Create branch bound to epic
+cub branches                # List branch-epic bindings
+cub pr <epic-id>            # Create pull request for epic
+
+# Utilities
+cub validate                # Check beads state and config
+cub doctor                  # Diagnose configuration issues
+cub --migrate-to-beads      # Migrate prd.json to beads
 ```
 
 **Note:** Running `cub` without a subcommand defaults to `cub run`.
@@ -1064,18 +1135,16 @@ cub                      # Restart loop
 | Claude Code | General coding, complex refactoring, multi-file changes |
 | Codex | Quick fixes, OpenAI ecosystem projects |
 
-## Files Reference
+## Source Code Reference
 
-| File | Purpose |
-|------|---------|
-| `cub` | Main script - the autonomous loop |
-| `cub-init` | Project and global initialization |
-| `lib/harness.sh` | AI harness abstraction (claude/codex) |
-| `lib/tasks.sh` | Task backend abstraction (beads/json) |
-| `lib/beads.sh` | Beads CLI wrapper functions |
-| `lib/xdg.sh` | XDG Base Directory helpers |
-| `lib/config.sh` | Configuration loading and merging |
-| `lib/logger.sh` | Structured JSONL logging |
+| Module | Purpose |
+|--------|---------|
+| `src/cub/cli/` | Typer CLI subcommands (run, status, init, prep commands) |
+| `src/cub/core/config.py` | Configuration loading and merging |
+| `src/cub/core/models.py` | Pydantic data models (Task, Config, etc.) |
+| `src/cub/core/tasks/` | Task backends (beads, JSON) |
+| `src/cub/core/harness/` | AI harness backends (Claude, Codex, Gemini, OpenCode) |
+| `src/cub/core/logger.py` | Structured JSONL logging |
 | `templates/PROMPT.md` | Default system prompt |
 | `templates/AGENT.md` | Default agent instructions |
 
