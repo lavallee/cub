@@ -50,6 +50,7 @@ from .models import (
 
 # Import backends to trigger registration
 from . import claude  # noqa: F401
+from . import codex  # noqa: F401
 
 __all__ = [
     # Backend interface
