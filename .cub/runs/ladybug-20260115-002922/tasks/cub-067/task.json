@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-067",
+  "title": "Add pytest test suite for core modules",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-15T05:29:25Z",
+  "iterations": 1,
+  "completed_at": "2026-01-15T05:41:57Z",
+  "exit_code": 0
+}
