@@ -18,6 +18,7 @@ from .models import Task, TaskCounts, TaskPriority, TaskStatus, TaskType
 
 # Import backend implementations to trigger registration
 from . import beads  # noqa: F401
+from . import json  # noqa: F401
 
 __all__ = [
     # Models
