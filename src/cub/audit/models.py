@@ -17,7 +17,7 @@ class DeadCodeFinding(BaseModel):
     file_path: str = Field(description="Path to the file containing the dead code")
     line_number: int = Field(ge=1, description="Line number where the definition occurs")
     name: str = Field(description="Name of the unused symbol")
-    kind: Literal["import", "function", "class", "variable", "method"] = Field(
+    kind: Literal["import", "function", "class", "variable", "method", "bash_function"] = Field(
         description="Type of the unused symbol"
     )
     reason: str = Field(
