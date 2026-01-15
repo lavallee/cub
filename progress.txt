@@ -1096,3 +1096,93 @@ Implemented BeadsBackend for task management, wrapping the `bd` CLI with full Ta
 - Initial datetime serialization issue - should have remembered Pydantic's mode='json' parameter
 - Could add more robust error handling for corrupted JSON files
 - Might want to add migration tooling from prd.json to beads in the future
+
+## Session 2026-01-14: Config Loader Implementation (cub-058)
+
+Implemented comprehensive configuration loading system matching the existing Bash behavior with multi-layer merging.
+
+### Key Implementation Details
+
+**Configuration Precedence Chain:**
+1. Hardcoded defaults (lowest priority)
+2. User config (~/.config/cub/config.json)
+3. Project config (.cub.json)
+4. Environment variables (highest priority: CUB_BUDGET, CUB_REVIEW_STRICT)
+
+**Core Functions:**
+- `load_config()` - Main entry point for loading and validating configuration
+- `deep_merge()` - Recursive dictionary merging that preserves nested structures
+- `apply_env_overrides()` - Applies CUB_* environment variable overrides
+- `get_xdg_config_home()` - XDG Base Directory spec compliance
+- `clear_cache()` - Cache invalidation for testing/reloading
+
+### Key Learnings
+
+1. **Deep Merging vs Replacement**: When merging nested dictionaries, it's critical to deep merge rather than replace entire sections. This allows users to override specific settings without losing defaults for other settings in the same section.
+
+2. **JSON Type Safety with mypy**: `json.load()` returns `Any`, which mypy dislikes. Solution: explicit type narrowing with `isinstance(data, dict)` after loading.
+
+3. **Config Caching Pattern**: Global module-level cache (`_config_cache`) avoids reloading config on every access while still allowing `clear_cache()` for testing. This matches the Bash implementation's file-based caching.
+
+4. **XDG Directory Handling**: Respect `XDG_CONFIG_HOME` env var for user config location, but provide sensible default (`~/.config`) when not set. This is cross-platform friendly.
+
+5. **Environment Variable Precedence**: Env vars should have highest precedence because they're most immediate/explicit. Users expect `CUB_BUDGET=999 cub run` to override config files.
+
+6. **Error Resilience**: Config system should be resilient to invalid JSON files - print warnings but continue with defaults rather than crashing. This prevents broken config from blocking all operations.
+
+7. **Walrus Operator for Optional Checks**: Using `:=` in conditionals (`if budget_str := os.environ.get("CUB_BUDGET")`) is clean and avoids double lookups.
+
+### Implementation Highlights
+
+**deep_merge() Algorithm:**
+- Recursively merges nested dicts
+- Non-dict values are replaced (not merged)
+- Handles arbitrary nesting depth
+- Used throughout config loading chain
+
+**Type Narrowing for json.load():**
+```python
+data = json.load(f)
+if isinstance(data, dict):
+    return data
+return None
+```
+This satisfies mypy's type checker while handling non-dict JSON gracefully.
+
+**Environment Variable Parsing:**
+- `CUB_BUDGET`: Parse as int, ignore if invalid, print warning
+- `CUB_REVIEW_STRICT`: Truthy values ("1", "true", "yes") → True, falsy ("0", "false", "") → False
+
+### Testing Approach
+
+Created comprehensive test suite with 34 tests covering:
+- Unit tests for helper functions (deep_merge, load_json_file, apply_env_overrides)
+- Integration tests for full precedence chain
+- XDG directory handling
+- Config caching behavior
+- Error handling (invalid JSON, validation errors)
+- Smoke tests for end-to-end loading
+
+### Files Created
+- src/cub/core/config/loader.py (254 lines)
+- tests/test_config_loader.py (511 lines, 34 tests)
+
+### Files Modified
+- src/cub/core/config/__init__.py (added loader exports)
+- src/cub/core/config/models.py (fixed type hint: dict → dict[str, Any])
+
+### Acceptance Criteria Met
+✓ Loads defaults when no config files exist
+✓ User config overrides defaults
+✓ Project config overrides user config
+✓ Env vars override all config files
+✓ Invalid config produces helpful error
+✓ Config is cached after first load
+
+### Test Results
+All 64 tests passing (34 new + 30 existing)
+Type checking clean (mypy)
+
+### Next Steps
+Task cub-058 is complete. Ready for next task in Python migration (likely harness layer or CLI implementation).
+
