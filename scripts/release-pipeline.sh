@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
 #
-# release-pipeline.sh - Automated release pipeline for cub
-#
-# Supports both major versions (0.21, 0.23) and sub-point releases (0.23.3).
-# Major versions get .0 suffix (0.23 -> v0.23.0), sub-point releases don't (0.23.3 -> v0.23.3).
+# release-pipeline.sh - Automated release pipeline for cub v0.21-0.25
 #
 # Usage:
-#   ./scripts/release-pipeline.sh                  # Run all releases
-#   ./scripts/release-pipeline.sh --start 0.23.3  # Start from 0.23.3
-#   ./scripts/release-pipeline.sh --only 0.23.3   # Only run 0.23.3
-#   ./scripts/release-pipeline.sh --dry-run       # Show what would be done
+#   ./scripts/release-pipeline.sh              # Run all releases 0.21-0.25
+#   ./scripts/release-pipeline.sh --start 0.22 # Start from 0.22
+#   ./scripts/release-pipeline.sh --only 0.23  # Only run 0.23
+#   ./scripts/release-pipeline.sh --dry-run    # Show what would be done
 #   ./scripts/release-pipeline.sh --max-retries 10  # More retries per epic
 #   ./scripts/release-pipeline.sh --retry-delay 30  # Wait longer between retries
 #
@@ -33,12 +30,11 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 LOG_DIR="${PROJECT_DIR}/.cub/logs"
 
 # Version to Epic mapping (bash 3.2 compatible)
-# Supports both major versions (0.21) and sub-point releases (0.23.3)
 get_epic_for_version() {
     case "$1" in
         0.21) echo "cub-E07" ;;
+        0.22) echo "cub-E08" ;;
         0.23) echo "cub-E09" ;;
-        0.23.3) echo "cub-E08" ;;
         0.24) echo "cub-E10" ;;
         0.25) echo "cub-E11" ;;
         *) echo "" ;;
@@ -56,28 +52,7 @@ get_epic_title() {
     esac
 }
 
-# Check if version is a sub-point release (e.g., 0.23.3 vs 0.23)
-is_subpoint_release() {
-    local version="$1"
-    # Count dots - sub-point releases have 2 dots (e.g., 0.23.3)
-    local dots
-    dots=$(echo "$version" | tr -cd '.' | wc -c)
-    [[ $dots -ge 2 ]]
-}
-
-# Get the full version string for tags/releases
-# Major releases: 0.23 -> 0.23.0
-# Sub-point releases: 0.23.3 -> 0.23.3 (no .0 suffix)
-get_full_version() {
-    local version="$1"
-    if is_subpoint_release "$version"; then
-        echo "$version"
-    else
-        echo "${version}.0"
-    fi
-}
-
-VERSIONS="0.21 0.23 0.23.3 0.24 0.25"
+VERSIONS="0.21 0.22 0.23 0.24 0.25"
 
 # Flags
 DRY_RUN=false
@@ -267,11 +242,8 @@ create_and_merge_pr() {
 
     log_info "Creating PR for v${version}..."
 
-    local full_version
-    full_version=$(get_full_version "$version")
-
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would create PR: v${full_version} - ${title}"
+        log_info "[DRY-RUN] Would create PR: v${version}.0 - ${title}"
         return 0
     fi
 
@@ -280,7 +252,7 @@ create_and_merge_pr() {
 
     # Use Claude to create PR, handle review, and merge
     claude --print "
-You are managing a release PR for cub v${full_version} - ${title}
+You are managing a release PR for cub v${version}.0 - ${title}
 
 Epic: ${epic}
 Branch: ${branch}
@@ -288,7 +260,7 @@ Branch: ${branch}
 Please do the following:
 
 1. Create a pull request:
-   - Title: v${full_version} - ${title}
+   - Title: v${version}.0 - ${title}
    - Generate a summary from the epic's completed tasks
    - Target: main
 
@@ -316,13 +288,11 @@ update_version_and_changelog() {
     epic=$(get_epic_for_version "$version")
     local title
     title=$(get_epic_title "$epic")
-    local full_version
-    full_version=$(get_full_version "$version")
 
-    log_info "Updating version and changelog for v${full_version}..."
+    log_info "Updating version and changelog for v${version}..."
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would update CUB_VERSION to ${full_version}"
+        log_info "[DRY-RUN] Would update CUB_VERSION to ${version}.0"
         log_info "[DRY-RUN] Would update CHANGELOG.md"
         return 0
     fi
@@ -333,21 +303,21 @@ update_version_and_changelog() {
 
     # Use Claude to update changelog and version
     claude --print "
-Update the release artifacts for cub v${full_version} - ${title}
+Update the release artifacts for cub v${version}.0 - ${title}
 
 1. Update CHANGELOG.md:
-   - Add a new section at the top: ## [${full_version}] - $(date +%Y-%m-%d)
+   - Add a new section at the top: ## [${version}.0] - $(date +%Y-%m-%d)
    - Summarize what was accomplished in epic ${epic}
    - Group changes by: Added, Changed, Fixed, Removed (as applicable)
    - Reference task IDs where helpful
 
 2. Update the version number in the cub executable:
-   - Change CUB_VERSION=\"...\" to CUB_VERSION=\"${full_version}\"
+   - Change CUB_VERSION=\"...\" to CUB_VERSION=\"${version}.0\"
    - The version is near line 32 in the 'cub' file
 
 3. Commit both changes:
    git add CHANGELOG.md cub
-   git commit -m 'chore: release v${full_version} - ${title}'
+   git commit -m 'chore: release v${version}.0 - ${title}'
 
 4. Push to main:
    git push origin main
@@ -365,9 +335,7 @@ create_release() {
     epic=$(get_epic_for_version "$version")
     local title
     title=$(get_epic_title "$epic")
-    local full_version
-    full_version=$(get_full_version "$version")
-    local tag="v${full_version}"
+    local tag="v${version}.0"
 
     log_info "Creating release ${tag}..."
 
@@ -385,7 +353,7 @@ Create a GitHub release for cub ${tag} - ${title}
    git tag -a '${tag}' -m 'Release ${tag} - ${title}'
    git push origin '${tag}'
 
-2. Extract the release notes from CHANGELOG.md for version ${full_version}
+2. Extract the release notes from CHANGELOG.md for version ${version}.0
 
 3. Create the GitHub release:
    gh release create '${tag}' \\
@@ -439,12 +407,10 @@ Verify beads state after v${version} release:
 # Run a single release cycle
 run_release_cycle() {
     local version="$1"
-    local full_version
-    full_version=$(get_full_version "$version")
 
     log_info ""
     log_info "╔═══════════════════════════════════════════════════════════╗"
-    log_info "║  RELEASE CYCLE: v${full_version}$(printf '%*s' $((30 - ${#full_version})) '')║"
+    log_info "║  RELEASE CYCLE: v${version}.0                                  ║"
     log_info "╚═══════════════════════════════════════════════════════════╝"
     log_info ""
 
@@ -465,7 +431,7 @@ run_release_cycle() {
 
     log_success ""
     log_success "═══════════════════════════════════════════════════════════"
-    log_success "  RELEASE v${full_version} COMPLETE!"
+    log_success "  RELEASE v${version}.0 COMPLETE!"
     log_success "═══════════════════════════════════════════════════════════"
     log_success ""
 }
