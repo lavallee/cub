@@ -17,8 +17,8 @@ Features inspired by adjacent homegrown tools like [chopshop](https://github.com
 # Needs issues
 
 0.21 - Language Migration (Go + Python)  # Now working on clean file structure
-0.22 - Codebase Health Audit             # Useful during/after migration
-0.23 - Live Dashboard                    # Visibility into runs
+0.23 - Live Dashboard                    # Visibility into runs (completed)
+0.23.3 - Codebase Health Audit           # Useful during/after migration
 0.24 - Parallel Development with Worktrees
 0.25 - Sandbox Mode                      # Safe execution, pairs with dashboard
 
