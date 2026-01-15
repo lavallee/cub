@@ -563,6 +563,53 @@ EOF
 # Bootstrap Stage (cmd_bootstrap)
 # ============================================================================
 
+# Wire up dependencies from plan.jsonl after import
+# This is a workaround for beads not importing dependencies
+# See: https://github.com/steveyegge/beads/issues/XXX
+_wire_dependencies_from_plan() {
+    local plan_file="$1"
+    local dep_count=0
+
+    if [[ ! -f "$plan_file" ]]; then
+        log_warn "Plan file not found: ${plan_file}"
+        return 0
+    fi
+
+    # Process each line with dependencies
+    while IFS= read -r line; do
+        local issue_id
+        issue_id=$(echo "$line" | jq -r '.id // empty')
+
+        if [[ -z "$issue_id" ]]; then
+            continue
+        fi
+
+        # Extract dependencies array
+        local deps
+        deps=$(echo "$line" | jq -c '.dependencies // []')
+
+        if [[ "$deps" == "[]" || "$deps" == "null" ]]; then
+            continue
+        fi
+
+        # Process each dependency
+        echo "$deps" | jq -c '.[]' | while IFS= read -r dep; do
+            local depends_on_id dep_type
+            depends_on_id=$(echo "$dep" | jq -r '.depends_on_id // empty')
+            dep_type=$(echo "$dep" | jq -r '.type // "blocks"')
+
+            if [[ -n "$depends_on_id" ]]; then
+                # Add the dependency silently
+                if bd dep add "$issue_id" "$depends_on_id" --type "$dep_type" 2>/dev/null; then
+                    ((dep_count++)) || true
+                fi
+            fi
+        done
+    done < "$plan_file"
+
+    log_debug "  Added ${dep_count} dependencies"
+}
+
 cmd_bootstrap() {
     local session_id=""
     local prefix=""
@@ -704,6 +751,10 @@ cmd_bootstrap() {
         _log_error_console "Import failed"
         return 1
     fi
+
+    # Wire up dependencies (bd import doesn't preserve them - beads bug)
+    log_info "Wiring up dependencies..."
+    _wire_dependencies_from_plan "$plan_file"
 
     # Sync state
     log_info "Syncing beads state..."
