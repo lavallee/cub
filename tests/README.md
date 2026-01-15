@@ -4,9 +4,160 @@ Comprehensive test suite for the cub autonomous AI coding agent harness.
 
 ## Overview
 
+Cub uses two complementary test frameworks:
+
+### Pytest (Python Tests)
+- **Framework**: [pytest](https://docs.pytest.org/) with coverage reporting
+- **Target**: Python core modules (v0.21+ migration from Bash to Python)
+- **Total Tests**: 254 tests
+- **Coverage**: 64% (target: 80%)
+- **Location**: `tests/test_*.py`
+
+### Bats (Bash Tests)
 - **Framework**: [Bats (Bash Automated Testing System)](https://github.com/bats-core/bats-core)
+- **Target**: Legacy Bash scripts and end-to-end workflows
 - **Total Tests**: 100+
-- **Coverage**: Unit tests, integration tests, error handling, end-to-end scenarios
+- **Location**: `tests/*.bats`
+
+## Python Test Suite (Pytest)
+
+### Running Pytest Tests
+
+```bash
+# Run all Python tests
+pytest
+
+# Run with coverage report
+pytest --cov=src/cub --cov-report=term-missing
+
+# Run specific test file
+pytest tests/test_tasks_beads.py
+
+# Run specific test class or function
+pytest tests/test_tasks_beads.py::TestListTasks
+pytest tests/test_tasks_beads.py::TestListTasks::test_list_all_tasks
+
+# Run with verbose output
+pytest -v
+
+# Run with extra verbose output (show all output)
+pytest -vv -s
+```
+
+### Python Test Files
+
+**Core Modules:**
+- `test_config_loader.py` - Configuration loading with XDG paths, merging, env overrides
+- `test_models.py` - Pydantic model validation and serialization
+- `test_logging.py` - Structured JSONL logging
+
+**Task Backends:**
+- `test_tasks_backend.py` - Task backend protocol and registry
+- `test_tasks_beads.py` - Beads backend (bd CLI wrapper)
+- `test_tasks_json.py` - JSON file backend (prd.json)
+
+**Harness Backends:**
+- `test_harness_backend.py` - Harness backend protocol and registry
+- `test_harness_claude.py` - Claude Code harness integration
+
+**Status & Monitoring:**
+- `test_status_writer.py` - RunStatus serialization and status.json management
+
+**Utilities:**
+- `test_hooks.py` - Hook execution and context passing
+
+**Test Fixtures:**
+- `conftest.py` - Shared pytest fixtures (temp dirs, sample data, mocks)
+
+### Coverage Goals
+
+Current coverage: **64%**
+
+**Target coverage by module:**
+- `src/cub/core/config/`: 99% ✅
+- `src/cub/core/tasks/`: 85% ✅
+- `src/cub/core/harness/`: 80% (currently 79%)
+- `src/cub/core/status/`: 95% ✅
+- `src/cub/utils/`: 90% ✅
+- `src/cub/cli/`: 0% (deferred - CLI testing in progress)
+
+**Overall target: 80%** (working towards this incrementally)
+
+### Writing Python Tests
+
+#### Test Structure
+
+```python
+"""
+Tests for module_name.
+
+Description of what this test file covers.
+"""
+
+import pytest
+from cub.module import function_to_test
+
+
+class TestFeatureName:
+    """Tests for specific feature."""
+
+    def test_happy_path(self, fixture_name):
+        """Test the expected behavior."""
+        # Arrange
+        setup_data = ...
+
+        # Act
+        result = function_to_test(setup_data)
+
+        # Assert
+        assert result == expected_value
+
+    def test_error_case(self, fixture_name):
+        """Test error handling."""
+        with pytest.raises(ValueError, match="expected error message"):
+            function_to_test(invalid_data)
+```
+
+#### Using Fixtures
+
+Available fixtures (see `conftest.py`):
+
+```python
+def test_with_fixtures(temp_dir, sample_task, sample_config):
+    """Fixtures provide common test data."""
+    # temp_dir: pathlib.Path to temporary directory
+    # sample_task: Task object with test data
+    # sample_config: CubConfig object with defaults
+    pass
+```
+
+#### Mocking External Commands
+
+```python
+from unittest.mock import patch
+
+@patch('subprocess.run')
+def test_with_mock(mock_run):
+    """Mock subprocess calls."""
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = '{"result": "success"}'
+
+    result = function_that_calls_subprocess()
+    assert result == "success"
+```
+
+### Best Practices
+
+1. **Test Organization**: Group related tests in classes (`class TestFeatureName`)
+2. **Descriptive Names**: `test_function_when_condition_then_outcome`
+3. **AAA Pattern**: Arrange, Act, Assert - keep tests readable
+4. **Fixtures Over Setup**: Use pytest fixtures instead of setup/teardown
+5. **Mock External Deps**: Mock subprocess calls, file I/O, network requests
+6. **Test Errors**: Include tests for error conditions and edge cases
+7. **Fast Tests**: Tests should run in <2 seconds total
+8. **Isolated Tests**: No test should depend on another test's state
+
+## Bats Test Suite (Bash)
 
 ## Test Files
 
