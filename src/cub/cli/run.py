@@ -29,6 +29,7 @@ from cub.core.status.models import (
 from cub.core.status.writer import StatusWriter
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
+from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 
 app = typer.Typer(
     name="run",
@@ -135,8 +136,7 @@ def generate_task_prompt(task: Task, backend_name: str) -> str:
     if backend_name == "beads":
         prompt_parts.append("")
         prompt_parts.append(
-            "Note: This project uses the beads task backend. "
-            "Use 'bd' commands for task management:"
+            "Note: This project uses the beads task backend. Use 'bd' commands for task management:"
         )
         prompt_parts.append(f"- bd close {task.id}  - Mark this task complete")
         prompt_parts.append(f"- bd show {task.id}   - Check task status")
@@ -247,6 +247,11 @@ def run(
         "-s",
         help="Stream harness output in real-time",
     ),
+    monitor: bool = typer.Option(
+        False,
+        "--monitor",
+        help="Launch with live dashboard in tmux split pane",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -270,6 +275,50 @@ def run(
     # Load configuration
     config = load_config(project_dir)
 
+    # Handle --monitor flag: launch tmux session with dashboard
+    if monitor:
+        # Generate session name (same logic as below)
+        run_id = session_name or f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        # Get dashboard pane size from config
+        pane_size = get_dashboard_pane_size(
+            getattr(getattr(config, "dashboard", None), "pane_size", None)
+        )
+
+        # Reconstruct all CLI arguments (except --monitor)
+        run_args = []
+        if harness:
+            run_args.extend(["--harness", harness])
+        if once:
+            run_args.append("--once")
+        if task_id:
+            run_args.extend(["--task", task_id])
+        if budget:
+            run_args.extend(["--budget", str(budget)])
+        if budget_tokens:
+            run_args.extend(["--budget-tokens", str(budget_tokens)])
+        if epic:
+            run_args.extend(["--epic", epic])
+        if label:
+            run_args.extend(["--label", label])
+        if model:
+            run_args.extend(["--model", model])
+        if session_name:
+            run_args.extend(["--name", session_name])
+        if ready:
+            run_args.append("--ready")
+        if stream:
+            run_args.append("--stream")
+        if debug:
+            run_args.append("--debug")
+
+        # Launch tmux session (this function does not return)
+        launch_with_dashboard(
+            run_args=run_args,
+            session_name=run_id,
+            pane_size=pane_size,
+        )
+
     if debug:
         console.print("[dim]Debug mode enabled[/dim]")
         console.print(f"[dim]Project: {project_dir}[/dim]")
@@ -277,7 +326,7 @@ def run(
     # Get task backend
     try:
         task_backend = get_task_backend(project_dir=project_dir)
-        backend_name = "beads" if hasattr(task_backend, '_run_bd') else "json"
+        backend_name = "beads" if hasattr(task_backend, "_run_bd") else "json"
     except Exception as e:
         console.print(f"[red]Failed to initialize task backend: {e}[/red]")
         raise typer.Exit(1)
@@ -294,8 +343,7 @@ def run(
     harness_name = harness or detect_harness(config.harness.priority)
     if not harness_name:
         console.print(
-            "[red]No harness available. Install claude, codex, "
-            "or another supported harness.[/red]"
+            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
         )
         raise typer.Exit(1)
 
@@ -351,8 +399,7 @@ def run(
 
     console.print(f"[bold]Starting cub run: {run_id}[/bold]")
     console.print(
-        f"Tasks: {counts.open} open, {counts.in_progress} in progress, "
-        f"{counts.closed} closed"
+        f"Tasks: {counts.open} open, {counts.in_progress} in progress, {counts.closed} closed"
     )
     console.print(f"Max iterations: {max_iterations}")
     console.print()
@@ -431,18 +478,14 @@ def run(
             status.current_task_id = current_task.id
             status.current_task_title = current_task.title
             status.add_event(
-                f"Starting task: {current_task.title}",
-                EventLevel.INFO,
-                task_id=current_task.id
+                f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
             )
             status_writer.write(status)
 
             # Claim task (mark as in_progress)
             try:
                 task_backend.update_task(
-                    current_task.id,
-                    status=TaskStatus.IN_PROGRESS,
-                    assignee=run_id
+                    current_task.id, status=TaskStatus.IN_PROGRESS, assignee=run_id
                 )
             except Exception as e:
                 if debug:
@@ -481,11 +524,7 @@ def run(
                     )
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
-                status.add_event(
-                    f"Harness failed: {e}",
-                    EventLevel.ERROR,
-                    task_id=current_task.id
-                )
+                status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
                 if config.loop.on_task_failure == "stop":
                     status.mark_failed(str(e))
                     break
@@ -582,6 +621,7 @@ def _show_ready_tasks(
     """Display ready tasks in a table."""
     # Type narrowing for mypy
     from cub.core.tasks.backend import TaskBackend
+
     if not isinstance(task_backend, TaskBackend):
         console.print("[red]Invalid task backend[/red]")
         return
@@ -605,8 +645,8 @@ def _show_ready_tasks(
     table.add_column("Labels", style="dim")
 
     for task in ready_tasks:
-        priority = task.priority.value if hasattr(task.priority, 'value') else str(task.priority)
-        task_type = task.type.value if hasattr(task.type, 'value') else str(task.type)
+        priority = task.priority.value if hasattr(task.priority, "value") else str(task.priority)
+        task_type = task.type.value if hasattr(task.type, "value") else str(task.type)
         labels = ", ".join(task.labels[:3]) if task.labels else ""
         if len(task.labels) > 3:
             labels += "..."
