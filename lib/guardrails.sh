@@ -153,6 +153,86 @@ ${lesson}
     return 0
 }
 
+# Add a lesson to the Project-Specific section of guardrails
+# Usage: guardrails_add_to_project <lesson> [project_dir]
+# Parameters:
+#   lesson - The lesson text to add
+#   project_dir - Optional project directory
+# Returns: 0 on success, 1 on error
+guardrails_add_to_project() {
+    local lesson="$1"
+    local project_dir="${2:-${PROJECT_DIR:-.}}"
+
+    # Validate lesson
+    if [[ -z "$lesson" ]]; then
+        echo "ERROR: lesson text is required" >&2
+        return 1
+    fi
+
+    # Ensure file exists
+    guardrails_init "$project_dir" || return 1
+
+    local file
+    file=$(_guardrails_get_file "$project_dir")
+
+    # Create a temporary file with the new content
+    local temp_file
+    temp_file=$(mktemp) || {
+        echo "ERROR: Failed to create temporary file" >&2
+        return 1
+    }
+
+    # Process the file and insert the lesson in the Project-Specific section
+    local in_project_section=false
+    local inserted=false
+
+    while IFS= read -r line; do
+        echo "$line" >> "$temp_file"
+
+        # Detect when we enter the Project-Specific section
+        if [[ "$line" == "## Project-Specific" ]]; then
+            in_project_section=true
+        fi
+
+        # Insert lesson after the section header and any blank lines
+        if [[ "$in_project_section" == "true" && "$inserted" == "false" && -z "$line" ]]; then
+            # Found a blank line after section header - insert here
+            echo "$lesson" >> "$temp_file"
+            inserted=true
+            in_project_section=false
+        fi
+
+        # Stop if we hit the next section header
+        if [[ "$in_project_section" == "true" && "$line" == "---" ]]; then
+            # We've hit the separator before Project-Specific content
+            # Check if we already inserted
+            if [[ "$inserted" == "false" ]]; then
+                # Need to insert before this separator
+                # Backtrack: remove the "---" we just added and insert lesson
+                # Since we can't easily remove from temp file, insert before separator
+                echo "$lesson" >> "$temp_file"
+                inserted=true
+            fi
+            in_project_section=false
+        fi
+    done < "$file"
+
+    # If we never found a good spot (shouldn't happen), append to end
+    if [[ "$inserted" == "false" ]]; then
+        echo "" >> "$temp_file"
+        echo "$lesson" >> "$temp_file"
+    fi
+
+    # Replace original file with updated content
+    mv "$temp_file" "$file" || {
+        echo "ERROR: Failed to write updated guardrails file" >&2
+        rm -f "$temp_file"
+        return 1
+    }
+
+    return 0
+}
+
 # Add a lesson from failure context
 # Extracts error information and formats it as a lesson
 # Usage: guardrails_add_from_failure <task_id> <exit_code> <error_summary> [lesson] [project_dir]

@@ -20,19 +20,26 @@ sessions to prevent repeating past mistakes.
 
 USAGE:
   cub guardrails show [--format]     Display current guardrails
+  cub guardrails add "lesson text"   Add a new lesson
   cub guardrails --help              Show this help
 
 SUBCOMMANDS:
   show [--format FORMAT]    Display guardrails file contents
                             Formats: text (default), json, markdown
 
-OUTPUT:
-  Displays the .cub/guardrails.md file with:
-  - Project-specific guidance and conventions
-  - Lessons learned from previous task failures
-  - Linked task IDs and dates for traceability
+  add "lesson text"         Add a lesson to the Project-Specific section
+                            Creates guardrails.md if it doesn't exist
+                            Lesson text must be provided as a string argument
 
-  If no guardrails file exists, shows informational message.
+OUTPUT:
+  show:  Displays the .cub/guardrails.md file with:
+         - Project-specific guidance and conventions
+         - Lessons learned from previous task failures
+         - Linked task IDs and dates for traceability
+
+         If no guardrails file exists, shows informational message.
+
+  add:   Appends the lesson to the Project-Specific section and confirms success
 
 EXAMPLES:
   # Display guardrails
@@ -43,6 +50,12 @@ EXAMPLES:
 
   # Show as markdown (for documentation)
   cub guardrails show --format markdown
+
+  # Add a lesson
+  cub guardrails add "Always run tests before committing"
+
+  # Add a lesson with special characters
+  cub guardrails add "Use jq for JSON parsing, not sed/awk"
 
 SEE ALSO:
   cub status    Check task progress
@@ -117,6 +130,33 @@ cmd_guardrails_show() {
     return 0
 }
 
+cmd_guardrails_add() {
+    local lesson="$1"
+
+    # Check for help flag
+    if [[ "${lesson}" == "--help" || "${lesson}" == "-h" ]]; then
+        cmd_guardrails_help
+        return 0
+    fi
+
+    # Validate lesson text was provided
+    if [[ -z "$lesson" ]]; then
+        _log_error_console "Error: lesson text is required"
+        _log_error_console "Usage: cub guardrails add \"lesson text\""
+        return 1
+    fi
+
+    # Add the lesson to guardrails Project-Specific section
+    if guardrails_add_to_project "$lesson" "${PROJECT_DIR}"; then
+        log_success "Guardrail added successfully"
+        log_info "Location: $(guardrails_get_file "${PROJECT_DIR}")"
+        return 0
+    else
+        _log_error_console "Error: Failed to add guardrail"
+        return 1
+    fi
+}
+
 cmd_guardrails() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -144,6 +184,11 @@ cmd_guardrails() {
             # Shift to pass remaining args to show
             shift
             cmd_guardrails_show "$@"
+            ;;
+        add)
+            # Shift to pass lesson text to add
+            shift
+            cmd_guardrails_add "$@"
             ;;
         *)
             _log_error_console "Unknown subcommand: ${subcommand}"
