@@ -262,7 +262,7 @@ class CubConfig(BaseModel):
 
     @field_validator('harness', mode='before')
     @classmethod
-    def validate_harness(cls, v: Union[str, dict, HarnessConfig]) -> Union[dict, HarnessConfig]:
+    def validate_harness(cls, v: Union[str, dict[str, Any], HarnessConfig]) -> Union[dict[str, Any], HarnessConfig]:
         """Convert string harness name to HarnessConfig."""
         if isinstance(v, str):
             return {"name": v}
