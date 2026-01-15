@@ -194,16 +194,26 @@ run_epic_implementation() {
     log_info "═══════════════════════════════════════════════════════════"
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would run: cub run --epic ${epic} --stream --debug"
+        log_info "[DRY-RUN] Would run: cub --debug run --epic ${epic} --stream"
         return 0
     fi
 
-    # Ensure we're on main and up to date
-    git checkout main
-    git pull --rebase
+    # Check current branch
+    local current_branch
+    current_branch=$(git branch --show-current)
 
-    # Create release branch
-    git checkout -b "$branch" 2>/dev/null || git checkout "$branch"
+    if [[ "$current_branch" == "$branch" ]]; then
+        log_info "Already on branch ${branch}, pulling latest..."
+        git pull --rebase || true
+    else
+        # Ensure we're on main and up to date
+        log_info "Switching to main to create/checkout release branch..."
+        git checkout main
+        git pull --rebase
+
+        # Create release branch
+        git checkout -b "$branch" 2>/dev/null || git checkout "$branch"
+    fi
 
     # Run cub for this epic with retry loop
     log_info "Running cub for epic ${epic}..."
@@ -217,7 +227,7 @@ run_epic_implementation() {
         log_info "━━━ Attempt ${attempt}/${MAX_RETRIES} ━━━"
 
         # Run cub - it will work on tasks until epic is complete or fails
-        if cub run --epic "$epic" --stream --debug 2>&1 | tee -a "$log_file"; then
+        if cub --debug run --epic "$epic" --stream 2>&1 | tee -a "$log_file"; then
             # cub exited cleanly - check if epic is actually complete
             local open_tasks
             open_tasks=$(bd list --epic "$epic" --status open --count 2>/dev/null || echo "0")

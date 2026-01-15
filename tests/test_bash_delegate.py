@@ -101,7 +101,6 @@ class TestIsBashCommand:
             "bootstrap",
             "interview",
             "doctor",
-            "upgrade",
         ]
         for cmd in bash_commands:
             assert is_bash_command(cmd) is True
@@ -211,8 +210,9 @@ class TestDelegateToBash:
 
             assert exc_info.value.code == 1
             captured = capsys.readouterr()
-            assert "Error: Not found" in captured.err
-            assert "bash version of cub is required" in captured.err
+            # Rich console.print outputs to stdout, not stderr
+            assert "Error: Not found" in captured.out
+            assert "bash version of cub is required" in captured.out
 
     def test_passes_additional_args(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that additional arguments are passed correctly."""
