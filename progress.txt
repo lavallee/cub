@@ -1,5 +1,86 @@
 # Cub Project Progress
 
+## 2026-01-14 - cub-3ge.8: Link guardrails to source tasks/failures
+
+### Task Completed
+Implemented comprehensive provenance tracking for guardrails, enabling complete traceability of where each lesson came from.
+
+### What Was Implemented
+
+**New Functions:**
+1. `guardrails_add_with_provenance()` - Add lessons with explicit provenance metadata
+   - Requires: lesson text, task ID, error summary
+   - Creates structured entries with all provenance data
+
+2. Updated `guardrails_add_from_failure()` - Enhanced with full metadata
+   - Now includes task ID in header: `### YYYY-MM-DD - task-id`
+   - Exit code: `**Exit Code:** <code>`
+   - Error source: `**Source Error:** <summary>`
+   - Actionable lesson: `**Lesson:** <text>`
+
+3. Enhanced `guardrails_list_json()` - Parses provenance metadata
+   - Extracts error_summary from entries for JSON output
+   - Returns entries with date, task_id, error_summary, and content
+   - Enables filtering and analysis of guardrails by source
+
+4. Updated `guardrails_learn_from_failure()` - Uses provenance format
+   - Now calls `guardrails_add_from_failure()` instead of generic `guardrails_add()`
+   - Ensures AI-extracted lessons include complete provenance tracking
+
+### Provenance Structure
+
+Guardrail entries now include complete traceability:
+
+```markdown
+### 2026-01-14 - task-123
+**Exit Code:** 1
+**Source Error:** Configuration file not found
+**Lesson:** Always verify config files exist before opening
+```
+
+JSON representation:
+```json
+{
+  "date": "2026-01-14",
+  "task_id": "task-123",
+  "error_summary": "Configuration file not found",
+  "content": "[Full content including all metadata]"
+}
+```
+
+### Key Design Decisions
+
+1. **Metadata in Header**: Task ID and date in the markdown header (###) makes them quickly visible
+2. **Structured Fields**: Using **Field:** syntax for consistency and easy parsing
+3. **Backward Compatible**: Existing guardrails without provenance still work, just don't have error_summary
+4. **JSON Extraction**: guardrails_list_json() extracts error_summary via regex for programmatic access
+5. **Two Functions**: guardrails_add_with_provenance() for explicit use, guardrails_add_from_failure() for auto-learning
+
+### Testing
+
+- All 49 guardrails tests pass
+- Updated test for guardrails_add_from_failure to check new format
+- Verified JSON parsing correctly extracts provenance fields
+- Manual testing confirms proper entry format and JSON structure
+
+### Benefits
+
+1. **Traceability** - Know exactly which failure caused each guardrail
+2. **Cleanup** - Can identify obsolete guardrails from resolved issues
+3. **Analysis** - Query guardrails by error type or task
+4. **Learning** - Understand patterns of failures across sessions
+5. **Documentation** - Error summary provides context for why the lesson exists
+
+### Files Modified
+
+- `lib/guardrails.sh` - Added guardrails_add_with_provenance(), enhanced guardrails_add_from_failure(), updated guardrails_list_json(), fixed guardrails_learn_from_failure()
+- `tests/guardrails.bats` - Updated test to check new provenance format
+
+### Commit
+1d2f16f task(cub-3ge.8): Link guardrails to source tasks/failures
+
+---
+
 ## Session: Guardrails System - Task Prompt Integration (cub-3ge.4)
 
 ### Task Completed
