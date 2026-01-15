@@ -6,6 +6,7 @@ for commands not yet ported to Python. It handles:
 - Locating the bash cub script (bundled or system)
 - Delegating commands with proper argument passing
 - Exit code and output passthrough
+- Debug flag propagation via CUB_DEBUG environment variable
 """
 
 import os
@@ -14,6 +15,10 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import NoReturn
+
+from rich.console import Console
+
+console = Console()
 
 
 class BashCubNotFoundError(RuntimeError):
@@ -119,7 +124,7 @@ def is_bash_command(command: str) -> bool:
     return command in bash_commands
 
 
-def delegate_to_bash(command: str, args: list[str]) -> NoReturn:
+def delegate_to_bash(command: str, args: list[str], debug: bool = False) -> NoReturn:
     """
     Delegate to bash cub script and exit with its exit code.
 
@@ -129,6 +134,7 @@ def delegate_to_bash(command: str, args: list[str]) -> NoReturn:
     Args:
         command: The subcommand to delegate (e.g., 'prep')
         args: Additional arguments to pass
+        debug: Enable debug mode (sets CUB_DEBUG=true for bash script)
 
     Raises:
         BashCubNotFoundError: If bash cub script cannot be located
@@ -137,9 +143,9 @@ def delegate_to_bash(command: str, args: list[str]) -> NoReturn:
     try:
         bash_cub = find_bash_cub()
     except BashCubNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        print("\nThe bash version of cub is required for this command.", file=sys.stderr)
-        print("Install it or set CUB_BASH_PATH to point to the bash script.", file=sys.stderr)
+        console.print(f"[red]Error: {e}[/red]")
+        console.print("[dim]The bash version of cub is required for this command.[/dim]")
+        console.print("[dim]Install it or set CUB_BASH_PATH to point to the bash script.[/dim]")
         sys.exit(1)
 
     # Build command: bash_cub <command> <args...>
@@ -148,9 +154,13 @@ def delegate_to_bash(command: str, args: list[str]) -> NoReturn:
     # Pass through environment variables
     env = os.environ.copy()
 
-    # Preserve debug flag if set
-    if "--debug" in sys.argv or "-d" in sys.argv:
+    # Set debug flag from parameter or sys.argv fallback
+    # Parameter takes precedence (from typer context)
+    # sys.argv fallback catches cases where --debug was passed but context not available
+    if debug or "--debug" in sys.argv or "-d" in sys.argv:
         env["CUB_DEBUG"] = "true"
+        console.print(f"[dim]Delegating to bash: {bash_cub}[/dim]")
+        console.print(f"[dim]Command: {command} {' '.join(args)}[/dim]")
 
     # Execute bash cub with exec semantics
     # This replaces the current process, so we never return
@@ -162,11 +172,11 @@ def delegate_to_bash(command: str, args: list[str]) -> NoReturn:
         )
         sys.exit(result.returncode)
     except FileNotFoundError:
-        print(f"Error: Bash cub script not executable: {bash_cub}", file=sys.stderr)
+        console.print(f"[red]Error: Bash cub script not executable: {bash_cub}[/red]")
         sys.exit(1)
     except KeyboardInterrupt:
         # Pass through interrupt
         sys.exit(130)
     except Exception as e:
-        print(f"Error executing bash cub: {e}", file=sys.stderr)
+        console.print(f"[red]Error executing bash cub: {e}[/red]")
         sys.exit(1)
