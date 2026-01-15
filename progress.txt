@@ -1040,3 +1040,28 @@ Successfully implemented the TaskBackend protocol with all required functionalit
 - src/cub/core/tasks/__init__.py (updated exports)
 
 All acceptance criteria met ✓
+
+## Session 2026-01-14: BeadsBackend Implementation (cub-056)
+
+Implemented BeadsBackend for task management, wrapping the `bd` CLI with full TaskBackend protocol support.
+
+**Key implementation details:**
+- Used subprocess to call bd CLI with --json flag for machine-readable output
+- Transform beads JSON format to Task models (beads uses "blocks" for depends_on, "issue_type" for type)
+- Handle both list and dict responses from bd commands
+- BeadsNotAvailableError when bd not installed, BeadsCommandError for CLI failures
+- All 8 TaskBackend methods implemented with proper error handling
+- Strict mypy compliance with Union[dict, list] return types from _run_bd
+
+**Learnings:**
+- bd create returns dict with "id" field, not just the ID string
+- bd dep add syntax: `bd dep add <task> <depends-on> --type blocks` (task blocks the dependency)
+- bd ready handles filtering by parent/label and returns unblocked tasks
+- Priority conversion: beads uses int 0-4, we use P0-P4 strings
+- Type safety: Need explicit Union type for json.loads result to satisfy strict mypy
+
+**Testing approach:**
+- Verified backend registration and auto-detection
+- Tested all CRUD operations against live .beads/ data
+- Confirmed all 7 acceptance criteria
+- No unit tests yet (will add in future task)
