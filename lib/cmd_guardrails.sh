@@ -161,6 +161,8 @@ cmd_guardrails_add() {
     if guardrails_add_to_project "$lesson" "${PROJECT_DIR}"; then
         log_success "Guardrail added successfully"
         log_info "Location: $(guardrails_get_file "${PROJECT_DIR}")"
+        # Check and warn about size after adding
+        guardrails_warn_size_if_exceeded "" "${PROJECT_DIR}"
         return 0
     else
         _log_error_console "Error: Failed to add guardrail"
@@ -317,7 +319,7 @@ cmd_guardrails_learn() {
         return 0
     fi
 
-    # Add the lesson to guardrails
+    # Add the lesson to guardrails (this will also trigger size warning)
     if guardrails_add "$lesson" "$task_id" "${PROJECT_DIR}"; then
         log_success "Lesson added to guardrails"
         log_info "Location: $(guardrails_get_file "${PROJECT_DIR}")"

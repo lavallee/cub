@@ -528,3 +528,108 @@ EOF
     # Should have a date header in format ### YYYY-MM-DD
     echo "$content" | grep -qE "### [0-9]{4}-[0-9]{2}-[0-9]{2}"
 }
+
+@test "guardrails_warn_size_if_exceeded outputs nothing when under limit" {
+    source_guardrails
+    guardrails_init .
+
+    # Add a small lesson
+    guardrails_add "Small lesson" "task-1" . > /dev/null 2>&1
+
+    # Check with default 50KB limit
+    run guardrails_warn_size_if_exceeded 50 .
+    [[ "$status" -eq 0 ]]
+    # Should output nothing (or minimal) when under limit
+    if [[ -n "$output" ]]; then
+        # If output exists, it should NOT be a warning about size
+        [[ ! "$output" =~ "Guardrails file is getting large" ]]
+    fi
+}
+
+@test "guardrails_warn_size_if_exceeded warns when over limit" {
+    source_guardrails
+    guardrails_init .
+
+    # Create a large lesson to exceed limit
+    # Generate content larger than 1KB by repeating a string
+    local large_lesson=""
+    for i in {1..50}; do
+        large_lesson+="This is a long lesson that contains lots of text to make the file bigger. "
+    done
+
+    # Add large lesson multiple times to exceed 1KB limit
+    for i in {1..30}; do
+        guardrails_add "$large_lesson" "task-$i" . > /dev/null 2>&1
+    done
+
+    # Now warn with a very low limit (1KB) to trigger the warning
+    run guardrails_warn_size_if_exceeded 1 .
+    [[ "$status" -eq 0 ]]
+    # Should output a warning message
+    [[ "$output" =~ "Guardrails file is getting large" ]]
+    [[ "$output" =~ "cub guardrails curate" ]]
+}
+
+@test "guardrails_warn_size_if_exceeded shows lesson count" {
+    source_guardrails
+    guardrails_init .
+
+    # Create a large lesson to exceed limit
+    # Generate content larger than 1KB by repeating a string
+    local large_lesson=""
+    for i in {1..50}; do
+        large_lesson+="This is a long lesson that contains lots of text to make the file bigger. "
+    done
+
+    # Add lessons until we exceed 1KB
+    for i in {1..25}; do
+        guardrails_add "$large_lesson" "task-$i" . > /dev/null 2>&1
+    done
+
+    # Use 1KB limit to trigger warning
+    run guardrails_warn_size_if_exceeded 1 .
+    [[ "$status" -eq 0 ]]
+    # Should show lesson count in warning
+    [[ "$output" =~ "lessons" ]]
+}
+
+@test "guardrails_add calls warn function after adding" {
+    source_guardrails
+    guardrails_init .
+
+    # Add a large lesson to exceed 1KB, which should trigger warning
+    local large_lesson=""
+    for i in {1..50}; do
+        large_lesson+="This is a long lesson that contains lots of text to make the file bigger. "
+    done
+
+    # Add lessons until we exceed 1KB
+    for i in {1..30}; do
+        guardrails_add "$large_lesson" "task-$i" . > /dev/null 2>&1
+    done
+
+    # Now adding another lesson should show warning since we're over limit
+    run guardrails_add "Another lesson" "task-final" .
+    # Should contain warning from guardrails_warn_size_if_exceeded
+    [[ "$output" =~ "Guardrails file is getting large" ]]
+}
+
+@test "guardrails_add_from_failure calls warn function after adding" {
+    source_guardrails
+    guardrails_init .
+
+    # Create a large message to exceed limits
+    local large_error=""
+    for i in {1..50}; do
+        large_error+="Error message with lots of details that makes the content bigger. "
+    done
+
+    # Add many failure entries to exceed 1KB
+    for i in {1..25}; do
+        guardrails_add_from_failure "task-$i" 1 "$large_error" "Lesson: $i" . > /dev/null 2>&1
+    done
+
+    # Now adding another should trigger warning
+    run guardrails_add_from_failure "task-final" 1 "$large_error" "Final lesson" .
+    [[ "$output" =~ "Guardrails file is getting large" ]]
+}

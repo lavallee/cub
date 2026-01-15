@@ -679,6 +679,11 @@ run_iteration() {
     log_info "Running ${harness}..."
     echo ""
 
+    # Check guardrails size and warn if it's getting large
+    if guardrails_exists "${PROJECT_DIR}" 2>/dev/null; then
+        guardrails_warn_size_if_exceeded "" "${PROJECT_DIR}" 2>/dev/null || true
+    fi
+
     if [[ "$DEBUG" == "true" ]]; then
         # Pre-flight check
         log_debug "Pre-flight: ${harness} version"

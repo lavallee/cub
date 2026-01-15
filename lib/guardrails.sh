@@ -150,6 +150,9 @@ ${lesson}
     echo "" >> "$file"
     echo "$entry" >> "$file"
 
+    # Check and warn about size after adding
+    guardrails_warn_size_if_exceeded "" "$project_dir"
+
     return 0
 }
 
@@ -345,6 +348,9 @@ guardrails_add_from_failure() {
     # Append to file
     echo "" >> "$file"
     echo "$entry" >> "$file"
+
+    # Check and warn about size after adding
+    guardrails_warn_size_if_exceeded "" "$project_dir"
 
     return 0
 }
@@ -562,6 +568,40 @@ guardrails_check_size() {
 
     if [[ "$current_size" -gt "$max_size_kb" ]]; then
         return 1
+    fi
+
+    return 0
+}
+
+# Warn if guardrails file size exceeds limit
+# Checks current size against configured limit and prints warning if exceeded
+# Usage: guardrails_warn_size_if_exceeded [max_size_kb] [project_dir]
+# Parameters:
+#   max_size_kb - Maximum size in KB (default: 50)
+#   project_dir - Optional project directory
+# Returns: 0 always (warning is informational)
+# Outputs: Warning message to stdout if size exceeded
+guardrails_warn_size_if_exceeded() {
+    local max_size_kb="${1:-${_GUARDRAILS_MAX_SIZE_KB}}"
+    local project_dir="${2:-${PROJECT_DIR:-.}}"
+
+    local current_size
+    current_size=$(guardrails_size_kb "$project_dir")
+
+    if [[ "$current_size" -gt "$max_size_kb" ]]; then
+        local file
+        file=$(_guardrails_get_file "$project_dir")
+        local lesson_count
+        lesson_count=$(guardrails_count "$project_dir")
+
+        echo ""
+        echo "⚠️  Guardrails file is getting large (${current_size}KB / ${max_size_kb}KB limit, ${lesson_count} lessons)"
+        echo ""
+        echo "To keep guardrails focused and relevant, consider running:"
+        echo "  cub guardrails curate"
+        echo ""
+        echo "This will help you review and archive old lessons to improve performance."
+        echo ""
     fi
 
     return 0
