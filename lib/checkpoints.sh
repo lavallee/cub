@@ -252,14 +252,15 @@ is_task_blocked_by_checkpoint() {
 
 # Get the checkpoint blocking a task (if any)
 # Usage: get_blocking_checkpoint <task_id> [prd_file]
-# Returns: Checkpoint ID or empty
+# Returns: Checkpoint ID if blocked, empty string if not blocked
+# Exit code: 0 always (empty string = no blocker, which is not an error)
 get_blocking_checkpoint() {
     local task_id="$1"
     local prd="${2:-prd.json}"
 
     if [[ -z "$task_id" ]]; then
         echo ""
-        return 1
+        return 0
     fi
 
     # Get task dependencies
@@ -268,7 +269,7 @@ get_blocking_checkpoint() {
 
     if [[ -z "$task" ]] || [[ "$task" == "null" ]]; then
         echo ""
-        return 1
+        return 0
     fi
 
     local deps
@@ -276,7 +277,7 @@ get_blocking_checkpoint() {
 
     if [[ "$deps" == "[]" ]] || [[ "$deps" == "null" ]]; then
         echo ""
-        return 1
+        return 0
     fi
 
     # Check each dependency
@@ -288,6 +289,7 @@ get_blocking_checkpoint() {
         fi
     done
 
+    # No blocking checkpoint found
     echo ""
-    return 1
+    return 0
 }
