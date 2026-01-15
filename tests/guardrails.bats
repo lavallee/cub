@@ -177,8 +177,8 @@ EOF
     guardrails_add_from_failure "task-1" "1" "JSON parse failed" "Validate JSON before parsing" .
 
     local content=$(cat .cub/guardrails.md)
-    echo "$content" | grep -q "Error.*JSON parse failed"
-    echo "$content" | grep -q "Exit code.*1"
+    echo "$content" | grep -q "Source Error.*JSON parse failed"
+    echo "$content" | grep -q "Exit Code.*1"
     echo "$content" | grep -q "Lesson.*Validate JSON before parsing"
 }
 

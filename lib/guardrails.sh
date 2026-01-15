@@ -153,6 +153,60 @@ ${lesson}
     return 0
 }
 
+# Add a lesson with explicit provenance metadata
+# Tracks task ID, date, and error summary for complete traceability
+# Usage: guardrails_add_with_provenance <lesson> <task_id> <error_summary> [project_dir]
+# Parameters:
+#   lesson - The actionable lesson text
+#   task_id - The task ID that generated this lesson (required)
+#   error_summary - Summary of the error/failure (required for traceability)
+#   project_dir - Optional project directory
+# Returns: 0 on success, 1 on error
+guardrails_add_with_provenance() {
+    local lesson="$1"
+    local task_id="$2"
+    local error_summary="$3"
+    local project_dir="${4:-${PROJECT_DIR:-.}}"
+
+    # Validate required parameters
+    if [[ -z "$lesson" ]]; then
+        echo "ERROR: lesson text is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required for provenance tracking" >&2
+        return 1
+    fi
+
+    if [[ -z "$error_summary" ]]; then
+        echo "ERROR: error_summary is required for provenance tracking" >&2
+        return 1
+    fi
+
+    # Ensure file exists
+    guardrails_init "$project_dir" || return 1
+
+    local file
+    file=$(_guardrails_get_file "$project_dir")
+
+    # Format the lesson entry with explicit provenance metadata
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d')
+
+    # Create entry with structured provenance information
+    local entry="### ${timestamp} - ${task_id}
+**Source Error:** ${error_summary}
+**Lesson:** ${lesson}
+"
+
+    # Append to file
+    echo "" >> "$file"
+    echo "$entry" >> "$file"
+
+    return 0
+}
+
 # Add a lesson to the Project-Specific section of guardrails
 # Usage: guardrails_add_to_project <lesson> [project_dir]
 # Parameters:
@@ -233,8 +287,8 @@ guardrails_add_to_project() {
     return 0
 }
 
-# Add a lesson from failure context
-# Extracts error information and formats it as a lesson
+# Add a lesson from failure context with full provenance tracking
+# Extracts error information and formats it as a lesson with task ID, date, and error summary
 # Usage: guardrails_add_from_failure <task_id> <exit_code> <error_summary> [lesson] [project_dir]
 # Parameters:
 #   task_id - The task ID that failed
@@ -271,13 +325,28 @@ guardrails_add_from_failure() {
         lesson="$error_summary"
     fi
 
-    # Format the failure entry
-    local entry="**Error:** ${error_summary}
-**Exit code:** ${exit_code}
-**Lesson:** ${lesson}"
+    # Ensure file exists
+    guardrails_init "$project_dir" || return 1
 
-    # Add the entry
-    guardrails_add "$entry" "$task_id" "$project_dir"
+    local file
+    file=$(_guardrails_get_file "$project_dir")
+
+    # Format the failure entry with complete provenance metadata
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d')
+
+    # Create entry with task ID, date, and error summary for traceability
+    local entry="### ${timestamp} - ${task_id}
+**Exit Code:** ${exit_code}
+**Source Error:** ${error_summary}
+**Lesson:** ${lesson}
+"
+
+    # Append to file
+    echo "" >> "$file"
+    echo "$entry" >> "$file"
+
+    return 0
 }
 
 # Extract an actionable lesson from failure using AI
@@ -428,8 +497,8 @@ guardrails_learn_from_failure() {
         return 1
     fi
 
-    # Add the lesson to guardrails
-    guardrails_add "$lesson" "$task_id" "$project_dir"
+    # Add the lesson to guardrails with full provenance tracking
+    guardrails_add_from_failure "$task_id" "$exit_code" "$error_summary" "$lesson" "$project_dir"
 }
 
 # Get guardrails file size in KB
@@ -665,9 +734,10 @@ guardrails_search() {
     grep -i "$pattern" "$file" 2>/dev/null || true
 }
 
-# List all lessons as JSON
+# List all lessons as JSON with provenance metadata
+# Returns JSON array of lessons with date, task_id, error_summary, and content
 # Usage: guardrails_list_json [project_dir]
-# Returns: JSON array of lessons
+# Returns: JSON array of lessons with complete traceability information
 guardrails_list_json() {
     local project_dir="${1:-${PROJECT_DIR:-.}}"
     local file
@@ -678,11 +748,12 @@ guardrails_list_json() {
         return 0
     fi
 
-    # Parse lessons from markdown
+    # Parse lessons from markdown with provenance extraction
     local lessons="[]"
     local current_lesson=""
     local current_date=""
     local current_task=""
+    local current_error_summary=""
     local in_lesson=false
 
     while IFS= read -r line; do
@@ -694,8 +765,9 @@ guardrails_list_json() {
                 lesson_json=$(jq -n \
                     --arg date "$current_date" \
                     --arg task "$current_task" \
+                    --arg error "$current_error_summary" \
                     --arg content "$current_lesson" \
-                    '{date: $date, task_id: (if $task == "" then null else $task end), content: $content}')
+                    '{date: $date, task_id: (if $task == "" then null else $task end), error_summary: (if $error == "" then null else $error end), content: $content}')
                 lessons=$(echo "$lessons" | jq --argjson l "$lesson_json" '. + [$l]')
             fi
 
@@ -703,8 +775,14 @@ guardrails_list_json() {
             current_date="${BASH_REMATCH[1]}"
             current_task="${BASH_REMATCH[3]:-}"
             current_lesson=""
+            current_error_summary=""
             in_lesson=true
         elif [[ "$in_lesson" == "true" && -n "$line" ]]; then
+            # Extract error summary if present (new format with provenance)
+            if [[ "$line" =~ \*\*Source\ Error:\*\*\ (.+)$ ]]; then
+                current_error_summary="${BASH_REMATCH[1]}"
+            fi
+
             # Append to current lesson
             if [[ -n "$current_lesson" ]]; then
                 current_lesson+=$'\n'"$line"
@@ -720,8 +798,9 @@ guardrails_list_json() {
         lesson_json=$(jq -n \
             --arg date "$current_date" \
             --arg task "$current_task" \
+            --arg error "$current_error_summary" \
             --arg content "$current_lesson" \
-            '{date: $date, task_id: (if $task == "" then null else $task end), content: $content}')
+            '{date: $date, task_id: (if $task == "" then null else $task end), error_summary: (if $error == "" then null else $error end), content: $content}')
         lessons=$(echo "$lessons" | jq --argjson l "$lesson_json" '. + [$l]')
     fi
 
