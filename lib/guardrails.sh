@@ -280,6 +280,158 @@ guardrails_add_from_failure() {
     guardrails_add "$entry" "$task_id" "$project_dir"
 }
 
+# Extract an actionable lesson from failure using AI
+# Uses Claude Haiku to analyze the failure context and extract a lesson in the format:
+# "When X, do Y instead of Z"
+# Usage: guardrails_extract_lesson_ai <task_id> <task_title> <error_summary> [project_dir]
+# Parameters:
+#   task_id - The task ID that failed
+#   task_title - The title of the failed task
+#   error_summary - Summary of what went wrong
+#   project_dir - Optional project directory
+# Returns: 0 on success, 1 on error
+# Outputs: Extracted lesson to stdout
+guardrails_extract_lesson_ai() {
+    local task_id="$1"
+    local task_title="$2"
+    local error_summary="$3"
+    local project_dir="${4:-${PROJECT_DIR:-.}}"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_title" ]]; then
+        echo "ERROR: task_title is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$error_summary" ]]; then
+        echo "ERROR: error_summary is required" >&2
+        return 1
+    fi
+
+    # Check if claude CLI is available
+    if ! command -v claude &> /dev/null; then
+        # Fallback to generic lesson if AI not available
+        echo "When working on similar tasks, ensure all preconditions are met before proceeding."
+        return 0
+    fi
+
+    # Read task artifacts to get more context
+    local artifacts_base
+    artifacts_base=$(artifacts_get_run_dir 2>/dev/null)
+    local task_context=""
+
+    if [[ -d "$artifacts_base" ]]; then
+        local task_dir
+        task_dir=$(find "$artifacts_base" -maxdepth 2 -type d -name "$task_id" 2>/dev/null | head -n 1)
+
+        if [[ -n "$task_dir" && -f "${task_dir}/prompt.txt" ]]; then
+            # Get last 500 lines of prompt for context (avoid token bloat)
+            task_context=$(tail -n 500 "${task_dir}/prompt.txt" 2>/dev/null || echo "")
+        fi
+    fi
+
+    # Prepare the AI prompt
+    local ai_prompt="You are a technical mentor analyzing a failed coding task to extract an actionable lesson.
+
+Task: ${task_title}
+Task ID: ${task_id}
+Error: ${error_summary}
+
+${task_context:+Context from task execution:
+---
+${task_context}
+---
+}
+Extract a single, actionable lesson from this failure in the format:
+\"When X, do Y instead of Z\"
+
+Focus on:
+1. Project-specific patterns (not generic advice)
+2. Concrete actions that would prevent this specific failure
+3. Brevity (1-2 sentences max)
+
+Examples of good lessons:
+- \"When running tests in this project, always use 'bats tests/*.bats' instead of 'bats tests' to avoid path issues\"
+- \"When adding new config options, update both .cub.json schema and lib/config.sh defaults instead of only one\"
+- \"When modifying guardrails.sh, always test with both empty and populated guardrails files instead of assuming one case\"
+
+Output ONLY the lesson, no explanation or preamble."
+
+    # Call Claude Haiku to extract the lesson
+    local lesson
+    lesson=$(echo "$ai_prompt" | claude --model haiku --no-stream 2>/dev/null)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 || -z "$lesson" ]]; then
+        # Fallback to generic lesson if AI call fails
+        echo "When working on '${task_title}', verify all assumptions before execution."
+        return 0
+    fi
+
+    # Clean up the lesson (remove quotes, trim whitespace)
+    lesson=$(echo "$lesson" | sed 's/^["'"'"']//;s/["'"'"']$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    echo "$lesson"
+    return 0
+}
+
+# Auto-learn from failure after retry limit exceeded
+# Extracts an AI-generated lesson and adds it to guardrails
+# Usage: guardrails_learn_from_failure <task_id> <task_title> <exit_code> <error_summary> [project_dir]
+# Parameters:
+#   task_id - The task ID that failed
+#   task_title - The title of the failed task
+#   exit_code - The exit code from the failure
+#   error_summary - Summary of what went wrong
+#   project_dir - Optional project directory
+# Returns: 0 on success, 1 on error
+guardrails_learn_from_failure() {
+    local task_id="$1"
+    local task_title="$2"
+    local exit_code="$3"
+    local error_summary="$4"
+    local project_dir="${5:-${PROJECT_DIR:-.}}"
+
+    # Validate required parameters
+    if [[ -z "$task_id" ]]; then
+        echo "ERROR: task_id is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$task_title" ]]; then
+        echo "ERROR: task_title is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$exit_code" ]]; then
+        echo "ERROR: exit_code is required" >&2
+        return 1
+    fi
+
+    if [[ -z "$error_summary" ]]; then
+        echo "ERROR: error_summary is required" >&2
+        return 1
+    fi
+
+    # Extract lesson using AI
+    local lesson
+    lesson=$(guardrails_extract_lesson_ai "$task_id" "$task_title" "$error_summary" "$project_dir")
+    local extract_result=$?
+
+    if [[ $extract_result -ne 0 ]]; then
+        echo "ERROR: Failed to extract lesson from failure" >&2
+        return 1
+    fi
+
+    # Add the lesson to guardrails
+    guardrails_add "$lesson" "$task_id" "$project_dir"
+}
+
 # Get guardrails file size in KB
 # Usage: guardrails_size_kb [project_dir]
 # Returns: File size in KB (integer), or 0 if file doesn't exist

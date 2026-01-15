@@ -165,16 +165,18 @@ failure_handle_move_on() {
 #   $1 - task_id: The ID of the failed task
 #   $2 - exit_code: The exit code from task execution
 #   $3 - output: Output/error message from the failed task (optional)
+#   $4 - task_title: The title of the failed task (optional, used for AI lesson extraction)
 #
 # Returns: 3 (signals main loop to retry task)
 #          0 (falls back to move-on if limit exceeded)
 #
 # Example:
-#   failure_handle_retry "cub-038" 1 "Tests failed" || handle_result=$?
+#   failure_handle_retry "cub-038" 1 "Tests failed" "Fix authentication bug" || handle_result=$?
 failure_handle_retry() {
     local task_id="$1"
     local exit_code="$2"
     local output="$3"
+    local task_title="${4:-}"
 
     # Validate required parameters
     if [[ -z "$task_id" ]]; then
@@ -219,6 +221,19 @@ failure_handle_retry() {
 
         # Store failure info with retry mode
         failure_store_info "$task_id" "$exit_code" "$output" "retry-limit-exceeded"
+
+        # Auto-learn from failure using AI
+        if [[ -n "$task_title" && -n "$output" ]]; then
+            log_info "Extracting lesson from failure using AI..."
+            source "${SCRIPT_DIR}/guardrails.sh"
+            if guardrails_learn_from_failure "$task_id" "$task_title" "$exit_code" "$output"; then
+                log_success "Lesson learned and added to guardrails"
+            else
+                log_warn "Failed to extract lesson from failure"
+            fi
+        else
+            log_debug "Skipping AI lesson extraction (missing task_title or output)"
+        fi
 
         # Fall back to move-on behavior (return 0 = continue)
         return 0

@@ -430,3 +430,101 @@ EOF
 
     [[ -f .cub/guardrails.md ]]
 }
+
+@test "guardrails_extract_lesson_ai requires task_id" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_extract_lesson_ai "" "Test task" "Error message" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "guardrails_extract_lesson_ai requires task_title" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_extract_lesson_ai "task-1" "" "Error message" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: task_title is required" ]]
+}
+
+@test "guardrails_extract_lesson_ai requires error_summary" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_extract_lesson_ai "task-1" "Test task" "" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: error_summary is required" ]]
+}
+
+@test "guardrails_extract_lesson_ai returns fallback when claude unavailable" {
+    source_guardrails
+    guardrails_init .
+
+    # Temporarily make claude unavailable
+    PATH=/bin:/usr/bin run guardrails_extract_lesson_ai "task-1" "Test task" "Error message" .
+    [[ "$status" -eq 0 ]]
+    # Should return generic fallback lesson
+    [[ "$output" =~ "ensure all preconditions are met" ]]
+}
+
+@test "guardrails_learn_from_failure requires task_id" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_learn_from_failure "" "Test task" 1 "Error message" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: task_id is required" ]]
+}
+
+@test "guardrails_learn_from_failure requires task_title" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_learn_from_failure "task-1" "" 1 "Error message" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: task_title is required" ]]
+}
+
+@test "guardrails_learn_from_failure requires exit_code" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_learn_from_failure "task-1" "Test task" "" "Error message" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: exit_code is required" ]]
+}
+
+@test "guardrails_learn_from_failure requires error_summary" {
+    source_guardrails
+    guardrails_init .
+
+    run guardrails_learn_from_failure "task-1" "Test task" 1 "" .
+    [[ "$status" -ne 0 ]]
+    [[ "$output" =~ "ERROR: error_summary is required" ]]
+}
+
+@test "guardrails_learn_from_failure adds lesson to file" {
+    source_guardrails
+    guardrails_init .
+
+    # Should succeed and add a lesson (with fallback if AI unavailable)
+    guardrails_learn_from_failure "task-123" "Fix authentication" 1 "Auth token expired" .
+
+    # Verify lesson was added
+    local content=$(cat .cub/guardrails.md)
+    echo "$content" | grep -q "task-123"
+    echo "$content" | grep -q "Learned from Failures"
+}
+
+@test "guardrails_learn_from_failure creates lesson with timestamp" {
+    source_guardrails
+    guardrails_init .
+
+    guardrails_learn_from_failure "task-456" "Add feature X" 1 "Missing dependency" .
+
+    local content=$(cat .cub/guardrails.md)
+    # Should have a date header in format ### YYYY-MM-DD
+    echo "$content" | grep -qE "### [0-9]{4}-[0-9]{2}-[0-9]{2}"
+}

@@ -960,7 +960,7 @@ run_iteration() {
                 failure_result=$?
                 ;;
             retry)
-                failure_handle_retry "$task_id" "$exit_code" "$harness_output"
+                failure_handle_retry "$task_id" "$exit_code" "$harness_output" "$task_title"
                 failure_result=$?
                 ;;
             triage)
