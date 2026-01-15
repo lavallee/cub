@@ -4,10 +4,14 @@ Cub CLI - Status command.
 Show current session status, task progress, and budget usage.
 """
 
+import json as json_module
+from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
+
+from cub.core.tasks.backend import get_backend
 
 app = typer.Typer(
     name="status",
@@ -43,10 +47,10 @@ def status(
     Show current session status.
 
     Displays information about the current or specified session including:
-    - Active tasks
+    - Task progress summary
+    - Ready and blocked tasks
     - Budget usage
     - Recent activity
-    - Harness status
 
     Examples:
         cub status                      # Show current session
@@ -62,22 +66,85 @@ def status(
         console.print(f"[dim]JSON output: {json_output}[/dim]")
         console.print(f"[dim]Session: {session or 'current'}[/dim]")
 
-    if json_output:
-        console.print('{"status": "not_implemented"}')
+    try:
+        # Get the task backend (auto-detects beads or json)
+        backend = get_backend()
+
+        # Get task counts
+        counts = backend.get_task_counts()
+
+        # Get ready and blocked tasks
+        ready_tasks = backend.get_ready_tasks()
+        all_tasks = backend.list_tasks()
+
+        # Count blocked tasks (tasks that are open but have unmet dependencies)
+        blocked_count = 0
+        for task in all_tasks:
+            if task.status.value == "open" and len(task.depends_on) > 0:
+                blocked_count += 1
+
+        if json_output:
+            # Output machine-readable JSON
+            output = {
+                "task_counts": {
+                    "total": counts.total,
+                    "open": counts.open,
+                    "in_progress": counts.in_progress,
+                    "closed": counts.closed,
+                    "completion_percentage": counts.completion_percentage,
+                },
+                "ready_tasks": len(ready_tasks),
+                "blocked_tasks": blocked_count,
+            }
+            console.print(json_module.dumps(output, indent=2))
+            raise typer.Exit(0)
+
+        # Display human-readable status
+        # Task summary table
+        summary_table = Table(title="Task Progress Summary", show_header=False)
+        summary_table.add_column("Label", style="cyan")
+        summary_table.add_column("Count", style="green", justify="right")
+
+        summary_table.add_row("Total Tasks", str(counts.total))
+        summary_table.add_row("Closed", f"[green]{counts.closed}[/green]")
+        summary_table.add_row("In Progress", f"[yellow]{counts.in_progress}[/yellow]")
+        summary_table.add_row("Open", str(counts.open))
+        summary_table.add_row(
+            "Completion",
+            f"[cyan]{counts.completion_percentage:.1f}%[/cyan]"
+        )
+
+        console.print(summary_table)
+        console.print()
+
+        # Ready and blocked summary
+        availability_table = Table(title="Task Availability", show_header=False)
+        availability_table.add_column("Status", style="cyan")
+        availability_table.add_column("Count", style="green", justify="right")
+
+        availability_table.add_row("Ready to work", f"[green]{len(ready_tasks)}[/green]")
+        availability_table.add_row("Blocked by dependencies", str(blocked_count))
+
+        console.print(availability_table)
+
+        if verbose and ready_tasks:
+            console.print()
+            console.print("[bold cyan]Top Ready Tasks:[/bold cyan]")
+            ready_table = Table(show_header=True)
+            ready_table.add_column("ID", style="cyan")
+            ready_table.add_column("Title", style="green")
+            ready_table.add_column("Priority", style="yellow")
+
+            for task in ready_tasks[:5]:
+                ready_table.add_row(task.id, task.title, task.priority.value)
+
+            console.print(ready_table)
+
         raise typer.Exit(0)
 
-    # Example table output
-    table = Table(title="Cub Status")
-    table.add_column("Property", style="cyan")
-    table.add_column("Value", style="green")
-
-    table.add_row("Status", "[yellow]Not yet implemented[/yellow]")
-    table.add_row("Session", session or "N/A")
-    table.add_row("Tasks", "0")
-    table.add_row("Budget Used", "$0.00")
-
-    console.print(table)
-    raise typer.Exit(0)
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
 
 
 __all__ = ["app"]
