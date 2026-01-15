@@ -493,3 +493,66 @@ guardrails_list_json | jq '.[] | .content' -r
 ### Commit
 task(cub-3ge.1): Implement .cub/guardrails.md file support
 
+
+## Task: Update 'cub init' to create empty guardrails file (cub-3ge.5)
+
+### Task Completed
+Successfully implemented guardrails file initialization during project setup.
+
+### What Was Implemented
+
+**Created `templates/guardrails.md`:**
+- Template file with standard guardrails structure
+- Contains three main sections:
+  - Header explaining purpose (persistent lessons from previous runs)
+  - Project-Specific section for manual guidelines
+  - Learned from Failures section for recording lessons from actual failures
+- Includes example format for failure entries (date, task-id, error, lesson)
+
+**Modified `lib/cmd_init.sh`:**
+- Added guardrails.md file creation in `cmd_init` function
+- Placed after fix_plan.md and before README.md for logical grouping
+- Uses layout_root variable to ensure correct placement in .cub/ directory
+- Follows existing pattern: copy from template, check if already exists, log result
+
+### Key Implementation Details
+
+**File Location:** `.cub/guardrails.md` (in new layout)
+
+**Integration:**
+- Follows established pattern used for progress.txt, fix_plan.md, and README.md
+- Uses layout helpers (get_fix_plan_file, layout_root) for flexibility
+- Skips creation if file already exists (idempotent)
+- Provides success logging with log_success()
+
+**Testing:**
+- All 238 existing tests pass
+- Verified manually: cub init creates .cub/guardrails.md with correct content
+- Template structure matches guardrails-system.md specification
+
+### Key Learnings
+
+1. **Template Pattern:** The cub init system uses a clean template-copy pattern for static files:
+   - Templates stored in templates/
+   - Copied to .cub/ (new layout) or root (legacy layout)
+   - Skipped if already exist (safe for re-runs)
+
+2. **Layout Abstraction:** Using layout_root variable ensures compatibility with both:
+   - New layout: `.cub/` subdirectory
+   - Legacy layout: project root with symlinks
+   - Current cub defaults to new layout but supports both
+
+3. **File Creation Ordering:** Logical grouping matters:
+   - prompt.md - system prompt
+   - agent.md - build instructions
+   - progress.txt - session tracking
+   - fix_plan.md - bug tracking
+   - guardrails.md - institutional memory (NEW)
+   - README.md - quick reference
+
+4. **Guard Clauses:** Each file creation uses consistent pattern:
+   - Check if file exists with [[ ! -f "$file" ]]
+   - Copy from template or generate content
+   - Log success or warn about skipping
+   - Prevents data loss from accidental re-runs
+
