@@ -1,0 +1,7 @@
+{
+  "prefix": "test",
+  "tasks": [
+    {"id": "t1", "title": "First", "status": "closed", "dependsOn": ["t2"]},
+    {"id": "t2", "title": "Second", "status": "closed", "dependsOn": ["t1"]}
+  ]
+}

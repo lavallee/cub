@@ -1,0 +1,1060 @@
+1..1079
+ok 1 criteria: extract checkbox items
+ok 2 criteria: extract from 'Acceptance criteria:' section
+ok 3 criteria: extract from 'Done when:' section
+ok 4 criteria: combine checkbox and section criteria
+ok 5 criteria: case-insensitive section matching
+ok 6 criteria: avoid duplicates when extracting
+ok 7 criteria: empty content returns empty array
+ok 8 criteria: extract from multiple sections
+ok 9 criteria: extract numbered items from section
+ok 10 criteria: stop at next section header
+ok 11 criteria: handle whitespace in items
+ok 12 criteria: complex markdown with mixed formats
+ok 13 criteria: output is valid JSON
+ok 14 criteria: each item is a string
+ok 15 criteria: works with markdown parser
+ok 16 artifacts_get_run_dir: fails when session not initialized
+ok 17 artifacts_get_run_dir: returns correct path format
+ok 18 artifacts_get_task_dir: fails without task_id
+ok 19 artifacts_get_task_dir: returns correct path format
+ok 20 artifacts_ensure_dirs: fails without task_id
+ok 21 artifacts_ensure_dirs: creates task directory
+ok 22 artifacts_ensure_dirs: creates directory with 700 permissions
+ok 23 artifacts_init_run: fails when session not initialized
+ok 24 artifacts_init_run: creates run directory
+ok 25 artifacts_init_run: creates run.json with correct schema
+ok 26 artifacts_init_run: timestamps are ISO 8601 format
+ok 27 artifacts_start_task: fails without task_id
+ok 28 artifacts_start_task: fails without task_title
+ok 29 artifacts_start_task: creates task directory
+ok 30 artifacts_start_task: creates task.json with correct schema
+ok 31 artifacts_start_task: defaults priority to 'normal'
+ok 32 artifacts_start_task: timestamps are ISO 8601 format
+ok 33 artifacts_start_task: works without artifacts_init_run
+ok 34 artifacts integration: run and task creation
+ok 35 artifacts_capture_plan: fails without task_id
+ok 36 artifacts_capture_plan: fails without plan_content
+ok 37 artifacts_capture_plan: writes plan.md
+ok 38 artifacts_capture_plan: plan.md has correct content
+ok 39 artifacts_capture_plan: plan.md has 600 permissions
+ok 40 artifacts_capture_plan: is idempotent (overwrites)
+ok 41 artifacts_capture_command: fails without task_id
+ok 42 artifacts_capture_command: fails without cmd
+ok 43 artifacts_capture_command: fails without exit_code
+ok 44 artifacts_capture_command: creates commands.jsonl
+ok 45 artifacts_capture_command: appends valid JSONL
+ok 46 artifacts_capture_command: includes timestamp
+ok 47 artifacts_capture_command: includes all fields
+ok 48 artifacts_capture_command: handles empty output
+ok 49 artifacts_capture_command: defaults duration to 0
+ok 50 artifacts_capture_command: commands.jsonl has 600 permissions
+ok 51 artifacts_capture_diff: fails without task_id
+ok 52 artifacts_capture_diff: creates changes.patch
+ok 53 artifacts_capture_diff: captures git diff output
+ok 54 artifacts_capture_diff: handles empty diff gracefully
+ok 55 artifacts_capture_diff: changes.patch has 600 permissions
+ok 56 artifacts_capture_diff: is idempotent (overwrites)
+ok 57 artifacts_capture_harness_output: fails without task_id
+ok 58 artifacts_capture_harness_output: fails without output_file
+ok 59 artifacts_capture_harness_output: fails if output_file doesn't exist
+ok 60 artifacts_capture_harness_output: creates harness_output.log
+ok 61 artifacts_capture_harness_output: content is captured correctly
+ok 62 artifacts_capture_harness_output: appends with iteration header
+ok 63 artifacts_capture_harness_output: harness_output.log has 600 permissions
+ok 64 artifacts integration: capture all artifact types
+ok 65 artifacts_get_path: fails without task_id
+ok 66 artifacts_get_path: returns absolute path
+ok 67 artifacts_get_path: path is actually absolute and valid
+ok 68 artifacts_finalize_task: fails without task_id
+ok 69 artifacts_finalize_task: fails without status
+ok 70 artifacts_finalize_task: fails without exit_code
+ok 71 artifacts_finalize_task: fails if task.json doesn't exist
+ok 72 artifacts_finalize_task: updates task.json with final status
+ok 73 artifacts_finalize_task: increments iterations
+ok 74 artifacts_finalize_task: creates summary.md
+ok 75 artifacts_finalize_task: summary.md contains required fields
+ok 76 artifacts_finalize_task: summary.md has 600 permissions
+ok 77 artifacts_finalize_task: updates run.json with tasks_completed counter
+ok 78 artifacts_finalize_task: updates run.json with tasks_failed counter
+ok 79 artifacts_finalize_task: increments counters correctly for multiple tasks
+ok 80 artifacts_finalize_task: handles empty summary_text
+ok 81 artifacts_finalize_task: calculates duration correctly
+ok 82 artifacts integration: full task lifecycle with finalization
+ok 83 budget_init sets limit correctly
+ok 84 budget_init resets usage to zero
+ok 85 budget_init fails without limit parameter
+ok 86 budget_init fails with non-numeric limit
+ok 87 budget_init accepts zero as limit
+ok 88 budget_record accumulates usage
+ok 89 budget_record fails without tokens parameter
+ok 90 budget_record fails with non-numeric tokens
+ok 91 budget_record accepts zero tokens
+ok 92 budget_check returns 0 when within budget
+ok 93 budget_check returns 1 when over budget
+ok 94 budget_check returns 0 when exactly at budget
+ok 95 budget_check fails if budget not initialized
+ok 96 budget_remaining shows correct value
+ok 97 budget_remaining shows negative when over budget
+ok 98 budget_remaining shows full budget when no usage
+ok 99 budget_remaining fails if budget not initialized
+ok 100 full budget lifecycle within budget
+ok 101 full budget lifecycle exceeding budget
+ok 102 budget re-initialization clears previous state
+ok 103 ACCEPTANCE: budget_init sets limit correctly
+ok 104 ACCEPTANCE: budget_record accumulates usage
+ok 105 ACCEPTANCE: budget_check returns 1 when over
+ok 106 ACCEPTANCE: budget_remaining shows correct value
+ok 107 budget_check_warning returns 0 when budget not initialized
+ok 108 budget_check_warning does nothing when under threshold
+ok 109 budget_check_warning sets flag when at threshold
+ok 110 budget_check_warning sets flag when over threshold
+ok 111 budget_check_warning only warns once
+ok 112 budget_check_warning uses custom threshold
+ok 113 ACCEPTANCE: budget_check_warning shows only once per run
+ok 114 budget_set_max_task_iterations sets limit correctly
+ok 115 budget_set_max_task_iterations fails without parameter
+ok 116 budget_set_max_task_iterations fails with non-numeric value
+ok 117 budget_set_max_run_iterations sets limit correctly
+ok 118 budget_set_max_run_iterations fails without parameter
+ok 119 budget_set_max_run_iterations fails with non-numeric value
+ok 120 budget_get_task_iterations returns 0 for new task
+ok 121 budget_get_task_iterations fails without task_id
+ok 122 budget_get_run_iterations returns 0 initially
+ok 123 budget_increment_task_iterations increments counter
+ok 124 budget_increment_task_iterations fails without task_id
+ok 125 budget_increment_task_iterations tracks multiple tasks separately
+ok 126 budget_increment_run_iterations increments counter
+ok 127 budget_get_max_task_iterations returns default of 3
+ok 128 budget_get_max_run_iterations returns default of 50
+ok 129 budget_check_task_iterations returns 0 when within limit
+ok 130 budget_check_task_iterations returns 1 when over limit
+ok 131 budget_check_task_iterations returns 0 when exactly at limit
+ok 132 budget_check_task_iterations fails without task_id
+ok 133 budget_check_run_iterations returns 0 when within limit
+ok 134 budget_check_run_iterations returns 1 when over limit
+ok 135 budget_check_run_iterations returns 0 when exactly at limit
+ok 136 budget_clear resets iteration counters
+ok 137 task_id with special characters is handled safely
+ok 138 ACCEPTANCE: iteration counters track per-task
+ok 139 ACCEPTANCE: iteration counters track per-run
+ok 140 ACCEPTANCE: config options for max iterations
+ok 141 ACCEPTANCE: defaults are 3 per task and 50 per run
+ok 142 ACCEPTANCE: counters persist across function calls
+ok 143 budget_increment_task_iteration (singular) works
+ok 144 budget_increment_run_iteration (singular) works
+ok 145 budget_reset_task_iterations resets counter to zero
+ok 146 budget_reset_task_iterations fails without task_id
+ok 147 budget_reset_task_iterations allows retry after reset
+ok 148 budget_check_task_iteration_warning returns 0 when under threshold
+ok 149 budget_check_task_iteration_warning returns 1 when at threshold
+ok 150 budget_check_task_iteration_warning returns 1 when over threshold
+ok 151 budget_check_task_iteration_warning uses custom threshold
+ok 152 budget_check_task_iteration_warning fails without task_id
+ok 153 budget_check_run_iteration_warning returns 0 when under threshold
+ok 154 budget_check_run_iteration_warning returns 1 when at threshold
+ok 155 budget_check_run_iteration_warning returns 1 when over threshold
+ok 156 budget_check_run_iteration_warning uses custom threshold
+ok 157 ACCEPTANCE: Increment functions update counters correctly
+ok 158 ACCEPTANCE: Check functions return correct status
+ok 159 ACCEPTANCE: Warning logged at 80% of limit
+ok 160 ACCEPTANCE: Reset function clears task counter
+ok 161 ACCEPTANCE: Functions work together correctly
+ok 162 cub version subcommand works
+ok 163 cub init subcommand creates project structure
+ok 164 cub status subcommand shows task summary
+ok 165 cub run subcommand with --once flag
+ok 166 cub run subcommand with --ready flag
+ok 167 cub run subcommand with --plan flag
+ok 168 cub explain subcommand shows task details
+ok 169 cub artifacts subcommand lists recent tasks
+ok 170 cub --help shows main help
+ok 171 cub help subcommand shows main help
+ok 172 cub -h shows main help
+ok 173 cub init --help shows init-specific help
+ok 174 cub init -h shows init-specific help
+ok 175 cub run --help shows run-specific help
+ok 176 cub run -h shows run-specific help
+ok 177 cub status --help shows status-specific help
+ok 178 cub explain --help shows explain-specific help
+ok 179 cub artifacts --help shows artifacts-specific help
+ok 180 cub --status shows deprecation warning
+ok 181 cub --ready shows deprecation warning
+ok 182 cub --once shows deprecation warning
+ok 183 cub --plan shows deprecation warning
+ok 184 cub -s shows deprecation warning
+ok 185 cub -r shows deprecation warning
+ok 186 cub -1 shows deprecation warning
+ok 187 cub -p shows deprecation warning
+ok 188 deprecation warnings can be suppressed
+ok 189 cub with unknown subcommand shows error and help
+ok 190 cub with unknown subcommand does not show error for flags
+ok 191 legacy --status invocation still works
+ok 192 legacy --ready invocation still works
+ok 193 legacy --once invocation still works
+ok 194 legacy -s short flag still works
+ok 195 legacy -r short flag still works
+ok 196 legacy --status --json combination still works
+ok 197 cub run accepts --once flag
+ok 198 cub run accepts --ready flag
+ok 199 cub run accepts --plan flag
+ok 200 cub run accepts --model flag
+ok 201 cub run accepts --budget flag
+ok 202 cub run accepts --epic flag
+ok 203 cub run accepts --label flag
+ok 204 cub run accepts --require-clean flag
+ok 205 cub run accepts --no-require-clean flag
+ok 206 cub run accepts --name flag
+ok 207 cub status accepts --json flag
+ok 208 cub accepts --debug flag globally
+ok 209 cub accepts -d flag globally
+ok 210 cub accepts --stream flag globally
+ok 211 cub accepts --harness flag globally
+ok 212 cub accepts --backend flag globally
+ok 213 cub with no args defaults to run loop
+ok 214 cub run with no flags defaults to continuous loop
+ok 215 cub status with invalid flag shows error
+ok 216 cub explain without task-id shows error
+ok 217 cub init followed by cub status works
+ok 218 mixing global and subcommand flags works
+ok 219 multiple flags to run subcommand work
+ok 220 config_get returns empty for nonexistent key
+ok 221 config_get returns simple string value
+ok 222 config_get returns number value
+ok 223 config_get returns array value
+ok 224 config_get returns boolean value
+ok 225 config_get returns nested object value
+ok 226 config_get_or returns value when key exists
+ok 227 config_get_or returns fallback when key does not exist
+ok 228 config_get_or returns fallback for empty config
+ok 229 config_get_or works with numeric fallback
+ok 230 project config overrides user config
+ok 231 config_load works with only user config
+ok 232 config_load works with only project config
+ok 233 config_load works with no config files
+ok 234 config is cached after first load
+ok 235 config_clear_cache forces reload
+ok 236 config_get handles invalid JSON gracefully
+ok 237 config_get handles null values
+ok 238 config_get handles deeply nested keys
+ok 239 config_dump returns full config JSON
+ok 240 acceptance: config_get 'harness.priority' returns array
+ok 241 acceptance: config_get 'budget.default' returns number
+ok 242 acceptance: config_get 'nonexistent' returns empty
+ok 243 acceptance: config_get_or 'nonexistent' 'fallback' returns 'fallback'
+ok 244 CUB_BUDGET env var overrides config budget
+ok 245 CUB_BUDGET env var overrides project config budget
+ok 246 CUB_BUDGET env var creates budget structure if not present
+ok 247 config without CUB_BUDGET env var uses file values
+ok 248 cub-init creates project structure
+ok 249 cub-init creates valid prd.json
+ok 250 cub-init can be run in custom directory
+ok 251 cub --status shows task summary
+ok 252 cub status shows task summary (subcommand)
+ok 253 cub status --json outputs valid JSON
+ok 254 cub --status --json outputs valid JSON (legacy)
+ok 255 cub --ready lists ready tasks
+ok 256 cub fails gracefully when no prd.json exists
+ok 257 cub detects backend correctly
+ok 258 cub selects highest priority ready task
+ok 259 cub skips blocked tasks
+ok 260 cub generates system prompt from .cub/prompt.md
+ok 261 cub generates task prompt with all required fields
+ok 262 cub updates task status correctly
+ok 263 cub adds notes to tasks
+ok 264 cub detects when all tasks are complete
+ok 265 cub detects incomplete tasks
+ok 266 cub --debug flag is recognized
+ok 267 cub --once flag is recognized
+ok 268 cub respects CUB_BACKEND environment variable
+ok 269 cub --backend flag overrides auto-detection
+ok 270 cub handles corrupted prd.json gracefully
+ok 271 cub handles missing harness gracefully
+ok 272 detect_dependencies_from_content detects 'depends on' pattern
+ok 273 detect_dependencies_from_content detects 'depends on' with task ID
+ok 274 detect_dependencies_from_content detects 'blocked by' pattern
+ok 275 detect_dependencies_from_content detects 'requires' pattern
+ok 276 detect_dependencies_from_content detects 'after' pattern
+ok 277 detect_dependencies_from_content detects 'once' pattern
+ok 278 detect_dependencies_from_content detects 'before' pattern
+ok 279 detect_dependencies_from_content detects multiple dependencies
+ok 280 detect_dependencies_from_content is case-insensitive
+ok 281 detect_dependencies_from_content returns 1 when no dependencies found
+ok 282 detect_dependencies_from_content returns 1 for empty content
+ok 283 detect_dependencies_from_content detects numbered sequence dependencies
+ok 284 detect_dependencies_from_content extracts task names from numbered list
+ok 285 infer_blocking_relationships detects blocking from 'depends on'
+ok 286 infer_blocking_relationships detects blocking from 'blocked by'
+ok 287 infer_blocking_relationships returns empty for independent task
+ok 288 _has_dependency_signals detects 'depends on' signal
+ok 289 _has_dependency_signals detects 'blocked by' signal
+ok 290 _has_dependency_signals detects 'requires' signal
+ok 291 _has_dependency_signals returns 1 when no signals
+ok 292 _has_dependency_signals is case-insensitive
+ok 293 _has_numbered_sequence detects numbered list
+ok 294 _has_numbered_sequence detects alternative format
+ok 295 _has_numbered_sequence returns 1 for non-numbered content
+ok 296 get_dependency_description formats blocks relationship
+ok 297 get_dependency_description formats requires relationship
+ok 298 get_dependency_description formats precedes relationship
+ok 299 validate_dependency_references accepts valid dependencies
+ok 300 validate_dependency_references rejects invalid dependencies
+ok 301 validate_dependency_references accepts empty dependencies
+ok 302 validate_dependency_references handles arrow syntax
+ok 303 extract_task_names identifies task-like identifiers
+ok 304 extract_task_names filters short identifiers
+ok 305 detect_dependencies handles complex task description
+ok 306 detect_dependencies handles GitHub issue format
+ok 307 detect_dependencies handles feature request format
+ok 308 detect_dependencies ignores content without dependencies
+ok 309 detect_dependencies handles hyphenated and underscored identifiers
+ok 310 git_categorize_file returns 'session' for progress.txt
+ok 311 git_categorize_file returns 'session' for fix_plan.md
+ok 312 git_categorize_file returns 'cruft' for .DS_Store
+ok 313 git_categorize_file returns 'cruft' for .bak files
+ok 314 git_categorize_file returns 'cruft' for .tmp files
+ok 315 git_categorize_file returns 'cruft' for __pycache__
+ok 316 git_categorize_file returns 'source' for .ts files
+ok 317 git_categorize_file returns 'source' for .py files
+ok 318 git_categorize_file returns 'source' for .sh files
+ok 319 git_categorize_file returns 'source' for .md files (not session)
+ok 320 git_categorize_file returns 'config' for .env files
+ok 321 git_categorize_file returns 'config' for .env.local
+ok 322 git_categorize_file returns 'unknown' for unrecognized files
+ok 323 git_categorize_changes returns empty categories when repo is clean
+ok 324 git_categorize_changes categorizes session files correctly
+ok 325 git_categorize_changes categorizes source files correctly
+ok 326 git_categorize_changes categorizes cruft files correctly
+ok 327 git_categorize_changes handles multiple files in different categories
+ok 328 git_categorize_changes excludes .cub directory
+ok 329 git_categorize_changes excludes .beads directory
+ok 330 git_list_changes_with_status returns empty for clean repo
+ok 331 git_list_changes_with_status includes modified files
+ok 332 git_list_changes_with_status includes untracked files
+ok 333 _doctor_validate_json accepts valid JSON
+ok 334 _doctor_validate_json rejects invalid JSON
+ok 335 _doctor_validate_json accepts empty object
+ok 336 _doctor_validate_json accepts arrays
+ok 337 _doctor_check_deprecated_options detects deprecated fields
+ok 338 _doctor_check_deprecated_options passes clean config
+ok 339 _doctor_check_deprecated_options finds single deprecated option
+ok 340 _doctor_check_required_fields detects missing fields
+ok 341 _doctor_check_required_fields passes with all required fields
+ok 342 _doctor_check_symlinks detects valid symlink CLAUDE.md
+ok 343 _doctor_check_symlinks detects broken symlink
+ok 344 _doctor_check_symlinks detects regular file instead of symlink
+ok 345 _doctor_check_symlinks validates all required symlinks
+ok 346 _doctor_check_gitignore detects missing .gitignore
+ok 347 _doctor_check_gitignore detects missing patterns
+ok 348 _doctor_check_gitignore validates complete gitignore
+ok 349 _doctor_check_gitignore handles patterns with leading whitespace
+ok 350 e2e test script exists and is executable
+ok 351 e2e test project has required files
+ok 352 e2e test hooks are executable
+ok 353 e2e prd.json is valid JSON
+ok 354 e2e prd.json contains test tasks
+ok 355 e2e config enables hooks
+ok 356 e2e README exists and contains usage instructions
+ok 357 e2e test runs in simulation mode without API key
+ok 358 e2e test cleanup removes generated files
+ok 359 AC: e2e test verifies full loop execution
+ok 360 AC: e2e test can run in CI without API key
+ok 361 AC: e2e test verifies budget enforcement
+ok 362 AC: e2e test verifies all hook types
+ok 363 AC: e2e test includes documentation
+ok 364 json_get_ready_tasks handles missing prd.json gracefully
+ok 365 json_get_task handles missing prd.json gracefully
+ok 366 validate_prd handles missing file
+ok 367 validate_prd handles malformed JSON
+ok 368 json_update_task_status handles read-only directory
+ok 369 json_get_task handles empty task ID
+ok 370 json_update_task_status handles nonexistent task ID
+ok 371 json_add_task_note handles special characters in note
+ok 372 json_create_task handles malformed JSON input
+ok 373 json_get_ready_tasks handles circular dependencies
+ok 374 json_get_blocked_tasks identifies all tasks in circular dependency
+ok 375 harness_invoke returns error when harness command fails
+ok 376 claude_parse_stream handles invalid JSON gracefully
+ok 377 claude_parse_stream handles partial JSON stream
+ok 378 harness_detect handles no harness installed
+ok 379 json_get_ready_tasks handles empty tasks array
+ok 380 json_get_ready_tasks handles tasks with empty dependsOn array
+ok 381 json_get_task_counts handles missing status field
+ok 382 generate_task_id handles missing prefix field
+ok 383 json_update_task_status is atomic
+ok 384 json_get_ready_tasks handles large task lists
+ok 385 validate_prd handles deeply nested dependencies
+ok 386 failure_get_mode returns default mode when not configured
+ok 387 failure_get_mode returns configured mode from config
+ok 388 failure_get_mode returns stop mode
+ok 389 failure_get_mode returns move-on mode
+ok 390 failure_get_mode returns retry mode
+ok 391 failure_get_mode returns triage mode
+ok 392 failure_set_mode sets stop mode
+ok 393 failure_set_mode sets move-on mode
+ok 394 failure_set_mode sets retry mode
+ok 395 failure_set_mode sets triage mode
+ok 396 failure_set_mode rejects invalid mode
+ok 397 failure_set_mode requires mode parameter
+ok 398 failure_set_mode validates allowed modes
+ok 399 failure_handle_stop returns exit code 2 (halt signal)
+ok 400 failure_handle_stop requires task_id parameter
+ok 401 failure_handle_stop requires exit_code parameter
+ok 402 failure_handle_stop accepts optional output parameter
+ok 403 failure_handle_stop stores failure info
+ok 404 failure_handle_stop stores correct failure mode in JSON
+ok 405 failure_handle_move_on returns exit code 0 (continue signal)
+ok 406 failure_handle_move_on requires task_id parameter
+ok 407 failure_handle_move_on requires exit_code parameter
+ok 408 failure_handle_move_on accepts optional output parameter
+ok 409 failure_handle_move_on stores failure info
+ok 410 failure_handle_move_on stores correct failure mode in JSON
+ok 411 failure_store_info creates failure.json in task directory
+ok 412 failure_store_info stores all required fields in JSON
+ok 413 failure_store_info requires task_id parameter
+ok 414 failure_store_info requires exit_code parameter
+ok 415 failure_store_info handles missing artifacts directory gracefully
+ok 416 failure_store_info handles missing task directory gracefully
+ok 417 failure_store_info uses default mode 'unknown' when not specified
+ok 418 failure_store_info timestamp is in ISO 8601 format
+ok 419 stop mode creates failure.json with exit code 2
+ok 420 move-on mode creates failure.json with exit code 0
+ok 421 failure info includes task exit code correctly
+ok 422 failure info includes output message
+ok 423 AC: Stop mode halts run immediately (returns exit code 2)
+ok 424 AC: Move-on mode marks task failed and continues (returns exit code 0)
+ok 425 AC: Failure info stored for retrieval
+ok 426 AC: Task artifacts updated with failure details
+ok 427 AC: Exit codes distinguish stop vs continue
+ok 428 failure_handle_retry returns exit code 3 (retry signal) when under limit
+ok 429 failure_handle_retry increments task iteration counter
+ok 430 failure_handle_retry falls back to move-on when limit exceeded
+ok 431 failure_handle_retry requires task_id parameter
+ok 432 failure_handle_retry requires exit_code parameter
+ok 433 failure_handle_retry accepts optional output parameter
+ok 434 failure_handle_retry stores failure info with retry mode
+ok 435 failure_handle_retry stores retry-limit-exceeded mode when limit hit
+ok 436 failure_get_context returns formatted context with output
+ok 437 failure_get_context returns formatted context without output
+ok 438 failure_get_context requires task_id parameter
+ok 439 failure_get_context handles missing artifacts directory gracefully
+ok 440 failure_get_context handles missing task directory gracefully
+ok 441 failure_get_context handles missing failure.json gracefully
+ok 442 failure_get_context handles empty output correctly
+ok 443 AC: Retry increments task iteration counter
+ok 444 AC: Failure context available for prompt augmentation
+ok 445 AC: Falls back to move-on when limit exceeded
+ok 446 AC: Context format helpful for agent
+ok 447 git_in_repo returns 0 when in a git repository
+ok 448 git_in_repo returns non-zero when not in a git repository
+ok 449 git_get_current_branch returns current branch name
+ok 450 git_get_current_branch returns new branch after checkout
+ok 451 git_get_current_branch returns 1 when not in git repo
+ok 452 git_is_clean returns 0 when repository is clean
+ok 453 git_is_clean returns 1 when working tree has changes
+ok 454 git_is_clean returns 1 when there are staged changes
+ok 455 git_is_clean returns 1 when there are untracked files
+ok 456 git_is_clean ignores .gitignore'd files
+ok 457 git_init_run_branch creates branch with correct naming convention
+ok 458 git_init_run_branch checks out the new branch
+ok 459 git_init_run_branch stores branch name in global variable
+ok 460 git_init_run_branch returns error when session_name is empty
+ok 461 git_init_run_branch returns error when not in git repo
+ok 462 git_init_run_branch handles existing branch gracefully
+ok 463 git_init_run_branch works from any starting branch
+ok 464 git_init_run_branch uses current timestamp
+ok 465 git_get_run_branch returns branch name after initialization
+ok 466 git_get_run_branch returns error when not initialized
+ok 467 git_get_run_branch returns same branch as initialized
+ok 468 INTEGRATION: Complete workflow - init branch, get branch, verify checkout
+ok 469 INTEGRATION: Multiple sessions create different branches
+ok 470 ACCEPTANCE: Branch created with correct naming convention
+ok 471 ACCEPTANCE: Branch checked out after creation
+ok 472 ACCEPTANCE: Handles existing branch gracefully
+ok 473 ACCEPTANCE: git_get_run_branch returns current run branch
+ok 474 ACCEPTANCE: Works from any starting branch
+ok 475 git_commit_task creates commit with structured message
+ok 476 git_commit_task includes summary in commit message
+ok 477 git_commit_task stages all changes before committing
+ok 478 git_commit_task returns success when nothing to commit
+ok 479 git_commit_task returns error when task_id is missing
+ok 480 git_commit_task returns error when task_title is missing
+ok 481 git_commit_task returns error when not in git repo
+ok 482 git_commit_task handles multiline summary
+ok 483 git_commit_task commit message is parseable
+ok 484 git_commit_task works with special characters in title
+ok 485 git_commit_task works with special characters in summary
+ok 486 ACCEPTANCE: Commit created with structured message format
+ok 487 ACCEPTANCE: Task ID in commit title and trailer
+ok 488 ACCEPTANCE: All changes staged before commit
+ok 489 ACCEPTANCE: No-op if nothing to commit (not an error)
+ok 490 ACCEPTANCE: Commit message parseable for task extraction
+ok 491 git_has_changes returns 0 when there are uncommitted changes
+ok 492 git_has_changes returns 1 when repository is clean
+ok 493 git_has_changes detects new untracked files
+ok 494 git_has_changes detects staged changes
+ok 495 git_has_changes detects deleted files
+ok 496 git_has_changes returns 1 when not in git repo
+ok 497 git_stash_changes stashes working tree changes
+ok 498 git_stash_changes stashes modified tracked files
+ok 499 git_stash_changes handles clean repository gracefully
+ok 500 git_stash_changes returns error when not in git repo
+ok 501 git_stash_changes saves state for restoration
+ok 502 git_unstash_changes restores stashed changes
+ok 503 git_unstash_changes restores new files
+ok 504 git_unstash_changes handles no stash gracefully
+ok 505 git_unstash_changes returns error when not in git repo
+ok 506 INTEGRATION: Stash and unstash workflow
+ok 507 git_set_base_branch stores branch name
+ok 508 git_get_base_branch returns stored branch name
+ok 509 git_set_base_branch returns error when branch_name is empty
+ok 510 git_get_base_branch returns error when not set
+ok 511 git_set_base_branch allows any branch name
+ok 512 INTEGRATION: Base branch tracking for PR workflow
+ok 513 ACCEPTANCE: git_has_changes correctly detects changes
+ok 514 ACCEPTANCE: git_stash_changes and git_unstash_changes work for temporary storage
+ok 515 ACCEPTANCE: git_get_base_branch returns stored branch for PR creation
+ok 516 ACCEPTANCE: Base branch tracked across run session
+ok 517 git_push_branch returns error when not in git repo
+ok 518 git_push_branch returns error when no remote configured
+ok 519 git_push_branch returns error when cannot determine current branch
+ok 520 git_push_branch pushes to origin when remote is configured
+ok 521 git_push_branch sets upstream tracking
+ok 522 git_push_branch --force requires confirmation
+ok 523 git_push_branch --force succeeds with yes confirmation
+ok 524 git_push_branch --force uses force-with-lease
+ok 525 git_push_branch displays informative messages
+ok 526 INTEGRATION: Complete push workflow
+ok 527 ACCEPTANCE: git_push_branch pushes current branch to origin
+ok 528 ACCEPTANCE: git_push_branch sets upstream tracking relationship
+ok 529 ACCEPTANCE: git_push_branch --force requires explicit confirmation
+ok 530 git_commit_session_files returns 0 when no session files exist
+ok 531 git_commit_session_files returns 0 when session files are unchanged
+ok 532 git_commit_session_files commits modified progress.txt
+ok 533 git_commit_session_files commits modified fix_plan.md
+ok 534 git_commit_session_files commits untracked progress.txt
+ok 535 git_commit_session_files commits multiple session files
+ok 536 git_commit_session_files ignores non-session files
+ok 537 git_commit_session_files works without task_id
+ok 538 ACCEPTANCE: Session files left behind by agent are auto-committed
+ok 539 git_commit_remaining_changes returns 0 when no changes exist
+ok 540 git_commit_remaining_changes commits modified files
+ok 541 git_commit_remaining_changes commits untracked files
+ok 542 git_commit_remaining_changes uses task_id and task_title in commit message
+ok 543 git_commit_remaining_changes uses task_id only when no title
+ok 544 git_commit_remaining_changes excludes .cub/ directory
+ok 545 git_commit_remaining_changes excludes .beads/ directory
+ok 546 git_commit_remaining_changes commits multiple files
+ok 547 ACCEPTANCE: Agent completes task but forgets to commit - cub auto-commits
+ok 548 harness_detect respects explicit HARNESS setting
+ok 549 harness_detect ignores HARNESS=auto
+ok 550 harness_get caches detected harness
+ok 551 harness_available returns true when specified harness exists
+ok 552 harness_available returns false when specified harness missing
+ok 553 harness_version returns value for installed harness
+ok 554 claude_parse_stream extracts text from assistant message
+ok 555 claude_parse_stream handles content_block_delta text
+ok 556 claude_parse_stream skips empty lines gracefully
+ok 557 claude_parse_stream handles result messages
+ok 558 claude_parse_stream shows tool use in content_block_start
+ok 559 harness_invoke dispatches to correct harness
+ok 560 harness_invoke_streaming fails gracefully for unknown harness
+ok 561 CLAUDE_FLAGS environment variable is accessible
+ok 562 CODEX_FLAGS environment variable is accessible
+ok 563 harness_detect finds claude when installed
+ok 564 harness_available returns true for any installed harness
+ok 565 harness_clear_usage clears all usage state
+ok 566 harness_get_usage returns JSON with correct structure
+ok 567 harness_get_usage handles no usage data gracefully
+ok 568 harness_get_total_tokens returns sum of input and output
+ok 569 claude_parse_stream extracts usage from message events
+ok 570 claude_parse_stream captures cost from result events
+ok 571 claude_parse_stream accumulates usage from multiple messages
+ok 572 harness_get_usage estimates tokens from cost when usage unavailable
+ok 573 ACCEPTANCE: Token count extracted from Claude streaming output
+ok 574 ACCEPTANCE: Tokens returned in structured format
+ok 575 ACCEPTANCE: Fallback to estimate if not available
+ok 576 ACCEPTANCE: Works with streaming mode via claude_parse_stream
+ok 577 harness_supports returns success for supported capability
+ok 579 harness_supports requires capability argument
+ok 580 harness_supports uses current harness when not specified
+ok 581 _harness_get_capabilities returns correct capabilities for claude
+ok 582 _harness_get_capabilities returns correct capabilities for opencode
+ok 583 _harness_get_capabilities returns correct capabilities for codex
+ok 584 _harness_get_capabilities returns correct capabilities for gemini
+ok 585 _harness_get_capabilities returns empty for unknown harness
+ok 586 harness_get_capabilities_json returns valid JSON for claude
+ok 588 capability constants are defined
+ok 590 ACCEPTANCE: Can query if harness reports tokens
+ok 591 ACCEPTANCE: All known harnesses have auto_mode capability
+ok 593 harness_detect respects config harness.priority array
+ok 594 harness_detect tries each priority in order until found
+ok 595 harness_detect falls back to default order if no config priority
+ok 596 harness_detect falls back to default if all priorities unavailable
+ok 597 harness_detect prefers explicit HARNESS over config priority
+ok 598 harness_detect accepts HARNESS=auto and ignores to use config/default
+ok 599 config priority can specify gemini, opencode, codex, claude
+ok 600 ACCEPTANCE: Config priority respected - can configure preferred harness order
+ok 601 ACCEPTANCE: Falls through list until one is available
+ok 602 ACCEPTANCE: Default priority if not configured
+ok 603 _get_stdbuf_cmd returns stdbuf if available
+ok 604 _get_stdbuf_cmd returns gstdbuf if stdbuf not available
+ok 605 _get_stdbuf_cmd returns empty if neither available
+ok 606 ACCEPTANCE: Streaming uses stdbuf when available for output buffering
+ok 607 hooks_run with no scripts returns success
+ok 608 hooks_run executes script in global directory
+ok 609 hooks_run executes script in project directory
+ok 610 hooks_run executes scripts in sorted order
+ok 611 hooks_run exports CUB_HOOK_NAME
+ok 612 hooks_run exports CUB_PROJECT_DIR
+ok 613 hooks_set_task_context exports task variables
+ok 614 hooks_set_task_context exports exit code
+ok 615 hooks_set_session_context exports session variables
+ok 616 hooks_run passes arguments to scripts
+ok 617 hook failure logged but doesn't stop execution when fail_fast is false
+ok 618 hook failure stops execution when fail_fast is true
+ok 619 hooks_run requires hook_name parameter
+ok 620 non-executable files are skipped
+ok 621 both global and project hooks are executed
+ok 622 hook output captured and displayed
+ok 623 hooks_clear_context clears environment variables
+ok 624 hooks_find with no scripts returns empty
+ok 625 hooks_find finds scripts in global directory
+ok 626 hooks_find finds scripts in project directory
+ok 627 hooks_find returns scripts in sorted order
+ok 628 hooks_find only returns executable files
+ok 629 hooks_find returns both global and project scripts
+ok 630 hooks_find merges global and project hooks in sorted order (global first)
+ok 631 hooks_find requires hook_name parameter
+ok 632 AC: hooks_run executes all scripts in pre-task.d/
+ok 633 AC: scripts receive context via environment vars
+ok 634 AC: hook failure logged but doesn't stop loop when configurable
+ok 635 AC: scripts run in sorted order (01-first.sh before 02-second.sh)
+ok 636 AC: hooks_find finds hooks in global directory
+ok 637 AC: hooks_find finds hooks in project directory
+ok 638 AC: hooks_find merges both global and project (global first)
+ok 639 AC: hooks_find only returns executable files
+ok 640 claude can respond to simple prompt
+ok 641 claude_invoke handles authentication errors gracefully
+ok 642 claude_parse_stream handles real Claude stream-json output
+ok 643 harness_invoke handles network errors
+ok 644 harness_invoke handles command not found
+ok 645 harness_invoke handles very long prompts
+ok 646 harness can be retried after failure
+ok 647 harness respects CLAUDE_FLAGS from environment
+ok 648 claude_parse_stream preserves line breaks in output
+ok 649 claude_parse_stream handles UTF-8 characters
+ok 650 multiple harness invocations can run concurrently
+ok 651 interview_filter_questions filters by task type
+ok 652 interview_filter_questions filters by task labels
+ok 653 interview_filter_questions filters out questions without matching labels
+ok 654 interview_detect_tech_stack detects bash projects
+ok 655 interview_detect_tech_stack detects nodejs projects
+ok 656 interview_detect_tech_stack detects python projects
+ok 657 interview_should_skip_question returns 1 when no skip condition
+ok 658 interview_should_skip_question skips when condition matches
+ok 659 interview_should_skip_question does not skip when condition does not match
+ok 660 interview_should_skip_question handles case-insensitive matching
+ok 661 interview_load_questions returns valid JSON
+ok 662 interview_load_questions has required fields
+ok 663 interview filtering combines task type and labels correctly
+ok 664 interview_gather_codebase_context detects bash project
+ok 665 interview_gather_codebase_context detects nodejs project
+ok 666 interview_gather_codebase_context detects test directory
+ok 667 interview_gather_codebase_context detects docker compose
+ok 668 interview_gather_codebase_context limits file list
+ok 669 interview_generate_spec includes mode in output
+ok 670 interview_generate_spec defaults to interactive mode
+ok 671 interview_extract_acceptance_criteria extracts from success criteria
+ok 672 interview_extract_acceptance_criteria extracts from testing questions
+ok 673 interview_extract_acceptance_criteria extracts from error handling
+ok 674 interview_extract_acceptance_criteria extracts from validation rules
+ok 675 interview_extract_acceptance_criteria extracts from output requirements
+ok 676 interview_extract_acceptance_criteria handles bulleted lists
+ok 677 interview_extract_acceptance_criteria handles numbered lists
+ok 678 interview_extract_acceptance_criteria skips N/A answers
+ok 679 interview_extract_acceptance_criteria combines multiple sources
+ok 680 interview_extract_acceptance_criteria provides fallback criteria
+ok 681 interview_extract_acceptance_criteria uses primary goal as fallback
+ok 682 interview_load_custom_questions returns empty array when no config exists
+ok 683 interview_load_custom_questions loads custom questions from .cub.json
+ok 684 interview_merge_questions combines built-in and custom questions
+ok 685 interview_merge_questions handles empty custom questions
+ok 686 custom questions are included in filtering by task type
+ok 687 custom questions support requires_labels filtering
+ok 688 interview_load_skip_categories returns empty string when no config
+ok 689 interview_load_skip_categories loads from .cub.json
+ok 690 interview_load_skip_categories returns empty when skip_categories is empty array
+ok 691 interview_load_skip_categories handles missing interview section
+ok 692 skip_categories filter excludes specified categories
+ok 693 skip_categories filter handles multiple categories
+ok 694 skip_categories filter preserves non-skipped categories
+ok 695 parse_json_file with simple array format - basic task
+ok 696 parse_json_file with simple array format - multiple tasks
+ok 697 parse_json_file with simple array format - tasks with dependencies
+ok 698 parse_json_file with simple array format - optional fields
+ok 699 parse_json_file with simple array format - auto-generated IDs
+ok 700 parse_json_file with simple array format - default status
+ok 701 parse_json_file with structured PRD format - single feature
+ok 702 parse_json_file with structured PRD format - features with tasks
+ok 703 parse_json_file with structured PRD format - feature dependencies
+ok 704 parse_json_file with structured PRD format - auto-generated feature IDs
+ok 705 parse_json_file with structured PRD format - feature with optional fields
+ok 706 parse_json_file returns error for missing file
+ok 707 parse_json_file returns error for invalid JSON
+ok 708 parse_json_file returns error for missing tasks and features
+ok 709 parse_json_file returns error for non-array tasks
+ok 710 parse_json_file returns error for duplicate task IDs
+ok 711 parse_json_file detects circular dependencies
+ok 712 extract_tasks returns only tasks array
+ok 713 count_items returns correct count
+ok 714 format_parsed_json produces formatted output
+ok 715 json parser output compatible with markdown parser structure
+ok 716 complex PRD import scenario
+ok 717 logger_init creates log directory structure
+ok 718 logger_init creates log file
+ok 719 logger_init sets _LOG_FILE variable
+ok 720 logger_init fails without project_name
+ok 721 logger_init fails without session_id
+ok 722 logger_init creates nested project directories
+ok 723 logger_write silently skips if logger not initialized
+ok 724 logger_write fails without event_type
+ok 725 logger_write creates valid JSON line
+ok 726 logger_write includes timestamp in ISO 8601 format
+ok 727 logger_write includes event_type field
+ok 728 logger_write includes data field
+ok 729 logger_write handles empty data (defaults to {})
+ok 730 logger_write appends multiple entries
+ok 731 logger_write preserves existing log entries
+ok 732 logger_write handles complex nested JSON data
+ok 733 logger_get_file returns empty string when not initialized
+ok 734 logger_get_file returns correct path after init
+ok 735 logger_clear resets logger state
+ok 736 full logger workflow: init, write multiple events, verify output
+ok 737 acceptance: log file created at correct XDG path
+ok 738 acceptance: each line is valid JSON
+ok 739 acceptance: timestamps in ISO 8601 format
+ok 740 acceptance: log file is append-only
+ok 741 log_task_start creates task_start event with all metadata
+ok 742 log_task_start fails without task_id
+ok 743 log_task_start fails without task_title
+ok 744 log_task_start fails without harness
+ok 745 log_task_start handles special characters in title
+ok 746 log_task_end creates task_end event with all metadata
+ok 747 log_task_end captures current git SHA
+ok 748 log_task_end defaults tokens_used to 0 when omitted
+ok 749 log_task_end fails without task_id
+ok 750 log_task_end fails without exit_code
+ok 751 log_task_end fails without duration_sec
+ok 752 log_task_end handles non-zero exit codes
+ok 753 log_error creates error event with message
+ok 754 log_error includes context when provided
+ok 755 log_error fails without message
+ok 756 log_error fails with invalid JSON context
+ok 757 log_error handles complex context objects
+ok 758 integration: full task lifecycle logging
+ok 759 integration: task with error logging
+ok 760 acceptance: task_start event logged with task_id, title, harness
+ok 761 acceptance: task_end event logged with duration, exit_code, tokens, git_sha
+ok 762 acceptance: errors logged with context
+ok 763 logger_redact redacts api_key values
+ok 764 logger_redact redacts API_KEY (uppercase) values
+ok 765 logger_redact redacts token values
+ok 766 logger_redact redacts secret values
+ok 767 logger_redact redacts password values
+ok 768 logger_redact redacts Bearer tokens
+ok 769 logger_redact redacts private_key values
+ok 770 logger_redact redacts access_token values
+ok 771 logger_redact redacts client_secret values
+ok 772 logger_redact preserves key names for context
+ok 773 logger_redact handles multiple secrets in one string
+ok 774 logger_redact handles different separators (equals, colon, space)
+ok 775 logger_redact does not redact common words
+ok 776 logger_redact returns original string if no secrets found
+ok 777 logger_redact handles empty string
+ok 778 logger_write automatically redacts secrets
+ok 779 logger_write redacts secrets in nested JSON
+ok 780 logger_redact uses custom patterns from config
+ok 781 acceptance: common secret patterns detected and redacted
+ok 782 acceptance: redaction replaces value with [REDACTED]
+ok 783 acceptance: logger_write applies redaction automatically
+ok 784 acceptance: no false positives on common words
+ok 785 acceptance: no false positives on JSON field names
+ok 786 logger_stream outputs message with timestamp to stdout
+ok 787 logger_stream applies secret redaction
+ok 788 logger_stream supports custom timestamp format
+ok 789 logger_stream returns 0 on success
+ok 790 logger_stream handles empty message gracefully
+ok 791 logger_stream outputs to stdout not stderr
+ok 792 logger_stream works with special characters
+ok 793 logger_stream multiple secrets redacted
+ok 794 logger_stream with Bearer token redaction
+ok 795 acceptance: logger_stream outputs with timestamp prefix
+ok 796 acceptance: logger_stream applies secret redaction before output
+ok 797 acceptance: logger_stream outputs to stdout
+ok 798 acceptance: logger_stream timestamp format HH:MM:SS
+ok 799 markdown: parse H1 heading as epic
+ok 800 markdown: parse multiple H1 headings as epics
+ok 801 markdown: parse H2 subheading as task group
+ok 802 markdown: parse checkbox as task
+ok 803 markdown: parse bullets as acceptance criteria
+ok 804 markdown: parse complex nested structure
+ok 805 markdown: return error for non-existent file
+ok 806 markdown: handle empty markdown file
+ok 807 markdown: handle file with no markdown structure
+ok 808 markdown: extract_epics returns only epics
+ok 809 markdown: extract_tasks returns all tasks and features
+ok 810 markdown: count_items returns total count
+ok 811 markdown: parse checkboxes with different formats
+ok 812 markdown: preserve line numbers for source references
+ok 813 markdown: handle mixed content correctly
+ok 814 markdown: output valid JSON
+ok 815 markdown: multiple checkboxes under one feature
+ok 816 markdown: acceptance criteria only on checkbox tasks, not features
+ok 817 migrate-layout shows help with --help
+ok 818 migrate-layout shows help with -h
+ok 819 migrate-layout shows help with help
+ok 820 migrate-layout handles unknown options
+ok 821 migrate-layout --dry-run shows files to migrate without making changes
+ok 822 migrate-layout --dry-run with no legacy files
+ok 823 migrate-layout migrates PROMPT.md
+ok 824 migrate-layout migrates AGENT.md
+ok 825 migrate-layout migrates CLAUDE.md to agent.md
+ok 826 migrate-layout prefers AGENT.md over CLAUDE.md
+ok 827 migrate-layout migrates progress.txt
+ok 828 migrate-layout prefers progress.txt over @progress.txt
+ok 829 migrate-layout migrates @progress.txt when progress.txt missing
+ok 830 migrate-layout migrates fix_plan.md
+ok 831 migrate-layout migrates prd.json
+ok 832 migrate-layout migrates .cub.json
+ok 833 migrate-layout creates backwards-compatibility symlinks
+ok 834 migrate-layout handles symlinks in source layout
+ok 835 migrate-layout with no legacy files returns success
+ok 836 migrate-layout migrates all files at once
+ok 837 migrate-layout idempotent - run twice without error
+ok 838 migrate-layout preserves file contents
+ok 839 pipeline: new_session_id generates valid session ID format
+ok 840 pipeline: new_session_id uses provided project name
+ok 844 pipeline: session_exists returns false for non-existing session
+ok 852 pipeline: find_vision finds explicit path
+ok 853 pipeline: find_vision finds VISION.md in project root
+ok 854 pipeline: find_vision finds docs/PRD.md
+ok 855 pipeline: find_vision falls back to README.md
+ok 856 pipeline: find_vision returns error when no document found
+ok 857 pipeline: find_vision priority: VISION.md over docs/PRD.md
+ok 858 pipeline: triage --help shows usage
+ok 859 pipeline: triage rejects invalid depth
+ok 860 pipeline: triage --session fails for non-existent session
+ok 861 pipeline: architect --help shows usage
+ok 863 pipeline: plan --help shows usage
+ok 864 pipeline: plan rejects invalid granularity
+ok 866 pipeline: bootstrap --help shows usage
+ok 868 pipeline: unified pipeline --help shows usage
+ok 869 pipeline: sessions list shows no sessions when empty
+ok 872 pipeline: sessions delete fails for non-existent session
+ok 873 pipeline: migrate help shows usage
+ok 874 pipeline: migrate chopshop fails when no .chopshop directory
+ok 875 pipeline: migrate chopshop copies session files
+ok 876 pipeline: validate --help shows usage
+ok 877 pipeline: validate fails without .beads directory
+ok 880 session_random_name returns a valid animal name
+ok 881 session_random_name returns different names (high probability)
+ok 882 session_random_name only returns values from ANIMAL_NAMES
+ok 883 session_init with no args initializes with random name
+ok 884 session_init with no args generates valid session ID format
+ok 885 session_init --name custom sets custom name
+ok 886 session_init --name creates ID with custom name
+ok 887 session_init sets ISO 8601 timestamp in UTC
+ok 888 session_init fails with invalid option
+ok 889 session_init can be called multiple times (overwrites state)
+ok 890 session_get_name returns the session name after init
+ok 891 session_get_name fails before initialization
+ok 892 session_get_name returns random name after init without --name
+ok 893 session_get_id returns the session ID after init
+ok 894 session_get_id fails before initialization
+ok 895 session_get_id contains timestamp in YYYYMMDD-HHMMSS format
+ok 896 session_get_run_id returns same as session_get_id
+ok 897 session_get_run_id fails before initialization
+ok 898 session_is_initialized returns false before init
+ok 899 session_is_initialized returns true after init
+ok 900 session_is_initialized returns true after init with --name
+ok 901 session_is_initialized returns false after manual reset
+ok 902 integration: full session lifecycle
+ok 903 integration: custom named session
+ok 904 integration: session isolation between inits
+ok 905 error: calling getters before init produces consistent errors
+ok 906 error: multiple --name options (last one wins)
+ok 907 acceptance: session_random_name returns valid animal
+ok 908 acceptance: session_init with no args works
+ok 909 acceptance: session_init --name custom works
+ok 910 acceptance: session_get_* functions return expected formats
+ok 911 acceptance: calling getters before init fails
+ok 912 acceptance: session timestamp is in ISO 8601 UTC format
+ok 913 acceptance: session ID includes timestamp
+ok 914 state_is_clean returns 0 when repository is clean
+ok 915 state_is_clean returns 1 when working tree has changes
+ok 916 state_is_clean returns 1 when there are staged changes
+ok 917 state_is_clean returns 1 when there are untracked files
+ok 918 state_is_clean returns 0 after committing changes
+ok 919 state_is_clean ignores .gitignore'd files
+ok 920 state_is_clean detects deleted files
+ok 921 state_ensure_clean returns 0 when clean and require_commit=true
+ok 922 state_ensure_clean returns 1 when dirty and require_commit=true
+ok 923 state_ensure_clean shows error message when dirty and require_commit=true
+ok 924 state_ensure_clean returns 0 when clean and require_commit=false
+ok 925 state_ensure_clean shows warning when dirty and require_commit=false
+ok 926 state_ensure_clean defaults to require_commit=true when config missing
+ok 927 ACCEPTANCE: Detects uncommitted changes after harness run
+ok 928 ACCEPTANCE: Respects clean_state.require_commit config
+ok 929 ACCEPTANCE: Clear error message pointing to uncommitted files
+ok 930 state_ensure_clean handles multiple types of changes
+ok 931 state_ensure_clean provides helpful guidance in error message
+ok 932 state_detect_test_command detects npm test from package.json
+ok 933 state_detect_test_command prefers yarn when yarn.lock exists
+ok 934 state_detect_test_command returns 1 when package.json has no test script
+ok 935 state_detect_test_command detects make test from Makefile
+ok 936 state_detect_test_command detects pytest from pytest.ini
+ok 937 state_detect_test_command detects pytest from tests directory
+ok 938 state_detect_test_command detects go test from go.mod
+ok 939 state_detect_test_command detects cargo test from Cargo.toml
+ok 940 state_detect_test_command returns 1 when no test command detected
+ok 941 state_run_tests returns 0 when require_tests=false
+ok 942 state_run_tests returns 0 when config missing (defaults to false)
+ok 943 state_run_tests runs tests when require_tests=true and package.json exists
+ok 944 state_run_tests fails when tests fail and require_tests=true
+ok 945 state_run_tests warns when no test command detected and require_tests=true
+ok 946 state_run_tests detects and runs make test
+ok 947 state_run_tests provides helpful error message on test failure
+ok 948 ACCEPTANCE: Detects test command for npm projects
+ok 949 ACCEPTANCE: Detects test command for yarn projects
+ok 950 ACCEPTANCE: Detects test command for make projects
+ok 951 ACCEPTANCE: Detects test command for pytest projects
+ok 952 ACCEPTANCE: Only runs tests if require_tests is true
+ok 953 ACCEPTANCE: Test failures logged clearly
+ok 954 ACCEPTANCE: Test output captured in logs
+ok 955 detect_backend returns json when prd.json exists
+ok 956 detect_backend defaults to json when no backend exists
+ok 957 detect_backend respects CUB_BACKEND=json
+ok 958 validate_prd succeeds with valid prd.json
+ok 959 validate_prd fails when tasks array is missing
+ok 960 validate_prd fails when tasks have missing required fields
+ok 961 validate_prd fails when duplicate task IDs exist
+ok 962 validate_prd fails when dependency references invalid task
+ok 963 json_get_ready_tasks returns open tasks without dependencies
+ok 964 json_get_ready_tasks excludes tasks with unsatisfied dependencies
+ok 965 json_get_ready_tasks returns tasks sorted by priority
+ok 966 json_get_ready_tasks returns empty array when all tasks closed
+ok 967 json_get_task returns task by ID
+ok 968 json_get_task returns empty for non-existent ID
+ok 969 json_update_task_status changes task status
+ok 970 json_update_task_status does not affect other tasks
+ok 971 json_add_task_note adds timestamped note
+ok 972 json_create_task adds new task to prd.json
+ok 973 json_get_task_counts returns correct counts
+ok 974 json_all_tasks_complete returns false when open tasks exist
+ok 975 json_all_tasks_complete returns true when all tasks closed
+ok 976 json_get_blocked_tasks returns tasks with unsatisfied dependencies
+ok 977 json_get_blocked_tasks returns empty when no blocked tasks
+ok 978 generate_task_id creates ID with prefix from prd.json
+ok 979 generate_task_id creates unique IDs
+ok 980 claim_task requires task_id parameter
+ok 981 claim_task requires session_name parameter
+ok 982 claim_task updates task status to in_progress for JSON backend
+ok 983 claim_task works with multiple tasks
+ok 984 verify_task_closed requires task_id parameter
+ok 985 verify_task_closed returns success for closed task
+ok 986 verify_task_closed returns failure for open task
+ok 987 verify_task_closed returns failure for in_progress task
+ok 988 verify_task_closed fails for non-existent prd file
+ok 989 auto_close_task requires task_id parameter
+ok 990 auto_close_task closes an open task
+ok 991 auto_close_task closes an in_progress task
+ok 992 auto_close_task succeeds silently for already closed task
+ok 993 auto_close_task only affects specified task
+ok 994 validate_task_completeness requires task_id parameter
+ok 995 validate_task_completeness returns error for non-existent task
+ok 996 validate_task_completeness reports missing title
+ok 997 validate_task_completeness reports title too short
+ok 998 validate_task_completeness accepts title with 10+ characters
+ok 999 validate_task_completeness reports missing description
+ok 1000 validate_task_completeness reports missing acceptance criteria
+ok 1001 validate_task_completeness accepts markdown checkboxes in description
+ok 1002 validate_task_completeness accepts acceptanceCriteria field
+ok 1003 validate_task_completeness returns all issues together
+ok 1004 validate_task_completeness returns valid JSON
+ok 1005 validate_all_tasks_completeness returns empty array for empty prd
+ok 1006 validate_all_tasks_completeness validates all tasks
+ok 1007 validate_all_tasks_completeness handles missing file
+ok 1008 get_completeness_summary reports all complete
+ok 1009 get_completeness_summary reports incomplete tasks
+ok 1010 get_completeness_summary includes specific issues
+ok 1011 validate_task_feasibility requires task_id parameter
+ok 1012 validate_task_feasibility returns error for nonexistent task
+ok 1013 validate_task_feasibility returns valid JSON structure
+ok 1014 validate_task_feasibility marks task feasible with no issues
+ok 1015 validate_task_feasibility detects closed dependency
+ok 1016 validate_task_feasibility detects unclosed dependency
+ok 1017 validate_task_feasibility detects multiple unclosed dependencies
+ok 1018 validate_task_feasibility detects missing referenced file
+ok 1019 validate_task_feasibility accepts existing referenced file (absolute path)
+ok 1020 validate_task_feasibility handles relative paths with ./
+ok 1021 validate_task_feasibility detects mixed issues
+ok 1022 validate_all_tasks_feasibility returns empty array for empty prd
+ok 1023 validate_all_tasks_feasibility validates all tasks
+ok 1024 validate_all_tasks_feasibility handles missing file
+ok 1025 get_feasibility_summary reports all feasible
+ok 1026 get_feasibility_summary reports infeasible tasks
+ok 1027 get_feasibility_summary includes specific issues
+ok 1028 validate_task_feasibility handles task with no dependencies
+ok 1029 validate_task_feasibility handles task with empty description
+ok 1030 validate_task_feasibility ignores issues if all deps are closed
+ok 1031 validate_task_feasibility special characters in dependency id
+ok 1032 validate_task_dependencies returns error for missing task_id
+ok 1033 validate_task_dependencies returns error for nonexistent task
+ok 1034 validate_task_dependencies marks valid task as valid
+ok 1035 validate_task_dependencies detects missing dependency
+ok 1036 validate_task_dependencies handles task with no dependencies
+ok 1037 validate_task_dependencies returns valid JSON structure
+ok 1038 validate_task_dependencies detects dependency order issues
+ok 1039 validate_all_dependencies returns empty array for empty prd
+ok 1040 validate_all_dependencies validates all tasks
+ok 1041 validate_all_dependencies detects multiple invalid tasks
+ok 1042 get_dependency_order returns list of task ids
+ok 1043 get_dependency_order handles empty prd
+ok 1044 get_blocked_tasks_report shows blocked tasks
+ok 1045 get_blocked_tasks_report shows no blocked tasks when all ready
+ok 1046 get_blocked_tasks_report handles empty prd
+ok 1047 get_dependency_summary reports no issues when all valid
+ok 1048 get_dependency_summary reports issues when dependencies invalid
+ok 1049 validate_task_dependencies handles multiple dependencies
+ok 1050 validate_task_dependencies detects multiple missing dependencies
+ok 1051 validate_all_dependencies handles file not found
+ok 1052 validate_task_architecture requires task_id
+ok 1053 validate_task_architecture handles task not found
+ok 1054 validate_task_architecture returns valid JSON structure
+ok 1055 validate_task_architecture handles AI unavailable gracefully
+ok 1056 validate_task_architecture handles non-JSON AI response
+ok 1057 validate_task_architecture handles missing prd.json
+ok 1058 validate_task_architecture parses AI issues and suggestions
+ok 1059 validate_all_architecture validates multiple tasks
+ok 1060 validate_all_architecture handles empty task list
+ok 1061 validate_all_architecture handles file not found
+ok 1062 get_architecture_summary shows pass with no issues
+ok 1063 get_architecture_summary shows concerns with issues
+ok 1064 get_architecture_summary handles empty prd
+ok 1065 validate_task_architecture extracts task fields correctly
+ok 1066 xdg_config_home returns ~/.config by default
+ok 1067 xdg_config_home respects XDG_CONFIG_HOME
+ok 1068 xdg_data_home returns ~/.local/share by default
+ok 1069 xdg_data_home respects XDG_DATA_HOME
+ok 1070 xdg_cache_home returns ~/.cache by default
+ok 1071 xdg_cache_home respects XDG_CACHE_HOME
+ok 1072 cub_config_dir returns correct path
+ok 1073 cub_data_dir returns correct path
+ok 1074 cub_logs_dir returns correct path
+ok 1075 cub_cache_dir returns correct path
+ok 1076 cub_ensure_dirs creates config directory
+ok 1077 cub_ensure_dirs creates data directory
+ok 1078 cub_ensure_dirs creates logs directory
+ok 1079 cub_ensure_dirs creates cache directory
+# bats warning: Executed 1058 instead of expected 1079 tests

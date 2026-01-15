@@ -1,74 +1,50 @@
-# Project Prompt
+# Ralph Loop Iteration
 
-This file provides context for AI coding agents working on this project.
+You are an autonomous coding agent working through a task backlog.
 
-## Overview
+## Context Files
 
+Study these files to understand the project:
+- @AGENT.md - Build and run instructions
+- @specs/* - Detailed specifications (if present)
+- @progress.txt - Learnings from previous iterations
 
-Plan releases 0.21-0.25 for Cub, focusing on migrating performance-critical Bash code to Python (not Go initially), adding visibility via a live dashboard, enabling parallel development with git worktrees, and providing safe autonomous execution via Docker-based sandboxing. The goal is to establish the technical foundation that enables confident overnight autonomous operation.
+## Your Workflow
 
-## Problem Statement
+1. **Understand**: Read the CURRENT TASK section below carefully
+2. **Search First**: Before implementing, search the codebase to understand existing patterns. Do NOT assume something is not implemented.
+3. **Implement**: Complete the task fully. NO placeholders or minimal implementations.
+4. **Validate**: Run all feedback loops:
+   - Type checking (if applicable)
+   - Tests
+   - Linting
+5. **Complete**: If all checks pass:
+   - Update @prd.json: set the task's status to "closed"
+   - Commit changes with message format: `type(task-id): description`
+   - Append learnings to @progress.txt
 
-## Problem Statement
+## Critical Rules
 
+- **ONE TASK**: Focus only on the task assigned below
+- **FULL IMPLEMENTATION**: No stubs, no TODOs, no "implement later"
+- **SEARCH BEFORE WRITING**: Use parallel subagents to search the codebase before assuming code doesn't exist
+- **FIX WHAT YOU BREAK**: If tests unrelated to your work fail, fix them
+- **DOCUMENT DISCOVERIES**: If you find bugs or issues, add them to @fix_plan.md
+- **UPDATE AGENT.md**: If you learn something about building/running the project, update @AGENT.md
 
-Cub is currently ~9,400 lines of Bash with significant jq subprocess overhead (~10-50ms per JSON operation). This limits performance, maintainability, and the ability to add advanced features like parallel execution and real-time dashboards. Users need confidence to run cub autonomously overnight, which requires visibility (dashboard) and safety (sandbox).
+## Parallelism Guidance
 
-## Refined Vision
+- Use parallel subagents for: file searches, reading multiple files
+- Use SINGLE sequential execution for: build, test, typecheck
+- Before making changes, always search first using subagents
 
-## Technical Approach
+## When You're Done
 
+After successfully completing the task and all checks pass:
+1. Ensure prd.json shows the task as "closed"
+2. Commit your changes
+3. If ALL tasks in prd.json have status="closed", output exactly:
 
-Cub 0.21-0.25 migrates from a Bash-based CLI to a full Python CLI while maintaining the existing pluggable architecture for task backends, AI harnesses, and adding new pluggable systems for sandbox providers.
+<promise>COMPLETE</promise>
 
-The architecture uses modern Python tooling:
-- **Typer** for type-safe CLI with auto-generated help and shell completion
-- **Pydantic v2** for all data models with validation and serialization
-- **Rich** for terminal output, progress bars, and live dashboard rendering
-- **Protocol classes** for pluggable interfaces ensuring extensibility
-
-The design prioritizes pluggability across all major subsystems (harnesses, task backends, sandbox providers, hooks) while keeping the implementation focused on the immediate needs (existing harnesses, Docker sandbox).
-
-## Architecture
-
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         cub (Python CLI)                         │
-│                    typer + rich + pydantic                       │
-├─────────────────────────────────────────────────────────────────┤
-│  cub run       │  cub status    │  cub audit   │  cub sandbox   │
-│  cub monitor   │  cub worktree  │  cub init    │  cub doctor    │
-└────────────────┴────────────────┴──────────────┴────────────────┘
-                              │
-┌─────────────────────────────┴───────────────────────────────────┐
-│                       cub.core (library)                         │
-├───────────────┬───────────────┬───────────────┬─────────────────┤
-│   tasks/      │   config/     │   harness/    │   sandbox/      │
-│  (backends)   │  (pydantic)   │  (backends)   │  (providers)    │
-├───────────────┼───────────────┼───────────────┼─────────────────┤
-│  • beads      │               │  • claude     │  • docker       │
-│  • json       │               │  • codex      │  • (future)     │
-│  • (future)   │               │  • gemini     │                 │
-│               │               │  • opencode   │                 │
-
-## Requirements
-
-### P0 (Must Have)
-
-- **Python Core (0.21):** Migrate tasks, config, and harness layers to Python
-  - Eliminates jq subprocess overhead (10-50x performance improvement expected)
-  - Python chosen over Go for flexibility, library ecosystem, and developer familiarity
-  - Harness layer in Python enables easier prompt iteration
-
-## Constraints
-
-
-- **Solo developer:** Scope must be realistic for one person
-- **No backward compatibility needed:** Only user is the developer
-- **Modern Bash acceptable:** Can require Bash 5.x via Homebrew if needed, but likely moot after Python migration
-- **Docker required for sandbox:** Sprites and other providers deferred
-
----
-
-Generated by cub prep. Session artifacts in .cub/sessions/
+This signals the loop should terminate.

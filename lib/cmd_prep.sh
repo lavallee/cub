@@ -518,7 +518,7 @@ cmd_plan() {
         log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
         log_info "JSONL: ${jsonl_file}"
         [[ -f "$md_file" ]] && log_info "Summary: ${md_file}"
-        log_info "Next step: cub bootstrap ${session_id}"
+        log_info "Next step: cub bootstrap --session ${session_id}"
     else
         echo ""
         log_warn "Plan session ended but JSONL file not created."
@@ -555,7 +555,7 @@ Output:
   .cub/sessions/{session-id}/plan.md        (Human-readable)
 
 Next Step:
-  cub bootstrap {session-id}
+  cub bootstrap --session {session-id}
 EOF
 }
 
@@ -1070,7 +1070,7 @@ _prep_report_status() {
         log_success "Prep complete!"
         log_info "Ready to start: cub run"
     elif [[ "$has_plan" == "true" ]]; then
-        log_info "Next step: cub bootstrap ${session_id}"
+        log_info "Next step: cub bootstrap --session ${session_id}"
     elif [[ "$has_architect" == "true" ]]; then
         log_info "Next step: cub plan --session ${session_id}"
     elif [[ "$has_triage" == "true" ]]; then
