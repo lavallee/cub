@@ -774,6 +774,154 @@ guardrails_search() {
     grep -i "$pattern" "$file" 2>/dev/null || true
 }
 
+# Curate guardrails using AI to consolidate and remove duplicates
+# Shows diff and requires confirmation before applying changes
+# Usage: guardrails_curate_ai [project_dir]
+# Parameters:
+#   project_dir - Optional project directory
+# Returns: 0 on success (or user cancellation), 1 on error
+guardrails_curate_ai() {
+    local project_dir="${1:-${PROJECT_DIR:-.}}"
+    local file
+    file=$(_guardrails_get_file "$project_dir")
+
+    if [[ ! -f "$file" ]]; then
+        echo "ERROR: No guardrails file to curate" >&2
+        return 1
+    fi
+
+    # Check if claude CLI is available
+    if ! command -v claude &> /dev/null; then
+        echo "ERROR: claude CLI is required for curation" >&2
+        echo "Install with: npm install -g @anthropic-ai/claude-cli" >&2
+        return 1
+    fi
+
+    # Read current guardrails content
+    local current_content
+    current_content=$(cat "$file")
+
+    # Count current lessons
+    local current_count
+    current_count=$(guardrails_count "$project_dir")
+
+    echo ""
+    echo "Current guardrails: ${current_count} lessons"
+    echo ""
+    echo "Analyzing and consolidating with AI (this may take a moment)..."
+    echo ""
+
+    # Prepare the AI prompt for curation
+    local ai_prompt="You are a technical documentation curator specializing in consolidating project guardrails.
+
+Your task is to review and consolidate this guardrails file. The file contains institutional memory for a software project - lessons learned from past mistakes.
+
+CURRENT GUARDRAILS FILE:
+---
+${current_content}
+---
+
+CURATION GOALS:
+1. Remove duplicate or redundant entries (consolidate similar lessons)
+2. Remove outdated or obsolete lessons (no longer relevant to current project state)
+3. Keep the most actionable, specific, project-focused lessons
+4. Target: under 50 entries total
+5. Preserve the most valuable lessons with their provenance (dates, task IDs)
+
+RULES:
+- Keep the markdown structure (## Project-Specific and ## Learned from Failures sections)
+- Keep lesson headers with dates and task IDs: ### YYYY-MM-DD - task-id
+- Preserve the most recent version of duplicate lessons
+- Keep lessons that are specific to this project (not generic advice)
+- Remove generic lessons like \"always test before committing\" (too obvious)
+- Consolidate similar lessons into a single, comprehensive lesson
+- Maintain complete traceability: keep date and task ID for retained lessons
+
+OUTPUT FORMAT:
+Return ONLY the curated guardrails file content in valid markdown format.
+Do NOT add any preamble, explanation, or commentary.
+Start your response with \"# Guardrails\" and nothing before it."
+
+    # Call Claude Sonnet to curate the guardrails
+    local curated_content
+    curated_content=$(echo "$ai_prompt" | claude --model sonnet --no-stream 2>/dev/null)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 || -z "$curated_content" ]]; then
+        echo "ERROR: Failed to generate curated content from AI" >&2
+        return 1
+    fi
+
+    # Save curated content to temp file for diff
+    local temp_file
+    temp_file=$(mktemp) || {
+        echo "ERROR: Failed to create temporary file" >&2
+        return 1
+    }
+    echo "$curated_content" > "$temp_file"
+
+    # Count lessons in curated version
+    local curated_count
+    curated_count=$(grep -c "^### [0-9]" "$temp_file" 2>/dev/null || echo "0")
+
+    echo ""
+    echo "Curation complete:"
+    echo "  Before: ${current_count} lessons"
+    echo "  After:  ${curated_count} lessons"
+    echo "  Removed: $((current_count - curated_count)) lessons"
+    echo ""
+
+    # Show diff
+    echo "=== CHANGES ==="
+    echo ""
+    if command -v diff &> /dev/null; then
+        # Use diff with color if available
+        if diff --color=auto "$file" "$temp_file" 2>/dev/null; then
+            echo "(No changes)"
+        fi
+    else
+        # Fallback to showing just the curated content
+        echo "Curated content:"
+        echo ""
+        cat "$temp_file"
+    fi
+    echo ""
+    echo "=== END CHANGES ==="
+    echo ""
+
+    # Prompt for confirmation
+    echo -n "Apply these changes? (y/n): "
+    read -r confirmation
+
+    if [[ "$confirmation" != "y" && "$confirmation" != "Y" ]]; then
+        rm -f "$temp_file"
+        echo "Cancelled - no changes made"
+        return 0
+    fi
+
+    # Create backup before applying
+    local backup_file="${file}.backup.$(date '+%Y%m%d-%H%M%S')"
+    cp "$file" "$backup_file" || {
+        echo "ERROR: Failed to create backup" >&2
+        rm -f "$temp_file"
+        return 1
+    }
+
+    # Apply changes
+    mv "$temp_file" "$file" || {
+        echo "ERROR: Failed to apply changes" >&2
+        rm -f "$temp_file"
+        return 1
+    }
+
+    echo ""
+    echo "Guardrails curated successfully"
+    echo "Backup saved to: ${backup_file}"
+    echo ""
+
+    return 0
+}
+
 # List all lessons as JSON with provenance metadata
 # Returns JSON array of lessons with date, task_id, error_summary, and content
 # Usage: guardrails_list_json [project_dir]

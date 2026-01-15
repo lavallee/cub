@@ -22,6 +22,7 @@ USAGE:
   cub guardrails show [--format]     Display current guardrails
   cub guardrails add "lesson text"   Add a new lesson
   cub guardrails learn               Interactively learn from recent failures
+  cub guardrails curate              AI-assisted cleanup of guardrails
   cub guardrails --help              Show this help
 
 SUBCOMMANDS:
@@ -36,6 +37,12 @@ SUBCOMMANDS:
                             Shows recent task failures, lets you select one,
                             uses AI to extract a lesson, and prompts for
                             confirmation before adding to guardrails.md
+
+  curate                    Use AI (Sonnet) to consolidate guardrails
+                            Removes duplicates and outdated entries
+                            Keeps the most actionable, project-specific lessons
+                            Shows diff and requires confirmation before applying
+                            Target: under 50 entries
 
 OUTPUT:
   show:  Displays the .cub/guardrails.md file with:
@@ -67,6 +74,9 @@ EXAMPLES:
 
   # Learn from recent failures interactively
   cub guardrails learn
+
+  # Curate and consolidate guardrails with AI assistance
+  cub guardrails curate
 
 SEE ALSO:
   cub status    Check task progress
@@ -330,6 +340,36 @@ cmd_guardrails_learn() {
     fi
 }
 
+# AI-assisted curation of guardrails
+cmd_guardrails_curate() {
+    # Check for help flag
+    if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+        cmd_guardrails_help
+        return 0
+    fi
+
+    # Source required libraries
+    source "${CUB_DIR}/lib/guardrails.sh"
+    source "${CUB_DIR}/lib/logger.sh"
+
+    # Check if guardrails file exists
+    if ! guardrails_exists "${PROJECT_DIR}"; then
+        log_info "No guardrails file to curate"
+        return 0
+    fi
+
+    log_info "Starting AI-assisted curation of guardrails..."
+
+    # Call the curation function from guardrails.sh
+    if guardrails_curate_ai "${PROJECT_DIR}"; then
+        log_success "Curation completed successfully"
+        return 0
+    else
+        _log_error_console "Error: Curation failed or was cancelled"
+        return 1
+    fi
+}
+
 cmd_guardrails() {
     # Check for --help first
     if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
@@ -367,6 +407,11 @@ cmd_guardrails() {
             # Shift to pass remaining args to learn
             shift
             cmd_guardrails_learn "$@"
+            ;;
+        curate)
+            # Shift to pass remaining args to curate
+            shift
+            cmd_guardrails_curate "$@"
             ;;
         *)
             _log_error_console "Unknown subcommand: ${subcommand}"
