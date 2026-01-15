@@ -1,0 +1,10 @@
+{
+  "task_id": "cub-057",
+  "title": "Implement JsonBackend for task management",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-15T04:32:58Z",
+  "iterations": 1,
+  "completed_at": "2026-01-15T04:38:52Z",
+  "exit_code": 0
+}
