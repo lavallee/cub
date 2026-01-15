@@ -2,7 +2,7 @@
 Cub CLI - Main entry point for python -m cub.
 """
 
-from cub.cli import app
+from cub.cli import cli_main
 
 if __name__ == "__main__":
-    app()
+    cli_main()

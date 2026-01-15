@@ -4,7 +4,6 @@ Tests for task backend protocol and registry.
 Tests the backend registry, auto-detection, and backend management functions.
 """
 
-
 import pytest
 
 from cub.core.tasks import backend as tasks_backend

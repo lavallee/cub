@@ -26,15 +26,20 @@ dev = [
 ]
 
 [project.scripts]
-cub = "cub.cli:app"
+cub = "cub.cli:cli_main"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["cub"]
 package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cub = ["bash/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

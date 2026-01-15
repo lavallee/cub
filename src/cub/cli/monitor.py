@@ -76,9 +76,7 @@ def monitor(
         runs = list_runs(project_dir)
         if not runs:
             console.print(
-                "[red]Error: No running sessions found[/red]\n"
-                "Start a session with:\n"
-                "  cub run"
+                "[red]Error: No running sessions found[/red]\nStart a session with:\n  cub run"
             )
             raise typer.Exit(1)
 
@@ -86,8 +84,7 @@ def monitor(
         session_id = runs[0]["run_id"]
         if session_id is None:
             console.print(
-                "[red]Error: Found session with missing run_id. "
-                "Status file may be corrupted.[/red]"
+                "[red]Error: Found session with missing run_id. Status file may be corrupted.[/red]"
             )
             raise typer.Exit(1)
         if debug:

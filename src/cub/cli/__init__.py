@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import init_cmd, monitor, run, status
+from cub.cli import delegated, init_cmd, monitor, run, status
 
 # Create the main Typer app
 app = typer.Typer(
@@ -52,5 +52,38 @@ app.add_typer(status.app, name="status")
 app.add_typer(init_cmd.app, name="init")
 app.add_typer(monitor.app, name="monitor")
 
+# Register delegated commands (bash cub commands not yet ported)
+app.command(name="prep")(delegated.prep)
+app.command(name="triage")(delegated.triage)
+app.command(name="architect")(delegated.architect)
+app.command(name="plan")(delegated.plan)
+app.command(name="bootstrap")(delegated.bootstrap)
+app.command(name="sessions")(delegated.sessions)
+app.command(name="explain")(delegated.explain)
+app.command(name="artifacts")(delegated.artifacts)
+app.command(name="validate")(delegated.validate)
+app.command(name="branch")(delegated.branch)
+app.command(name="branches")(delegated.branches)
+app.command(name="checkpoints")(delegated.checkpoints)
+app.command(name="pr")(delegated.pr)
+app.command(name="interview")(delegated.interview)
+app.command(name="import")(delegated.import_cmd)
+app.command(name="guardrails")(delegated.guardrails)
+app.command(name="doctor")(delegated.doctor)
+app.command(name="upgrade")(delegated.upgrade)
+app.command(name="migrate-layout")(delegated.migrate_layout)
+app.command(name="agent-close")(delegated.agent_close)
+app.command(name="agent-verify")(delegated.agent_verify)
 
-__all__ = ["app"]
+
+def cli_main() -> None:
+    """
+    Main CLI entry point.
+
+    All commands (including bash-delegated ones) are now registered
+    in the Typer app, so we just invoke it directly.
+    """
+    app()
+
+
+__all__ = ["app", "cli_main"]

@@ -114,9 +114,7 @@ class Task(BaseModel):
 
     # Timestamps
     created_at: datetime | None = Field(default=None, description="When the task was created")
-    updated_at: datetime | None = Field(
-        default=None, description="When the task was last updated"
-    )
+    updated_at: datetime | None = Field(default=None, description="When the task was last updated")
     closed_at: datetime | None = Field(default=None, description="When the task was closed")
 
     # Acceptance criteria

@@ -124,6 +124,146 @@ ruff format src/ tests/
 - `cub.core.tasks.backend` - Abstract task backend interface
 - `cub.core.harness.backend` - Abstract harness interface
 - `cub.utils.hooks` - Hook execution system
+- `cub.core.bash_delegate` - Delegates unported commands to bash cub
+
+## Hybrid CLI Architecture (v0.23.1)
+
+Cub uses a hybrid Python/Bash CLI architecture to enable gradual migration from Bash to Python without blocking new development. Commands are implemented in Python where possible, with remaining commands delegated to the bash version.
+
+### Command Routing
+
+All commands are registered in the Typer CLI (`cub.cli.app`). Native Python commands are implemented directly, while bash-only commands delegate through `cub.core.bash_delegate`.
+
+**Command Execution Flow:**
+```
+cub <command> [args]
+  ↓
+Typer CLI (Python)
+  ├─→ Native command (run, status, init, monitor) → Python implementation
+  └─→ Delegated command → bash_delegate.delegate_to_bash()
+                            ↓
+                         Find bash cub script
+                         Execute: cub <command> [args]
+```
+
+### Native Commands (Python-Implemented)
+
+These commands have been migrated to Python and execute directly without bash:
+
+- **`run`** - Execute tasks with AI harnesses (main loop)
+- **`status`** - Show task progress and statistics
+- **`init`** - Initialize cub configuration (global or project-level)
+- **`monitor`** - Live dashboard for task execution monitoring
+
+These commands are fully implemented in Python under `src/cub/cli/`:
+- `run.py` - Core task execution loop
+- `status.py` - Status reporting
+- `init_cmd.py` - Configuration setup
+- `monitor.py` - Live dashboard via Rich
+
+### Delegated Commands (Bash-Implemented)
+
+These commands are not yet ported to Python. They are registered as Typer commands but delegate execution to the bash version:
+
+**Vision-to-Tasks Prep Pipeline:**
+- `prep` - Run full prep pipeline (triage→architect→plan→bootstrap)
+- `triage` - Requirements refinement
+- `architect` - Technical design
+- `plan` - Task decomposition
+- `bootstrap` - Initialize beads from prep artifacts
+- `sessions` - List and manage prep sessions
+
+**Task & Artifact Management:**
+- `explain` - Show detailed task information
+- `artifacts` - List task output artifacts
+- `validate` - Validate beads state and configuration
+
+**Git Workflow Integration:**
+- `branch` - Create and bind branch to epic
+- `branches` - List and manage branch-epic bindings
+- `checkpoints` - Manage review/approval gates
+- `pr` - Create pull request for epic
+
+**Interview Mode:**
+- `interview` - Deep dive on task specifications
+- `import` - Import tasks from external sources
+
+**Utility & Maintenance:**
+- `guardrails` - Display and manage institutional memory
+- `doctor` - Diagnose and fix configuration issues
+- `upgrade` - Upgrade cub to newer version
+- `migrate-layout` - Migrate legacy layout to new .cub/ structure
+
+**Agent Commands (Internal Use):**
+- `agent-close` - Close a task (for agent use)
+- `agent-verify` - Verify task is closed (for agent use)
+
+### How Delegation Works
+
+Delegation is implemented in `cub.core.bash_delegate`:
+
+1. **Script Discovery** (`find_bash_cub()`) - Locates bash cub in order:
+   - `CUB_BASH_PATH` environment variable (explicit override)
+   - Bundled with Python package (`src/cub/bash/cub`)
+   - Project root (for development/editable install)
+   - System PATH
+
+2. **Argument Passing** - Arguments and flags are forwarded directly:
+   ```bash
+   # Example: cub prep --verbose
+   # Python CLI receives: prep, --verbose
+   # Delegates to bash as: /path/to/cub prep --verbose
+   ```
+
+3. **Exit Code Passthrough** - The bash script's exit code is preserved and returned to the caller
+
+4. **Debug Flag Propagation** - The `--debug` flag is converted to `CUB_DEBUG=true` environment variable for bash script
+
+### Registering New Commands
+
+**To add a native Python command:**
+1. Create a module in `src/cub/cli/` (e.g., `feature.py`)
+2. Define a Typer app with subcommands
+3. Register it in `src/cub/cli/__init__.py`:
+   ```python
+   app.add_typer(feature.app, name="feature")
+   ```
+
+**To add a delegated bash command:**
+1. Implement the command in the bash cub script
+2. Add the function to `src/cub/cli/delegated.py`:
+   ```python
+   def new_command(args: list[str] | None = typer.Argument(None)) -> None:
+       """Command description."""
+       _delegate("new-command", args or [])
+   ```
+3. Register it in `src/cub/cli/__init__.py`:
+   ```python
+   app.command(name="new-command")(delegated.new_command)
+   ```
+4. Add it to the `bash_commands` set in `cub.core.bash_delegate.is_bash_command()`
+
+### Migration Path to Full Python
+
+Eventually, all delegated commands will be ported to Python. The migration order should prioritize:
+
+1. **High-frequency commands** (used in every session)
+   - Interview mode (`interview`)
+   - Task validation (`validate`)
+
+2. **Core infrastructure** (used by prep pipeline)
+   - Prep pipeline commands (`triage`, `architect`, `plan`, `bootstrap`)
+   - Branch management (`branch`, `branches`)
+
+3. **Advanced features** (nice-to-have)
+   - PR management (`pr`)
+   - Doctor/upgrade utilities
+
+When porting a command:
+1. Implement Python version in `src/cub/cli/`
+2. Remove delegation from `delegated.py` and `__init__.py`
+3. Remove from `bash_commands` set in `bash_delegate.py`
+4. Update this documentation
 
 ## Interview Mode (v0.16)
 

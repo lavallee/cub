@@ -168,9 +168,7 @@ class RunStatus(BaseModel):
 
     # Current state
     phase: RunPhase = Field(default=RunPhase.INITIALIZING, description="Current run phase")
-    current_task_id: str | None = Field(
-        default=None, description="ID of currently executing task"
-    )
+    current_task_id: str | None = Field(default=None, description="ID of currently executing task")
     current_task_title: str | None = Field(
         default=None, description="Title of currently executing task"
     )

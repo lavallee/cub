@@ -66,9 +66,7 @@ class TokenUsage(BaseModel):
     output_tokens: int = Field(default=0, description="Output tokens generated")
     cache_read_tokens: int = Field(default=0, description="Tokens read from prompt cache")
     cache_creation_tokens: int = Field(default=0, description="Tokens written to prompt cache")
-    cost_usd: float | None = Field(
-        default=None, description="Estimated cost in USD (if available)"
-    )
+    cost_usd: float | None = Field(default=None, description="Estimated cost in USD (if available)")
     estimated: bool = Field(default=False, description="Whether usage is estimated (not from API)")
 
     @property
