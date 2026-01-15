@@ -8,6 +8,3 @@
 # Beads viewer local config and caches
 .bv/
 .beads/.bv.lock
-
-# Cub
-*.cub.tmp
