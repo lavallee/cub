@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.23.1] - 2026-01-15
+
+### Added - Hybrid Python/Bash CLI
+
+Bridges the Python and Bash implementations so users have access to all cub functionality from a single `cub` command.
+
+- **Bash Delegation Module** (`src/cub/core/bash_delegate.py`)
+  - Locates bundled bash script or system installation
+  - Delegates commands to bash with full argument passthrough
+  - Exit code and output handling
+
+- **Delegated CLI Commands** (`src/cub/cli/delegated.py`)
+  - All bash-only commands registered in Python CLI
+  - Seamless UX - users don't need to know which backend runs
+  - `cub --help` shows unified command list
+
+- **Bundled Bash Scripts** (`src/cub/bash/`)
+  - Full bash cub script and lib/ bundled with Python package
+  - Works after `pip install` without separate bash setup
+  - Templates included for init command
+
+### Delegated Commands
+
+Commands that delegate to bash: `prep`, `triage`, `architect`, `plan`, `bootstrap`, `sessions`, `branch`, `branches`, `checkpoints`, `pr`, `interview`, `import`, `explain`, `artifacts`, `validate`, `doctor`, `upgrade`, `guardrails`, `agent-close`, `agent-verify`, `migrate-layout`
+
+### Python-Native Commands
+
+Commands with full Python implementation: `run`, `status`, `monitor`, `init`
+
+### Tasks Completed
+
+- cub-m7a.1: Create bash delegation module
+- cub-m7a.2: Add delegated commands to CLI
+- cub-m7a.3: Bundle bash script with Python package
+- cub-m7a.4: Add tests for bash delegation
+- cub-m7a.5: Update CLAUDE.md with hybrid CLI docs
+
+---
+
 ## [0.23.0] - 2026-01-15
 
 ### Added - Live Dashboard
