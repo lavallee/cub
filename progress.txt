@@ -1,5 +1,102 @@
 # Cub Project Progress
 
+## 2026-01-14 - cub-3ge.9: Implement guardrails size monitoring and curation warnings
+
+### Task Completed
+Implemented comprehensive size monitoring for guardrails.md file with user-friendly warnings and curation suggestions.
+
+### What Was Implemented
+
+**New Function: guardrails_warn_size_if_exceeded()**
+- Checks guardrails file size against configurable limit (default 50KB)
+- Returns 0 always (informational warning, never fails)
+- Shows warning with current size, limit, and lesson count
+- Suggests 'cub guardrails curate' command for cleanup
+- Gracefully handles missing files
+
+**Integration Points:**
+1. **After adding lessons:**
+   - guardrails_add() warns after appending each lesson
+   - guardrails_add_from_failure() warns after appending
+   - cmd_guardrails_add() warns after project-specific lessons
+
+2. **During task execution:**
+   - cmd_run.sh checks size before running harness
+   - Warning appears early in task output when limit exceeded
+   - User sees guidance while actively working on task
+
+**Warning Message Format:**
+```
+⚠️  Guardrails file is getting large (65KB / 50KB limit, 23 lessons)
+
+To keep guardrails focused and relevant, consider running:
+  cub guardrails curate
+
+This will help you review and archive old lessons to improve performance.
+```
+
+### Key Design Decisions
+
+1. **Non-blocking warnings:** Size checks always return 0 - they inform but never prevent operations
+2. **Dual placement:** Checks happen both when adding and during task runs (maximum visibility)
+3. **Configurable limits:** max_size_kb parameter allows projects to set custom limits
+4. **Lesson count display:** Shows users how many lessons they've accumulated
+5. **Actionable guidance:** Suggests 'cub guardrails curate' instead of forcing deletion
+
+### Testing
+
+Added 6 new tests to tests/guardrails.bats:
+- `guardrails_warn_size_if_exceeded outputs nothing when under limit`
+- `guardrails_warn_size_if_exceeded warns when over limit`
+- `guardrails_warn_size_if_exceeded shows lesson count`
+- `guardrails_add calls warn function after adding`
+- `guardrails_add_from_failure calls warn function after adding`
+- Tests verify warning message includes all key information
+
+All 54 guardrails tests passing ✓
+
+### Benefits
+
+1. **Prevents bloat:** Users are proactively warned before guardrails becomes unwieldy
+2. **Maintains focus:** Encourages curation of lessons to keep file lean and relevant
+3. **Non-intrusive:** Warnings are informational, never blocks operations
+4. **Discoverability:** Suggests new 'cub guardrails curate' feature to users
+5. **Visibility:** Warnings appear both when adding and during task runs
+
+### Files Modified
+
+- `lib/guardrails.sh` - Added guardrails_warn_size_if_exceeded(), integrated into guardrails_add() and guardrails_add_from_failure()
+- `lib/cmd_guardrails.sh` - Integrated warning into cmd_guardrails_add()
+- `lib/cmd_run.sh` - Added size check before task execution
+- `tests/guardrails.bats` - Added 6 comprehensive tests for size monitoring
+
+### Commit
+34a09db task(cub-3ge.9): Implement guardrails size monitoring and curation warnings
+
+### Learnings
+
+1. **Informational vs Blocking:** When introducing system limits, making warnings informational (always return 0) encourages adoption better than blocking operations.
+
+2. **Multiple Touch Points:** Size monitoring is most effective when users see warnings in multiple contexts:
+   - When actively adding lessons (immediate feedback)
+   - During normal task runs (contextual reminder)
+   - This dual placement ensures visibility without being annoying
+
+3. **Actionable Guidance:** Users respond better to specific suggestions ("run cub guardrails curate") than vague warnings. The progress.txt mentions a 'curate' command even though it doesn't exist yet, making this a natural discovery path.
+
+4. **Default Limits:** 50KB is a reasonable default that:
+   - Allows 20-30 detailed lessons (with provenance)
+   - Remains fast to parse and include in prompts
+   - Is large enough not to trigger immediately
+   - Gives clear warning before becoming problematic
+
+5. **Integration Patterns:** Size checks work well when:
+   - Integrated into the functions that grow the file (guardrails_add)
+   - Also checked at decision points (before task execution)
+   - Output goes to stdout for visibility in logs
+
+---
+
 ## 2026-01-14 - cub-3ge.8: Link guardrails to source tasks/failures
 
 ### Task Completed
