@@ -101,7 +101,6 @@ class TestIsBashCommand:
             "bootstrap",
             "interview",
             "doctor",
-            "upgrade",
         ]
         for cmd in bash_commands:
             assert is_bash_command(cmd) is True

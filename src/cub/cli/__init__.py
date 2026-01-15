@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import delegated, monitor, run, status
+from cub.cli import delegated, monitor, run, status, upgrade
 
 # Create the main Typer app
 app = typer.Typer(
@@ -50,6 +50,7 @@ def version() -> None:
 app.add_typer(run.app, name="run")
 app.add_typer(status.app, name="status")
 app.add_typer(monitor.app, name="monitor")
+app.add_typer(upgrade.app, name="upgrade")
 
 # Register delegated commands (bash cub commands not yet ported)
 app.command(name="init")(delegated.init)
@@ -70,7 +71,6 @@ app.command(name="interview")(delegated.interview)
 app.command(name="import")(delegated.import_cmd)
 app.command(name="guardrails")(delegated.guardrails)
 app.command(name="doctor")(delegated.doctor)
-app.command(name="upgrade")(delegated.upgrade)
 app.command(name="migrate-layout")(delegated.migrate_layout)
 app.command(name="agent-close")(delegated.agent_close)
 app.command(name="agent-verify")(delegated.agent_verify)

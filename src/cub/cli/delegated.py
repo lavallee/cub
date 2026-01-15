@@ -135,11 +135,6 @@ def doctor(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) ->
     _delegate("doctor", args or [], ctx)
 
 
-def upgrade(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Upgrade cub to newer version."""
-    _delegate("upgrade", args or [], ctx)
-
-
 def migrate_layout(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Migrate legacy layout to new .cub/ structure."""
     _delegate("migrate-layout", args or [], ctx)

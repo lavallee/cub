@@ -118,7 +118,6 @@ def is_bash_command(command: str) -> bool:
         "agent-close",
         "agent-verify",
         "doctor",
-        "upgrade",
     }
 
     return command in bash_commands
