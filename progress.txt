@@ -800,3 +800,30 @@ Updated cmd_guardrails_help() to document new subcommand
   - Validates numeric input
   - Integrates with existing AI extraction
 
+
+## cub-3ge.10: Implement 'cub guardrails curate' AI-assisted cleanup
+
+### Implementation
+- Added 'curate' subcommand to cmd_guardrails.sh with full help text
+- Implemented guardrails_curate_ai() in guardrails.sh using Claude Sonnet API
+- Function reads current guardrails, sends to AI for consolidation, shows diff, and requires confirmation
+- Creates timestamped backup before applying changes
+- Uses claude CLI with --model sonnet --no-stream flags (consistent with existing patterns)
+
+### Key Design Decisions
+- Used Sonnet (not Haiku) for better quality curation of institutional memory
+- Implemented interactive diff preview using standard diff command
+- Required explicit user confirmation before applying changes (safety first)
+- Target under 50 entries as specified in task requirements
+- Maintains markdown structure and lesson provenance (dates, task IDs)
+
+### Patterns Learned
+- AI prompts should be explicit about output format ("Start with '# Guardrails' and nothing before it")
+- Diff preview improves user confidence before destructive operations
+- Backup files use timestamp format: .backup.YYYYMMDD-HHMMSS
+- Function returns 0 for both success and user cancellation (not an error to cancel)
+
+### Testing
+- Verified both lib files load without syntax errors
+- Confirmed function exists in namespace (declare -F)
+- Help text displays correctly with proper formatting
