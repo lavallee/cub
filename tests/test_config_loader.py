@@ -6,22 +6,20 @@ caching, and XDG directory handling.
 """
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from cub.core.config import load_config, clear_cache, get_user_config_path, get_project_config_path
+from cub.core.config import clear_cache, get_project_config_path, get_user_config_path, load_config
 from cub.core.config.loader import (
-    deep_merge,
-    load_json_file,
     apply_env_overrides,
+    deep_merge,
     get_default_config,
     get_xdg_config_home,
+    load_json_file,
 )
 from cub.core.config.models import CubConfig
-
 
 # ==============================================================================
 # Helper Functions Tests
@@ -60,26 +58,8 @@ class TestDeepMerge:
 
     def test_deeply_nested_merge(self):
         """Test merging deeply nested structures."""
-        base = {
-            "level1": {
-                "level2": {
-                    "level3": {
-                        "a": 1,
-                        "b": 2
-                    }
-                }
-            }
-        }
-        override = {
-            "level1": {
-                "level2": {
-                    "level3": {
-                        "b": 99,
-                        "c": 3
-                    }
-                }
-            }
-        }
+        base = {"level1": {"level2": {"level3": {"a": 1, "b": 2}}}}
+        override = {"level1": {"level2": {"level3": {"b": 99, "c": 3}}}}
         result = deep_merge(base, override)
         assert result["level1"]["level2"]["level3"] == {"a": 1, "b": 99, "c": 3}
 
@@ -274,11 +254,7 @@ class TestLoadConfig:
         user_config_dir = tmp_path / "config" / "cub"
         user_config_dir.mkdir(parents=True)
         user_config_file = user_config_dir / "config.json"
-        user_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 10
-            }
-        }))
+        user_config_file.write_text(json.dumps({"guardrails": {"max_task_iterations": 10}}))
 
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
         project_dir = tmp_path / "project"
@@ -298,21 +274,13 @@ class TestLoadConfig:
         user_config_dir = tmp_path / "config" / "cub"
         user_config_dir.mkdir(parents=True)
         user_config_file = user_config_dir / "config.json"
-        user_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 10
-            }
-        }))
+        user_config_file.write_text(json.dumps({"guardrails": {"max_task_iterations": 10}}))
 
         # Setup project config
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         project_config_file = project_dir / ".cub.json"
-        project_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 20
-            }
-        }))
+        project_config_file.write_text(json.dumps({"guardrails": {"max_task_iterations": 20}}))
 
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
@@ -328,11 +296,7 @@ class TestLoadConfig:
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         project_config_file = project_dir / ".cub.json"
-        project_config_file.write_text(json.dumps({
-            "budget": {
-                "default": 100
-            }
-        }))
+        project_config_file.write_text(json.dumps({"budget": {"default": 100}}))
 
         # Set env var
         monkeypatch.setenv("CUB_BUDGET", "999")
@@ -350,21 +314,13 @@ class TestLoadConfig:
         user_config_dir = tmp_path / "config" / "cub"
         user_config_dir.mkdir(parents=True)
         user_config_file = user_config_dir / "config.json"
-        user_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 10
-            }
-        }))
+        user_config_file.write_text(json.dumps({"guardrails": {"max_task_iterations": 10}}))
 
         # Project config sets different guardrails
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         project_config_file = project_dir / ".cub.json"
-        project_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_run_iterations": 100
-            }
-        }))
+        project_config_file.write_text(json.dumps({"guardrails": {"max_run_iterations": 100}}))
 
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
@@ -449,11 +405,15 @@ class TestLoadConfig:
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         project_config_file = project_dir / ".cub.json"
-        project_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 0  # Invalid: must be >= 1
-            }
-        }))
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "guardrails": {
+                        "max_task_iterations": 0  # Invalid: must be >= 1
+                    }
+                }
+            )
+        )
 
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
@@ -467,28 +427,34 @@ class TestLoadConfig:
         user_config_dir = tmp_path / "config" / "cub"
         user_config_dir.mkdir(parents=True)
         user_config_file = user_config_dir / "config.json"
-        user_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_task_iterations": 5,  # Override default (3)
-                "max_run_iterations": 75   # Override default (50)
-            },
-            "review": {
-                "plan_strict": True  # Override default (False)
-            }
-        }))
+        user_config_file.write_text(
+            json.dumps(
+                {
+                    "guardrails": {
+                        "max_task_iterations": 5,  # Override default (3)
+                        "max_run_iterations": 75,  # Override default (50)
+                    },
+                    "review": {
+                        "plan_strict": True  # Override default (False)
+                    },
+                }
+            )
+        )
 
         # Project config
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         project_config_file = project_dir / ".cub.json"
-        project_config_file.write_text(json.dumps({
-            "guardrails": {
-                "max_run_iterations": 100  # Override user (75)
-            },
-            "budget": {
-                "default": 200
-            }
-        }))
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "guardrails": {
+                        "max_run_iterations": 100  # Override user (75)
+                    },
+                    "budget": {"default": 200},
+                }
+            )
+        )
 
         # Env vars
         monkeypatch.setenv("CUB_BUDGET", "500")  # Override project (200)

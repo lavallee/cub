@@ -8,7 +8,6 @@ JSON parsing in Bash with type-safe, validated Pydantic models.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
@@ -18,6 +17,7 @@ class TaskStatus(str, Enum):
 
     These match the status values used in both beads and prd.json.
     """
+
     OPEN = "open"
     IN_PROGRESS = "in_progress"
     CLOSED = "closed"
@@ -32,6 +32,7 @@ class TaskPriority(str, Enum):
     P3 = Low
     P4 = Backlog (lowest priority)
     """
+
     P0 = "P0"
     P1 = "P1"
     P2 = "P2"
@@ -46,6 +47,7 @@ class TaskPriority(str, Enum):
 
 class TaskType(str, Enum):
     """Task type/issue type values."""
+
     TASK = "task"
     FEATURE = "feature"
     BUG = "bug"
@@ -89,36 +91,39 @@ class Task(BaseModel):
     # Common fields with defaults
     priority: TaskPriority = Field(default=TaskPriority.P2, description="Task priority level")
     type: TaskType = Field(default=TaskType.TASK, description="Task type", alias="issue_type")
-    description: str = Field(default="", description="Detailed task description (may contain markdown)")
+    description: str = Field(
+        default="", description="Detailed task description (may contain markdown)"
+    )
 
     # Optional metadata
-    assignee: Optional[str] = Field(default=None, description="Assigned user or session name")
+    assignee: str | None = Field(default=None, description="Assigned user or session name")
     labels: list[str] = Field(default_factory=list, description="Task labels/tags")
 
     # Dependencies
     depends_on: list[str] = Field(
         default_factory=list,
         description="List of task IDs that must be completed before this task",
-        alias="dependsOn"
+        alias="dependsOn",
     )
     blocks: list[str] = Field(
-        default_factory=list,
-        description="List of task IDs that this task blocks"
+        default_factory=list, description="List of task IDs that this task blocks"
     )
 
     # Parent-child relationships (for epics)
-    parent: Optional[str] = Field(default=None, description="Parent epic/task ID")
+    parent: str | None = Field(default=None, description="Parent epic/task ID")
 
     # Timestamps
-    created_at: Optional[datetime] = Field(default=None, description="When the task was created")
-    updated_at: Optional[datetime] = Field(default=None, description="When the task was last updated")
-    closed_at: Optional[datetime] = Field(default=None, description="When the task was closed")
+    created_at: datetime | None = Field(default=None, description="When the task was created")
+    updated_at: datetime | None = Field(
+        default=None, description="When the task was last updated"
+    )
+    closed_at: datetime | None = Field(default=None, description="When the task was closed")
 
     # Acceptance criteria
     acceptance_criteria: list[str] = Field(
         default_factory=list,
         description="List of acceptance criteria (parsed from description or explicit field)",
-        alias="acceptanceCriteria"
+        alias="acceptanceCriteria",
     )
 
     # Notes/comments
@@ -128,9 +133,9 @@ class Task(BaseModel):
         populate_by_name=True,  # Allow both 'depends_on' and 'dependsOn'
     )
 
-    @field_validator('priority', mode='before')
+    @field_validator("priority", mode="before")
     @classmethod
-    def validate_priority(cls, v: Union[int, str, TaskPriority]) -> TaskPriority:
+    def validate_priority(cls, v: int | str | TaskPriority) -> TaskPriority:
         """Convert numeric priority (0-4) to TaskPriority enum."""
         if isinstance(v, TaskPriority):
             return v
@@ -146,7 +151,7 @@ class Task(BaseModel):
 
     @computed_field
     @property
-    def model_label(self) -> Optional[str]:
+    def model_label(self) -> str | None:
         """
         Extract model name from labels.
 
@@ -203,7 +208,7 @@ class Task(BaseModel):
         if label in self.labels:
             self.labels.remove(label)
 
-    def mark_in_progress(self, assignee: Optional[str] = None) -> None:
+    def mark_in_progress(self, assignee: str | None = None) -> None:
         """Mark task as in progress, optionally setting assignee."""
         self.status = TaskStatus.IN_PROGRESS
         if assignee:
@@ -229,6 +234,7 @@ class TaskCounts(BaseModel):
 
     Used for displaying project health and progress.
     """
+
     total: int = Field(default=0, description="Total number of tasks")
     open: int = Field(default=0, description="Number of open tasks")
     in_progress: int = Field(default=0, description="Number of in-progress tasks")

@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import init_cmd, run, status
+from cub.cli import init_cmd, monitor, run, status
 
 # Create the main Typer app
 app = typer.Typer(
@@ -50,6 +50,7 @@ def version() -> None:
 app.add_typer(run.app, name="run")
 app.add_typer(status.app, name="status")
 app.add_typer(init_cmd.app, name="init")
+app.add_typer(monitor.app, name="monitor")
 
 
 __all__ = ["app"]

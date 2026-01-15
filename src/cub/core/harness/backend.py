@@ -7,7 +7,8 @@ must implement, enabling pluggable AI coding assistants (Claude, Codex, etc.).
 
 import os
 import shutil
-from typing import Callable, Optional, Protocol, runtime_checkable
+from collections.abc import Callable
+from typing import Protocol, runtime_checkable
 
 from .models import HarnessCapabilities, HarnessResult
 
@@ -60,7 +61,7 @@ class HarnessBackend(Protocol):
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
     ) -> HarnessResult:
         """
@@ -87,9 +88,9 @@ class HarnessBackend(Protocol):
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
-        callback: Optional[Callable[[str], None]] = None,
+        callback: Callable[[str], None] | None = None,
     ) -> HarnessResult:
         """
         Invoke the harness with streaming output.
@@ -152,7 +153,7 @@ def register_backend(name: str) -> Callable[[type[HarnessBackend]], type[Harness
     return decorator
 
 
-def get_backend(name: Optional[str] = None) -> HarnessBackend:
+def get_backend(name: str | None = None) -> HarnessBackend:
     """
     Get a harness backend by name or auto-detect.
 
@@ -182,8 +183,7 @@ def get_backend(name: Optional[str] = None) -> HarnessBackend:
     backend_class = _backends.get(name)
     if backend_class is None:
         raise ValueError(
-            f"Backend '{name}' not registered. "
-            f"Available backends: {', '.join(_backends.keys())}"
+            f"Backend '{name}' not registered. Available backends: {', '.join(_backends.keys())}"
         )
 
     # Instantiate and return
@@ -191,8 +191,8 @@ def get_backend(name: Optional[str] = None) -> HarnessBackend:
 
 
 def detect_harness(
-    priority_list: Optional[list[str]] = None,
-) -> Optional[str]:
+    priority_list: list[str] | None = None,
+) -> str | None:
     """
     Auto-detect which harness to use.
 
@@ -277,7 +277,7 @@ def is_backend_available(name: str) -> bool:
         return False
 
 
-def get_capabilities(name: str) -> Optional[HarnessCapabilities]:
+def get_capabilities(name: str) -> HarnessCapabilities | None:
     """
     Get capabilities for a specific harness.
 

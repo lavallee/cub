@@ -8,7 +8,7 @@ and other test utilities used across the test suite.
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -23,7 +23,6 @@ from cub.core.config.models import (
     StateConfig,
 )
 from cub.core.tasks.models import Task, TaskPriority, TaskStatus, TaskType
-
 
 # ==============================================================================
 # Directory Fixtures
@@ -55,10 +54,7 @@ def project_dir(tmp_path):
     (beads_dir / "issues.jsonl").write_text("")
 
     # Create minimal .cub.json
-    cub_config = {
-        "harness": "claude",
-        "budget": {"default": 500000}
-    }
+    cub_config = {"harness": "claude", "budget": {"default": 500000}}
     (project / ".cub.json").write_text(json.dumps(cub_config, indent=2))
 
     # Create .git directory
@@ -144,7 +140,7 @@ def sample_beads_jsonl():
             "priority": 1,
             "issue_type": "feature",
             "labels": ["model:sonnet"],
-            "blocks": ["cub-002"]
+            "blocks": ["cub-002"],
         },
         {
             "id": "cub-002",
@@ -153,7 +149,7 @@ def sample_beads_jsonl():
             "status": "open",
             "priority": 2,
             "issue_type": "task",
-            "dependsOn": ["cub-001"]
+            "dependsOn": ["cub-001"],
         },
         {
             "id": "cub-003",
@@ -161,8 +157,8 @@ def sample_beads_jsonl():
             "description": "Fix bug",
             "status": "closed",
             "priority": 0,
-            "issue_type": "bugfix"
-        }
+            "issue_type": "bugfix",
+        },
     ]
     return "\n".join(json.dumps(task) for task in tasks)
 
@@ -188,28 +184,22 @@ def sample_config_dict():
         "budget": {
             "max_tokens_per_task": 500000,
             "max_tasks_per_session": None,
-            "max_total_cost": 50.0
+            "max_total_cost": 50.0,
         },
         "state": {
             "require_clean": True,
             "run_tests": True,
             "run_typecheck": False,
-            "run_lint": False
+            "run_lint": False,
         },
-        "loop": {
-            "max_iterations": 50,
-            "on_task_failure": "stop"
-        },
+        "loop": {"max_iterations": 50, "on_task_failure": "stop"},
         "guardrails": {
             "max_task_iterations": 3,
             "max_run_iterations": 50,
             "iteration_warning_threshold": 0.8,
-            "secret_patterns": []
+            "secret_patterns": [],
         },
-        "review": {
-            "plan_strict": False,
-            "block_on_concerns": False
-        }
+        "review": {"plan_strict": False, "block_on_concerns": False},
     }
 
 
@@ -244,6 +234,7 @@ def mock_subprocess_run(monkeypatch):
     mock.configure = configure
 
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: mock)
 
     return mock
@@ -259,35 +250,39 @@ def mock_bd_list(mock_subprocess_run, sample_beads_jsonl):
             # bd list --json will return sample tasks
             pass
     """
-    tasks_json = json.dumps([
-        {
-            "id": "cub-001",
-            "title": "Task 1",
-            "status": "open",
-            "priority": 1,
-            "issue_type": "task"
-        },
-        {
-            "id": "cub-002",
-            "title": "Task 2",
-            "status": "in_progress",
-            "priority": 0,
-            "issue_type": "feature"
-        }
-    ])
+    tasks_json = json.dumps(
+        [
+            {
+                "id": "cub-001",
+                "title": "Task 1",
+                "status": "open",
+                "priority": 1,
+                "issue_type": "task",
+            },
+            {
+                "id": "cub-002",
+                "title": "Task 2",
+                "status": "in_progress",
+                "priority": 0,
+                "issue_type": "feature",
+            },
+        ]
+    )
 
     def configure_bd_response(command, **kwargs):
         if "list" in command and "--json" in command:
             mock_subprocess_run.stdout = tasks_json
             mock_subprocess_run.returncode = 0
         elif "show" in command:
-            mock_subprocess_run.stdout = json.dumps({
-                "id": "cub-001",
-                "title": "Task 1",
-                "status": "open",
-                "priority": 1,
-                "issue_type": "task"
-            })
+            mock_subprocess_run.stdout = json.dumps(
+                {
+                    "id": "cub-001",
+                    "title": "Task 1",
+                    "status": "open",
+                    "priority": 1,
+                    "issue_type": "task",
+                }
+            )
             mock_subprocess_run.returncode = 0
         else:
             mock_subprocess_run.stdout = ""
@@ -295,7 +290,9 @@ def mock_bd_list(mock_subprocess_run, sample_beads_jsonl):
         return mock_subprocess_run
 
     import subprocess
+
     import pytest
+
     monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setattr(subprocess, "run", configure_bd_response)
 
@@ -328,6 +325,7 @@ def mock_git_commands(monkeypatch):
         return mock
 
     import subprocess
+
     monkeypatch.setattr(subprocess, "run", mock_run)
 
     return responses
@@ -372,6 +370,7 @@ def isolated_config(clean_env, tmp_path, monkeypatch):
     # Also clear the config cache if it exists
     try:
         from cub.core.config import clear_cache
+
         clear_cache()
     except ImportError:
         pass
@@ -404,11 +403,7 @@ def project_config_file(project_dir, sample_config_dict):
 def user_config_file(user_config_dir):
     """Create a user config.json file with sample config."""
     config_file = user_config_dir / "config.json"
-    config_data = {
-        "guardrails": {
-            "max_task_iterations": 5
-        }
-    }
+    config_data = {"guardrails": {"max_task_iterations": 5}}
     config_file.write_text(json.dumps(config_data, indent=2))
     return config_file
 
@@ -418,14 +413,14 @@ def user_config_file(user_config_dir):
 # ==============================================================================
 
 
-def write_jsonl(path: Path, data: list[Dict[str, Any]]) -> None:
+def write_jsonl(path: Path, data: list[dict[str, Any]]) -> None:
     """Helper to write JSONL data to a file."""
     with open(path, "w") as f:
         for item in data:
             f.write(json.dumps(item) + "\n")
 
 
-def read_jsonl(path: Path) -> list[Dict[str, Any]]:
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
     """Helper to read JSONL data from a file."""
     items = []
     with open(path) as f:

@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class EventType(str, Enum):
     """Types of events that can be logged."""
+
     TASK_START = "task_start"
     TASK_END = "task_end"
     LOOP_START = "loop_start"
@@ -33,20 +34,12 @@ class EventType(str, Enum):
 
 class LogEntry(BaseModel):
     """A single structured log entry in JSONL format."""
+
     model_config = ConfigDict(use_enum_values=True)
 
-    timestamp: datetime = Field(
-        ...,
-        description="When the event occurred (ISO 8601 format)"
-    )
-    event_type: EventType = Field(
-        ...,
-        description="Type of event"
-    )
-    data: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Event-specific data"
-    )
+    timestamp: datetime = Field(..., description="When the event occurred (ISO 8601 format)")
+    event_type: EventType = Field(..., description="Type of event")
+    data: dict[str, Any] = Field(default_factory=dict, description="Event-specific data")
 
 
 class CubLogger:
@@ -108,11 +101,7 @@ class CubLogger:
 
         return CubLogger(log_file)
 
-    def log_event(
-        self,
-        event_type: EventType,
-        data: dict[str, Any] | None = None
-    ) -> None:
+    def log_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
         """
         Write a log event to the JSONL file.
 
@@ -129,17 +118,10 @@ class CubLogger:
 
         try:
             # Create log entry with current timestamp
-            entry = LogEntry(
-                timestamp=datetime.now(timezone.utc),
-                event_type=event_type,
-                data=data
-            )
+            entry = LogEntry(timestamp=datetime.now(timezone.utc), event_type=event_type, data=data)
 
             # Serialize to JSON using pydantic's model_dump_json
-            log_line = entry.model_dump_json(
-                exclude_none=True,
-                by_alias=False
-            ) + "\n"
+            log_line = entry.model_dump_json(exclude_none=True, by_alias=False) + "\n"
 
             # Write to log file in append mode
             with open(self.log_file, "a", encoding="utf-8") as f:
@@ -151,12 +133,7 @@ class CubLogger:
             # we avoid raising to prevent logging from blocking execution
             print(f"Warning: Failed to write to log file {self.log_file}: {e}", flush=True)
 
-    def log_task_start(
-        self,
-        task_id: str,
-        task_title: str,
-        harness: str
-    ) -> None:
+    def log_task_start(self, task_id: str, task_title: str, harness: str) -> None:
         """
         Log the start of a task.
 
@@ -166,12 +143,7 @@ class CubLogger:
             harness: Harness being used (e.g., "claude", "codex")
         """
         self.log_event(
-            EventType.TASK_START,
-            {
-                "task_id": task_id,
-                "task_title": task_title,
-                "harness": harness
-            }
+            EventType.TASK_START, {"task_id": task_id, "task_title": task_title, "harness": harness}
         )
 
     def log_task_end(
@@ -181,7 +153,7 @@ class CubLogger:
         duration_sec: float,
         tokens_used: int = 0,
         budget_remaining: int | None = None,
-        budget_total: int | None = None
+        budget_total: int | None = None,
     ) -> None:
         """
         Log the end of a task.
@@ -198,7 +170,7 @@ class CubLogger:
             "task_id": task_id,
             "exit_code": exit_code,
             "duration_sec": duration_sec,
-            "tokens_used": tokens_used
+            "tokens_used": tokens_used,
         }
 
         if budget_remaining is not None:
@@ -215,17 +187,9 @@ class CubLogger:
         Args:
             iteration: Loop iteration number
         """
-        self.log_event(
-            EventType.LOOP_START,
-            {"iteration": iteration}
-        )
+        self.log_event(EventType.LOOP_START, {"iteration": iteration})
 
-    def log_loop_end(
-        self,
-        iteration: int,
-        tasks_processed: int,
-        duration_sec: float
-    ) -> None:
+    def log_loop_end(self, iteration: int, tasks_processed: int, duration_sec: float) -> None:
         """
         Log the end of a processing loop.
 
@@ -239,16 +203,11 @@ class CubLogger:
             {
                 "iteration": iteration,
                 "tasks_processed": tasks_processed,
-                "duration_sec": duration_sec
-            }
+                "duration_sec": duration_sec,
+            },
         )
 
-    def log_budget_warning(
-        self,
-        remaining: int,
-        threshold: int,
-        total: int
-    ) -> None:
+    def log_budget_warning(self, remaining: int, threshold: int, total: int) -> None:
         """
         Log a budget warning.
 
@@ -263,15 +222,11 @@ class CubLogger:
                 "remaining": remaining,
                 "threshold": threshold,
                 "total": total,
-                "percentage_remaining": round(100 * remaining / total, 1) if total > 0 else 0
-            }
+                "percentage_remaining": round(100 * remaining / total, 1) if total > 0 else 0,
+            },
         )
 
-    def log_error(
-        self,
-        message: str,
-        context: dict[str, Any] | None = None
-    ) -> None:
+    def log_error(self, message: str, context: dict[str, Any] | None = None) -> None:
         """
         Log an error event.
 

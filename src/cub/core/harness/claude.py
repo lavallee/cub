@@ -10,9 +10,9 @@ import os
 import shutil
 import subprocess
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
-from .backend import HarnessBackend, register_backend
+from .backend import register_backend
 from .models import HarnessCapabilities, HarnessResult, TokenUsage
 
 
@@ -64,7 +64,7 @@ class ClaudeBackend:
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
     ) -> HarnessResult:
         """
@@ -171,9 +171,9 @@ class ClaudeBackend:
         self,
         system_prompt: str,
         task_prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         debug: bool = False,
-        callback: Optional[Callable[[str], None]] = None,
+        callback: Callable[[str], None] | None = None,
     ) -> HarnessResult:
         """
         Invoke Claude with streaming output.

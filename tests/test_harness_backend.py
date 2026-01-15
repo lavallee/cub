@@ -4,14 +4,11 @@ Tests for harness backend protocol and registry.
 Tests the backend registry, auto-detection, and backend management functions.
 """
 
-import os
-from unittest.mock import Mock
 
 import pytest
 
 from cub.core.harness import backend as harness_backend
 from cub.core.harness.backend import (
-    HarnessBackend,
     detect_harness,
     get_backend,
     get_capabilities,
@@ -446,7 +443,9 @@ class TestDetectHarness:
         import shutil
 
         original_which = shutil.which
-        monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/" + cmd if cmd == "myharness" else None)
+        monkeypatch.setattr(
+            shutil, "which", lambda cmd: "/usr/bin/" + cmd if cmd == "myharness" else None
+        )
         monkeypatch.setenv("HARNESS", "myharness")
 
         result = detect_harness()
@@ -541,7 +540,9 @@ class TestGetBackendAutoDetect:
                 return "1.0.0"
 
         # Mock shutil.which to return claude
-        monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/claude" if cmd == "claude" else None)
+        monkeypatch.setattr(
+            shutil, "which", lambda cmd: "/usr/bin/claude" if cmd == "claude" else None
+        )
 
         backend = get_backend(None)
         assert backend.name == "claude"

@@ -10,7 +10,7 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .backend import register_backend
 from .models import Task, TaskCounts, TaskStatus
@@ -18,15 +18,17 @@ from .models import Task, TaskCounts, TaskStatus
 
 class PrdFileNotFoundError(Exception):
     """Raised when prd.json file is not found."""
+
     pass
 
 
 class PrdFileCorruptedError(Exception):
     """Raised when prd.json file is malformed."""
+
     pass
 
 
-@register_backend('json')
+@register_backend("json")
 class JsonBackend:
     """
     Task backend that uses a prd.json file for storage.
@@ -54,7 +56,7 @@ class JsonBackend:
         >>> task = backend.get_task("prd-001")
     """
 
-    def __init__(self, project_dir: Optional[Path] = None, prd_file: Optional[Path] = None):
+    def __init__(self, project_dir: Path | None = None, prd_file: Path | None = None):
         """
         Initialize the JSON backend.
 
@@ -70,8 +72,8 @@ class JsonBackend:
             self.prd_file = self.project_dir / "prd.json"
 
         # Cache for loaded data to avoid re-parsing on every call
-        self._cache: Optional[dict[str, Any]] = None
-        self._cache_mtime: Optional[float] = None
+        self._cache: dict[str, Any] | None = None
+        self._cache_mtime: float | None = None
 
     def _load_prd(self) -> dict[str, Any]:
         """
@@ -96,22 +98,18 @@ class JsonBackend:
 
         # Load and parse file
         try:
-            with open(self.prd_file, 'r', encoding='utf-8') as f:
+            with open(self.prd_file, encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
-            raise PrdFileCorruptedError(
-                f"Failed to parse {self.prd_file}: {e}"
-            ) from e
-        except IOError as e:
-            raise PrdFileNotFoundError(
-                f"Failed to read {self.prd_file}: {e}"
-            ) from e
+            raise PrdFileCorruptedError(f"Failed to parse {self.prd_file}: {e}") from e
+        except OSError as e:
+            raise PrdFileNotFoundError(f"Failed to read {self.prd_file}: {e}") from e
 
         # Validate structure
         if not isinstance(data, dict):
             raise PrdFileCorruptedError("prd.json must be a JSON object")
-        if 'tasks' not in data:
-            data['tasks'] = []
+        if "tasks" not in data:
+            data["tasks"] = []
 
         # Update cache
         self._cache = data
@@ -124,10 +122,7 @@ class JsonBackend:
         # Generate prefix from directory name
         prefix = self.project_dir.name[:3].lower() or "prd"
 
-        empty_prd = {
-            "prefix": prefix,
-            "tasks": []
-        }
+        empty_prd = {"prefix": prefix, "tasks": []}
 
         self._save_prd(empty_prd)
 
@@ -143,15 +138,13 @@ class JsonBackend:
         """
         # Write to temporary file first
         fd, temp_path = tempfile.mkstemp(
-            dir=self.prd_file.parent,
-            prefix='.prd_',
-            suffix='.json.tmp'
+            dir=self.prd_file.parent, prefix=".prd_", suffix=".json.tmp"
         )
 
         try:
-            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
-                f.write('\n')  # Add trailing newline
+                f.write("\n")  # Add trailing newline
 
             # Atomic rename (replaces existing file)
             os.replace(temp_path, self.prd_file)
@@ -192,13 +185,13 @@ class JsonBackend:
             Dictionary suitable for JSON serialization
         """
         # Use Pydantic's serialization with aliases and JSON mode
-        return task.model_dump(by_alias=True, exclude_none=False, mode='json')
+        return task.model_dump(by_alias=True, exclude_none=False, mode="json")
 
     def list_tasks(
         self,
-        status: Optional[TaskStatus] = None,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        status: TaskStatus | None = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         List all tasks, optionally filtered.
@@ -214,7 +207,7 @@ class JsonBackend:
         data = self._load_prd()
         tasks = []
 
-        for raw_task in data.get('tasks', []):
+        for raw_task in data.get("tasks", []):
             # Parse task
             try:
                 task = self._parse_task(raw_task)
@@ -234,7 +227,7 @@ class JsonBackend:
 
         return tasks
 
-    def get_task(self, task_id: str) -> Optional[Task]:
+    def get_task(self, task_id: str) -> Task | None:
         """
         Get a specific task by ID.
 
@@ -246,8 +239,8 @@ class JsonBackend:
         """
         data = self._load_prd()
 
-        for raw_task in data.get('tasks', []):
-            if raw_task.get('id') == task_id:
+        for raw_task in data.get("tasks", []):
+            if raw_task.get("id") == task_id:
                 try:
                     return self._parse_task(raw_task)
                 except Exception:
@@ -257,8 +250,8 @@ class JsonBackend:
 
     def get_ready_tasks(
         self,
-        parent: Optional[str] = None,
-        label: Optional[str] = None,
+        parent: str | None = None,
+        label: str | None = None,
     ) -> list[Task]:
         """
         Get all tasks that are ready to work on.
@@ -282,7 +275,7 @@ class JsonBackend:
         closed_ids = set()
         all_tasks = []
 
-        for raw_task in data.get('tasks', []):
+        for raw_task in data.get("tasks", []):
             try:
                 task = self._parse_task(raw_task)
                 all_tasks.append(task)
@@ -319,10 +312,10 @@ class JsonBackend:
     def update_task(
         self,
         task_id: str,
-        status: Optional[TaskStatus] = None,
-        assignee: Optional[str] = None,
-        description: Optional[str] = None,
-        labels: Optional[list[str]] = None,
+        status: TaskStatus | None = None,
+        assignee: str | None = None,
+        description: str | None = None,
+        labels: list[str] | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -341,12 +334,12 @@ class JsonBackend:
             ValueError: If task not found or update fails
         """
         data = self._load_prd()
-        tasks = data.get('tasks', [])
+        tasks = data.get("tasks", [])
 
         # Find task index
         task_index = None
         for i, raw_task in enumerate(tasks):
-            if raw_task.get('id') == task_id:
+            if raw_task.get("id") == task_id:
                 task_index = i
                 break
 
@@ -377,7 +370,7 @@ class JsonBackend:
 
         return task
 
-    def close_task(self, task_id: str, reason: Optional[str] = None) -> Task:
+    def close_task(self, task_id: str, reason: str | None = None) -> Task:
         """
         Close a task.
 
@@ -410,10 +403,10 @@ class JsonBackend:
 
         # Update in file
         data = self._load_prd()
-        tasks = data.get('tasks', [])
+        tasks = data.get("tasks", [])
 
         for i, raw_task in enumerate(tasks):
-            if raw_task.get('id') == task_id:
+            if raw_task.get("id") == task_id:
                 tasks[i] = self._task_to_dict(task)
                 break
 
@@ -427,9 +420,9 @@ class JsonBackend:
         description: str = "",
         task_type: str = "task",
         priority: int = 2,
-        labels: Optional[list[str]] = None,
-        depends_on: Optional[list[str]] = None,
-        parent: Optional[str] = None,
+        labels: list[str] | None = None,
+        depends_on: list[str] | None = None,
+        parent: str | None = None,
     ) -> Task:
         """
         Create a new task.
@@ -452,8 +445,8 @@ class JsonBackend:
         data = self._load_prd()
 
         # Generate task ID
-        prefix = data.get('prefix', 'prd')
-        existing_ids = {t.get('id', '') for t in data.get('tasks', [])}
+        prefix = data.get("prefix", "prd")
+        existing_ids = {t.get("id", "") for t in data.get("tasks", [])}
 
         # Find next available numeric ID
         task_num = 1
@@ -480,9 +473,9 @@ class JsonBackend:
         )
 
         # Add to tasks array
-        tasks = data.get('tasks', [])
+        tasks = data.get("tasks", [])
         tasks.append(self._task_to_dict(task))
-        data['tasks'] = tasks
+        data["tasks"] = tasks
 
         # Save atomically
         self._save_prd(data)
@@ -497,7 +490,7 @@ class JsonBackend:
             TaskCounts object with total, open, in_progress, closed counts
         """
         data = self._load_prd()
-        tasks = data.get('tasks', [])
+        tasks = data.get("tasks", [])
 
         total = len(tasks)
         open_count = 0
@@ -505,12 +498,12 @@ class JsonBackend:
         closed = 0
 
         for raw_task in tasks:
-            status = raw_task.get('status', 'open')
-            if status == 'open':
+            status = raw_task.get("status", "open")
+            if status == "open":
                 open_count += 1
-            elif status == 'in_progress':
+            elif status == "in_progress":
                 in_progress += 1
-            elif status == 'closed':
+            elif status == "closed":
                 closed += 1
 
         return TaskCounts(
@@ -552,10 +545,10 @@ class JsonBackend:
 
         # Update in file
         data = self._load_prd()
-        tasks = data.get('tasks', [])
+        tasks = data.get("tasks", [])
 
         for i, raw_task in enumerate(tasks):
-            if raw_task.get('id') == task_id:
+            if raw_task.get("id") == task_id:
                 tasks[i] = self._task_to_dict(task)
                 break
 

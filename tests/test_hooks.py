@@ -5,15 +5,13 @@ Tests hook discovery, execution order, context passing,
 failure handling, and configuration.
 """
 
-import os
 import stat
 from pathlib import Path
 
 import pytest
 
-from cub.utils.hooks import find_hook_scripts, run_hooks, HookContext
 from cub.core.config import clear_cache
-
+from cub.utils.hooks import HookContext, find_hook_scripts, run_hooks
 
 # ==============================================================================
 # Fixtures
@@ -133,17 +131,11 @@ class TestFindHookScripts:
 
     def test_find_global_hooks_only(self, temp_project):
         """Test finding only global hooks."""
-        script1 = create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "01-first.sh",
-            "echo 'global 1'"
+        create_hook_script(
+            temp_project["global_hooks"], "pre-task", "01-first.sh", "echo 'global 1'"
         )
-        script2 = create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "02-second.sh",
-            "echo 'global 2'"
+        create_hook_script(
+            temp_project["global_hooks"], "pre-task", "02-second.sh", "echo 'global 2'"
         )
 
         scripts = find_hook_scripts("pre-task", temp_project["project_dir"])
@@ -153,11 +145,8 @@ class TestFindHookScripts:
 
     def test_find_project_hooks_only(self, temp_project):
         """Test finding only project hooks."""
-        script = create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-project.sh",
-            "echo 'project'"
+        create_hook_script(
+            temp_project["project_hooks"], "pre-task", "01-project.sh", "echo 'project'"
         )
 
         scripts = find_hook_scripts("pre-task", temp_project["project_dir"])
@@ -167,16 +156,10 @@ class TestFindHookScripts:
     def test_find_both_global_and_project(self, temp_project):
         """Test finding both global and project hooks."""
         create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "01-global.sh",
-            "echo 'global'"
+            temp_project["global_hooks"], "pre-task", "01-global.sh", "echo 'global'"
         )
         create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "02-project.sh",
-            "echo 'project'"
+            temp_project["project_hooks"], "pre-task", "02-project.sh", "echo 'project'"
         )
 
         scripts = find_hook_scripts("pre-task", temp_project["project_dir"])
@@ -204,23 +187,10 @@ class TestFindHookScripts:
 
     def test_sorted_order(self, temp_project):
         """Test that scripts are returned in sorted order."""
+        create_hook_script(temp_project["global_hooks"], "pre-task", "99-last.sh", "echo 'last'")
+        create_hook_script(temp_project["global_hooks"], "pre-task", "01-first.sh", "echo 'first'")
         create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "99-last.sh",
-            "echo 'last'"
-        )
-        create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "01-first.sh",
-            "echo 'first'"
-        )
-        create_hook_script(
-            temp_project["global_hooks"],
-            "pre-task",
-            "50-middle.sh",
-            "echo 'middle'"
+            temp_project["global_hooks"], "pre-task", "50-middle.sh", "echo 'middle'"
         )
 
         scripts = find_hook_scripts("pre-task", temp_project["project_dir"])
@@ -251,10 +221,7 @@ class TestRunHooks:
     def test_run_successful_hook(self, temp_project, capsys):
         """Test running a successful hook."""
         create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-test.sh",
-            "echo 'Hook executed'"
+            temp_project["project_hooks"], "pre-task", "01-test.sh", "echo 'Hook executed'"
         )
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
@@ -265,17 +232,9 @@ class TestRunHooks:
 
     def test_run_multiple_hooks_in_order(self, temp_project, capsys):
         """Test that multiple hooks run in sorted order."""
+        create_hook_script(temp_project["project_hooks"], "pre-task", "01-first.sh", "echo 'First'")
         create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-first.sh",
-            "echo 'First'"
-        )
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "02-second.sh",
-            "echo 'Second'"
+            temp_project["project_hooks"], "pre-task", "02-second.sh", "echo 'Second'"
         )
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
@@ -296,7 +255,7 @@ class TestRunHooks:
             temp_project["project_hooks"],
             "pre-task",
             "01-test.sh",
-            f"echo \"$CUB_TASK_ID|$CUB_TASK_TITLE|$CUB_HARNESS\" > {output_file}"
+            f'echo "$CUB_TASK_ID|$CUB_TASK_TITLE|$CUB_HARNESS" > {output_file}',
         )
 
         context = HookContext(
@@ -320,15 +279,11 @@ class TestRunHooks:
         config = {"hooks": {"enabled": True, "fail_fast": False}}
         config_file = temp_project["project_dir"] / ".cub.json"
         import json
+
         config_file.write_text(json.dumps(config))
         clear_cache()
 
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-fail.sh",
-            "exit 1"
-        )
+        create_hook_script(temp_project["project_hooks"], "pre-task", "01-fail.sh", "exit 1")
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
         assert result is True  # Still returns True because fail_fast=false
@@ -342,15 +297,11 @@ class TestRunHooks:
         config = {"hooks": {"enabled": True, "fail_fast": True}}
         config_file = temp_project["project_dir"] / ".cub.json"
         import json
+
         config_file.write_text(json.dumps(config))
         clear_cache()
 
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-fail.sh",
-            "exit 1"
-        )
+        create_hook_script(temp_project["project_hooks"], "pre-task", "01-fail.sh", "exit 1")
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
         assert result is False
@@ -364,16 +315,12 @@ class TestRunHooks:
         config = {"hooks": {"enabled": False}}
         config_file = temp_project["project_dir"] / ".cub.json"
         import json
+
         config_file.write_text(json.dumps(config))
         clear_cache()
 
         # Create a hook that would fail if executed
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-fail.sh",
-            "exit 1"
-        )
+        create_hook_script(temp_project["project_hooks"], "pre-task", "01-fail.sh", "exit 1")
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
         assert result is True  # Hooks disabled, so returns success
@@ -389,7 +336,7 @@ class TestRunHooks:
             temp_project["project_hooks"],
             "pre-task",
             "01-test.sh",
-            "echo 'Error message' >&2\nexit 1"
+            "echo 'Error message' >&2\nexit 1",
         )
 
         # Use default fail_fast=false
@@ -402,24 +349,11 @@ class TestRunHooks:
 
     def test_multiple_failures_with_fail_fast_false(self, temp_project, capsys):
         """Test that all hooks run even if multiple fail (fail_fast=false)."""
+        create_hook_script(temp_project["project_hooks"], "pre-task", "01-fail1.sh", "exit 1")
         create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "01-fail1.sh",
-            "exit 1"
+            temp_project["project_hooks"], "pre-task", "02-success.sh", "echo 'Success'"
         )
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "02-success.sh",
-            "echo 'Success'"
-        )
-        create_hook_script(
-            temp_project["project_hooks"],
-            "pre-task",
-            "03-fail2.sh",
-            "exit 2"
-        )
+        create_hook_script(temp_project["project_hooks"], "pre-task", "03-fail2.sh", "exit 2")
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])
         assert result is True  # fail_fast=false by default
@@ -439,7 +373,7 @@ class TestRunHooks:
             temp_project["project_hooks"],
             "pre-task",
             "01-hang.sh",
-            "sleep 400"  # 400 seconds, more than 300s timeout
+            "sleep 400",  # 400 seconds, more than 300s timeout
         )
 
         result = run_hooks("pre-task", project_dir=temp_project["project_dir"])

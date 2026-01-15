@@ -2,10 +2,8 @@
 Tests for Claude harness backend.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import subprocess
 import json
+from unittest.mock import MagicMock, Mock, patch
 
 from cub.core.harness import get_backend, is_backend_available
 from cub.core.harness.claude import ClaudeBackend
@@ -31,7 +29,7 @@ class TestClaudeBackend:
         assert caps.json_output is True
         assert caps.model_selection is True
 
-    @patch('cub.core.harness.claude.shutil.which')
+    @patch("cub.core.harness.claude.shutil.which")
     def test_is_available_when_installed(self, mock_which):
         """Test is_available returns True when claude is in PATH."""
         mock_which.return_value = "/usr/local/bin/claude"
@@ -40,7 +38,7 @@ class TestClaudeBackend:
         assert backend.is_available() is True
         mock_which.assert_called_once_with("claude")
 
-    @patch('cub.core.harness.claude.shutil.which')
+    @patch("cub.core.harness.claude.shutil.which")
     def test_is_available_when_not_installed(self, mock_which):
         """Test is_available returns False when claude not in PATH."""
         mock_which.return_value = None
@@ -48,22 +46,24 @@ class TestClaudeBackend:
         backend = ClaudeBackend()
         assert backend.is_available() is False
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_invoke_basic(self, mock_run):
         """Test basic invoke returns HarnessResult."""
         # Mock successful claude invocation
         mock_result = Mock()
         mock_result.returncode = 0
-        mock_result.stdout = json.dumps({
-            "result": "Here is a prime checking function...",
-            "usage": {
-                "input_tokens": 100,
-                "output_tokens": 200,
-                "cache_read_input_tokens": 50,
-                "cache_creation_input_tokens": 10,
-            },
-            "cost_usd": 0.005,
-        })
+        mock_result.stdout = json.dumps(
+            {
+                "result": "Here is a prime checking function...",
+                "usage": {
+                    "input_tokens": 100,
+                    "output_tokens": 200,
+                    "cache_read_input_tokens": 50,
+                    "cache_creation_input_tokens": 10,
+                },
+                "cost_usd": 0.005,
+            }
+        )
         mock_result.stderr = ""
         mock_run.return_value = mock_result
 
@@ -83,7 +83,7 @@ class TestClaudeBackend:
         assert result.usage.cost_usd == 0.005
         assert result.usage.estimated is False
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_invoke_with_model(self, mock_run):
         """Test invoke passes model flag correctly."""
         mock_result = Mock()
@@ -104,7 +104,7 @@ class TestClaudeBackend:
         assert "--model" in call_args
         assert "opus" in call_args
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_invoke_error_handling(self, mock_run):
         """Test invoke handles errors gracefully."""
         mock_result = Mock()
@@ -124,7 +124,7 @@ class TestClaudeBackend:
         assert result.error is not None
         assert "failed" in result.error.lower()
 
-    @patch('subprocess.Popen')
+    @patch("subprocess.Popen")
     def test_invoke_streaming_basic(self, mock_popen):
         """Test streaming invoke parses events correctly."""
         # Mock streaming output with events
@@ -153,7 +153,7 @@ class TestClaudeBackend:
         assert result.usage.input_tokens == 50
         assert result.usage.output_tokens == 100
 
-    @patch('subprocess.Popen')
+    @patch("subprocess.Popen")
     def test_invoke_streaming_with_callback(self, mock_popen):
         """Test streaming invoke calls callback for each chunk."""
         stream_events = [
@@ -170,6 +170,7 @@ class TestClaudeBackend:
         mock_popen.return_value = mock_process
 
         callback_chunks = []
+
         def callback(chunk):
             callback_chunks.append(chunk)
 
@@ -183,7 +184,7 @@ class TestClaudeBackend:
         assert callback_chunks == ["chunk1", "chunk2"]
         assert result.output == "chunk1chunk2"
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_get_version(self, mock_run):
         """Test get_version returns version string."""
         mock_result = Mock()
@@ -196,7 +197,7 @@ class TestClaudeBackend:
 
         assert version == "claude version 1.2.3"
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_get_version_error_handling(self, mock_run):
         """Test get_version returns 'unknown' on error."""
         mock_run.side_effect = FileNotFoundError("claude not found")
@@ -210,7 +211,7 @@ class TestClaudeBackend:
 class TestClaudeBackendRegistry:
     """Test Claude backend is registered correctly."""
 
-    @patch('cub.core.harness.claude.shutil.which')
+    @patch("cub.core.harness.claude.shutil.which")
     def test_backend_registered(self, mock_which):
         """Test Claude backend can be retrieved from registry."""
         mock_which.return_value = "/usr/local/bin/claude"
@@ -218,7 +219,7 @@ class TestClaudeBackendRegistry:
         backend = get_backend("claude")
         assert backend.name == "claude"
 
-    @patch('cub.core.harness.claude.shutil.which')
+    @patch("cub.core.harness.claude.shutil.which")
     def test_backend_available_when_claude_installed(self, mock_which):
         """Test backend is reported as available when claude CLI exists."""
         mock_which.return_value = "/usr/local/bin/claude"

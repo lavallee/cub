@@ -13,8 +13,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from cub.core.tasks.beads import BeadsBackend, BeadsCommandError, BeadsNotAvailableError
-from cub.core.tasks.models import Task, TaskStatus, TaskPriority, TaskType
-
+from cub.core.tasks.models import TaskPriority, TaskStatus, TaskType
 
 # ==============================================================================
 # Initialization Tests
@@ -144,10 +143,7 @@ class TestTransformBeadsTask:
 
     def test_transform_minimal_task(self, project_dir):
         """Test transforming minimal beads task data."""
-        raw_task = {
-            "id": "cub-001",
-            "title": "Minimal task"
-        }
+        raw_task = {"id": "cub-001", "title": "Minimal task"}
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
             backend = BeadsBackend(project_dir=project_dir)
@@ -175,7 +171,7 @@ class TestTransformBeadsTask:
             "acceptance_criteria": ["criterion 1", "criterion 2"],
             "notes": "Some notes",
             "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-02T00:00:00Z"
+            "updated_at": "2024-01-02T00:00:00Z",
         }
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
@@ -202,11 +198,7 @@ class TestTransformBeadsTask:
             backend = BeadsBackend(project_dir=project_dir)
 
             for priority_int in range(5):
-                raw_task = {
-                    "id": f"cub-{priority_int}",
-                    "title": "Task",
-                    "priority": priority_int
-                }
+                raw_task = {"id": f"cub-{priority_int}", "title": "Task", "priority": priority_int}
                 task = backend._transform_beads_task(raw_task)
                 assert task.priority == TaskPriority(f"P{priority_int}")
 
@@ -221,10 +213,12 @@ class TestListTasks:
 
     def test_list_all_tasks(self, project_dir):
         """Test listing all tasks without filters."""
-        tasks_json = json.dumps([
-            {"id": "cub-001", "title": "Task 1", "status": "open"},
-            {"id": "cub-002", "title": "Task 2", "status": "closed"}
-        ])
+        tasks_json = json.dumps(
+            [
+                {"id": "cub-001", "title": "Task 1", "status": "open"},
+                {"id": "cub-002", "title": "Task 2", "status": "closed"},
+            ]
+        )
 
         mock_result = Mock()
         mock_result.stdout = tasks_json
@@ -265,13 +259,15 @@ class TestListTasks:
     def test_list_tasks_by_parent(self, project_dir):
         """Test filtering tasks by parent epic."""
         mock_result = Mock()
-        mock_result.stdout = json.dumps([{"id": "cub-001", "title": "Child task", "parent": "epic-001"}])
+        mock_result.stdout = json.dumps(
+            [{"id": "cub-001", "title": "Child task", "parent": "epic-001"}]
+        )
         mock_result.returncode = 0
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 backend = BeadsBackend(project_dir=project_dir)
-                tasks = backend.list_tasks(parent="epic-001")
+                backend.list_tasks(parent="epic-001")
 
                 # Verify parent filter in command
                 args = mock_run.call_args[0][0]
@@ -281,15 +277,15 @@ class TestListTasks:
     def test_list_tasks_by_label(self, project_dir):
         """Test filtering tasks by label."""
         mock_result = Mock()
-        mock_result.stdout = json.dumps([
-            {"id": "cub-001", "title": "Task", "labels": ["backend", "urgent"]}
-        ])
+        mock_result.stdout = json.dumps(
+            [{"id": "cub-001", "title": "Task", "labels": ["backend", "urgent"]}]
+        )
         mock_result.returncode = 0
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 backend = BeadsBackend(project_dir=project_dir)
-                tasks = backend.list_tasks(label="backend")
+                backend.list_tasks(label="backend")
 
                 # Verify label filter in command
                 args = mock_run.call_args[0][0]
@@ -320,11 +316,7 @@ class TestGetTask:
 
     def test_get_task_success(self, project_dir):
         """Test successfully getting a task by ID."""
-        task_json = json.dumps({
-            "id": "cub-042",
-            "title": "Test task",
-            "status": "open"
-        })
+        task_json = json.dumps({"id": "cub-042", "title": "Test task", "status": "open"})
 
         mock_result = Mock()
         mock_result.stdout = task_json
@@ -356,11 +348,7 @@ class TestGetTask:
 
     def test_get_task_list_response(self, project_dir):
         """Test get_task when bd returns a list with one item."""
-        task_json = json.dumps([{
-            "id": "cub-001",
-            "title": "Task",
-            "status": "open"
-        }])
+        task_json = json.dumps([{"id": "cub-001", "title": "Task", "status": "open"}])
 
         mock_result = Mock()
         mock_result.stdout = task_json
@@ -385,11 +373,13 @@ class TestGetReadyTasks:
 
     def test_get_ready_tasks(self, project_dir):
         """Test getting ready tasks sorted by priority."""
-        tasks_json = json.dumps([
-            {"id": "cub-002", "title": "Task 2", "status": "open", "priority": 2},
-            {"id": "cub-001", "title": "Task 1", "status": "open", "priority": 0},
-            {"id": "cub-003", "title": "Task 3", "status": "open", "priority": 1}
-        ])
+        tasks_json = json.dumps(
+            [
+                {"id": "cub-002", "title": "Task 2", "status": "open", "priority": 2},
+                {"id": "cub-001", "title": "Task 1", "status": "open", "priority": 0},
+                {"id": "cub-003", "title": "Task 3", "status": "open", "priority": 1},
+            ]
+        )
 
         mock_result = Mock()
         mock_result.stdout = tasks_json
@@ -455,11 +445,7 @@ class TestUpdateTask:
         update_result.returncode = 0
 
         get_result = Mock()
-        get_result.stdout = json.dumps({
-            "id": "cub-001",
-            "title": "Task",
-            "status": "in_progress"
-        })
+        get_result.stdout = json.dumps({"id": "cub-001", "title": "Task", "status": "in_progress"})
         get_result.returncode = 0
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
@@ -483,13 +469,15 @@ class TestUpdateTask:
         update_result.returncode = 0
 
         get_result = Mock()
-        get_result.stdout = json.dumps({
-            "id": "cub-001",
-            "title": "Task",
-            "status": "in_progress",
-            "assignee": "alice",
-            "labels": ["backend", "urgent"]
-        })
+        get_result.stdout = json.dumps(
+            {
+                "id": "cub-001",
+                "title": "Task",
+                "status": "in_progress",
+                "assignee": "alice",
+                "labels": ["backend", "urgent"],
+            }
+        )
         get_result.returncode = 0
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
@@ -499,7 +487,7 @@ class TestUpdateTask:
                     "cub-001",
                     status=TaskStatus.IN_PROGRESS,
                     assignee="alice",
-                    labels=["backend", "urgent"]
+                    labels=["backend", "urgent"],
                 )
 
                 assert task.assignee == "alice"
@@ -532,13 +520,15 @@ class TestGetTaskCounts:
 
     def test_get_task_counts(self, project_dir):
         """Test getting correct task counts."""
-        tasks_json = json.dumps([
-            {"id": "cub-001", "status": "open"},
-            {"id": "cub-002", "status": "open"},
-            {"id": "cub-003", "status": "in_progress"},
-            {"id": "cub-004", "status": "closed"},
-            {"id": "cub-005", "status": "closed"}
-        ])
+        tasks_json = json.dumps(
+            [
+                {"id": "cub-001", "status": "open"},
+                {"id": "cub-002", "status": "open"},
+                {"id": "cub-003", "status": "in_progress"},
+                {"id": "cub-004", "status": "closed"},
+                {"id": "cub-005", "status": "closed"},
+            ]
+        )
 
         mock_result = Mock()
         mock_result.stdout = tasks_json

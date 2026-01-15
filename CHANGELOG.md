@@ -6,6 +6,118 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.23.0] - 2026-01-15
+
+### Added - Live Dashboard
+
+Real-time monitoring dashboard for cub runs, with Rich-based terminal UI and tmux integration for split-pane workflows.
+
+- **Rich-Based Dashboard Renderer** (`src/cub/dashboard/renderer.py`)
+  - Live terminal UI with Rich library
+  - Task progress visualization
+  - Token usage and budget tracking
+  - Event log with color-coded levels
+  - Auto-refresh with configurable intervals
+
+- **Status File Polling** (`src/cub/dashboard/status.py`)
+  - Watches `.cub/runs/<session>/status.json` for changes
+  - Event-driven updates via file system monitoring
+  - Graceful handling of file changes during writes
+
+- **Tmux Integration** (`src/cub/dashboard/tmux.py`)
+  - `--monitor` flag creates split pane with live dashboard
+  - Automatic pane management (create/resize/close)
+  - Works with existing tmux sessions
+  - Fallback to standalone mode outside tmux
+
+- **`cub monitor` Command** (`src/cub/cli/monitor.py`)
+  - `cub monitor` - Watch current/latest run
+  - `cub monitor <session>` - Watch specific session
+  - `--refresh <seconds>` - Set refresh interval
+  - Standalone dashboard without running tasks
+
+### Technical
+
+- `src/cub/dashboard/` - New dashboard module
+- `src/cub/cli/monitor.py` - Monitor command implementation
+- `tests/test_dashboard_renderer.py` - Dashboard renderer tests
+- `tests/test_dashboard_status_watcher.py` - Status watcher tests
+- Updated `src/cub/cli/run.py` with `--monitor` flag support
+
+### Tasks Completed
+
+- cub-074: Implement Rich-based dashboard renderer
+- cub-075: Implement status file polling
+- cub-076: Implement tmux integration for --monitor
+- cub-077: Implement cub monitor command
+
+---
+
+## [0.21.0] - 2026-01-15
+
+### Added - Python Core Migration
+
+A complete Python implementation of cub's core functionality, providing a foundation for future enhancements while maintaining full compatibility with the bash implementation.
+
+- **Python Project Structure**
+  - Initialized with `uv` for fast dependency management
+  - Pydantic models for Task and Config validation
+  - Type-safe protocol-based architecture
+
+- **Task Backend System**
+  - `TaskBackend` protocol with registry pattern
+  - `BeadsBackend` - Full integration with beads CLI (`bd`)
+  - `JsonBackend` - Direct prd.json manipulation
+  - Automatic backend detection and selection
+
+- **Harness Backend System**
+  - `HarnessBackend` protocol for LLM integrations
+  - `ClaudeBackend` - Claude Code CLI integration
+  - `CodexBackend` - OpenAI Codex CLI integration
+  - Unified interface for task execution
+
+- **Configuration System**
+  - Multi-layer config merging (CLI > env > project > global > defaults)
+  - XDG-compliant paths for config and data
+  - Pydantic validation for all config values
+
+- **CLI Commands** (via Typer)
+  - `cub run` - Main autonomous loop with all existing flags
+  - `cub status` - Project status display
+  - Full compatibility with bash implementation flags
+
+- **Hook System**
+  - Python hook executor with pre/post task hooks
+  - Error hooks for failure handling
+  - Compatible with existing bash hook scripts
+
+- **Structured Logging**
+  - JSONL logging with task_start/task_end events
+  - Token usage tracking
+  - Git SHA capture for audit trails
+
+- **Test Suite**
+  - Comprehensive pytest tests for all core modules
+  - Async test support for harness operations
+  - Mock backends for isolated testing
+
+### Fixed
+
+- **Epic Filter Bug** - `cub run --epic` now correctly counts remaining tasks within the specified epic only, instead of all tasks across all epics. This fixes premature "no ready tasks" errors when an epic completes.
+
+### Technical
+
+- `src/cub/` - Python package structure
+- `src/cub/models/` - Pydantic models (task.py, config.py)
+- `src/cub/backends/` - Task and harness backends
+- `src/cub/cli/` - Typer CLI implementation
+- `src/cub/logging.py` - Structured JSONL logging
+- `src/cub/hooks.py` - Hook execution system
+- `tests/` - Pytest test suite
+- `pyproject.toml` - Project configuration with uv
+
+---
+
 ## [0.20.0] - 2026-01-14 (PR #24)
 
 ### Added - Guardrails System (Institutional Memory)
@@ -612,6 +724,11 @@ A complete system for capturing, preserving, and applying project-specific lesso
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.23.0 | 2026-01-15 | - | Live Dashboard |
+| 0.21.0 | 2026-01-15 | - | Python Core Migration |
+| 0.20.0 | 2026-01-14 | #24 | Guardrails System |
+| 0.19.0 | 2026-01-14 | #23 | Git Workflow Integration |
+| 0.18.1 | 2026-01-14 | #22 | Prep Workflow |
 | 0.18.0 | 2026-01-14 | #18 | Onboarding & Project Organization |
 | 0.17.0 | 2026-01-14 | #17 | PRD Import |
 | 0.16.0 | 2026-01-14 | #16 | Interview Mode |

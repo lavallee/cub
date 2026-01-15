@@ -6,7 +6,6 @@ capabilities detection, invocation results, and usage tracking.
 """
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -28,28 +27,18 @@ class HarnessCapabilities(BaseModel):
     """
 
     streaming: bool = Field(
-        default=False,
-        description="Supports real-time streaming output with JSON events"
+        default=False, description="Supports real-time streaming output with JSON events"
     )
-    token_reporting: bool = Field(
-        default=False,
-        description="Reports token usage in output"
-    )
+    token_reporting: bool = Field(default=False, description="Reports token usage in output")
     system_prompt: bool = Field(
-        default=False,
-        description="Supports separate system prompt parameter"
+        default=False, description="Supports separate system prompt parameter"
     )
     auto_mode: bool = Field(
-        default=False,
-        description="Has autonomous mode for unattended operation"
+        default=False, description="Has autonomous mode for unattended operation"
     )
-    json_output: bool = Field(
-        default=False,
-        description="Supports JSON output format"
-    )
+    json_output: bool = Field(default=False, description="Supports JSON output format")
     model_selection: bool = Field(
-        default=False,
-        description="Supports model selection via CLI flag"
+        default=False, description="Supports model selection via CLI flag"
     )
 
     def has(self, capability: str) -> bool:
@@ -75,22 +64,12 @@ class TokenUsage(BaseModel):
 
     input_tokens: int = Field(default=0, description="Input tokens consumed")
     output_tokens: int = Field(default=0, description="Output tokens generated")
-    cache_read_tokens: int = Field(
-        default=0,
-        description="Tokens read from prompt cache"
+    cache_read_tokens: int = Field(default=0, description="Tokens read from prompt cache")
+    cache_creation_tokens: int = Field(default=0, description="Tokens written to prompt cache")
+    cost_usd: float | None = Field(
+        default=None, description="Estimated cost in USD (if available)"
     )
-    cache_creation_tokens: int = Field(
-        default=0,
-        description="Tokens written to prompt cache"
-    )
-    cost_usd: Optional[float] = Field(
-        default=None,
-        description="Estimated cost in USD (if available)"
-    )
-    estimated: bool = Field(
-        default=False,
-        description="Whether usage is estimated (not from API)"
-    )
+    estimated: bool = Field(default=False, description="Whether usage is estimated (not from API)")
 
     @property
     def total_tokens(self) -> int:
@@ -116,22 +95,12 @@ class HarnessResult(BaseModel):
     """
 
     output: str = Field(default="", description="Text output from harness")
-    usage: TokenUsage = Field(
-        default_factory=TokenUsage,
-        description="Token usage statistics"
-    )
-    duration_seconds: float = Field(
-        default=0.0,
-        description="How long the invocation took"
-    )
+    usage: TokenUsage = Field(default_factory=TokenUsage, description="Token usage statistics")
+    duration_seconds: float = Field(default=0.0, description="How long the invocation took")
     exit_code: int = Field(default=0, description="Exit code from harness CLI")
-    error: Optional[str] = Field(
-        default=None,
-        description="Error message if invocation failed"
-    )
+    error: str | None = Field(default=None, description="Error message if invocation failed")
     timestamp: datetime = Field(
-        default_factory=datetime.now,
-        description="When the invocation occurred"
+        default_factory=datetime.now, description="When the invocation occurred"
     )
 
     @property
