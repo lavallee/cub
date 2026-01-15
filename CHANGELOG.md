@@ -151,6 +151,12 @@ Real-time monitoring dashboard for cub runs, with Rich-based terminal UI and tmu
 
 ---
 
+## [0.22.0] - 2026-01-15
+
+### There is no spoon
+
+---
+
 ## [0.21.0] - 2026-01-15
 
 ### Added - Python Core Migration
