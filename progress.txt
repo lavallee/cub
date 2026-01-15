@@ -1296,3 +1296,104 @@ All 13 tests passing:
 - Implement additional harness backends (Codex, Gemini, OpenCode)
 - Add end-to-end integration tests with real claude CLI
 - Port remaining bash harness functions to Python
+## cub-061: Codex Harness Backend Implementation (2026-01-14)
+
+Successfully implemented the Codex CLI harness backend following the same pattern as the Claude backend.
+
+**Key Implementation Details:**
+
+**CodexBackend Class:**
+- Registered via `@register_backend("codex")` decorator
+- Capabilities: streaming, auto mode, JSON output, model selection
+- Does NOT support: system_prompt (prompts combined), token_reporting (estimated only)
+- Wraps `codex exec` CLI with subprocess management
+
+**Prompt Handling:**
+- Codex CLI has no `--append-system-prompt` flag
+- Solution: Combine system prompt and task prompt with separator ("---")
+- Both `invoke` and `invoke_streaming` use same combining approach
+
+**Autonomous Mode:**
+- Uses `--dangerously-bypass-approvals-and-sandbox` flag
+- Matches Claude's `--dangerously-skip-permissions` behavior
+- Required for unattended operation
+
+**Blocking Invocation (`invoke`):**
+- Command: `codex exec --dangerously-bypass-approvals-and-sandbox -m <model> -`
+- Reads from stdin (combined prompt)
+- Token estimation: character count / 4 (rough approximation)
+- No JSON parsing needed - output is plain text
+
+**Streaming Invocation (`invoke_streaming`):**
+- Uses `--json` flag for JSONL event stream
+- Line-buffered subprocess output parsing
+- Event types handled:
+  - `item.started`: Shows commands/file edits beginning
+  - `item.completed`: Extracts text from reasoning/message items
+  - `turn.completed`: Accumulates token usage if reported
+- Optional callback for real-time text chunks
+
+**Model Selection:**
+- Supports `-m` flag for model specification
+- Can read from `CUB_MODEL` environment variable
+- Supports `CODEX_FLAGS` env var for additional CLI flags
+
+**Token Usage:**
+- Codex CLI doesn't report actual token usage
+- Estimation: input_chars / 4 and output_chars / 4
+- `estimated=True` flag on all TokenUsage results
+- May extract usage from `turn.completed` events if available
+
+**Type Safety:**
+- All code passes `mypy --strict`
+- Proper None checking for subprocess streams
+- RuntimeError when stdout capture fails
+
+**Testing:**
+- Verified backend registration (`list_backends()` shows 'codex')
+- Confirmed availability detection (`is_backend_available('codex')`)
+- Validated capabilities match specification
+- Integration test confirms get_backend('codex') works
+
+**Key Learnings:**
+
+1. **Combined Prompts Pattern**: When a harness lacks system prompt support, combine prompts with clear separator. Use "\n\n---\n\n" to visually distinguish sections.
+
+2. **JSONL Event Parsing**: Codex uses different event structure than Claude:
+   - `item.started/completed` instead of `content_block_start/delta`
+   - Item types: `reasoning`, `message`, `command_execution`, `file_edit`
+   - Need to handle each type differently for meaningful output
+
+3. **Token Estimation Fallback**: When CLI doesn't report usage, character-count estimation is acceptable. Mark with `estimated=True` to inform users.
+
+4. **Consistent Flag Patterns**: Even though backends differ, try to maintain consistent behavior:
+   - Auto mode flags all prevent user prompts
+   - Model selection via `-m` or `--model`
+   - JSON output via `--json` or `--output-format json`
+
+5. **Output Truncation**: Command execution output can be very long. Truncate to ~500 chars to keep streaming output manageable.
+
+6. **Import Registration**: Module import in `__init__.py` is required for `@register_backend` to fire:
+   ```python
+   from . import claude  # noqa: F401
+   from . import codex   # noqa: F401
+   ```
+
+**Files Created:**
+- src/cub/core/harness/codex.py (337 lines)
+
+**Files Modified:**
+- src/cub/core/harness/__init__.py (added codex import)
+
+**Test Results:**
+- Backend registration verified ✓
+- Capabilities match specification ✓
+- is_available() checks for codex command ✓
+- All acceptance criteria met ✓
+
+**Next Steps:**
+- Implement remaining harness backends (Gemini, OpenCode)
+- Add comprehensive test suite with mocked subprocess calls
+- Consider model name translation (Claude names → OpenAI equivalents)
+- Port bash model translation function (_codex_translate_model)
+
