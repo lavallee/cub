@@ -556,3 +556,69 @@ Successfully implemented guardrails file initialization during project setup.
    - Log success or warn about skipping
    - Prevents data loss from accidental re-runs
 
+
+## 2026-01-14 - cub-3ge.7: Implement 'cub guardrails learn' interactive command
+
+### What Was Done
+
+Implemented interactive command `cub guardrails learn` that:
+- Finds recent failures from .cub/runs/*/tasks/*/failure.json
+- Displays them in numbered list with task info, exit code, error message
+- Prompts user to select one or quit
+- Uses AI (via guardrails_extract_lesson_ai) to extract actionable lesson
+- Shows extracted lesson for review
+- Prompts for confirmation before adding to guardrails.md
+
+### Implementation Details
+
+Added to lib/cmd_guardrails.sh:
+1. `_cmd_guardrails_get_recent_failures()` - Finds failure.json files sorted by mtime
+   - Cross-platform: stat -f (macOS) vs stat -c (Linux)
+   - Returns up to 10 most recent failures
+2. `cmd_guardrails_learn()` - Interactive workflow
+   - Parses failure.json and task.json to get context
+   - Displays formatted list with truncated error messages
+   - Interactive prompts with validation
+   - Integrates with existing guardrails_extract_lesson_ai and guardrails_add functions
+
+Updated cmd_guardrails_help() to document new subcommand
+
+### Key Learnings
+
+1. **Cross-Platform Compatibility:** When using stat for file times:
+   - macOS: stat -f "%m %N" (modification time + name)
+   - Linux: stat -c "%Y %n" (same but different flags)
+   - Check with [[ "$(uname)" == "Darwin" ]]
+
+2. **Global Variables:** Command modules use CUB_DIR not SCRIPT_DIR:
+   - Source libs: source "${CUB_DIR}/lib/guardrails.sh"
+   - PROJECT_DIR is available for project-specific paths
+
+3. **Interactive UX Pattern:**
+   - Display numbered list (1-indexed for users)
+   - Offer 'q' to quit at selection
+   - Validate numeric input is in range
+   - Show preview before confirmation
+   - Use y/n confirmation for destructive actions
+
+4. **Data Piping Pattern:** Use process substitution for reading find results:
+   ```bash
+   while IFS= read -r failure_file; do
+       failures+=("$failure_file")
+   done < <(_cmd_guardrails_get_recent_failures 10)
+   ```
+
+5. **Array Indexing:** Bash arrays are 0-indexed internally, display 1-indexed for users:
+   - Display: i=1, i++ for each item
+   - Access: selected_index=$((selection - 1))
+
+### Testing
+
+- All 49 guardrails.bats tests pass
+- Manual test confirms:
+  - Finds failure.json files correctly
+  - Displays formatted list
+  - Handles 'q' to quit
+  - Validates numeric input
+  - Integrates with existing AI extraction
+
