@@ -2,6 +2,15 @@
 Code audit tools for detecting dead code, security issues, and code quality problems.
 """
 
+from .coverage import (
+    CoverageFile,
+    CoverageReport,
+    format_coverage_report,
+    get_uncovered_lines,
+    identify_low_coverage,
+    parse_coverage_report,
+    run_coverage,
+)
 from .dead_code import (
     detect_unused,
     detect_unused_bash,
@@ -28,6 +37,8 @@ from .models import (
 
 __all__ = [
     "CodeBlockFinding",
+    "CoverageFile",
+    "CoverageReport",
     "DeadCodeFinding",
     "DeadCodeReport",
     "DocsReport",
@@ -41,6 +52,11 @@ __all__ = [
     "find_bash_functions",
     "find_python_definitions",
     "find_python_references",
+    "format_coverage_report",
+    "get_uncovered_lines",
+    "identify_low_coverage",
+    "parse_coverage_report",
+    "run_coverage",
     "run_shellcheck",
     "validate_code",
     "validate_docs",
