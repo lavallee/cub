@@ -1,5 +1,80 @@
 # Cub Project Progress
 
+## Session: Guardrails System - Task Prompt Integration (cub-3ge.4)
+
+### Task Completed
+Successfully integrated guardrails content into task prompt rendering, enabling agents to see institutional memory lessons before tackling each task.
+
+### What Was Implemented
+
+**Modified `lib/cmd_run.sh`** - Enhanced `generate_task_prompt()` function:
+1. Added guardrails retrieval via `guardrails_for_prompt()` call
+2. Guardrails are now injected as "Lessons from Previous Runs" section
+3. Section is placed before the "CURRENT TASK" section
+4. Section is only rendered if guardrails file exists and has content
+5. Clear formatting with section header and separator line
+
+### Key Implementation Details
+
+**Integration Point:** `generate_task_prompt()` function (line 270)
+- Called whenever a task is about to be executed
+- Runs after task selection but before harness invocation
+- Ensures agents see institutional memory early
+
+**Guardrails Retrieval:**
+- Uses existing `guardrails_for_prompt()` from lib/guardrails.sh
+- Function returns formatted guardrails with header and guidance
+- Falls back gracefully if guardrails don't exist
+- Uses error suppression (`2>/dev/null || true`) for safety
+
+**Prompt Structure:**
+```
+## Lessons from Previous Runs
+
+[Guardrails content with institutional memory]
+
+---
+
+## CURRENT TASK
+
+[Task details as before]
+```
+
+### Design Decisions
+
+1. **Placement Before Task Details**: Guardrails appear first so agents absorb lessons before focusing on the specific task at hand
+
+2. **Optional Rendering**: Only included if guardrails file exists, preventing clutter in fresh projects
+
+3. **Clear Separation**: Separator (---) between guardrails and task details makes distinction clear
+
+4. **Minimal Changes**: Only 16 lines added, keeping the function clean and maintainable
+
+### Testing
+
+- Verified bash syntax: ✓ No errors
+- Tested `guardrails_for_prompt()` output: ✓ Properly formatted
+- Verified integration points: ✓ Function called correctly in prompt generation
+- Checked graceful fallback: ✓ Works with and without guardrails file
+
+### Files Modified
+- `lib/cmd_run.sh` - Enhanced `generate_task_prompt()` function
+
+### Commit
+1f8087e task(cub-3ge.4): Include guardrails in task prompts
+
+### Learnings
+
+1. **Prompt Injection Strategy**: Guardrails are most effective when placed at the beginning of task context, before specific task details. This ensures agents consider institutional memory before becoming focused on particular requirements.
+
+2. **Graceful Degradation**: Conditional inclusion of guardrails prevents breaking existing functionality for projects without guardrails files.
+
+3. **Separation of Concerns**: The guardrails system (files, parsing, formatting) is cleanly separated from the prompt generation logic, making both easier to maintain.
+
+4. **Integration Pattern**: When adding features that should inject content into prompts, wrapping in a dedicated function (`guardrails_for_prompt()`) is cleaner than scattering logic throughout the codebase.
+
+---
+
 ## Session: Quick-Start Guide (cub-eke.16)
 
 ### Task Completed
