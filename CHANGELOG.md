@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.23.3] - 2026-01-15
+
+### Added - Codebase Health Audit
+
+Tools to maintain code quality and identify technical debt:
+
+- **`cub audit` Command** - Unified codebase health checking
+  - `cub audit` - Run all available checks
+  - `cub audit --dead-code` - Find unused Python functions/classes (via vulture)
+  - `cub audit --bash-dead-code` - Find unused Bash functions
+  - `cub audit --docs` - Validate docstrings and README accuracy
+  - `cub audit --coverage` - Show test coverage metrics
+  - `cub audit --fix` - Auto-fix issues where possible
+
+- **Native Python `cub upgrade` Command**
+  - Migrated from bash delegation to full Python implementation
+  - `--local` flag to install from current cub repository
+  - `--editable` flag for development mode (`pip install -e .`)
+  - Auto-detects install method (pipx, pip, editable)
+  - `--check`, `--version`, `--force` flags supported
+
+### Fixed
+
+- **`--debug` flag propagation** - Debug flag now properly passed through delegated bash commands via `CUB_DEBUG` environment variable
+- **release-pipeline.sh** - Skip main checkout if already on target branch (fixes worktree conflict)
+- **release-pipeline.sh** - Correct position for `--debug` flag (`cub --debug run` not `cub run --debug`)
+
+### Changed
+
+- Gitignored `*.egg-info/` build artifacts
+- Removed `upgrade` from bash-delegated commands
+
+### Tasks Completed
+
+- cub-069: Implement dead code detection for Python
+- cub-070: Implement dead code detection for Bash
+- cub-071: Implement documentation validation
+- cub-072: Implement test coverage reporting
+- cub-073: Implement cub audit command
+
+---
+
 ## [0.23.2] - 2026-01-15
 
 ### Fixed - Unimplemented Commands
@@ -780,6 +822,7 @@ A complete system for capturing, preserving, and applying project-specific lesso
 
 | Version | Date | PR | Highlight |
 |---------|------|-----|-----------|
+| 0.23.3 | 2026-01-15 | #28 | Codebase Health Audit |
 | 0.23.0 | 2026-01-15 | - | Live Dashboard |
 | 0.21.0 | 2026-01-15 | - | Python Core Migration |
 | 0.20.0 | 2026-01-14 | #24 | Guardrails System |
