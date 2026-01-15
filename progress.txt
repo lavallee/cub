@@ -1547,3 +1547,142 @@ Implemented the core `cub run` command that executes the autonomous task loop in
 - src/cub/core/status/__init__.py (exports added)
 - src/cub/core/tasks/json.py (field name fix)
 - pyproject.toml (mypy config)
+
+## 2026-01-15 - cub-065: Implement hook execution from Python
+
+### Task Completed
+Successfully implemented Python hook execution system that calls Bash hook scripts from Python, maintaining user extensibility while moving core logic to Python.
+
+### What Was Implemented
+
+**Hook Execution Module (src/cub/utils/hooks.py)**
+- `HookContext` dataclass for passing context information via environment variables
+- `find_hook_scripts()` function to discover executable hooks in both global and project directories
+- `run_hooks()` function to execute hooks with proper context and error handling
+- Complete environment variable support: CUB_HOOK_NAME, CUB_PROJECT_DIR, CUB_TASK_ID, CUB_TASK_TITLE, CUB_EXIT_CODE, CUB_HARNESS, CUB_SESSION_ID
+
+**Hook Discovery**
+- Scans global directory: ~/.config/cub/hooks/{hook_name}.d/
+- Scans project directory: .cub/hooks/{hook_name}.d/
+- Returns sorted list of executable scripts (01-first.sh before 02-second.sh)
+- Ignores non-executable files using os.access(script, os.X_OK)
+- Cross-platform compatible (tested on macOS and Linux)
+
+**Hook Execution**
+- Executes scripts in sorted order via subprocess.run()
+- Passes context via environment variables using env parameter
+- Captures stdout and stderr for logging
+- 5-minute timeout per hook to prevent hangs
+- Respects hooks.enabled config setting
+- Respects hooks.fail_fast config setting (default: false)
+
+**Error Handling**
+- Logs hook failures with script name and exit code
+- Continues execution on failure when fail_fast=false (default)
+- Stops execution immediately when fail_fast=true
+- Handles subprocess timeouts gracefully
+- Catches and logs unexpected exceptions
+
+### Testing
+
+**Comprehensive Test Suite (tests/test_hooks.py)**
+- 20 tests covering all functionality
+- 19 tests passing, 1 skipped (timeout test)
+- Test coverage includes:
+  - HookContext creation and serialization
+  - Hook discovery (global, project, both, none)
+  - Executable filtering
+  - Sorted execution order
+  - Context passing via environment variables
+  - Success and failure scenarios
+  - fail_fast configuration behavior
+  - hooks.enabled configuration
+  - Multiple hook execution
+  - Error output capture
+
+### Key Implementation Details
+
+**Environment Variable Passing**
+```python
+context = HookContext(
+    hook_name="pre-task",
+    task_id="cub-123",
+    task_title="Fix bug",
+    harness="claude"
+)
+env = os.environ.copy()
+env.update(context.to_env_dict())
+subprocess.run([str(script)], env=env)
+```
+
+**Hook Discovery Pattern**
+- Uses Path.iterdir() + sorted() for deterministic ordering
+- Filters by os.access(path, os.X_OK) to find executables
+- Returns list of Path objects for type safety
+
+**Subprocess Configuration**
+- capture_output=True for logging
+- text=True for string handling
+- env=env for context passing
+- timeout=300 (5 minutes)
+- check=False to handle failures gracefully
+
+### Integration with Existing System
+
+**Config Integration**
+- Reads hooks.enabled from CubConfig (via load_config)
+- Reads hooks.fail_fast from CubConfig
+- Respects XDG_CONFIG_HOME for global hook directory
+
+**Compatible with Bash Implementation**
+- Same directory structure: {hook_name}.d/
+- Same environment variables
+- Same execution order (sorted)
+- Same fail_fast behavior
+
+### Files Created
+- src/cub/utils/__init__.py (5 lines)
+- src/cub/utils/hooks.py (257 lines)
+- tests/test_hooks.py (500 lines)
+
+### Files Modified
+- .beads/issues.jsonl (task closed)
+
+### Test Results
+- 96 total tests passing (19 new hook tests + 77 existing)
+- 1 test skipped (timeout test - would take 5 minutes)
+- Type checking: mypy --check-untyped-defs passes on all 25 source files
+- No linting issues
+
+### Acceptance Criteria Met
+✓ Finds hooks in both directories (global and project)
+✓ Executes in sorted order (01-first.sh before 02-second.sh)
+✓ Context passed as env vars (CUB_TASK_ID, CUB_TASK_TITLE, etc.)
+✓ Hook failures logged with script name and exit code
+✓ fail_fast config respected (stops on first failure when true)
+
+### Commit
+2867640 task(cub-065): Implement hook execution from Python
+
+### Learnings
+
+1. **Subprocess Environment Passing**: The cleanest way to pass context to subprocess is via env parameter. Copy os.environ.copy() and update with custom vars to preserve PATH and other system env vars.
+
+2. **Executable Detection**: On Unix systems, os.access(path, os.X_OK) is the standard way to check if a file is executable. This is more portable than checking st_mode bits directly.
+
+3. **Path vs String for Subprocess**: subprocess.run() accepts both Path and str for command. Converting to str with str(script) is explicit and avoids type confusion.
+
+4. **Timeout Handling**: subprocess.TimeoutExpired exception needs special handling. Log it clearly since hooks hanging for 5 minutes indicates a problem.
+
+5. **Type Safety with dataclass**: Using @dataclass with type hints provides clean API and automatic __init__ generation. The to_env_dict() method keeps serialization logic encapsulated.
+
+6. **Test Fixtures for Temp Directories**: pytest's tmp_path fixture combined with monkeypatch for env vars and chdir creates clean isolated test environment. Essential for filesystem tests.
+
+7. **Shell Script Permissions**: When creating test scripts, must use script_path.chmod() with stat.S_IXUSR to make executable. Default write doesn't include execute bit.
+
+8. **Config Loading in Utilities**: Even utility modules can access config via load_config(). This enables feature flags like hooks.enabled without passing config through function parameters.
+
+9. **Sorted Execution Pattern**: For deterministic hook execution, sorted(dir.iterdir()) ensures consistent order across platforms and Python versions. This matches bash's glob expansion behavior.
+
+10. **Non-Blocking by Default**: Setting fail_fast=false by default (hooks don't stop the loop) is user-friendly. Failed hooks are logged but don't derail the entire run. Users who want strict checking can opt in with fail_fast=true.
+
