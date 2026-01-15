@@ -10,14 +10,16 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.live import Live
+from rich.table import Table
 
+from cub.core.status.writer import list_runs
 from cub.dashboard.renderer import DashboardRenderer
 from cub.dashboard.status import StatusWatcher
 
 app = typer.Typer(
     name="monitor",
     help="Display live dashboard for cub run session",
-    no_args_is_help=True,
+    no_args_is_help=False,
 )
 
 console = Console()
@@ -26,9 +28,9 @@ console = Console()
 @app.callback(invoke_without_command=True)
 def monitor(
     ctx: typer.Context,
-    session_id: str = typer.Argument(
-        ...,
-        help="Session ID or run ID to monitor",
+    session_id: str | None = typer.Argument(
+        None,
+        help="Session ID or run ID to monitor (auto-detects latest if not specified)",
     ),
     refresh: float = typer.Option(
         1.0,
@@ -37,6 +39,11 @@ def monitor(
         help="Dashboard refresh interval in seconds",
         min=0.1,
         max=10.0,
+    ),
+    list_sessions: bool = typer.Option(
+        False,
+        "--list",
+        help="Show list of running sessions",
     ),
 ) -> None:
     """
@@ -48,12 +55,37 @@ def monitor(
     - Budget usage (tokens, cost, tasks)
     - Recent activity log
 
+    If no session ID is provided, automatically attaches to the most recent session.
+
     Examples:
+        cub monitor                        # Monitor latest session
         cub monitor cub-20260115-123456    # Monitor specific session
         cub monitor --refresh 0.5          # Faster refresh rate
+        cub monitor --list                 # Show running sessions
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
+
+    # Handle --list option
+    if list_sessions:
+        _show_running_sessions(project_dir, debug)
+        return
+
+    # Auto-detect session ID if not provided
+    if not session_id:
+        runs = list_runs(project_dir)
+        if not runs:
+            console.print(
+                "[red]Error: No running sessions found[/red]\n"
+                "Start a session with:\n"
+                "  cub run"
+            )
+            raise typer.Exit(1)
+
+        # Get the most recent session (first in the list as they're sorted by mtime)
+        session_id = runs[0]["run_id"]
+        if debug:
+            console.print(f"[dim]Auto-detected session: {session_id}[/dim]")
 
     # Construct status file path
     status_path = project_dir / ".cub" / "runs" / session_id / "status.json"
@@ -144,6 +176,52 @@ def monitor(
         console.print(f"[dim]Final phase: {status.phase.value}[/dim]")
 
     raise typer.Exit(0)
+
+
+def _show_running_sessions(project_dir: Path, debug: bool = False) -> None:
+    """
+    Show list of running sessions.
+
+    Args:
+        project_dir: Project root directory
+        debug: Enable debug output
+    """
+    runs = list_runs(project_dir)
+
+    if not runs:
+        console.print("[yellow]No sessions found[/yellow]")
+        return
+
+    # Create table
+    table = Table(title="Running Sessions")
+    table.add_column("Run ID", style="cyan")
+    table.add_column("Session Name", style="green")
+    table.add_column("Phase", style="yellow")
+    table.add_column("Tasks Done", style="magenta")
+
+    for run in runs:
+        phase = run.get("phase", "unknown")
+        # Color phase based on state
+        if phase == "completed":
+            phase_colored = f"[green]{phase}[/green]"
+        elif phase == "running":
+            phase_colored = f"[yellow]{phase}[/yellow]"
+        elif phase == "failed":
+            phase_colored = f"[red]{phase}[/red]"
+        else:
+            phase_colored = phase
+
+        table.add_row(
+            run.get("run_id", "unknown"),
+            run.get("session_name", "unknown"),
+            phase_colored,
+            str(run.get("tasks_completed", 0)),
+        )
+
+    console.print(table)
+
+    if debug:
+        console.print(f"[dim]Found {len(runs)} sessions[/dim]")
 
 
 __all__ = ["app"]
