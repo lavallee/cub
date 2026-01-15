@@ -20,26 +20,6 @@ Read both previous outputs:
 
 If either file doesn't exist or isn't approved, tell the user which step needs to be completed first.
 
-### Step 1.5: Check Existing Beads IDs
-
-**CRITICAL**: Before generating any IDs, check for existing issues to avoid collisions.
-
-If `.beads/issues.jsonl` exists:
-1. Extract all existing IDs that match the prefix pattern
-2. Find the highest epic number (e.g., if `proj-E05` exists, start from E06)
-3. Find the highest task number (e.g., if `proj-218` exists, start from 219)
-4. Store these starting numbers for use in Step 7
-
-Example check (conceptual):
-```bash
-# Find max epic number for prefix "cub"
-grep -o '"id":"cub-E[0-9]*"' .beads/issues.jsonl | sed 's/.*E\([0-9]*\).*/\1/' | sort -n | tail -1
-# Find max task number for prefix "cub"
-grep -o '"id":"cub-[0-9]*"' .beads/issues.jsonl | sed 's/.*-\([0-9]*\).*/\1/' | sort -n | tail -1
-```
-
-If no existing issues, start from E01/001.
-
 ### Step 2: Conduct Interview
 
 Ask the user the following questions, **waiting for a response after each one**:
@@ -166,10 +146,8 @@ Generate a JSONL file with the complete beads schema.
 ```
 
 **ID Numbering:**
-- Epics: `{prefix}-E{NN}` starting from the next available number (see Step 1.5)
-- Tasks: `{prefix}-{NNN}` starting from the next available number (see Step 1.5)
-- If no existing issues: start from E01 and 001
-- Example: If `cub-E05` and `cub-218` exist, start new epics at E06 and new tasks at 219
+- Epics: `{prefix}-E01`, `{prefix}-E02`, etc.
+- Tasks: `{prefix}-001`, `{prefix}-002`, etc. (sequential across all phases)
 
 ### Step 8: Generate Human-Readable Plan
 
