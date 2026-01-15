@@ -18,12 +18,14 @@
 #   artifacts_capture_harness_output(task_id, output_file, iteration) - Capture harness output to log
 #   artifacts_get_path(task_id) - Get absolute path to task artifact directory
 #   artifacts_finalize_task(task_id, status, exit_code, summary_text) - Finalize task and generate summary
+#   artifacts_capture_guardrails_snapshot() - Capture guardrails snapshot at run completion
 #
 
 # Source dependencies
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/session.sh"
 source "${SCRIPT_DIR}/xdg.sh"
+source "${SCRIPT_DIR}/guardrails.sh"
 
 # Base directory for artifacts (relative to project root)
 _ARTIFACTS_BASE_DIR=".cub/runs"
@@ -836,6 +838,56 @@ ${summary_text:-No summary provided.}
             echo "ERROR: Failed to write updated run.json" >&2
             return 1
         fi
+    fi
+
+    return 0
+}
+
+# Capture guardrails snapshot at run completion
+# Copies the current guardrails.md file to the run artifacts directory
+# This enables debugging what guardrails were active during a particular run
+#
+# Returns:
+#   0 on success, 1 on failure
+#
+# Example:
+#   artifacts_capture_guardrails_snapshot
+artifacts_capture_guardrails_snapshot() {
+    # Get run directory
+    local run_dir
+    run_dir=$(artifacts_get_run_dir)
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to get run directory" >&2
+        return 1
+    fi
+
+    # Check if guardrails file exists
+    if ! guardrails_exists; then
+        # No guardrails file - this is OK, just return success
+        log_debug "No guardrails file found, skipping snapshot"
+        return 0
+    fi
+
+    # Get guardrails file path
+    local guardrails_file
+    guardrails_file="${PROJECT_DIR}/.cub/guardrails.md"
+    if [[ ! -f "$guardrails_file" ]]; then
+        log_debug "Guardrails file not found at ${guardrails_file}"
+        return 0
+    fi
+
+    # Copy guardrails snapshot to run directory
+    local snapshot_file="${run_dir}/guardrails.md"
+    if ! cp "$guardrails_file" "$snapshot_file"; then
+        echo "ERROR: Failed to copy guardrails snapshot to ${snapshot_file}" >&2
+        return 1
+    fi
+
+    # Set secure permissions (600)
+    chmod 600 "$snapshot_file"
+    if [[ $? -ne 0 ]]; then
+        echo "ERROR: Failed to set permissions on ${snapshot_file}" >&2
+        return 1
     fi
 
     return 0
