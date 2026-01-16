@@ -153,6 +153,18 @@
             font-weight: 600;
         }
 
+        .version-badge {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background: var(--bg-deep);
+            padding: 0 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--mint);
+            font-weight: 500;
+        }
+
         .install-prompt {
             display: flex;
             align-items: center;
@@ -780,6 +792,7 @@
 
         <!-- Install -->
         <div class="install-box">
+            <span class="version-badge">v0.23.2</span>
             <div class="install-prompt">
                 <span class="prompt-symbol">$</span>
                 <code class="install-cmd" id="install-cmd">curl -LsSf https://lavallee.github.io/cub/install.sh | sh</code>
