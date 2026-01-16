@@ -4,6 +4,7 @@ Cub CLI - Capture command.
 Quick text capture for ideas, notes, and observations.
 """
 
+import subprocess
 import sys
 from datetime import datetime, timezone
 
@@ -72,6 +73,12 @@ def capture(
         "-g",
         help="Save to global captures directory (~/.local/share/cub/captures/)",
     ),
+    interactive: bool = typer.Option(
+        False,
+        "--interactive",
+        "-i",
+        help="Launch interactive capture session with Claude",
+    ),
 ) -> None:
     """
     Capture quick ideas, notes, and observations.
@@ -84,15 +91,38 @@ def capture(
         cub capture "Refactor auth flow" --tag feature --tag auth
         echo "Meeting notes..." | cub capture
         cub capture --name "sprint-planning" "Q1 2026 sprint goals"
+        cub capture -i "New feature idea"
     """
     debug = ctx.obj.get("debug", False)
+
+    # Handle interactive mode
+    if interactive:
+        # Build the skill invocation
+        skill_prompt = "/cub:capture"
+        if content:
+            skill_prompt += f" {content}"
+
+        # Launch Claude with the capture skill
+        try:
+            result = subprocess.run(
+                ["claude", skill_prompt],
+                check=False,  # Don't raise on non-zero exit
+            )
+
+            # Exit with the same code as Claude
+            raise typer.Exit(result.returncode)
+        except FileNotFoundError:
+            console.print(
+                "[red]Error:[/red] Claude CLI not found. "
+                "Please install Claude Code from https://claude.ai/download"
+            )
+            raise typer.Exit(1)
 
     # Read content from stdin if not provided as argument
     if content is None:
         if sys.stdin.isatty():
             console.print(
-                "[red]Error:[/red] No content provided. "
-                "Provide text as argument or via stdin."
+                "[red]Error:[/red] No content provided. Provide text as argument or via stdin."
             )
             console.print("\nExamples:")
             console.print('  cub capture "Your idea here"')
