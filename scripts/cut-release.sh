@@ -2,19 +2,20 @@
 #
 # cut-release.sh - Cut a release from main branch
 #
-# Takes a snapshot of main, updates version numbers, changelog, and creates
-# a GitHub release. This is the release-specific subset of release-pipeline.sh.
+# Takes a snapshot of main, updates version numbers, auto-generates changelog,
+# and creates a GitHub release. This is the release-specific subset of
+# release-pipeline.sh.
 #
 # Usage:
 #   ./scripts/cut-release.sh 0.25.2              # Cut release v0.25.2
 #   ./scripts/cut-release.sh 0.26.0 --dry-run    # Show what would be done
 #   ./scripts/cut-release.sh 0.25.2 --no-push    # Don't push or create GitHub release
-#   ./scripts/cut-release.sh 0.25.2 --skip-changelog  # Skip changelog prompt
+#   ./scripts/cut-release.sh 0.25.2 --skip-changelog  # Skip changelog generation
 #
 # The script will:
 #   1. Verify we're on main with clean working directory
 #   2. Update version in pyproject.toml and src/cub/__init__.py
-#   3. Prompt to update CHANGELOG.md (or skip with --skip-changelog)
+#   3. Auto-generate CHANGELOG.md entry from git commits
 #   4. Commit version and changelog changes
 #   5. Create and push git tag
 #   6. Create GitHub release with notes from changelog
@@ -199,13 +200,11 @@ update_init_version() {
     fi
 }
 
-# Prompt to update changelog
+# Generate and update changelog
 update_changelog() {
     local changelog="$PROJECT_DIR/CHANGELOG.md"
-    local today
-    today=$(date +%Y-%m-%d)
 
-    log_info "Checking CHANGELOG.md..."
+    log_info "Generating CHANGELOG.md entry..."
 
     # Check if this version already has an entry
     if grep -q "## \[$VERSION\]" "$changelog"; then
@@ -219,41 +218,21 @@ update_changelog() {
     fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would prompt to update CHANGELOG.md"
+        log_info "[DRY-RUN] Would generate changelog entry:"
+        python3 "${SCRIPT_DIR}/generate_changelog.py" "$VERSION" --dry-run || true
         return 0
     fi
 
-    log_warn "CHANGELOG.md needs an entry for version $VERSION"
-    echo ""
-    echo "Please add an entry at the top of CHANGELOG.md in this format:"
-    echo ""
-    echo "  ## [$VERSION] - $today"
-    echo ""
-    echo "  ### Added"
-    echo "  - New feature description"
-    echo ""
-    echo "  ### Changed"
-    echo "  - Change description"
-    echo ""
-    echo "  ### Fixed"
-    echo "  - Bug fix description"
-    echo ""
-
-    # Open editor
-    read -p "Open CHANGELOG.md in \$EDITOR? [Y/n] " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        ${EDITOR:-vim} "$changelog"
-    fi
-
-    # Verify entry was added
-    if ! grep -q "## \[$VERSION\]" "$changelog"; then
-        log_error "CHANGELOG.md entry for $VERSION not found"
-        read -p "Continue anyway? [y/N] " -n 1 -r
-        echo
-        [[ $REPLY =~ ^[Yy]$ ]] || exit 1
-    else
+    # Generate and prepend changelog entry
+    if [[ -f "${SCRIPT_DIR}/generate_changelog.py" ]]; then
+        python3 "${SCRIPT_DIR}/generate_changelog.py" "$VERSION" --prepend || {
+            log_error "Failed to generate changelog"
+            exit 1
+        }
         log_success "CHANGELOG.md updated"
+    else
+        log_error "generate_changelog.py not found"
+        exit 1
     fi
 }
 
