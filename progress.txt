@@ -1978,3 +1978,71 @@ cub sandbox export /tmp/sandbox-output
 4. **Error messages:** Including actionable next steps (e.g., "Start a sandbox with: cub run --sandbox --sandbox-keep") improves UX significantly.
 5. **Rich formatting:** Syntax highlighting for diffs and colored status indicators make output much more readable.
 
+
+## 2026-01-16 - cub-CAP.6: Implement cub capture -i interactive mode
+
+### Task Completed
+Implemented interactive capture mode that launches Claude with the /cub:capture skill for guided idea exploration.
+
+### What Was Implemented
+
+**Interactive Flag:**
+- Added `-i/--interactive` flag to capture command
+- When set, invokes Claude CLI with `/cub:capture` skill
+- Passes optional topic as argument to skill
+- Gracefully handles Claude CLI not found error
+
+**Implementation:**
+- Subprocess invocation of `claude` command with skill prompt
+- Prompt format: `/cub:capture [topic]`
+- Exit code passthrough from Claude session
+- Clear error message if Claude CLI not installed
+
+### Key Design Decisions
+
+1. **Direct subprocess invocation:** Used `subprocess.run(["claude", skill_prompt])` for simplicity
+2. **Exit code passthrough:** Raise `typer.Exit(result.returncode)` to propagate Claude's exit code
+3. **Early return:** Interactive mode returns immediately after Claude exits - doesn't continue to capture logic
+4. **Error handling:** FileNotFoundError for missing Claude CLI with helpful error message
+
+### Testing
+
+**Quality Gates:**
+- ✓ All existing capture tests pass (12 tests)
+- ✓ Type checking passes (mypy)
+- ✓ Linting passes (ruff check)
+- ✓ Code formatting verified (ruff format)
+- ✓ Help text displays correctly with interactive flag
+
+**Manual Testing:**
+- ✓ `cub capture -i` launches Claude with /cub:capture skill
+- ✓ `cub capture -i "topic"` passes topic to skill
+- ✓ Claude creates capture file on completion
+
+### Acceptance Criteria Met
+- ✅ `cub capture -i` launches Claude with capture skill
+- ✅ `cub capture -i "topic"` seeds the conversation
+- ✅ Skill creates capture file on completion
+
+### Files Modified
+- src/cub/cli/capture.py - added interactive flag and subprocess invocation (32 lines added)
+
+### Learnings
+
+1. **Claude skill invocation:** Skills are invoked by passing `/skill:name` as the prompt to the Claude CLI. Arguments can be appended directly: `/skill:name argument text`.
+
+2. **Subprocess vs shell:** Used `subprocess.run(["claude", prompt])` instead of shell=True for security. The command is passed as a list rather than a string.
+
+3. **Exit code propagation:** Typer's `raise typer.Exit(code)` is the proper way to exit with a specific code. Using `sys.exit()` would bypass Typer's cleanup.
+
+4. **Early returns in CLI commands:** When a flag changes the entire command behavior (like -i), handling it early and returning prevents mixing interactive and non-interactive logic.
+
+5. **Skill execution from project context:** Claude skills defined in `.claude/commands/` are only available when the skill is invoked from the project directory. The skill failed when tested from /tmp but worked from project root.
+
+6. **Type annotations on new parameters:** Typer uses type hints to generate help text. The `interactive: bool` parameter with `typer.Option()` automatically creates proper CLI documentation.
+
+7. **Minimal implementation:** The task required just ~30 lines of code - subprocess invocation, error handling, and exit code passthrough. No need for complex parsing or IPC.
+
+### Commit
+884abc4 task(cub-CAP.6): Implement cub capture -i interactive mode
+
