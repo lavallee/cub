@@ -1,9 +1,15 @@
 """
 Capture storage layer for reading/writing captures from filesystem.
 
-Handles both project-level (captures/) and global (~/.local/share/cub/captures/)
-capture storage. Uses python-frontmatter for parsing Markdown files with YAML
-frontmatter.
+Two-tier storage model:
+1. Global captures (default): ~/.local/share/cub/captures/{project_id}/
+   - Safe from branch deletion
+   - Organized by project for cross-project browsing
+2. Project captures (imported): {project}/captures/
+   - Version-controlled with the project
+   - For captures ready to be permanent project records
+
+Uses python-frontmatter for parsing Markdown files with YAML frontmatter.
 """
 
 import os
@@ -12,6 +18,7 @@ from pathlib import Path
 import frontmatter  # type: ignore[import-untyped]
 
 from cub.core.captures.models import Capture
+from cub.core.captures.project_id import get_project_id
 
 
 class CaptureStore:
@@ -192,17 +199,45 @@ class CaptureStore:
         return cls(captures_dir)
 
     @classmethod
-    def global_store(cls) -> "CaptureStore":
+    def global_store(cls, project_id: str | None = None) -> "CaptureStore":
         """
-        Create a global capture store.
+        Create a global capture store for a specific project.
+
+        Global captures are stored at ~/.local/share/cub/captures/{project_id}/.
+        If no project_id is provided, infers it from the current directory.
+
+        Args:
+            project_id: Optional project identifier. If None, auto-inferred.
 
         Returns:
-            CaptureStore for global captures (~/.local/share/cub/captures/)
+            CaptureStore for project's global captures
+        """
+        if project_id is None:
+            project_id = get_project_id()
+
+        # Get XDG data home directory
+        xdg_data_home = os.environ.get("XDG_DATA_HOME")
+        if not xdg_data_home:
+            xdg_data_home = os.path.expanduser("~/.local/share")
+
+        captures_dir = Path(xdg_data_home) / "cub" / "captures" / project_id
+        return cls(captures_dir)
+
+    @classmethod
+    def global_unscoped(cls) -> "CaptureStore":
+        """
+        Create a global capture store for captures made outside any project.
+
+        Used when not in a git repository or when project cannot be determined.
+        Stores captures at ~/.local/share/cub/captures/_global/.
+
+        Returns:
+            CaptureStore for unscoped global captures
         """
         # Get XDG data home directory
         xdg_data_home = os.environ.get("XDG_DATA_HOME")
         if not xdg_data_home:
             xdg_data_home = os.path.expanduser("~/.local/share")
 
-        captures_dir = Path(xdg_data_home) / "cub" / "captures"
+        captures_dir = Path(xdg_data_home) / "cub" / "captures" / "_global"
         return cls(captures_dir)

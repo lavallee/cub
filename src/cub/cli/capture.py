@@ -68,11 +68,11 @@ def capture(
         min=1,
         max=5,
     ),
-    global_store: bool = typer.Option(
+    project_store: bool = typer.Option(
         False,
-        "--global",
-        "-g",
-        help="Save to global captures directory (~/.local/share/cub/captures/)",
+        "--project",
+        "-P",
+        help="Save to project captures directory (./captures/) instead of global",
     ),
     interactive: bool = typer.Option(
         False,
@@ -89,9 +89,11 @@ def capture(
     """
     Capture quick ideas, notes, and observations.
 
-    Captures are stored as Markdown files with YAML frontmatter in the
-    captures/ directory (or globally with --global). Tags can be provided
-    explicitly with --tag, or automatically suggested based on content.
+    By default, captures are stored globally at ~/.local/share/cub/captures/{project}/
+    to survive branch deletion. Use --project to save directly to ./captures/.
+
+    Tags can be provided explicitly with --tag, or automatically suggested
+    based on content.
 
     Examples:
         cub capture "Add dark mode to UI"
@@ -100,6 +102,7 @@ def capture(
         cub capture --name "sprint-planning" "Q1 2026 sprint goals"
         cub capture -i "New feature idea"
         cub capture "Fix git merge bug" --no-auto-tags
+        cub capture --project "Ready for version control"
     """
     debug = ctx.obj.get("debug", False)
 
@@ -148,12 +151,13 @@ def capture(
         raise typer.Exit(1)
 
     # Initialize the appropriate store
-    if global_store:
-        store = CaptureStore.global_store()
-        location = "global"
-    else:
+    # Default is global (organized by project), use --project for version-controlled
+    if project_store:
         store = CaptureStore.project()
         location = "project"
+    else:
+        store = CaptureStore.global_store()
+        location = "global"
 
     # Generate next ID
     capture_id = store.next_id()

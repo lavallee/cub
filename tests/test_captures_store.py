@@ -455,19 +455,37 @@ class TestCaptureStoreFactoryMethods:
     def test_global_store_default_location(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test global store uses XDG_DATA_HOME."""
+        """Test global store uses XDG_DATA_HOME with project ID."""
+        from unittest.mock import patch
+
         data_home = tmp_path / "data"
         data_home.mkdir()
         monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
 
-        store = CaptureStore.global_store()
+        # Mock get_project_id to return a consistent value
+        with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
+            store = CaptureStore.global_store()
 
-        assert store.get_captures_dir() == data_home / "cub" / "captures"
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "test-project"
+
+    def test_global_store_with_explicit_project_id(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test global store with explicit project ID."""
+        data_home = tmp_path / "data"
+        data_home.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+
+        store = CaptureStore.global_store(project_id="my-project")
+
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "my-project"
 
     def test_global_store_no_xdg_uses_default(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test global store uses ~/.local/share when XDG_DATA_HOME not set."""
+        from unittest.mock import patch
+
         # Remove XDG_DATA_HOME if set
         monkeypatch.delenv("XDG_DATA_HOME", raising=False)
 
@@ -483,10 +501,24 @@ class TestCaptureStoreFactoryMethods:
 
         monkeypatch.setattr(os.path, "expanduser", mock_expanduser)
 
-        store = CaptureStore.global_store()
+        # Mock get_project_id
+        with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
+            store = CaptureStore.global_store()
 
-        expected = tmp_path / ".local" / "share" / "cub" / "captures"
+        expected = tmp_path / ".local" / "share" / "cub" / "captures" / "test-project"
         assert store.get_captures_dir() == expected
+
+    def test_global_unscoped_store(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test global_unscoped store for captures outside any project."""
+        data_home = tmp_path / "data"
+        data_home.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+
+        store = CaptureStore.global_unscoped()
+
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "_global"
 
 
 class TestCaptureStoreRoundTrip:
