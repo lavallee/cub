@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.24.0] - 2026-01-16
+
+### Added - Git Worktrees for Parallel Development
+
+Support for running cub in isolated worktrees and processing multiple tasks concurrently:
+
+- **WorktreeManager class** - Core worktree management functionality
+  - Create/remove worktrees for isolated execution
+  - Track worktree state and cleanup
+  - Safe concurrent access patterns
+
+- **`--worktree` flag for `cub run`** - Run in isolated worktree
+  - Automatically creates temporary worktree
+  - Isolates file changes from main working directory
+  - Clean merge back to main branch on completion
+
+- **`--parallel N` flag for `cub run`** - Concurrent task execution
+  - Process N independent tasks simultaneously
+  - Respects task dependencies (only runs unblocked tasks)
+  - Each parallel task runs in its own worktree
+
+- **`cub worktree` subcommands** - CLI for worktree management
+  - `cub worktree list` - Show active worktrees
+  - `cub worktree clean` - Remove stale worktrees
+  - `cub worktree status` - Check worktree health
+
+### Fixed
+
+- **release-pipeline.sh** - Added `safe_checkout_main()` to handle beads worktree conflicts
+
+---
+
 ## [0.23.3] - 2026-01-15
 
 ### Added - Codebase Health Audit
