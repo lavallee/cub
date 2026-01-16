@@ -6,6 +6,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.25.0] - 2026-01-16
+
+### Added - Sandbox Mode for Safe Autonomous Execution
+
+Docker-based sandboxing for running cub with full isolation and review capabilities:
+
+- **SandboxProvider Protocol** - Pluggable provider interface for sandbox backends
+  - `register_provider()` decorator for backend registration
+  - `get_provider()` for provider discovery
+  - Extensible for future backends (Nix, VMs, etc.)
+
+- **DockerProvider** - Production-ready Docker sandbox implementation
+  - Full filesystem isolation via bind mounts
+  - Network isolation option for offline execution
+  - Resource limits (memory, CPU)
+  - Security hardening (no-new-privileges)
+  - Fast startup (~2-5s)
+
+- **`--sandbox` flag for `cub run`** - Execute tasks in Docker isolation
+  - Automatic sandbox provisioning
+  - Changes isolated until explicitly applied
+  - Resource usage tracking
+
+- **`cub sandbox` subcommands** - CLI for sandbox management
+  - `cub sandbox status` - Show running sandboxes
+  - `cub sandbox diff` - Review pending changes
+  - `cub sandbox apply` - Apply changes to host
+  - `cub sandbox discard` - Discard sandbox changes
+  - `cub sandbox shell` - Interactive sandbox session
+
+- **Docker image** - Pre-built image for sandbox execution
+  - Multi-stage build for minimal size
+  - Includes cub and essential dependencies
+  - `docker/Dockerfile` and `docker-compose.yml` for local builds
+
+### Fixed
+
+- **detect_harness()** - Only returns harnesses with registered Python backends
+  - Prevents fallback to unregistered backends (e.g., gemini CLI without backend)
+  - Clearer error messages when no valid harness available
+
+---
+
 ## [0.24.0] - 2026-01-16
 
 ### Added - Git Worktrees for Parallel Development
