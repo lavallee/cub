@@ -77,7 +77,7 @@ get_full_version() {
     fi
 }
 
-VERSIONS="0.21 0.23 0.23.3 0.24 0.25"
+VERSIONS="0.24 0.25"
 
 # Flags
 DRY_RUN=false
