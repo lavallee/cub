@@ -4,6 +4,7 @@ Cub CLI - Run command.
 Execute autonomous task loop with specified harness.
 """
 
+import os
 import signal
 import sys
 import time
@@ -29,6 +30,7 @@ from cub.core.status.models import (
 from cub.core.status.writer import StatusWriter
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
+from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 
 app = typer.Typer(
@@ -252,6 +254,16 @@ def run(
         "--monitor",
         help="Launch with live dashboard in tmux split pane",
     ),
+    worktree: bool = typer.Option(
+        False,
+        "--worktree",
+        help="Run in isolated git worktree",
+    ),
+    worktree_keep: bool = typer.Option(
+        False,
+        "--worktree-keep",
+        help="Keep worktree after run completes (only with --worktree)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -268,12 +280,46 @@ def run(
         cub run --epic backend-v2       # Work on epic only
         cub run --label priority        # Work on labeled tasks
         cub run --ready                 # List ready tasks
+        cub run --worktree              # Run in isolated worktree
+        cub run --worktree --worktree-keep  # Keep worktree after run
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
 
     # Load configuration
     config = load_config(project_dir)
+
+    # Handle --worktree flag: create and enter worktree
+    worktree_path: Path | None = None
+    original_cwd: Path | None = None
+
+    if worktree:
+        try:
+            # Generate worktree name based on task or session
+            if task_id:
+                worktree_name = task_id
+            else:
+                worktree_name = f"cub-run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+            manager = WorktreeManager(project_dir)
+
+            # Create worktree (or get existing one)
+            worktree_obj = manager.create(worktree_name, create_branch=False)
+            worktree_path = worktree_obj.path
+
+            console.print(f"[cyan]Created worktree: {worktree_path}[/cyan]")
+
+            # Change to worktree directory
+            original_cwd = Path.cwd()
+            os.chdir(worktree_path)
+            project_dir = worktree_path
+
+            if debug:
+                console.print(f"[dim]Working directory: {project_dir}[/dim]")
+
+        except WorktreeError as e:
+            console.print(f"[red]Failed to create worktree: {e}[/red]")
+            raise typer.Exit(1)
 
     # Handle --monitor flag: launch tmux session with dashboard
     if monitor:
@@ -309,6 +355,10 @@ def run(
             run_args.append("--ready")
         if stream:
             run_args.append("--stream")
+        if worktree:
+            run_args.append("--worktree")
+        if worktree_keep:
+            run_args.append("--worktree-keep")
         if debug:
             run_args.append("--debug")
 
@@ -606,6 +656,24 @@ def run(
 
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
+
+        # Cleanup worktree if requested
+        if worktree and worktree_path and not worktree_keep:
+            try:
+                # Return to original directory before cleanup
+                if original_cwd:
+                    os.chdir(original_cwd)
+
+                manager = WorktreeManager()
+                manager.remove(worktree_path, force=False)
+                console.print(f"[cyan]Removed worktree: {worktree_path}[/cyan]")
+
+            except WorktreeError as e:
+                console.print(f"[yellow]Failed to cleanup worktree: {e}[/yellow]")
+                console.print(f"[dim]Worktree preserved at: {worktree_path}[/dim]")
+
+        elif worktree and worktree_path and worktree_keep:
+            console.print(f"[cyan]Worktree preserved at: {worktree_path}[/cyan]")
 
     # Exit with appropriate code
     if status.phase == RunPhase.FAILED:
