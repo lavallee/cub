@@ -4,306 +4,397 @@ This guide explains how to extend cub with new AI harnesses, task backends, and 
 
 ## Architecture Overview
 
-Cub uses a modular architecture with abstraction layers:
+Cub uses a hybrid Python/Bash architecture to enable gradual migration while maintaining backwards compatibility. Core commands are implemented in Python, with advanced features still in Bash.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                         cub                              │
-│                   (main loop logic)                       │
-├────────────────────┬─────────────────────────────────────┤
-│   lib/harness.sh   │   lib/tasks.sh                      │
-│  (AI CLI wrapper)  │  (task backend)                     │
-├────────────────────┼─────────────────────────────────────┤
-│ claude │   codex   │  lib/beads.sh  │  json (inline)     │
-└────────────────────┴─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           cub (Python CLI)                               │
+│                             Typer app                                    │
+├─────────────────────────┬───────────────────────────────────────────────┤
+│   Native Commands       │   Delegated Commands                          │
+│   (Python)              │   (Bash via bash_delegate.py)                 │
+├─────────────────────────┼───────────────────────────────────────────────┤
+│ run, status, init       │ prep, triage, architect, plan                 │
+│ monitor                 │ branch, branches, pr, checkpoints             │
+│                         │ interview, doctor, upgrade                     │
+├─────────────────────────┴───────────────────────────────────────────────┤
+│                           Core Modules (Python)                          │
+├──────────────────┬─────────────────┬────────────────────────────────────┤
+│  cub.core.tasks  │  cub.core.harness │  cub.core.config                 │
+│  (Protocol-based │  (Protocol-based  │  (Pydantic models)               │
+│   backends)      │   backends)       │                                  │
+├──────────────────┼─────────────────┼────────────────────────────────────┤
+│ beads │   json   │ claude │  codex  │  gemini │ opencode               │
+└──────────────────┴─────────────────┴────────────────────────────────────┘
+```
 
-Infrastructure libraries:
-├── lib/xdg.sh      - XDG Base Directory paths
-├── lib/config.sh   - Configuration loading (global + project)
-└── lib/logger.sh   - Structured JSONL logging
+## Development Setup
+
+```bash
+# Install with development dependencies
+uv sync
+
+# Or with pip
+pip install -e ".[dev]"
+
+# Activate virtual environment
+source .venv/bin/activate
+```
+
+## Testing
+
+```bash
+# Python tests (primary)
+pytest tests/ -v
+
+# With coverage
+pytest tests/ --cov=src/cub --cov-report=html
+
+# Type checking
+mypy src/cub
+
+# Linting
+ruff check src/ tests/
+
+# Bash tests (for delegated commands)
+bats tests/
 ```
 
 ## Adding a New AI Harness
 
-To add support for a new AI coding CLI (e.g., Cursor, Aider, Continue):
+Harnesses are pluggable backends that wrap AI coding CLIs. Implement the `HarnessBackend` protocol.
 
-### 1. Edit `lib/harness.sh`
+### 1. Create Backend Module
 
-Add detection logic:
+Create `src/cub/core/harness/myharness.py`:
 
-```bash
-harness_detect() {
-    # ... existing code ...
+```python
+"""MyHarness backend implementation."""
 
-    # Add your harness to auto-detect (after codex)
-    elif command -v myharness >/dev/null 2>&1; then
-        _HARNESS="myharness"
-    fi
+from __future__ import annotations
+
+import subprocess
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cub.core.models import Task
+
+class MyHarnessBackend:
+    """MyHarness AI coding assistant backend."""
+
+    name = "myharness"
+
+    def is_available(self) -> bool:
+        """Check if myharness CLI is installed."""
+        try:
+            subprocess.run(
+                ["myharness", "--version"],
+                capture_output=True,
+                check=True,
+            )
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+    def get_version(self) -> str:
+        """Get myharness version string."""
+        result = subprocess.run(
+            ["myharness", "--version"],
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout.strip() or "unknown"
+
+    def invoke(
+        self,
+        system_prompt: str,
+        task_prompt: str,
+        *,
+        debug: bool = False,
+        model: str | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        """Invoke myharness with the given prompts."""
+        combined_prompt = f"{system_prompt}\n\n---\n\n{task_prompt}"
+
+        cmd = ["myharness", "run", "--auto"]
+        if model:
+            cmd.extend(["--model", model])
+
+        return subprocess.run(
+            cmd,
+            input=combined_prompt,
+            capture_output=True,
+            text=True,
+        )
+
+    def invoke_streaming(
+        self,
+        system_prompt: str,
+        task_prompt: str,
+        *,
+        debug: bool = False,
+        model: str | None = None,
+    ) -> subprocess.Popen[str]:
+        """Invoke myharness with streaming output."""
+        combined_prompt = f"{system_prompt}\n\n---\n\n{task_prompt}"
+
+        cmd = ["myharness", "run", "--auto", "--stream"]
+        if model:
+            cmd.extend(["--model", model])
+
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        proc.stdin.write(combined_prompt)
+        proc.stdin.close()
+        return proc
+```
+
+### 2. Register the Backend
+
+Edit `src/cub/core/harness/__init__.py`:
+
+```python
+from cub.core.harness.myharness import MyHarnessBackend
+
+HARNESS_BACKENDS = {
+    "claude": ClaudeBackend,
+    "codex": CodexBackend,
+    "gemini": GeminiBackend,
+    "opencode": OpenCodeBackend,
+    "myharness": MyHarnessBackend,  # Add your backend
 }
 ```
 
-### 2. Add Invocation Functions
+### 3. Add Auto-Detection
 
-```bash
-# ============================================================================
-# MyHarness Backend
-# ============================================================================
+If your harness should be auto-detected, update `detect_harness()` in `src/cub/core/harness/backend.py`:
 
-myharness_invoke() {
-    local system_prompt="$1"
-    local task_prompt="$2"
-    local debug="${3:-false}"
-
-    # Combine prompts as needed for your harness
-    local combined_prompt="${system_prompt}
-
----
-
-${task_prompt}"
-
-    local flags="--your-auto-mode-flag"
-    [[ -n "${MYHARNESS_FLAGS:-}" ]] && flags="$flags $MYHARNESS_FLAGS"
-
-    echo "$combined_prompt" | myharness run $flags
-}
-
-myharness_invoke_streaming() {
-    local system_prompt="$1"
-    local task_prompt="$2"
-    local debug="${3:-false}"
-
-    # If your harness supports JSON streaming, parse it
-    # Otherwise, fall back to regular invocation
-    myharness_invoke "$system_prompt" "$task_prompt" "$debug"
-}
+```python
+def detect_harness() -> str | None:
+    """Auto-detect available harness."""
+    for name, backend_cls in HARNESS_BACKENDS.items():
+        backend = backend_cls()
+        if backend.is_available():
+            return name
+    return None
 ```
 
-### 3. Wire Up the Unified Interface
+### 4. Document Environment Variables
 
-Add cases to `harness_invoke` and `harness_invoke_streaming`:
-
-```bash
-harness_invoke() {
-    # ... existing code ...
-
-    case "$harness" in
-        # ... existing cases ...
-        myharness)
-            myharness_invoke "$system_prompt" "$task_prompt" "$debug"
-            ;;
-    esac
-}
-```
-
-### 4. Add Version Check
-
-```bash
-harness_version() {
-    case "$harness" in
-        # ... existing cases ...
-        myharness)
-            myharness --version 2>&1 || echo "unknown"
-            ;;
-    esac
-}
-```
-
-### 5. Document Environment Variables
-
-Add to README.md and `--help` output:
+Add to README.md:
 - `MYHARNESS_FLAGS` - Extra flags for your harness
+- `MYHARNESS_MODEL` - Default model override
 
 ## Adding a New Task Backend
 
-To add a new task management system (e.g., Linear, Jira, custom API):
+Task backends manage the work queue. Implement the `TaskBackend` protocol.
 
-### 1. Create Backend Wrapper (Optional)
+### 1. Create Backend Module
 
-If your backend needs complex logic, create `lib/mybackend.sh`:
+Create `src/cub/core/tasks/mybackend.py`:
 
-```bash
-#!/usr/bin/env bash
-# lib/mybackend.sh - MyBackend task management wrapper
+```python
+"""MyBackend task management implementation."""
 
-mybackend_available() {
-    command -v mybackend-cli >/dev/null 2>&1
-}
+from __future__ import annotations
 
-mybackend_initialized() {
-    local project_dir="${1:-.}"
-    [[ -f "${project_dir}/.mybackend/config" ]]
-}
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-mybackend_get_ready_tasks() {
-    mybackend-cli list --status=open --unblocked --json
-}
+if TYPE_CHECKING:
+    from cub.core.models import Task
 
-mybackend_get_task() {
-    local task_id="$1"
-    mybackend-cli show "$task_id" --json
-}
+class MyTaskBackend:
+    """MyBackend task management."""
 
-mybackend_update_task_status() {
-    local task_id="$1"
-    local new_status="$2"
-    mybackend-cli update "$task_id" --status="$new_status"
-}
+    name = "mybackend"
 
-# ... other required functions
+    def __init__(self, project_dir: Path | None = None) -> None:
+        self.project_dir = project_dir or Path.cwd()
+
+    def is_available(self) -> bool:
+        """Check if mybackend CLI is installed."""
+        # Implementation
+
+    def is_initialized(self) -> bool:
+        """Check if mybackend is initialized in project."""
+        return (self.project_dir / ".mybackend" / "config").exists()
+
+    def get_ready_tasks(
+        self,
+        *,
+        epic: str | None = None,
+        label: str | None = None,
+    ) -> list[Task]:
+        """Get tasks ready to work on (open, unblocked)."""
+        # Implementation
+
+    def get_task(self, task_id: str) -> Task | None:
+        """Get a single task by ID."""
+        # Implementation
+
+    def update_status(self, task_id: str, status: str) -> None:
+        """Update task status."""
+        # Implementation
+
+    def add_note(self, task_id: str, note: str) -> None:
+        """Add a note to a task."""
+        # Implementation
+
+    def create_task(self, task_data: dict) -> str:
+        """Create a new task, return ID."""
+        # Implementation
+
+    def get_counts(self) -> dict[str, int]:
+        """Get task counts by status."""
+        # Implementation
+
+    def all_complete(self) -> bool:
+        """Check if all tasks are closed."""
+        # Implementation
 ```
 
-### 2. Edit `lib/tasks.sh`
+### 2. Register the Backend
 
-Source your wrapper:
+Edit `src/cub/core/tasks/__init__.py`:
 
-```bash
-if [[ -f "${CUB_LIB_DIR}/mybackend.sh" ]]; then
-    source "${CUB_LIB_DIR}/mybackend.sh"
-fi
-```
+```python
+from cub.core.tasks.mybackend import MyTaskBackend
 
-Add detection:
-
-```bash
-detect_backend() {
-    # ... existing code ...
-
-    # Add to auto-detect
-    if mybackend_available && mybackend_initialized "$project_dir"; then
-        _TASK_BACKEND="mybackend"
-    fi
-}
-```
-
-### 3. Implement Required Functions
-
-Each backend must implement these functions:
-
-| Function | Purpose |
-|----------|---------|
-| `get_ready_tasks(prd, epic, label)` | Return JSON array of unblocked, open tasks (with optional filters) |
-| `get_in_progress_task(prd, epic, label)` | Get in-progress task (with optional filters) |
-| `get_task(id)` | Get single task by ID |
-| `is_task_ready(prd, id)` | Check if task is unblocked |
-| `update_task_status(prd, id, status)` | Change task status |
-| `add_task_note(prd, id, note)` | Append note to task |
-| `create_task(prd, json)` | Create new task |
-| `get_task_counts(prd)` | Return counts by status |
-| `get_remaining_count(prd)` | Count of non-closed tasks |
-| `all_tasks_complete(prd)` | Check if all tasks closed |
-| `get_blocked_tasks(prd)` | Return blocked tasks |
-
-Task JSON should include a `labels` array for filtering and model selection.
-
-### 4. Wire Up Unified Interface
-
-Add cases to each function in `lib/tasks.sh`:
-
-```bash
-get_ready_tasks() {
-    local prd="$1"
-    local epic="${2:-}"
-    local label="${3:-}"
-
-    case "$(get_backend)" in
-        # ... existing cases ...
-        mybackend)
-            mybackend_get_ready_tasks "$epic" "$label"
-            ;;
-    esac
+TASK_BACKENDS = {
+    "beads": BeadsBackend,
+    "json": JsonBackend,
+    "mybackend": MyTaskBackend,  # Add your backend
 }
 ```
 
-### 5. Support Model Labels
+### 3. Support Model Labels
 
-Tasks with `model:X` labels (e.g., `model:haiku`, `model:sonnet`) trigger automatic model selection. The main loop extracts this label and sets `CUB_MODEL` before invoking the harness. Your backend should include labels in the task JSON output:
+Tasks with `model:X` labels trigger automatic model selection. Include labels in your task output:
 
-```json
-{
-  "id": "task-123",
-  "title": "Quick fix",
-  "labels": ["phase-1", "model:haiku"]
+```python
+def get_ready_tasks(self, ...) -> list[Task]:
+    # ... fetch tasks ...
+    return [
+        Task(
+            id="task-123",
+            title="Quick fix",
+            labels=["phase-1", "model:haiku"],
+            # ...
+        )
+    ]
+```
+
+## Adding a New CLI Command
+
+### Native Python Command
+
+1. Create module in `src/cub/cli/`:
+
+```python
+# src/cub/cli/mycommand.py
+"""My command implementation."""
+
+import typer
+
+app = typer.Typer(help="My command description")
+
+@app.command()
+def run(
+    option: str = typer.Option(None, help="An option"),
+) -> None:
+    """Run my command."""
+    # Implementation
+```
+
+2. Register in `src/cub/cli/__init__.py`:
+
+```python
+from cub.cli import mycommand
+
+app.add_typer(mycommand.app, name="mycommand", rich_help_panel=PANEL_KEY)
+```
+
+### Delegated Bash Command
+
+For commands still in Bash:
+
+1. Implement in `src/cub/bash/cub`:
+
+```bash
+cmd_mycommand() {
+    # Implementation
 }
 ```
 
-## Project File Templates
+2. Add delegation in `src/cub/cli/delegated.py`:
 
-Templates in `templates/` are copied to projects during `cub-init`:
-
-### PROMPT.md
-
-The system prompt sent with every iteration. Should include:
-- Context file references (@AGENT.md, @specs/*, etc.)
-- Workflow instructions
-- Critical rules
-- Completion signal format
-
-### AGENT.md
-
-Project-specific instructions. Updated by the agent as it learns.
-
-## Testing Changes
-
-### Run Test Suite
-
-```bash
-# Run all tests (requires bats)
-bats tests/
-
-# Run specific test file
-bats tests/config.bats
-bats tests/logger.bats
-bats tests/xdg.bats
+```python
+def mycommand(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """My command description."""
+    _delegate("mycommand", args or [], ctx)
 ```
 
-### Test Harness Invocation
+3. Register in `src/cub/cli/__init__.py`:
 
-```bash
-cub --test
+```python
+app.command(name="mycommand", rich_help_panel=PANEL_TASKS)(delegated.mycommand)
 ```
 
-### Debug Mode
+4. Add to `bash_commands` set in `src/cub/core/bash_delegate.py`:
 
-```bash
-cub --debug --once
+```python
+bash_commands = {
+    # ... existing commands ...
+    "mycommand",
+}
 ```
 
-Shows full prompts, timing, and saves prompts to temp files.
+## Project Templates
 
-### Dump Prompts
+Templates in `src/cub/templates/` are copied to projects during `cub init`:
 
-```bash
-cub --dump-prompt
-```
+| File | Purpose |
+|------|---------|
+| `PROMPT.md` | System prompt sent with every iteration |
+| `AGENT.md` | Project-specific instructions (agent-editable) |
 
-Saves system and task prompts to files for manual testing.
-
-### Test with Filters
-
-```bash
-# Test epic filtering
-cub --epic my-epic-id --ready
-
-# Test label filtering
-cub --label phase-1 --status
-
-# Test combined filters
-cub --epic cub-1gq --label phase-1 --once --debug
-```
+Templates support backend-specific customization via sed substitution during init.
 
 ## Code Style
 
-- Use `log_info`, `log_success`, `log_warn`, `log_error`, `log_debug` for output
-- Keep functions focused and documented
-- Follow existing patterns in the codebase
-- Test with both harnesses and backends
+- **Python**: Use `ruff` for formatting and linting, `mypy` for type checking
+- **Bash**: Follow existing patterns, use `log_*` functions for output
+- **Types**: Use explicit types everywhere (strict mypy)
+- **Imports**: Use absolute imports from `cub.core`, not relative imports
+- **Protocols**: Use `typing.Protocol` for interfaces, not ABC
 
 ## Pull Request Guidelines
 
-1. Describe what your change does and why
-2. Test with multiple harnesses if applicable
-3. Update README.md and `--help` output
-4. Add environment variable documentation
+1. Run all checks before submitting:
+   ```bash
+   pytest tests/ -v
+   mypy src/cub
+   ruff check src/ tests/
+   bats tests/
+   ```
+
+2. Update documentation:
+   - CLAUDE.md for architectural changes
+   - README.md for user-facing features
+   - Docstrings for new functions/classes
+
+3. Add tests:
+   - pytest for Python code
+   - bats for Bash code
+
+4. Keep PRs focused on a single feature or fix
 
 ## Questions?
 
