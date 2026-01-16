@@ -290,6 +290,51 @@
             border-color: var(--honey);
         }
 
+        /* Feature list */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin: 3rem auto;
+            max-width: 900px;
+            padding: 0 1rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .feature-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            width: 28px;
+            text-align: center;
+        }
+
+        .feature-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .feature-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+
+        .feature-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
         /* The problem section */
         .section {
             margin: 4rem 0;
@@ -829,6 +874,59 @@
             Built on the <a href="https://ghuntley.com/ralph/" target="_blank">Ralph Wiggum technique</a> —
             running AI agents in a while loop, but with guardrails.
         </p>
+
+        <!-- Features -->
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">🔄</span>
+                <div class="feature-text">
+                    <span class="feature-title">Autonomous Loop</span>
+                    <span class="feature-desc">Run tasks while you sleep, wake up to commits</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🎯</span>
+                <div class="feature-text">
+                    <span class="feature-title">Vision-to-Tasks</span>
+                    <span class="feature-desc">Turn ideas into atomic, agent-ready tasks</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🤖</span>
+                <div class="feature-text">
+                    <span class="feature-title">Multi-Harness</span>
+                    <span class="feature-desc">Claude Code, Codex, Gemini, OpenCode</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📊</span>
+                <div class="feature-text">
+                    <span class="feature-title">Live Dashboard</span>
+                    <span class="feature-desc">Real-time monitoring of task execution</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🛡️</span>
+                <div class="feature-text">
+                    <span class="feature-title">Guardrails</span>
+                    <span class="feature-desc">Project rules that persist across sessions</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">🔗</span>
+                <div class="feature-text">
+                    <span class="feature-title">Git Integration</span>
+                    <span class="feature-desc">Branch bindings, checkpoints, PR workflow</span>
+                </div>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">📝</span>
+                <div class="feature-text">
+                    <span class="feature-title">Structured Logs</span>
+                    <span class="feature-desc">Full JSONL audit trail for every run</span>
+                </div>
+            </div>
+        </div>
 
         <!-- The Problem -->
         <section class="section">
