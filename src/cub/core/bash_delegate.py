@@ -105,10 +105,10 @@ def is_bash_command(command: str) -> bool:
         "checkpoints",
         "pr",
         "guardrails",
-        "explain",
+        "explain-task",
         "artifacts",
-        "agent-close",
-        "agent-verify",
+        "close-task",
+        "verify-task",
         "doctor",
     }
 

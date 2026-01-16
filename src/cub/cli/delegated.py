@@ -64,9 +64,9 @@ def sessions(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) 
 # Task & Artifact Commands
 
 
-def explain(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+def explain_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Show detailed task information."""
-    _delegate("explain", args or [], ctx)
+    _delegate("explain-task", args or [], ctx)
 
 
 def artifacts(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
@@ -145,14 +145,14 @@ def doctor(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) ->
     _delegate("doctor", args or [], ctx)
 
 
-# Agent Commands (internal use)
+# Task Commands (for agent use)
 
 
-def agent_close(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+def close_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Close a task (for agent use)."""
-    _delegate("agent-close", args or [], ctx)
+    _delegate("close-task", args or [], ctx)
 
 
-def agent_verify(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+def verify_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Verify task is closed (for agent use)."""
-    _delegate("agent-verify", args or [], ctx)
+    _delegate("verify-task", args or [], ctx)

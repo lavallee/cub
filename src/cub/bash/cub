@@ -223,7 +223,7 @@ main() {
                 cmd_init "${args[@]:1}"
                 return $?
                 ;;
-            explain)
+            explain-task)
                 # Explain a task or session
                 cmd_explain "${args[@]:1}"
                 return $?
@@ -233,12 +233,12 @@ main() {
                 cmd_artifacts "${args[@]:1}"
                 return $?
                 ;;
-            agent-close)
+            close-task)
                 # Close a task (agent helper command)
                 cmd_agent_close "${args[@]:1}"
                 return $?
                 ;;
-            agent-verify)
+            verify-task)
                 # Verify a task is closed (agent helper command)
                 cmd_agent_verify "${args[@]:1}"
                 return $?
@@ -446,10 +446,10 @@ SUBCOMMANDS:
   cub init [--global] [<dir>]  Initialize project or system
   cub run [<options>]           Run the main loop (default)
   cub status [--json]           Show task progress
-  cub explain <task-id>         Show task details
+  cub explain-task <task-id>    Show task details
   cub artifacts [<task-id>]     List task outputs
-  cub agent-close <task-id>     Close a task (for agent use)
-  cub agent-verify <task-id>    Verify task is closed
+  cub close-task <task-id>      Close a task (for agent use)
+  cub verify-task <task-id>     Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
   cub guardrails show           Display institutional memory
   cub upgrade [--head|--local]  Upgrade cub to newer version
@@ -478,7 +478,7 @@ USE --help WITH ANY SUBCOMMAND:
   cub init --help               Init subcommand help
   cub run --help                Run subcommand help
   cub status --help             Status subcommand help
-  cub explain --help            Explain subcommand help
+  cub explain-task --help       Explain-task subcommand help
   cub artifacts --help          Artifacts subcommand help
   cub upgrade --help            Upgrade subcommand help
 
@@ -523,7 +523,7 @@ EXAMPLES:
   cub run --once --debug        Debug one iteration
   cub run --model sonnet        Use Sonnet model
   cub artifacts cub-018         Get task output
-  cub explain cub-018           See task details
+  cub explain-task cub-018      See task details
   cub init ~/my-project         Initialize project
   cub init --global             Setup system config
 
