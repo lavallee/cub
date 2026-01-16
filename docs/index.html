@@ -197,6 +197,75 @@
             background: var(--mint);
         }
 
+        /* Quickstart */
+        .quickstart {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 1.5rem auto;
+            flex-wrap: wrap;
+        }
+
+        .quickstart-step {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: var(--bg-card);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(246, 185, 59, 0.2);
+        }
+
+        .qs-number {
+            width: 22px;
+            height: 22px;
+            background: var(--honey);
+            color: var(--bg-deep);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Baloo 2', cursive;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .qs-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+
+        .qs-content code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--mint);
+            font-weight: 600;
+        }
+
+        .qs-desc {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .quickstart-arrow {
+            color: var(--honey);
+            font-size: 1.2rem;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .quickstart {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .quickstart-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
         /* Ralph reference */
         .ralph-note {
             text-align: center;
@@ -722,6 +791,33 @@
                 <span class="prompt-symbol">$</span>
                 <code class="install-cmd" id="install-cmd">curl -LsSf https://lavallee.github.io/cub/install.sh | sh</code>
                 <button class="copy-btn" onclick="copyCommand()">Copy</button>
+            </div>
+        </div>
+
+        <!-- Quickstart -->
+        <div class="quickstart">
+            <div class="quickstart-step">
+                <span class="qs-number">1</span>
+                <div class="qs-content">
+                    <code>cub init</code>
+                    <span class="qs-desc">Initialize in your project</span>
+                </div>
+            </div>
+            <div class="quickstart-arrow">→</div>
+            <div class="quickstart-step">
+                <span class="qs-number">2</span>
+                <div class="qs-content">
+                    <code>cub prep</code>
+                    <span class="qs-desc">Break work into tasks</span>
+                </div>
+            </div>
+            <div class="quickstart-arrow">→</div>
+            <div class="quickstart-step">
+                <span class="qs-number">3</span>
+                <div class="qs-content">
+                    <code>cub run</code>
+                    <span class="qs-desc">Let AI execute</span>
+                </div>
             </div>
         </div>
 
