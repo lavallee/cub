@@ -108,7 +108,9 @@ def test_register_provider() -> None:
             pass
 
         def status(self, sandbox_id: str) -> SandboxStatus:
-            return SandboxStatus(id=sandbox_id, provider="test-provider", state=SandboxState.STOPPED)
+            return SandboxStatus(
+                id=sandbox_id, provider="test-provider", state=SandboxState.STOPPED
+            )
 
         def logs(self, sandbox_id: str, follow: bool = False, callback: object = None) -> str:
             return ""

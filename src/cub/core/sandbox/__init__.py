@@ -35,6 +35,8 @@ Example usage:
     provider.cleanup(sandbox_id)
 """
 
+# Import providers to trigger registration
+from . import docker as _docker  # noqa: F401
 from .models import (
     ResourceUsage,
     SandboxCapabilities,
