@@ -8,7 +8,7 @@ load test_helper
 # Setup function runs before each test
 setup() {
     # Source the logger library
-    source "${PROJECT_ROOT}/lib/logger.sh"
+    source "${LIB_DIR}/logger.sh"
 
     # Create temp directory for test logs
     TEST_LOGS_DIR="${BATS_TMPDIR}/logs_test_$$"
@@ -978,7 +978,7 @@ teardown() {
 
 @test "logger_redact uses custom patterns from config" {
     # Source config.sh to make config_get available
-    source "${PROJECT_ROOT}/lib/config.sh"
+    source "${LIB_DIR}/config.sh"
 
     # Create a test config with custom patterns
     local test_config="${BATS_TMPDIR}/test_config_$$"

@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.25.1] - 2026-01-16
+
+### Changed
+
+- **CLI help reorganized** - Commands grouped by function with descriptive headers
+  - Key Commands, Status, Tasks, Prep/Planning, Epics, Project, Roadmap, Installation
+  - Advanced commands (worktree, sandbox) hidden from default help
+
+- **Command renames for clarity**
+  - `agent-close` → `close-task`
+  - `agent-verify` → `verify-task`
+  - `explain` → `explain-task`
+
+- **`cub init` is now backend-aware** - Templates adapt to selected task backend
+  - Beads backend: agent.md shows `.beads/`, prompt.md uses `bd close`
+  - JSON backend: agent.md shows `prd.json`, prompt.md uses prd.json update
+
+### Improved
+
+- **Install script** - Better error handling with multiple fallback options
+  - Tries existing tools (pipx, uv) before installing new ones
+  - Shows actual errors and manual installation options on failure
+
+- **`cub doctor`** - Added optional tool checks for common dev tools
+
+- **CONTRIBUTING.md** - Rewritten for hybrid Python/Bash architecture
+  - Documents native vs delegated commands
+  - Examples for adding harnesses, task backends, and CLI commands
+
+### Removed
+
+- Duplicate non-namespaced skill files (keep only `cub:*` prefixed)
+- Dead bash code and duplicate lib directories
+- Deprecated `migrate-layout` command
+
+---
+
 ## [0.25.0] - 2026-01-16
 
 ### Added - Sandbox Mode for Safe Autonomous Execution

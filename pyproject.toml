@@ -1,6 +1,6 @@
 [project]
 name = "cub"
-version = "0.25.0"
+version = "0.25.1"
 description = "AI Coding Assistant Loop - autonomous task execution with Claude, Codex, and more"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,6 +15,7 @@ dependencies = [
     "rich>=13.0.0",
     "GitPython>=3.1.0",
     "requests>=2.31.0",
+    "python-frontmatter>=1.0.0",
 ]
 
 [project.optional-dependencies]

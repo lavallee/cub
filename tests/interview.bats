@@ -15,7 +15,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_filter_questions filters by task type" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local task_json='{"id":"test-1","type":"bugfix","title":"Fix bug"}'
     local questions
@@ -36,7 +36,7 @@ teardown() {
 }
 
 @test "interview_filter_questions filters by task labels" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local task_json='{"id":"test-1","type":"task","title":"Test","labels":["api","integration"]}'
     local questions
@@ -52,7 +52,7 @@ teardown() {
 }
 
 @test "interview_filter_questions filters out questions without matching labels" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Feature task without security/auth labels
     local task_json='{"id":"test-1","type":"feature","title":"Test","labels":["documentation"]}'
@@ -69,7 +69,7 @@ teardown() {
 }
 
 @test "interview_detect_tech_stack detects bash projects" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test bash files
     mkdir -p "${BATS_TMPDIR}/test_project/lib"
@@ -87,7 +87,7 @@ teardown() {
 }
 
 @test "interview_detect_tech_stack detects nodejs projects" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test package.json
     mkdir -p "${BATS_TMPDIR}/test_project"
@@ -108,7 +108,7 @@ teardown() {
 }
 
 @test "interview_detect_tech_stack detects python projects" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test requirements.txt
     mkdir -p "${BATS_TMPDIR}/test_project"
@@ -129,7 +129,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_should_skip_question returns 1 when no skip condition" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local question='{"category":"Test","question":"Test question"}'
     local responses='[]'
@@ -141,7 +141,7 @@ teardown() {
 }
 
 @test "interview_should_skip_question skips when condition matches" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local question='{
         "category":"Test",
@@ -162,7 +162,7 @@ teardown() {
 }
 
 @test "interview_should_skip_question does not skip when condition does not match" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local question='{
         "category":"Test",
@@ -183,7 +183,7 @@ teardown() {
 }
 
 @test "interview_should_skip_question handles case-insensitive matching" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local question='{
         "category":"Test",
@@ -208,7 +208,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_load_questions returns valid JSON" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local questions
     questions=$(interview_load_questions)
@@ -228,7 +228,7 @@ teardown() {
 }
 
 @test "interview_load_questions has required fields" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local questions
     questions=$(interview_load_questions)
@@ -251,7 +251,7 @@ teardown() {
 }
 
 @test "interview filtering combines task type and labels correctly" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Feature task with security labels
     local task_json='{"id":"test-1","type":"feature","title":"Auth feature","labels":["security","auth"]}'
@@ -277,7 +277,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_gather_codebase_context detects bash project" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test bash project in TEST_DIR (already set by setup_test_dir)
     mkdir -p "lib"
@@ -293,7 +293,7 @@ teardown() {
 }
 
 @test "interview_gather_codebase_context detects nodejs project" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test nodejs project in TEST_DIR
     echo '{"name":"test"}' > "package.json"
@@ -308,7 +308,7 @@ teardown() {
 }
 
 @test "interview_gather_codebase_context detects test directory" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test project with tests in TEST_DIR
     mkdir -p "tests"
@@ -322,7 +322,7 @@ teardown() {
 }
 
 @test "interview_gather_codebase_context detects docker compose" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test project with docker-compose in TEST_DIR
     echo 'version: "3"' > "docker-compose.yml"
@@ -335,7 +335,7 @@ teardown() {
 }
 
 @test "interview_gather_codebase_context limits file list" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test project with many files in TEST_DIR
     for i in {1..30}; do
@@ -352,7 +352,7 @@ teardown() {
 }
 
 @test "interview_generate_spec includes mode in output" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local task_json='{"id":"test-1","type":"task","title":"Test Task","description":"Test description"}'
     local responses='[{"category":"Test","question":"Q1","answer":"A1"}]'
@@ -369,7 +369,7 @@ teardown() {
 }
 
 @test "interview_generate_spec defaults to interactive mode" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local task_json='{"id":"test-1","type":"task","title":"Test Task","description":"Test description"}'
     local responses='[{"category":"Test","question":"Q1","answer":"A1"}]'
@@ -387,7 +387,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_extract_acceptance_criteria extracts from success criteria" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What are the success criteria?","answer":"Feature works correctly\nAll edge cases handled\nPerformance meets SLA"}
@@ -403,7 +403,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria extracts from testing questions" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Testing","question":"What unit tests are needed?","answer":"Test happy path\nTest error conditions\nTest boundary values"}
@@ -419,7 +419,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria extracts from error handling" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Error Handling","question":"How should each error be handled?","answer":"Invalid input: show error message\nTimeout: retry with backoff\nAPI failure: use cached data"}
@@ -437,7 +437,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria extracts from validation rules" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Data & State","question":"Are there data validation rules?","answer":"Email must be valid format\nAge must be positive integer"}
@@ -452,7 +452,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria extracts from output requirements" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What outputs does this feature produce?","answer":"JSON response with status\nHTTP 200 on success"}
@@ -467,7 +467,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria handles bulleted lists" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What are the success criteria?","answer":"- Feature deployed\n- Users can access it\n- Metrics tracked"}
@@ -483,7 +483,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria handles numbered lists" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What are the success criteria?","answer":"1. First requirement\n2. Second requirement\n3. Third requirement"}
@@ -499,7 +499,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria skips N/A answers" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Error Handling","question":"What errors can occur?","answer":"N/A"},
@@ -516,7 +516,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria combines multiple sources" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What are the success criteria?","answer":"Feature works"},
@@ -536,7 +536,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria provides fallback criteria" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Other","question":"Some question","answer":"Some answer"}
@@ -552,7 +552,7 @@ teardown() {
 }
 
 @test "interview_extract_acceptance_criteria uses primary goal as fallback" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local responses='[
         {"category":"Functional Requirements","question":"What is the primary user goal this feature enables?","answer":"Users can export their data"}
@@ -571,7 +571,7 @@ teardown() {
 # ============================================================================
 
 @test "interview_load_custom_questions returns empty array when no config exists" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     cd "${BATS_TMPDIR}"
     local custom_questions
@@ -582,7 +582,7 @@ teardown() {
 }
 
 @test "interview_load_custom_questions loads custom questions from .cub.json" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create a test directory with .cub.json
     local test_dir="${BATS_TMPDIR}/custom_questions_test"
@@ -629,7 +629,7 @@ EOF
 }
 
 @test "interview_merge_questions combines built-in and custom questions" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local built_in='[{"category":"A","question":"Q1"},{"category":"B","question":"Q2"}]'
     local custom='[{"category":"C","question":"Q3"}]'
@@ -654,7 +654,7 @@ EOF
 }
 
 @test "interview_merge_questions handles empty custom questions" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     local built_in='[{"category":"A","question":"Q1"}]'
     local custom='[]'
@@ -673,7 +673,7 @@ EOF
 }
 
 @test "custom questions are included in filtering by task type" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test directory with custom questions
     local test_dir="${BATS_TMPDIR}/custom_filter_test"
@@ -717,7 +717,7 @@ EOF
 }
 
 @test "custom questions support requires_labels filtering" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Create test directory
     local test_dir="${BATS_TMPDIR}/custom_labels_test"
@@ -770,7 +770,7 @@ EOF
 # ============================================================================
 
 @test "interview_load_skip_categories returns empty string when no config" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Setup: Create temp directory without .cub.json
     local tmpdir
@@ -790,7 +790,7 @@ EOF
 }
 
 @test "interview_load_skip_categories loads from .cub.json" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Setup: Create temp directory with .cub.json
     local tmpdir
@@ -819,7 +819,7 @@ EOF
 }
 
 @test "interview_load_skip_categories returns empty when skip_categories is empty array" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Setup: Create temp directory with .cub.json with empty skip_categories
     local tmpdir
@@ -848,7 +848,7 @@ EOF
 }
 
 @test "interview_load_skip_categories handles missing interview section" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Setup: Create temp directory with .cub.json without interview section
     local tmpdir
@@ -877,7 +877,7 @@ EOF
 }
 
 @test "skip_categories filter excludes specified categories" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Load questions
     local questions
@@ -905,7 +905,7 @@ EOF
 }
 
 @test "skip_categories filter handles multiple categories" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Load questions
     local questions
@@ -939,7 +939,7 @@ EOF
 }
 
 @test "skip_categories filter preserves non-skipped categories" {
-    source "${PROJECT_ROOT}/lib/cmd_interview.sh"
+    source "${LIB_DIR}/cmd_interview.sh"
 
     # Load questions
     local questions

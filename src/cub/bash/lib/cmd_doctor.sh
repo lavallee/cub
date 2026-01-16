@@ -22,7 +22,8 @@ USAGE:
   cub doctor --dry-run    Show what --fix would do
 
 CHECKS:
-  - Environment: jq, harness availability, beads (if used)
+  - Environment: jq, git, harness availability
+  - Optional tools: beads, docker, tmux, pipx
   - Configuration: JSON validity, required fields, deprecated options
   - Project structure: prd.json/.beads, .cub/prompt.md, .cub/agent.md
   - Git state: uncommitted files categorized as:
@@ -280,6 +281,33 @@ _doctor_check_env() {
         _doctor_info "beads (bd) not installed (optional, required for beads backend)"
         echo "  Install with:"
         _doctor_install_hint "bd"
+    fi
+
+    # Check docker (optional, for sandbox mode)
+    if command -v docker &>/dev/null; then
+        local docker_version
+        docker_version=$(docker --version 2>&1 | sed 's/Docker version //' | cut -d',' -f1 || echo "unknown")
+        _doctor_ok "docker - v${docker_version}"
+    else
+        _doctor_info "docker not installed (optional, for 'cub run --sandbox')"
+    fi
+
+    # Check tmux (optional, for dashboard mode)
+    if command -v tmux &>/dev/null; then
+        local tmux_version
+        tmux_version=$(tmux -V 2>&1 | sed 's/tmux //' || echo "unknown")
+        _doctor_ok "tmux - v${tmux_version}"
+    else
+        _doctor_info "tmux not installed (optional, for 'cub run --dashboard')"
+    fi
+
+    # Check pipx (optional, for self-upgrade)
+    if command -v pipx &>/dev/null; then
+        local pipx_version
+        pipx_version=$(pipx --version 2>&1 || echo "unknown")
+        _doctor_ok "pipx - v${pipx_version}"
+    else
+        _doctor_info "pipx not installed (optional, for 'cub upgrade')"
     fi
 
     return $issues
