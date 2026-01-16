@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import audit, delegated, monitor, run, sandbox, status, uninstall, upgrade, worktree
+from cub.cli import audit, capture, delegated, monitor, run, sandbox, status, uninstall, upgrade, worktree
 
 # Help panel names for command grouping
 PANEL_KEY = "Key Commands"
@@ -112,6 +112,7 @@ app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 # Manage Your Roadmap
 # =============================================================================
 
+app.command(name="capture", rich_help_panel=PANEL_ROADMAP)(capture.capture)
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
 
 
