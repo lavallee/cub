@@ -427,53 +427,162 @@
             color: var(--sky);
         }
 
-        .loop-steps {
-            display: grid;
-            gap: 1.5rem;
-            margin-top: 2rem;
+        /* Circular loop visualization */
+        .loop-circle {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 2rem auto;
         }
 
-        .loop-step {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 1rem;
-            align-items: start;
+        .loop-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--bg-card);
+            border-radius: 50%;
         }
 
-        .step-number {
-            width: 32px;
-            height: 32px;
+        .loop-ring::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: calc(100% + 6px);
+            height: calc(100% + 6px);
+            border: 3px solid transparent;
+            border-top-color: var(--honey);
+            border-radius: 50%;
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loop-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .loop-center .while-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--coral);
+        }
+
+        .loop-center .tasks-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .loop-node {
+            position: absolute;
+            width: 80px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+        }
+
+        .loop-node .node-icon {
+            width: 48px;
+            height: 48px;
             background: var(--bg-card);
             border: 2px solid var(--honey);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Baloo 2', cursive;
-            font-weight: 700;
-            color: var(--honey);
-            font-size: 0.9rem;
-            flex-shrink: 0;
+            margin: 0 auto 0.5rem;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
         }
 
-        .step-content h4 {
+        .loop-node:hover .node-icon {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(246, 185, 59, 0.4);
+        }
+
+        .loop-node .node-label {
             font-family: 'Baloo 2', cursive;
-            font-size: 1.1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .loop-node .node-sub {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        /* Position nodes around the circle */
+        .loop-node.pick { top: 5%; left: 50%; }
+        .loop-node.prompt { top: 50%; left: 95%; }
+        .loop-node.run { top: 95%; left: 50%; }
+        .loop-node.commit { top: 50%; left: 5%; }
+
+        .loop-node.pick .node-icon { border-color: var(--mint); }
+        .loop-node.prompt .node-icon { border-color: var(--sky); }
+        .loop-node.run .node-icon { border-color: var(--lavender); }
+        .loop-node.commit .node-icon { border-color: var(--coral); }
+
+        /* Arrow indicators between nodes */
+        .loop-arrow {
+            position: absolute;
+            color: var(--honey);
+            font-size: 1.2rem;
+            opacity: 0.6;
+        }
+
+        .loop-arrow.a1 { top: 20%; left: 78%; transform: rotate(45deg); }
+        .loop-arrow.a2 { top: 78%; left: 78%; transform: rotate(135deg); }
+        .loop-arrow.a3 { top: 78%; left: 20%; transform: rotate(225deg); }
+        .loop-arrow.a4 { top: 20%; left: 20%; transform: rotate(315deg); }
+
+        /* Loop details below */
+        .loop-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .loop-detail {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 1rem;
+            border-left: 3px solid var(--honey);
+        }
+
+        .loop-detail h4 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 0.95rem;
             color: var(--text);
             margin-bottom: 0.25rem;
         }
 
-        .step-content p {
-            font-size: 0.9rem;
+        .loop-detail p {
+            font-size: 0.8rem;
             color: var(--text-dim);
         }
 
-        .step-content .tag {
+        .loop-detail.pick { border-color: var(--mint); }
+        .loop-detail.prompt { border-color: var(--sky); }
+        .loop-detail.run { border-color: var(--lavender); }
+        .loop-detail.commit { border-color: var(--coral); }
+
+        .loop-detail .tag {
             display: inline-block;
-            font-size: 0.75rem;
-            padding: 0.15rem 0.5rem;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
             border-radius: 4px;
-            margin-right: 0.5rem;
+            margin-right: 0.3rem;
             font-family: 'JetBrains Mono', monospace;
         }
 
@@ -569,6 +678,11 @@
             .install-cmd { font-size: 0.8rem; }
             .install-prompt { flex-wrap: wrap; }
             .copy-btn { width: 100%; margin-top: 1rem; }
+            .loop-circle { width: 260px; height: 260px; }
+            .loop-node .node-icon { width: 40px; height: 40px; font-size: 1rem; }
+            .loop-node .node-label { font-size: 0.7rem; }
+            .loop-node .node-sub { font-size: 0.6rem; }
+            .loop-details { grid-template-columns: 1fr; }
         }
 
         /* Little easter egg animation on mascot hover */
@@ -598,8 +712,8 @@
         <section class="hero">
             <img src="assets/img/cub-full-transparent.png" alt="Cub mascot - a bear cub tangled in server wires holding a lightbulb" class="mascot">
             <h1 class="logo-text">cub</h1>
-            <p class="tagline">Work ahead of your AI agents, then let them run.</p>
-            <p class="subtitle">For devs already running AI coding CLIs who want more structure and less chaos.</p>
+            <p class="tagline">Set it. Forget it. Ship it.</p>
+            <p class="subtitle">The autonomous loop for AI coding agents. Prep your tasks, hit run, walk away.</p>
         </section>
 
         <!-- Install -->
@@ -679,51 +793,71 @@
                     The trick is making that loop <em>reliable</em>.
                 </p>
 
-                <div class="loop-visual">
-                    <pre class="loop-code"><span class="keyword">while</span> tasks_remain():
-    task = <span class="cub-part">cub.pick_ready_task()</span>     <span class="comment"># respect dependencies, priorities</span>
-    prompt = <span class="cub-part">cub.generate_prompt(task)</span>  <span class="comment"># structured context, guardrails</span>
-    result = <span class="agent-part">agent.run(prompt)</span>          <span class="comment"># Claude, Codex, Gemini...</span>
-    <span class="cub-part">cub.verify_and_commit(result)</span>     <span class="comment"># clean state, logging</span></pre>
+                <!-- Circular loop visualization -->
+                <div class="loop-circle">
+                    <div class="loop-ring"></div>
+
+                    <!-- Center text -->
+                    <div class="loop-center">
+                        <div class="while-text">while</div>
+                        <div class="tasks-text">tasks_remain()</div>
+                    </div>
+
+                    <!-- Nodes around the circle -->
+                    <div class="loop-node pick">
+                        <div class="node-icon">📋</div>
+                        <div class="node-label">Pick</div>
+                        <div class="node-sub">ready task</div>
+                    </div>
+
+                    <div class="loop-node prompt">
+                        <div class="node-icon">📝</div>
+                        <div class="node-label">Prompt</div>
+                        <div class="node-sub">with context</div>
+                    </div>
+
+                    <div class="loop-node run">
+                        <div class="node-icon">🤖</div>
+                        <div class="node-label">Run</div>
+                        <div class="node-sub">AI agent</div>
+                    </div>
+
+                    <div class="loop-node commit">
+                        <div class="node-icon">✓</div>
+                        <div class="node-label">Commit</div>
+                        <div class="node-sub">& log</div>
+                    </div>
+
+                    <!-- Arrows -->
+                    <div class="loop-arrow a1">→</div>
+                    <div class="loop-arrow a2">→</div>
+                    <div class="loop-arrow a3">→</div>
+                    <div class="loop-arrow a4">→</div>
                 </div>
 
-                <div class="loop-steps">
-                    <div class="loop-step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <h4>Pick Ready Task</h4>
-                            <p><span class="tag cub">cub</span> Finds the next task with no blockers. Respects P0-P4 priority, epic filtering, and the dependency graph.</p>
-                        </div>
+                <!-- Details grid below -->
+                <div class="loop-details">
+                    <div class="loop-detail pick">
+                        <h4><span class="tag cub">cub</span> Pick Ready Task</h4>
+                        <p>Find the next task with no blockers. Respects priority, epics, and dependency graph.</p>
                     </div>
-                    <div class="loop-step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <h4>Generate Prompt</h4>
-                            <p><span class="tag cub">cub</span> Builds a structured prompt with task context, acceptance criteria, and project guardrails. Right-sizes the model for the task.</p>
-                        </div>
+                    <div class="loop-detail prompt">
+                        <h4><span class="tag cub">cub</span> Generate Prompt</h4>
+                        <p>Build structured prompt with context, acceptance criteria, and project guardrails.</p>
                     </div>
-                    <div class="loop-step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <h4>Run Agent</h4>
-                            <p><span class="tag agent">agent</span> Your AI coding CLI does the work—Claude Code, Codex, Gemini, or OpenCode. Cub invokes it and waits.</p>
-                        </div>
+                    <div class="loop-detail run">
+                        <h4><span class="tag agent">agent</span> Run AI Agent</h4>
+                        <p>Claude Code, Codex, Gemini, or OpenCode does the work. Cub waits.</p>
                     </div>
-                    <div class="loop-step">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <h4>Verify & Commit</h4>
-                            <p><span class="tag cub">cub</span> Checks for clean git state, commits changes, logs to structured JSONL, marks task complete.</p>
-                        </div>
-                    </div>
-                    <div class="loop-step">
-                        <div class="step-number">→</div>
-                        <div class="step-content">
-                            <h4>Repeat</h4>
-                            <p><span class="tag you">you</span> Walk away. Cub keeps looping until blocked, budget exhausted, or all tasks done.</p>
-                        </div>
+                    <div class="loop-detail commit">
+                        <h4><span class="tag cub">cub</span> Verify & Commit</h4>
+                        <p>Check git state, commit changes, log to JSONL, mark complete. Loop back.</p>
                     </div>
                 </div>
+
+                <p style="text-align: center; color: var(--text-dim); margin-top: 1.5rem; font-size: 0.95rem;">
+                    <span class="tag you">you</span> Walk away. Cub loops until blocked, budget exhausted, or done.
+                </p>
             </div>
         </section>
 
