@@ -14,7 +14,7 @@ setup() {
     mkdir -p "${TEST_TEMP_DIR}/.beads"
 
     # Source the branches library
-    source "${PROJECT_ROOT}/lib/branches.sh"
+    source "${LIB_DIR}/branches.sh"
 }
 
 # Teardown function runs after each test

@@ -77,13 +77,10 @@ source "${CUB_DIR}/lib/guardrails.sh"
 # Source command implementations
 source "${CUB_DIR}/lib/cmd_guardrails.sh"
 source "${CUB_DIR}/lib/cmd_init.sh"
-source "${CUB_DIR}/lib/cmd_run.sh"
-source "${CUB_DIR}/lib/cmd_status.sh"
 source "${CUB_DIR}/lib/cmd_explain.sh"
 source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
-source "${CUB_DIR}/lib/cmd_upgrade.sh"
 source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
@@ -226,16 +223,6 @@ main() {
                 cmd_init "${args[@]:1}"
                 return $?
                 ;;
-            run)
-                # Run the main loop with remaining args
-                cmd_run "${args[@]:1}"
-                return $?
-                ;;
-            status)
-                # Show task status
-                cmd_status "${args[@]:1}"
-                return $?
-                ;;
             explain)
                 # Explain a task or session
                 cmd_explain "${args[@]:1}"
@@ -259,11 +246,6 @@ main() {
             doctor)
                 # Diagnose and fix common issues
                 cmd_doctor "${args[@]:1}"
-                return $?
-                ;;
-            upgrade)
-                # Upgrade cub to a newer version
-                cmd_upgrade "${args[@]:1}"
                 return $?
                 ;;
             # Vision-to-Tasks Prep commands (v0.14)
@@ -360,22 +342,23 @@ main() {
     fi
 
     # Legacy flag parsing (for backwards compatibility)
+    # Note: run, status, upgrade are now Python-native - these cases redirect to Python CLI
     case "${args[0]:-}" in
         --status|-s)
-            warn_deprecated_flag "--status" "cub status"
-            cmd_status "${args[@]:1}"
+            _log_error_console "Please use 'cub status' instead"
+            return 1
             ;;
         --ready|-r)
-            warn_deprecated_flag "--ready" "cub run --ready"
-            cmd_run --ready "${args[@]:1}"
+            _log_error_console "Please use 'cub run --ready' instead"
+            return 1
             ;;
         --once|-1)
-            warn_deprecated_flag "--once" "cub run --once"
-            cmd_run --once "${args[@]:1}"
+            _log_error_console "Please use 'cub run --once' instead"
+            return 1
             ;;
         --plan|-p)
-            warn_deprecated_flag "--plan" "cub run --plan"
-            cmd_run --plan "${args[@]:1}"
+            _log_error_console "Please use 'cub run --plan' instead"
+            return 1
             ;;
         --test|-t)
             log_info "Testing Claude Code invocation..."
@@ -585,9 +568,10 @@ EOF
             echo "cub v${CUB_VERSION}"
             ;;
         *)
-            # Default: run the main loop with all args
-            # Use safe array expansion to handle empty array with set -u
-            cmd_run ${args[@]+"${args[@]}"}
+            # Unrecognized command - bash script should only be called for delegated commands
+            _log_error_console "Unknown command: ${args[0]:-}"
+            _log_error_console "Use 'cub --help' for available commands"
+            return 1
             ;;
     esac
 }

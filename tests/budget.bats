@@ -8,7 +8,7 @@ load test_helper
 # Setup function runs before each test
 setup() {
     # Source the budget library
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
 
     # Clear budget state before each test
     budget_clear

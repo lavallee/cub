@@ -23,7 +23,7 @@ setup() {
     git commit -q -m "Initial commit"
 
     # Source the git library
-    source "${PROJECT_ROOT}/lib/git.sh"
+    source "${LIB_DIR}/git.sh"
 }
 
 # Teardown function runs after each test
@@ -45,7 +45,7 @@ teardown() {
     # Use GIT_DIR pointing to non-existent path to simulate no repo
     # Pass it directly in the run command to ensure subshell sees it
     # Note: git returns 128 for invalid GIT_DIR, not 1
-    run env GIT_DIR="/nonexistent/.git" bash -c 'source "$1" && git_in_repo' _ "${PROJECT_ROOT}/lib/git.sh"
+    run env GIT_DIR="/nonexistent/.git" bash -c 'source "$1" && git_in_repo' _ "${LIB_DIR}/git.sh"
     [[ $status -ne 0 ]]
 }
 
@@ -1091,7 +1091,7 @@ Line 3"
     git commit -q -m "Test commit"
 
     # Force push with "no" confirmation should fail
-    run bash -c "source '${PROJECT_ROOT}/lib/git.sh' && echo 'no' | git_push_branch --force"
+    run bash -c "source '${LIB_DIR}/git.sh' && echo 'no' | git_push_branch --force"
     [[ $status -eq 1 ]]
     [[ "$output" =~ "Force push cancelled" ]]
 
@@ -1121,7 +1121,7 @@ Line 3"
     git commit -q --amend --no-edit
 
     # Force push with "yes" confirmation should succeed
-    run bash -c "source '${PROJECT_ROOT}/lib/git.sh' && echo 'yes' | git_push_branch --force"
+    run bash -c "source '${LIB_DIR}/git.sh' && echo 'yes' | git_push_branch --force"
     [[ $status -eq 0 ]]
     [[ "$output" =~ "Successfully force pushed branch" ]]
 
@@ -1151,7 +1151,7 @@ Line 3"
     git commit -q --amend --no-edit
 
     # Verify --force-with-lease is mentioned in output (shows it's being used)
-    run bash -c "source '${PROJECT_ROOT}/lib/git.sh' && echo 'yes' | git_push_branch --force"
+    run bash -c "source '${LIB_DIR}/git.sh' && echo 'yes' | git_push_branch --force"
     [[ $status -eq 0 ]]
 
     # Cleanup
@@ -1286,11 +1286,11 @@ Line 3"
     git commit -q -m "Test"
 
     # Force push without confirmation should fail
-    run bash -c "source '${PROJECT_ROOT}/lib/git.sh' && echo 'no' | git_push_branch --force"
+    run bash -c "source '${LIB_DIR}/git.sh' && echo 'no' | git_push_branch --force"
     [[ $status -eq 1 ]]
 
     # Force push with confirmation should succeed
-    run bash -c "source '${PROJECT_ROOT}/lib/git.sh' && echo 'yes' | git_push_branch --force"
+    run bash -c "source '${LIB_DIR}/git.sh' && echo 'yes' | git_push_branch --force"
     [[ $status -eq 0 ]]
 
     # Cleanup
