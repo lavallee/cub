@@ -201,6 +201,10 @@ def detect_harness(
     2. Priority list (if provided)
     3. Default detection order: claude > opencode > codex > gemini
 
+    Only returns harnesses that are both:
+    - Available (CLI found in PATH via shutil.which)
+    - Registered (has a Python backend in _backends registry)
+
     Args:
         priority_list: Optional ordered list of harness names to try
 
@@ -210,19 +214,19 @@ def detect_harness(
     # Check for explicit override
     harness_env = os.environ.get("HARNESS", "").lower()
     if harness_env and harness_env != "auto":
-        # Verify it's available
-        if shutil.which(harness_env):
+        # Verify it's available AND registered
+        if harness_env in _backends and shutil.which(harness_env):
             return harness_env
 
     # Try priority list if provided
     if priority_list:
         for harness in priority_list:
-            if shutil.which(harness):
+            if harness in _backends and shutil.which(harness):
                 return harness
 
     # Default detection order
     for harness in ["claude", "opencode", "codex", "gemini"]:
-        if shutil.which(harness):
+        if harness in _backends and shutil.which(harness):
             return harness
 
     return None
