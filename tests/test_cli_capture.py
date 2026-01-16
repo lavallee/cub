@@ -48,31 +48,32 @@ class TestCaptureCommand:
 
     def test_capture_with_text_argument(self, isolated_capture_env: dict) -> None:
         """Test capturing text provided as argument (default goes to global)."""
-        result = runner.invoke(app, ["capture", "Add dark mode to UI"])
+        result = runner.invoke(app, ["capture", "Add dark mode to UI", "--no-slug"])
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
         assert "global" in result.output
 
         # Verify file was created in global location
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        assert capture_file.exists()
-        content = capture_file.read_text()
-        assert "id: cap-001" in content
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
+        assert "id: cap-" in content
         assert "Add dark mode to UI" in content
 
     def test_capture_with_tags(self, isolated_capture_env: dict) -> None:
         """Test capturing text with tags."""
         result = runner.invoke(
-            app, ["capture", "Add dark mode", "--tag", "feature", "--tag", "ui"]
+            app, ["capture", "Add dark mode", "--tag", "feature", "--tag", "ui", "--no-slug"]
         )
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
 
         # Verify tags in frontmatter
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "tags:" in content
         assert "- feature" in content
         assert "- ui" in content
@@ -80,45 +81,59 @@ class TestCaptureCommand:
     def test_capture_with_priority(self, isolated_capture_env: dict) -> None:
         """Test capturing text with priority."""
         result = runner.invoke(
-            app, ["capture", "Critical bug fix", "--priority", "1"]
+            app, ["capture", "Critical bug fix", "--priority", "1", "--no-slug"]
         )
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
 
         # Verify priority in frontmatter
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "priority: 1" in content
 
     def test_capture_to_project_store(self, isolated_capture_env: dict) -> None:
         """Test capturing to project store with --project flag."""
-        result = runner.invoke(app, ["capture", "Project note", "--project"])
+        result = runner.invoke(app, ["capture", "Project note", "--project", "--no-slug"])
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
         assert "project" in result.output
 
         # Verify file was created in project location
-        capture_file = isolated_capture_env["project_captures_dir"] / "cap-001.md"
-        assert capture_file.exists()
+        files = list(isolated_capture_env["project_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
 
-    def test_capture_generates_sequential_ids(self, isolated_capture_env: dict) -> None:
-        """Test that multiple captures get sequential IDs."""
+    def test_capture_generates_unique_ids(self, isolated_capture_env: dict) -> None:
+        """Test that multiple captures get unique random IDs."""
+        import re
+
         # First capture
-        result1 = runner.invoke(app, ["capture", "First idea"])
+        result1 = runner.invoke(app, ["capture", "First idea", "--no-slug"])
         assert result1.exit_code == 0
-        assert "cap-001" in result1.output
+        match1 = re.search(r"cap-([a-z0-9]+)", result1.output)
+        assert match1
+        id1 = match1.group(0)
 
         # Second capture
-        result2 = runner.invoke(app, ["capture", "Second idea"])
+        result2 = runner.invoke(app, ["capture", "Second idea", "--no-slug"])
         assert result2.exit_code == 0
-        assert "cap-002" in result2.output
+        match2 = re.search(r"cap-([a-z0-9]+)", result2.output)
+        assert match2
+        id2 = match2.group(0)
 
         # Third capture
-        result3 = runner.invoke(app, ["capture", "Third idea"])
+        result3 = runner.invoke(app, ["capture", "Third idea", "--no-slug"])
         assert result3.exit_code == 0
-        assert "cap-003" in result3.output
+        match3 = re.search(r"cap-([a-z0-9]+)", result3.output)
+        assert match3
+        id3 = match3.group(0)
+
+        # All IDs should be unique
+        assert id1 != id2
+        assert id2 != id3
+        assert id1 != id3
 
     def test_capture_with_empty_content_fails(self, isolated_capture_env: dict) -> None:
         """Test that capturing empty content fails."""
@@ -130,14 +145,15 @@ class TestCaptureCommand:
     def test_capture_multiline_text(self, isolated_capture_env: dict) -> None:
         """Test capturing multiline text."""
         multiline_text = "First line\nSecond line\nThird line"
-        result = runner.invoke(app, ["capture", multiline_text])
+        result = runner.invoke(app, ["capture", multiline_text, "--no-slug"])
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
 
         # Verify content preserved
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "First line" in content
         assert "Second line" in content
         assert "Third line" in content
@@ -146,13 +162,14 @@ class TestCaptureCommand:
         """Test that very long titles are truncated in frontmatter."""
         # Create text with first line over 80 chars
         long_title = "A" * 100
-        result = runner.invoke(app, ["capture", long_title])
+        result = runner.invoke(app, ["capture", long_title, "--no-slug"])
 
         assert result.exit_code == 0
 
         # Verify title was truncated
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         # Title should be truncated to ~80 chars with "..."
         assert "title:" in content
         # Should contain ellipsis
@@ -170,14 +187,15 @@ class TestCaptureCommand:
     def test_capture_with_stdin(self, isolated_capture_env: dict) -> None:
         """Test capturing from stdin."""
         stdin_text = "Text from stdin"
-        result = runner.invoke(app, ["capture"], input=stdin_text)
+        result = runner.invoke(app, ["capture", "--no-slug"], input=stdin_text)
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
 
         # Verify content
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "Text from stdin" in content
         # When reading from stdin, source should be PIPE
         assert "source: pipe" in content
@@ -223,47 +241,51 @@ class TestCaptureAutoTagging:
 
     def test_capture_auto_tags_git_keyword(self, isolated_capture_env: dict) -> None:
         """Test that 'git' keyword triggers 'git' tag."""
-        result = runner.invoke(app, ["capture", "Fix git merge conflict"])
+        result = runner.invoke(app, ["capture", "Fix git merge conflict", "--no-slug"])
 
         assert result.exit_code == 0
-        assert "cap-001" in result.output
+        assert "cap-" in result.output
 
         # Verify tag was auto-suggested
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "tags:" in content
         assert "- git" in content
 
     def test_capture_auto_tags_ui_keyword(self, isolated_capture_env: dict) -> None:
         """Test that 'ui' keyword triggers 'ui' tag."""
-        result = runner.invoke(app, ["capture", "Fix button styling in UI"])
+        result = runner.invoke(app, ["capture", "Fix button styling in UI", "--no-slug"])
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "- ui" in content
 
     def test_capture_auto_tags_api_keyword(self, isolated_capture_env: dict) -> None:
         """Test that 'api' keyword triggers 'api' tag."""
-        result = runner.invoke(app, ["capture", "Implement new API endpoint"])
+        result = runner.invoke(app, ["capture", "Implement new API endpoint", "--no-slug"])
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "- api" in content
 
     def test_capture_auto_tags_multiple(self, isolated_capture_env: dict) -> None:
         """Test multiple auto-tags suggested from single content."""
         result = runner.invoke(
-            app, ["capture", "Fix git merge conflict in API endpoint"]
+            app, ["capture", "Fix git merge conflict in API endpoint", "--no-slug"]
         )
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         assert "- git" in content
         assert "- api" in content
 
@@ -272,13 +294,14 @@ class TestCaptureAutoTagging:
     ) -> None:
         """Test that --no-auto-tags disables auto-tagging."""
         result = runner.invoke(
-            app, ["capture", "Fix git merge conflict", "--no-auto-tags"]
+            app, ["capture", "Fix git merge conflict", "--no-auto-tags", "--no-slug"]
         )
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         # Should not have auto-suggested tags
         assert "- git" not in content
         # Should also not have 'tags:' key if no tags were provided
@@ -296,13 +319,14 @@ class TestCaptureAutoTagging:
     def test_capture_user_tags_plus_auto_tags(self, isolated_capture_env: dict) -> None:
         """Test that user-provided tags are combined with auto-tags."""
         result = runner.invoke(
-            app, ["capture", "Fix git merge conflict", "--tag", "urgent"]
+            app, ["capture", "Fix git merge conflict", "--tag", "urgent", "--no-slug"]
         )
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         # Should have both user-provided and auto-suggested tags
         assert "- urgent" in content
         assert "- git" in content
@@ -310,13 +334,14 @@ class TestCaptureAutoTagging:
     def test_capture_auto_tags_no_duplicates(self, isolated_capture_env: dict) -> None:
         """Test that user tags are not duplicated if auto-suggested."""
         result = runner.invoke(
-            app, ["capture", "Fix git merge conflict", "--tag", "git"]
+            app, ["capture", "Fix git merge conflict", "--tag", "git", "--no-slug"]
         )
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         # Should only have one 'git' tag, not duplicated
         git_count = content.count("- git")
         assert git_count == 1
@@ -325,12 +350,13 @@ class TestCaptureAutoTagging:
         self, isolated_capture_env: dict
     ) -> None:
         """Test that content with no matching keywords has no auto-tags."""
-        result = runner.invoke(app, ["capture", "This is a generic note"])
+        result = runner.invoke(app, ["capture", "This is a generic note", "--no-slug"])
 
         assert result.exit_code == 0
 
-        capture_file = isolated_capture_env["global_captures_dir"] / "cap-001.md"
-        content = capture_file.read_text()
+        files = list(isolated_capture_env["global_captures_dir"].glob("cap-*.md"))
+        assert len(files) == 1
+        content = files[0].read_text()
         # Should not have tags key if no tags were assigned
         lines = content.split("\n")
         in_frontmatter = False

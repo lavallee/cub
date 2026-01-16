@@ -180,14 +180,15 @@ def test_organize_captures_apply_changes(tmp_path: Path, monkeypatch: pytest.Mon
     assert result.exit_code == 0
     assert "Successfully organized 1 files" in result.stdout
 
-    # Verify that a cap-001.md file was created
-    cap_file = captures_dir / "cap-001.md"
-    assert cap_file.exists()
+    # Verify that a cap-*.md file was created (random ID format)
+    cap_files = list(captures_dir.glob("cap-*.md"))
+    assert len(cap_files) == 1
+    cap_file = cap_files[0]
 
     # Verify it has frontmatter
     post = frontmatter.load(cap_file)
     assert "id" in post.metadata
-    assert post.metadata["id"] == "cap-001"
+    assert post.metadata["id"].startswith("cap-")
     assert "created" in post.metadata
     assert "title" in post.metadata
 

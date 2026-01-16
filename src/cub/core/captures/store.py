@@ -13,12 +13,18 @@ Uses python-frontmatter for parsing Markdown files with YAML frontmatter.
 """
 
 import os
+import secrets
+import string
 from pathlib import Path
 
 import frontmatter  # type: ignore[import-untyped]
 
 from cub.core.captures.models import Capture
 from cub.core.captures.project_id import get_project_id
+
+# Characters for random ID generation (lowercase alphanumeric)
+ID_CHARS = string.ascii_lowercase + string.digits
+ID_LENGTH = 6
 
 
 class CaptureStore:
@@ -72,7 +78,7 @@ class CaptureStore:
             raise FileNotFoundError(f"Captures directory not found: {self.captures_dir}")
 
         captures: list[Capture] = []
-        for capture_file in self.captures_dir.glob("cap-*.md"):
+        for capture_file in self.captures_dir.glob("*.md"):
             try:
                 capture = self._read_capture_file(capture_file)
                 captures.append(capture)
@@ -89,8 +95,11 @@ class CaptureStore:
         """
         Get a single capture by ID.
 
+        Searches all .md files in the directory for a capture with matching ID
+        in its frontmatter (since filenames may be slugs).
+
         Args:
-            capture_id: Capture ID (e.g., 'cap-001')
+            capture_id: Capture ID (e.g., 'cap-a7x3m2')
 
         Returns:
             Capture object
@@ -99,13 +108,28 @@ class CaptureStore:
             FileNotFoundError: If capture file doesn't exist
             ValueError: If capture file is malformed
         """
-        capture_file = self.captures_dir / f"{capture_id}.md"
-        if not capture_file.exists():
+        if not self.captures_dir.exists():
             raise FileNotFoundError(f"Capture not found: {capture_id}")
 
-        return self._read_capture_file(capture_file)
+        # First try direct lookup by ID filename (legacy or fallback)
+        direct_file = self.captures_dir / f"{capture_id}.md"
+        if direct_file.exists():
+            return self._read_capture_file(direct_file)
 
-    def save_capture(self, capture: Capture, content: str) -> None:
+        # Search all .md files for matching ID in frontmatter
+        for capture_file in self.captures_dir.glob("*.md"):
+            try:
+                capture = self._read_capture_file(capture_file)
+                if capture.id == capture_id:
+                    return capture
+            except Exception:
+                continue
+
+        raise FileNotFoundError(f"Capture not found: {capture_id}")
+
+    def save_capture(
+        self, capture: Capture, content: str, filename: str | None = None
+    ) -> Path:
         """
         Write a capture to disk.
 
@@ -114,6 +138,11 @@ class CaptureStore:
         Args:
             capture: Capture object with metadata
             content: Markdown content body
+            filename: Optional custom filename (without .md extension).
+                      If not provided, uses capture ID.
+
+        Returns:
+            Path to the saved capture file
 
         Raises:
             OSError: If file cannot be written
@@ -125,43 +154,88 @@ class CaptureStore:
         post = frontmatter.Post(content)
         post.metadata = capture.to_frontmatter_dict()
 
-        # Write to file
-        capture_file = self.captures_dir / f"{capture.id}.md"
+        # Use custom filename or fall back to ID
+        base_name = filename if filename else capture.id
+        capture_file = self.captures_dir / f"{base_name}.md"
+
         with open(capture_file, "w", encoding="utf-8") as f:
             f.write(frontmatter.dumps(post))
 
-    def next_id(self) -> str:
-        """
-        Generate the next sequential capture ID.
+        return capture_file
 
-        Scans existing captures and returns the next ID in sequence.
-        If no captures exist, returns "cap-001".
+    def next_id(self, max_attempts: int = 10) -> str:
+        """
+        Generate a unique random capture ID.
+
+        Generates a random 6-character alphanumeric ID with collision detection.
+        Format: cap-XXXXXX (e.g., "cap-a7x3m2")
+
+        Args:
+            max_attempts: Maximum collision retry attempts (default 10)
 
         Returns:
-            Next capture ID (e.g., "cap-042")
+            Unique capture ID (e.g., "cap-a7x3m2")
 
         Raises:
-            OSError: If directory cannot be read
+            RuntimeError: If unable to generate unique ID after max_attempts
         """
         # Create directory if it doesn't exist
         self.captures_dir.mkdir(parents=True, exist_ok=True)
 
-        # Find highest existing ID
-        max_num = 0
-        for capture_file in self.captures_dir.glob("cap-*.md"):
-            # Extract number from filename: cap-NNN.md -> NNN
-            stem = capture_file.stem  # cap-NNN
-            if stem.startswith("cap-"):
-                try:
-                    num = int(stem[4:])  # Everything after 'cap-'
-                    max_num = max(max_num, num)
-                except ValueError:
-                    # Skip malformed filenames
-                    continue
+        # Collect existing IDs for collision detection
+        existing_ids: set[str] = set()
+        for capture_file in self.captures_dir.glob("*.md"):
+            try:
+                capture = self._read_capture_file(capture_file)
+                existing_ids.add(capture.id)
+            except Exception:
+                # Also check filename-based IDs
+                stem = capture_file.stem
+                if stem.startswith("cap-"):
+                    existing_ids.add(stem)
 
-        # Return next ID
-        next_num = max_num + 1
-        return f"cap-{next_num:03d}"
+        # Generate random ID with collision detection
+        for _ in range(max_attempts):
+            random_suffix = "".join(secrets.choice(ID_CHARS) for _ in range(ID_LENGTH))
+            new_id = f"cap-{random_suffix}"
+            if new_id not in existing_ids:
+                return new_id
+
+        raise RuntimeError(
+            f"Failed to generate unique capture ID after {max_attempts} attempts"
+        )
+
+    def get_capture_file_path(self, capture_id: str) -> Path:
+        """
+        Get the file path for a capture by ID.
+
+        Args:
+            capture_id: Capture ID (e.g., 'cap-a7x3m2')
+
+        Returns:
+            Path to the capture file
+
+        Raises:
+            FileNotFoundError: If capture file doesn't exist
+        """
+        if not self.captures_dir.exists():
+            raise FileNotFoundError(f"Capture not found: {capture_id}")
+
+        # First try direct lookup by ID filename
+        direct_file = self.captures_dir / f"{capture_id}.md"
+        if direct_file.exists():
+            return direct_file
+
+        # Search all .md files for matching ID in frontmatter
+        for capture_file in self.captures_dir.glob("*.md"):
+            try:
+                capture = self._read_capture_file(capture_file)
+                if capture.id == capture_id:
+                    return capture_file
+            except Exception:
+                continue
+
+        raise FileNotFoundError(f"Capture not found: {capture_id}")
 
     def _read_capture_file(self, capture_file: Path) -> Capture:
         """

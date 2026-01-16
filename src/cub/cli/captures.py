@@ -344,7 +344,7 @@ def show(
     capture, store, location = _find_capture(capture_id)
 
     # Read full content
-    capture_file = store.get_captures_dir() / f"{capture_id}.md"
+    capture_file = store.get_capture_file_path(capture_id)
     try:
         post = frontmatter.load(capture_file)
         content = post.content
@@ -394,7 +394,7 @@ def edit(
     editor = os.environ.get("EDITOR", "vim")
 
     # Get file path
-    capture_file = store.get_captures_dir() / f"{capture_id}.md"
+    capture_file = store.get_capture_file_path(capture_id)
 
     # Open in editor
     try:
@@ -449,7 +449,7 @@ def import_capture(
         raise typer.Exit(1)
 
     # Read full content
-    global_capture_file = global_store.get_captures_dir() / f"{capture_id}.md"
+    global_capture_file = global_store.get_capture_file_path(capture_id)
     try:
         post = frontmatter.load(global_capture_file)
         content = post.content
@@ -457,17 +457,17 @@ def import_capture(
         console.print(f"[red]Error:[/red] Failed to read capture: {e}")
         raise typer.Exit(1)
 
-    # Save to project store (preserving same ID for traceability)
+    # Save to project store (preserving filename from global store)
     project_store = CaptureStore.project()
+    original_filename = global_capture_file.stem  # Preserve slug filename
     try:
-        project_store.save_capture(capture, content)
+        project_file = project_store.save_capture(capture, content, filename=original_filename)
     except OSError as e:
         console.print(f"[red]Error:[/red] Failed to save capture: {e}")
         raise typer.Exit(1)
 
-    project_captures_dir = project_store.get_captures_dir()
     console.print(f"[green]✓[/green] Imported {capture_id}")
-    console.print(f"[dim]Project:[/dim] {project_captures_dir / f'{capture_id}.md'}")
+    console.print(f"[dim]Project:[/dim] {project_file}")
 
     # Remove from global store unless --keep
     if not keep:
@@ -502,7 +502,7 @@ def archive(
         raise typer.Exit(0)
 
     # Read full content
-    capture_file = store.get_captures_dir() / f"{capture_id}.md"
+    capture_file = store.get_capture_file_path(capture_id)
     try:
         post = frontmatter.load(capture_file)
         content = post.content
@@ -513,9 +513,10 @@ def archive(
     # Update status
     capture.status = CaptureStatus.ARCHIVED
 
-    # Save back
+    # Save back (preserving original filename)
+    original_filename = capture_file.stem
     try:
-        store.save_capture(capture, content)
+        store.save_capture(capture, content, filename=original_filename)
     except OSError as e:
         console.print(f"[red]Error:[/red] Failed to save capture: {e}")
         raise typer.Exit(1)

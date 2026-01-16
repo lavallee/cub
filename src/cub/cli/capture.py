@@ -12,34 +12,11 @@ import typer
 from rich.console import Console
 
 from cub.core.captures.models import Capture, CaptureSource
+from cub.core.captures.slug import generate_slug
 from cub.core.captures.store import CaptureStore
 from cub.core.captures.tagging import suggest_tags
 
 console = Console()
-
-
-def generate_slug(text: str, max_length: int = 50) -> str:
-    """
-    Generate a slug from text for use in filenames.
-
-    Args:
-        text: Input text to slugify
-        max_length: Maximum slug length
-
-    Returns:
-        Slugified text suitable for filenames
-    """
-    # Convert to lowercase and replace spaces/special chars with hyphens
-    slug = text.lower()
-    slug = "".join(c if c.isalnum() or c in " -_" else "-" for c in slug)
-    slug = "-".join(slug.split())  # Collapse whitespace to single hyphens
-    slug = slug.strip("-")  # Remove leading/trailing hyphens
-
-    # Truncate to max length
-    if len(slug) > max_length:
-        slug = slug[:max_length].rsplit("-", 1)[0]  # Cut at word boundary
-
-    return slug or "capture"
 
 
 def capture(
@@ -84,6 +61,11 @@ def capture(
         False,
         "--no-auto-tags",
         help="Disable automatic tag suggestion based on content",
+    ),
+    no_slug: bool = typer.Option(
+        False,
+        "--no-slug",
+        help="Skip AI-generated slug, use ID as filename",
     ),
 ) -> None:
     """
@@ -187,16 +169,27 @@ def capture(
         priority=priority,
     )
 
-    # Save to disk
+    # Generate filename: use explicit name, AI slug, or fall back to ID
+    filename: str | None = None
+    slug_source = "id"
+
+    if name:
+        # Explicit name provided
+        filename = name
+        slug_source = "explicit"
+    elif not no_slug:
+        # Try AI-generated slug
+        ai_slug = generate_slug(content)
+        if ai_slug:
+            filename = ai_slug
+            slug_source = "ai"
+
+    # Save to disk with optional custom filename
     try:
-        store.save_capture(capture_obj, content)
+        file_path = store.save_capture(capture_obj, content, filename=filename)
     except OSError as e:
         console.print(f"[red]Error:[/red] Failed to save capture: {e}")
         raise typer.Exit(1)
-
-    # Get the actual file path for display
-    captures_dir = store.get_captures_dir()
-    file_path = captures_dir / f"{capture_id}.md"
 
     # Success output
     console.print(f"[green]✓[/green] Captured as [bold]{capture_id}[/bold] ({location})")
@@ -205,6 +198,7 @@ def capture(
     if debug:
         console.print("\n[dim]Debug info:[/dim]")
         console.print(f"  Title: {title}")
+        console.print(f"  Filename: {file_path.stem} ({slug_source})")
         console.print(f"  User Tags: {list(tag)}")
         console.print(f"  Final Tags: {all_tags}")
         if not no_auto_tags:

@@ -6,7 +6,7 @@ stored as Markdown files with YAML frontmatter. Captures are the raw
 material for the vision-to-tasks pipeline.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -82,16 +82,16 @@ class Capture(BaseModel):
     @field_validator("id", mode="before")
     @classmethod
     def validate_id(cls, v: str) -> str:
-        """Validate ID format: cap-NNN where N is a digit."""
+        """Validate ID format: cap-XXXXXX where X is alphanumeric."""
         if not isinstance(v, str):
             raise ValueError("ID must be a string")
         if not v.startswith("cap-"):
             raise ValueError("ID must start with 'cap-'")
         suffix = v[4:]  # Everything after 'cap-'
-        if not suffix.isdigit():
-            raise ValueError("ID must end with digits (format: cap-NNN)")
-        if len(suffix) == 0:
-            raise ValueError("ID must have at least one digit (format: cap-NNN)")
+        if not suffix.isalnum():
+            raise ValueError("ID must end with alphanumeric characters (format: cap-XXXXXX)")
+        if len(suffix) < 1:
+            raise ValueError("ID must have characters after 'cap-'")
         return v
 
     def to_frontmatter_dict(self) -> dict[str, str | list[str] | int | None]:
@@ -101,9 +101,12 @@ class Capture(BaseModel):
         Returns:
             Dictionary suitable for YAML frontmatter representation
         """
+        # Format timestamp as YYYY-MM-DD HH:MM:SS (UTC, no microseconds)
+        created_str = self.created.strftime("%Y-%m-%d %H:%M:%S")
+
         frontmatter: dict[str, str | list[str] | int | None] = {
             "id": self.id,
-            "created": self.created.isoformat(),
+            "created": created_str,
             "title": self.title,
         }
 
@@ -141,13 +144,34 @@ class Capture(BaseModel):
         if not created_str:
             raise ValueError("'created' field is required")
         if isinstance(created_str, str):
-            # Handle ISO 8601 format
-            try:
-                created = datetime.fromisoformat(created_str)
-            except ValueError as e:
-                raise ValueError(f"Invalid 'created' timestamp format: {created_str}") from e
+            # Try multiple formats for backward compatibility
+            created: datetime | None = None
+            formats = [
+                "%Y-%m-%d %H:%M:%S",  # New format: 2026-01-16 14:32:00
+                "%Y-%m-%dT%H:%M:%S",  # ISO without timezone
+            ]
+            for fmt in formats:
+                try:
+                    created = datetime.strptime(created_str, fmt)
+                    break
+                except ValueError:
+                    continue
+
+            # Fall back to fromisoformat for full ISO 8601 (with timezone)
+            if created is None:
+                try:
+                    created = datetime.fromisoformat(created_str)
+                except ValueError as e:
+                    raise ValueError(f"Invalid 'created' timestamp format: {created_str}") from e
+
+            # Ensure timezone-aware (treat naive as UTC)
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
         elif isinstance(created_str, datetime):
             created = created_str
+            # Ensure timezone-aware (treat naive as UTC)
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
         else:
             raise ValueError(f"Invalid 'created' type: {type(created_str)}")
 
