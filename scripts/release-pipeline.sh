@@ -180,6 +180,18 @@ get_branch_name() {
     echo "release/v${version}"
 }
 
+# Safely switch to main branch, removing any worktrees that might block
+safe_checkout_main() {
+    # Check if main is used by a worktree
+    if git worktree list | grep -q "beads-worktrees/main"; then
+        log_info "Removing beads worktree blocking main..."
+        git worktree remove --force .git/beads-worktrees/main 2>/dev/null || true
+    fi
+
+    git checkout main
+    git pull --rebase
+}
+
 # Run cub for an epic
 run_epic_implementation() {
     local version="$1"
@@ -208,8 +220,7 @@ run_epic_implementation() {
     else
         # Ensure we're on main and up to date
         log_info "Switching to main to create/checkout release branch..."
-        git checkout main
-        git pull --rebase
+        safe_checkout_main
 
         # Create release branch
         git checkout -b "$branch" 2>/dev/null || git checkout "$branch"
@@ -338,8 +349,7 @@ update_version_and_changelog() {
     fi
 
     # Ensure we're on main
-    git checkout main
-    git pull --rebase
+    safe_checkout_main
 
     # Use Claude to update changelog and version
     claude --print "
@@ -433,7 +443,8 @@ Verify beads state after v${version} release:
 2. Sync beads:
    bd sync
 
-3. Switch to main branch:
+3. Switch to main branch (remove any blocking worktrees first):
+   git worktree remove --force .git/beads-worktrees/main 2>/dev/null || true
    git checkout main
    git pull
 
