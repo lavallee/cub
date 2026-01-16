@@ -13,6 +13,7 @@ if [ -t 1 ]; then
     YELLOW='\033[0;33m'
     BLUE='\033[0;34m'
     BOLD='\033[1m'
+    DIM='\033[2m'
     NC='\033[0m'
 else
     RED=''
@@ -20,6 +21,7 @@ else
     YELLOW=''
     BLUE=''
     BOLD=''
+    DIM=''
     NC=''
 fi
 
@@ -27,6 +29,7 @@ info() { echo -e "${BLUE}==>${NC} ${BOLD}$1${NC}"; }
 success() { echo -e "${GREEN}==>${NC} ${BOLD}$1${NC}"; }
 warn() { echo -e "${YELLOW}warning:${NC} $1"; }
 error() { echo -e "${RED}error:${NC} $1" >&2; }
+dim() { echo -e "${DIM}    $1${NC}"; }
 
 # Detect shell config file
 detect_shell_config() {
@@ -98,6 +101,30 @@ add_to_path() {
     fi
 }
 
+# Track what we tried for error reporting
+TRIED_METHODS=()
+LAST_ERROR=""
+
+# Try an installation method and capture errors
+try_install() {
+    local method="$1"
+    local cmd="$2"
+
+    TRIED_METHODS+=("$method")
+
+    # Capture both stdout and stderr
+    local output
+    local exit_code
+    output=$(eval "$cmd" 2>&1) && exit_code=0 || exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
+        return 0
+    else
+        LAST_ERROR="$output"
+        return 1
+    fi
+}
+
 main() {
     echo ""
     echo -e "${BOLD}Cub Installer${NC}"
@@ -126,7 +153,7 @@ main() {
     INSTALL_METHOD=""
     CUB_PATH=""
 
-    # Try 1: pipx (if available)
+    # Try 1: pipx (if already available)
     if has pipx; then
         info "Found pipx, installing cub..."
         if pipx install "git+https://github.com/$REPO.git" 2>&1 | grep -q "already seems to be installed"; then
@@ -137,54 +164,109 @@ main() {
                 INSTALL_METHOD="pipx (already installed)"
             fi
             CUB_PATH="$HOME/.local/bin"
-        elif pipx install "git+https://github.com/$REPO.git" 2>/dev/null; then
+        elif try_install "pipx" "pipx install 'git+https://github.com/$REPO.git'"; then
             INSTALL_METHOD="pipx"
             CUB_PATH="$HOME/.local/bin"
+        else
+            dim "pipx install failed: ${LAST_ERROR%%$'\n'*}"
         fi
     fi
 
-    # Try 2: Install pipx, then use it
+    # Try 2: uv tool (if available) - try this BEFORE attempting to install pipx
+    if [ -z "$INSTALL_METHOD" ] && has uv; then
+        info "Found uv, installing cub..."
+        if try_install "uv tool" "uv tool install 'git+https://github.com/$REPO.git'"; then
+            INSTALL_METHOD="uv"
+            CUB_PATH="$HOME/.local/bin"
+        else
+            dim "uv tool install failed: ${LAST_ERROR%%$'\n'*}"
+        fi
+    fi
+
+    # Try 3: Install pipx via pip, then use it
     if [ -z "$INSTALL_METHOD" ]; then
-        info "Installing pipx..."
-        if "$PYTHON" -m pip install --user pipx 2>/dev/null; then
+        info "Trying to install pipx..."
+        if try_install "pip install pipx" "$PYTHON -m pip install --user pipx"; then
             "$PYTHON" -m pipx ensurepath 2>/dev/null || true
             # pipx is now in ~/.local/bin
             PIPX_CMD="$HOME/.local/bin/pipx"
             if [ -x "$PIPX_CMD" ]; then
                 info "Installing cub via pipx..."
-                if "$PIPX_CMD" install "git+https://github.com/$REPO.git" 2>/dev/null; then
+                if try_install "pipx (newly installed)" "$PIPX_CMD install 'git+https://github.com/$REPO.git'"; then
                     INSTALL_METHOD="pipx"
                     CUB_PATH="$HOME/.local/bin"
+                else
+                    dim "pipx install failed: ${LAST_ERROR%%$'\n'*}"
                 fi
+            else
+                dim "pipx installed but not found at $PIPX_CMD"
+                TRIED_METHODS+=("pipx (installed but not executable)")
             fi
+        else
+            dim "Could not install pipx: ${LAST_ERROR%%$'\n'*}"
         fi
     fi
 
-    # Try 3: uv tool (if available)
-    if [ -z "$INSTALL_METHOD" ] && has uv; then
-        info "Found uv, installing cub..."
-        if uv tool install "git+https://github.com/$REPO.git" 2>/dev/null; then
-            INSTALL_METHOD="uv"
-            CUB_PATH="$HOME/.local/bin"
-        fi
-    fi
-
-    # Try 4: pip install --user
+    # Try 4: pip install --user (last resort)
     if [ -z "$INSTALL_METHOD" ]; then
-        info "Falling back to pip install --user..."
-        if "$PYTHON" -m pip install --user "git+https://github.com/$REPO.git" 2>/dev/null; then
+        info "Trying pip install --user..."
+        if try_install "pip install --user" "$PYTHON -m pip install --user 'git+https://github.com/$REPO.git'"; then
             INSTALL_METHOD="pip"
             CUB_PATH="$("$PYTHON" -m site --user-base)/bin"
+        else
+            dim "pip install failed: ${LAST_ERROR%%$'\n'*}"
         fi
     fi
 
     # Check if installation succeeded
     if [ -z "$INSTALL_METHOD" ]; then
-        error "Installation failed. Please try manually:"
         echo ""
-        echo "  pipx install git+https://github.com/$REPO.git"
+        error "Installation failed after trying: ${TRIED_METHODS[*]}"
         echo ""
-        echo "Or see: https://github.com/$REPO#installation"
+        echo "Last error: $LAST_ERROR" | head -5
+        echo ""
+        echo -e "${BOLD}Please try one of these manual installation methods:${NC}"
+        echo ""
+
+        # Suggest methods based on what's available
+        if has pipx; then
+            echo "  ${GREEN}pipx (recommended):${NC}"
+            echo "    pipx install git+https://github.com/$REPO.git"
+            echo ""
+        fi
+
+        if has uv; then
+            echo "  ${GREEN}uv:${NC}"
+            echo "    uv tool install git+https://github.com/$REPO.git"
+            echo ""
+        fi
+
+        echo "  ${GREEN}pip (in a virtual environment):${NC}"
+        echo "    python3 -m venv ~/.cub-venv"
+        echo "    ~/.cub-venv/bin/pip install git+https://github.com/$REPO.git"
+        echo "    # Then add ~/.cub-venv/bin to your PATH"
+        echo ""
+
+        echo "  ${GREEN}pip --user:${NC}"
+        echo "    $PYTHON -m pip install --user git+https://github.com/$REPO.git"
+        echo ""
+
+        if ! has pipx && ! has uv; then
+            echo "  ${GREEN}Install pipx first (recommended):${NC}"
+            echo "    # On Ubuntu/Debian:"
+            echo "    sudo apt install pipx"
+            echo "    pipx ensurepath"
+            echo ""
+            echo "    # On macOS:"
+            echo "    brew install pipx"
+            echo "    pipx ensurepath"
+            echo ""
+            echo "    # Then install cub:"
+            echo "    pipx install git+https://github.com/$REPO.git"
+            echo ""
+        fi
+
+        echo "See: https://github.com/$REPO#installation"
         exit 1
     fi
 
