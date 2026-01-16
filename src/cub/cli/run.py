@@ -4,6 +4,7 @@ Cub CLI - Run command.
 Execute autonomous task loop with specified harness.
 """
 
+import os
 import signal
 import sys
 import time
@@ -29,6 +30,8 @@ from cub.core.status.models import (
 from cub.core.status.writer import StatusWriter
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
+from cub.core.worktree.manager import WorktreeError, WorktreeManager
+from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 
 app = typer.Typer(
@@ -252,6 +255,24 @@ def run(
         "--monitor",
         help="Launch with live dashboard in tmux split pane",
     ),
+    worktree: bool = typer.Option(
+        False,
+        "--worktree",
+        help="Run in isolated git worktree",
+    ),
+    worktree_keep: bool = typer.Option(
+        False,
+        "--worktree-keep",
+        help="Keep worktree after run completes (only with --worktree)",
+    ),
+    parallel: int | None = typer.Option(
+        None,
+        "--parallel",
+        "-p",
+        help="Run N tasks in parallel, each in its own worktree",
+        min=1,
+        max=10,
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -268,12 +289,47 @@ def run(
         cub run --epic backend-v2       # Work on epic only
         cub run --label priority        # Work on labeled tasks
         cub run --ready                 # List ready tasks
+        cub run --worktree              # Run in isolated worktree
+        cub run --worktree --worktree-keep  # Keep worktree after run
+        cub run --parallel 3            # Run 3 independent tasks in parallel
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
 
     # Load configuration
     config = load_config(project_dir)
+
+    # Handle --worktree flag: create and enter worktree
+    worktree_path: Path | None = None
+    original_cwd: Path | None = None
+
+    if worktree:
+        try:
+            # Generate worktree name based on task or session
+            if task_id:
+                worktree_name = task_id
+            else:
+                worktree_name = f"cub-run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+            manager = WorktreeManager(project_dir)
+
+            # Create worktree (or get existing one)
+            worktree_obj = manager.create(worktree_name, create_branch=False)
+            worktree_path = worktree_obj.path
+
+            console.print(f"[cyan]Created worktree: {worktree_path}[/cyan]")
+
+            # Change to worktree directory
+            original_cwd = Path.cwd()
+            os.chdir(worktree_path)
+            project_dir = worktree_path
+
+            if debug:
+                console.print(f"[dim]Working directory: {project_dir}[/dim]")
+
+        except WorktreeError as e:
+            console.print(f"[red]Failed to create worktree: {e}[/red]")
+            raise typer.Exit(1)
 
     # Handle --monitor flag: launch tmux session with dashboard
     if monitor:
@@ -309,6 +365,12 @@ def run(
             run_args.append("--ready")
         if stream:
             run_args.append("--stream")
+        if worktree:
+            run_args.append("--worktree")
+        if worktree_keep:
+            run_args.append("--worktree-keep")
+        if parallel:
+            run_args.extend(["--parallel", str(parallel)])
         if debug:
             run_args.append("--debug")
 
@@ -337,6 +399,23 @@ def run(
     # Handle --ready flag: just list ready tasks
     if ready:
         _show_ready_tasks(task_backend, epic, label)
+        raise typer.Exit(0)
+
+    # Handle --parallel flag: execute tasks in parallel
+    if parallel is not None and parallel > 1:
+        _run_parallel(
+            task_backend=task_backend,
+            backend_name=backend_name,
+            project_dir=project_dir,
+            parallel=parallel,
+            harness=harness,
+            model=model,
+            epic=epic,
+            label=label,
+            debug=debug,
+            stream=stream,
+        )
+        # _run_parallel handles its own exit
         raise typer.Exit(0)
 
     # Detect or validate harness
@@ -607,6 +686,24 @@ def run(
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
 
+        # Cleanup worktree if requested
+        if worktree and worktree_path and not worktree_keep:
+            try:
+                # Return to original directory before cleanup
+                if original_cwd:
+                    os.chdir(original_cwd)
+
+                manager = WorktreeManager()
+                manager.remove(worktree_path, force=False)
+                console.print(f"[cyan]Removed worktree: {worktree_path}[/cyan]")
+
+            except WorktreeError as e:
+                console.print(f"[yellow]Failed to cleanup worktree: {e}[/yellow]")
+                console.print(f"[dim]Worktree preserved at: {worktree_path}[/dim]")
+
+        elif worktree and worktree_path and worktree_keep:
+            console.print(f"[cyan]Worktree preserved at: {worktree_path}[/cyan]")
+
     # Exit with appropriate code
     if status.phase == RunPhase.FAILED:
         raise typer.Exit(1)
@@ -661,6 +758,149 @@ def _show_ready_tasks(
 
     console.print(table)
     console.print(f"\n[dim]Total: {len(ready_tasks)} ready tasks[/dim]")
+
+
+def _run_parallel(
+    task_backend: object,
+    backend_name: str,
+    project_dir: Path,
+    parallel: int,
+    harness: str | None,
+    model: str | None,
+    epic: str | None,
+    label: str | None,
+    debug: bool,
+    stream: bool,
+) -> None:
+    """
+    Execute tasks in parallel using git worktrees.
+
+    Args:
+        task_backend: Task backend instance
+        backend_name: Name of task backend (for display)
+        project_dir: Project directory
+        parallel: Number of tasks to run in parallel
+        harness: AI harness to use
+        model: Model to use
+        epic: Filter by epic
+        label: Filter by label
+        debug: Enable debug output
+        stream: Stream output (per-worker)
+    """
+    from cub.core.tasks.backend import TaskBackend
+
+    # Type check task backend
+    if not isinstance(task_backend, TaskBackend):
+        console.print("[red]Invalid task backend[/red]")
+        raise typer.Exit(1)
+
+    # Create parallel runner
+    runner = ParallelRunner(
+        project_dir=project_dir,
+        harness=harness,
+        model=model,
+        debug=debug,
+        stream=stream,
+    )
+
+    # Find independent tasks
+    console.print(f"[bold]Finding {parallel} independent tasks...[/bold]")
+    tasks = runner.find_independent_tasks(
+        task_backend=task_backend,
+        count=parallel,
+        epic=epic,
+        label=label,
+    )
+
+    if not tasks:
+        console.print("[yellow]No ready tasks found for parallel execution.[/yellow]")
+        counts = task_backend.get_task_counts()
+        if counts.remaining > 0:
+            console.print(
+                f"[dim]{counts.remaining} tasks remaining but blocked by dependencies.[/dim]"
+            )
+        raise typer.Exit(0)
+
+    if len(tasks) < parallel:
+        console.print(
+            f"[yellow]Found only {len(tasks)} independent tasks "
+            f"(requested {parallel})[/yellow]"
+        )
+
+    # Display tasks to be executed
+    console.print()
+    table = Table(title="Tasks for Parallel Execution", show_header=True)
+    table.add_column("ID", style="cyan")
+    table.add_column("Priority", style="yellow")
+    table.add_column("Title")
+
+    for task in tasks:
+        priority = task.priority.value if hasattr(task.priority, "value") else str(task.priority)
+        table.add_row(
+            task.id,
+            priority,
+            task.title[:60] + "..." if len(task.title) > 60 else task.title,
+        )
+
+    console.print(table)
+    console.print()
+
+    # Execute in parallel
+    result = runner.run(tasks, max_workers=len(tasks))
+
+    # Display summary
+    _display_parallel_summary(result)
+
+    # Exit with failure if any tasks failed
+    if result.tasks_failed > 0:
+        raise typer.Exit(1)
+
+    raise typer.Exit(0)
+
+
+def _display_parallel_summary(result: object) -> None:
+    """Display summary of parallel execution."""
+    from cub.core.worktree.parallel import ParallelRunResult
+
+    if not isinstance(result, ParallelRunResult):
+        return
+
+    console.print()
+    table = Table(title="Parallel Run Summary", show_header=True)
+    table.add_column("Metric", style="cyan")
+    table.add_column("Value", style="green")
+
+    table.add_row("Duration", f"{result.total_duration:.1f}s")
+    table.add_row("Tasks Completed", str(result.tasks_completed))
+    table.add_row("Tasks Failed", str(result.tasks_failed))
+    table.add_row("Total Tokens", f"{result.total_tokens:,}")
+    if result.total_cost > 0:
+        table.add_row("Total Cost", f"${result.total_cost:.4f}")
+
+    console.print(table)
+
+    # Show individual task results
+    if result.workers:
+        console.print()
+        worker_table = Table(title="Task Results", show_header=True)
+        worker_table.add_column("Task", style="cyan")
+        worker_table.add_column("Status")
+        worker_table.add_column("Duration")
+        worker_table.add_column("Tokens")
+
+        for worker in result.workers:
+            status = "[green]✓[/green]" if worker.success else "[red]✗[/red]"
+            if not worker.success and worker.error:
+                status = f"[red]✗ {worker.error[:30]}...[/red]"
+
+            worker_table.add_row(
+                worker.task_id,
+                status,
+                f"{worker.duration_seconds:.1f}s",
+                f"{worker.tokens_used:,}" if worker.tokens_used else "-",
+            )
+
+        console.print(worker_table)
 
 
 __all__ = ["app"]
