@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.26.0] - 2026-01-16
+
+### Added
+
+- Auto-generate changelog from git commits
+- Add cut-release.sh for standalone release creation
+- AI-generated titles and new filename format for captures
+- Random IDs, AI slugs, and simplified timestamps for captures
+- Implement two-tier capture storage model
+
+### Changed
+
+- Updated to include changelog (#32)
+- Update capture spec with two-tier storage model
+
+---
+
 ## [0.25.1] - 2026-01-16
 
 ### Changed
