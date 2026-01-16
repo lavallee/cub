@@ -37,10 +37,10 @@ OPTIONS:
                         Default is auto-detection (beads if available, else json).
 
   <directory>           Directory to initialize (default: current dir)
-                        Creates prd.json, PROMPT.md, AGENT.md, etc.
 
 WHAT IT CREATES:
-  prd.json              Task backlog in JSON format
+  .beads/               Task management (if using beads backend)
+  prd.json              Task backlog (if using JSON backend)
   .cub/
     ├── README.md        Quick reference guide (editable)
     ├── prompt.md        System prompt template
@@ -136,8 +136,25 @@ _prompt_project_type() {
     return 0
 }
 
-# Generate agent.md template based on project type
+# Generate agent.md template based on project type and backend
 _generate_agent_template() {
+    local project_type="$1"
+    local backend="${2:-json}"  # Default to json for backwards compatibility
+
+    # Generate base template then substitute backend-specific line
+    local task_line
+    if [[ "$backend" == "beads" ]]; then
+        task_line="├── .beads/            # Task management (beads backend)"
+    else
+        task_line="├── prd.json           # Task backlog (JSON backend)"
+    fi
+
+    # Generate template and substitute the placeholder
+    _generate_agent_template_base "$project_type" | sed "s|├── prd.json.*# Task backlog|${task_line}|"
+}
+
+# Base template generator (used internally by _generate_agent_template)
+_generate_agent_template_base() {
     local project_type="$1"
 
     case "$project_type" in
@@ -1265,12 +1282,22 @@ EOF
     layout_root=$(get_layout_root ".")
     mkdir -p "$layout_root"
 
-    # Create prompt.md in layout root
+    # Create prompt.md in layout root (customized for selected backend)
     local prompt_file
     prompt_file=$(get_prompt_file ".")
     if [[ ! -f "$prompt_file" ]]; then
-        cp "${CUB_DIR}/templates/PROMPT.md" "$prompt_file"
-        log_success "Created $(basename "$prompt_file")"
+        if [[ "$selected_backend" == "beads" ]]; then
+            # Beads backend: use bd commands
+            sed -e 's|bd close vs prd.json update|bd close|g' \
+                -e 's|(either `bd close` or prd.json update)|(`bd close <task-id>`)|g' \
+                "${CUB_DIR}/templates/PROMPT.md" > "$prompt_file"
+        else
+            # JSON backend: use prd.json
+            sed -e 's|bd close vs prd.json update|prd.json update|g' \
+                -e 's|(either `bd close` or prd.json update)|(update task status in prd.json)|g' \
+                "${CUB_DIR}/templates/PROMPT.md" > "$prompt_file"
+        fi
+        log_success "Created $(basename "$prompt_file") (${selected_backend} backend)"
     else
         log_warn "$(basename "$prompt_file") already exists, skipping"
     fi
@@ -1279,8 +1306,8 @@ EOF
     local agent_file
     agent_file=$(get_agent_file ".")
     if [[ ! -f "$agent_file" ]]; then
-        _generate_agent_template "$project_type" > "$agent_file"
-        log_success "Created $(basename "$agent_file") for ${project_type} project"
+        _generate_agent_template "$project_type" "$selected_backend" > "$agent_file"
+        log_success "Created $(basename "$agent_file") for ${project_type} project (${selected_backend} backend)"
     else
         log_warn "$(basename "$agent_file") already exists, skipping"
     fi
