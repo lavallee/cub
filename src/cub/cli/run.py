@@ -22,6 +22,7 @@ from cub.core.harness.backend import get_backend as get_harness_backend
 from cub.core.harness.models import HarnessResult
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
+from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
@@ -1056,6 +1057,12 @@ def _run_in_sandbox(
         sandbox_id = provider.start(project_dir, sandbox_config)
         console.print(f"[cyan]Sandbox started: {sandbox_id}[/cyan]")
 
+        # Save sandbox state if keeping
+        if sandbox_keep:
+            save_sandbox_state(project_dir, sandbox_id, provider.name)
+            if debug:
+                console.print(f"[dim]Saved sandbox state to .cub/sandbox.json[/dim]")
+
         if debug:
             console.print(f"[dim]Container ID: {sandbox_id}[/dim]")
 
@@ -1146,6 +1153,8 @@ def _run_in_sandbox(
                 console.print("[cyan]Cleaning up sandbox...[/cyan]")
                 provider.cleanup(sandbox_id)
                 console.print("[cyan]Sandbox removed[/cyan]")
+                # Clear state file
+                clear_sandbox_state(project_dir)
             except Exception as e:
                 console.print(f"[yellow]Failed to cleanup sandbox: {e}[/yellow]")
                 console.print(f"[dim]Sandbox preserved: {sandbox_id}[/dim]")

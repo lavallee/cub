@@ -54,6 +54,12 @@ from .provider import (
     list_providers,
     register_provider,
 )
+from .state import (
+    ActiveSandbox,
+    clear_sandbox_state,
+    load_sandbox_state,
+    save_sandbox_state,
+)
 
 __all__ = [
     # Models
@@ -71,4 +77,9 @@ __all__ = [
     "list_available_providers",
     "is_provider_available",
     "get_capabilities",
+    # State management
+    "ActiveSandbox",
+    "save_sandbox_state",
+    "load_sandbox_state",
+    "clear_sandbox_state",
 ]
