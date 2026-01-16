@@ -1856,3 +1856,125 @@ All documentation examples were verified against actual CLI:
 ### Commit
 20b5620 task(cub-068): Update installation and migration docs
 
+
+## 2026-01-16 - cub-085: Implement cub sandbox subcommands
+
+### Task Completed
+Implemented CLI commands for managing Docker sandboxes, enabling users to inspect, apply, and clean up sandboxed execution environments.
+
+### What Was Implemented
+
+**New CLI Module: src/cub/cli/sandbox.py**
+Comprehensive sandbox management commands:
+
+1. **cub sandbox logs** - Stream container logs
+   - Auto-detects active sandbox or accepts explicit ID
+   - Supports --follow flag for real-time streaming
+   - Handles keyboard interrupts gracefully
+
+2. **cub sandbox status** - Show sandbox state and resource usage
+   - Displays provider, state (running/stopped/failed)
+   - Shows start/stop timestamps and exit codes
+   - Reports memory and CPU usage for running containers
+   - Color-coded state indicators
+
+3. **cub sandbox diff** - Show changes made in sandbox
+   - Git-style unified diff of file changes
+   - Syntax-highlighted output via Rich
+   - Works on both running and stopped containers
+
+4. **cub sandbox export** - Export files to local directory
+   - Default: only exports changed files
+   - --all flag exports entire project
+   - Creates destination directories automatically
+
+5. **cub sandbox apply** - Apply changes to project
+   - Shows diff preview before applying
+   - Confirmation prompt (skippable with -y)
+   - Overwrites local files with sandbox changes
+   - Safety check to prevent accidental data loss
+
+6. **cub sandbox clean** - Remove sandbox and cleanup
+   - Stops container if running
+   - Removes volumes and all resources
+   - Confirmation prompt (skippable with -y)
+   - Clears state file if cleaning active sandbox
+
+**New State Management: src/cub/core/sandbox/state.py**
+- ActiveSandbox model tracks current sandbox ID and provider
+- State persisted in .cub/sandbox.json
+- Auto-load enables commands to work without explicit IDs
+- State cleared on cleanup or when --sandbox-keep not used
+
+**Integration with cub run:**
+- Updated run.py to save sandbox state when --sandbox-keep is used
+- State cleared when sandbox cleaned up (no --sandbox-keep)
+- Enables seamless workflow: run with --sandbox-keep, then use sandbox commands
+
+### Key Design Decisions
+
+1. **State tracking:** Commands auto-detect active sandbox from .cub/sandbox.json, falling back to explicit ID argument
+2. **Safety-first apply:** Requires confirmation by default with preview of changes before overwriting files
+3. **Rich formatting:** Uses Rich library for syntax highlighting (diffs), tables (status), and panels for better UX
+4. **Error handling:** Clear error messages when sandbox not found or Docker unavailable
+5. **Flexible export:** Changed-only export by default for efficiency, --all flag for full project export
+
+### Testing
+
+- All existing sandbox tests pass (45 tests)
+- Type checking passes (mypy strict mode)
+- Linting passes (ruff)
+- Code formatting verified
+- CLI help text validated for all commands
+
+### Example Workflows
+
+**Inspect and apply changes:**
+```bash
+# Run with kept sandbox
+cub run --sandbox --sandbox-keep --once
+
+# Check what changed
+cub sandbox diff
+
+# Review status
+cub sandbox status
+
+# Apply changes to project
+cub sandbox apply
+
+# Clean up
+cub sandbox clean
+```
+
+**Debug sandbox execution:**
+```bash
+# Start sandbox run
+cub run --sandbox --sandbox-keep
+
+# In another terminal, stream logs
+cub sandbox logs -f
+
+# After completion, export to temp location
+cub sandbox export /tmp/sandbox-output
+
+# Review and selectively apply
+```
+
+### Files Modified
+- src/cub/cli/__init__.py - registered sandbox subcommand
+- src/cub/cli/run.py - added state save/clear for sandbox
+- src/cub/core/sandbox/__init__.py - exported state functions
+
+### Files Created
+- src/cub/cli/sandbox.py - 500+ lines of sandbox CLI commands
+- src/cub/core/sandbox/state.py - sandbox state tracking
+
+### Learnings
+
+1. **Naming conflicts:** Initially named state model SandboxState which conflicted with the enum in models.py. Renamed to ActiveSandbox for clarity.
+2. **State persistence:** Storing sandbox ID in .cub/sandbox.json enables stateless CLI design - commands work without passing IDs repeatedly.
+3. **Confirmation patterns:** Following Unix conventions with -y/--yes flags to skip prompts for automation/scripts.
+4. **Error messages:** Including actionable next steps (e.g., "Start a sandbox with: cub run --sandbox --sandbox-keep") improves UX significantly.
+5. **Rich formatting:** Syntax highlighting for diffs and colored status indicators make output much more readable.
+

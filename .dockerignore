@@ -1,0 +1,57 @@
+# Docker ignore file for cub
+# Excludes files from Docker build context
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+*.egg
+.eggs
+dist
+build
+.venv
+venv
+env
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+.tox
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Project-specific
+.cub
+.beads
+.claude
+*.log
+*.jsonl
+
+# Testing
+tests
+.playwright-mcp
+
+# Documentation (except README)
+docs
+*.md
+!README.md
+
+# Scripts (not needed in container)
+scripts
+
+# Editor temp files
+*.bak
+*.tmp

@@ -20,6 +20,9 @@ from cub.core.config.loader import load_config
 from cub.core.harness.backend import detect_harness
 from cub.core.harness.backend import get_backend as get_harness_backend
 from cub.core.harness.models import HarnessResult
+from cub.core.sandbox.models import SandboxConfig, SandboxState
+from cub.core.sandbox.provider import get_provider, is_provider_available
+from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
@@ -273,6 +276,21 @@ def run(
         min=1,
         max=10,
     ),
+    sandbox: bool = typer.Option(
+        False,
+        "--sandbox",
+        help="Run in Docker sandbox for isolation",
+    ),
+    sandbox_keep: bool = typer.Option(
+        False,
+        "--sandbox-keep",
+        help="Keep sandbox container after run completes (only with --sandbox)",
+    ),
+    no_network: bool = typer.Option(
+        False,
+        "--no-network",
+        help="Disable network access (requires --sandbox)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -292,9 +310,50 @@ def run(
         cub run --worktree              # Run in isolated worktree
         cub run --worktree --worktree-keep  # Keep worktree after run
         cub run --parallel 3            # Run 3 independent tasks in parallel
+        cub run --sandbox               # Run in Docker sandbox
+        cub run --sandbox --no-network  # Run in sandbox without network
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
+
+    # Validate flags
+    if no_network and not sandbox:
+        console.print("[red]--no-network requires --sandbox[/red]")
+        raise typer.Exit(1)
+
+    if sandbox_keep and not sandbox:
+        console.print("[red]--sandbox-keep requires --sandbox[/red]")
+        raise typer.Exit(1)
+
+    # Handle --sandbox flag: run in Docker container
+    if sandbox:
+        # Check if Docker is available
+        if not is_provider_available("docker"):
+            console.print(
+                "[red]Docker is not available. "
+                "Please install Docker and ensure the daemon is running.[/red]"
+            )
+            console.print("[dim]Install: https://docs.docker.com/get-docker/[/dim]")
+            raise typer.Exit(1)
+
+        # Delegate to sandbox execution
+        exit_code = _run_in_sandbox(
+            project_dir=project_dir,
+            harness=harness,
+            once=once,
+            task_id=task_id,
+            budget=budget,
+            budget_tokens=budget_tokens,
+            epic=epic,
+            label=label,
+            model=model,
+            session_name=session_name,
+            stream=stream,
+            no_network=no_network,
+            sandbox_keep=sandbox_keep,
+            debug=debug,
+        )
+        raise typer.Exit(exit_code)
 
     # Load configuration
     config = load_config(project_dir)
@@ -371,6 +430,12 @@ def run(
             run_args.append("--worktree-keep")
         if parallel:
             run_args.extend(["--parallel", str(parallel)])
+        if sandbox:
+            run_args.append("--sandbox")
+        if sandbox_keep:
+            run_args.append("--sandbox-keep")
+        if no_network:
+            run_args.append("--no-network")
         if debug:
             run_args.append("--debug")
 
@@ -901,6 +966,200 @@ def _display_parallel_summary(result: object) -> None:
             )
 
         console.print(worker_table)
+
+
+def _run_in_sandbox(
+    project_dir: Path,
+    harness: str | None,
+    once: bool,
+    task_id: str | None,
+    budget: float | None,
+    budget_tokens: int | None,
+    epic: str | None,
+    label: str | None,
+    model: str | None,
+    session_name: str | None,
+    stream: bool,
+    no_network: bool,
+    sandbox_keep: bool,
+    debug: bool,
+) -> int:
+    """
+    Run cub in a Docker sandbox.
+
+    Args:
+        project_dir: Project directory to sandbox
+        harness: AI harness to use
+        once: Run one iteration
+        task_id: Specific task to run
+        budget: Budget limit (USD)
+        budget_tokens: Token budget limit
+        epic: Epic filter
+        label: Label filter
+        model: Model to use
+        session_name: Session name
+        stream: Stream output
+        no_network: Disable network
+        sandbox_keep: Keep container after run
+        debug: Debug mode
+
+    Returns:
+        Exit code (0 = success, 1 = failure)
+    """
+    console.print("[bold]Starting cub in Docker sandbox...[/bold]")
+
+    # Build cub run arguments
+    cub_args = []
+    if harness:
+        cub_args.extend(["--harness", harness])
+    if once:
+        cub_args.append("--once")
+    if task_id:
+        cub_args.extend(["--task", task_id])
+    if budget:
+        cub_args.extend(["--budget", str(budget)])
+    if budget_tokens:
+        cub_args.extend(["--budget-tokens", str(budget_tokens)])
+    if epic:
+        cub_args.extend(["--epic", epic])
+    if label:
+        cub_args.extend(["--label", label])
+    if model:
+        cub_args.extend(["--model", model])
+    if session_name:
+        cub_args.extend(["--name", session_name])
+    if stream:
+        cub_args.append("--stream")
+    if debug:
+        cub_args.append("--debug")
+
+    # Create sandbox configuration
+    sandbox_config = SandboxConfig(
+        network=not no_network,
+        cub_args=cub_args,
+    )
+
+    # Get Docker provider
+    try:
+        provider = get_provider("docker")
+    except ValueError as e:
+        console.print(f"[red]Failed to get Docker provider: {e}[/red]")
+        return 1
+
+    if debug:
+        console.print(f"[dim]Provider: {provider.name} (v{provider.get_version()})[/dim]")
+        console.print(f"[dim]Network: {'enabled' if not no_network else 'disabled'}[/dim]")
+
+    # Start sandbox
+    sandbox_id = None
+    try:
+        console.print("[cyan]Creating sandbox...[/cyan]")
+        sandbox_id = provider.start(project_dir, sandbox_config)
+        console.print(f"[cyan]Sandbox started: {sandbox_id}[/cyan]")
+
+        # Save sandbox state if keeping
+        if sandbox_keep:
+            save_sandbox_state(project_dir, sandbox_id, provider.name)
+            if debug:
+                console.print(f"[dim]Saved sandbox state to .cub/sandbox.json[/dim]")
+
+        if debug:
+            console.print(f"[dim]Container ID: {sandbox_id}[/dim]")
+
+        # Stream logs to terminal
+        console.print()
+        console.print("[bold]Sandbox Output:[/bold]")
+        console.print("─" * 80)
+
+        def log_callback(line: str) -> None:
+            """Print log line to console."""
+            print(line, end="")
+
+        # Follow logs until container stops
+        provider.logs(sandbox_id, follow=True, callback=log_callback)
+
+        console.print("─" * 80)
+        console.print()
+
+        # Get final status
+        status = provider.status(sandbox_id)
+
+        if debug:
+            console.print(f"[dim]Final state: {status.state.value}[/dim]")
+            console.print(f"[dim]Exit code: {status.exit_code}[/dim]")
+
+        # Show diff summary
+        console.print("[bold]Changes:[/bold]")
+        diff_output = provider.diff(sandbox_id)
+
+        if diff_output:
+            # Count lines changed
+            diff_lines = diff_output.splitlines()
+            added = sum(
+                1 for line in diff_lines if line.startswith("+") and not line.startswith("+++")
+            )
+            removed = sum(
+                1 for line in diff_lines if line.startswith("-") and not line.startswith("---")
+            )
+
+            console.print(f"[green]+{added} lines added[/green]")
+            console.print(f"[red]-{removed} lines removed[/red]")
+            console.print()
+            console.print("[dim]Diff:[/dim]")
+            console.print(diff_output[:2000])  # Truncate for display
+            if len(diff_output) > 2000:
+                console.print(f"[dim]... ({len(diff_output) - 2000} more characters)[/dim]")
+        else:
+            console.print("[dim]No changes detected[/dim]")
+
+        console.print()
+
+        # Determine exit code
+        if status.state == SandboxState.FAILED:
+            console.print(f"[red]Sandbox failed: {status.error or 'Unknown error'}[/red]")
+            exit_code = status.exit_code or 1
+        elif status.exit_code == 0:
+            console.print("[green]Sandbox completed successfully[/green]")
+            exit_code = 0
+        else:
+            console.print(f"[yellow]Sandbox exited with code {status.exit_code}[/yellow]")
+            exit_code = status.exit_code or 1
+
+        return exit_code
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Interrupted by user[/yellow]")
+        if sandbox_id:
+            console.print("[cyan]Stopping sandbox...[/cyan]")
+            try:
+                provider.stop(sandbox_id)
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Failed to stop sandbox: {e}[/dim]")
+        return 130
+
+    except Exception as e:
+        console.print(f"[red]Sandbox execution failed: {e}[/red]")
+        if debug:
+            import traceback
+
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+        return 1
+
+    finally:
+        # Cleanup sandbox unless --sandbox-keep
+        if sandbox_id and not sandbox_keep:
+            try:
+                console.print("[cyan]Cleaning up sandbox...[/cyan]")
+                provider.cleanup(sandbox_id)
+                console.print("[cyan]Sandbox removed[/cyan]")
+                # Clear state file
+                clear_sandbox_state(project_dir)
+            except Exception as e:
+                console.print(f"[yellow]Failed to cleanup sandbox: {e}[/yellow]")
+                console.print(f"[dim]Sandbox preserved: {sandbox_id}[/dim]")
+        elif sandbox_id and sandbox_keep:
+            console.print(f"[cyan]Sandbox preserved: {sandbox_id}[/cyan]")
 
 
 __all__ = ["app"]

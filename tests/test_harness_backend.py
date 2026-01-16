@@ -19,6 +19,39 @@ from cub.core.harness.backend import (
 from cub.core.harness.models import HarnessCapabilities, HarnessResult
 
 
+class MockBackend:
+    """Simple mock backend for testing registry behavior."""
+
+    @property
+    def name(self) -> str:
+        return "mock"
+
+    @property
+    def capabilities(self) -> HarnessCapabilities:
+        return HarnessCapabilities(supports_streaming=False, reports_token_usage=False)
+
+    def is_available(self) -> bool:
+        return True
+
+    def invoke(
+        self, system_prompt: str, task_prompt: str, model: str | None = None, debug: bool = False
+    ) -> HarnessResult:
+        return HarnessResult(output="mock output")
+
+    def invoke_streaming(
+        self,
+        system_prompt: str,
+        task_prompt: str,
+        model: str | None = None,
+        debug: bool = False,
+        callback: object = None,
+    ) -> HarnessResult:
+        return HarnessResult(output="mock output")
+
+    def get_version(self) -> str:
+        return "1.0.0"
+
+
 class TestBackendRegistry:
     """Test backend registration and retrieval."""
 
@@ -438,8 +471,10 @@ class TestDetectHarness:
 
     def test_detect_harness_env_variable(self, monkeypatch):
         """Test detection from HARNESS environment variable."""
-        # Mock shutil.which to pretend claude is available
         import shutil
+
+        # Register a mock backend first (required for detect_harness to return it)
+        harness_backend._backends["myharness"] = MockBackend
 
         original_which = shutil.which
         monkeypatch.setattr(
@@ -452,6 +487,21 @@ class TestDetectHarness:
 
         # Restore
         monkeypatch.setattr(shutil, "which", original_which)
+        harness_backend._backends.pop("myharness", None)
+
+    def test_detect_harness_env_variable_unregistered(self, monkeypatch):
+        """Test that HARNESS env var is ignored if backend is not registered."""
+        import shutil
+
+        # Do NOT register the backend - test that unregistered backends are skipped
+        monkeypatch.setattr(
+            shutil, "which", lambda cmd: "/usr/bin/" + cmd if cmd == "unregistered" else None
+        )
+        monkeypatch.setenv("HARNESS", "unregistered")
+
+        result = detect_harness()
+        # Should return None because "unregistered" has no Python backend
+        assert result is None
 
     def test_detect_harness_priority_list(self, monkeypatch):
         """Test detection with priority list."""
