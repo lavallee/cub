@@ -22,8 +22,9 @@
 #   2. Create PR, review, fix CI issues
 #   3. Merge to main
 #   4. Update CHANGELOG.md and version
-#   5. Tag and create GitHub release
-#   6. Sync beads, return to main
+#   5. Update webpage with recent changelog entries
+#   6. Tag and create GitHub release
+#   7. Sync beads, return to main
 #
 
 set -euo pipefail
@@ -330,6 +331,26 @@ Use gh cli for GitHub operations.
     log_success "PR merged for v${version}"
 }
 
+# Update webpage with recent changelog entries
+update_webpage_changelog() {
+    log_info "Updating webpage with recent changelog entries..."
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        log_info "[DRY-RUN] Would update docs/index.html with changelog"
+        return 0
+    fi
+
+    if [[ -f "${SCRIPT_DIR}/update_webpage_changelog.py" ]]; then
+        python3 "${SCRIPT_DIR}/update_webpage_changelog.py" || {
+            log_warn "Failed to update webpage changelog (non-fatal)"
+            return 0
+        }
+        log_success "Webpage changelog updated"
+    else
+        log_warn "update_webpage_changelog.py not found, skipping"
+    fi
+}
+
 # Update version and changelog
 update_version_and_changelog() {
     local version="$1"
@@ -477,6 +498,9 @@ run_release_cycle() {
 
     # Step 3: Update version and changelog
     update_version_and_changelog "$version"
+
+    # Step 3.5: Update webpage with changelog
+    update_webpage_changelog
 
     # Step 4: Create release
     create_release "$version"
