@@ -12,7 +12,8 @@ import typer
 from rich.console import Console
 
 from cub.core.captures.models import Capture, CaptureSource
-from cub.core.captures.slug import generate_slug
+from cub.core.captures.project_id import get_project_id
+from cub.core.captures.slug import SlugResult, generate_slug
 from cub.core.captures.store import CaptureStore
 from cub.core.captures.tagging import suggest_tags
 
@@ -141,14 +142,37 @@ def capture(
         store = CaptureStore.global_store()
         location = "global"
 
+    # Get project ID for filename
+    project_id = get_project_id()
+
     # Generate next ID
     capture_id = store.next_id()
 
-    # Generate title (first line or truncated content)
-    title_lines = content.split("\n", 1)
-    title = title_lines[0].strip()
-    if len(title) > 80:
-        title = title[:77] + "..."
+    # Get current timestamp
+    created = datetime.now(timezone.utc)
+
+    # Try AI-generated slug and title
+    slug_result: SlugResult | None = None
+    slug_source = "id"
+
+    if name:
+        # Explicit name provided - use it as slug, derive title from it
+        slug_source = "explicit"
+    elif not no_slug:
+        # Try AI-generated slug
+        slug_result = generate_slug(content)
+        if slug_result:
+            slug_source = "ai"
+
+    # Determine title: AI-generated title if available, otherwise first line
+    if slug_result:
+        title = slug_result.title
+    else:
+        # Fallback: first line or truncated content
+        title_lines = content.split("\n", 1)
+        title = title_lines[0].strip()
+        if len(title) > 80:
+            title = title[:77] + "..."
 
     # Merge auto-suggested tags with user-provided tags
     all_tags = list(tag)  # Convert from tuple to list
@@ -162,29 +186,28 @@ def capture(
     # Create capture object
     capture_obj = Capture(
         id=capture_id,
-        created=datetime.now(timezone.utc),
+        created=created,
         title=title,
         tags=all_tags,
         source=source,
         priority=priority,
     )
 
-    # Generate filename: use explicit name, AI slug, or fall back to ID
-    filename: str | None = None
-    slug_source = "id"
+    # Generate filename: [project_id]-cap-[yyyymmdd]-[slug].md
+    # Format: cub-cap-20260116-add-dark-mode-ui
+    date_str = created.strftime("%Y%m%d")
 
     if name:
         # Explicit name provided
-        filename = name
-        slug_source = "explicit"
-    elif not no_slug:
-        # Try AI-generated slug
-        ai_slug = generate_slug(content)
-        if ai_slug:
-            filename = ai_slug
-            slug_source = "ai"
+        filename = f"{project_id}-cap-{date_str}-{name}"
+    elif slug_result:
+        # AI-generated slug
+        filename = f"{project_id}-cap-{date_str}-{slug_result.slug}"
+    else:
+        # Fallback to ID only (no slug)
+        filename = capture_id
 
-    # Save to disk with optional custom filename
+    # Save to disk with custom filename
     try:
         file_path = store.save_capture(capture_obj, content, filename=filename)
     except OSError as e:
