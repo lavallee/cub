@@ -200,21 +200,22 @@
         /* Quickstart */
         .quickstart {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
             margin: 1.5rem auto;
-            max-width: 600px;
+            max-width: 500px;
             background: var(--bg-card);
-            padding: 1rem 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-radius: 12px;
             border: 1px solid rgba(246, 185, 59, 0.2);
         }
 
         .quickstart-step {
             display: flex;
-            align-items: center;
-            gap: 0.6rem;
+            align-items: flex-start;
+            gap: 0.75rem;
+            width: 100%;
         }
 
         .qs-number {
@@ -230,12 +231,13 @@
             font-weight: 700;
             font-size: 0.8rem;
             flex-shrink: 0;
+            margin-top: 2px;
         }
 
         .qs-content {
             display: flex;
             flex-direction: column;
-            gap: 0.1rem;
+            gap: 0.2rem;
         }
 
         .qs-content code {
@@ -245,27 +247,16 @@
             font-weight: 600;
         }
 
-        .qs-desc {
-            font-size: 0.7rem;
+        .qs-content code::before {
+            content: '$ ';
             color: var(--text-dim);
+            font-weight: 400;
         }
 
-        .quickstart-arrow {
-            color: var(--honey);
-            font-size: 1.2rem;
-            opacity: 0.6;
-        }
-
-        @media (max-width: 768px) {
-            .quickstart {
-                flex-direction: column;
-                gap: 0.75rem;
-                padding: 1rem;
-            }
-            .quickstart-arrow {
-                transform: rotate(90deg);
-                margin: -0.25rem 0;
-            }
+        .qs-desc {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            line-height: 1.4;
         }
 
         /* Ralph reference */
@@ -802,23 +793,21 @@
                 <span class="qs-number">1</span>
                 <div class="qs-content">
                     <code>cub init</code>
-                    <span class="qs-desc">Initialize in your project</span>
+                    <span class="qs-desc">Set up cub in your project directory</span>
                 </div>
             </div>
-            <div class="quickstart-arrow">→</div>
             <div class="quickstart-step">
                 <span class="qs-number">2</span>
                 <div class="qs-content">
                     <code>cub prep</code>
-                    <span class="qs-desc">Break work into tasks</span>
+                    <span class="qs-desc">Describe your goal — cub breaks it into atomic tasks</span>
                 </div>
             </div>
-            <div class="quickstart-arrow">→</div>
             <div class="quickstart-step">
                 <span class="qs-number">3</span>
                 <div class="qs-content">
                     <code>cub run</code>
-                    <span class="qs-desc">Let AI execute</span>
+                    <span class="qs-desc">AI executes tasks one by one. Walk away, come back to commits.</span>
                 </div>
             </div>
         </div>
