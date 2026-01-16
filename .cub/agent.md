@@ -174,7 +174,7 @@ These commands are not yet ported to Python. They are registered as Typer comman
 - `sessions` - List and manage prep sessions
 
 **Task & Artifact Management:**
-- `explain` - Show detailed task information
+- `explain-task` - Show detailed task information
 - `artifacts` - List task output artifacts
 - `validate` - Validate beads state and configuration
 
@@ -193,9 +193,9 @@ These commands are not yet ported to Python. They are registered as Typer comman
 - `doctor` - Diagnose and fix configuration issues
 - `upgrade` - Upgrade cub to newer version
 
-**Agent Commands (Internal Use):**
-- `agent-close` - Close a task (for agent use)
-- `agent-verify` - Verify task is closed (for agent use)
+**Task Commands (for agent use):**
+- `close-task` - Close a task (for agent use)
+- `verify-task` - Verify task is closed (for agent use)
 
 ### How Delegation Works
 
