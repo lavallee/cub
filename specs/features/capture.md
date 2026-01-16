@@ -23,25 +23,60 @@
 
 ## Storage
 
-### Project Captures
+Captures use a **two-tier storage model**:
 
-When inside a git repository:
+1. **Global captures** (default): Stored outside the repo, safe from branch chaos
+2. **Project captures** (imported): Version-controlled with the project
 
-```
-captures/
-├── 2026-01-16-parallel-clones.md
-├── 2026-01-16-ui-ideas.md
-└── 2026-01-17-jules-research.md
-```
+### Global Captures (Default)
 
-### Global Captures
-
-When outside a git repository, or for ideas not yet tied to a project:
+All captures are written to a global location by default, organized by project:
 
 ```
 ~/.local/share/cub/captures/
-└── *.md
+├── cub/                          # Captures made in "cub" project
+│   ├── 2026-01-16-parallel-clones.md
+│   └── 2026-01-16-ui-ideas.md
+├── jefe/                         # Captures made in "jefe" project
+│   └── 2026-01-17-api-redesign.md
+└── _global/                      # Captures made outside any git repo
+    └── 2026-01-15-random-thought.md
 ```
+
+**Why global by default?**
+- Captures survive branch deletion
+- No accidental commits mixing ideas with feature work
+- Safe across repo re-clones (captures are external)
+- Enables cross-project capture browsing
+
+### Project Captures (Imported)
+
+When a capture is ready to be version-controlled with the project, import it:
+
+```
+captures/
+├── 2026-01-16-parallel-clones.md   # Imported, now tracked in git
+└── 2026-01-17-finalized-spec.md
+```
+
+Import is a conscious decision: "this idea is now part of this project's permanent record."
+
+### Project Identifier
+
+To maintain consistency across multiple working copies and repo renames, the project identifier is stored in `.cub/config.json`:
+
+```json
+{
+  "project_id": "cub"
+}
+```
+
+**Auto-inference**: If `project_id` is missing, cub infers it from the git remote origin:
+- `git@github.com:user/my-project.git` → `my-project`
+- `https://github.com/user/my-project.git` → `my-project`
+- No remote → directory basename
+
+Once inferred, the ID is written to `.cub/config.json` for consistency.
 
 ---
 
@@ -130,10 +165,19 @@ cub capture -i "topic to explore"
 ### Listing Captures
 
 ```bash
-# List recent captures (default: 20)
+# List captures for current project (both global and imported)
 cub captures
 
-# List all
+# Output shows both locations:
+#   GLOBAL (3 captures in ~/.local/share/cub/captures/cub/)
+#   cap-001  2026-01-16  parallel-clones-idea        [git, workflow]
+#   cap-002  2026-01-16  ui-dashboard-concepts       [ui]
+#   cap-003  2026-01-17  worktree-alternatives       [git]
+#
+#   PROJECT (1 capture in ./captures/)
+#   cap-004  2026-01-15  finalized-auth-spec         [auth, spec]
+
+# List all captures (default: 20 most recent)
 cub captures --all
 
 # Filter by tag
@@ -146,8 +190,14 @@ cub captures --since 2026-01-01
 # Full-text search
 cub captures --search "worktree"
 
-# Global captures
+# Only global captures
 cub captures --global
+
+# Only project captures
+cub captures --project
+
+# All projects (cross-project view)
+cub captures --all-projects
 
 # JSON output for scripting
 cub captures --json
@@ -165,10 +215,30 @@ cub captures edit cap-001
 
 # Archive (sets status: archived)
 cub captures archive cap-001
-
-# Import global capture to current project
-cub captures import cap-001
 ```
+
+### Importing Captures
+
+Import graduates a capture from global storage to version-controlled project storage:
+
+```bash
+# Import specific capture by ID
+cub import-captures cap-001
+
+# Import specific capture by filename
+cub import-captures 2026-01-16-parallel-clones.md
+
+# Import all global captures for this project
+cub import-captures --all
+
+# Preview what would be imported
+cub import-captures --all --dry-run
+```
+
+After import:
+- File is copied from `~/.local/share/cub/captures/{project}/` to `./captures/`
+- Original global file can be kept (`--keep`) or removed (default)
+- ID remains the same for traceability
 
 ### Organizing Captures
 
@@ -320,16 +390,18 @@ Auto-tags are suggestions. User can:
 ```
 src/cub/
 ├── cli/
-│   ├── capture.py          # cub capture command
-│   ├── captures.py         # cub captures command (list/show/edit/archive)
+│   ├── capture.py           # cub capture command
+│   ├── captures.py          # cub captures command (list/show/edit/archive)
+│   ├── import_captures.py   # cub import-captures command
 │   └── organize_captures.py # cub organize-captures command
 ├── core/
 │   └── captures/
-│       ├── store.py        # Capture storage/retrieval
-│       ├── models.py       # Capture Pydantic model
-│       └── tagging.py      # Auto-tagging logic
+│       ├── store.py         # Capture storage/retrieval (both global and project)
+│       ├── models.py        # Capture Pydantic model
+│       ├── project_id.py    # Project ID inference and storage
+│       └── tagging.py       # Auto-tagging logic
 └── .claude/commands/
-    └── cub:capture.md          # Skill for /cub:capture and cub capture -i
+    └── cub:capture.md       # Skill for /cub:capture and cub capture -i
 ```
 
 ### Dependencies
@@ -340,15 +412,42 @@ src/cub/
 ### Storage Paths
 
 ```python
-# Project captures
-PROJECT_DIR / "captures"
+# Global captures (organized by project)
+GLOBAL_CAPTURES = Path.home() / ".local" / "share" / "cub" / "captures" / "{project_id}"
 
-# Global captures
-Path.home() / ".local" / "share" / "cub" / "captures"
+# Global captures for non-project contexts
+GLOBAL_CAPTURES_UNSCOPED = Path.home() / ".local" / "share" / "cub" / "captures" / "_global"
 
-# On macOS, could also use:
-# ~/Library/Application Support/cub/captures
-# But .local/share is more cross-platform
+# Project captures (version-controlled)
+PROJECT_CAPTURES = PROJECT_DIR / "captures"
+
+# Project config (stores project_id)
+PROJECT_CONFIG = PROJECT_DIR / ".cub" / "config.json"
+```
+
+### Project ID Resolution
+
+```python
+def get_project_id() -> str:
+    """Get or infer the project identifier."""
+    # 1. Check .cub/config.json
+    config = load_project_config()
+    if config and config.get("project_id"):
+        return config["project_id"]
+
+    # 2. Infer from git remote
+    remote = get_git_remote_origin()
+    if remote:
+        # git@github.com:user/project.git -> project
+        # https://github.com/user/project.git -> project
+        project_id = extract_repo_name(remote)
+    else:
+        # 3. Fall back to directory name
+        project_id = Path.cwd().name
+
+    # 4. Save for consistency
+    save_project_config({"project_id": project_id})
+    return project_id
 ```
 
 ---
@@ -361,28 +460,31 @@ These are explicitly out of scope for v1 but worth noting:
 - **Image/screenshot capture**: Store in captures/, reference in markdown
 - **Capture promotion**: `cub captures promote cap-001 --to spec` creates spec from capture
 - **Capture linking**: Reference other captures with `[[cap-001]]` syntax
-- **Project routing**: `cub capture -p projectname` when outside that project
-- **Sync across machines**: Global captures in git repo or cloud sync
+- **Cross-project routing**: `cub capture -p other-project` to capture to a different project
+- **Sync across machines**: Global captures directory could be synced via Dropbox/iCloud/git
 
 ---
 
 ## Implementation Status
 
 - [x] Skill definition: `.claude/commands/cub:capture.md` (created)
+- [ ] Core: Project ID inference and storage
+- [ ] Core: Capture storage/retrieval (global + project)
 - [ ] CLI: `cub capture` command
 - [ ] CLI: `cub captures` command
+- [ ] CLI: `cub import-captures` command
 - [ ] CLI: `cub organize-captures` command
-- [ ] Core: Capture storage/retrieval
 - [ ] Core: Auto-tagging
 
 ## Success Criteria
 
-- [ ] `cub capture "text"` creates a file in `captures/` in < 1 second
-- [ ] `cub captures` lists captures with readable Rich table output
+- [ ] `cub capture "text"` creates a file in `~/.local/share/cub/captures/{project}/` in < 1 second
+- [ ] `cub captures` lists both global and project captures with clear separation
 - [ ] `cub capture -i` / `/cub:capture` guides user through structured capture session
-- [ ] Manually-created .md files are recognized and normalized by `organize-captures`
-- [ ] Global captures work when outside any git repository
-- [ ] `cub captures import` brings global captures into a project
+- [ ] `cub import-captures` moves captures from global to project storage
+- [ ] Project ID is auto-inferred from git remote and persisted to `.cub/config.json`
+- [ ] Captures survive branch deletion (stored externally)
+- [ ] Manually-created .md files in `./captures/` are recognized by `cub captures`
 
 ---
 
