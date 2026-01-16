@@ -305,6 +305,70 @@ def edit(
 
 
 @app.command()
+def import_capture(
+    ctx: typer.Context,
+    capture_id: str = typer.Argument(
+        ..., help="Capture ID to import from global store (e.g., cap-001)"
+    ),
+    new_id: bool = typer.Option(
+        False,
+        "--reassign",
+        "-r",
+        help="Reassign to next project sequence ID",
+    ),
+) -> None:
+    """
+    Import a global capture into the project.
+
+    Copies a capture from the global store (~/.local/share/cub/captures/)
+    into the current project's captures/ directory.
+
+    By default, preserves the original ID. Use --reassign to get a new
+    project-level ID.
+
+    Examples:
+        cub captures import cap-042
+        cub captures import cap-042 --reassign
+    """
+    # Load from global store
+    global_store = CaptureStore.global_store()
+    try:
+        capture = global_store.get_capture(capture_id)
+    except FileNotFoundError:
+        console.print(f"[red]Error:[/red] Capture not found in global store: {capture_id}")
+        raise typer.Exit(1)
+
+    # Read full content
+    global_capture_file = global_store.get_captures_dir() / f"{capture_id}.md"
+    try:
+        post = frontmatter.load(global_capture_file)
+        content = post.content
+    except Exception as e:
+        console.print(f"[red]Error:[/red] Failed to read capture: {e}")
+        raise typer.Exit(1)
+
+    # Optionally reassign to project sequence
+    if new_id:
+        project_store = CaptureStore.project()
+        new_capture_id = project_store.next_id()
+        capture.id = new_capture_id
+    else:
+        new_capture_id = capture_id
+
+    # Save to project store
+    try:
+        project_store = CaptureStore.project()
+        project_store.save_capture(capture, content)
+    except OSError as e:
+        console.print(f"[red]Error:[/red] Failed to save capture: {e}")
+        raise typer.Exit(1)
+
+    project_captures_dir = project_store.get_captures_dir()
+    console.print(f"[green]✓[/green] Imported {capture_id} as {new_capture_id}")
+    console.print(f"[dim]Location:[/dim] {project_captures_dir / f'{new_capture_id}.md'}")
+
+
+@app.command()
 def archive(
     ctx: typer.Context,
     capture_id: str = typer.Argument(..., help="Capture ID to archive (e.g., cap-001)"),
