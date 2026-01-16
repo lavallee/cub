@@ -8,7 +8,7 @@ load test_helper
 # Setup function runs before each test
 setup() {
     # Source the config library
-    source "${PROJECT_ROOT}/lib/config.sh"
+    source "${LIB_DIR}/config.sh"
 
     # Create temp directory for test configs
     TEST_CONFIG_DIR="${BATS_TMPDIR}/config_test_$$"

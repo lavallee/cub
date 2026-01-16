@@ -2,9 +2,11 @@
 
 # Test suite for lib/dependencies.sh - dependency detection engine
 
+load test_helper
+
 setup() {
     # Source the dependencies module
-    source "${BATS_TEST_DIRNAME}/../lib/dependencies.sh"
+    source "${LIB_DIR}/dependencies.sh"
 }
 
 # ============================================================================

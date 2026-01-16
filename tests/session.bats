@@ -8,7 +8,7 @@ load test_helper
 # Setup function runs before each test
 setup() {
     # Source the session library
-    source "${PROJECT_ROOT}/lib/session.sh"
+    source "${LIB_DIR}/session.sh"
 
     # Reset session state before each test
     _SESSION_NAME=""

@@ -77,13 +77,10 @@ source "${CUB_DIR}/lib/guardrails.sh"
 # Source command implementations
 source "${CUB_DIR}/lib/cmd_guardrails.sh"
 source "${CUB_DIR}/lib/cmd_init.sh"
-source "${CUB_DIR}/lib/cmd_run.sh"
-source "${CUB_DIR}/lib/cmd_status.sh"
 source "${CUB_DIR}/lib/cmd_explain.sh"
 source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
-source "${CUB_DIR}/lib/cmd_upgrade.sh"
 source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
@@ -226,17 +223,7 @@ main() {
                 cmd_init "${args[@]:1}"
                 return $?
                 ;;
-            run)
-                # Run the main loop with remaining args
-                cmd_run "${args[@]:1}"
-                return $?
-                ;;
-            status)
-                # Show task status
-                cmd_status "${args[@]:1}"
-                return $?
-                ;;
-            explain)
+            explain-task)
                 # Explain a task or session
                 cmd_explain "${args[@]:1}"
                 return $?
@@ -246,12 +233,12 @@ main() {
                 cmd_artifacts "${args[@]:1}"
                 return $?
                 ;;
-            agent-close)
+            close-task)
                 # Close a task (agent helper command)
                 cmd_agent_close "${args[@]:1}"
                 return $?
                 ;;
-            agent-verify)
+            verify-task)
                 # Verify a task is closed (agent helper command)
                 cmd_agent_verify "${args[@]:1}"
                 return $?
@@ -259,11 +246,6 @@ main() {
             doctor)
                 # Diagnose and fix common issues
                 cmd_doctor "${args[@]:1}"
-                return $?
-                ;;
-            upgrade)
-                # Upgrade cub to a newer version
-                cmd_upgrade "${args[@]:1}"
                 return $?
                 ;;
             # Vision-to-Tasks Prep commands (v0.14)
@@ -300,11 +282,6 @@ main() {
             validate)
                 # Validate beads state
                 cmd_validate "${args[@]:1}"
-                return $?
-                ;;
-            migrate-layout)
-                # Migrate project layout from legacy to new structure
-                cmd_migrate_layout "${args[@]:1}"
                 return $?
                 ;;
             interview)
@@ -365,22 +342,23 @@ main() {
     fi
 
     # Legacy flag parsing (for backwards compatibility)
+    # Note: run, status, upgrade are now Python-native - these cases redirect to Python CLI
     case "${args[0]:-}" in
         --status|-s)
-            warn_deprecated_flag "--status" "cub status"
-            cmd_status "${args[@]:1}"
+            _log_error_console "Please use 'cub status' instead"
+            return 1
             ;;
         --ready|-r)
-            warn_deprecated_flag "--ready" "cub run --ready"
-            cmd_run --ready "${args[@]:1}"
+            _log_error_console "Please use 'cub run --ready' instead"
+            return 1
             ;;
         --once|-1)
-            warn_deprecated_flag "--once" "cub run --once"
-            cmd_run --once "${args[@]:1}"
+            _log_error_console "Please use 'cub run --once' instead"
+            return 1
             ;;
         --plan|-p)
-            warn_deprecated_flag "--plan" "cub run --plan"
-            cmd_run --plan "${args[@]:1}"
+            _log_error_console "Please use 'cub run --plan' instead"
+            return 1
             ;;
         --test|-t)
             log_info "Testing Claude Code invocation..."
@@ -468,10 +446,10 @@ SUBCOMMANDS:
   cub init [--global] [<dir>]  Initialize project or system
   cub run [<options>]           Run the main loop (default)
   cub status [--json]           Show task progress
-  cub explain <task-id>         Show task details
+  cub explain-task <task-id>    Show task details
   cub artifacts [<task-id>]     List task outputs
-  cub agent-close <task-id>     Close a task (for agent use)
-  cub agent-verify <task-id>    Verify task is closed
+  cub close-task <task-id>      Close a task (for agent use)
+  cub verify-task <task-id>     Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
   cub guardrails show           Display institutional memory
   cub upgrade [--head|--local]  Upgrade cub to newer version
@@ -485,7 +463,6 @@ VISION-TO-TASKS PREP (v0.14):
   cub bootstrap [SESSION]       Stage 4: Initialize beads
   cub sessions                  List/manage prep sessions
   cub validate                  Validate beads state
-  cub migrate-layout            Migrate legacy layout to new .cub/ structure
 
 INTERVIEW MODE (v0.16):
   cub interview <task-id>       Deep dive on task specifications
@@ -501,7 +478,7 @@ USE --help WITH ANY SUBCOMMAND:
   cub init --help               Init subcommand help
   cub run --help                Run subcommand help
   cub status --help             Status subcommand help
-  cub explain --help            Explain subcommand help
+  cub explain-task --help       Explain-task subcommand help
   cub artifacts --help          Artifacts subcommand help
   cub upgrade --help            Upgrade subcommand help
 
@@ -546,7 +523,7 @@ EXAMPLES:
   cub run --once --debug        Debug one iteration
   cub run --model sonnet        Use Sonnet model
   cub artifacts cub-018         Get task output
-  cub explain cub-018           See task details
+  cub explain-task cub-018      See task details
   cub init ~/my-project         Initialize project
   cub init --global             Setup system config
 
@@ -591,9 +568,10 @@ EOF
             echo "cub v${CUB_VERSION}"
             ;;
         *)
-            # Default: run the main loop with all args
-            # Use safe array expansion to handle empty array with set -u
-            cmd_run ${args[@]+"${args[@]}"}
+            # Unrecognized command - bash script should only be called for delegated commands
+            _log_error_console "Unknown command: ${args[0]:-}"
+            _log_error_console "Use 'cub --help' for available commands"
+            return 1
             ;;
     esac
 }

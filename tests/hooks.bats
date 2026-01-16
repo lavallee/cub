@@ -16,7 +16,7 @@ setup() {
     export -f cub_config_dir
 
     # Source the hooks library (will use our cub_config_dir)
-    source "${PROJECT_ROOT}/lib/hooks.sh"
+    source "${LIB_DIR}/hooks.sh"
 
     # Create config directory
     mkdir -p "$(cub_config_dir)"

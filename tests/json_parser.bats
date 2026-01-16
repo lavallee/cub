@@ -7,7 +7,7 @@ load test_helper
 
 setup() {
     # Source the parser
-    source "$PROJECT_ROOT/lib/parsers/json.sh"
+    source "$LIB_DIR/parsers/json.sh"
 }
 
 # ============================================================================

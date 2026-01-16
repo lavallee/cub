@@ -23,7 +23,7 @@ setup() {
     git commit -q -m "Initial commit"
 
     # Source the state library
-    source "${PROJECT_ROOT}/lib/state.sh"
+    source "${LIB_DIR}/state.sh"
 
     # Create temp config directory
     TEST_CONFIG_DIR="${BATS_TMPDIR}/config_test_$$"

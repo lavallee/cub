@@ -5,7 +5,7 @@
 
 # Get absolute path to project root
 export PROJECT_ROOT="$(cd "$(dirname "$BATS_TEST_DIRNAME")" && pwd)"
-export LIB_DIR="$PROJECT_ROOT/lib"
+export LIB_DIR="$PROJECT_ROOT/src/cub/bash/lib"
 export FIXTURES_DIR="$BATS_TEST_DIRNAME/fixtures"
 
 # Setup function called before each test

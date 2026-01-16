@@ -10,6 +10,16 @@ from rich.console import Console
 from cub import __version__
 from cub.cli import audit, delegated, monitor, run, sandbox, status, uninstall, upgrade, worktree
 
+# Help panel names for command grouping
+PANEL_KEY = "Key Commands"
+PANEL_STATUS = "See What a Run is Doing"
+PANEL_TASKS = "Work with Tasks"
+PANEL_PREP = "Go Deep in Prep/Planning Mode"
+PANEL_EPICS = "Manage Epics (Groups of Tasks)"
+PANEL_PROJECT = "Improve Your Project"
+PANEL_ROADMAP = "Manage Your Roadmap"
+PANEL_INSTALL = "Manage Your Cub Installation"
+
 # Create the main Typer app
 app = typer.Typer(
     name="cub",
@@ -39,45 +49,95 @@ def main(
     ctx.obj = {"debug": debug}
 
 
-@app.command()
+# =============================================================================
+# Key Commands
+# =============================================================================
+
+app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
+app.command(name="prep", rich_help_panel=PANEL_KEY)(delegated.prep)
+app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
+app.command(name="doctor", rich_help_panel=PANEL_KEY)(delegated.doctor)
+
+
+# =============================================================================
+# See What a Run is Doing
+# =============================================================================
+
+app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
+app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
+app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
+
+
+# =============================================================================
+# Work with Tasks
+# =============================================================================
+
+app.command(name="interview", rich_help_panel=PANEL_TASKS)(delegated.interview)
+app.command(name="explain-task", rich_help_panel=PANEL_TASKS)(delegated.explain_task)
+app.command(name="close-task", rich_help_panel=PANEL_TASKS)(delegated.close_task)
+app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_task)
+
+
+# =============================================================================
+# Go Deep in Prep/Planning Mode
+# =============================================================================
+
+app.command(name="triage", rich_help_panel=PANEL_PREP)(delegated.triage)
+app.command(name="architect", rich_help_panel=PANEL_PREP)(delegated.architect)
+app.command(name="plan", rich_help_panel=PANEL_PREP)(delegated.plan)
+app.command(name="bootstrap", rich_help_panel=PANEL_PREP)(delegated.bootstrap)
+app.command(name="sessions", rich_help_panel=PANEL_PREP)(delegated.sessions)
+app.command(name="validate", rich_help_panel=PANEL_PREP)(delegated.validate)
+
+
+# =============================================================================
+# Manage Epics (Groups of Tasks)
+# =============================================================================
+
+app.command(name="branch", rich_help_panel=PANEL_EPICS)(delegated.branch)
+app.command(name="branches", rich_help_panel=PANEL_EPICS)(delegated.branches)
+app.command(name="checkpoints", rich_help_panel=PANEL_EPICS)(delegated.checkpoints)
+app.command(name="pr", rich_help_panel=PANEL_EPICS)(delegated.pr)
+
+
+# =============================================================================
+# Improve Your Project
+# =============================================================================
+
+app.command(name="guardrails", rich_help_panel=PANEL_PROJECT)(delegated.guardrails)
+app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
+
+
+# =============================================================================
+# Manage Your Roadmap
+# =============================================================================
+
+app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
+
+
+# =============================================================================
+# Manage Your Cub Installation
+# =============================================================================
+
+
+@app.command(rich_help_panel=PANEL_INSTALL)
 def version() -> None:
     """Show cub version and exit."""
     console.print(f"cub version {__version__}")
     raise typer.Exit(0)
 
 
-# Register subcommands
-app.add_typer(run.app, name="run")
-app.add_typer(status.app, name="status")
-app.add_typer(monitor.app, name="monitor")
-app.add_typer(upgrade.app, name="upgrade")
-app.add_typer(uninstall.app, name="uninstall")
-app.add_typer(audit.app, name="audit")
-app.add_typer(worktree.app, name="worktree")
-app.add_typer(sandbox.app, name="sandbox")
+app.add_typer(upgrade.app, name="upgrade", rich_help_panel=PANEL_INSTALL)
+app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 
-# Register delegated commands (bash cub commands not yet ported)
-app.command(name="init")(delegated.init)
-app.command(name="prep")(delegated.prep)
-app.command(name="triage")(delegated.triage)
-app.command(name="architect")(delegated.architect)
-app.command(name="plan")(delegated.plan)
-app.command(name="bootstrap")(delegated.bootstrap)
-app.command(name="sessions")(delegated.sessions)
-app.command(name="explain")(delegated.explain)
-app.command(name="artifacts")(delegated.artifacts)
-app.command(name="validate")(delegated.validate)
-app.command(name="branch")(delegated.branch)
-app.command(name="branches")(delegated.branches)
-app.command(name="checkpoints")(delegated.checkpoints)
-app.command(name="pr")(delegated.pr)
-app.command(name="interview")(delegated.interview)
-app.command(name="import")(delegated.import_cmd)
-app.command(name="guardrails")(delegated.guardrails)
-app.command(name="doctor")(delegated.doctor)
-app.command(name="migrate-layout")(delegated.migrate_layout)
-app.command(name="agent-close")(delegated.agent_close)
-app.command(name="agent-verify")(delegated.agent_verify)
+
+# =============================================================================
+# Internal/Advanced Commands (hidden from main help but still accessible)
+# =============================================================================
+
+# Worktree and sandbox are more advanced features
+app.add_typer(worktree.app, name="worktree", hidden=True)
+app.add_typer(sandbox.app, name="sandbox", hidden=True)
 
 
 def cli_main() -> None:

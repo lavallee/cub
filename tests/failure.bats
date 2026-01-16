@@ -19,7 +19,7 @@ cub_config_dir() {
 # Setup function runs before each test
 setup() {
     # Source the failure library
-    source "${PROJECT_ROOT}/lib/failure.sh"
+    source "${LIB_DIR}/failure.sh"
 
     # Create temp directory for test artifacts
     TEST_ARTIFACTS_DIR="${BATS_TMPDIR}/artifacts_test_$$"
@@ -68,7 +68,7 @@ teardown() {
     echo '{"failure": {"mode": "stop"}}' > "$TEST_CONFIG_DIR/config.json"
 
     # Clear cache to force reload
-    source "${PROJECT_ROOT}/lib/config.sh"
+    source "${LIB_DIR}/config.sh"
     config_clear_cache
 
     # Should return configured mode
@@ -537,7 +537,7 @@ teardown() {
 
 @test "failure_handle_retry returns exit code 3 (retry signal) when under limit" {
     # Source budget to initialize
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     # First retry should return 3
@@ -549,7 +549,7 @@ teardown() {
 
 @test "failure_handle_retry increments task iteration counter" {
     # Source budget to initialize
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     # Get initial count
@@ -567,7 +567,7 @@ teardown() {
 
 @test "failure_handle_retry falls back to move-on when limit exceeded" {
     # Source budget to initialize (default max is 3)
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
 
     # Create task directory
     mkdir -p "${TEST_ARTIFACTS_DIR}/cub-retry-limit"
@@ -602,7 +602,7 @@ teardown() {
 
 @test "failure_handle_retry accepts optional output parameter" {
     # Source budget to initialize
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     run failure_handle_retry "cub-retry-test" 1
@@ -613,7 +613,7 @@ teardown() {
 
 @test "failure_handle_retry stores failure info with retry mode" {
     # Source budget to initialize
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     # Create task directory
@@ -631,7 +631,7 @@ teardown() {
 
 @test "failure_handle_retry stores retry-limit-exceeded mode when limit hit" {
     # Source budget to initialize (default max is 3)
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
 
     # Create task directory
     mkdir -p "${TEST_ARTIFACTS_DIR}/cub-retry-limit2"
@@ -739,7 +739,7 @@ teardown() {
 
 @test "AC: Retry increments task iteration counter" {
     # Source budget
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     local before
@@ -772,7 +772,7 @@ teardown() {
 
 @test "AC: Falls back to move-on when limit exceeded" {
     # Source budget (default max is 3)
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
 
     # Create task directory
     mkdir -p "${TEST_ARTIFACTS_DIR}/cub-ac-fallback"
@@ -823,7 +823,7 @@ teardown() {
 
 @test "failure_handle_retry accepts task_title parameter" {
     # Source budget
-    source "${PROJECT_ROOT}/lib/budget.sh"
+    source "${LIB_DIR}/budget.sh"
     budget_set_max_task_iterations 3
 
     # Create task directory

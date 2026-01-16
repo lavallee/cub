@@ -19,7 +19,7 @@ teardown() {
 
 # Source the guardrails library for testing
 source_guardrails() {
-    source "${PROJECT_ROOT}/lib/guardrails.sh"
+    source "${LIB_DIR}/guardrails.sh"
 }
 
 # Helper: Create a mock guardrails file

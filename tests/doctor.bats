@@ -23,7 +23,7 @@ setup() {
     git commit -q -m "Initial commit"
 
     # Source libraries
-    source "${PROJECT_ROOT}/lib/git.sh"
+    source "${LIB_DIR}/git.sh"
 }
 
 # Teardown function runs after each test
@@ -257,7 +257,7 @@ teardown() {
 @test "_doctor_validate_json accepts valid JSON" {
     echo '{"test": "value"}' > test.json
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_validate_json test.json
     [[ $status -eq 0 ]]
 }
@@ -265,7 +265,7 @@ teardown() {
 @test "_doctor_validate_json rejects invalid JSON" {
     echo '{invalid json}' > test.json
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_validate_json test.json
     [[ $status -ne 0 ]]
 }
@@ -273,7 +273,7 @@ teardown() {
 @test "_doctor_validate_json accepts empty object" {
     echo '{}' > test.json
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_validate_json test.json
     [[ $status -eq 0 ]]
 }
@@ -281,7 +281,7 @@ teardown() {
 @test "_doctor_validate_json accepts arrays" {
     echo '[]' > test.json
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_validate_json test.json
     [[ $status -eq 0 ]]
 }
@@ -302,7 +302,7 @@ EOF
 EOF
 )
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_check_deprecated_options config.json "$deprecated"
     [[ $status -ne 0 ]]
     [[ "$output" == *"harness.priority"* ]]
@@ -329,7 +329,7 @@ EOF
 EOF
 )
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_check_deprecated_options config.json "$deprecated"
     [[ $status -eq 0 ]]
 }
@@ -348,7 +348,7 @@ EOF
 EOF
 )
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_check_deprecated_options config.json "$deprecated"
     [[ $status -ne 0 ]]
     [[ "$output" == *"state.clean"* ]]
@@ -363,7 +363,7 @@ EOF
 
     local required='["harness", "budget", "state"]'
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_check_required_fields config.json "$required"
     [[ $status -ne 0 ]]
     [[ "$output" == *"budget"* ]]
@@ -385,7 +385,7 @@ EOF
 
     local required='["harness", "budget", "state"]'
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
     run _doctor_check_required_fields config.json "$required"
     [[ $status -eq 0 ]]
 }
@@ -403,8 +403,8 @@ EOF
     # Create valid symlink
     ln -s .cub/agent.md CLAUDE.md
 
-    source "${PROJECT_ROOT}/lib/layout.sh"
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/layout.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_symlinks
@@ -421,8 +421,8 @@ EOF
     # Create symlink pointing to wrong target
     ln -s .cub/wrong.md CLAUDE.md
 
-    source "${PROJECT_ROOT}/lib/layout.sh"
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/layout.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_symlinks
@@ -439,8 +439,8 @@ EOF
     # Create regular file instead of symlink
     echo "content" > CLAUDE.md
 
-    source "${PROJECT_ROOT}/lib/layout.sh"
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/layout.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_symlinks
@@ -460,8 +460,8 @@ EOF
     ln -s .cub/agent.md AGENT.md
     ln -s .cub/prompt.md PROMPT.md
 
-    source "${PROJECT_ROOT}/lib/layout.sh"
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/layout.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_symlinks
@@ -477,7 +477,7 @@ EOF
 # ============================================================================
 
 @test "_doctor_check_gitignore detects missing .gitignore" {
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_gitignore
@@ -492,7 +492,7 @@ EOF
 *.log
 EOF
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_gitignore
@@ -510,7 +510,7 @@ EOF
 .DS_Store
 EOF
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_gitignore
@@ -526,7 +526,7 @@ EOF
 *.log
 EOF
 
-    source "${PROJECT_ROOT}/lib/cmd_doctor.sh"
+    source "${LIB_DIR}/cmd_doctor.sh"
 
     PROJECT_DIR="."
     run _doctor_check_gitignore

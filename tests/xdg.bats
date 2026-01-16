@@ -7,7 +7,7 @@ load test_helper
 
 # Load the xdg library
 setup() {
-    source "${PROJECT_ROOT}/lib/xdg.sh"
+    source "${LIB_DIR}/xdg.sh"
 }
 
 # Test xdg_config_home with default
