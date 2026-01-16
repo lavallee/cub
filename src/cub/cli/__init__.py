@@ -75,7 +75,6 @@ app.command(name="interview")(delegated.interview)
 app.command(name="import")(delegated.import_cmd)
 app.command(name="guardrails")(delegated.guardrails)
 app.command(name="doctor")(delegated.doctor)
-app.command(name="migrate-layout")(delegated.migrate_layout)
 app.command(name="agent-close")(delegated.agent_close)
 app.command(name="agent-verify")(delegated.agent_verify)
 

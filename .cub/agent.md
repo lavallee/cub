@@ -192,7 +192,6 @@ These commands are not yet ported to Python. They are registered as Typer comman
 - `guardrails` - Display and manage institutional memory
 - `doctor` - Diagnose and fix configuration issues
 - `upgrade` - Upgrade cub to newer version
-- `migrate-layout` - Migrate legacy layout to new .cub/ structure
 
 **Agent Commands (Internal Use):**
 - `agent-close` - Close a task (for agent use)

@@ -98,7 +98,6 @@ def is_bash_command(command: str) -> bool:
         "bootstrap",
         "sessions",
         "validate",
-        "migrate-layout",
         "interview",
         "import",
         "branch",
