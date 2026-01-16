@@ -9,6 +9,10 @@ Example:
     >>> manager = WorktreeManager()
     >>> worktree_path = manager.get_for_task("cub-001")
     >>> print(f"Task worktree: {worktree_path}")
+
+    >>> from cub.core.worktree import ParallelRunner
+    >>> runner = ParallelRunner(project_dir)
+    >>> result = runner.run(tasks, max_workers=3)
 """
 
 from .manager import (
@@ -18,6 +22,7 @@ from .manager import (
     WorktreeManager,
     WorktreeNotFoundError,
 )
+from .parallel import ParallelRunResult, ParallelRunner, WorkerResult
 
 __all__ = [
     "WorktreeManager",
@@ -25,4 +30,7 @@ __all__ = [
     "WorktreeError",
     "WorktreeLockError",
     "WorktreeNotFoundError",
+    "ParallelRunner",
+    "ParallelRunResult",
+    "WorkerResult",
 ]
