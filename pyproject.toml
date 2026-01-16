@@ -15,6 +15,7 @@ dependencies = [
     "rich>=13.0.0",
     "GitPython>=3.1.0",
     "requests>=2.31.0",
+    "python-frontmatter>=1.0.0",
 ]
 
 [project.optional-dependencies]
