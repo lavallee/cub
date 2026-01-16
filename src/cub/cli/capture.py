@@ -13,6 +13,7 @@ from rich.console import Console
 
 from cub.core.captures.models import Capture, CaptureSource
 from cub.core.captures.store import CaptureStore
+from cub.core.captures.tagging import suggest_tags
 
 console = Console()
 
@@ -79,12 +80,18 @@ def capture(
         "-i",
         help="Launch interactive capture session with Claude",
     ),
+    no_auto_tags: bool = typer.Option(
+        False,
+        "--no-auto-tags",
+        help="Disable automatic tag suggestion based on content",
+    ),
 ) -> None:
     """
     Capture quick ideas, notes, and observations.
 
     Captures are stored as Markdown files with YAML frontmatter in the
-    captures/ directory (or globally with --global).
+    captures/ directory (or globally with --global). Tags can be provided
+    explicitly with --tag, or automatically suggested based on content.
 
     Examples:
         cub capture "Add dark mode to UI"
@@ -92,6 +99,7 @@ def capture(
         echo "Meeting notes..." | cub capture
         cub capture --name "sprint-planning" "Q1 2026 sprint goals"
         cub capture -i "New feature idea"
+        cub capture "Fix git merge bug" --no-auto-tags
     """
     debug = ctx.obj.get("debug", False)
 
@@ -156,12 +164,21 @@ def capture(
     if len(title) > 80:
         title = title[:77] + "..."
 
+    # Merge auto-suggested tags with user-provided tags
+    all_tags = list(tag)  # Convert from tuple to list
+    if not no_auto_tags:
+        auto_suggested = suggest_tags(content)
+        # Add auto-suggested tags that aren't already present
+        for suggested_tag in auto_suggested:
+            if suggested_tag not in all_tags:
+                all_tags.append(suggested_tag)
+
     # Create capture object
     capture_obj = Capture(
         id=capture_id,
         created=datetime.now(timezone.utc),
         title=title,
-        tags=list(tag),  # Convert from tuple to list
+        tags=all_tags,
         source=source,
         priority=priority,
     )
@@ -184,6 +201,10 @@ def capture(
     if debug:
         console.print("\n[dim]Debug info:[/dim]")
         console.print(f"  Title: {title}")
-        console.print(f"  Tags: {tag}")
+        console.print(f"  User Tags: {list(tag)}")
+        console.print(f"  Final Tags: {all_tags}")
+        if not no_auto_tags:
+            auto_suggested = suggest_tags(content)
+            console.print(f"  Auto-Suggested: {auto_suggested}")
         console.print(f"  Source: {source.value}")
         console.print(f"  Priority: {priority}")

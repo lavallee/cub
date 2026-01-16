@@ -228,3 +228,158 @@ class TestCaptureErrorHandling:
         # Priority too low
         result = runner.invoke(app, ["capture", "Test", "--priority", "0"])
         assert result.exit_code != 0
+
+
+class TestCaptureAutoTagging:
+    """Test auto-tagging functionality."""
+
+    def test_capture_auto_tags_git_keyword(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that 'git' keyword triggers 'git' tag."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "Fix git merge conflict"])
+
+        assert result.exit_code == 0
+        assert "cap-001" in result.output
+
+        # Verify tag was auto-suggested
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        assert "tags:" in content
+        assert "- git" in content
+
+    def test_capture_auto_tags_ui_keyword(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that 'ui' keyword triggers 'ui' tag."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "Fix button styling in UI"])
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        assert "- ui" in content
+
+    def test_capture_auto_tags_api_keyword(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that 'api' keyword triggers 'api' tag."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "Implement new API endpoint"])
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        assert "- api" in content
+
+    def test_capture_auto_tags_multiple(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test multiple auto-tags suggested from single content."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "Fix git merge conflict in API endpoint"])
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        assert "- git" in content
+        assert "- api" in content
+
+    def test_capture_no_auto_tags_flag_disables_tagging(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that --no-auto-tags disables auto-tagging."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "Fix git merge conflict", "--no-auto-tags"])
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        # Should not have auto-suggested tags
+        assert "- git" not in content
+        # Should also not have 'tags:' key if no tags were provided
+        lines = content.split("\n")
+        # Find if tags: exists in frontmatter
+        in_frontmatter = False
+        has_tags = False
+        for line in lines:
+            if line.startswith("---"):
+                in_frontmatter = not in_frontmatter
+            elif in_frontmatter and line.startswith("tags:"):
+                has_tags = True
+        assert not has_tags
+
+    def test_capture_user_tags_plus_auto_tags(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that user-provided tags are combined with auto-tags."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(
+            app, ["capture", "Fix git merge conflict", "--tag", "urgent"]
+        )
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        # Should have both user-provided and auto-suggested tags
+        assert "- urgent" in content
+        assert "- git" in content
+
+    def test_capture_auto_tags_no_duplicates(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that user tags are not duplicated if auto-suggested."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(
+            app, ["capture", "Fix git merge conflict", "--tag", "git"]
+        )
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        # Should only have one 'git' tag, not duplicated
+        git_count = content.count("- git")
+        assert git_count == 1
+
+    def test_capture_auto_tags_with_no_matches(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test that content with no matching keywords has no auto-tags."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["capture", "This is a generic note"])
+
+        assert result.exit_code == 0
+
+        capture_file = project_dir / "captures" / "cap-001.md"
+        content = capture_file.read_text()
+        # Should not have tags key if no tags were assigned
+        lines = content.split("\n")
+        in_frontmatter = False
+        has_tags = False
+        for line in lines:
+            if line.startswith("---"):
+                in_frontmatter = not in_frontmatter
+            elif in_frontmatter and line.startswith("tags:"):
+                has_tags = True
+        assert not has_tags
