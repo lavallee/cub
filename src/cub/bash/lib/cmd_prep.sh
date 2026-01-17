@@ -1839,18 +1839,16 @@ _sessions_list() {
     echo ""
     log_info "Pipeline Sessions"
     echo ""
-    printf "%-30s %-10s %-10s %-10s %-10s\n" "SESSION ID" "TRIAGE" "ARCHITECT" "PLAN" "BOOTSTRAP"
-    printf "%-30s %-10s %-10s %-10s %-10s\n" "----------" "------" "---------" "----" "---------"
 
     for session in $sessions; do
-        local triage_status="-"
-        local architect_status="-"
-        local plan_status="-"
-        local bootstrap_status="-"
+        local triage_status="[ ]"
+        local architect_status="[ ]"
+        local plan_status="[ ]"
+        local bootstrap_status="[ ]"
 
-        pipeline_has_triage "$session" && triage_status="✓"
-        pipeline_has_architect "$session" && architect_status="✓"
-        pipeline_has_plan "$session" && plan_status="✓"
+        pipeline_has_triage "$session" && triage_status="[x]"
+        pipeline_has_architect "$session" && architect_status="[x]"
+        pipeline_has_plan "$session" && plan_status="[x]"
 
         local session_dir
         session_dir=$(pipeline_session_dir "$session")
@@ -1858,12 +1856,13 @@ _sessions_list() {
         if [[ -f "$session_file" ]]; then
             local bs_status
             bs_status=$(jq -r '.stages.bootstrap // "-"' "$session_file" 2>/dev/null)
-            [[ "$bs_status" == "complete" ]] && bootstrap_status="✓"
+            [[ "$bs_status" == "complete" ]] && bootstrap_status="[x]"
         fi
 
-        printf "%-30s %-10s %-10s %-10s %-10s\n" "$session" "$triage_status" "$architect_status" "$plan_status" "$bootstrap_status"
+        echo "$session"
+        echo "  Triage: $triage_status  Architect: $architect_status  Plan: $plan_status  Bootstrap: $bootstrap_status"
+        echo ""
     done
-    echo ""
 }
 
 _sessions_show() {
