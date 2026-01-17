@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.26.2] - 2026-01-17
+
+### Changed
+
+- Non-interactive mode for cub prep steps (#33)
+- Create CNAME
+- Delete CNAME
+- Create CNAME
+- Improve quick install + use bash
+- Add PM workbench + repo-as-workbench notes
+- Add capture-to-task workflow spec
+- Update webpage for v0.26.1
+
+---
+
 ## [0.26.1] - 2026-01-16
 
 ### Added
