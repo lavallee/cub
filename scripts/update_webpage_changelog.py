@@ -9,6 +9,7 @@ Usage:
     python scripts/update_webpage_changelog.py
     python scripts/update_webpage_changelog.py --dry-run
     python scripts/update_webpage_changelog.py --count 5
+    python scripts/update_webpage_changelog.py --version 0.26.0 --title "My Release Title"
 """
 
 import argparse
@@ -201,9 +202,7 @@ def generate_html(releases: list[Release]) -> str:
     return "\n                ".join(items)
 
 
-def update_webpage(
-    webpage_path: Path, releases: list[Release], dry_run: bool = False
-) -> bool:
+def update_webpage(webpage_path: Path, releases: list[Release], dry_run: bool = False) -> bool:
     """Update the webpage with new release content."""
     content = webpage_path.read_text()
 
@@ -265,9 +264,7 @@ def update_version_badge(webpage_path: Path, version: str, dry_run: bool = False
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Update webpage Recent Updates from CHANGELOG.md"
-    )
+    parser = argparse.ArgumentParser(description="Update webpage Recent Updates from CHANGELOG.md")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -291,7 +288,22 @@ def main():
         default=Path("docs/index.html"),
         help="Path to webpage file",
     )
+    parser.add_argument(
+        "--version",
+        type=str,
+        help="Version to apply the title override to (e.g., 0.26.0)",
+    )
+    parser.add_argument(
+        "--title",
+        type=str,
+        help="Custom title to use for the specified version (requires --version)",
+    )
     args = parser.parse_args()
+
+    # Validate --title requires --version
+    if args.title and not args.version:
+        print("Error: --title requires --version to specify which release to update")
+        return 1
 
     # Resolve paths relative to project root
     project_root = Path(__file__).parent.parent
@@ -313,6 +325,14 @@ def main():
     if not releases:
         print("Error: No releases found in changelog")
         return 1
+
+    # Apply title override if specified
+    if args.version and args.title:
+        for release in releases:
+            if release.version == args.version:
+                print(f"Applying title override for v{args.version}: {args.title}")
+                release.title = args.title
+                break
 
     print(f"Found {len(releases)} releases:")
     for r in releases:

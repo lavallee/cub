@@ -362,7 +362,13 @@ update_webpage() {
     fi
 
     if [[ -f "${SCRIPT_DIR}/update_webpage_changelog.py" ]]; then
-        python3 "${SCRIPT_DIR}/update_webpage_changelog.py" || {
+        # Build command with optional title
+        local cmd=(python3 "${SCRIPT_DIR}/update_webpage_changelog.py")
+        if [[ -n "$RELEASE_TITLE" ]]; then
+            cmd+=(--version "$VERSION" --title "$RELEASE_TITLE")
+        fi
+
+        "${cmd[@]}" || {
             log_warn "Failed to update webpage changelog (non-fatal)"
             return 0
         }
