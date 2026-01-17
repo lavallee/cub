@@ -8,7 +8,23 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import audit, capture, captures, delegated, investigate, merge, monitor, organize_captures, pr, run, sandbox, status, uninstall, upgrade, worktree
+from cub.cli import (
+    audit,
+    capture,
+    captures,
+    delegated,
+    investigate,
+    merge,
+    monitor,
+    organize_captures,
+    pr,
+    run,
+    sandbox,
+    status,
+    uninstall,
+    upgrade,
+    worktree,
+)
 
 # Help panel names for command grouping
 PANEL_KEY = "Key Commands"
@@ -60,7 +76,6 @@ app.command(
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )(delegated.prep)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
-app.command(name="doctor", rich_help_panel=PANEL_KEY)(delegated.doctor)
 
 
 # =============================================================================
@@ -69,6 +84,7 @@ app.command(name="doctor", rich_help_panel=PANEL_KEY)(delegated.doctor)
 
 app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
+app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
 app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
 
 
@@ -124,6 +140,7 @@ app.command(
 
 app.command(name="branch", rich_help_panel=PANEL_EPICS)(delegated.branch)
 app.command(name="branches", rich_help_panel=PANEL_EPICS)(delegated.branches)
+app.add_typer(worktree.app, name="worktree", rich_help_panel=PANEL_EPICS)
 app.command(name="checkpoints", rich_help_panel=PANEL_EPICS)(delegated.checkpoints)
 app.add_typer(pr.app, name="pr", rich_help_panel=PANEL_EPICS)
 app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
@@ -144,7 +161,9 @@ app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 app.command(name="capture", rich_help_panel=PANEL_ROADMAP)(capture.capture)
 app.add_typer(captures.app, name="captures", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(investigate.app, name="investigate", rich_help_panel=PANEL_ROADMAP)
-app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(organize_captures.organize_captures)
+app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
+    organize_captures.organize_captures
+)
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
 
 
@@ -162,15 +181,7 @@ def version() -> None:
 
 app.add_typer(upgrade.app, name="upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
-
-
-# =============================================================================
-# Internal/Advanced Commands (hidden from main help but still accessible)
-# =============================================================================
-
-# Worktree and sandbox are more advanced features
-app.add_typer(worktree.app, name="worktree", hidden=True)
-app.add_typer(sandbox.app, name="sandbox", hidden=True)
+app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
 
 
 def cli_main() -> None:
