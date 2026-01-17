@@ -39,6 +39,62 @@ _claude_prompt_to_file() {
     rm -f "$tmp"
 }
 
+_normalize_plan_jsonl_file() {
+    local file="$1"
+
+    # Best-effort normalizer to handle common non-beads schemas.
+    # - `type` -> `issue_type`
+    # - `labels` defaults to []
+    # - `dependencies` defaults to []
+    # - `status` defaults to "open"
+    # - `priority` defaults to 2
+    # - Ensure required keys exist
+    if [[ ! -f "$file" ]]; then
+        return 0
+    fi
+
+    local tmp
+    tmp=$(mktemp)
+
+    # If jq fails, leave as-is (validation will catch it).
+    jq -c '
+      . as $o
+      | ($o.issue_type // $o.type) as $it
+      | $o
+      | del(.type)
+      | .issue_type = ($it // .issue_type)
+      | .status = (.status // "open")
+      | .priority = (.priority // 2)
+      | .labels = (.labels // [])
+      | .dependencies = (.dependencies // [])
+      | .id = (.id // "")
+      | .title = (.title // "")
+      | .description = (.description // "")
+    ' "$file" >"$tmp" 2>/dev/null || { rm -f "$tmp"; return 0; }
+
+    mv "$tmp" "$file"
+}
+
+_validate_plan_jsonl_file() {
+    local file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        return 1
+    fi
+
+    # Fail if any line isn't valid JSON.
+    if ! jq -e -c . "$file" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    # Fail if required keys missing.
+    if ! jq -e -c 'select((.id|type=="string") and (.title|type=="string") and (.description|type=="string") and (.issue_type|type=="string"))' "$file" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    return 0
+}
+
 # ============================================================================
 # Session Management Functions
 # ============================================================================
@@ -610,7 +666,13 @@ cmd_plan() {
         architect=$(cat "${session_dir}/architect.md")
         plan_prefix="${session_id%%-*}"
 
-        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a Beads-compatible plan.jsonl for execution by AI coding agents.\n\nRequirements:\n- Output MUST be valid JSONL, one JSON object per line, and NOTHING ELSE (no code fences, no commentary).\n- Use ids with prefix '${plan_prefix}-' (e.g., '${plan_prefix}-V1' for an epic, '${plan_prefix}-V1.1' for tasks).\n- Every task must have a parent-child dependency on its epic: {\"depends_on_id\": <epic_id>, \"type\": \"parent-child\"}.\n- Use dependency type 'blocks' only when strictly necessary.\n- Prefer small, testable tasks.\n- If you're blocked on critical missing info, output exactly ONE line of JSON with issue_type 'note' and title 'NEEDS_HUMAN_INPUT' and put questions in description.\n\nInput follows.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$jsonl_file"
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a Beads-compatible plan.jsonl for execution by AI coding agents.\n\nRequirements:\n- Output MUST be valid JSONL, one JSON object per line, and NOTHING ELSE (no code fences, no commentary).\n- Each line MUST use this schema:\n  {\"id\": string, \"title\": string, \"description\": string, \"status\": \"open\"|\"closed\"|\"in_progress\", \"priority\": number, \"issue_type\": \"epic\"|\"task\"|\"note\", \"labels\": string[], \"dependencies\": [{\"depends_on_id\": string, \"type\": \"parent-child\"|\"blocks\"}] }\n- Use ids with prefix '${plan_prefix}-'.\n- Every task MUST include parent-child dependency on its epic.\n- Prefer small tasks that can be closed independently.\n\nIf blocked on critical missing info, output exactly ONE line of JSON with issue_type 'note' and title 'NEEDS_HUMAN_INPUT' (questions in description).\n\nExample lines:\n{\"id\":\"${plan_prefix}-V1\",\"title\":\"Example epic\",\"description\":\"...\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"labels\":[\"feature:example\"],\"dependencies\":[]}\n{\"id\":\"${plan_prefix}-V1.1\",\"title\":\"Example task\",\"description\":\"...\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"labels\":[\"feature:example\"],\"dependencies\":[{\"depends_on_id\":\"${plan_prefix}-V1\",\"type\":\"parent-child\"}]}\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$jsonl_file"
+
+        _normalize_plan_jsonl_file "$jsonl_file"
+
+        if ! _validate_plan_jsonl_file "$jsonl_file"; then
+            echo "{\"id\":\"${plan_prefix}-NEEDS_HUMAN\",\"title\":\"NEEDS_HUMAN_INPUT\",\"description\":\"Non-interactive plan output was not valid beads JSONL. Please re-run interactively (cub plan) or provide a corrected plan.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"note\",\"labels\":[\"prep:error\"],\"dependencies\":[]}" >"$jsonl_file"
+        fi
 
         # Also generate a human-readable summary
         _claude_prompt_to_file "Write a concise plan summary in Markdown (no code fences).\nInclude: epics, tasks, and key dependencies.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n\nPLAN JSONL:\n---\n$(cat "$jsonl_file")\n---\n" "$md_file" || true
