@@ -11,6 +11,7 @@
 #   ./scripts/cut-release.sh 0.26.0 --dry-run    # Show what would be done
 #   ./scripts/cut-release.sh 0.25.2 --no-push    # Don't push or create GitHub release
 #   ./scripts/cut-release.sh 0.25.2 --skip-changelog  # Skip changelog generation
+#   ./scripts/cut-release.sh 0.25.2 --title "Release Title"  # Custom release title
 #
 # The script will:
 #   1. Verify we're on main with clean working directory
@@ -43,6 +44,7 @@ DRY_RUN=false
 NO_PUSH=false
 SKIP_CHANGELOG=false
 VERSION=""
+RELEASE_TITLE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -58,6 +60,15 @@ while [[ $# -gt 0 ]]; do
         --skip-changelog)
             SKIP_CHANGELOG=true
             shift
+            ;;
+        --title)
+            if [[ -n "${2:-}" && ! "$2" =~ ^- ]]; then
+                RELEASE_TITLE="$2"
+                shift 2
+            else
+                log_error "--title requires a value"
+                exit 1
+            fi
             ;;
         --help|-h)
             head -20 "$0" | tail -n +2 | sed 's/^# //' | sed 's/^#//'
@@ -82,8 +93,9 @@ done
 # Validate version argument
 if [[ -z "$VERSION" ]]; then
     log_error "Version argument required"
-    echo "Usage: $0 <version> [--dry-run] [--no-push] [--skip-changelog]"
+    echo "Usage: $0 <version> [--dry-run] [--no-push] [--skip-changelog] [--title \"Title\"]"
     echo "Example: $0 0.25.2"
+    echo "Example: $0 0.25.2 --title \"Feature Release: New Dashboard\""
     exit 1
 fi
 
@@ -307,7 +319,8 @@ create_github_release() {
     log_info "Creating GitHub release for $TAG..."
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would create GitHub release: $TAG"
+        local title="${RELEASE_TITLE:-$TAG}"
+        log_info "[DRY-RUN] Would create GitHub release: $TAG (title: $title)"
         return 0
     fi
 
@@ -320,9 +333,10 @@ create_github_release() {
         notes="Release $TAG"
     fi
 
-    # Create release
+    # Create release (use custom title if provided, otherwise use tag)
+    local title="${RELEASE_TITLE:-$TAG}"
     gh release create "$TAG" \
-        --title "$TAG" \
+        --title "$title" \
         --notes "$notes"
 
     log_success "Created GitHub release: $TAG"
