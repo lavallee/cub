@@ -50,19 +50,73 @@ def categorize_capture(capture: Capture, content: str) -> CaptureCategory:
     """
     content_lower = content.lower()
     title_lower = capture.title.lower()
+    combined = content_lower + " " + title_lower
 
-    # Quick fix indicators
+    # Quick fix/enhancement indicators - small, well-defined changes
     quick_indicators = [
+        # Fixes
         "fix typo",
+        "fix bug",
+        "fix error",
+        "fix issue",
+        # Removals
         "remove ",
         "delete ",
+        "drop ",
+        # Renames/updates
         "rename ",
         "update copyright",
         "change ",
+        "replace ",
+        # Additions (small)
         "add missing",
+        "add option",
+        "add flag",
+        "add argument",
+        "add param",
+        "add a ",
+        "add an ",
+        # Small enhancements
+        "should take",
+        "should accept",
+        "should support",
+        "should have a",
+        "should have an",
+        "should include",
+        "should allow",
+        "needs a ",
+        "needs an ",
+        "could use",
+        "make it ",
+        "make the ",
+        # Specific targets (suggests well-scoped change)
+        "the script",
+        "the function",
+        "the command",
+        "the file",
+        "in the ",
     ]
-    if any(ind in content_lower or ind in title_lower for ind in quick_indicators):
-        if len(content) < 200:  # Short = likely quick fix
+
+    # Strong quick indicators - don't need length check
+    strong_quick = [
+        "fix typo",
+        "fix bug",
+        "remove ",
+        "delete ",
+        "rename ",
+        "add option",
+        "add flag",
+        "add argument",
+        "should take",
+        "should accept",
+    ]
+
+    if any(ind in combined for ind in strong_quick):
+        return CaptureCategory.QUICK
+
+    # Weaker quick indicators need shorter content
+    if any(ind in combined for ind in quick_indicators):
+        if len(content) < 300:  # Increased threshold
             return CaptureCategory.QUICK
 
     # Audit indicators
@@ -123,12 +177,19 @@ def categorize_capture(capture: Capture, content: str) -> CaptureCategory:
     if any(ind in content_lower for ind in design_indicators):
         return CaptureCategory.DESIGN
 
-    # Default to unclear if can't categorize
+    # Default logic for unmatched captures
+    # Short captures without clear indicators need clarification
     if len(content) < 50:
         return CaptureCategory.UNCLEAR
 
-    # Longer content without clear indicators → likely design
-    return CaptureCategory.DESIGN
+    # Medium-length captures that mention specific code artifacts are likely quick tasks
+    code_artifacts = ["script", "function", "class", "file", "module", "command", "cli", "api"]
+    if len(content) < 300 and any(artifact in combined for artifact in code_artifacts):
+        return CaptureCategory.QUICK
+
+    # Longer content without clear indicators defaults to unclear (needs human triage)
+    # rather than assuming design, since misclassification wastes effort
+    return CaptureCategory.UNCLEAR
 
 
 def _create_beads_task(
