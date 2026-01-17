@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.26.1] - 2026-01-16
+
+### Added
+
+- Captures system overhaul and investigate command
+- **release**: Add --title option to cut-release.sh
+- **tasks**: Add TaskService for consistent task creation
+- **investigate**: Implement all category processors
+- **investigate**: Add spike category and capture archiving support
+- Add investigate command for processing captures
+
+### Changed
+
+- Cub config
+- **tasks**: Add backend_name and get_agent_instructions to protocol
+- Update webpage for v0.26.0
+
+### Fixed
+
+- **investigate**: Improve categorization heuristics for quick tasks
+
+---
+
 ## [0.26.0] - 2026-01-16
 
 ### Added
