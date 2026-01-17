@@ -31,6 +31,7 @@ from cub.core.status.models import (
     RunStatus,
 )
 from cub.core.status.writer import StatusWriter
+from cub.core.tasks.backend import TaskBackend
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
@@ -92,17 +93,19 @@ You are an autonomous coding agent working through a task backlog.
 """
 
 
-def generate_task_prompt(task: Task, backend_name: str) -> str:
+def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     """
     Generate the task prompt for a specific task.
 
     Args:
         task: Task to generate prompt for
-        backend_name: Name of the task backend (beads, json)
+        task_backend: The task backend instance
 
     Returns:
         Task prompt string
     """
+    backend_name = task_backend.backend_name
+
     # Build the task prompt
     prompt_parts = []
 
@@ -138,15 +141,9 @@ def generate_task_prompt(task: Task, backend_name: str) -> str:
 
     prompt_parts.append("4. Append learnings to progress.txt")
 
-    # Add backend-specific notes
-    if backend_name == "beads":
-        prompt_parts.append("")
-        prompt_parts.append(
-            "Note: This project uses the beads task backend. Use 'bd' commands for task management:"
-        )
-        prompt_parts.append(f"- bd close {task.id}  - Mark this task complete")
-        prompt_parts.append(f"- bd show {task.id}   - Check task status")
-        prompt_parts.append("- bd list              - See all tasks")
+    # Add backend-specific instructions from the backend itself
+    prompt_parts.append("")
+    prompt_parts.append("Note: " + task_backend.get_agent_instructions(task.id))
 
     return "\n".join(prompt_parts)
 
@@ -453,7 +450,7 @@ def run(
     # Get task backend
     try:
         task_backend = get_task_backend(project_dir=project_dir)
-        backend_name = "beads" if hasattr(task_backend, "_run_bd") else "json"
+        backend_name = task_backend.backend_name
     except Exception as e:
         console.print(f"[red]Failed to initialize task backend: {e}[/red]")
         raise typer.Exit(1)
@@ -636,7 +633,7 @@ def run(
                     console.print(f"[dim]Failed to claim task: {e}[/dim]")
 
             # Generate task prompt
-            task_prompt = generate_task_prompt(current_task, backend_name)
+            task_prompt = generate_task_prompt(current_task, task_backend)
 
             if debug:
                 console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")
@@ -1061,7 +1058,7 @@ def _run_in_sandbox(
         if sandbox_keep:
             save_sandbox_state(project_dir, sandbox_id, provider.name)
             if debug:
-                console.print(f"[dim]Saved sandbox state to .cub/sandbox.json[/dim]")
+                console.print("[dim]Saved sandbox state to .cub/sandbox.json[/dim]")
 
         if debug:
             console.print(f"[dim]Container ID: {sandbox_id}[/dim]")

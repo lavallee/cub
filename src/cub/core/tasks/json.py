@@ -555,3 +555,23 @@ class JsonBackend:
         self._save_prd(data)
 
         return task
+
+    @property
+    def backend_name(self) -> str:
+        """Get the name of this backend."""
+        return "json"
+
+    def get_agent_instructions(self, task_id: str) -> str:
+        """
+        Get instructions for an AI agent on how to interact with JSON backend.
+
+        Args:
+            task_id: The current task ID for context
+
+        Returns:
+            Multiline string with agent instructions
+        """
+        return f"""This project uses the JSON task backend (prd.json). To manage tasks:
+- Update prd.json: set status to "closed" for {task_id}
+- Read prd.json to check task status
+- View all tasks in the "tasks" array"""

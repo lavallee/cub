@@ -478,3 +478,23 @@ class BeadsBackend:
 
         except BeadsCommandError as e:
             raise ValueError(f"Failed to add note to task {task_id}: {e}")
+
+    @property
+    def backend_name(self) -> str:
+        """Get the name of this backend."""
+        return "beads"
+
+    def get_agent_instructions(self, task_id: str) -> str:
+        """
+        Get instructions for an AI agent on how to interact with beads.
+
+        Args:
+            task_id: The current task ID for context
+
+        Returns:
+            Multiline string with agent instructions
+        """
+        return f"""This project uses the beads task backend. Use 'bd' commands for task management:
+- bd close {task_id}  - Mark this task complete
+- bd show {task_id}   - Check task status
+- bd list             - See all tasks"""

@@ -181,6 +181,33 @@ class TaskBackend(Protocol):
         """
         ...
 
+    @property
+    def backend_name(self) -> str:
+        """
+        Get the name of this backend.
+
+        Returns:
+            Backend name (e.g., 'beads', 'json')
+        """
+        ...
+
+    def get_agent_instructions(self, task_id: str) -> str:
+        """
+        Get instructions for an AI agent on how to interact with this backend.
+
+        Returns backend-specific instructions including:
+        - How to close a task
+        - How to check task status
+        - How to list tasks
+
+        Args:
+            task_id: The current task ID for context
+
+        Returns:
+            Multiline string with agent instructions
+        """
+        ...
+
 
 # Backend registry
 _backends: dict[str, type[TaskBackend]] = {}
