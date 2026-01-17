@@ -297,36 +297,11 @@ create_and_merge_pr() {
         return 0
     fi
 
-    # Push branch
-    git push -u origin "$branch"
-
-    # Use Claude to create PR, handle review, and merge
-    claude --print "
-You are managing a release PR for cub v${full_version} - ${title}
-
-Epic: ${epic}
-Branch: ${branch}
-
-Please do the following:
-
-1. Create a pull request:
-   - Title: v${full_version} - ${title}
-   - Generate a summary from the epic's completed tasks
-   - Target: main
-
-2. Wait for CI to complete. If CI fails:
-   - Analyze the failure
-   - Push fixes
-   - Repeat until CI passes
-
-3. Review any PR comments and address them
-
-4. Once CI passes and reviews are addressed, merge the PR to main
-
-5. Report back with the merged PR URL
-
-Use gh cli for GitHub operations.
-"
+    # Use the land-branch.sh script to handle PR creation, CI, and merge
+    "${SCRIPT_DIR}/land-branch.sh" "$branch" \
+        --title "v${full_version} - ${title}" \
+        --base main \
+        --push
 
     log_success "PR merged for v${version}"
 }

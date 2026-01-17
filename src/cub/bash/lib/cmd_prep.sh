@@ -17,6 +17,84 @@
 # Session directory root
 PIPELINE_SESSIONS_DIR="${PROJECT_DIR}/.cub/sessions"
 
+# Run `claude -p` reliably even without a TTY.
+# Some environments hang unless a pseudo-tty is allocated.
+_claude_prompt_to_file() {
+    local prompt="$1"
+    local out_file="$2"
+
+    local tmp
+    tmp=$(mktemp)
+
+    if [[ -t 1 ]]; then
+        claude -p "$prompt" >"$tmp"
+    else
+        # Allocate a pseudo-tty and capture stdout.
+        # `script` writes the child output to its own stdout.
+        script -q /dev/null -c "claude -p $(printf %q "$prompt")" >"$tmp"
+    fi
+
+    # Strip common ANSI escape sequences so downstream tools can parse artifacts.
+    perl -pe 's/\e\[[0-9;]*[A-Za-z]//g; s/\r//g' "$tmp" >"$out_file"
+    rm -f "$tmp"
+}
+
+_normalize_plan_jsonl_file() {
+    local file="$1"
+
+    # Best-effort normalizer to handle common non-beads schemas.
+    # - `type` -> `issue_type`
+    # - `labels` defaults to []
+    # - `dependencies` defaults to []
+    # - `status` defaults to "open"
+    # - `priority` defaults to 2
+    # - Ensure required keys exist
+    if [[ ! -f "$file" ]]; then
+        return 0
+    fi
+
+    local tmp
+    tmp=$(mktemp)
+
+    # If jq fails, leave as-is (validation will catch it).
+    jq -c '
+      . as $o
+      | ($o.issue_type // $o.type) as $it
+      | $o
+      | del(.type)
+      | .issue_type = ($it // .issue_type)
+      | .status = (.status // "open")
+      | .priority = (.priority // 2)
+      | .labels = (.labels // [])
+      | .dependencies = (.dependencies // [])
+      | .id = (.id // "")
+      | .title = (.title // "")
+      | .description = (.description // "")
+    ' "$file" >"$tmp" 2>/dev/null || { rm -f "$tmp"; return 0; }
+
+    mv "$tmp" "$file"
+}
+
+_validate_plan_jsonl_file() {
+    local file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        return 1
+    fi
+
+    # Fail if any line isn't valid JSON.
+    if ! jq -e -c . "$file" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    # Fail if required keys missing.
+    if ! jq -e -c 'select((.id|type=="string") and (.title|type=="string") and (.description|type=="string") and (.issue_type|type=="string"))' "$file" >/dev/null 2>&1; then
+        return 1
+    fi
+
+    return 0
+}
+
 # ============================================================================
 # Session Management Functions
 # ============================================================================
@@ -37,6 +115,11 @@ pipeline_new_session_id() {
     timestamp=$(date +%Y%m%d-%H%M%S)
 
     echo "${project_name}-${timestamp}"
+}
+
+# Generate a random epic ID (5 lowercase alphanumeric chars)
+pipeline_random_epic_id() {
+    cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1
 }
 
 # Get the most recent session ID
@@ -69,10 +152,15 @@ pipeline_create_session() {
 
     mkdir -p "$session_dir"
 
+    # Generate a random epic ID (5 char alphanumeric)
+    local epic_id
+    epic_id=$(pipeline_random_epic_id)
+
     # Create session metadata
     cat > "${session_dir}/session.json" <<EOF
 {
   "id": "${session_id}",
+  "epic_id": "${epic_id}",
   "created": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "created",
   "stages": {
@@ -201,6 +289,8 @@ pipeline_find_vision() {
 cmd_triage() {
     local session_id=""
     local resume_session=""
+    local non_interactive="false"
+    local vision_path=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -213,6 +303,18 @@ cmd_triage() {
                 resume_session="${1#--session=}"
                 shift
                 ;;
+            --vision)
+                vision_path="$2"
+                shift 2
+                ;;
+            --vision=*)
+                vision_path="${1#--vision=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
+                shift
+                ;;
             --help|-h)
                 _triage_help
                 return 0
@@ -223,17 +325,28 @@ cmd_triage() {
                 return 1
                 ;;
             *)
-                # Ignore positional args (vision path handled by skill)
+                # Allow a positional vision path.
+                if [[ -z "$vision_path" ]]; then
+                    vision_path="$1"
+                fi
                 shift
                 ;;
         esac
     done
 
-    # Check that triage skill is installed
-    if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
-        _log_error_console "Triage skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that triage skill is installed
+        if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
+            _log_error_console "Triage skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
+    else
+        if [[ -z "$vision_path" || ! -f "$vision_path" ]]; then
+            _log_error_console "Non-interactive triage requires a vision file path."
+            _log_error_console "Usage: cub triage --non-interactive --vision VISION.md"
+            return 1
+        fi
     fi
 
     # Resume existing session or create new
@@ -259,11 +372,29 @@ cmd_triage() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /triage skill
-    claude "/cub:triage ${output_file}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive triage (best-effort)..."
+        local vision
+        vision=$(cat "$vision_path")
+
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TRIAGE document from a raw vision input.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If you are blocked on critical missing info, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput a triage document with these sections:\n- ## Summary\n- ## Goals\n- ## Non-Goals\n- ## Requirements\n- ## Constraints\n- ## Risks\n- ## Open Questions\n- ## Needs Human Input (only if blocked)\n\nVISION INPUT:\n---\n${vision}\n---\n" "$output_file"
+    else
+        # Run claude with the /triage skill
+        claude "/cub:triage ${output_file}"
+    fi
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
+        if grep -q "^## Needs Human Input" "$output_file"; then
+            pipeline_update_session "$session_id" "triage" "needs_human"
+            echo ""
+            log_warn "Triage needs human input before continuing."
+            log_info "Output: ${output_file}"
+            echo ""
+            sed -n '/^## Needs Human Input/,$p' "$output_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "triage" "complete"
         echo ""
         log_success "Triage complete!"
@@ -290,8 +421,10 @@ Launches an interactive Claude session to conduct a product triage interview,
 clarify requirements, identify gaps, and produce a refined requirements document.
 
 Options:
-  --session ID       Resume an existing session
-  -h, --help         Show this help message
+  --session ID             Resume an existing session
+  --non-interactive        Run without an interactive Claude session
+  --vision PATH            Vision/input markdown file (required with --non-interactive)
+  -h, --help               Show this help message
 
 Examples:
   cub triage                      # Start new triage session
@@ -311,6 +444,7 @@ EOF
 
 cmd_architect() {
     local session_id=""
+    local non_interactive="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -321,6 +455,10 @@ cmd_architect() {
                 ;;
             --session=*)
                 session_id="${1#--session=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
                 shift
                 ;;
             --help|-h)
@@ -339,11 +477,13 @@ cmd_architect() {
         esac
     done
 
-    # Check that architect skill is installed
-    if [[ ! -f ".claude/commands/cub:architect.md" ]]; then
-        _log_error_console "Architect skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that architect skill is installed
+        if [[ ! -f ".claude/commands/cub:architect.md" ]]; then
+            _log_error_console "Architect skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
     fi
 
     # Get session ID
@@ -379,11 +519,29 @@ cmd_architect() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /architect skill
-    claude "/cub:architect ${output_file}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive architect (best-effort)..."
+        local triage
+        triage=$(cat "${session_dir}/triage.md")
+
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TECHNICAL ARCHITECTURE document based on triage output.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If blocked on a critical missing decision, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput an architecture document with these sections:\n- ## Summary\n- ## Approach\n- ## Components\n- ## Data & State\n- ## Interfaces\n- ## Risks & Tradeoffs\n- ## Testing & Verification\n- ## Needs Human Input (only if blocked)\n\nTRIAGE INPUT:\n---\n${triage}\n---\n" "$output_file"
+    else
+        # Run claude with the /architect skill
+        claude "/cub:architect ${output_file}"
+    fi
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
+        if grep -q "^## Needs Human Input" "$output_file"; then
+            pipeline_update_session "$session_id" "architect" "needs_human"
+            echo ""
+            log_warn "Architecture needs human input before continuing."
+            log_info "Output: ${output_file}"
+            echo ""
+            sed -n '/^## Needs Human Input/,$p' "$output_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "architect" "complete"
         echo ""
         log_success "Architecture design complete!"
@@ -413,8 +571,9 @@ Arguments:
   SESSION_ID         Session ID from triage (default: most recent)
 
 Options:
-  --session ID       Specify session ID
-  -h, --help         Show this help message
+  --session ID             Specify session ID
+  --non-interactive        Run without an interactive Claude session
+  -h, --help               Show this help message
 
 Examples:
   cub architect                        # Use most recent session
@@ -434,6 +593,7 @@ EOF
 
 cmd_plan() {
     local session_id=""
+    local non_interactive="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -444,6 +604,10 @@ cmd_plan() {
                 ;;
             --session=*)
                 session_id="${1#--session=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
                 shift
                 ;;
             --help|-h)
@@ -462,11 +626,13 @@ cmd_plan() {
         esac
     done
 
-    # Check that plan skill is installed
-    if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
-        _log_error_console "Plan skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that plan skill is installed
+        if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
+            _log_error_console "Plan skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
     fi
 
     # Get session ID
@@ -502,11 +668,419 @@ cmd_plan() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /plan skill
-    claude "/cub:plan ${session_dir}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive plan (best-effort)..."
+
+        local triage architect plan_prefix
+        triage=$(cat "${session_dir}/triage.md")
+        architect=$(cat "${session_dir}/architect.md")
+        plan_prefix=$(jq -r '.epic_id // ""' "${session_dir}/session.json" 2>/dev/null)
+        if [[ -z "$plan_prefix" ]]; then
+            # Fallback for legacy sessions
+            plan_prefix="${session_id%%-*}"
+        fi
+
+        # 1) Ask the model for a strict Markdown plan (more reliable than JSONL).
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nProduce a STRICT Markdown plan. Do NOT output JSON/JSONL.\n\nFormat requirements (must follow exactly):\n- Start with '# Plan'\n- Epic sections start with: '## Epic: <id> - <title>'\n- Task sections start with: '### Task: <id> - <title>'\n- Each epic and each task MUST include these metadata lines (exact keys):\n  Priority: <integer>\n  Labels: comma,separated,labels\n  Description:\n  <freeform markdown>\n- Tasks may additionally include:\n  Blocks: comma,separated,task_ids\n\nIDs should be short (e.g. V1, V1.1) and do NOT need the project prefix.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$md_file"
+
+        # 2) Deterministically convert markdown -> beads JSONL.
+        python3 - "$plan_prefix" "$md_file" "$jsonl_file" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+prefix = sys.argv[1]
+md_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
+
+EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+KEY_RE = re.compile(r"^(Priority|Labels|Blocks):\s*(.*)$")
+
+def split_csv(v: str):
+    return [x.strip() for x in v.split(',') if x.strip()]
+
+def norm_id(raw: str):
+    raw = raw.strip()
+    if not raw:
+        return raw
+    if prefix and not raw.startswith(prefix + '-'): 
+        return f"{prefix}-{raw}"
+    return raw
+
+text = md_path.read_text(encoding='utf-8')
+lines = text.splitlines()
+
+out = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+
+def flush():
+    global buf
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf.clear()
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush()
+
+for epic in [cur_epic] if False else []:
+    pass
+
+# Re-parse to collect all epics encountered
+# (we didn't store them while iterating to keep code minimal)
+
+epics = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+def flush2():
+    global buf, cur_epic, cur_task
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf = []
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush2()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        epics.append(cur_epic)
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush2()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush2()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush2()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush2()
+
+json_lines = []
+for epic in epics:
+    epic_id = norm_id(epic['id'])
+    json_lines.append(json.dumps({
+        'id': epic_id,
+        'title': epic['title'],
+        'description': epic.get('description',''),
+        'status': 'open',
+        'priority': epic.get('priority',2),
+        'issue_type': 'epic',
+        'labels': epic.get('labels',[]),
+        'dependencies': [],
+    }, ensure_ascii=False))
+    for task in epic.get('tasks', []):
+        task_id = norm_id(task['id'])
+        deps = [{'depends_on_id': epic_id, 'type': 'parent-child'}]
+        for b in task.get('blocks', []):
+            deps.append({'depends_on_id': norm_id(b), 'type': 'blocks'})
+        json_lines.append(json.dumps({
+            'id': task_id,
+            'title': task['title'],
+            'description': task.get('description',''),
+            'status': 'open',
+            'priority': task.get('priority',2),
+            'issue_type': 'task',
+            'labels': task.get('labels',[]),
+            'dependencies': deps,
+        }, ensure_ascii=False))
+
+out_path.write_text("\n".join(json_lines) + ("\n" if json_lines else ""), encoding='utf-8')
+PY
+
+        # 3) Validate the generated JSONL.
+        if ! _validate_plan_jsonl_file "$jsonl_file"; then
+            echo "{\"id\":\"${plan_prefix}-NEEDS_HUMAN\",\"title\":\"NEEDS_HUMAN_INPUT\",\"description\":\"Non-interactive plan conversion failed: generated plan.jsonl is invalid. Please re-run interactively (cub plan) or fix the markdown plan at ${md_file}.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"note\",\"labels\":[\"prep:error\"],\"dependencies\":[]}" >"$jsonl_file"
+        fi
+    else
+        # Run claude with the /plan skill (outputs plan.md)
+        claude "/cub:plan ${session_dir}"
+
+        # Convert the markdown plan to beads JSONL
+        if [[ -f "$md_file" ]]; then
+            log_info "Converting markdown plan to beads JSONL..."
+            local plan_prefix
+            plan_prefix=$(jq -r '.epic_id // ""' "${session_dir}/session.json" 2>/dev/null)
+            if [[ -z "$plan_prefix" ]]; then
+                # Fallback for legacy sessions
+                plan_prefix="${session_id%%-*}"
+            fi
+            python3 - "$plan_prefix" "$md_file" "$jsonl_file" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+prefix = sys.argv[1]
+md_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
+
+EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+KEY_RE = re.compile(r"^(Priority|Labels|Blocks):\s*(.*)$")
+
+def split_csv(v: str):
+    return [x.strip() for x in v.split(',') if x.strip()]
+
+def norm_id(raw: str):
+    raw = raw.strip()
+    if not raw:
+        return raw
+    if prefix and not raw.startswith(prefix + '-'):
+        return f"{prefix}-{raw}"
+    return raw
+
+text = md_path.read_text(encoding='utf-8')
+lines = text.splitlines()
+
+epics = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+def flush2():
+    global buf, cur_epic, cur_task
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf = []
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush2()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        epics.append(cur_epic)
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush2()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush2()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush2()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush2()
+
+json_lines = []
+for epic in epics:
+    epic_id = norm_id(epic['id'])
+    json_lines.append(json.dumps({
+        'id': epic_id,
+        'title': epic['title'],
+        'description': epic.get('description',''),
+        'status': 'open',
+        'priority': epic.get('priority',2),
+        'issue_type': 'epic',
+        'labels': epic.get('labels',[]),
+        'dependencies': [],
+    }, ensure_ascii=False))
+    for task in epic.get('tasks', []):
+        task_id = norm_id(task['id'])
+        deps = [{'depends_on_id': epic_id, 'type': 'parent-child'}]
+        for b in task.get('blocks', []):
+            deps.append({'depends_on_id': norm_id(b), 'type': 'blocks'})
+        json_lines.append(json.dumps({
+            'id': task_id,
+            'title': task['title'],
+            'description': task.get('description',''),
+            'status': 'open',
+            'priority': task.get('priority',2),
+            'issue_type': 'task',
+            'labels': task.get('labels',[]),
+            'dependencies': deps,
+        }, ensure_ascii=False))
+
+out_path.write_text("\n".join(json_lines) + ("\n" if json_lines else ""), encoding='utf-8')
+PY
+        fi
+    fi
 
     # Check if output was created
     if [[ -f "$jsonl_file" ]]; then
+        if grep -q '"title"[[:space:]]*:[[:space:]]*"NEEDS_HUMAN_INPUT"' "$jsonl_file"; then
+            pipeline_update_session "$session_id" "plan" "needs_human"
+            echo ""
+            log_warn "Plan needs human input before continuing."
+            log_info "Output: ${jsonl_file}"
+            echo ""
+            cat "$jsonl_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "plan" "complete"
         echo ""
 
@@ -543,8 +1117,9 @@ Arguments:
   SESSION_ID         Session ID from architect (default: most recent)
 
 Options:
-  --session ID       Specify session ID
-  -h, --help         Show this help message
+  --session ID             Specify session ID
+  --non-interactive        Run without an interactive Claude session
+  -h, --help               Show this help message
 
 Examples:
   cub plan                             # Use most recent session
@@ -955,6 +1530,9 @@ EOF
 
 cmd_prep() {
     local session_id=""
+    local non_interactive="false"
+    local vision_path=""
+    local continue_last="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -967,6 +1545,22 @@ cmd_prep() {
                 session_id="${1#--session=}"
                 shift
                 ;;
+            --continue)
+                continue_last="true"
+                shift
+                ;;
+            --vision)
+                vision_path="$2"
+                shift 2
+                ;;
+            --vision=*)
+                vision_path="${1#--vision=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
+                shift
+                ;;
             --help|-h)
                 _prep_help
                 return 0
@@ -977,7 +1571,10 @@ cmd_prep() {
                 return 1
                 ;;
             *)
-                # Ignore positional args
+                # Allow a positional vision path.
+                if [[ -z "$vision_path" ]]; then
+                    vision_path="$1"
+                fi
                 shift
                 ;;
         esac
@@ -994,20 +1591,26 @@ cmd_prep() {
     local session_dir=""
 
     if [[ -n "$session_id" ]]; then
-        # Resume existing session
+        # Explicit session provided
         if ! pipeline_session_exists "$session_id"; then
             _log_error_console "Session not found: $session_id"
             return 1
         fi
         session_dir=$(pipeline_session_dir "$session_id")
         log_info "Resuming session: ${session_id}"
-    else
-        # Check for most recent session
+    elif [[ "$continue_last" == "true" ]]; then
+        # Continue most recent session
         session_id=$(pipeline_most_recent_session)
         if [[ -n "$session_id" ]]; then
             session_dir=$(pipeline_session_dir "$session_id")
-            log_info "Found existing session: ${session_id}"
+            log_info "Continuing most recent session: ${session_id}"
+        else
+            _log_error_console "No existing sessions found. Run without --continue to create a new session."
+            return 1
         fi
+    else
+        # Default: create a new session
+        log_info "Starting new session..."
     fi
 
     # Determine next step based on existing artifacts
@@ -1030,17 +1633,29 @@ cmd_prep() {
         triage)
             log_info "Starting Stage 1: Triage"
             echo ""
-            cmd_triage
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_triage --non-interactive --vision "$vision_path"
+            else
+                cmd_triage
+            fi
             ;;
         architect)
             log_info "Starting Stage 2: Architect"
             echo ""
-            cmd_architect --session "$session_id"
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_architect --non-interactive --session "$session_id"
+            else
+                cmd_architect --session "$session_id"
+            fi
             ;;
         plan)
             log_info "Starting Stage 3: Plan"
             echo ""
-            cmd_plan --session "$session_id"
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_plan --non-interactive --session "$session_id"
+            else
+                cmd_plan --session "$session_id"
+            fi
             ;;
         bootstrap)
             log_info "Starting Stage 4: Bootstrap"
@@ -1151,8 +1766,11 @@ Stages:
   4. Bootstrap - Initialize beads and import tasks (shell)
 
 Options:
-  --session ID       Resume a specific session
-  -h, --help         Show this help message
+  --session ID             Resume a specific session
+  --continue               Resume the most recent session (default: create new)
+  --non-interactive        Run stages using `claude -p` (best-effort)
+  --vision PATH            Vision/input markdown file (required for non-interactive triage)
+  -h, --help               Show this help message
 
 Examples:
   cub prep                          # Start or continue prep
