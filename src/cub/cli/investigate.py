@@ -4,7 +4,11 @@ Cub CLI - Investigate command.
 Intelligent capture processing that categorizes ideas and moves them forward.
 """
 
+import re
+import subprocess
+from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -15,6 +19,9 @@ from cub.core.captures.store import CaptureStore
 
 console = Console()
 app = typer.Typer(help="Investigate and process captures")
+
+# Default output directory for investigation artifacts
+INVESTIGATIONS_DIR = Path("specs/investigations")
 
 
 class CaptureCategory(str, Enum):
@@ -124,63 +131,466 @@ def categorize_capture(capture: Capture, content: str) -> CaptureCategory:
     return CaptureCategory.DESIGN
 
 
-def process_quick_fix(capture: Capture, content: str, dry_run: bool = False) -> str:
+def _create_beads_task(
+    title: str,
+    description: str,
+    task_type: str = "task",
+    priority: int = 2,
+    labels: list[str] | None = None,
+) -> str | None:
+    """
+    Create a beads task using the bd CLI.
+
+    Args:
+        title: Task title
+        description: Task description
+        task_type: Type of task (task, feature, bug, etc.)
+        priority: Priority level (0-4)
+        labels: Optional list of labels
+
+    Returns:
+        The created task ID, or None if creation failed
+    """
+    cmd = [
+        "bd",
+        "create",
+        f"--title={title}",
+        f"--type={task_type}",
+        f"--priority={priority}",
+    ]
+
+    if labels:
+        for label in labels:
+            cmd.append(f"--label={label}")
+
+    # Add description via stdin
+    try:
+        result = subprocess.run(
+            cmd,
+            input=description,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        # Parse task ID from output (usually "Created beads-xxx")
+        output = result.stdout.strip()
+        match = re.search(r"(beads-[a-z0-9]+)", output)
+        if match:
+            return match.group(1)
+        return output
+    except subprocess.CalledProcessError as e:
+        console.print(f"[red]Failed to create task:[/red] {e.stderr}")
+        return None
+    except FileNotFoundError:
+        console.print("[red]Error:[/red] bd command not found. Is beads installed?")
+        return None
+
+
+def _ensure_investigations_dir() -> Path:
+    """Ensure the investigations directory exists and return its path."""
+    INVESTIGATIONS_DIR.mkdir(parents=True, exist_ok=True)
+    return INVESTIGATIONS_DIR
+
+
+def _extract_body_content(content: str) -> str:
+    """Extract the body content from a capture (after frontmatter)."""
+    # Skip YAML frontmatter if present
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            return parts[2].strip()
+    return content.strip()
+
+
+def process_quick_fix(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process a quick fix capture.
 
-    Creates a beads task for the fix.
+    Creates a beads task for the fix, then archives the capture.
     """
     if dry_run:
         return f"Would create task for: {capture.title}"
 
-    # TODO: Create beads task
-    # bd create --title "{capture.title}" --type task
-    return f"Created task for: {capture.title}"
+    body = _extract_body_content(content)
+    description = f"Quick fix from capture {capture.id}:\n\n{body}"
+
+    task_id = _create_beads_task(
+        title=capture.title,
+        description=description,
+        task_type="task",
+        priority=2,
+        labels=["quick-fix"] + capture.tags,
+    )
+
+    if task_id and store:
+        store.archive_capture(capture.id)
+        return f"Created task {task_id}, archived capture"
+    elif task_id:
+        return f"Created task {task_id}"
+    else:
+        return "Failed to create task"
 
 
-def process_audit(capture: Capture, content: str, dry_run: bool = False) -> str:
+def process_audit(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process a code audit capture.
 
-    Runs code analysis and produces a report.
+    Extracts search patterns from the capture, runs code analysis,
+    and produces a report in specs/investigations/.
     """
     if dry_run:
         return f"Would run code audit for: {capture.title}"
 
-    # TODO: Run grep/glob analysis
-    # TODO: Generate report in specs/investigations/
-    return f"Audit report generated for: {capture.title}"
+    body = _extract_body_content(content)
+
+    # Try to extract search patterns from the content
+    # Look for quoted strings, code references, or key terms
+    patterns: list[str] = []
+
+    # Extract quoted strings
+    quoted = re.findall(r'"([^"]+)"', body) + re.findall(r"'([^']+)'", body)
+    patterns.extend(quoted)
+
+    # Extract potential code patterns (camelCase, snake_case, etc.)
+    code_patterns = re.findall(r"\b[a-z]+(?:_[a-z]+)+\b", body)  # snake_case
+    code_patterns += re.findall(r"\b[a-z]+(?:[A-Z][a-z]+)+\b", body)  # camelCase
+    patterns.extend(code_patterns)
+
+    # If no patterns found, use key nouns from the title
+    if not patterns:
+        # Simple extraction of potential search terms
+        words = capture.title.lower().split()
+        skip_words = {
+            "the",
+            "a",
+            "an",
+            "all",
+            "find",
+            "track",
+            "audit",
+            "where",
+            "how",
+            "many",
+            "list",
+            "search",
+            "for",
+            "in",
+            "of",
+            "to",
+            "and",
+            "or",
+        }
+        patterns = [w for w in words if w not in skip_words and len(w) > 2]
+
+    # Run grep for each pattern and collect results
+    findings: dict[str, list[str]] = {}
+
+    for pattern in patterns[:5]:  # Limit to 5 patterns
+        try:
+            result = subprocess.run(
+                ["rg", "-l", "--type-add", "code:*.py", "-t", "code", pattern],
+                capture_output=True,
+                text=True,
+                cwd=Path.cwd(),
+            )
+            if result.stdout.strip():
+                files = result.stdout.strip().split("\n")
+                findings[pattern] = files[:20]  # Limit files per pattern
+        except FileNotFoundError:
+            # Fall back to grep if rg not available
+            try:
+                result = subprocess.run(
+                    ["grep", "-rl", pattern, "--include=*.py", "."],
+                    capture_output=True,
+                    text=True,
+                    cwd=Path.cwd(),
+                )
+                if result.stdout.strip():
+                    files = result.stdout.strip().split("\n")
+                    findings[pattern] = files[:20]
+            except FileNotFoundError:
+                pass
+
+    # Generate report
+    report_dir = _ensure_investigations_dir()
+    report_file = report_dir / f"{capture.id}-audit.md"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    report_content = f"""# Audit Report: {capture.title}
+
+**Capture ID:** {capture.id}
+**Generated:** {timestamp}
+**Category:** audit
+
+## Original Capture
+
+{body}
+
+## Search Patterns
+
+The following patterns were extracted and searched:
+
+{chr(10).join(f'- `{p}`' for p in patterns[:5])}
+
+## Findings
+
+"""
+
+    if findings:
+        for pattern, files in findings.items():
+            report_content += f"### Pattern: `{pattern}`\n\n"
+            report_content += f"Found in {len(files)} file(s):\n\n"
+            for f in files:
+                report_content += f"- `{f}`\n"
+            report_content += "\n"
+    else:
+        report_content += "*No matches found for the extracted patterns.*\n\n"
+
+    report_content += """## Next Steps
+
+- [ ] Review the findings above
+- [ ] Identify patterns that need changes
+- [ ] Create tasks for necessary modifications
+
+## Notes
+
+*Add your analysis notes here.*
+"""
+
+    report_file.write_text(report_content)
+
+    # Update capture with link to report
+    if store:
+        store.update_capture(
+            capture.id,
+            append_content=f"\n---\n**Audit completed:** {timestamp}\n**Report:** {report_file}",
+        )
+
+    return f"Report generated: {report_file}"
 
 
-def process_research(capture: Capture, content: str, dry_run: bool = False) -> str:
+def process_research(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process a research capture.
 
-    Runs web search and summarizes findings.
+    Creates a research template with the capture context,
+    ready for web search and summarization.
     """
     if dry_run:
         return f"Would research: {capture.title}"
 
-    # TODO: Run web search
-    # TODO: Summarize findings
-    return f"Research summary generated for: {capture.title}"
+    body = _extract_body_content(content)
+
+    # Generate research template
+    report_dir = _ensure_investigations_dir()
+    report_file = report_dir / f"{capture.id}-research.md"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    # Extract potential search queries from the content
+    queries = [capture.title]
+    # Look for questions in the content
+    questions = re.findall(r"[^.!?]*\?", body)
+    queries.extend([q.strip() for q in questions[:3]])
+
+    report_content = f"""# Research: {capture.title}
+
+**Capture ID:** {capture.id}
+**Generated:** {timestamp}
+**Category:** research
+**Status:** needs_research
+
+## Original Capture
+
+{body}
+
+## Suggested Search Queries
+
+{chr(10).join(f'- [ ] "{q}"' for q in queries)}
+
+## Research Findings
+
+*This section should be filled in with research results.*
+
+### Key Sources
+
+1. *Source 1*
+2. *Source 2*
+3. *Source 3*
+
+### Summary
+
+*Summarize the key findings here.*
+
+### Relevant Code/Tools
+
+*List any relevant tools, libraries, or code examples found.*
+
+## Recommendations
+
+*Based on the research, what actions should be taken?*
+
+- [ ] Recommendation 1
+- [ ] Recommendation 2
+
+## Next Steps
+
+- [ ] Complete web searches for suggested queries
+- [ ] Summarize findings
+- [ ] Create actionable tasks from recommendations
+"""
+
+    report_file.write_text(report_content)
+
+    # Mark capture for human review since research needs manual/AI work
+    if store:
+        store.update_capture(
+            capture.id,
+            needs_human_review=True,
+            append_content=f"\n---\n**Research template created:** {timestamp}\n"
+            f"**Template:** {report_file}",
+        )
+
+    return f"Research template: {report_file} (needs completion)"
 
 
-def process_design(capture: Capture, content: str, dry_run: bool = False) -> str:
+def process_design(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process a design capture.
 
-    Creates a design document for review.
+    Creates a design document template for review.
     """
     if dry_run:
         return f"Would create design doc for: {capture.title}"
 
-    # TODO: Generate design document template
-    # TODO: Pre-fill with context
-    return f"Design doc created for: {capture.title}"
+    body = _extract_body_content(content)
+
+    # Generate design document
+    report_dir = _ensure_investigations_dir()
+    report_file = report_dir / f"{capture.id}-design.md"
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    report_content = f"""# Design: {capture.title}
+
+**Capture ID:** {capture.id}
+**Generated:** {timestamp}
+**Category:** design
+**Status:** draft
+
+## Problem Statement
+
+{body}
+
+## Goals
+
+*What are we trying to achieve?*
+
+- [ ] Goal 1
+- [ ] Goal 2
+
+## Non-Goals
+
+*What is explicitly out of scope?*
+
+-
+
+## Background & Context
+
+*What context is needed to understand this design?*
+
+## Proposed Solution
+
+### Overview
+
+*High-level description of the proposed approach.*
+
+### Detailed Design
+
+*Detailed explanation of the solution.*
+
+### Alternatives Considered
+
+*What other approaches were considered and why were they rejected?*
+
+1. **Alternative 1:** *description*
+   - Pros:
+   - Cons:
+
+## Implementation Plan
+
+*How will this be implemented?*
+
+### Phase 1
+
+- [ ] Task 1
+- [ ] Task 2
+
+### Phase 2
+
+- [ ] Task 3
+- [ ] Task 4
+
+## Open Questions
+
+*What questions need to be answered?*
+
+- [ ] Question 1
+- [ ] Question 2
+
+## Feedback Requested
+
+*What specific feedback is needed?*
+
+---
+
+## Feedback Log
+
+*Record feedback received here.*
+
+| Date | From | Feedback | Resolution |
+|------|------|----------|------------|
+| | | | |
+"""
+
+    report_file.write_text(report_content)
+
+    # Mark for human review
+    if store:
+        store.update_capture(
+            capture.id,
+            needs_human_review=True,
+            append_content=f"\n---\n**Design doc created:** {timestamp}\n"
+            f"**Document:** {report_file}",
+        )
+
+    return f"Design doc: {report_file} (needs review)"
 
 
-def process_spike(capture: Capture, content: str, dry_run: bool = False) -> str:
+def process_spike(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process a spike capture.
 
@@ -189,22 +599,115 @@ def process_spike(capture: Capture, content: str, dry_run: bool = False) -> str:
     if dry_run:
         return f"Would create spike task for: {capture.title}"
 
-    # TODO: Create beads task with spike type
-    # TODO: Include branch naming convention
-    return f"Spike task created for: {capture.title}"
+    body = _extract_body_content(content)
+
+    # Generate a branch name suggestion
+    slug = re.sub(r"[^a-z0-9]+", "-", capture.title.lower()).strip("-")[:30]
+    branch_name = f"spike/{slug}"
+
+    description = f"""Spike from capture {capture.id}:
+
+{body}
+
+---
+
+## Spike Guidelines
+
+1. Create branch: `git checkout -b {branch_name}`
+2. Time-box exploration (suggested: 2-4 hours)
+3. Document findings in code comments or a SPIKE.md file
+4. Don't worry about perfect code - this is exploratory
+5. When done, summarize learnings and decide next steps
+
+## Success Criteria
+
+- [ ] Approach validated or invalidated
+- [ ] Key learnings documented
+- [ ] Recommendation for next steps
+"""
+
+    task_id = _create_beads_task(
+        title=f"[Spike] {capture.title}",
+        description=description,
+        task_type="task",
+        priority=2,
+        labels=["spike"] + capture.tags,
+    )
+
+    if task_id and store:
+        store.archive_capture(capture.id)
+        return f"Created spike task {task_id}, archived capture"
+    elif task_id:
+        return f"Created spike task {task_id}"
+    else:
+        return "Failed to create spike task"
 
 
-def process_unclear(capture: Capture, content: str, dry_run: bool = False) -> str:
+def process_unclear(
+    capture: Capture,
+    content: str,
+    dry_run: bool = False,
+    store: CaptureStore | None = None,
+) -> str:
     """
     Process an unclear capture.
 
-    Asks clarifying questions.
+    Marks for human review with clarifying questions.
     """
     if dry_run:
         return f"Would ask clarifying questions for: {capture.title}"
 
-    # TODO: Generate clarifying questions
-    return f"Clarification needed for: {capture.title}"
+    body = _extract_body_content(content)
+
+    # Generate clarifying questions based on what's missing
+    questions = []
+
+    if len(body) < 20:
+        questions.append("Can you provide more context about what you're trying to accomplish?")
+
+    if "?" not in body:
+        questions.append("What specific question are you trying to answer?")
+
+    # Check for missing context
+    if not any(word in body.lower() for word in ["because", "since", "so that", "in order"]):
+        questions.append("What is the motivation or goal behind this idea?")
+
+    if not any(
+        word in body.lower() for word in ["file", "function", "class", "module", "component"]
+    ):
+        questions.append("Which part of the codebase does this relate to?")
+
+    # Default questions if we couldn't generate specific ones
+    if not questions:
+        questions = [
+            "What specific outcome are you hoping for?",
+            "What have you already tried or considered?",
+            "Are there any constraints or requirements to be aware of?",
+        ]
+
+    # Update capture with questions and mark for review
+    questions_text = "\n".join(f"- {q}" for q in questions)
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    if store:
+        store.update_capture(
+            capture.id,
+            needs_human_review=True,
+            append_content=f"""
+---
+
+**Clarification needed** ({timestamp})
+
+This capture needs more detail before it can be processed. Please answer the following questions:
+
+{questions_text}
+
+Once clarified, run `cub investigate {capture.id}` again.
+""",
+        )
+        return f"Marked for review with {len(questions)} questions"
+
+    return f"Needs clarification ({len(questions)} questions)"
 
 
 PROCESSORS = {
@@ -256,6 +759,7 @@ def investigate(
     - audit: Code exploration → run analysis
     - research: External investigation → web search
     - design: Planning needed → create design doc
+    - spike: Exploratory work → create spike task
     - unclear: Needs clarification → ask questions
 
     Examples:
@@ -307,6 +811,9 @@ def investigate(
         for store in stores_to_check:
             try:
                 for capture in store.list_captures():
+                    # Skip captures already marked for review or archived
+                    if capture.needs_human_review:
+                        continue
                     capture_file = store.get_capture_file_path(capture.id)
                     content = capture_file.read_text()
                     captures_to_process.append((capture, store, content))
@@ -321,7 +828,7 @@ def investigate(
 
     # Process each capture
     results: list[tuple[str, CaptureCategory, str]] = []
-    quick_fixes: list[tuple[Capture, str]] = []
+    quick_fixes: list[tuple[Capture, CaptureStore, str]] = []
 
     for capture, store, content in captures_to_process:
         # Determine category
@@ -332,14 +839,14 @@ def investigate(
 
         # Batch quick fixes if requested
         if batch_quick and category == CaptureCategory.QUICK:
-            quick_fixes.append((capture, content))
+            quick_fixes.append((capture, store, content))
             console.print("  Action: [dim]Batched for later[/dim]")
             results.append((capture.id, category, "Batched"))
             continue
 
         # Process based on category
         processor = PROCESSORS[category]
-        result = processor(capture, content, dry_run=dry_run)
+        result = processor(capture, content, dry_run=dry_run, store=store)
         console.print(f"  Action: {result}")
         results.append((capture.id, category, result))
         console.print()
@@ -350,8 +857,36 @@ def investigate(
         if dry_run:
             console.print("  [dim]Would create single task with all quick fixes[/dim]")
         else:
-            # TODO: Create single task with all quick fixes
-            console.print("  Created batched task")
+            # Create a single task with all quick fixes
+            all_tags: set[str] = set()
+            for c, _, _ in quick_fixes:
+                all_tags.update(c.tags)
+
+            description = "Batched quick fixes:\n\n"
+            for capture, _, content in quick_fixes:
+                body = _extract_body_content(content)
+                description += f"### {capture.id}: {capture.title}\n\n{body}\n\n---\n\n"
+
+            task_id = _create_beads_task(
+                title=f"Quick fixes batch ({len(quick_fixes)} items)",
+                description=description,
+                task_type="task",
+                priority=2,
+                labels=["quick-fix", "batch"] + list(all_tags),
+            )
+
+            if task_id:
+                console.print(f"  Created batched task: {task_id}")
+                # Archive all the captures
+                for capture, store, _ in quick_fixes:
+                    try:
+                        store.archive_capture(capture.id)
+                    except Exception as e:
+                        console.print(
+                            f"  [yellow]Warning:[/yellow] Could not archive {capture.id}: {e}"
+                        )
+            else:
+                console.print("  [red]Failed to create batched task[/red]")
 
     # Summary
     console.print("\n[bold]Summary:[/bold]")
