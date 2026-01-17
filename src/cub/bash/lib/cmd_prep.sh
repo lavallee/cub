@@ -666,16 +666,240 @@ cmd_plan() {
         architect=$(cat "${session_dir}/architect.md")
         plan_prefix="${session_id%%-*}"
 
-        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a Beads-compatible plan.jsonl for execution by AI coding agents.\n\nRequirements:\n- Output MUST be valid JSONL, one JSON object per line, and NOTHING ELSE (no code fences, no commentary).\n- Each line MUST use this schema:\n  {\"id\": string, \"title\": string, \"description\": string, \"status\": \"open\"|\"closed\"|\"in_progress\", \"priority\": number, \"issue_type\": \"epic\"|\"task\"|\"note\", \"labels\": string[], \"dependencies\": [{\"depends_on_id\": string, \"type\": \"parent-child\"|\"blocks\"}] }\n- Use ids with prefix '${plan_prefix}-'.\n- Every task MUST include parent-child dependency on its epic.\n- Prefer small tasks that can be closed independently.\n\nIf blocked on critical missing info, output exactly ONE line of JSON with issue_type 'note' and title 'NEEDS_HUMAN_INPUT' (questions in description).\n\nExample lines:\n{\"id\":\"${plan_prefix}-V1\",\"title\":\"Example epic\",\"description\":\"...\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"epic\",\"labels\":[\"feature:example\"],\"dependencies\":[]}\n{\"id\":\"${plan_prefix}-V1.1\",\"title\":\"Example task\",\"description\":\"...\",\"status\":\"open\",\"priority\":2,\"issue_type\":\"task\",\"labels\":[\"feature:example\"],\"dependencies\":[{\"depends_on_id\":\"${plan_prefix}-V1\",\"type\":\"parent-child\"}]}\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$jsonl_file"
+        # 1) Ask the model for a strict Markdown plan (more reliable than JSONL).
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nProduce a STRICT Markdown plan. Do NOT output JSON/JSONL.\n\nFormat requirements (must follow exactly):\n- Start with '# Plan'\n- Epic sections start with: '## Epic: <id> - <title>'\n- Task sections start with: '### Task: <id> - <title>'\n- Each epic and each task MUST include these metadata lines (exact keys):\n  Priority: <integer>\n  Labels: comma,separated,labels\n  Description:\n  <freeform markdown>\n- Tasks may additionally include:\n  Blocks: comma,separated,task_ids\n\nIDs should be short (e.g. V1, V1.1) and do NOT need the project prefix.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$md_file"
 
-        _normalize_plan_jsonl_file "$jsonl_file"
+        # 2) Deterministically convert markdown -> beads JSONL.
+        python3 - "$plan_prefix" "$md_file" "$jsonl_file" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
 
+prefix = sys.argv[1]
+md_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
+
+EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+KEY_RE = re.compile(r"^(Priority|Labels|Blocks):\s*(.*)$")
+
+def split_csv(v: str):
+    return [x.strip() for x in v.split(',') if x.strip()]
+
+def norm_id(raw: str):
+    raw = raw.strip()
+    if not raw:
+        return raw
+    if prefix and not raw.startswith(prefix + '-'): 
+        return f"{prefix}-{raw}"
+    return raw
+
+text = md_path.read_text(encoding='utf-8')
+lines = text.splitlines()
+
+out = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+
+def flush():
+    global buf
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf.clear()
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush()
+
+for epic in [cur_epic] if False else []:
+    pass
+
+# Re-parse to collect all epics encountered
+# (we didn't store them while iterating to keep code minimal)
+
+epics = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+def flush2():
+    global buf, cur_epic, cur_task
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf = []
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush2()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        epics.append(cur_epic)
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush2()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush2()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush2()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush2()
+
+json_lines = []
+for epic in epics:
+    epic_id = norm_id(epic['id'])
+    json_lines.append(json.dumps({
+        'id': epic_id,
+        'title': epic['title'],
+        'description': epic.get('description',''),
+        'status': 'open',
+        'priority': epic.get('priority',2),
+        'issue_type': 'epic',
+        'labels': epic.get('labels',[]),
+        'dependencies': [],
+    }, ensure_ascii=False))
+    for task in epic.get('tasks', []):
+        task_id = norm_id(task['id'])
+        deps = [{'depends_on_id': epic_id, 'type': 'parent-child'}]
+        for b in task.get('blocks', []):
+            deps.append({'depends_on_id': norm_id(b), 'type': 'blocks'})
+        json_lines.append(json.dumps({
+            'id': task_id,
+            'title': task['title'],
+            'description': task.get('description',''),
+            'status': 'open',
+            'priority': task.get('priority',2),
+            'issue_type': 'task',
+            'labels': task.get('labels',[]),
+            'dependencies': deps,
+        }, ensure_ascii=False))
+
+out_path.write_text("\n".join(json_lines) + ("\n" if json_lines else ""), encoding='utf-8')
+PY
+
+        # 3) Validate the generated JSONL.
         if ! _validate_plan_jsonl_file "$jsonl_file"; then
-            echo "{\"id\":\"${plan_prefix}-NEEDS_HUMAN\",\"title\":\"NEEDS_HUMAN_INPUT\",\"description\":\"Non-interactive plan output was not valid beads JSONL. Please re-run interactively (cub plan) or provide a corrected plan.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"note\",\"labels\":[\"prep:error\"],\"dependencies\":[]}" >"$jsonl_file"
+            echo "{\"id\":\"${plan_prefix}-NEEDS_HUMAN\",\"title\":\"NEEDS_HUMAN_INPUT\",\"description\":\"Non-interactive plan conversion failed: generated plan.jsonl is invalid. Please re-run interactively (cub plan) or fix the markdown plan at ${md_file}.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"note\",\"labels\":[\"prep:error\"],\"dependencies\":[]}" >"$jsonl_file"
         fi
-
-        # Also generate a human-readable summary
-        _claude_prompt_to_file "Write a concise plan summary in Markdown (no code fences).\nInclude: epics, tasks, and key dependencies.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n\nPLAN JSONL:\n---\n$(cat "$jsonl_file")\n---\n" "$md_file" || true
     else
         # Run claude with the /plan skill
         claude "/cub:plan ${session_dir}"
