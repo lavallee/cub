@@ -201,3 +201,79 @@ class TestDirectFlagValidation:
 
         assert result.exit_code == 1
         assert "--direct cannot be used with --parallel" in result.output
+
+
+class TestGhIssueFlagValidation:
+    """Tests for --gh-issue flag validation with incompatible flags."""
+
+    def test_gh_issue_with_task_id_fails(self):
+        """Test --gh-issue cannot be combined with --task."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--task", "cub-123"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --task" in result.output
+
+    def test_gh_issue_with_epic_fails(self):
+        """Test --gh-issue cannot be combined with --epic."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--epic", "epic-1"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --epic" in result.output
+
+    def test_gh_issue_with_label_fails(self):
+        """Test --gh-issue cannot be combined with --label."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--label", "urgent"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --label" in result.output
+
+    def test_gh_issue_with_ready_fails(self):
+        """Test --gh-issue cannot be combined with --ready."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--ready"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --ready" in result.output
+
+    def test_gh_issue_with_parallel_fails(self):
+        """Test --gh-issue cannot be combined with --parallel."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--parallel", "3"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --parallel" in result.output
+
+    def test_gh_issue_with_direct_fails(self):
+        """Test --gh-issue cannot be combined with --direct."""
+        from typer.testing import CliRunner
+
+        from cub.cli.run import app
+
+        runner = CliRunner()
+        result = runner.invoke(app, ["--gh-issue", "123", "--direct", "Test"])
+
+        assert result.exit_code == 1
+        assert "--gh-issue cannot be used with --direct" in result.output

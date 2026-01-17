@@ -368,6 +368,11 @@ def run(
         "-d",
         help="Run directly with provided task (string, @file, or - for stdin)",
     ),
+    gh_issue: int | None = typer.Option(
+        None,
+        "--gh-issue",
+        help="Work on a specific GitHub issue by number",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -392,6 +397,7 @@ def run(
         cub run --direct "Add a logout button to the navbar"  # Direct task
         cub run --direct @task.txt      # Read task from file
         echo "Fix the typo" | cub run --direct -  # Read from stdin
+        cub run --gh-issue 123          # Work on GitHub issue #123
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -421,6 +427,27 @@ def run(
             raise typer.Exit(1)
         if parallel:
             console.print("[red]--direct cannot be used with --parallel[/red]")
+            raise typer.Exit(1)
+
+    if gh_issue is not None:
+        # --gh-issue is incompatible with task management flags
+        if task_id:
+            console.print("[red]--gh-issue cannot be used with --task[/red]")
+            raise typer.Exit(1)
+        if epic:
+            console.print("[red]--gh-issue cannot be used with --epic[/red]")
+            raise typer.Exit(1)
+        if label:
+            console.print("[red]--gh-issue cannot be used with --label[/red]")
+            raise typer.Exit(1)
+        if ready:
+            console.print("[red]--gh-issue cannot be used with --ready[/red]")
+            raise typer.Exit(1)
+        if parallel:
+            console.print("[red]--gh-issue cannot be used with --parallel[/red]")
+            raise typer.Exit(1)
+        if direct:
+            console.print("[red]--gh-issue cannot be used with --direct[/red]")
             raise typer.Exit(1)
 
     # Handle --sandbox flag: run in Docker container
@@ -552,6 +579,22 @@ def run(
     if direct:
         exit_code = _run_direct(
             direct=direct,
+            project_dir=project_dir,
+            config=config,
+            harness=harness,
+            model=model,
+            stream=stream,
+            budget=budget,
+            budget_tokens=budget_tokens,
+            session_name=session_name,
+            debug=debug,
+        )
+        raise typer.Exit(exit_code)
+
+    # Handle --gh-issue flag: run on a specific GitHub issue
+    if gh_issue is not None:
+        exit_code = _run_gh_issue(
+            issue_number=gh_issue,
             project_dir=project_dir,
             config=config,
             harness=harness,
@@ -975,11 +1018,13 @@ def _run_direct(
     task_model = model or config.harness.model
 
     # Display task info
-    console.print(Panel(
-        f"[bold]{task_content[:200]}{'...' if len(task_content) > 200 else ''}[/bold]",
-        title="[bold]Direct Task[/bold]",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]{task_content[:200]}{'...' if len(task_content) > 200 else ''}[/bold]",
+            title="[bold]Direct Task[/bold]",
+            border_style="blue",
+        )
+    )
 
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
@@ -1018,6 +1063,160 @@ def _run_direct(
         console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
         if result.usage.cost_usd:
             console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+        return 0
+    else:
+        console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
+        return result.exit_code if result.exit_code else 1
+
+
+def _run_gh_issue(
+    issue_number: int,
+    project_dir: Path,
+    config: object,
+    harness: str | None,
+    model: str | None,
+    stream: bool,
+    budget: float | None,
+    budget_tokens: int | None,
+    session_name: str | None,
+    debug: bool,
+) -> int:
+    """
+    Run on a specific GitHub issue.
+
+    Args:
+        issue_number: GitHub issue number to work on
+        project_dir: Project directory
+        config: Loaded configuration
+        harness: AI harness to use
+        model: Model to use
+        stream: Stream output
+        budget: Budget limit (USD)
+        budget_tokens: Token budget limit
+        session_name: Session name
+        debug: Debug mode
+
+    Returns:
+        Exit code (0 = success, 1 = failure)
+    """
+    from cub.core.config.models import CubConfig
+    from cub.core.github import GitHubClientError, GitHubIssueMode
+
+    # Type narrow config
+    if not isinstance(config, CubConfig):
+        console.print("[red]Invalid configuration[/red]")
+        return 1
+
+    # Initialize GitHub issue mode
+    try:
+        issue_mode = GitHubIssueMode.from_project_dir(issue_number, project_dir)
+    except GitHubClientError as e:
+        console.print(f"[red]{e}[/red]")
+        return 1
+
+    if debug:
+        console.print(f"[dim]Repository: {issue_mode.repo.full_name}[/dim]")
+        console.print(f"[dim]Issue: #{issue_mode.issue.number}[/dim]")
+
+    # Detect or validate harness
+    harness_name = harness or detect_harness(config.harness.priority)
+    if not harness_name:
+        console.print(
+            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
+        )
+        return 1
+
+    try:
+        harness_backend = get_harness_backend(harness_name)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        return 1
+
+    if not harness_backend.is_available():
+        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
+        return 1
+
+    if debug:
+        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+
+    # Display issue info
+    table = Table(show_header=False, box=None)
+    table.add_column("Field", style="cyan")
+    table.add_column("Value")
+
+    table.add_row("Issue", f"[bold]#{issue_mode.issue.number}[/bold]")
+    table.add_row("Title", issue_mode.issue.title)
+    table.add_row("Repository", issue_mode.repo.full_name)
+    table.add_row("Labels", issue_mode.issue.labels_str)
+    table.add_row("URL", issue_mode.issue.url)
+
+    console.print(Panel(table, title="[bold]GitHub Issue[/bold]", border_style="blue"))
+
+    # Post start comment
+    console.print("[dim]Posting start comment...[/dim]")
+    issue_mode.post_start_comment()
+
+    # Generate prompts
+    system_prompt = generate_system_prompt(project_dir)
+    task_prompt = issue_mode.generate_prompt()
+
+    if debug:
+        console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")
+        console.print(f"[dim]Task prompt: {len(task_prompt)} chars[/dim]")
+
+    # Get model
+    task_model = model or config.harness.model
+
+    # Invoke harness
+    console.print(f"[bold]Running {harness_name}...[/bold]")
+    start_time = time.time()
+
+    try:
+        if stream and harness_backend.capabilities.streaming:
+            # Ensure stdout is unbuffered for streaming
+            sys.stdout.flush()
+            result: HarnessResult = harness_backend.invoke_streaming(
+                system_prompt=system_prompt,
+                task_prompt=task_prompt,
+                model=task_model,
+                debug=debug,
+                callback=_stream_callback,
+            )
+            sys.stdout.write("\n")  # Newline after streaming output
+            sys.stdout.flush()
+        else:
+            result = harness_backend.invoke(
+                system_prompt=system_prompt,
+                task_prompt=task_prompt,
+                model=task_model,
+                debug=debug,
+            )
+    except Exception as e:
+        console.print(f"[red]Harness invocation failed: {e}[/red]")
+        return 1
+
+    duration = time.time() - start_time
+
+    # Display result
+    console.print()
+    if result.success:
+        console.print(f"[green]Completed in {duration:.1f}s[/green]")
+        console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
+        if result.usage.cost_usd:
+            console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+
+        # Handle issue completion (post comment, maybe close)
+        console.print()
+        issue_mode.finish()
+
+        if issue_mode.should_close_issue():
+            console.print(f"[green]Issue #{issue_number} closed[/green]")
+        else:
+            branch = issue_mode.client.get_current_branch()
+            console.print(
+                f"[cyan]Changes on branch '{branch}'. Issue will close when merged to main.[/cyan]"
+            )
+
         return 0
     else:
         console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
@@ -1137,8 +1336,7 @@ def _run_parallel(
 
     if len(tasks) < parallel:
         console.print(
-            f"[yellow]Found only {len(tasks)} independent tasks "
-            f"(requested {parallel})[/yellow]"
+            f"[yellow]Found only {len(tasks)} independent tasks (requested {parallel})[/yellow]"
         )
 
     # Display tasks to be executed
