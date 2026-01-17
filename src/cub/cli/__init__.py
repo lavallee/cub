@@ -54,7 +54,11 @@ def main(
 # =============================================================================
 
 app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
-app.command(name="prep", rich_help_panel=PANEL_KEY)(delegated.prep)
+app.command(
+    name="prep",
+    rich_help_panel=PANEL_KEY,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.prep)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 app.command(name="doctor", rich_help_panel=PANEL_KEY)(delegated.doctor)
 
@@ -82,12 +86,36 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 # Go Deep in Prep/Planning Mode
 # =============================================================================
 
-app.command(name="triage", rich_help_panel=PANEL_PREP)(delegated.triage)
-app.command(name="architect", rich_help_panel=PANEL_PREP)(delegated.architect)
-app.command(name="plan", rich_help_panel=PANEL_PREP)(delegated.plan)
-app.command(name="bootstrap", rich_help_panel=PANEL_PREP)(delegated.bootstrap)
-app.command(name="sessions", rich_help_panel=PANEL_PREP)(delegated.sessions)
-app.command(name="validate", rich_help_panel=PANEL_PREP)(delegated.validate)
+app.command(
+    name="triage",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.triage)
+app.command(
+    name="architect",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.architect)
+app.command(
+    name="plan",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.plan)
+app.command(
+    name="bootstrap",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.bootstrap)
+app.command(
+    name="sessions",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.sessions)
+app.command(
+    name="validate",
+    rich_help_panel=PANEL_PREP,
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)(delegated.validate)
 
 
 # =============================================================================

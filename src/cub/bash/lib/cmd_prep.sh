@@ -17,6 +17,28 @@
 # Session directory root
 PIPELINE_SESSIONS_DIR="${PROJECT_DIR}/.cub/sessions"
 
+# Run `claude -p` reliably even without a TTY.
+# Some environments hang unless a pseudo-tty is allocated.
+_claude_prompt_to_file() {
+    local prompt="$1"
+    local out_file="$2"
+
+    local tmp
+    tmp=$(mktemp)
+
+    if [[ -t 1 ]]; then
+        claude -p "$prompt" >"$tmp"
+    else
+        # Allocate a pseudo-tty and capture stdout.
+        # `script` writes the child output to its own stdout.
+        script -q /dev/null -c "claude -p $(printf %q "$prompt")" >"$tmp"
+    fi
+
+    # Strip common ANSI escape sequences so downstream tools can parse artifacts.
+    perl -pe 's/\e\[[0-9;]*[A-Za-z]//g; s/\r//g' "$tmp" >"$out_file"
+    rm -f "$tmp"
+}
+
 # ============================================================================
 # Session Management Functions
 # ============================================================================
@@ -201,6 +223,8 @@ pipeline_find_vision() {
 cmd_triage() {
     local session_id=""
     local resume_session=""
+    local non_interactive="false"
+    local vision_path=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -213,6 +237,18 @@ cmd_triage() {
                 resume_session="${1#--session=}"
                 shift
                 ;;
+            --vision)
+                vision_path="$2"
+                shift 2
+                ;;
+            --vision=*)
+                vision_path="${1#--vision=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
+                shift
+                ;;
             --help|-h)
                 _triage_help
                 return 0
@@ -223,17 +259,28 @@ cmd_triage() {
                 return 1
                 ;;
             *)
-                # Ignore positional args (vision path handled by skill)
+                # Allow a positional vision path.
+                if [[ -z "$vision_path" ]]; then
+                    vision_path="$1"
+                fi
                 shift
                 ;;
         esac
     done
 
-    # Check that triage skill is installed
-    if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
-        _log_error_console "Triage skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that triage skill is installed
+        if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
+            _log_error_console "Triage skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
+    else
+        if [[ -z "$vision_path" || ! -f "$vision_path" ]]; then
+            _log_error_console "Non-interactive triage requires a vision file path."
+            _log_error_console "Usage: cub triage --non-interactive --vision VISION.md"
+            return 1
+        fi
     fi
 
     # Resume existing session or create new
@@ -259,11 +306,29 @@ cmd_triage() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /triage skill
-    claude "/cub:triage ${output_file}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive triage (best-effort)..."
+        local vision
+        vision=$(cat "$vision_path")
+
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TRIAGE document from a raw vision input.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If you are blocked on critical missing info, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput a triage document with these sections:\n- ## Summary\n- ## Goals\n- ## Non-Goals\n- ## Requirements\n- ## Constraints\n- ## Risks\n- ## Open Questions\n- ## Needs Human Input (only if blocked)\n\nVISION INPUT:\n---\n${vision}\n---\n" "$output_file"
+    else
+        # Run claude with the /triage skill
+        claude "/cub:triage ${output_file}"
+    fi
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
+        if grep -q "^## Needs Human Input" "$output_file"; then
+            pipeline_update_session "$session_id" "triage" "needs_human"
+            echo ""
+            log_warn "Triage needs human input before continuing."
+            log_info "Output: ${output_file}"
+            echo ""
+            sed -n '/^## Needs Human Input/,$p' "$output_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "triage" "complete"
         echo ""
         log_success "Triage complete!"
@@ -290,8 +355,10 @@ Launches an interactive Claude session to conduct a product triage interview,
 clarify requirements, identify gaps, and produce a refined requirements document.
 
 Options:
-  --session ID       Resume an existing session
-  -h, --help         Show this help message
+  --session ID             Resume an existing session
+  --non-interactive        Run without an interactive Claude session
+  --vision PATH            Vision/input markdown file (required with --non-interactive)
+  -h, --help               Show this help message
 
 Examples:
   cub triage                      # Start new triage session
@@ -311,6 +378,7 @@ EOF
 
 cmd_architect() {
     local session_id=""
+    local non_interactive="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -321,6 +389,10 @@ cmd_architect() {
                 ;;
             --session=*)
                 session_id="${1#--session=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
                 shift
                 ;;
             --help|-h)
@@ -339,11 +411,13 @@ cmd_architect() {
         esac
     done
 
-    # Check that architect skill is installed
-    if [[ ! -f ".claude/commands/cub:architect.md" ]]; then
-        _log_error_console "Architect skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that architect skill is installed
+        if [[ ! -f ".claude/commands/cub:architect.md" ]]; then
+            _log_error_console "Architect skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
     fi
 
     # Get session ID
@@ -379,11 +453,29 @@ cmd_architect() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /architect skill
-    claude "/cub:architect ${output_file}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive architect (best-effort)..."
+        local triage
+        triage=$(cat "${session_dir}/triage.md")
+
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TECHNICAL ARCHITECTURE document based on triage output.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If blocked on a critical missing decision, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput an architecture document with these sections:\n- ## Summary\n- ## Approach\n- ## Components\n- ## Data & State\n- ## Interfaces\n- ## Risks & Tradeoffs\n- ## Testing & Verification\n- ## Needs Human Input (only if blocked)\n\nTRIAGE INPUT:\n---\n${triage}\n---\n" "$output_file"
+    else
+        # Run claude with the /architect skill
+        claude "/cub:architect ${output_file}"
+    fi
 
     # Check if output was created
     if [[ -f "$output_file" ]]; then
+        if grep -q "^## Needs Human Input" "$output_file"; then
+            pipeline_update_session "$session_id" "architect" "needs_human"
+            echo ""
+            log_warn "Architecture needs human input before continuing."
+            log_info "Output: ${output_file}"
+            echo ""
+            sed -n '/^## Needs Human Input/,$p' "$output_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "architect" "complete"
         echo ""
         log_success "Architecture design complete!"
@@ -413,8 +505,9 @@ Arguments:
   SESSION_ID         Session ID from triage (default: most recent)
 
 Options:
-  --session ID       Specify session ID
-  -h, --help         Show this help message
+  --session ID             Specify session ID
+  --non-interactive        Run without an interactive Claude session
+  -h, --help               Show this help message
 
 Examples:
   cub architect                        # Use most recent session
@@ -434,6 +527,7 @@ EOF
 
 cmd_plan() {
     local session_id=""
+    local non_interactive="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -444,6 +538,10 @@ cmd_plan() {
                 ;;
             --session=*)
                 session_id="${1#--session=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
                 shift
                 ;;
             --help|-h)
@@ -462,11 +560,13 @@ cmd_plan() {
         esac
     done
 
-    # Check that plan skill is installed
-    if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
-        _log_error_console "Plan skill not installed."
-        _log_error_console "Run 'cub init' to install Claude Code skills."
-        return 1
+    if [[ "$non_interactive" == "false" ]]; then
+        # Check that plan skill is installed
+        if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
+            _log_error_console "Plan skill not installed."
+            _log_error_console "Run 'cub init' to install Claude Code skills."
+            return 1
+        fi
     fi
 
     # Get session ID
@@ -502,11 +602,35 @@ cmd_plan() {
     log_info "Session: ${session_id}"
     echo ""
 
-    # Run claude with the /plan skill
-    claude "/cub:plan ${session_dir}"
+    if [[ "$non_interactive" == "true" ]]; then
+        log_info "Running non-interactive plan (best-effort)..."
+
+        local triage architect plan_prefix
+        triage=$(cat "${session_dir}/triage.md")
+        architect=$(cat "${session_dir}/architect.md")
+        plan_prefix="${session_id%%-*}"
+
+        _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a Beads-compatible plan.jsonl for execution by AI coding agents.\n\nRequirements:\n- Output MUST be valid JSONL, one JSON object per line, and NOTHING ELSE (no code fences, no commentary).\n- Use ids with prefix '${plan_prefix}-' (e.g., '${plan_prefix}-V1' for an epic, '${plan_prefix}-V1.1' for tasks).\n- Every task must have a parent-child dependency on its epic: {\"depends_on_id\": <epic_id>, \"type\": \"parent-child\"}.\n- Use dependency type 'blocks' only when strictly necessary.\n- Prefer small, testable tasks.\n- If you're blocked on critical missing info, output exactly ONE line of JSON with issue_type 'note' and title 'NEEDS_HUMAN_INPUT' and put questions in description.\n\nInput follows.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$jsonl_file"
+
+        # Also generate a human-readable summary
+        _claude_prompt_to_file "Write a concise plan summary in Markdown (no code fences).\nInclude: epics, tasks, and key dependencies.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n\nPLAN JSONL:\n---\n$(cat "$jsonl_file")\n---\n" "$md_file" || true
+    else
+        # Run claude with the /plan skill
+        claude "/cub:plan ${session_dir}"
+    fi
 
     # Check if output was created
     if [[ -f "$jsonl_file" ]]; then
+        if grep -q '"title"[[:space:]]*:[[:space:]]*"NEEDS_HUMAN_INPUT"' "$jsonl_file"; then
+            pipeline_update_session "$session_id" "plan" "needs_human"
+            echo ""
+            log_warn "Plan needs human input before continuing."
+            log_info "Output: ${jsonl_file}"
+            echo ""
+            cat "$jsonl_file"
+            return 2
+        fi
+
         pipeline_update_session "$session_id" "plan" "complete"
         echo ""
 
@@ -543,8 +667,9 @@ Arguments:
   SESSION_ID         Session ID from architect (default: most recent)
 
 Options:
-  --session ID       Specify session ID
-  -h, --help         Show this help message
+  --session ID             Specify session ID
+  --non-interactive        Run without an interactive Claude session
+  -h, --help               Show this help message
 
 Examples:
   cub plan                             # Use most recent session
@@ -955,6 +1080,8 @@ EOF
 
 cmd_prep() {
     local session_id=""
+    local non_interactive="false"
+    local vision_path=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -967,6 +1094,18 @@ cmd_prep() {
                 session_id="${1#--session=}"
                 shift
                 ;;
+            --vision)
+                vision_path="$2"
+                shift 2
+                ;;
+            --vision=*)
+                vision_path="${1#--vision=}"
+                shift
+                ;;
+            --non-interactive|--auto)
+                non_interactive="true"
+                shift
+                ;;
             --help|-h)
                 _prep_help
                 return 0
@@ -977,7 +1116,10 @@ cmd_prep() {
                 return 1
                 ;;
             *)
-                # Ignore positional args
+                # Allow a positional vision path.
+                if [[ -z "$vision_path" ]]; then
+                    vision_path="$1"
+                fi
                 shift
                 ;;
         esac
@@ -1030,17 +1172,29 @@ cmd_prep() {
         triage)
             log_info "Starting Stage 1: Triage"
             echo ""
-            cmd_triage
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_triage --non-interactive --vision "$vision_path"
+            else
+                cmd_triage
+            fi
             ;;
         architect)
             log_info "Starting Stage 2: Architect"
             echo ""
-            cmd_architect --session "$session_id"
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_architect --non-interactive --session "$session_id"
+            else
+                cmd_architect --session "$session_id"
+            fi
             ;;
         plan)
             log_info "Starting Stage 3: Plan"
             echo ""
-            cmd_plan --session "$session_id"
+            if [[ "$non_interactive" == "true" ]]; then
+                cmd_plan --non-interactive --session "$session_id"
+            else
+                cmd_plan --session "$session_id"
+            fi
             ;;
         bootstrap)
             log_info "Starting Stage 4: Bootstrap"
@@ -1151,8 +1305,10 @@ Stages:
   4. Bootstrap - Initialize beads and import tasks (shell)
 
 Options:
-  --session ID       Resume a specific session
-  -h, --help         Show this help message
+  --session ID             Resume a specific session
+  --non-interactive        Run stages using `claude -p` (best-effort)
+  --vision PATH            Vision/input markdown file (required for non-interactive triage)
+  -h, --help               Show this help message
 
 Examples:
   cub prep                          # Start or continue prep
