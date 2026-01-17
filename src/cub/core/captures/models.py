@@ -74,6 +74,10 @@ class Capture(BaseModel):
         description="Optional priority signal for later processing",
         ge=1,
     )
+    needs_human_review: bool = Field(
+        default=False,
+        description="Flag indicating capture needs human attention before proceeding",
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -94,7 +98,7 @@ class Capture(BaseModel):
             raise ValueError("ID must have characters after 'cap-'")
         return v
 
-    def to_frontmatter_dict(self) -> dict[str, str | list[str] | int | None]:
+    def to_frontmatter_dict(self) -> dict[str, str | list[str] | int | bool | None]:
         """
         Convert capture to frontmatter dictionary for serialization to YAML.
 
@@ -104,7 +108,7 @@ class Capture(BaseModel):
         # Format timestamp as YYYY-MM-DD HH:MM:SS (UTC, no microseconds)
         created_str = self.created.strftime("%Y-%m-%d %H:%M:%S")
 
-        frontmatter: dict[str, str | list[str] | int | None] = {
+        frontmatter: dict[str, str | list[str] | int | bool | None] = {
             "id": self.id,
             "created": created_str,
             "title": self.title,
@@ -123,10 +127,15 @@ class Capture(BaseModel):
         if self.priority is not None:
             frontmatter["priority"] = self.priority
 
+        if self.needs_human_review:
+            frontmatter["needs_human_review"] = self.needs_human_review
+
         return frontmatter
 
     @classmethod
-    def from_frontmatter_dict(cls, data: dict[str, str | list[str] | int | None]) -> "Capture":
+    def from_frontmatter_dict(
+        cls, data: dict[str, str | list[str] | int | bool | None]
+    ) -> "Capture":
         """
         Create a Capture instance from frontmatter dictionary.
 
@@ -216,6 +225,10 @@ class Capture(BaseModel):
                 except ValueError as e:
                     raise ValueError(f"Invalid 'priority' value: {priority_raw}") from e
 
+        # Parse needs_human_review
+        needs_human_review_raw = data.get("needs_human_review", False)
+        needs_human_review = bool(needs_human_review_raw)
+
         # Extract id and title with proper type checking
         id_value = data.get("id")
         if not isinstance(id_value, str):
@@ -233,4 +246,5 @@ class Capture(BaseModel):
             source=source,
             status=status,
             priority=priority,
+            needs_human_review=needs_human_review,
         )

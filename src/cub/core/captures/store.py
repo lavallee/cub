@@ -19,7 +19,7 @@ from pathlib import Path
 
 import frontmatter  # type: ignore[import-untyped]
 
-from cub.core.captures.models import Capture
+from cub.core.captures.models import Capture, CaptureStatus
 from cub.core.captures.project_id import get_project_id
 
 # Characters for random ID generation (lowercase alphanumeric)
@@ -157,6 +157,74 @@ class CaptureStore:
         # Use custom filename or fall back to ID
         base_name = filename if filename else capture.id
         capture_file = self.captures_dir / f"{base_name}.md"
+
+        with open(capture_file, "w", encoding="utf-8") as f:
+            f.write(frontmatter.dumps(post))
+
+        return capture_file
+
+    def archive_capture(self, capture_id: str) -> Path:
+        """
+        Archive a capture by updating its status and moving to archived/ directory.
+
+        Args:
+            capture_id: Capture ID to archive (e.g., 'cap-a7x3m2')
+
+        Returns:
+            Path to the archived capture file
+
+        Raises:
+            FileNotFoundError: If capture doesn't exist
+        """
+        # Get current capture file path and read it
+        capture_file = self.get_capture_file_path(capture_id)
+        post = frontmatter.load(capture_file)
+
+        # Update status in frontmatter
+        post.metadata["status"] = CaptureStatus.ARCHIVED.value
+
+        # Create archived directory
+        archived_dir = self.captures_dir / "archived"
+        archived_dir.mkdir(parents=True, exist_ok=True)
+
+        # Move file to archived directory
+        archived_file = archived_dir / capture_file.name
+        with open(archived_file, "w", encoding="utf-8") as f:
+            f.write(frontmatter.dumps(post))
+
+        # Remove original file
+        capture_file.unlink()
+
+        return archived_file
+
+    def update_capture(
+        self,
+        capture_id: str,
+        needs_human_review: bool | None = None,
+        append_content: str | None = None,
+    ) -> Path:
+        """
+        Update a capture's metadata and/or content.
+
+        Args:
+            capture_id: Capture ID to update
+            needs_human_review: If provided, set the needs_human_review flag
+            append_content: If provided, append this text to the capture body
+
+        Returns:
+            Path to the updated capture file
+
+        Raises:
+            FileNotFoundError: If capture doesn't exist
+        """
+        capture_file = self.get_capture_file_path(capture_id)
+        post = frontmatter.load(capture_file)
+
+        if needs_human_review is not None:
+            post.metadata["needs_human_review"] = needs_human_review
+
+        if append_content is not None:
+            post.content = post.content + "\n\n" + append_content
 
         with open(capture_file, "w", encoding="utf-8") as f:
             f.write(frontmatter.dumps(post))

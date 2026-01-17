@@ -20,6 +20,7 @@ An intelligent command that:
 1. Analyzes each capture to determine its category
 2. Takes appropriate action based on category
 3. Tracks progress and produces actionable outcomes
+4. When a captured idea moves to a logical state post-capture, the specific capture element is archived
 
 ## Capture Categories
 
@@ -31,7 +32,7 @@ Small, well-defined changes that can be executed immediately.
 - "fix typo in README"
 - "update copyright year"
 
-**Action:** Create beads task → optionally auto-execute
+**Action:** Create beads task → optionally auto-execute, archive capture
 
 ### 2. Code Audit (`audit`)
 Need to search/explore the codebase to understand scope.
@@ -63,7 +64,13 @@ Need thinking, planning, architecture decisions, user feedback.
 
 **Action:** Produce design doc → present for feedback → create tasks when approved
 
-### 5. Clarification Needed (`unclear`)
+### 5. Spike (`spike`)
+Produce some software on a spike/ branch that explore one or more possible approaches
+**Examples:**
+- "test whether this new tool can help triage issues"
+- "try a skill for prioritizing features"
+
+### 6. Clarification Needed (`unclear`)
 Too vague or ambiguous to act on.
 
 **Examples:**
@@ -114,8 +121,18 @@ cub investigate --all --interactive
        ├─── research ──► Web search → Summarize → Recommend
        │
        ├─── design ───► Design doc → Feedback → Tasks
+       |
+       |--- spike ----> Develop some ideas on a branch -> Feedback -> Tasks
        │
        └─── unclear ──► Ask questions → Update → Re-categorize
+       |
+       |
+
+|-------------|
+|   Trigger   |
+|-------------|
+      |
+      |---- if the capture isn't moved out of this stage, append research/findings and add metadata to the frontmatter indicating a need for human review.
 ```
 
 ## Output Artifacts
@@ -212,13 +229,23 @@ Summary:
 
 1. **Automation level**: How much should be auto-executed vs. requiring confirmation?
 
+we should err on the side of execution, especially when we can leverage the existing codebase, tools like web search, prior .cub runs and other documentation, and the ability to put work on branches.
+
 2. **AI model choice**: Use Haiku for categorization (fast/cheap) or Sonnet for better understanding?
+
+right now, use sonnet.
 
 3. **Batch semantics**: How to group quick fixes? By file? By topic? By tag?
 
+by tag
+
 4. **Research depth**: How deep should web research go? Single search or iterative?
 
+on a case-by-case basis. we should do shallow research (10 searches/turns or less) inline, and queue up deeper research as needed. we can build successive tasks/stages for the latter 
+
 5. **Design feedback**: How to collect feedback? Interactive? PR-based? Slack integration?
+
+tbd. for now, let's write to files and communicate like this. not ideal but a start.
 
 ## Success Metrics
 

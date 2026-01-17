@@ -24,6 +24,7 @@ class CaptureCategory(str, Enum):
     AUDIT = "audit"  # Code exploration needed
     RESEARCH = "research"  # External investigation needed
     DESIGN = "design"  # Planning and feedback needed
+    SPIKE = "spike"  # Exploratory work on a branch
     UNCLEAR = "unclear"  # Needs clarification
 
 
@@ -84,6 +85,22 @@ def categorize_capture(capture: Capture, content: str) -> CaptureCategory:
     ]
     if any(ind in content_lower for ind in research_indicators):
         return CaptureCategory.RESEARCH
+
+    # Spike indicators (exploratory coding)
+    spike_indicators = [
+        "try ",
+        "test whether",
+        "experiment",
+        "prototype",
+        "spike",
+        "proof of concept",
+        "poc",
+        "explore approach",
+        "try out",
+        "see if",
+    ]
+    if any(ind in content_lower for ind in spike_indicators):
+        return CaptureCategory.SPIKE
 
     # Design indicators
     design_indicators = [
@@ -163,6 +180,20 @@ def process_design(capture: Capture, content: str, dry_run: bool = False) -> str
     return f"Design doc created for: {capture.title}"
 
 
+def process_spike(capture: Capture, content: str, dry_run: bool = False) -> str:
+    """
+    Process a spike capture.
+
+    Creates a beads task for exploratory work on a branch.
+    """
+    if dry_run:
+        return f"Would create spike task for: {capture.title}"
+
+    # TODO: Create beads task with spike type
+    # TODO: Include branch naming convention
+    return f"Spike task created for: {capture.title}"
+
+
 def process_unclear(capture: Capture, content: str, dry_run: bool = False) -> str:
     """
     Process an unclear capture.
@@ -181,6 +212,7 @@ PROCESSORS = {
     CaptureCategory.AUDIT: process_audit,
     CaptureCategory.RESEARCH: process_research,
     CaptureCategory.DESIGN: process_design,
+    CaptureCategory.SPIKE: process_spike,
     CaptureCategory.UNCLEAR: process_unclear,
 }
 
