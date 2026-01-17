@@ -4,7 +4,19 @@
 
 Cub is for developers who are already running AI coding CLIs (Claude Code, Codex, OpenCode) in autonomous mode and want more structure. If you're juggling multiple agent sessions, manually routing work to different models, or finding that fully hands-off agents tend to run amok—Cub helps you work *ahead* of execution so you can be more hands-off *during* execution.
 
-%% should we do a very brief quickstart here? %%
+## Quick Install
+
+```bash
+curl -LsSf https://lavallee.github.io/cub/install.sh | bash
+```
+
+Then restart your shell (or open a new terminal) and run:
+
+```bash
+cub init --global
+```
+
+(Already installed? Run `pipx upgrade cub` or re-run the installer.)
 
 ## The Problem
 
@@ -118,7 +130,7 @@ Building outside any single harness means the core loop—task selection, succes
 ### One-Liner (Recommended)
 
 ```bash
-curl -LsSf https://lavallee.github.io/cub/install.sh | sh
+curl -LsSf https://lavallee.github.io/cub/install.sh | bash
 ```
 
 This will:

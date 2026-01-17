@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cub installer script
-# Usage: curl -LsSf https://lavallee.github.io/cub/install.sh | sh
+# Usage: curl -LsSf https://lavallee.github.io/cub/install.sh | bash
 set -e
 
 REPO="lavallee/cub"
