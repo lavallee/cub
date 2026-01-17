@@ -20,6 +20,13 @@ from .backend import (
     register_backend,
 )
 from .models import Task, TaskCounts, TaskPriority, TaskStatus, TaskType
+from .service import (
+    TaskComplexity,
+    TaskCreationRequest,
+    TaskDomain,
+    TaskService,
+    get_task_service,
+)
 
 __all__ = [
     # Models
@@ -35,4 +42,10 @@ __all__ = [
     "detect_backend",
     "list_backends",
     "is_backend_available",
+    # Task service
+    "TaskService",
+    "TaskCreationRequest",
+    "TaskComplexity",
+    "TaskDomain",
+    "get_task_service",
 ]

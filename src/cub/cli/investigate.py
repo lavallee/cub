@@ -16,6 +16,7 @@ from rich.table import Table
 
 from cub.core.captures.models import Capture
 from cub.core.captures.store import CaptureStore
+from cub.core.tasks import get_task_service
 
 console = Console()
 app = typer.Typer(help="Investigate and process captures")
@@ -192,61 +193,6 @@ def categorize_capture(capture: Capture, content: str) -> CaptureCategory:
     return CaptureCategory.UNCLEAR
 
 
-def _create_beads_task(
-    title: str,
-    description: str,
-    task_type: str = "task",
-    priority: int = 2,
-    labels: list[str] | None = None,
-) -> str | None:
-    """
-    Create a beads task using the bd CLI.
-
-    Args:
-        title: Task title
-        description: Task description
-        task_type: Type of task (task, feature, bug, etc.)
-        priority: Priority level (0-4)
-        labels: Optional list of labels
-
-    Returns:
-        The created task ID, or None if creation failed
-    """
-    cmd = [
-        "bd",
-        "create",
-        f"--title={title}",
-        f"--type={task_type}",
-        f"--priority={priority}",
-    ]
-
-    if labels:
-        for label in labels:
-            cmd.append(f"--label={label}")
-
-    # Add description via stdin
-    try:
-        result = subprocess.run(
-            cmd,
-            input=description,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        # Parse task ID from output (usually "Created beads-xxx")
-        output = result.stdout.strip()
-        match = re.search(r"(beads-[a-z0-9]+)", output)
-        if match:
-            return match.group(1)
-        return output
-    except subprocess.CalledProcessError as e:
-        console.print(f"[red]Failed to create task:[/red] {e.stderr}")
-        return None
-    except FileNotFoundError:
-        console.print("[red]Error:[/red] bd command not found. Is beads installed?")
-        return None
-
-
 def _ensure_investigations_dir() -> Path:
     """Ensure the investigations directory exists and return its path."""
     INVESTIGATIONS_DIR.mkdir(parents=True, exist_ok=True)
@@ -278,21 +224,21 @@ def process_quick_fix(
         return f"Would create task for: {capture.title}"
 
     body = _extract_body_content(content)
-    description = f"Quick fix from capture {capture.id}:\n\n{body}"
+    context = f"Quick fix from capture {capture.id}:\n\n{body}"
 
-    task_id = _create_beads_task(
+    service = get_task_service()
+    task = service.create_quick_fix(
         title=capture.title,
-        description=description,
-        task_type="task",
-        priority=2,
-        labels=["quick-fix"] + capture.tags,
+        context=context,
+        labels=capture.tags,
+        source_capture_id=capture.id,
     )
 
-    if task_id and store:
+    if task and store:
         store.archive_capture(capture.id)
-        return f"Created task {task_id}, archived capture"
-    elif task_id:
-        return f"Created task {task_id}"
+        return f"Created task {task.id}, archived capture"
+    elif task:
+        return f"Created task {task.id}"
     else:
         return "Failed to create task"
 
@@ -662,44 +608,23 @@ def process_spike(
 
     body = _extract_body_content(content)
 
-    # Generate a branch name suggestion
-    slug = re.sub(r"[^a-z0-9]+", "-", capture.title.lower()).strip("-")[:30]
-    branch_name = f"spike/{slug}"
+    # Extract exploration goals from the body if possible
+    exploration_goals = [body] if body else ["Validate approach", "Document findings"]
 
-    description = f"""Spike from capture {capture.id}:
-
-{body}
-
----
-
-## Spike Guidelines
-
-1. Create branch: `git checkout -b {branch_name}`
-2. Time-box exploration (suggested: 2-4 hours)
-3. Document findings in code comments or a SPIKE.md file
-4. Don't worry about perfect code - this is exploratory
-5. When done, summarize learnings and decide next steps
-
-## Success Criteria
-
-- [ ] Approach validated or invalidated
-- [ ] Key learnings documented
-- [ ] Recommendation for next steps
-"""
-
-    task_id = _create_beads_task(
-        title=f"[Spike] {capture.title}",
-        description=description,
-        task_type="task",
-        priority=2,
-        labels=["spike"] + capture.tags,
+    service = get_task_service()
+    task = service.create_spike(
+        title=capture.title,
+        context=f"Spike from capture {capture.id}",
+        exploration_goals=exploration_goals,
+        labels=capture.tags,
+        source_capture_id=capture.id,
     )
 
-    if task_id and store:
+    if task and store:
         store.archive_capture(capture.id)
-        return f"Created spike task {task_id}, archived capture"
-    elif task_id:
-        return f"Created spike task {task_id}"
+        return f"Created spike task {task.id}, archived capture"
+    elif task:
+        return f"Created spike task {task.id}"
     else:
         return "Failed to create spike task"
 
@@ -923,25 +848,25 @@ def investigate(
             for c, _, _ in quick_fixes:
                 all_tags.update(c.tags)
 
-            description = "Batched quick fixes:\n\n"
+            # Build items list for batched task
+            items: list[tuple[str, str]] = []
             for capture, _, content in quick_fixes:
                 body = _extract_body_content(content)
-                description += f"### {capture.id}: {capture.title}\n\n{body}\n\n---\n\n"
+                items.append((f"{capture.id}: {capture.title}", body))
 
-            task_id = _create_beads_task(
+            service = get_task_service()
+            task = service.create_batched_task(
                 title=f"Quick fixes batch ({len(quick_fixes)} items)",
-                description=description,
-                task_type="task",
-                priority=2,
-                labels=["quick-fix", "batch"] + list(all_tags),
+                items=items,
+                labels=["quick-fix"] + list(all_tags),
             )
 
-            if task_id:
-                console.print(f"  Created batched task: {task_id}")
+            if task:
+                console.print(f"  Created batched task: {task.id}")
                 # Archive all the captures
-                for capture, store, _ in quick_fixes:
+                for capture, qf_store, _ in quick_fixes:
                     try:
-                        store.archive_capture(capture.id)
+                        qf_store.archive_capture(capture.id)
                     except Exception as e:
                         console.print(
                             f"  [yellow]Warning:[/yellow] Could not archive {capture.id}: {e}"
