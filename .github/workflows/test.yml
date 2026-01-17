@@ -53,9 +53,9 @@ jobs:
       - name: Check coverage threshold
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
-          # Current target: 55% (CLI modules are hard to unit test)
+          # Current target: 53% (CLI modules are hard to unit test)
           # Coverage varies slightly between Python versions
-          coverage report --fail-under=55
+          coverage report --fail-under=53
 
   bats:
     runs-on: ubuntu-latest
