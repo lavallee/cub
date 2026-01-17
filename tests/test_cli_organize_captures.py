@@ -75,7 +75,9 @@ def test_organize_captures_all_valid(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert "All capture files are properly organized" in result.stdout
 
 
-def test_organize_captures_missing_frontmatter(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_organize_captures_missing_frontmatter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test organize-captures with file missing frontmatter."""
     captures_dir = tmp_path / "captures"
     captures_dir.mkdir(parents=True, exist_ok=True)
@@ -126,7 +128,9 @@ def test_organize_captures_invalid_id(tmp_path: Path, monkeypatch: pytest.Monkey
     assert "Invalid or missing ID" in result.stdout
 
 
-def test_organize_captures_non_standard_filename(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_organize_captures_non_standard_filename(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Test organize-captures with non-standard filename."""
     captures_dir = tmp_path / "captures"
     captures_dir.mkdir(parents=True, exist_ok=True)
@@ -176,14 +180,15 @@ def test_organize_captures_apply_changes(tmp_path: Path, monkeypatch: pytest.Mon
     assert result.exit_code == 0
     assert "Successfully organized 1 files" in result.stdout
 
-    # Verify that a cap-001.md file was created
-    cap_file = captures_dir / "cap-001.md"
-    assert cap_file.exists()
+    # Verify that a cap-*.md file was created (random ID format)
+    cap_files = list(captures_dir.glob("cap-*.md"))
+    assert len(cap_files) == 1
+    cap_file = cap_files[0]
 
     # Verify it has frontmatter
     post = frontmatter.load(cap_file)
     assert "id" in post.metadata
-    assert post.metadata["id"] == "cap-001"
+    assert post.metadata["id"].startswith("cap-")
     assert "created" in post.metadata
     assert "title" in post.metadata
 
@@ -193,15 +198,14 @@ def test_organize_captures_apply_changes(tmp_path: Path, monkeypatch: pytest.Mon
 
 def test_organize_captures_global_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test organize-captures with --global flag."""
-    # Set up a fake global captures directory
-    global_captures = tmp_path / "global_captures"
-    global_captures.mkdir(parents=True, exist_ok=True)
+    from unittest.mock import patch
 
     # Mock the XDG_DATA_HOME to point to our temp dir
     monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
 
-    # Create the expected directory structure
-    cub_captures = tmp_path / "cub" / "captures"
+    # Create the expected directory structure (with project ID)
+    # Global store now expects: ~/.local/share/cub/captures/{project_id}/
+    cub_captures = tmp_path / "cub" / "captures" / "test-project"
     cub_captures.mkdir(parents=True, exist_ok=True)
 
     # Create a file without frontmatter in global captures
@@ -213,8 +217,10 @@ def test_organize_captures_global_flag(tmp_path: Path, monkeypatch: pytest.Monke
     work_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.chdir(work_dir)
 
-    # Run with --global and --dry-run
-    result = runner.invoke(app, ["organize-captures", "--global", "--dry-run"])
+    # Mock get_project_id to return a consistent value
+    with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
+        # Run with --global and --dry-run
+        result = runner.invoke(app, ["organize-captures", "--global", "--dry-run"])
 
     assert result.exit_code == 0
     assert "global-note.md" in result.stdout

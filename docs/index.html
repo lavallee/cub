@@ -742,6 +742,107 @@
             color: var(--text-dim);
         }
 
+        /* Recent Updates */
+        .recent-updates {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 3rem;
+            border: 1px solid rgba(246, 185, 59, 0.2);
+        }
+
+        .recent-updates h3 {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.4rem;
+            color: var(--honey);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .update-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .update-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .update-item:first-child {
+            padding-top: 0;
+        }
+
+        .update-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .update-version {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--mint);
+            background: rgba(0, 217, 165, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .update-date {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .update-title {
+            font-family: 'Baloo 2', cursive;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.4rem;
+        }
+
+        .update-desc {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+
+        .update-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+
+        .update-highlight {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(116, 185, 255, 0.1);
+            color: var(--sky);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .updates-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 1.5rem;
+            color: var(--honey);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .updates-link:hover {
+            color: var(--honey-glow);
+        }
+
         /* Footer */
         .footer {
             text-align: center;
@@ -837,7 +938,7 @@
 
         <!-- Install -->
         <div class="install-box">
-            <span class="version-badge">v0.25.0</span>
+            <span class="version-badge">v0.26.0</span>
             <div class="install-prompt">
                 <span class="prompt-symbol">$</span>
                 <code class="install-cmd" id="install-cmd">curl -LsSf https://lavallee.github.io/cub/install.sh | sh</code>
@@ -1056,6 +1157,52 @@
                 <p style="text-align: center; color: var(--text-dim); margin-top: 1.5rem; font-size: 0.95rem;">
                     <span class="tag you">you</span> Walk away. Cub loops until blocked, budget exhausted, or done.
                 </p>
+            </div>
+
+            <!-- Recent Updates -->
+            <div class="recent-updates" id="recent-updates">
+                <h3><span>📦</span> Recent Updates</h3>
+                <!-- BEGIN_UPDATES -->
+                <div class="update-item">
+                    <div class="update-header">
+                        <span class="update-version">v0.26.0</span>
+                        <span class="update-date">2026-01-16</span>
+                    </div>
+                    <div class="update-title">Added</div>
+                    <div class="update-desc">Various improvements and bug fixes.</div>
+                    <div class="update-highlights">
+                        
+                    </div>
+                </div>
+                <div class="update-item">
+                    <div class="update-header">
+                        <span class="update-version">v0.25.1</span>
+                        <span class="update-date">2026-01-16</span>
+                    </div>
+                    <div class="update-title">Changed</div>
+                    <div class="update-desc">CLI help reorganized. Command renames for clarity. cub init is now backend-aware.</div>
+                    <div class="update-highlights">
+                        <span class="update-highlight">cub init</span>
+                    <span class="update-highlight">cub doctor</span>
+                    </div>
+                </div>
+                <div class="update-item">
+                    <div class="update-header">
+                        <span class="update-version">v0.25.0</span>
+                        <span class="update-date">2026-01-16</span>
+                    </div>
+                    <div class="update-title">Sandbox Mode for Safe Autonomous Execution</div>
+                    <div class="update-desc">Docker-based sandboxing for running cub with full isolation and review capabilities</div>
+                    <div class="update-highlights">
+                        <span class="update-highlight">cub run</span>
+                    <span class="update-highlight">cub sandbox</span>
+                    <span class="update-highlight">--sandbox</span>
+                    </div>
+                </div>
+                <!-- END_UPDATES -->
+                <a href="https://github.com/lavallee/cub/blob/main/CHANGELOG.md" class="updates-link" target="_blank">
+                    View full changelog →
+                </a>
             </div>
         </section>
 
