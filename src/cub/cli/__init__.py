@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.cli import audit, capture, captures, delegated, investigate, monitor, organize_captures, run, sandbox, status, uninstall, upgrade, worktree
+from cub.cli import audit, capture, captures, delegated, investigate, merge, monitor, organize_captures, pr, run, sandbox, status, uninstall, upgrade, worktree
 
 # Help panel names for command grouping
 PANEL_KEY = "Key Commands"
@@ -125,7 +125,8 @@ app.command(
 app.command(name="branch", rich_help_panel=PANEL_EPICS)(delegated.branch)
 app.command(name="branches", rich_help_panel=PANEL_EPICS)(delegated.branches)
 app.command(name="checkpoints", rich_help_panel=PANEL_EPICS)(delegated.checkpoints)
-app.command(name="pr", rich_help_panel=PANEL_EPICS)(delegated.pr)
+app.add_typer(pr.app, name="pr", rich_help_panel=PANEL_EPICS)
+app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
 
 
 # =============================================================================

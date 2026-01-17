@@ -90,8 +90,7 @@ source "${CUB_DIR}/lib/cmd_branch.sh"
 # Source checkpoint management (v0.19)
 source "${CUB_DIR}/lib/checkpoints.sh"
 source "${CUB_DIR}/lib/cmd_checkpoint.sh"
-# Source PR management (v0.19)
-source "${CUB_DIR}/lib/cmd_pr.sh"
+# PR management (v0.19) - now handled by Python CLI (cub pr, cub merge)
 
 # Load configuration early
 config_load
@@ -310,11 +309,7 @@ main() {
                 cmd_checkpoints "${args[@]:1}"
                 return $?
                 ;;
-            pr)
-                # Create pull request for an epic
-                cmd_pr "${args[@]:1}"
-                return $?
-                ;;
+            # pr command is now handled by Python CLI (cub pr, cub merge)
             guardrails)
                 # Manage institutional memory
                 cmd_guardrails "${args[@]:1}"

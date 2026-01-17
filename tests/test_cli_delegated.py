@@ -32,7 +32,7 @@ class TestDelegatedCommandsHelp:
             "branch",
             "branches",
             "checkpoints",
-            "pr",
+            # "pr" is now a native Python command (not delegated)
             "explain-task",
             "artifacts",
             "validate",
@@ -238,7 +238,7 @@ class TestSpecificDelegatedCommands:
             ("branch", ["cub-789"]),
             ("branches", []),
             ("checkpoints", []),
-            ("pr", ["cub-001"]),
+            # ("pr", ["cub-001"]) - pr is now a native Python command
             ("explain-task", ["task-123"]),
             ("artifacts", []),
             ("validate", []),

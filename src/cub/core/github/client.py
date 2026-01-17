@@ -256,3 +256,337 @@ class GitHubClient:
             return None
         except (OSError, FileNotFoundError):
             return None
+
+    def create_pr(
+        self,
+        head: str,
+        base: str,
+        title: str,
+        body: str,
+        draft: bool = False,
+    ) -> dict[str, str | int]:
+        """
+        Create a pull request.
+
+        Args:
+            head: Source branch name
+            base: Target branch name
+            title: PR title
+            body: PR body (markdown)
+            draft: Create as draft PR
+
+        Returns:
+            Dict with 'url' and 'number' keys
+
+        Raises:
+            GitHubClientError: If PR creation fails
+        """
+        cmd = [
+            "gh", "pr", "create",
+            "--head", head,
+            "--base", base,
+            "--title", title,
+            "--body", body,
+        ]
+        if draft:
+            cmd.append("--draft")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip() or result.stdout.strip() or "Unknown error"
+                raise GitHubClientError(f"Failed to create PR: {error_msg}")
+
+            # Output is the PR URL
+            pr_url = result.stdout.strip()
+
+            # Extract PR number from URL
+            pr_number: int | None = None
+            if "/pull/" in pr_url:
+                try:
+                    pr_number = int(pr_url.split("/pull/")[-1].split("/")[0])
+                except ValueError:
+                    pass
+
+            return {"url": pr_url, "number": pr_number or 0}
+
+        except (OSError, FileNotFoundError) as e:
+            raise GitHubClientError(f"Failed to run gh command: {e}")
+
+    def get_pr_by_branch(
+        self,
+        branch: str,
+        base: str = "main",
+    ) -> dict[str, str | int | None] | None:
+        """
+        Get an existing PR for a branch.
+
+        Args:
+            branch: Head branch name
+            base: Base branch name
+
+        Returns:
+            Dict with PR info or None if no PR exists
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "gh", "pr", "list",
+                    "--head", branch,
+                    "--base", base,
+                    "--json", "number,url,title,state",
+                    "--jq", ".[0]",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return None
+
+            output = result.stdout.strip()
+            if not output or output == "null":
+                return None
+
+            data = json.loads(output)
+            return {
+                "number": data.get("number"),
+                "url": data.get("url"),
+                "title": data.get("title"),
+                "state": data.get("state"),
+            }
+
+        except (json.JSONDecodeError, OSError, FileNotFoundError):
+            return None
+
+    def get_pr(self, pr_ref: str | int) -> dict[str, str | int | None] | None:
+        """
+        Get PR details by number or branch.
+
+        Args:
+            pr_ref: PR number or branch name
+
+        Returns:
+            Dict with PR info or None if not found
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "gh", "pr", "view", str(pr_ref),
+                    "--json", "number,url,title,state,headRefName,baseRefName,mergeable",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return None
+
+            data = json.loads(result.stdout)
+            return {
+                "number": data.get("number"),
+                "url": data.get("url"),
+                "title": data.get("title"),
+                "state": data.get("state"),
+                "head": data.get("headRefName"),
+                "base": data.get("baseRefName"),
+                "mergeable": data.get("mergeable"),
+            }
+
+        except (json.JSONDecodeError, OSError, FileNotFoundError):
+            return None
+
+    def get_pr_checks(self, pr_ref: str | int) -> list[dict[str, str]]:
+        """
+        Get CI check status for a PR.
+
+        Args:
+            pr_ref: PR number or branch name
+
+        Returns:
+            List of check dicts with 'name', 'status', 'conclusion' keys
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "gh", "pr", "checks", str(pr_ref),
+                    "--json", "name,status,conclusion",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return []
+
+            return json.loads(result.stdout)
+
+        except (json.JSONDecodeError, OSError, FileNotFoundError):
+            return []
+
+    def wait_for_checks(self, pr_ref: str | int, timeout: int = 600) -> bool:
+        """
+        Wait for PR checks to complete.
+
+        Args:
+            pr_ref: PR number or branch name
+            timeout: Timeout in seconds
+
+        Returns:
+            True if all checks passed, False otherwise
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "pr", "checks", str(pr_ref), "--watch"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout,
+            )
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
+        except (OSError, FileNotFoundError):
+            return False
+
+    def merge_pr(
+        self,
+        pr_number: int,
+        method: str = "squash",
+        delete_branch: bool = True,
+    ) -> bool:
+        """
+        Merge a pull request.
+
+        Args:
+            pr_number: PR number to merge
+            method: Merge method (squash, merge, rebase)
+            delete_branch: Delete branch after merge
+
+        Returns:
+            True if merge succeeded
+
+        Raises:
+            GitHubClientError: If merge fails
+        """
+        cmd = ["gh", "pr", "merge", str(pr_number), f"--{method}"]
+        if delete_branch:
+            cmd.append("--delete-branch")
+        else:
+            cmd.append("--no-delete-branch")
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip() or result.stdout.strip() or "Unknown error"
+                raise GitHubClientError(f"Failed to merge PR: {error_msg}")
+
+            return True
+
+        except (OSError, FileNotFoundError) as e:
+            raise GitHubClientError(f"Failed to run gh command: {e}")
+
+    def needs_push(self, branch: str) -> bool:
+        """
+        Check if a branch needs to be pushed to remote.
+
+        Args:
+            branch: Branch name to check
+
+        Returns:
+            True if branch has unpushed commits or no upstream
+        """
+        try:
+            # Check if upstream exists
+            result = subprocess.run(
+                [
+                    "git", "rev-parse", "--abbrev-ref",
+                    "--symbolic-full-name", f"{branch}@{{upstream}}",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return True  # No upstream means needs push
+
+            upstream = result.stdout.strip()
+
+            # Check if local is ahead of remote
+            result = subprocess.run(
+                ["git", "rev-list", "--count", f"{upstream}..{branch}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return True
+
+            ahead_count = int(result.stdout.strip())
+            return ahead_count > 0
+
+        except (OSError, FileNotFoundError, ValueError):
+            return True
+
+    def push_branch(self, branch: str) -> None:
+        """
+        Push a branch to origin.
+
+        Args:
+            branch: Branch name to push
+
+        Raises:
+            GitHubClientError: If push fails
+        """
+        try:
+            result = subprocess.run(
+                ["git", "push", "-u", "origin", branch],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                error_msg = result.stderr.strip() or "Unknown error"
+                raise GitHubClientError(f"Failed to push branch: {error_msg}")
+
+        except (OSError, FileNotFoundError) as e:
+            raise GitHubClientError(f"Failed to run git command: {e}")
+
+    def branch_exists_on_remote(self, branch: str) -> bool:
+        """
+        Check if a branch exists on the remote.
+
+        Args:
+            branch: Branch name to check
+
+        Returns:
+            True if branch exists on origin
+        """
+        try:
+            result = subprocess.run(
+                ["git", "ls-remote", "--heads", "origin", branch],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            return bool(result.stdout.strip())
+        except (OSError, FileNotFoundError):
+            return False

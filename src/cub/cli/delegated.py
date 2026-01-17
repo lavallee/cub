@@ -5,7 +5,6 @@ These commands are not yet ported to Python, so they delegate to the
 bash cub script with proper argument passing.
 """
 
-import click
 import typer
 
 from cub.core.bash_delegate import delegate_to_bash
@@ -95,11 +94,6 @@ def branches(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) 
 def checkpoints(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Manage review/approval gates."""
     _delegate("checkpoints", args or [], ctx)
-
-
-def pr(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Create pull request for epic."""
-    _delegate("pr", args or [], ctx)
 
 
 # Interview Mode (v0.16)
