@@ -47,6 +47,12 @@ app = typer.Typer(
 console = Console()
 
 
+def _stream_callback(text: str) -> None:
+    """Write text to stdout with immediate flush for real-time streaming."""
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+
 # Global flag for interrupt handling
 _interrupted = False
 
@@ -759,14 +765,17 @@ def run(
 
             try:
                 if stream and harness_backend.capabilities.streaming:
+                    # Ensure stdout is unbuffered for streaming
+                    sys.stdout.flush()
                     result: HarnessResult = harness_backend.invoke_streaming(
                         system_prompt=system_prompt,
                         task_prompt=task_prompt,
                         model=task_model,
                         debug=debug,
-                        callback=lambda text: print(text, end="", flush=True),
+                        callback=_stream_callback,
                     )
-                    print()  # Newline after streaming output
+                    sys.stdout.write("\n")  # Newline after streaming output
+                    sys.stdout.flush()
                 else:
                     result = harness_backend.invoke(
                         system_prompt=system_prompt,
@@ -978,14 +987,17 @@ def _run_direct(
 
     try:
         if stream and harness_backend.capabilities.streaming:
+            # Ensure stdout is unbuffered for streaming
+            sys.stdout.flush()
             result: HarnessResult = harness_backend.invoke_streaming(
                 system_prompt=system_prompt,
                 task_prompt=task_prompt,
                 model=task_model,
                 debug=debug,
-                callback=lambda text: print(text, end="", flush=True),
+                callback=_stream_callback,
             )
-            print()  # Newline after streaming output
+            sys.stdout.write("\n")  # Newline after streaming output
+            sys.stdout.flush()
         else:
             result = harness_backend.invoke(
                 system_prompt=system_prompt,
