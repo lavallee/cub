@@ -117,6 +117,11 @@ pipeline_new_session_id() {
     echo "${project_name}-${timestamp}"
 }
 
+# Generate a random epic ID (5 lowercase alphanumeric chars)
+pipeline_random_epic_id() {
+    cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1
+}
+
 # Get the most recent session ID
 # Returns: session ID or empty if none
 pipeline_most_recent_session() {
@@ -147,10 +152,15 @@ pipeline_create_session() {
 
     mkdir -p "$session_dir"
 
+    # Generate a random epic ID (5 char alphanumeric)
+    local epic_id
+    epic_id=$(pipeline_random_epic_id)
+
     # Create session metadata
     cat > "${session_dir}/session.json" <<EOF
 {
   "id": "${session_id}",
+  "epic_id": "${epic_id}",
   "created": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "created",
   "stages": {
@@ -664,7 +674,11 @@ cmd_plan() {
         local triage architect plan_prefix
         triage=$(cat "${session_dir}/triage.md")
         architect=$(cat "${session_dir}/architect.md")
-        plan_prefix="${session_id%%-*}"
+        plan_prefix=$(jq -r '.epic_id // ""' "${session_dir}/session.json" 2>/dev/null)
+        if [[ -z "$plan_prefix" ]]; then
+            # Fallback for legacy sessions
+            plan_prefix="${session_id%%-*}"
+        fi
 
         # 1) Ask the model for a strict Markdown plan (more reliable than JSONL).
         _claude_prompt_to_file "You are Cub's prep assistant.\n\nProduce a STRICT Markdown plan. Do NOT output JSON/JSONL.\n\nFormat requirements (must follow exactly):\n- Start with '# Plan'\n- Epic sections start with: '## Epic: <id> - <title>'\n- Task sections start with: '### Task: <id> - <title>'\n- Each epic and each task MUST include these metadata lines (exact keys):\n  Priority: <integer>\n  Labels: comma,separated,labels\n  Description:\n  <freeform markdown>\n- Tasks may additionally include:\n  Blocks: comma,separated,task_ids\n\nIDs should be short (e.g. V1, V1.1) and do NOT need the project prefix.\n\nTRIAGE:\n---\n${triage}\n---\n\nARCHITECT:\n---\n${architect}\n---\n" "$md_file"
@@ -908,7 +922,11 @@ PY
         if [[ -f "$md_file" ]]; then
             log_info "Converting markdown plan to beads JSONL..."
             local plan_prefix
-            plan_prefix="${session_id%%-*}"
+            plan_prefix=$(jq -r '.epic_id // ""' "${session_dir}/session.json" 2>/dev/null)
+            if [[ -z "$plan_prefix" ]]; then
+                # Fallback for legacy sessions
+                plan_prefix="${session_id%%-*}"
+            fi
             python3 - "$plan_prefix" "$md_file" "$jsonl_file" <<'PY'
 import json
 import re
@@ -1514,6 +1532,7 @@ cmd_prep() {
     local session_id=""
     local non_interactive="false"
     local vision_path=""
+    local continue_last="false"
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -1524,6 +1543,10 @@ cmd_prep() {
                 ;;
             --session=*)
                 session_id="${1#--session=}"
+                shift
+                ;;
+            --continue)
+                continue_last="true"
                 shift
                 ;;
             --vision)
@@ -1568,20 +1591,26 @@ cmd_prep() {
     local session_dir=""
 
     if [[ -n "$session_id" ]]; then
-        # Resume existing session
+        # Explicit session provided
         if ! pipeline_session_exists "$session_id"; then
             _log_error_console "Session not found: $session_id"
             return 1
         fi
         session_dir=$(pipeline_session_dir "$session_id")
         log_info "Resuming session: ${session_id}"
-    else
-        # Check for most recent session
+    elif [[ "$continue_last" == "true" ]]; then
+        # Continue most recent session
         session_id=$(pipeline_most_recent_session)
         if [[ -n "$session_id" ]]; then
             session_dir=$(pipeline_session_dir "$session_id")
-            log_info "Found existing session: ${session_id}"
+            log_info "Continuing most recent session: ${session_id}"
+        else
+            _log_error_console "No existing sessions found. Run without --continue to create a new session."
+            return 1
         fi
+    else
+        # Default: create a new session
+        log_info "Starting new session..."
     fi
 
     # Determine next step based on existing artifacts
@@ -1738,6 +1767,7 @@ Stages:
 
 Options:
   --session ID             Resume a specific session
+  --continue               Resume the most recent session (default: create new)
   --non-interactive        Run stages using `claude -p` (best-effort)
   --vision PATH            Vision/input markdown file (required for non-interactive triage)
   -h, --help               Show this help message
