@@ -7,7 +7,7 @@ Cub is for developers who are already running AI coding CLIs (Claude Code, Codex
 ## Quick Install
 
 ```bash
-curl -LsSf https://lavallee.github.io/cub/install.sh | bash
+curl -LsSf https://install.cub.tools | bash
 ```
 
 Then restart your shell (or open a new terminal) and run:
@@ -130,7 +130,7 @@ Building outside any single harness means the core loop—task selection, succes
 ### One-Liner (Recommended)
 
 ```bash
-curl -LsSf https://lavallee.github.io/cub/install.sh | bash
+curl -LsSf https://install.cub.tools | bash
 ```
 
 This will:

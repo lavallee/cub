@@ -93,6 +93,74 @@ You are an autonomous coding agent working through a task backlog.
 """
 
 
+def _read_direct_input(direct: str) -> str:
+    """
+    Read task content from direct input.
+
+    Supports:
+    - Plain string: "Add a logout button"
+    - File path with @: @task.txt
+    - Stdin: -
+
+    Args:
+        direct: The --direct argument value
+
+    Returns:
+        Task content string
+
+    Raises:
+        typer.Exit: On error reading input
+    """
+    if direct == "-":
+        # Read from stdin
+        if sys.stdin.isatty():
+            console.print("[red]--direct - requires piped input[/red]")
+            console.print("[dim]Example: echo 'task' | cub run --direct -[/dim]")
+            raise typer.Exit(1)
+        return sys.stdin.read().strip()
+
+    if direct.startswith("@"):
+        # Read from file
+        file_path = Path(direct[1:])
+        if not file_path.exists():
+            console.print(f"[red]File not found: {file_path}[/red]")
+            raise typer.Exit(1)
+        return file_path.read_text().strip()
+
+    # Plain string
+    return direct.strip()
+
+
+def generate_direct_task_prompt(task_content: str) -> str:
+    """
+    Generate a task prompt for direct mode (no task backend).
+
+    Args:
+        task_content: Raw task description provided via --direct
+
+    Returns:
+        Task prompt string
+    """
+    prompt_parts = []
+
+    prompt_parts.append("## CURRENT TASK\n")
+    prompt_parts.append("Mode: Direct (no task backend)")
+    prompt_parts.append("")
+    prompt_parts.append("Description:")
+    prompt_parts.append(task_content)
+    prompt_parts.append("")
+    prompt_parts.append("When complete:")
+    prompt_parts.append("1. Run feedback loops (typecheck, test, lint) if code was changed")
+    prompt_parts.append("2. Commit changes if appropriate")
+    prompt_parts.append("")
+    prompt_parts.append(
+        "Note: This is a direct task without a task backend. "
+        "No task ID to close. Just complete the work described above."
+    )
+
+    return "\n".join(prompt_parts)
+
+
 def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     """
     Generate the task prompt for a specific task.
@@ -288,6 +356,12 @@ def run(
         "--no-network",
         help="Disable network access (requires --sandbox)",
     ),
+    direct: str | None = typer.Option(
+        None,
+        "--direct",
+        "-d",
+        help="Run directly with provided task (string, @file, or - for stdin)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -309,6 +383,9 @@ def run(
         cub run --parallel 3            # Run 3 independent tasks in parallel
         cub run --sandbox               # Run in Docker sandbox
         cub run --sandbox --no-network  # Run in sandbox without network
+        cub run --direct "Add a logout button to the navbar"  # Direct task
+        cub run --direct @task.txt      # Read task from file
+        echo "Fix the typo" | cub run --direct -  # Read from stdin
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -321,6 +398,24 @@ def run(
     if sandbox_keep and not sandbox:
         console.print("[red]--sandbox-keep requires --sandbox[/red]")
         raise typer.Exit(1)
+
+    if direct:
+        # --direct is incompatible with task management flags
+        if task_id:
+            console.print("[red]--direct cannot be used with --task[/red]")
+            raise typer.Exit(1)
+        if epic:
+            console.print("[red]--direct cannot be used with --epic[/red]")
+            raise typer.Exit(1)
+        if label:
+            console.print("[red]--direct cannot be used with --label[/red]")
+            raise typer.Exit(1)
+        if ready:
+            console.print("[red]--direct cannot be used with --ready[/red]")
+            raise typer.Exit(1)
+        if parallel:
+            console.print("[red]--direct cannot be used with --parallel[/red]")
+            raise typer.Exit(1)
 
     # Handle --sandbox flag: run in Docker container
     if sandbox:
@@ -446,6 +541,22 @@ def run(
     if debug:
         console.print("[dim]Debug mode enabled[/dim]")
         console.print(f"[dim]Project: {project_dir}[/dim]")
+
+    # Handle --direct flag: run without task backend
+    if direct:
+        exit_code = _run_direct(
+            direct=direct,
+            project_dir=project_dir,
+            config=config,
+            harness=harness,
+            model=model,
+            stream=stream,
+            budget=budget,
+            budget_tokens=budget_tokens,
+            session_name=session_name,
+            debug=debug,
+        )
+        raise typer.Exit(exit_code)
 
     # Get task backend
     try:
@@ -770,6 +881,135 @@ def run(
     if status.phase == RunPhase.FAILED:
         raise typer.Exit(1)
     raise typer.Exit(0)
+
+
+def _run_direct(
+    direct: str,
+    project_dir: Path,
+    config: object,
+    harness: str | None,
+    model: str | None,
+    stream: bool,
+    budget: float | None,
+    budget_tokens: int | None,
+    session_name: str | None,
+    debug: bool,
+) -> int:
+    """
+    Run a direct task without using a task backend.
+
+    Args:
+        direct: The --direct argument value (string, @file, or -)
+        project_dir: Project directory
+        config: Loaded configuration
+        harness: AI harness to use
+        model: Model to use
+        stream: Stream output
+        budget: Budget limit (USD)
+        budget_tokens: Token budget limit
+        session_name: Session name
+        debug: Debug mode
+
+    Returns:
+        Exit code (0 = success, 1 = failure)
+    """
+    from cub.core.config.models import CubConfig
+
+    # Type narrow config
+    if not isinstance(config, CubConfig):
+        console.print("[red]Invalid configuration[/red]")
+        return 1
+
+    # Read direct input
+    try:
+        task_content = _read_direct_input(direct)
+    except typer.Exit as e:
+        return e.exit_code if e.exit_code is not None else 1
+
+    if not task_content:
+        console.print("[red]Empty task content[/red]")
+        return 1
+
+    if debug:
+        console.print(f"[dim]Direct task: {task_content[:100]}...[/dim]")
+
+    # Detect or validate harness
+    harness_name = harness or detect_harness(config.harness.priority)
+    if not harness_name:
+        console.print(
+            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
+        )
+        return 1
+
+    try:
+        harness_backend = get_harness_backend(harness_name)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        return 1
+
+    if not harness_backend.is_available():
+        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
+        return 1
+
+    if debug:
+        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+
+    # Generate prompts
+    system_prompt = generate_system_prompt(project_dir)
+    task_prompt = generate_direct_task_prompt(task_content)
+
+    if debug:
+        console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")
+        console.print(f"[dim]Task prompt: {len(task_prompt)} chars[/dim]")
+
+    # Get model
+    task_model = model or config.harness.model
+
+    # Display task info
+    console.print(Panel(
+        f"[bold]{task_content[:200]}{'...' if len(task_content) > 200 else ''}[/bold]",
+        title="[bold]Direct Task[/bold]",
+        border_style="blue",
+    ))
+
+    # Invoke harness
+    console.print(f"[bold]Running {harness_name}...[/bold]")
+    start_time = time.time()
+
+    try:
+        if stream and harness_backend.capabilities.streaming:
+            result: HarnessResult = harness_backend.invoke_streaming(
+                system_prompt=system_prompt,
+                task_prompt=task_prompt,
+                model=task_model,
+                debug=debug,
+                callback=lambda text: print(text, end="", flush=True),
+            )
+            print()  # Newline after streaming output
+        else:
+            result = harness_backend.invoke(
+                system_prompt=system_prompt,
+                task_prompt=task_prompt,
+                model=task_model,
+                debug=debug,
+            )
+    except Exception as e:
+        console.print(f"[red]Harness invocation failed: {e}[/red]")
+        return 1
+
+    duration = time.time() - start_time
+
+    # Display result
+    console.print()
+    if result.success:
+        console.print(f"[green]Completed in {duration:.1f}s[/green]")
+        console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
+        if result.usage.cost_usd:
+            console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+        return 0
+    else:
+        console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
+        return result.exit_code if result.exit_code else 1
 
 
 def _show_ready_tasks(
