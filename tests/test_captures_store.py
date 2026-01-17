@@ -5,7 +5,7 @@ Tests CaptureStore for reading/writing captures to filesystem,
 ID generation, and store location handling.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -48,68 +48,76 @@ class TestCaptureStoreNextId:
     """Test ID generation."""
 
     def test_next_id_empty_directory(self, tmp_path: Path) -> None:
-        """Test next_id when no captures exist."""
+        """Test next_id generates a valid random ID when no captures exist."""
+        import re
+
         store = CaptureStore(tmp_path / "captures")
 
         next_id = store.next_id()
 
-        assert next_id == "cap-001"
+        # Should be a random 6-char alphanumeric ID
+        assert re.match(r"^cap-[a-z0-9]{6}$", next_id)
 
-    def test_next_id_sequential(self, tmp_path: Path) -> None:
-        """Test next_id generates sequential IDs."""
+    def test_next_id_generates_unique_ids(self, tmp_path: Path) -> None:
+        """Test next_id generates unique random IDs."""
+        import re
+
         captures_dir = tmp_path / "captures"
         captures_dir.mkdir()
         store = CaptureStore(captures_dir)
 
-        # Create first capture
-        capture1 = Capture(
-            id="cap-001",
-            created=datetime.now(),
-            title="First",
-        )
-        store.save_capture(capture1, "Content")
+        # Generate multiple IDs and verify uniqueness
+        generated_ids = set()
+        for _ in range(10):
+            new_id = store.next_id()
+            # Verify format
+            assert re.match(r"^cap-[a-z0-9]{6}$", new_id)
+            # Verify uniqueness (before we save with this ID)
+            assert new_id not in generated_ids
+            generated_ids.add(new_id)
 
-        # Next ID should be 002
-        assert store.next_id() == "cap-002"
-
-        # Create second capture
-        capture2 = Capture(
-            id="cap-002",
-            created=datetime.now(),
-            title="Second",
-        )
-        store.save_capture(capture2, "Content")
-
-        # Next ID should be 003
-        assert store.next_id() == "cap-003"
-
-    def test_next_id_with_gaps(self, tmp_path: Path) -> None:
-        """Test next_id when there are gaps in sequence."""
-        captures_dir = tmp_path / "captures"
-        captures_dir.mkdir()
-        store = CaptureStore(captures_dir)
-
-        # Create captures with gaps (001, 005, 010)
-        for num in [1, 5, 10]:
+            # Save with this ID so collision detection sees it
             capture = Capture(
-                id=f"cap-{num:03d}",
+                id=new_id,
                 created=datetime.now(),
-                title=f"Capture {num}",
+                title=f"Capture",
             )
             store.save_capture(capture, "Content")
 
-        # Next ID should be after the highest (011)
-        assert store.next_id() == "cap-011"
+    def test_next_id_avoids_collision(self, tmp_path: Path) -> None:
+        """Test next_id avoids collision with existing IDs."""
+        import re
+
+        captures_dir = tmp_path / "captures"
+        captures_dir.mkdir()
+        store = CaptureStore(captures_dir)
+
+        # Create a capture with a specific ID
+        existing_id = "cap-abc123"
+        capture = Capture(
+            id=existing_id,
+            created=datetime.now(),
+            title="Existing",
+        )
+        store.save_capture(capture, "Content")
+
+        # Generate multiple new IDs - none should collide with existing
+        for _ in range(5):
+            new_id = store.next_id()
+            assert re.match(r"^cap-[a-z0-9]{6}$", new_id)
+            assert new_id != existing_id
 
     def test_next_id_ignores_malformed_files(self, tmp_path: Path) -> None:
         """Test next_id ignores non-capture files."""
+        import re
+
         captures_dir = tmp_path / "captures"
         captures_dir.mkdir()
         store = CaptureStore(captures_dir)
 
         # Create valid capture
         capture = Capture(
-            id="cap-001",
+            id="cap-abc123",
             created=datetime.now(),
             title="Valid",
         )
@@ -117,14 +125,18 @@ class TestCaptureStoreNextId:
 
         # Create files that should be ignored
         (captures_dir / "README.md").write_text("Not a capture")
-        (captures_dir / "cap-invalid.md").write_text("Invalid ID")
+        (captures_dir / "cap-invalid.md").write_text("Invalid ID format")
         (captures_dir / "note-001.md").write_text("Wrong prefix")
 
-        # Next ID should still be 002
-        assert store.next_id() == "cap-002"
+        # Should still generate a new unique ID
+        next_id = store.next_id()
+        assert re.match(r"^cap-[a-z0-9]{6}$", next_id)
+        assert next_id != "cap-abc123"  # Not the existing ID
 
     def test_next_id_creates_directory(self, tmp_path: Path) -> None:
         """Test next_id creates directory if it doesn't exist."""
+        import re
+
         captures_dir = tmp_path / "captures"
         store = CaptureStore(captures_dir)
 
@@ -135,7 +147,7 @@ class TestCaptureStoreNextId:
         next_id = store.next_id()
 
         assert captures_dir.exists()
-        assert next_id == "cap-001"
+        assert re.match(r"^cap-[a-z0-9]{6}$", next_id)
 
 
 class TestCaptureStoreSave:
@@ -455,19 +467,37 @@ class TestCaptureStoreFactoryMethods:
     def test_global_store_default_location(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test global store uses XDG_DATA_HOME."""
+        """Test global store uses XDG_DATA_HOME with project ID."""
+        from unittest.mock import patch
+
         data_home = tmp_path / "data"
         data_home.mkdir()
         monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
 
-        store = CaptureStore.global_store()
+        # Mock get_project_id to return a consistent value
+        with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
+            store = CaptureStore.global_store()
 
-        assert store.get_captures_dir() == data_home / "cub" / "captures"
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "test-project"
+
+    def test_global_store_with_explicit_project_id(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test global store with explicit project ID."""
+        data_home = tmp_path / "data"
+        data_home.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+
+        store = CaptureStore.global_store(project_id="my-project")
+
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "my-project"
 
     def test_global_store_no_xdg_uses_default(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test global store uses ~/.local/share when XDG_DATA_HOME not set."""
+        from unittest.mock import patch
+
         # Remove XDG_DATA_HOME if set
         monkeypatch.delenv("XDG_DATA_HOME", raising=False)
 
@@ -483,10 +513,24 @@ class TestCaptureStoreFactoryMethods:
 
         monkeypatch.setattr(os.path, "expanduser", mock_expanduser)
 
-        store = CaptureStore.global_store()
+        # Mock get_project_id
+        with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
+            store = CaptureStore.global_store()
 
-        expected = tmp_path / ".local" / "share" / "cub" / "captures"
+        expected = tmp_path / ".local" / "share" / "cub" / "captures" / "test-project"
         assert store.get_captures_dir() == expected
+
+    def test_global_unscoped_store(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test global_unscoped store for captures outside any project."""
+        data_home = tmp_path / "data"
+        data_home.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+
+        store = CaptureStore.global_unscoped()
+
+        assert store.get_captures_dir() == data_home / "cub" / "captures" / "_global"
 
 
 class TestCaptureStoreRoundTrip:
@@ -497,7 +541,7 @@ class TestCaptureStoreRoundTrip:
         store = CaptureStore(tmp_path / "captures")
         original = Capture(
             id="cap-001",
-            created=datetime(2026, 1, 16, 14, 32, 0),
+            created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
             title="Test",
         )
         content = "Test content"
@@ -522,7 +566,7 @@ class TestCaptureStoreRoundTrip:
         store = CaptureStore(tmp_path / "captures")
         original = Capture(
             id="cap-002",
-            created=datetime(2026, 1, 16, 14, 32, 0),
+            created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
             title="Important",
             tags=["feature", "urgent"],
             source=CaptureSource.INTERACTIVE,

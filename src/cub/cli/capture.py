@@ -12,34 +12,12 @@ import typer
 from rich.console import Console
 
 from cub.core.captures.models import Capture, CaptureSource
+from cub.core.captures.project_id import get_project_id
+from cub.core.captures.slug import SlugResult, generate_slug
 from cub.core.captures.store import CaptureStore
 from cub.core.captures.tagging import suggest_tags
 
 console = Console()
-
-
-def generate_slug(text: str, max_length: int = 50) -> str:
-    """
-    Generate a slug from text for use in filenames.
-
-    Args:
-        text: Input text to slugify
-        max_length: Maximum slug length
-
-    Returns:
-        Slugified text suitable for filenames
-    """
-    # Convert to lowercase and replace spaces/special chars with hyphens
-    slug = text.lower()
-    slug = "".join(c if c.isalnum() or c in " -_" else "-" for c in slug)
-    slug = "-".join(slug.split())  # Collapse whitespace to single hyphens
-    slug = slug.strip("-")  # Remove leading/trailing hyphens
-
-    # Truncate to max length
-    if len(slug) > max_length:
-        slug = slug[:max_length].rsplit("-", 1)[0]  # Cut at word boundary
-
-    return slug or "capture"
 
 
 def capture(
@@ -68,11 +46,11 @@ def capture(
         min=1,
         max=5,
     ),
-    global_store: bool = typer.Option(
+    project_store: bool = typer.Option(
         False,
-        "--global",
-        "-g",
-        help="Save to global captures directory (~/.local/share/cub/captures/)",
+        "--project",
+        "-P",
+        help="Save to project captures directory (./captures/) instead of global",
     ),
     interactive: bool = typer.Option(
         False,
@@ -85,13 +63,20 @@ def capture(
         "--no-auto-tags",
         help="Disable automatic tag suggestion based on content",
     ),
+    no_slug: bool = typer.Option(
+        False,
+        "--no-slug",
+        help="Skip AI-generated slug, use ID as filename",
+    ),
 ) -> None:
     """
     Capture quick ideas, notes, and observations.
 
-    Captures are stored as Markdown files with YAML frontmatter in the
-    captures/ directory (or globally with --global). Tags can be provided
-    explicitly with --tag, or automatically suggested based on content.
+    By default, captures are stored globally at ~/.local/share/cub/captures/{project}/
+    to survive branch deletion. Use --project to save directly to ./captures/.
+
+    Tags can be provided explicitly with --tag, or automatically suggested
+    based on content.
 
     Examples:
         cub capture "Add dark mode to UI"
@@ -100,6 +85,7 @@ def capture(
         cub capture --name "sprint-planning" "Q1 2026 sprint goals"
         cub capture -i "New feature idea"
         cub capture "Fix git merge bug" --no-auto-tags
+        cub capture --project "Ready for version control"
     """
     debug = ctx.obj.get("debug", False)
 
@@ -148,21 +134,45 @@ def capture(
         raise typer.Exit(1)
 
     # Initialize the appropriate store
-    if global_store:
-        store = CaptureStore.global_store()
-        location = "global"
-    else:
+    # Default is global (organized by project), use --project for version-controlled
+    if project_store:
         store = CaptureStore.project()
         location = "project"
+    else:
+        store = CaptureStore.global_store()
+        location = "global"
+
+    # Get project ID for filename
+    project_id = get_project_id()
 
     # Generate next ID
     capture_id = store.next_id()
 
-    # Generate title (first line or truncated content)
-    title_lines = content.split("\n", 1)
-    title = title_lines[0].strip()
-    if len(title) > 80:
-        title = title[:77] + "..."
+    # Get current timestamp
+    created = datetime.now(timezone.utc)
+
+    # Try AI-generated slug and title
+    slug_result: SlugResult | None = None
+    slug_source = "id"
+
+    if name:
+        # Explicit name provided - use it as slug, derive title from it
+        slug_source = "explicit"
+    elif not no_slug:
+        # Try AI-generated slug
+        slug_result = generate_slug(content)
+        if slug_result:
+            slug_source = "ai"
+
+    # Determine title: AI-generated title if available, otherwise first line
+    if slug_result:
+        title = slug_result.title
+    else:
+        # Fallback: first line or truncated content
+        title_lines = content.split("\n", 1)
+        title = title_lines[0].strip()
+        if len(title) > 80:
+            title = title[:77] + "..."
 
     # Merge auto-suggested tags with user-provided tags
     all_tags = list(tag)  # Convert from tuple to list
@@ -176,23 +186,33 @@ def capture(
     # Create capture object
     capture_obj = Capture(
         id=capture_id,
-        created=datetime.now(timezone.utc),
+        created=created,
         title=title,
         tags=all_tags,
         source=source,
         priority=priority,
     )
 
-    # Save to disk
+    # Generate filename: [project_id]-cap-[yyyymmdd]-[slug].md
+    # Format: cub-cap-20260116-add-dark-mode-ui
+    date_str = created.strftime("%Y%m%d")
+
+    if name:
+        # Explicit name provided
+        filename = f"{project_id}-cap-{date_str}-{name}"
+    elif slug_result:
+        # AI-generated slug
+        filename = f"{project_id}-cap-{date_str}-{slug_result.slug}"
+    else:
+        # Fallback to ID only (no slug)
+        filename = capture_id
+
+    # Save to disk with custom filename
     try:
-        store.save_capture(capture_obj, content)
+        file_path = store.save_capture(capture_obj, content, filename=filename)
     except OSError as e:
         console.print(f"[red]Error:[/red] Failed to save capture: {e}")
         raise typer.Exit(1)
-
-    # Get the actual file path for display
-    captures_dir = store.get_captures_dir()
-    file_path = captures_dir / f"{capture_id}.md"
 
     # Success output
     console.print(f"[green]✓[/green] Captured as [bold]{capture_id}[/bold] ({location})")
@@ -201,6 +221,7 @@ def capture(
     if debug:
         console.print("\n[dim]Debug info:[/dim]")
         console.print(f"  Title: {title}")
+        console.print(f"  Filename: {file_path.stem} ({slug_source})")
         console.print(f"  User Tags: {list(tag)}")
         console.print(f"  Final Tags: {all_tags}")
         if not no_auto_tags:

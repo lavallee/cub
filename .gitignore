@@ -6,6 +6,7 @@
 .cub/temp/                  # Temporary working directory
 .cub/logs/
 .cub/runs/
+.cub/config.json            # Auto-generated project config (project_id)
 
 # Beads viewer local config and caches
 .bv/

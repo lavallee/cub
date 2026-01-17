@@ -4,7 +4,7 @@ Unit tests for capture data models.
 Tests Capture model validation, serialization, and frontmatter parsing.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -91,15 +91,25 @@ class TestCaptureCreation:
             )
         assert "cap-" in str(exc_info.value)
 
-    def test_invalid_id_no_digits(self) -> None:
-        """Test that ID without digits is rejected."""
+    def test_valid_alphanumeric_id(self) -> None:
+        """Test that alphanumeric ID is accepted."""
+        capture = Capture(
+            id="cap-abc123",
+            created=datetime.now(),
+            title="Test",
+        )
+        assert capture.id == "cap-abc123"
+
+    def test_invalid_id_empty_suffix(self) -> None:
+        """Test that ID with empty suffix is rejected."""
         with pytest.raises(ValidationError) as exc_info:
             Capture(
-                id="cap-abc",
+                id="cap-",
                 created=datetime.now(),
                 title="Test",
             )
-        assert "digit" in str(exc_info.value).lower()
+        # Check for error message about alphanumeric characters
+        assert "alphanumeric" in str(exc_info.value).lower()
 
     def test_id_with_leading_zeros(self) -> None:
         """Test that ID with leading zeros is accepted."""
@@ -154,7 +164,8 @@ class TestFrontmatterSerialization:
         frontmatter = capture.to_frontmatter_dict()
 
         assert frontmatter["id"] == "cap-001"
-        assert frontmatter["created"] == "2026-01-16T14:32:00"
+        # Timestamp format: YYYY-MM-DD HH:MM:SS (no T separator, no microseconds)
+        assert frontmatter["created"] == "2026-01-16 14:32:00"
         assert frontmatter["title"] == "Test idea"
         # Optional fields should not be in output if not set
         assert "tags" not in frontmatter
@@ -222,7 +233,8 @@ class TestFrontmatterParsing:
         capture = Capture.from_frontmatter_dict(data)
 
         assert capture.id == "cap-001"
-        assert capture.created == datetime(2026, 1, 16, 14, 32, 0)
+        # Naive timestamps are treated as UTC during parsing
+        assert capture.created == datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc)
         assert capture.title == "Test idea"
         assert capture.status == CaptureStatus.ACTIVE
         assert capture.source == CaptureSource.CLI
@@ -342,7 +354,8 @@ class TestFrontmatterParsing:
             "title": "Test",
         }
         capture = Capture.from_frontmatter_dict(data)
-        assert capture.created == now
+        # Naive datetime objects are treated as UTC during parsing
+        assert capture.created == datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc)
 
 
 class TestRoundTrip:
@@ -352,7 +365,7 @@ class TestRoundTrip:
         """Test round-trip with minimal capture."""
         original = Capture(
             id="cap-001",
-            created=datetime(2026, 1, 16, 14, 32, 0),
+            created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
             title="Test idea",
         )
         frontmatter = original.to_frontmatter_dict()
@@ -370,7 +383,7 @@ class TestRoundTrip:
         """Test round-trip with all fields."""
         original = Capture(
             id="cap-002",
-            created=datetime(2026, 1, 16, 14, 32, 0),
+            created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
             title="Important idea",
             tags=["feature", "urgent"],
             source=CaptureSource.INTERACTIVE,
