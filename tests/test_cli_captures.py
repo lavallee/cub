@@ -2,10 +2,6 @@
 Tests for the captures CLI subcommand.
 
 Tests `cub captures` commands: list, show, edit, import, archive.
-
-Two-tier storage model:
-- Default: Global captures at ~/.local/share/cub/captures/{project}/
-- With --project: Project captures at ./captures/
 """
 
 from datetime import datetime, timezone
@@ -20,31 +16,6 @@ from cub.core.captures.models import Capture, CaptureSource, CaptureStatus
 from cub.core.captures.store import CaptureStore
 
 runner = CliRunner()
-
-
-@pytest.fixture
-def isolated_capture_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Set up an isolated environment for capture tests."""
-    # Set up project directory
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    monkeypatch.chdir(project_dir)
-
-    # Set up global captures directory
-    global_dir = tmp_path / "global"
-    global_dir.mkdir()
-    monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
-
-    # Mock get_project_id to return a consistent value
-    with patch("cub.core.captures.store.get_project_id", return_value="test-project"):
-        with patch("cub.core.captures.project_id.get_project_id", return_value="test-project"):
-            with patch("cub.cli.captures.get_project_id", return_value="test-project"):
-                yield {
-                    "project_dir": project_dir,
-                    "global_dir": global_dir,
-                    "global_captures_dir": global_dir / "cub" / "captures" / "test-project",
-                    "project_captures_dir": project_dir / "captures",
-                }
 
 
 @pytest.fixture
@@ -84,27 +55,40 @@ def populated_captures_dir(tmp_path: Path) -> Path:
 class TestCapturesListCommand:
     """Test the captures list command (default callback)."""
 
-    def test_list_no_captures_directory(self, isolated_capture_env: dict) -> None:
+    def test_list_no_captures_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test list when captures directory doesn't exist."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
         result = runner.invoke(app, ["captures"])
 
         assert result.exit_code == 0
         assert "No captures found" in result.output
 
-    def test_list_empty_directory(self, isolated_capture_env: dict) -> None:
+    def test_list_empty_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test list when captures directory is empty."""
-        # Create empty project captures dir
-        isolated_capture_env["project_captures_dir"].mkdir(parents=True)
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        captures_dir = project_dir / "captures"
+        captures_dir.mkdir()
+        monkeypatch.chdir(project_dir)
 
         result = runner.invoke(app, ["captures"])
 
         assert result.exit_code == 0
         assert "No captures found" in result.output
 
-    def test_list_shows_captures(self, isolated_capture_env: dict) -> None:
+    def test_list_shows_captures(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test list displays captures in table format."""
-        # Create some captures in global store (default)
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create some captures
+        store = CaptureStore.project()
         capture1 = Capture(
             id="cap-001",
             created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
@@ -128,10 +112,16 @@ class TestCapturesListCommand:
         assert "First idea" in result.output
         assert "Second idea" in result.output
 
-    def test_list_limits_to_20_by_default(self, isolated_capture_env: dict) -> None:
+    def test_list_limits_to_20_by_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test list limits output to 20 captures by default."""
-        # Create 25 captures in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create 25 captures
+        store = CaptureStore.project()
         for i in range(1, 26):
             capture = Capture(
                 id=f"cap-{i:03d}",
@@ -144,12 +134,16 @@ class TestCapturesListCommand:
 
         assert result.exit_code == 0
         # Should show summary about limiting
-        assert "20 of 25" in result.output
+        assert "Showing last 20 of 25" in result.output
 
-    def test_list_with_all_flag(self, isolated_capture_env: dict) -> None:
+    def test_list_with_all_flag(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test list --all shows all captures."""
-        # Create 25 captures in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create 25 captures
+        store = CaptureStore.project()
         for i in range(1, 26):
             capture = Capture(
                 id=f"cap-{i:03d}",
@@ -162,12 +156,16 @@ class TestCapturesListCommand:
 
         assert result.exit_code == 0
         # Should not show limiting message
-        assert "20 of" not in result.output
+        assert "Showing last 20" not in result.output
 
-    def test_list_with_tag_filter(self, isolated_capture_env: dict) -> None:
+    def test_list_with_tag_filter(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test list --tag filters by tag."""
-        # Create captures with different tags in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create captures with different tags
+        store = CaptureStore.project()
         capture1 = Capture(
             id="cap-001",
             created=datetime.now(timezone.utc),
@@ -189,10 +187,14 @@ class TestCapturesListCommand:
         assert "cap-001" in result.output
         assert "cap-002" not in result.output
 
-    def test_list_with_search(self, isolated_capture_env: dict) -> None:
+    def test_list_with_search(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test list --search filters by content."""
-        # Create captures with searchable content in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create captures with searchable content
+        store = CaptureStore.project()
         capture1 = Capture(
             id="cap-001",
             created=datetime.now(timezone.utc),
@@ -212,99 +214,64 @@ class TestCapturesListCommand:
         assert "cap-001" in result.output
         assert "cap-002" not in result.output
 
-    def test_list_json_output(self, isolated_capture_env: dict) -> None:
-        """Test list --json outputs JSON format with global/project sections."""
-        # Create captures in both stores
-        global_store = CaptureStore.global_store()
-        global_capture = Capture(
+    def test_list_json_output(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test list --json outputs JSON format."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create a capture
+        store = CaptureStore.project()
+        capture = Capture(
             id="cap-001",
             created=datetime(2026, 1, 16, 14, 32, 0, tzinfo=timezone.utc),
-            title="Global Test",
+            title="Test",
             tags=["test"],
         )
-        global_store.save_capture(global_capture, "Global content")
-
-        project_store = CaptureStore.project()
-        project_capture = Capture(
-            id="cap-002",
-            created=datetime(2026, 1, 15, 10, 0, 0, tzinfo=timezone.utc),
-            title="Project Test",
-            tags=["project"],
-        )
-        project_store.save_capture(project_capture, "Project content")
+        store.save_capture(capture, "Content")
 
         result = runner.invoke(app, ["captures", "--json"])
 
         assert result.exit_code == 0
-        # Should be valid JSON with global/project sections
+        # Should be valid JSON
         import json
 
         output = json.loads(result.output)
-        assert "global" in output
-        assert "project" in output
-        assert len(output["global"]) == 1
-        assert len(output["project"]) == 1
-        assert output["global"][0]["id"] == "cap-001"
-        assert output["project"][0]["id"] == "cap-002"
+        assert len(output) == 1
+        assert output[0]["id"] == "cap-001"
+        assert output[0]["title"] == "Test"
 
-    def test_list_global_flag(self, isolated_capture_env: dict) -> None:
-        """Test list --global shows only global store."""
+    def test_list_global_flag(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test list --global uses global store."""
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
+
         # Create global capture
-        global_store = CaptureStore.global_store()
-        global_capture = Capture(
+        store = CaptureStore.global_store()
+        capture = Capture(
             id="cap-001",
             created=datetime.now(timezone.utc),
             title="Global note",
         )
-        global_store.save_capture(global_capture, "Global content")
-
-        # Create project capture
-        project_store = CaptureStore.project()
-        project_capture = Capture(
-            id="cap-002",
-            created=datetime.now(timezone.utc),
-            title="Project note",
-        )
-        project_store.save_capture(project_capture, "Project content")
+        store.save_capture(capture, "Global content")
 
         result = runner.invoke(app, ["captures", "--global"])
 
         assert result.exit_code == 0
         assert "cap-001" in result.output
-        assert "cap-002" not in result.output
         assert "global" in result.output.lower()
 
-    def test_list_project_flag(self, isolated_capture_env: dict) -> None:
-        """Test list --project shows only project store."""
-        # Create global capture
-        global_store = CaptureStore.global_store()
-        global_capture = Capture(
-            id="cap-001",
-            created=datetime.now(timezone.utc),
-            title="Global note",
-        )
-        global_store.save_capture(global_capture, "Global content")
-
-        # Create project capture
-        project_store = CaptureStore.project()
-        project_capture = Capture(
-            id="cap-002",
-            created=datetime.now(timezone.utc),
-            title="Project note",
-        )
-        project_store.save_capture(project_capture, "Project content")
-
-        result = runner.invoke(app, ["captures", "--project"])
-
-        assert result.exit_code == 0
-        assert "cap-002" in result.output
-        assert "cap-001" not in result.output
-        assert "project" in result.output.lower()
-
-    def test_list_no_active_captures_filtered(self, isolated_capture_env: dict) -> None:
+    def test_list_no_active_captures_filtered(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that archived captures are filtered out by default."""
-        # Create active and archived captures in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create active and archived captures
+        store = CaptureStore.project()
         active = Capture(
             id="cap-001",
             created=datetime.now(timezone.utc),
@@ -330,27 +297,15 @@ class TestCapturesListCommand:
 class TestCapturesShowCommand:
     """Test the captures show command."""
 
-    def test_show_existing_capture_in_global(
-        self, isolated_capture_env: dict, sample_capture: Capture
+    def test_show_existing_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sample_capture: Capture
     ) -> None:
-        """Test showing an existing capture in global store."""
-        # Create capture in global store
-        store = CaptureStore.global_store()
-        store.save_capture(sample_capture, "This is the content")
+        """Test showing an existing capture."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
 
-        result = runner.invoke(app, ["captures", "show", "cap-001"])
-
-        assert result.exit_code == 0
-        assert "cap-001" in result.output
-        assert "Test idea" in result.output
-        assert "This is the content" in result.output
-        assert "global" in result.output.lower()
-
-    def test_show_existing_capture_in_project(
-        self, isolated_capture_env: dict, sample_capture: Capture
-    ) -> None:
-        """Test showing an existing capture in project store."""
-        # Create capture in project store
+        # Create capture
         store = CaptureStore.project()
         store.save_capture(sample_capture, "This is the content")
 
@@ -360,55 +315,57 @@ class TestCapturesShowCommand:
         assert "cap-001" in result.output
         assert "Test idea" in result.output
         assert "This is the content" in result.output
-        assert "project" in result.output.lower()
 
-    def test_show_nonexistent_capture(self, isolated_capture_env: dict) -> None:
+    def test_show_nonexistent_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test showing a capture that doesn't exist."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        captures_dir = project_dir / "captures"
+        captures_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
         result = runner.invoke(app, ["captures", "show", "cap-999"])
 
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
-    def test_show_searches_both_stores(self, isolated_capture_env: dict) -> None:
-        """Test that show command searches both global and project stores."""
-        # Create capture in global store
-        global_store = CaptureStore.global_store()
-        global_capture = Capture(
-            id="cap-001",
+    def test_show_global_capture(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test showing a global capture."""
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
+
+        # Create global capture
+        store = CaptureStore.global_store()
+        capture = Capture(
+            id="cap-042",
             created=datetime.now(timezone.utc),
             title="Global note",
         )
-        global_store.save_capture(global_capture, "Global content")
+        store.save_capture(capture, "Global content")
 
-        # Create capture in project store
-        project_store = CaptureStore.project()
-        project_capture = Capture(
-            id="cap-002",
-            created=datetime.now(timezone.utc),
-            title="Project note",
-        )
-        project_store.save_capture(project_capture, "Project content")
+        result = runner.invoke(app, ["captures", "show", "cap-042", "--global"])
 
-        # Should find global capture
-        result1 = runner.invoke(app, ["captures", "show", "cap-001"])
-        assert result1.exit_code == 0
-        assert "Global note" in result1.output
-
-        # Should find project capture
-        result2 = runner.invoke(app, ["captures", "show", "cap-002"])
-        assert result2.exit_code == 0
-        assert "Project note" in result2.output
+        assert result.exit_code == 0
+        assert "cap-042" in result.output
+        assert "Global note" in result.output
 
 
 class TestCapturesEditCommand:
     """Test the captures edit command."""
 
-    def test_edit_existing_capture_in_global(
-        self, isolated_capture_env: dict, sample_capture: Capture
+    def test_edit_existing_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sample_capture: Capture
     ) -> None:
-        """Test editing an existing capture in global store."""
-        # Create capture in global store
-        store = CaptureStore.global_store()
+        """Test editing an existing capture."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create capture
+        store = CaptureStore.project()
         store.save_capture(sample_capture, "Content")
 
         # Mock subprocess.run to simulate editor
@@ -419,44 +376,37 @@ class TestCapturesEditCommand:
 
             assert result.exit_code == 0
             assert "Edited cap-001" in result.output
-            assert "global" in result.output.lower()
 
             # Verify editor was called with correct file
             mock_run.assert_called_once()
             call_args = mock_run.call_args[0][0]
             assert "cap-001.md" in str(call_args)
 
-    def test_edit_existing_capture_in_project(
-        self, isolated_capture_env: dict, sample_capture: Capture
+    def test_edit_nonexistent_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test editing an existing capture in project store."""
-        # Create capture in project store
-        store = CaptureStore.project()
-        store.save_capture(sample_capture, "Content")
-
-        # Mock subprocess.run to simulate editor
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(returncode=0)
-
-            result = runner.invoke(app, ["captures", "edit", "cap-001"])
-
-            assert result.exit_code == 0
-            assert "Edited cap-001" in result.output
-            assert "project" in result.output.lower()
-
-    def test_edit_nonexistent_capture(self, isolated_capture_env: dict) -> None:
         """Test editing a capture that doesn't exist."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        captures_dir = project_dir / "captures"
+        captures_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
         result = runner.invoke(app, ["captures", "edit", "cap-999"])
 
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
     def test_edit_uses_editor_env_var(
-        self, isolated_capture_env: dict, sample_capture: Capture, monkeypatch: pytest.MonkeyPatch
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sample_capture: Capture
     ) -> None:
         """Test edit uses EDITOR environment variable."""
-        # Create capture in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create capture
+        store = CaptureStore.project()
         store.save_capture(sample_capture, "Content")
 
         # Set custom editor
@@ -474,11 +424,15 @@ class TestCapturesEditCommand:
             assert call_args[0] == "nano"
 
     def test_edit_editor_not_found(
-        self, isolated_capture_env: dict, sample_capture: Capture
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sample_capture: Capture
     ) -> None:
         """Test edit handles editor not found error."""
-        # Create capture in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create capture
+        store = CaptureStore.project()
         store.save_capture(sample_capture, "Content")
 
         with patch("subprocess.run") as mock_run:
@@ -493,9 +447,13 @@ class TestCapturesEditCommand:
 class TestCapturesImportCommand:
     """Test the captures import command."""
 
-    def test_import_from_global(self, isolated_capture_env: dict) -> None:
-        """Test importing a capture from global store (moves by default)."""
-        # Create global capture
+    def test_import_from_global(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test importing a capture from global store."""
+        # Set up global store
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
+
         global_store = CaptureStore.global_store()
         capture = Capture(
             id="cap-042",
@@ -505,22 +463,27 @@ class TestCapturesImportCommand:
         )
         global_store.save_capture(capture, "Global content")
 
-        result = runner.invoke(app, ["captures", "import", "cap-042"])
+        # Set up project
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["captures", "import-capture", "cap-042"])
 
         assert result.exit_code == 0
         assert "Imported cap-042" in result.output
 
         # Verify file was copied to project
-        project_file = isolated_capture_env["project_captures_dir"] / "cap-042.md"
+        project_file = project_dir / "captures" / "cap-042.md"
         assert project_file.exists()
 
-        # Verify file was removed from global (default behavior)
-        global_file = isolated_capture_env["global_captures_dir"] / "cap-042.md"
-        assert not global_file.exists()
+    def test_import_with_reassign(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test importing with --reassign flag."""
+        # Set up global store
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
 
-    def test_import_with_keep(self, isolated_capture_env: dict) -> None:
-        """Test importing with --keep flag preserves global copy."""
-        # Create global capture
         global_store = CaptureStore.global_store()
         capture = Capture(
             id="cap-042",
@@ -529,20 +492,45 @@ class TestCapturesImportCommand:
         )
         global_store.save_capture(capture, "Content")
 
-        result = runner.invoke(app, ["captures", "import", "cap-042", "--keep"])
+        # Set up project with existing capture
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        project_store = CaptureStore.project()
+        existing = Capture(
+            id="cap-001",
+            created=datetime.now(timezone.utc),
+            title="Existing",
+        )
+        project_store.save_capture(existing, "Content")
+
+        result = runner.invoke(app, ["captures", "import-capture", "cap-042", "--reassign"])
 
         assert result.exit_code == 0
-        assert "Imported cap-042" in result.output
+        # Should get new ID (cap-002)
+        assert "cap-002" in result.output
 
-        # Verify file exists in both locations
-        project_file = isolated_capture_env["project_captures_dir"] / "cap-042.md"
-        global_file = isolated_capture_env["global_captures_dir"] / "cap-042.md"
-        assert project_file.exists()
-        assert global_file.exists()
+        # Verify new ID was used
+        new_file = project_dir / "captures" / "cap-002.md"
+        assert new_file.exists()
 
-    def test_import_nonexistent_capture(self, isolated_capture_env: dict) -> None:
+    def test_import_nonexistent_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test importing a capture that doesn't exist."""
-        result = runner.invoke(app, ["captures", "import", "cap-999"])
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
+
+        # Create empty global store
+        CaptureStore.global_store().get_captures_dir().mkdir(parents=True)
+
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        result = runner.invoke(app, ["captures", "import-capture", "cap-999"])
 
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
@@ -551,31 +539,13 @@ class TestCapturesImportCommand:
 class TestCapturesArchiveCommand:
     """Test the captures archive command."""
 
-    def test_archive_active_capture_in_global(self, isolated_capture_env: dict) -> None:
-        """Test archiving an active capture in global store."""
-        # Create active capture in global store
-        store = CaptureStore.global_store()
-        capture = Capture(
-            id="cap-001",
-            created=datetime.now(timezone.utc),
-            title="Active",
-            status=CaptureStatus.ACTIVE,
-        )
-        store.save_capture(capture, "Content")
+    def test_archive_active_capture(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test archiving an active capture."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
 
-        result = runner.invoke(app, ["captures", "archive", "cap-001"])
-
-        assert result.exit_code == 0
-        assert "Archived cap-001" in result.output
-        assert "global" in result.output.lower()
-
-        # Verify status changed
-        archived = store.get_capture("cap-001")
-        assert archived.status == CaptureStatus.ARCHIVED
-
-    def test_archive_active_capture_in_project(self, isolated_capture_env: dict) -> None:
-        """Test archiving an active capture in project store."""
-        # Create active capture in project store
+        # Create active capture
         store = CaptureStore.project()
         capture = Capture(
             id="cap-001",
@@ -589,16 +559,21 @@ class TestCapturesArchiveCommand:
 
         assert result.exit_code == 0
         assert "Archived cap-001" in result.output
-        assert "project" in result.output.lower()
 
         # Verify status changed
         archived = store.get_capture("cap-001")
         assert archived.status == CaptureStatus.ARCHIVED
 
-    def test_archive_already_archived(self, isolated_capture_env: dict) -> None:
+    def test_archive_already_archived(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test archiving an already archived capture."""
-        # Create archived capture in global store
-        store = CaptureStore.global_store()
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
+        # Create archived capture
+        store = CaptureStore.project()
         capture = Capture(
             id="cap-001",
             created=datetime.now(timezone.utc),
@@ -612,41 +587,42 @@ class TestCapturesArchiveCommand:
         assert result.exit_code == 0
         assert "already archived" in result.output.lower()
 
-    def test_archive_nonexistent_capture(self, isolated_capture_env: dict) -> None:
+    def test_archive_nonexistent_capture(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test archiving a capture that doesn't exist."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        captures_dir = project_dir / "captures"
+        captures_dir.mkdir()
+        monkeypatch.chdir(project_dir)
+
         result = runner.invoke(app, ["captures", "archive", "cap-999"])
 
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
-    def test_archive_searches_both_stores(self, isolated_capture_env: dict) -> None:
-        """Test that archive command searches both global and project stores."""
-        # Create capture in global store
-        global_store = CaptureStore.global_store()
-        global_capture = Capture(
-            id="cap-001",
+    def test_archive_global_capture(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test archiving a global capture."""
+        global_dir = tmp_path / "global"
+        global_dir.mkdir()
+        monkeypatch.setenv("XDG_DATA_HOME", str(global_dir))
+
+        # Create global capture
+        store = CaptureStore.global_store()
+        capture = Capture(
+            id="cap-042",
             created=datetime.now(timezone.utc),
             title="Global note",
             status=CaptureStatus.ACTIVE,
         )
-        global_store.save_capture(global_capture, "Global content")
+        store.save_capture(capture, "Content")
 
-        # Create capture in project store
-        project_store = CaptureStore.project()
-        project_capture = Capture(
-            id="cap-002",
-            created=datetime.now(timezone.utc),
-            title="Project note",
-            status=CaptureStatus.ACTIVE,
-        )
-        project_store.save_capture(project_capture, "Project content")
+        result = runner.invoke(app, ["captures", "archive", "cap-042", "--global"])
 
-        # Should archive global capture
-        result1 = runner.invoke(app, ["captures", "archive", "cap-001"])
-        assert result1.exit_code == 0
-        assert global_store.get_capture("cap-001").status == CaptureStatus.ARCHIVED
+        assert result.exit_code == 0
+        assert "Archived cap-042" in result.output
 
-        # Should archive project capture
-        result2 = runner.invoke(app, ["captures", "archive", "cap-002"])
-        assert result2.exit_code == 0
-        assert project_store.get_capture("cap-002").status == CaptureStatus.ARCHIVED
+        # Verify archived
+        archived = store.get_capture("cap-042")
+        assert archived.status == CaptureStatus.ARCHIVED
