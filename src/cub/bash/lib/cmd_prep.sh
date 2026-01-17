@@ -901,8 +901,154 @@ PY
             echo "{\"id\":\"${plan_prefix}-NEEDS_HUMAN\",\"title\":\"NEEDS_HUMAN_INPUT\",\"description\":\"Non-interactive plan conversion failed: generated plan.jsonl is invalid. Please re-run interactively (cub plan) or fix the markdown plan at ${md_file}.\",\"status\":\"open\",\"priority\":1,\"issue_type\":\"note\",\"labels\":[\"prep:error\"],\"dependencies\":[]}" >"$jsonl_file"
         fi
     else
-        # Run claude with the /plan skill
+        # Run claude with the /plan skill (outputs plan.md)
         claude "/cub:plan ${session_dir}"
+
+        # Convert the markdown plan to beads JSONL
+        if [[ -f "$md_file" ]]; then
+            log_info "Converting markdown plan to beads JSONL..."
+            local plan_prefix
+            plan_prefix="${session_id%%-*}"
+            python3 - "$plan_prefix" "$md_file" "$jsonl_file" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+prefix = sys.argv[1]
+md_path = Path(sys.argv[2])
+out_path = Path(sys.argv[3])
+
+EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+KEY_RE = re.compile(r"^(Priority|Labels|Blocks):\s*(.*)$")
+
+def split_csv(v: str):
+    return [x.strip() for x in v.split(',') if x.strip()]
+
+def norm_id(raw: str):
+    raw = raw.strip()
+    if not raw:
+        return raw
+    if prefix and not raw.startswith(prefix + '-'):
+        return f"{prefix}-{raw}"
+    return raw
+
+text = md_path.read_text(encoding='utf-8')
+lines = text.splitlines()
+
+epics = []
+cur_epic = None
+cur_task = None
+buf = []
+in_desc = False
+
+def flush2():
+    global buf, cur_epic, cur_task
+    if not buf:
+        return
+    body = "\n".join(buf).strip() + "\n"
+    if cur_task is not None:
+        cur_task['description'] = body
+    elif cur_epic is not None:
+        cur_epic['description'] = body
+    buf = []
+
+for line in lines:
+    m = EPIC_RE.match(line)
+    if m:
+        flush2()
+        cur_task = None
+        cur_epic = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'tasks': [],
+        }
+        epics.append(cur_epic)
+        in_desc = False
+        continue
+
+    m = TASK_RE.match(line)
+    if m:
+        flush2()
+        if cur_epic is None:
+            continue
+        cur_task = {
+            'id': m.group('id').strip(),
+            'title': m.group('title').strip(),
+            'description': '',
+            'priority': 2,
+            'labels': [],
+            'blocks': [],
+        }
+        cur_epic['tasks'].append(cur_task)
+        in_desc = False
+        continue
+
+    m = KEY_RE.match(line)
+    if m:
+        flush2()
+        key, value = m.group(1), m.group(2).strip()
+        target = cur_task if cur_task is not None else cur_epic
+        if target is None:
+            continue
+        if key == 'Priority':
+            try:
+                target['priority'] = int(value)
+            except ValueError:
+                pass
+        elif key == 'Labels':
+            target['labels'] = split_csv(value)
+        elif key == 'Blocks' and cur_task is not None:
+            cur_task['blocks'] = split_csv(value)
+        in_desc = False
+        continue
+
+    if line.strip() in ('Description:', 'Description'):
+        flush2()
+        in_desc = True
+        continue
+
+    if in_desc:
+        buf.append(line)
+
+flush2()
+
+json_lines = []
+for epic in epics:
+    epic_id = norm_id(epic['id'])
+    json_lines.append(json.dumps({
+        'id': epic_id,
+        'title': epic['title'],
+        'description': epic.get('description',''),
+        'status': 'open',
+        'priority': epic.get('priority',2),
+        'issue_type': 'epic',
+        'labels': epic.get('labels',[]),
+        'dependencies': [],
+    }, ensure_ascii=False))
+    for task in epic.get('tasks', []):
+        task_id = norm_id(task['id'])
+        deps = [{'depends_on_id': epic_id, 'type': 'parent-child'}]
+        for b in task.get('blocks', []):
+            deps.append({'depends_on_id': norm_id(b), 'type': 'blocks'})
+        json_lines.append(json.dumps({
+            'id': task_id,
+            'title': task['title'],
+            'description': task.get('description',''),
+            'status': 'open',
+            'priority': task.get('priority',2),
+            'issue_type': 'task',
+            'labels': task.get('labels',[]),
+            'dependencies': deps,
+        }, ensure_ascii=False))
+
+out_path.write_text("\n".join(json_lines) + ("\n" if json_lines else ""), encoding='utf-8')
+PY
+        fi
     fi
 
     # Check if output was created
