@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.26.4] - 2026-01-18
+
+### Added
+
+- **hooks**: Add on-budget-warning, on-all-tasks-complete, post-init hooks
+- **hooks**: Integrate hooks into run loop with async support
+
+### Changed
+
+- Dealing with tr issue on MacOS
+- New Documentation Site (#37)
+- Add comprehensive hooks guide
+- Added research on knowledge retention
+- Update webpage for v0.26.3
+
+---
+
 ## [0.26.3] - 2026-01-18
 
 ### Added
