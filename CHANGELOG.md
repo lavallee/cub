@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.26.3] - 2026-01-18
+
+### Added
+
+- Consolidate cub pr and add cub merge commands (Python)
+- **release**: Pass release title to webpage updater
+
+### Changed
+
+- Lower coverage threshold to 53%
+- Added support for working through github issues in cub run
+- Now using vanity url and updated hero img
+- Update webpage for v0.26.2
+
+### Fixed
+
+- Reorganize CLI help - move doctor to install, expose sandbox/worktree
+- Cub sessions output alignment (fixes #31)
+- Ensure streaming output flushes properly for real-time display (fixes #34)
+
+---
+
 ## [0.26.2] - 2026-01-17
 
 ### Changed
