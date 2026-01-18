@@ -1020,6 +1020,86 @@ Hook behavior is controlled in your config file:
 |--------|---------|-------------|
 | `hooks.enabled` | `true` | Enable/disable all hooks |
 | `hooks.fail_fast` | `false` | Stop loop if a hook fails (true) or continue (false) |
+| `hooks.async_notifications` | `true` | Run post-task/on-error hooks asynchronously |
+
+### Async Hooks
+
+By default, `post-task` and `on-error` hooks run asynchronously (non-blocking). This means:
+
+- These hooks fire in the background and don't slow down the main loop
+- The next task can start while notifications are being sent
+- All async hooks are collected before the session ends
+
+To disable async execution and wait for each hook:
+
+```json
+{
+  "hooks": {
+    "async_notifications": false
+  }
+}
+```
+
+**Note:** `pre-loop`, `pre-task`, and `post-loop` hooks always run synchronously because they must complete before the next phase begins.
+
+### Troubleshooting Hooks
+
+**Hooks not running:**
+- Verify `hooks.enabled: true` in config
+- Check scripts are executable: `chmod +x <script>`
+- Verify directory structure: `.cub/hooks/{hook-name}.d/`
+
+**Hook timeout:**
+- Hooks have a **5-minute timeout** (300 seconds)
+- Long operations should use `timeout` command internally
+
+**Hook failed:**
+- Check output for error messages
+- Exit code 0 = success, non-zero = failure
+- With `fail_fast: false` (default), failures are logged but don't stop cub
+
+**Naming convention:**
+- Use numeric prefixes to control order: `01-first.sh`, `02-second.sh`
+- Scripts run in alphabetical order (global before project)
+
+### Hook Best Practices
+
+1. **Make hooks idempotent** - Safe to run multiple times
+2. **Handle missing variables** - Use `${VAR:-default}` syntax
+3. **Exit cleanly** - Always `exit 0` for success
+4. **Log with prefix** - `echo "[hook-name] message"` for clarity
+5. **Use numeric prefixes** - `10-setup.sh`, `20-main.sh`, `90-cleanup.sh`
+6. **Store state in `.cub/`** - For inter-hook communication
+7. **Keep hooks fast** - Under 30 seconds ideally
+8. **Test locally first** - `CUB_TASK_ID=test ./hook.sh`
+
+Example with best practices:
+
+```bash
+#!/usr/bin/env bash
+# 10-slack-notify.sh - Post task completion to Slack
+
+set -euo pipefail
+
+# Handle missing variables gracefully
+TASK_ID="${CUB_TASK_ID:-unknown}"
+EXIT_CODE="${CUB_EXIT_CODE:-0}"
+
+# Skip if no webhook configured
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+    echo "[slack-notify] No SLACK_WEBHOOK_URL set, skipping"
+    exit 0
+fi
+
+# Send notification
+curl -s -X POST "$SLACK_WEBHOOK_URL" \
+    -H 'Content-type: application/json' \
+    -d "{\"text\": \"Task $TASK_ID completed (exit code: $EXIT_CODE)\"}" \
+    > /dev/null
+
+echo "[slack-notify] Notification sent for $TASK_ID"
+exit 0
+```
 
 ## How It Works
 

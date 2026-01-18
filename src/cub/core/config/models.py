@@ -106,6 +106,10 @@ class HooksConfig(BaseModel):
 
     enabled: bool = Field(default=True, description="Enable/disable all hooks")
     fail_fast: bool = Field(default=False, description="Stop execution if a hook fails")
+    async_notifications: bool = Field(
+        default=True,
+        description="Run post-task and on-error hooks asynchronously (non-blocking)",
+    )
 
 
 class InterviewQuestion(BaseModel):

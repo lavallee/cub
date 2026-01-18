@@ -37,6 +37,7 @@ from cub.core.tasks.models import Task, TaskStatus
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
+from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
 
 app = typer.Typer(
     name="run",
@@ -713,6 +714,19 @@ def run(
     status.add_event("Run started", EventLevel.INFO)
     status_writer.write(status)
 
+    # Run pre-loop hooks (sync - must complete before loop starts)
+    pre_loop_context = HookContext(
+        hook_name="pre-loop",
+        project_dir=project_dir,
+        harness=harness_name,
+        session_id=run_id,
+    )
+    if not run_hooks("pre-loop", pre_loop_context, project_dir):
+        if config.hooks.fail_fast:
+            status.mark_failed("Pre-loop hook failed")
+            console.print("[red]Pre-loop hook failed. Stopping.[/red]")
+            raise typer.Exit(1)
+
     global _interrupted
 
     try:
@@ -782,6 +796,21 @@ def run(
                 f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
             )
             status_writer.write(status)
+
+            # Run pre-task hooks (sync - must complete before task runs)
+            pre_task_context = HookContext(
+                hook_name="pre-task",
+                project_dir=project_dir,
+                task_id=current_task.id,
+                task_title=current_task.title,
+                harness=harness_name,
+                session_id=run_id,
+            )
+            if not run_hooks("pre-task", pre_task_context, project_dir):
+                if config.hooks.fail_fast:
+                    status.mark_failed(f"Pre-task hook failed for {current_task.id}")
+                    console.print("[red]Pre-task hook failed. Stopping.[/red]")
+                    break
 
             # Claim task (mark as in_progress)
             try:
@@ -853,6 +882,18 @@ def run(
                     duration=duration,
                     tokens=result.usage.total_tokens,
                 )
+
+                # Run post-task hooks (async - fire and forget for notifications)
+                post_task_context = HookContext(
+                    hook_name="post-task",
+                    project_dir=project_dir,
+                    task_id=current_task.id,
+                    task_title=current_task.title,
+                    exit_code=0,
+                    harness=harness_name,
+                    session_id=run_id,
+                )
+                run_hooks_async("post-task", post_task_context, project_dir)
             else:
                 console.print(f"[red]Task failed: {result.error or 'Unknown error'}[/red]")
                 status.add_event(
@@ -861,6 +902,18 @@ def run(
                     task_id=current_task.id,
                     exit_code=result.exit_code,
                 )
+
+                # Run on-error hooks (async - fire and forget for error notifications)
+                on_error_context = HookContext(
+                    hook_name="on-error",
+                    project_dir=project_dir,
+                    task_id=current_task.id,
+                    task_title=current_task.title,
+                    exit_code=result.exit_code or 1,
+                    harness=harness_name,
+                    session_id=run_id,
+                )
+                run_hooks_async("on-error", on_error_context, project_dir)
 
                 if config.loop.on_task_failure == "stop":
                     status.mark_failed(result.error or "Task execution failed")
@@ -901,6 +954,18 @@ def run(
         raise
 
     finally:
+        # Run post-loop hooks (sync - must complete before session ends)
+        post_loop_context = HookContext(
+            hook_name="post-loop",
+            project_dir=project_dir,
+            harness=harness_name,
+            session_id=run_id,
+        )
+        run_hooks("post-loop", post_loop_context, project_dir)
+
+        # Wait for all async hooks to complete (post-task, on-error)
+        wait_async_hooks()
+
         # Final status write
         status_writer.write(status)
 

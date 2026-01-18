@@ -263,6 +263,11 @@ Control the hook system for task lifecycle events.
 - **Default**: `false`
 - **Description**: Stop loop if a hook fails (true) or continue (false).
 
+#### `hooks.async_notifications`
+- **Type**: Boolean
+- **Default**: `true`
+- **Description**: Run `post-task` and `on-error` hooks asynchronously (non-blocking). When enabled, these hooks fire in the background so they don't slow down the main loop. All async hooks are collected before the session ends. Set to `false` to run all hooks synchronously.
+
 **Examples:**
 
 Disable hooks for testing:
@@ -280,6 +285,16 @@ Strict mode - stop on hook failure:
   "hooks": {
     "enabled": true,
     "fail_fast": true
+  }
+}
+```
+
+Run all hooks synchronously (wait for each to complete):
+```json
+{
+  "hooks": {
+    "enabled": true,
+    "async_notifications": false
   }
 }
 ```

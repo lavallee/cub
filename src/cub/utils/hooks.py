@@ -33,6 +33,9 @@ from pathlib import Path
 from cub.core.config import load_config
 from cub.core.config.loader import get_xdg_config_home
 
+# Track async hook processes for cleanup
+_async_processes: list[subprocess.Popen[str]] = []
+
 
 @dataclass
 class HookContext:
@@ -233,3 +236,141 @@ def run_hooks(
 
     # Return success if all hooks passed, or if fail_fast is disabled
     return failed_count == 0 or not fail_fast
+
+
+def run_hooks_async(
+    hook_name: str,
+    context: HookContext | None = None,
+    project_dir: Path | None = None,
+) -> None:
+    """
+    Run all scripts in a hook directory asynchronously (fire and forget).
+
+    Launches hooks without blocking. Processes are tracked for cleanup
+    via wait_async_hooks().
+
+    This is useful for post-task notifications that shouldn't block
+    the main execution loop.
+
+    Args:
+        hook_name: Name of the hook (e.g., "post-task", "on-error")
+        context: Hook context with task/session information
+        project_dir: Project directory (defaults to current directory)
+
+    Example:
+        >>> context = HookContext(
+        ...     hook_name="post-task",
+        ...     task_id="cub-123",
+        ...     exit_code=0
+        ... )
+        >>> run_hooks_async("post-task", context)
+        # Returns immediately, hooks run in background
+    """
+    if not hook_name:
+        raise ValueError("hook_name is required")
+
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    # Load config to check if hooks are enabled
+    config = load_config(project_dir=project_dir)
+
+    if not config.hooks.enabled:
+        return
+
+    # Check if async notifications are enabled (default: True)
+    if hasattr(config.hooks, "async_notifications") and not config.hooks.async_notifications:
+        # Fall back to sync execution
+        run_hooks(hook_name, context, project_dir)
+        return
+
+    # Create context if not provided
+    if context is None:
+        context = HookContext(hook_name=hook_name, project_dir=project_dir)
+
+    # Find all hook scripts
+    all_scripts = find_hook_scripts(hook_name, project_dir)
+
+    # If no scripts found, return immediately
+    if not all_scripts:
+        return
+
+    # Prepare environment variables
+    env = os.environ.copy()
+    env.update(context.to_env_dict())
+
+    # Launch each script asynchronously
+    for script in all_scripts:
+        try:
+            # Start process without waiting
+            proc = subprocess.Popen(
+                [str(script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+            )
+            _async_processes.append(proc)
+
+        except Exception as e:
+            # Log but don't fail - async hooks are best-effort
+            print(
+                f"[hook:{hook_name}] {script.name} failed to start: {e}",
+                flush=True,
+            )
+
+
+def wait_async_hooks(timeout: int = 60) -> None:
+    """
+    Wait for all async hooks to complete.
+
+    Call this at the end of the run loop (in finally block) to ensure
+    all async hooks have finished before exiting.
+
+    Args:
+        timeout: Maximum seconds to wait for each hook (default: 60)
+
+    Example:
+        >>> try:
+        ...     # main loop
+        ...     run_hooks_async("post-task", context)
+        ... finally:
+        ...     wait_async_hooks()  # Ensure all notifications sent
+    """
+    global _async_processes
+
+    for proc in _async_processes:
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+
+            # Log output if any
+            if proc.returncode != 0:
+                print(
+                    f"[hook:async] Process exited with code {proc.returncode}",
+                    flush=True,
+                )
+                if stderr and stderr.strip():
+                    print(stderr.strip(), flush=True)
+            elif stdout and stdout.strip():
+                print(f"[hook:async] {stdout.strip()}", flush=True)
+
+        except subprocess.TimeoutExpired:
+            print("[hook:async] Process timed out, killing...", flush=True)
+            proc.kill()
+            proc.communicate()  # Reap the process
+
+        except Exception as e:
+            print(f"[hook:async] Error waiting for process: {e}", flush=True)
+
+    # Clear the list
+    _async_processes.clear()
+
+
+def clear_async_hooks() -> None:
+    """
+    Clear the async hooks process list without waiting.
+
+    Useful for testing to reset state between tests.
+    """
+    global _async_processes
+    _async_processes.clear()

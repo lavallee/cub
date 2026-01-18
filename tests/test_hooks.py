@@ -11,7 +11,14 @@ from pathlib import Path
 import pytest
 
 from cub.core.config import clear_cache
-from cub.utils.hooks import HookContext, find_hook_scripts, run_hooks
+from cub.utils.hooks import (
+    HookContext,
+    clear_async_hooks,
+    find_hook_scripts,
+    run_hooks,
+    run_hooks_async,
+    wait_async_hooks,
+)
 
 # ==============================================================================
 # Fixtures
@@ -381,3 +388,194 @@ class TestRunHooks:
 
         captured = capsys.readouterr()
         assert "timed out after 300 seconds" in captured.out
+
+
+# ==============================================================================
+# Async Hook Tests
+# ==============================================================================
+
+
+class TestRunHooksAsync:
+    """Test asynchronous hook execution."""
+
+    def setup_method(self):
+        """Clear async processes before each test."""
+        clear_async_hooks()
+
+    def teardown_method(self):
+        """Clean up async processes after each test."""
+        clear_async_hooks()
+
+    def test_async_no_hooks(self, temp_project):
+        """Test async execution when no hooks exist."""
+        # Should not raise, just return
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+        wait_async_hooks()  # Should complete immediately
+
+    def test_async_runs_hook(self, temp_project):
+        """Test that async hooks actually run."""
+        # Create a hook that writes to a file
+        output_file = temp_project["project_dir"] / "async_output.txt"
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-test.sh",
+            f'echo "async hook ran" > {output_file}',
+        )
+
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+
+        # File shouldn't exist yet (or might, depending on timing)
+        # Wait for completion
+        wait_async_hooks()
+
+        # Now file should definitely exist
+        assert output_file.exists()
+        assert "async hook ran" in output_file.read_text()
+
+    def test_async_passes_context(self, temp_project):
+        """Test that context is passed to async hooks."""
+        output_file = temp_project["project_dir"] / "async_context.txt"
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-test.sh",
+            f'echo "$CUB_TASK_ID|$CUB_EXIT_CODE" > {output_file}',
+        )
+
+        context = HookContext(
+            hook_name="post-task",
+            project_dir=temp_project["project_dir"],
+            task_id="async-task-123",
+            exit_code=0,
+        )
+
+        run_hooks_async("post-task", context, temp_project["project_dir"])
+        wait_async_hooks()
+
+        output = output_file.read_text().strip()
+        assert output == "async-task-123|0"
+
+    def test_async_multiple_hooks(self, temp_project):
+        """Test running multiple hooks asynchronously."""
+        output_file1 = temp_project["project_dir"] / "async1.txt"
+        output_file2 = temp_project["project_dir"] / "async2.txt"
+
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-first.sh",
+            f'echo "first" > {output_file1}',
+        )
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "02-second.sh",
+            f'echo "second" > {output_file2}',
+        )
+
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+        wait_async_hooks()
+
+        assert output_file1.exists()
+        assert output_file2.exists()
+        assert "first" in output_file1.read_text()
+        assert "second" in output_file2.read_text()
+
+    def test_async_with_disabled_hooks(self, temp_project):
+        """Test that async hooks don't run when disabled."""
+        import json
+
+        config = {"hooks": {"enabled": False}}
+        config_file = temp_project["project_dir"] / ".cub.json"
+        config_file.write_text(json.dumps(config))
+        clear_cache()
+
+        # Create a hook that would create a file
+        output_file = temp_project["project_dir"] / "should_not_exist.txt"
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-test.sh",
+            f'touch {output_file}',
+        )
+
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+        wait_async_hooks()
+
+        # File should NOT exist since hooks are disabled
+        assert not output_file.exists()
+
+    def test_async_empty_hook_name_raises(self, temp_project):
+        """Test that empty hook name raises ValueError."""
+        with pytest.raises(ValueError, match="hook_name is required"):
+            run_hooks_async("", project_dir=temp_project["project_dir"])
+
+
+class TestWaitAsyncHooks:
+    """Test waiting for async hooks."""
+
+    def setup_method(self):
+        """Clear async processes before each test."""
+        clear_async_hooks()
+
+    def teardown_method(self):
+        """Clean up async processes after each test."""
+        clear_async_hooks()
+
+    def test_wait_with_no_processes(self):
+        """Test waiting when no async hooks have been started."""
+        # Should not raise
+        wait_async_hooks()
+
+    def test_wait_collects_output(self, temp_project, capsys):
+        """Test that wait collects output from hooks."""
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-test.sh",
+            'echo "Async hook output"',
+        )
+
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+        wait_async_hooks()
+
+        captured = capsys.readouterr()
+        assert "Async hook output" in captured.out
+
+    def test_wait_handles_failure(self, temp_project, capsys):
+        """Test that wait handles failed hooks gracefully."""
+        create_hook_script(
+            temp_project["project_hooks"],
+            "on-error",
+            "01-fail.sh",
+            "exit 1",
+        )
+
+        run_hooks_async("on-error", project_dir=temp_project["project_dir"])
+        wait_async_hooks()  # Should not raise
+
+        captured = capsys.readouterr()
+        assert "exited with code 1" in captured.out
+
+
+class TestClearAsyncHooks:
+    """Test clearing async hook process list."""
+
+    def test_clear_resets_state(self, temp_project):
+        """Test that clear removes all tracked processes."""
+        # Create a hook that takes a moment
+        create_hook_script(
+            temp_project["project_hooks"],
+            "post-task",
+            "01-slow.sh",
+            "sleep 0.1",
+        )
+
+        run_hooks_async("post-task", project_dir=temp_project["project_dir"])
+
+        # Clear without waiting
+        clear_async_hooks()
+
+        # Wait should now do nothing (list was cleared)
+        wait_async_hooks()  # Should return immediately
