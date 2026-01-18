@@ -53,6 +53,12 @@ class HookContext:
     exit_code: int | None = None
     harness: str | None = None
     session_id: str | None = None
+    # Budget-related fields (for on-budget-warning)
+    budget_percentage: float | None = None
+    budget_used: int | None = None
+    budget_limit: int | None = None
+    # Init-related fields (for post-init)
+    init_type: str | None = None  # "global" or "project"
 
     def to_env_dict(self) -> dict[str, str]:
         """
@@ -61,7 +67,7 @@ class HookContext:
         Returns:
             Dict mapping env var names to string values (empty strings for None)
         """
-        return {
+        env = {
             "CUB_HOOK_NAME": self.hook_name,
             "CUB_PROJECT_DIR": str(self.project_dir),
             "CUB_TASK_ID": self.task_id or "",
@@ -70,6 +76,17 @@ class HookContext:
             "CUB_HARNESS": self.harness or "",
             "CUB_SESSION_ID": self.session_id or "",
         }
+        # Add budget fields if present
+        if self.budget_percentage is not None:
+            env["CUB_BUDGET_PERCENTAGE"] = f"{self.budget_percentage:.1f}"
+        if self.budget_used is not None:
+            env["CUB_BUDGET_USED"] = str(self.budget_used)
+        if self.budget_limit is not None:
+            env["CUB_BUDGET_LIMIT"] = str(self.budget_limit)
+        # Add init type if present
+        if self.init_type:
+            env["CUB_INIT_TYPE"] = self.init_type
+        return env
 
 
 def find_hook_scripts(hook_name: str, project_dir: Path | None = None) -> list[Path]:

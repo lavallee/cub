@@ -728,6 +728,7 @@ def run(
             raise typer.Exit(1)
 
     global _interrupted
+    budget_warning_fired = False  # Track if budget warning hook has been fired
 
     try:
         while status.iteration.current < max_iterations:
@@ -774,6 +775,16 @@ def run(
                     counts = task_backend.get_task_counts()
                     if counts.remaining == 0:
                         console.print("[green]All tasks complete![/green]")
+                        # Fire on-all-tasks-complete hook (async)
+                        complete_context = HookContext(
+                            hook_name="on-all-tasks-complete",
+                            project_dir=project_dir,
+                            harness=harness_name,
+                            session_id=run_id,
+                        )
+                        run_hooks_async(
+                            "on-all-tasks-complete", complete_context, project_dir
+                        )
                         status.mark_completed()
                         break
                     else:
@@ -869,6 +880,30 @@ def run(
             status.budget.tokens_used += result.usage.total_tokens
             if result.usage.cost_usd:
                 status.budget.cost_usd += result.usage.cost_usd
+
+            # Check for budget warning (fire once when crossing threshold)
+            budget_pct = status.budget.tokens_percentage or status.budget.cost_percentage
+            warning_threshold = config.guardrails.iteration_warning_threshold * 100
+            if budget_pct and budget_pct >= warning_threshold and not budget_warning_fired:
+                budget_warning_fired = True
+                console.print(
+                    f"[yellow]Budget warning: {budget_pct:.1f}% used "
+                    f"(threshold: {warning_threshold:.0f}%)[/yellow]"
+                )
+                status.add_event(
+                    f"Budget warning: {budget_pct:.1f}% used", EventLevel.WARNING
+                )
+                # Fire on-budget-warning hook (async)
+                budget_context = HookContext(
+                    hook_name="on-budget-warning",
+                    project_dir=project_dir,
+                    harness=harness_name,
+                    session_id=run_id,
+                    budget_percentage=budget_pct,
+                    budget_used=status.budget.tokens_used,
+                    budget_limit=status.budget.tokens_limit,
+                )
+                run_hooks_async("on-budget-warning", budget_context, project_dir)
 
             # Log result
             if result.success:

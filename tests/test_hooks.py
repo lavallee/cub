@@ -122,6 +122,48 @@ class TestHookContext:
         assert env_dict["CUB_HARNESS"] == "claude"
         assert env_dict["CUB_SESSION_ID"] == "session-456"
 
+    def test_budget_context(self, tmp_path):
+        """Test context with budget fields for on-budget-warning hook."""
+        context = HookContext(
+            hook_name="on-budget-warning",
+            project_dir=tmp_path,
+            budget_percentage=85.5,
+            budget_used=855000,
+            budget_limit=1000000,
+        )
+        env_dict = context.to_env_dict()
+
+        assert env_dict["CUB_HOOK_NAME"] == "on-budget-warning"
+        assert env_dict["CUB_BUDGET_PERCENTAGE"] == "85.5"
+        assert env_dict["CUB_BUDGET_USED"] == "855000"
+        assert env_dict["CUB_BUDGET_LIMIT"] == "1000000"
+
+    def test_init_context(self, tmp_path):
+        """Test context with init type for post-init hook."""
+        context = HookContext(
+            hook_name="post-init",
+            project_dir=tmp_path,
+            init_type="global",
+        )
+        env_dict = context.to_env_dict()
+
+        assert env_dict["CUB_HOOK_NAME"] == "post-init"
+        assert env_dict["CUB_INIT_TYPE"] == "global"
+
+    def test_optional_fields_not_in_env_when_none(self, tmp_path):
+        """Test that optional fields are not added when None."""
+        context = HookContext(
+            hook_name="pre-task",
+            project_dir=tmp_path,
+        )
+        env_dict = context.to_env_dict()
+
+        # Budget fields should not be present
+        assert "CUB_BUDGET_PERCENTAGE" not in env_dict
+        assert "CUB_BUDGET_USED" not in env_dict
+        assert "CUB_BUDGET_LIMIT" not in env_dict
+        assert "CUB_INIT_TYPE" not in env_dict
+
 
 # ==============================================================================
 # Hook Discovery Tests

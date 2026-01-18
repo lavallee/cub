@@ -74,13 +74,23 @@ Hooks fire at specific points in the cub execution flow:
 
 ## Available Hooks
 
+### Run Loop Hooks
+
 | Hook | When It Fires | Execution | Common Use Cases |
 |------|---------------|-----------|------------------|
 | `pre-loop` | Once, before main loop starts | Sync | Branch creation, session setup, environment checks |
 | `pre-task` | Before each task executes | Sync | Task-specific setup, resource allocation |
 | `post-task` | After successful task completion | Async | Notifications, metrics, cleanup |
 | `on-error` | When a task fails | Async | Alerts, incident creation, diagnostics |
+| `on-budget-warning` | When budget crosses threshold (default 80%) | Async | Cost alerts, scaling decisions |
+| `on-all-tasks-complete` | When all tasks are done | Async | Celebration, final notifications, trigger next phase |
 | `post-loop` | Once, after loop ends | Sync | PR prompts, final reports, cleanup |
+
+### Other Hooks
+
+| Hook | When It Fires | Execution | Common Use Cases |
+|------|---------------|-----------|------------------|
+| `post-init` | After `cub init` completes | Sync | Custom project setup, install dependencies |
 
 ### Sync vs Async Execution
 
@@ -156,11 +166,15 @@ Hooks receive context via environment variables:
 |----------|--------------|-------------|
 | `CUB_HOOK_NAME` | All | Name of the current hook |
 | `CUB_PROJECT_DIR` | All | Absolute path to project directory |
-| `CUB_SESSION_ID` | All | Session identifier (e.g., "cub-20260118-143022") |
-| `CUB_HARNESS` | All | Harness in use (claude, codex, gemini, opencode) |
+| `CUB_SESSION_ID` | Run hooks | Session identifier (e.g., "cub-20260118-143022") |
+| `CUB_HARNESS` | Run hooks | Harness in use (claude, codex, gemini, opencode) |
 | `CUB_TASK_ID` | Task hooks | ID of current task (e.g., "beads-abc123") |
 | `CUB_TASK_TITLE` | Task hooks | Title of current task |
 | `CUB_EXIT_CODE` | post-task, on-error | Exit code from task (0 = success) |
+| `CUB_BUDGET_PERCENTAGE` | on-budget-warning | Percentage of budget used (e.g., "85.5") |
+| `CUB_BUDGET_USED` | on-budget-warning | Tokens used so far |
+| `CUB_BUDGET_LIMIT` | on-budget-warning | Token budget limit |
+| `CUB_INIT_TYPE` | post-init | Init type: "global" or "project" |
 
 ### Using Environment Variables
 
@@ -380,6 +394,77 @@ curl -s -X POST "https://events.pagerduty.com/v2/enqueue" \
     }" > /dev/null
 
 echo "[pagerduty] Alert triggered for $TASK_ID"
+```
+
+### Budget Warning (on-budget-warning)
+
+```bash
+#!/usr/bin/env bash
+# .cub/hooks/on-budget-warning.d/10-alert.sh
+set -euo pipefail
+
+PERCENTAGE="${CUB_BUDGET_PERCENTAGE:-0}"
+USED="${CUB_BUDGET_USED:-0}"
+LIMIT="${CUB_BUDGET_LIMIT:-0}"
+
+echo "[budget-warning] Budget at ${PERCENTAGE}% ($USED / $LIMIT tokens)"
+
+# Send alert via your preferred method
+# Example: Slack, email, PagerDuty, etc.
+if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+    curl -s -X POST "$SLACK_WEBHOOK_URL" \
+        -H 'Content-type: application/json' \
+        -d "{\"text\": \":warning: Cub budget at ${PERCENTAGE}%\"}" > /dev/null
+fi
+```
+
+### All Tasks Complete (on-all-tasks-complete)
+
+```bash
+#!/usr/bin/env bash
+# .cub/hooks/on-all-tasks-complete.d/10-celebrate.sh
+set -euo pipefail
+
+SESSION_ID="${CUB_SESSION_ID:-unknown}"
+
+echo "[complete] All tasks complete for session $SESSION_ID!"
+
+# Send celebration notification
+if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+    curl -s -X POST "$SLACK_WEBHOOK_URL" \
+        -H 'Content-type: application/json' \
+        -d "{\"text\": \":tada: All tasks complete! Session: $SESSION_ID\"}" > /dev/null
+fi
+
+# Optionally trigger next phase
+# Example: Start deployment, notify team, update status page
+```
+
+### Post Init (post-init)
+
+```bash
+#!/usr/bin/env bash
+# .cub/hooks/post-init.d/10-setup.sh
+set -euo pipefail
+
+INIT_TYPE="${CUB_INIT_TYPE:-project}"
+PROJECT_DIR="${CUB_PROJECT_DIR:-$(pwd)}"
+
+echo "[post-init] Cub initialized ($INIT_TYPE)"
+
+if [[ "$INIT_TYPE" == "project" ]]; then
+    # Project-specific setup
+    echo "[post-init] Setting up project hooks..."
+
+    # Create common hook directories
+    mkdir -p "$PROJECT_DIR/.cub/hooks/"{pre-loop,post-task,on-error,post-loop}.d
+
+    # Copy team's standard hooks if available
+    if [[ -d "$HOME/.cub-team-hooks" ]]; then
+        cp -r "$HOME/.cub-team-hooks/"* "$PROJECT_DIR/.cub/hooks/"
+        echo "[post-init] Installed team hooks"
+    fi
+fi
 ```
 
 ### Datadog Metrics (post-loop)

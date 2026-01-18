@@ -924,7 +924,7 @@ The hook execution flow through a typical cub session:
 
 ### Hook Points
 
-Cub supports five hook points:
+Cub supports eight hook points:
 
 | Hook | When It Runs | Use Cases |
 |------|--------------|-----------|
@@ -932,7 +932,10 @@ Cub supports five hook points:
 | `pre-task` | Before each task execution | Prepare environment, start timers |
 | `post-task` | After each task (success or failure) | Notifications, metrics, logging |
 | `on-error` | When a task fails | Alerts, incident creation, diagnostics |
+| `on-budget-warning` | When budget crosses threshold (80%) | Cost alerts, scaling decisions |
+| `on-all-tasks-complete` | When all tasks are done | Final notifications, trigger next phase |
 | `post-loop` | After the main loop completes | Cleanup, final notifications, reports |
+| `post-init` | After `cub init` completes | Custom project setup, install team hooks |
 
 ### Hook Locations
 
