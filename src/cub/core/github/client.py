@@ -7,6 +7,7 @@ Provides functions to interact with GitHub via the `gh` CLI tool.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -282,11 +283,17 @@ class GitHubClient:
             GitHubClientError: If PR creation fails
         """
         cmd = [
-            "gh", "pr", "create",
-            "--head", head,
-            "--base", base,
-            "--title", title,
-            "--body", body,
+            "gh",
+            "pr",
+            "create",
+            "--head",
+            head,
+            "--base",
+            base,
+            "--title",
+            title,
+            "--body",
+            body,
         ]
         if draft:
             cmd.append("--draft")
@@ -337,11 +344,17 @@ class GitHubClient:
         try:
             result = subprocess.run(
                 [
-                    "gh", "pr", "list",
-                    "--head", branch,
-                    "--base", base,
-                    "--json", "number,url,title,state",
-                    "--jq", ".[0]",
+                    "gh",
+                    "pr",
+                    "list",
+                    "--head",
+                    branch,
+                    "--base",
+                    base,
+                    "--json",
+                    "number,url,title,state",
+                    "--jq",
+                    ".[0]",
                 ],
                 capture_output=True,
                 text=True,
@@ -379,8 +392,12 @@ class GitHubClient:
         try:
             result = subprocess.run(
                 [
-                    "gh", "pr", "view", str(pr_ref),
-                    "--json", "number,url,title,state,headRefName,baseRefName,mergeable",
+                    "gh",
+                    "pr",
+                    "view",
+                    str(pr_ref),
+                    "--json",
+                    "number,url,title,state,headRefName,baseRefName,mergeable",
                 ],
                 capture_output=True,
                 text=True,
@@ -417,8 +434,12 @@ class GitHubClient:
         try:
             result = subprocess.run(
                 [
-                    "gh", "pr", "checks", str(pr_ref),
-                    "--json", "name,status,conclusion",
+                    "gh",
+                    "pr",
+                    "checks",
+                    str(pr_ref),
+                    "--json",
+                    "name,status,conclusion",
                 ],
                 capture_output=True,
                 text=True,
@@ -428,7 +449,8 @@ class GitHubClient:
             if result.returncode != 0:
                 return []
 
-            return json.loads(result.stdout)
+            checks: list[dict[str, str]] = json.loads(result.stdout)
+            return checks
 
         except (json.JSONDecodeError, OSError, FileNotFoundError):
             return []
@@ -515,8 +537,11 @@ class GitHubClient:
             # Check if upstream exists
             result = subprocess.run(
                 [
-                    "git", "rev-parse", "--abbrev-ref",
-                    "--symbolic-full-name", f"{branch}@{{upstream}}",
+                    "git",
+                    "rev-parse",
+                    "--abbrev-ref",
+                    "--symbolic-full-name",
+                    f"{branch}@{{upstream}}",
                 ],
                 capture_output=True,
                 text=True,
@@ -590,3 +615,166 @@ class GitHubClient:
             return bool(result.stdout.strip())
         except (OSError, FileNotFoundError):
             return False
+
+    def get_commits_between(
+        self,
+        base: str,
+        head: str,
+        max_commits: int = 50,
+    ) -> list[dict[str, str]]:
+        """
+        Get commits between base and head branches.
+
+        Args:
+            base: Base branch name
+            head: Head branch name
+            max_commits: Maximum number of commits to return
+
+        Returns:
+            List of commit dicts with 'sha', 'subject', 'body' keys
+        """
+        try:
+            # Format: hash|subject|body (body separated by newlines)
+            result = subprocess.run(
+                [
+                    "git",
+                    "log",
+                    f"{base}..{head}",
+                    f"--max-count={max_commits}",
+                    "--format=%H|%s|%b%x00",  # null separator between commits
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return []
+
+            commits = []
+            # Split by null character, filter empty
+            for entry in result.stdout.split("\x00"):
+                entry = entry.strip()
+                if not entry:
+                    continue
+                parts = entry.split("|", 2)
+                if len(parts) >= 2:
+                    commits.append(
+                        {
+                            "sha": parts[0][:7],  # Short SHA
+                            "subject": parts[1],
+                            "body": parts[2].strip() if len(parts) > 2 else "",
+                        }
+                    )
+
+            return commits
+
+        except (OSError, FileNotFoundError):
+            return []
+
+    def get_files_changed(
+        self,
+        base: str,
+        head: str,
+    ) -> dict[str, list[str]]:
+        """
+        Get files changed between base and head branches.
+
+        Args:
+            base: Base branch name
+            head: Head branch name
+
+        Returns:
+            Dict with 'added', 'modified', 'deleted' lists of file paths
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "git",
+                    "diff",
+                    f"{base}...{head}",
+                    "--name-status",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return {"added": [], "modified": [], "deleted": []}
+
+            added: list[str] = []
+            modified: list[str] = []
+            deleted: list[str] = []
+
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 2:
+                    continue
+                status = parts[0]
+                if status.startswith("A"):
+                    added.append(parts[1])
+                elif status.startswith("D"):
+                    deleted.append(parts[1])
+                elif status.startswith("M"):
+                    modified.append(parts[1])
+                elif status.startswith("R"):
+                    # Renames have format: Rnn<tab>old_name<tab>new_name
+                    # Use the new name (the renamed-to file)
+                    if len(parts) >= 3:
+                        modified.append(parts[2])
+                    else:
+                        modified.append(parts[1])
+
+            return {"added": added, "modified": modified, "deleted": deleted}
+
+        except (OSError, FileNotFoundError):
+            return {"added": [], "modified": [], "deleted": []}
+
+    def get_diff_stat(self, base: str, head: str) -> dict[str, int]:
+        """
+        Get diff statistics between base and head branches.
+
+        Args:
+            base: Base branch name
+            head: Head branch name
+
+        Returns:
+            Dict with 'files', 'insertions', 'deletions' counts
+        """
+        try:
+            result = subprocess.run(
+                [
+                    "git",
+                    "diff",
+                    f"{base}...{head}",
+                    "--shortstat",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            if result.returncode != 0:
+                return {"files": 0, "insertions": 0, "deletions": 0}
+
+            output = result.stdout.strip()
+            if not output:
+                return {"files": 0, "insertions": 0, "deletions": 0}
+
+            # Parse "X files changed, Y insertions(+), Z deletions(-)"
+            files = insertions = deletions = 0
+
+            if match := re.search(r"(\d+) files? changed", output):
+                files = int(match.group(1))
+            if match := re.search(r"(\d+) insertions?\(\+\)", output):
+                insertions = int(match.group(1))
+            if match := re.search(r"(\d+) deletions?\(-\)", output):
+                deletions = int(match.group(1))
+
+            return {"files": files, "insertions": insertions, "deletions": deletions}
+
+        except (OSError, FileNotFoundError):
+            return {"files": 0, "insertions": 0, "deletions": 0}

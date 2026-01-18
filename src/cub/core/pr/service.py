@@ -147,13 +147,15 @@ class PRService:
         self,
         epic_id: str | None,
         branch: str,
+        base: str = "main",
     ) -> str:
         """
-        Generate PR body from epic tasks.
+        Generate PR body from commits, file changes, and epic tasks.
 
         Args:
             epic_id: Epic ID to generate body for (optional)
-            branch: Branch name for commits summary
+            branch: Branch name (head)
+            base: Base branch name for comparison
 
         Returns:
             Markdown PR body
@@ -195,6 +197,11 @@ class PRService:
             except (json.JSONDecodeError, OSError, FileNotFoundError):
                 pass
 
+        # Get git information
+        commits = self.github_client.get_commits_between(base, branch)
+        files_changed = self.github_client.get_files_changed(base, branch)
+        diff_stat = self.github_client.get_diff_stat(base, branch)
+
         # Build PR body
         body_parts = ["## Summary\n"]
         if epic_description:
@@ -202,14 +209,56 @@ class PRService:
         else:
             body_parts.append(f"{epic_title}\n")
 
+        # Add diff statistics
+        if diff_stat["files"] > 0:
+            stat_parts = [f"{diff_stat['files']} file(s) changed"]
+            if diff_stat["insertions"] > 0:
+                stat_parts.append(f"+{diff_stat['insertions']}")
+            if diff_stat["deletions"] > 0:
+                stat_parts.append(f"-{diff_stat['deletions']}")
+            body_parts.append(f"\n**Stats:** {', '.join(stat_parts)}\n")
+
         body_parts.append("\n## Changes\n")
 
+        # Add commits section
+        if commits:
+            body_parts.append(f"### Commits ({len(commits)})\n")
+            for commit in commits:
+                body_parts.append(f"- `{commit['sha']}` {commit['subject']}\n")
+            body_parts.append("\n")
+
+        # Add completed tasks if available
         if completed_tasks:
             body_parts.append(f"### Completed Tasks ({len(completed_tasks)})\n")
             for task in completed_tasks:
                 body_parts.append(f"- [x] {task['id']}: {task['title']}\n")
-        else:
-            body_parts.append("See commits for details.\n")
+            body_parts.append("\n")
+
+        # Add files changed section
+        total_files = (
+            len(files_changed["added"])
+            + len(files_changed["modified"])
+            + len(files_changed["deleted"])
+        )
+        if total_files > 0:
+            body_parts.append("### Files Changed\n")
+
+            # Group files by directory for cleaner output
+            if files_changed["added"]:
+                body_parts.append(
+                    f"**Added ({len(files_changed['added'])}):** "
+                    f"{', '.join(self._format_file_list(files_changed['added']))}\n"
+                )
+            if files_changed["modified"]:
+                body_parts.append(
+                    f"**Modified ({len(files_changed['modified'])}):** "
+                    f"{', '.join(self._format_file_list(files_changed['modified']))}\n"
+                )
+            if files_changed["deleted"]:
+                body_parts.append(
+                    f"**Deleted ({len(files_changed['deleted'])}):** "
+                    f"{', '.join(self._format_file_list(files_changed['deleted']))}\n"
+                )
 
         body_parts.append("""
 ## Test Plan
@@ -223,6 +272,24 @@ Generated with [cub](https://github.com/lavallee/cub)
 """)
 
         return "".join(body_parts)
+
+    def _format_file_list(self, files: list[str], max_files: int = 10) -> list[str]:
+        """
+        Format a list of files for display.
+
+        Args:
+            files: List of file paths
+            max_files: Maximum number of files to show before truncating
+
+        Returns:
+            List of formatted file names (with code formatting)
+        """
+        if len(files) <= max_files:
+            return [f"`{f}`" for f in files]
+        else:
+            displayed = [f"`{f}`" for f in files[:max_files]]
+            displayed.append(f"... and {len(files) - max_files} more")
+            return displayed
 
     def create_pr(
         self,
@@ -348,7 +415,7 @@ Generated with [cub](https://github.com/lavallee/cub)
                 title = branch
 
         # Generate body
-        body = self.generate_pr_body(resolved.epic_id, branch)
+        body = self.generate_pr_body(resolved.epic_id, branch, base)
 
         if dry_run:
             self._console.print("[dry-run] Would create PR:")
