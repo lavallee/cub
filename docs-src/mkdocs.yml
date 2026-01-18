@@ -1,0 +1,263 @@
+site_name: Cub Documentation
+site_url: https://docs.cub.tools/docs/
+site_author: Cub Contributors
+site_description: Work ahead of your AI agents. Turn visions into tasks, then let AI execute autonomously.
+
+repo_name: lavallee/cub
+repo_url: https://github.com/lavallee/cub
+edit_uri: edit/main/docs-src/content/
+
+copyright: Copyright &copy; 2026 Cub Contributors
+
+# Source and output directories
+docs_dir: content
+site_dir: site
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/images/cub-logo.png
+  favicon: assets/images/favicon.ico
+
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  font:
+    text: Nunito
+    code: JetBrains Mono
+
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lavallee/cub
+      name: Cub on GitHub
+  generator: false
+  version:
+    provider: mike
+
+plugins:
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      permalink_title: Anchor link to this section
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: lavallee
+      repo: cub
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/install.md
+    - Quick Start: getting-started/quickstart.md
+    - Core Concepts: getting-started/concepts.md
+    - Upgrading: getting-started/upgrading.md
+
+  - User Guide:
+    - guide/index.md
+
+    - Configuration:
+      - guide/configuration/index.md
+      - Reference: guide/configuration/reference.md
+      - Environment Variables: guide/configuration/env-vars.md
+      - Examples: guide/configuration/examples.md
+
+    - Task Management:
+      - guide/tasks/index.md
+      - Beads Backend: guide/tasks/beads.md
+      - JSON Backend: guide/tasks/json.md
+      - Dependencies: guide/tasks/dependencies.md
+
+    - The Run Loop:
+      - guide/run-loop/index.md
+      - Task Selection: guide/run-loop/selection.md
+      - Completion: guide/run-loop/completion.md
+
+    - Prep Pipeline:
+      - guide/prep-pipeline/index.md
+      - Triage: guide/prep-pipeline/triage.md
+      - Architect: guide/prep-pipeline/architect.md
+      - Plan: guide/prep-pipeline/plan.md
+      - Bootstrap: guide/prep-pipeline/bootstrap.md
+
+    - AI Harnesses:
+      - guide/harnesses/index.md
+      - Claude Code: guide/harnesses/claude.md
+      - OpenAI Codex: guide/harnesses/codex.md
+      - Google Gemini: guide/harnesses/gemini.md
+      - OpenCode: guide/harnesses/opencode.md
+
+    - Git Integration:
+      - guide/git/index.md
+      - Branches: guide/git/branches.md
+      - Pull Requests: guide/git/pr.md
+      - Worktrees: guide/git/worktrees.md
+
+    - Hooks System:
+      - guide/hooks/index.md
+      - Hook Points: guide/hooks/points.md
+      - Context Variables: guide/hooks/context.md
+      - Examples Gallery: guide/hooks/examples.md
+
+    - Budget & Guardrails:
+      - guide/budget/index.md
+      - Token Limits: guide/budget/tokens.md
+      - Iteration Limits: guide/budget/limits.md
+      - Secret Redaction: guide/budget/secrets.md
+
+    - Advanced:
+      - guide/advanced/index.md
+      - Sandbox Mode: guide/advanced/sandbox.md
+      - Parallel Execution: guide/advanced/parallel.md
+      - Captures: guide/advanced/captures.md
+      - Audit Logging: guide/advanced/audit.md
+
+  - CLI Reference:
+    - cli/index.md
+    - Core Commands:
+      - cub run: cli/run.md
+      - cub prep: cli/prep.md
+      - cub init: cli/init.md
+    - Status Commands:
+      - cub status: cli/status.md
+      - cub monitor: cli/monitor.md
+      - cub artifacts: cli/artifacts.md
+    - Task Commands:
+      - cub interview: cli/interview.md
+      - cub explain-task: cli/explain-task.md
+      - cub close-task: cli/close-task.md
+    - Epic Commands:
+      - cub branch: cli/branch.md
+      - cub branches: cli/branches.md
+      - cub pr: cli/pr.md
+      - cub worktree: cli/worktree.md
+      - cub merge: cli/merge.md
+    - Install Commands:
+      - cub doctor: cli/doctor.md
+      - cub upgrade: cli/upgrade.md
+      - cub uninstall: cli/uninstall.md
+    - Capture Commands:
+      - cub capture: cli/capture.md
+      - cub captures: cli/captures.md
+      - cub organize-captures: cli/organize-captures.md
+      - cub investigate: cli/investigate.md
+
+  - Troubleshooting:
+    - troubleshooting/index.md
+    - Common Issues: troubleshooting/common.md
+    - Error Reference: troubleshooting/errors.md
+    - FAQ: troubleshooting/faq.md
+
+  - Contributing:
+    - contributing/index.md
+    - Architecture: contributing/architecture.md
+    - Development Setup: contributing/setup.md
+    - Adding Harnesses: contributing/harnesses.md
+    - Adding Backends: contributing/backends.md
+    - Roadmap: contributing/roadmap.md
+
+  - Changelog: changelog.md

@@ -301,3 +301,159 @@ class TestGitHubClient:
 
             commit = client.get_head_commit()
             assert commit == "abc123def456"
+
+    def test_get_commits_between_success(self):
+        """Test getting commits between branches."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        # Simulate git log output with null separator
+        git_output = "abc1234|Add feature X|This is the body\x00def5678|Fix bug Y|\x00"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=git_output,
+            )
+
+            commits = client.get_commits_between("main", "feature")
+
+            assert len(commits) == 2
+            assert commits[0]["sha"] == "abc1234"
+            assert commits[0]["subject"] == "Add feature X"
+            assert commits[0]["body"] == "This is the body"
+            assert commits[1]["sha"] == "def5678"
+            assert commits[1]["subject"] == "Fix bug Y"
+            assert commits[1]["body"] == ""
+
+    def test_get_commits_between_empty(self):
+        """Test getting commits when there are none."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="",
+            )
+
+            commits = client.get_commits_between("main", "main")
+
+            assert commits == []
+
+    def test_get_commits_between_failure(self):
+        """Test getting commits when git command fails."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1)
+
+            commits = client.get_commits_between("main", "nonexistent")
+
+            assert commits == []
+
+    def test_get_files_changed_success(self):
+        """Test getting files changed between branches."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        git_output = "A\tsrc/new_file.py\nM\tsrc/modified.py\nD\tsrc/deleted.py\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=git_output,
+            )
+
+            files = client.get_files_changed("main", "feature")
+
+            assert files["added"] == ["src/new_file.py"]
+            assert files["modified"] == ["src/modified.py"]
+            assert files["deleted"] == ["src/deleted.py"]
+
+    def test_get_files_changed_renamed(self):
+        """Test getting files changed with renames."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        git_output = "R100\told_name.py\tnew_name.py\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=git_output,
+            )
+
+            files = client.get_files_changed("main", "feature")
+
+            # Renames use the new name (renamed-to file)
+            assert files["modified"] == ["new_name.py"]
+
+    def test_get_files_changed_empty(self):
+        """Test getting files changed when there are none."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="",
+            )
+
+            files = client.get_files_changed("main", "main")
+
+            assert files == {"added": [], "modified": [], "deleted": []}
+
+    def test_get_diff_stat_success(self):
+        """Test getting diff statistics."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        git_output = " 3 files changed, 50 insertions(+), 10 deletions(-)\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=git_output,
+            )
+
+            stats = client.get_diff_stat("main", "feature")
+
+            assert stats["files"] == 3
+            assert stats["insertions"] == 50
+            assert stats["deletions"] == 10
+
+    def test_get_diff_stat_insertions_only(self):
+        """Test getting diff statistics with only insertions."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        git_output = " 1 file changed, 25 insertions(+)\n"
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=git_output,
+            )
+
+            stats = client.get_diff_stat("main", "feature")
+
+            assert stats["files"] == 1
+            assert stats["insertions"] == 25
+            assert stats["deletions"] == 0
+
+    def test_get_diff_stat_empty(self):
+        """Test getting diff statistics when there are no changes."""
+        repo = RepoInfo(owner="user", repo="project")
+        client = GitHubClient(repo)
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="",
+            )
+
+            stats = client.get_diff_stat("main", "main")
+
+            assert stats == {"files": 0, "insertions": 0, "deletions": 0}
