@@ -224,7 +224,7 @@ pipx install cub
 pip install cub
 
 # Or using the install script
-curl -LsSf https://install.cub.tools | bash
+curl -LsSf https://docs.cub.tools/install.sh | bash
 ```
 
 If you used `--clean`, you'll need to re-run global setup:

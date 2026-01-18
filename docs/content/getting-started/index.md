@@ -67,7 +67,7 @@ Cub helps you work *ahead* of execution so you can be more hands-off *during* ex
 
 ```bash
 # Install
-curl -LsSf https://install.cub.tools | bash
+curl -LsSf https://docs.cub.tools/install.sh | bash
 
 # Setup
 cub init --global

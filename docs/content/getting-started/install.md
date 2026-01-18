@@ -60,7 +60,7 @@ Cub orchestrates AI coding CLIs but doesn't include them. Install at least one:
 The fastest way to get started:
 
 ```bash
-curl -LsSf https://install.cub.tools | bash
+curl -LsSf https://docs.cub.tools/install.sh | bash
 ```
 
 This script will:

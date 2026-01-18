@@ -57,7 +57,7 @@ Answers to commonly asked questions about Cub.
     Use the one-liner installer:
 
     ```bash
-    curl -LsSf https://install.cub.tools | bash
+    curl -LsSf https://docs.cub.tools/install.sh | bash
     ```
 
     Or install via pipx for isolated installation:

@@ -15,7 +15,7 @@ hide:
 
 <div class="install-box" markdown>
 ```bash
-curl -LsSf https://install.cub.tools | bash
+curl -LsSf https://docs.cub.tools/install.sh | bash
 ```
 </div>
 

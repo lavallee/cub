@@ -1,13 +1,17 @@
 site_name: Cub Documentation
-site_url: https://docs.cub.tools
+site_url: https://docs.cub.tools/docs/
 site_author: Cub Contributors
 site_description: Work ahead of your AI agents. Turn visions into tasks, then let AI execute autonomously.
 
 repo_name: lavallee/cub
 repo_url: https://github.com/lavallee/cub
-edit_uri: edit/main/docs-site/docs/
+edit_uri: edit/main/docs/content/
 
 copyright: Copyright &copy; 2026 Cub Contributors
+
+# Source and output directories
+docs_dir: content
+site_dir: site
 
 theme:
   name: material
