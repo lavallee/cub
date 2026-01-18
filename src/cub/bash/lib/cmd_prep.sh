@@ -119,7 +119,7 @@ pipeline_new_session_id() {
 
 # Generate a random epic ID (5 lowercase alphanumeric chars)
 pipeline_random_epic_id() {
-    cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 5 | head -n 1
+    LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | fold -w 5 | head -n 1
 }
 
 # Get the most recent session ID
