@@ -5,7 +5,7 @@ site_description: Work ahead of your AI agents. Turn visions into tasks, then le
 
 repo_name: lavallee/cub
 repo_url: https://github.com/lavallee/cub
-edit_uri: edit/main/docs/content/
+edit_uri: edit/main/docs-src/content/
 
 copyright: Copyright &copy; 2026 Cub Contributors
 
