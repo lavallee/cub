@@ -315,6 +315,17 @@ Stop the loop if a hook fails.
 
 When enabled, a hook failure (non-zero exit code) stops the entire run. When disabled, hook failures are logged but execution continues.
 
+### `hooks.async_notifications`
+
+Run `post-task` and `on-error` hooks asynchronously (non-blocking).
+
+| Property | Value |
+|----------|-------|
+| **Type** | `boolean` |
+| **Default** | `true` |
+
+When enabled, notification hooks (`post-task`, `on-error`, `on-budget-warning`, `on-all-tasks-complete`) fire in the background so they don't slow down the main loop. All async hooks are collected before the session ends. Set to `false` to run all hooks synchronously.
+
 !!! example "Configuration Examples"
 
     === "Disable Hooks for Testing"
@@ -334,6 +345,17 @@ When enabled, a hook failure (non-zero exit code) stops the entire run. When dis
           "hooks": {
             "enabled": true,
             "fail_fast": true
+          }
+        }
+        ```
+
+    === "Synchronous Hooks"
+
+        ```json
+        {
+          "hooks": {
+            "enabled": true,
+            "async_notifications": false
           }
         }
         ```

@@ -5,9 +5,17 @@ These commands are not yet ported to Python, so they delegate to the
 bash cub script with proper argument passing.
 """
 
-import typer
+import os
+import subprocess
+from pathlib import Path
 
-from cub.core.bash_delegate import delegate_to_bash
+import typer
+from rich.console import Console
+
+from cub.core.bash_delegate import delegate_to_bash, find_bash_cub
+from cub.utils.hooks import HookContext, run_hooks
+
+console = Console()
 
 
 def _delegate(command: str, args: list[str], ctx: typer.Context | None = None) -> None:
@@ -123,12 +131,44 @@ def init(
     args: list[str] | None = typer.Argument(None),
 ) -> None:
     """Initialize cub in a project or globally."""
+    # Build arguments
     all_args = []
     if global_:
         all_args.append("--global")
     if args:
         all_args.extend(args)
-    _delegate("init", all_args, ctx)
+
+    # Extract debug flag
+    debug = False
+    if ctx and ctx.obj:
+        debug = ctx.obj.get("debug", False)
+
+    # Run init command (custom delegation to capture exit code for hook)
+    try:
+        bash_cub = find_bash_cub()
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+    cmd = [str(bash_cub), "init"] + all_args
+    env = os.environ.copy()
+    if debug:
+        env["CUB_DEBUG"] = "true"
+
+    result = subprocess.run(cmd, env=env, check=False)
+
+    # Fire post-init hook on success
+    if result.returncode == 0:
+        project_dir = Path.cwd()
+        init_type = "global" if global_ else "project"
+        context = HookContext(
+            hook_name="post-init",
+            project_dir=project_dir,
+            init_type=init_type,
+        )
+        run_hooks("post-init", context, project_dir)
+
+    raise typer.Exit(result.returncode)
 
 
 # Utility & Maintenance

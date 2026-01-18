@@ -37,6 +37,7 @@ from cub.core.tasks.models import Task, TaskStatus
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
+from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
 
 app = typer.Typer(
     name="run",
@@ -713,7 +714,21 @@ def run(
     status.add_event("Run started", EventLevel.INFO)
     status_writer.write(status)
 
+    # Run pre-loop hooks (sync - must complete before loop starts)
+    pre_loop_context = HookContext(
+        hook_name="pre-loop",
+        project_dir=project_dir,
+        harness=harness_name,
+        session_id=run_id,
+    )
+    if not run_hooks("pre-loop", pre_loop_context, project_dir):
+        if config.hooks.fail_fast:
+            status.mark_failed("Pre-loop hook failed")
+            console.print("[red]Pre-loop hook failed. Stopping.[/red]")
+            raise typer.Exit(1)
+
     global _interrupted
+    budget_warning_fired = False  # Track if budget warning hook has been fired
 
     try:
         while status.iteration.current < max_iterations:
@@ -760,6 +775,16 @@ def run(
                     counts = task_backend.get_task_counts()
                     if counts.remaining == 0:
                         console.print("[green]All tasks complete![/green]")
+                        # Fire on-all-tasks-complete hook (async)
+                        complete_context = HookContext(
+                            hook_name="on-all-tasks-complete",
+                            project_dir=project_dir,
+                            harness=harness_name,
+                            session_id=run_id,
+                        )
+                        run_hooks_async(
+                            "on-all-tasks-complete", complete_context, project_dir
+                        )
                         status.mark_completed()
                         break
                     else:
@@ -782,6 +807,21 @@ def run(
                 f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
             )
             status_writer.write(status)
+
+            # Run pre-task hooks (sync - must complete before task runs)
+            pre_task_context = HookContext(
+                hook_name="pre-task",
+                project_dir=project_dir,
+                task_id=current_task.id,
+                task_title=current_task.title,
+                harness=harness_name,
+                session_id=run_id,
+            )
+            if not run_hooks("pre-task", pre_task_context, project_dir):
+                if config.hooks.fail_fast:
+                    status.mark_failed(f"Pre-task hook failed for {current_task.id}")
+                    console.print("[red]Pre-task hook failed. Stopping.[/red]")
+                    break
 
             # Claim task (mark as in_progress)
             try:
@@ -841,6 +881,30 @@ def run(
             if result.usage.cost_usd:
                 status.budget.cost_usd += result.usage.cost_usd
 
+            # Check for budget warning (fire once when crossing threshold)
+            budget_pct = status.budget.tokens_percentage or status.budget.cost_percentage
+            warning_threshold = config.guardrails.iteration_warning_threshold * 100
+            if budget_pct and budget_pct >= warning_threshold and not budget_warning_fired:
+                budget_warning_fired = True
+                console.print(
+                    f"[yellow]Budget warning: {budget_pct:.1f}% used "
+                    f"(threshold: {warning_threshold:.0f}%)[/yellow]"
+                )
+                status.add_event(
+                    f"Budget warning: {budget_pct:.1f}% used", EventLevel.WARNING
+                )
+                # Fire on-budget-warning hook (async)
+                budget_context = HookContext(
+                    hook_name="on-budget-warning",
+                    project_dir=project_dir,
+                    harness=harness_name,
+                    session_id=run_id,
+                    budget_percentage=budget_pct,
+                    budget_used=status.budget.tokens_used,
+                    budget_limit=status.budget.tokens_limit,
+                )
+                run_hooks_async("on-budget-warning", budget_context, project_dir)
+
             # Log result
             if result.success:
                 console.print(f"[green]Task completed in {duration:.1f}s[/green]")
@@ -853,6 +917,18 @@ def run(
                     duration=duration,
                     tokens=result.usage.total_tokens,
                 )
+
+                # Run post-task hooks (async - fire and forget for notifications)
+                post_task_context = HookContext(
+                    hook_name="post-task",
+                    project_dir=project_dir,
+                    task_id=current_task.id,
+                    task_title=current_task.title,
+                    exit_code=0,
+                    harness=harness_name,
+                    session_id=run_id,
+                )
+                run_hooks_async("post-task", post_task_context, project_dir)
             else:
                 console.print(f"[red]Task failed: {result.error or 'Unknown error'}[/red]")
                 status.add_event(
@@ -861,6 +937,18 @@ def run(
                     task_id=current_task.id,
                     exit_code=result.exit_code,
                 )
+
+                # Run on-error hooks (async - fire and forget for error notifications)
+                on_error_context = HookContext(
+                    hook_name="on-error",
+                    project_dir=project_dir,
+                    task_id=current_task.id,
+                    task_title=current_task.title,
+                    exit_code=result.exit_code or 1,
+                    harness=harness_name,
+                    session_id=run_id,
+                )
+                run_hooks_async("on-error", on_error_context, project_dir)
 
                 if config.loop.on_task_failure == "stop":
                     status.mark_failed(result.error or "Task execution failed")
@@ -901,6 +989,18 @@ def run(
         raise
 
     finally:
+        # Run post-loop hooks (sync - must complete before session ends)
+        post_loop_context = HookContext(
+            hook_name="post-loop",
+            project_dir=project_dir,
+            harness=harness_name,
+            session_id=run_id,
+        )
+        run_hooks("post-loop", post_loop_context, project_dir)
+
+        # Wait for all async hooks to complete (post-task, on-error)
+        wait_async_hooks()
+
         # Final status write
         status_writer.write(status)
 

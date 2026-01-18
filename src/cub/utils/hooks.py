@@ -33,6 +33,9 @@ from pathlib import Path
 from cub.core.config import load_config
 from cub.core.config.loader import get_xdg_config_home
 
+# Track async hook processes for cleanup
+_async_processes: list[subprocess.Popen[str]] = []
+
 
 @dataclass
 class HookContext:
@@ -50,6 +53,12 @@ class HookContext:
     exit_code: int | None = None
     harness: str | None = None
     session_id: str | None = None
+    # Budget-related fields (for on-budget-warning)
+    budget_percentage: float | None = None
+    budget_used: int | None = None
+    budget_limit: int | None = None
+    # Init-related fields (for post-init)
+    init_type: str | None = None  # "global" or "project"
 
     def to_env_dict(self) -> dict[str, str]:
         """
@@ -58,7 +67,7 @@ class HookContext:
         Returns:
             Dict mapping env var names to string values (empty strings for None)
         """
-        return {
+        env = {
             "CUB_HOOK_NAME": self.hook_name,
             "CUB_PROJECT_DIR": str(self.project_dir),
             "CUB_TASK_ID": self.task_id or "",
@@ -67,6 +76,17 @@ class HookContext:
             "CUB_HARNESS": self.harness or "",
             "CUB_SESSION_ID": self.session_id or "",
         }
+        # Add budget fields if present
+        if self.budget_percentage is not None:
+            env["CUB_BUDGET_PERCENTAGE"] = f"{self.budget_percentage:.1f}"
+        if self.budget_used is not None:
+            env["CUB_BUDGET_USED"] = str(self.budget_used)
+        if self.budget_limit is not None:
+            env["CUB_BUDGET_LIMIT"] = str(self.budget_limit)
+        # Add init type if present
+        if self.init_type:
+            env["CUB_INIT_TYPE"] = self.init_type
+        return env
 
 
 def find_hook_scripts(hook_name: str, project_dir: Path | None = None) -> list[Path]:
@@ -233,3 +253,141 @@ def run_hooks(
 
     # Return success if all hooks passed, or if fail_fast is disabled
     return failed_count == 0 or not fail_fast
+
+
+def run_hooks_async(
+    hook_name: str,
+    context: HookContext | None = None,
+    project_dir: Path | None = None,
+) -> None:
+    """
+    Run all scripts in a hook directory asynchronously (fire and forget).
+
+    Launches hooks without blocking. Processes are tracked for cleanup
+    via wait_async_hooks().
+
+    This is useful for post-task notifications that shouldn't block
+    the main execution loop.
+
+    Args:
+        hook_name: Name of the hook (e.g., "post-task", "on-error")
+        context: Hook context with task/session information
+        project_dir: Project directory (defaults to current directory)
+
+    Example:
+        >>> context = HookContext(
+        ...     hook_name="post-task",
+        ...     task_id="cub-123",
+        ...     exit_code=0
+        ... )
+        >>> run_hooks_async("post-task", context)
+        # Returns immediately, hooks run in background
+    """
+    if not hook_name:
+        raise ValueError("hook_name is required")
+
+    if project_dir is None:
+        project_dir = Path.cwd()
+
+    # Load config to check if hooks are enabled
+    config = load_config(project_dir=project_dir)
+
+    if not config.hooks.enabled:
+        return
+
+    # Check if async notifications are enabled (default: True)
+    if hasattr(config.hooks, "async_notifications") and not config.hooks.async_notifications:
+        # Fall back to sync execution
+        run_hooks(hook_name, context, project_dir)
+        return
+
+    # Create context if not provided
+    if context is None:
+        context = HookContext(hook_name=hook_name, project_dir=project_dir)
+
+    # Find all hook scripts
+    all_scripts = find_hook_scripts(hook_name, project_dir)
+
+    # If no scripts found, return immediately
+    if not all_scripts:
+        return
+
+    # Prepare environment variables
+    env = os.environ.copy()
+    env.update(context.to_env_dict())
+
+    # Launch each script asynchronously
+    for script in all_scripts:
+        try:
+            # Start process without waiting
+            proc = subprocess.Popen(
+                [str(script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+            )
+            _async_processes.append(proc)
+
+        except Exception as e:
+            # Log but don't fail - async hooks are best-effort
+            print(
+                f"[hook:{hook_name}] {script.name} failed to start: {e}",
+                flush=True,
+            )
+
+
+def wait_async_hooks(timeout: int = 60) -> None:
+    """
+    Wait for all async hooks to complete.
+
+    Call this at the end of the run loop (in finally block) to ensure
+    all async hooks have finished before exiting.
+
+    Args:
+        timeout: Maximum seconds to wait for each hook (default: 60)
+
+    Example:
+        >>> try:
+        ...     # main loop
+        ...     run_hooks_async("post-task", context)
+        ... finally:
+        ...     wait_async_hooks()  # Ensure all notifications sent
+    """
+    global _async_processes
+
+    for proc in _async_processes:
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+
+            # Log output if any
+            if proc.returncode != 0:
+                print(
+                    f"[hook:async] Process exited with code {proc.returncode}",
+                    flush=True,
+                )
+                if stderr and stderr.strip():
+                    print(stderr.strip(), flush=True)
+            elif stdout and stdout.strip():
+                print(f"[hook:async] {stdout.strip()}", flush=True)
+
+        except subprocess.TimeoutExpired:
+            print("[hook:async] Process timed out, killing...", flush=True)
+            proc.kill()
+            proc.communicate()  # Reap the process
+
+        except Exception as e:
+            print(f"[hook:async] Error waiting for process: {e}", flush=True)
+
+    # Clear the list
+    _async_processes.clear()
+
+
+def clear_async_hooks() -> None:
+    """
+    Clear the async hooks process list without waiting.
+
+    Useful for testing to reset state between tests.
+    """
+    global _async_processes
+    _async_processes.clear()
