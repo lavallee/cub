@@ -119,7 +119,13 @@ pipeline_new_session_id() {
 
 # Generate a random epic ID (5 lowercase alphanumeric chars)
 pipeline_random_epic_id() {
-    LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom | fold -w 5 | head -n 1
+    # Use bash $RANDOM for portability, avoiding /dev/urandom tr issues on macOS
+    local chars="abcdefghijklmnopqrstuvwxyz0123456789"
+    local result=""
+    for i in 1 2 3 4 5; do
+        result+="${chars:RANDOM%36:1}"
+    done
+    printf '%s' "$result"
 }
 
 # Get the most recent session ID
