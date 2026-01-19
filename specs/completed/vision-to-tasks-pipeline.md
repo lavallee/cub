@@ -1,8 +1,31 @@
+---
+status: complete
+version: 0.14
+priority: high
+complexity: high
+dependencies: []
+created: 2026-01-05
+updated: 2026-01-19
+completed: 2026-01-13
+implementation:
+  - src/cub/cli/prep.py
+  - src/cub/cli/triage.py
+  - src/cub/cli/architect.py
+  - src/cub/cli/plan.py
+  - src/cub/cli/bootstrap.py
+  - src/cub/core/prep/
+  - cub prep, cub triage, cub architect, cub plan, cub bootstrap commands
+notes: |
+  Full prep pipeline: triage→architect→plan→bootstrap implemented.
+  Integrates chopshop planning workflow into cub.
+  Foundation for vision-to-tasks transformation.
+source: Integration of chopshop into cub, inspired by Shape Up
+---
+
 # Vision-to-Tasks Pipeline
 
-**Source:** Integration of [chopshop](~/Projects/chopshop) into cub
-**Dependencies:** None (foundational feature)
-**Complexity:** High
+**Dependencies:** None (foundational feature)  
+**Complexity:** High  
 **Supersedes/Integrates:** Interview Mode, PRD Import, Plan Review (partial)
 
 ## Overview

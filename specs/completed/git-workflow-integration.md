@@ -1,8 +1,30 @@
+---
+status: complete
+version: 0.19
+priority: high
+complexity: low-medium
+dependencies: []
+created: 2026-01-08
+updated: 2026-01-19
+completed: 2026-01-16
+implementation:
+  - src/cub/cli/branch.py
+  - src/cub/cli/pr.py
+  - src/cub/core/branches/
+  - src/cub/core/github/
+  - src/cub/core/pr/
+  - cub branch, cub branches, cub pr commands
+notes: |
+  Branch management and PR creation integrated with epic workflow.
+  Branch-epic binding system implemented.
+  GitHub integration for PR creation and management.
+source: cub original
+---
+
 # Git Workflow Integration
 
-**Source:** Original (cub)
-**Dependencies:** None
-**Complexity:** Low-Medium
+**Dependencies:** None  
+**Complexity:** Low-Medium  
 **Priority:** High (quick win, daily workflow improvement)
 
 ## Overview

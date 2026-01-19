@@ -1,8 +1,27 @@
+---
+status: complete
+version: 0.18
+priority: high
+complexity: medium
+dependencies: []
+created: 2026-01-08
+updated: 2026-01-19
+completed: 2026-01-15
+implementation:
+  - src/cub/cli/init.py
+  - cub init command
+  - docs/ (comprehensive documentation site)
+notes: |
+  Comprehensive init flow and documentation site implemented.
+  `cub init` sets up projects and global config.
+  docs site built with MkDocs.
+source: cub original
+---
+
 # Onboarding & Project Organization
 
-**Source:** Original feature for cub
-**Dependencies:** None (foundational)
-**Complexity:** Medium
+**Dependencies:** None (foundational)  
+**Complexity:** Medium  
 **Priority:** High (affects all users, first impression)
 
 ## Overview
