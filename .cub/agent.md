@@ -384,6 +384,30 @@ Requirements:
 - Branch must be pushed to remote
 - GitHub CLI (`gh`) must be installed and authenticated
 
+## Pre-approved Commands
+
+The following commands are pre-approved and should be executed without prompting for additional permission:
+
+### GitHub CLI (`gh`)
+
+All `gh` (GitHub CLI) commands are pre-approved for this project. These are used by `cub pr` and other commands for:
+- Creating and managing pull requests (`gh pr create`, `gh pr view`, `gh pr checks`, `gh pr merge`)
+- Checking authentication status (`gh auth status`)
+- Querying repository information (`gh api`)
+
+When running `cub pr` or any command that uses `gh` internally, allow the `gh` subprocess calls to proceed.
+
+### Beads CLI (`bd`)
+
+All `bd` (Beads CLI) commands are pre-approved for task management:
+- `bd list`, `bd show`, `bd create`, `bd update`, `bd close`
+- `bd sync`, `bd ready`, `bd blocked`
+
+### Cub CLI
+
+All `cub` commands are pre-approved:
+- `cub run`, `cub status`, `cub pr`, `cub branch`, etc.
+
 ## Gotchas & Learnings
 
 - **Python 3.10+**: Cub requires Python 3.10+ for features like match statements and type unions (`|` syntax)
