@@ -1,7 +1,25 @@
+---
+status: complete
+version: 0.16
+priority: high
+complexity: medium-high
+dependencies: []
+created: 2026-01-08
+updated: 2026-01-19
+completed: 2026-01-15
+implementation:
+  - src/cub/cli/interview.py
+  - cub interview command
+notes: |
+  Implemented as task-level interactive refinement.
+  Works with task specs to ask clarifying questions.
+  Complements triage (project-level) in prep pipeline.
+source: gmickel-claude-marketplace (Flow-Next)
+---
+
 # Interview Mode
 
-**Source:** [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace) (Flow-Next)
-**Dependencies:** None
+**Dependencies:** None  
 **Complexity:** Medium-High
 
 ---

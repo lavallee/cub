@@ -1,407 +1,284 @@
 # Cub Roadmap
 
-Features inspired by adjacent tools like [chopshop](https://github.com/lavallee/chopshop), [ralph](https://github.com/iannuttall/ralph), [Gas Town](https://github.com/steveyegge/gastown), [Compound Engineering](https://every.to/chain-of-thought/compound-engineering-how-every-codes-with-agents), and original cub features.
+Comprehensive status of all features and specifications. Features marked complete have been moved to `specs/completed/`.
 
-**Versioning:** Features use stable IDs (e.g., `[CB]`). Version numbers are assigned at release time, not pre-planned.
-
----
-
-## Completed
-
-| Version | Feature | ID |
-|---------|---------|-----|
-| 0.14 | Vision-to-Tasks Pipeline | [VTP] |
-| 0.15 | Plan Review | [PR] |
-| 0.16 | Interview Mode | [IM] |
-| 0.17 | PRD Import / Document Conversion | [PRD] |
-| 0.18 | Onboarding & Project Organization | [OPO] |
-| 0.19 | Git Workflow Integration | [GWI] |
-| 0.20 | Guardrails System | [GS] |
-| 0.23 | Live Dashboard | [LD] |
+**Last Updated:** 2026-01-19
 
 ---
 
-## Now (Active Development)
+## Summary Stats
+
+- **Completed:** 8 features
+- **In Progress:** 1 feature  
+- **Ready (Next):** 3 features
+- **Planned:** 12 features
+- **Research:** 7 features
+
+---
+
+## ✅ Completed
+
+Features fully implemented and shipped. Specs moved to `specs/completed/`.
+
+| Feature | Version | ID | Spec |
+|---------|---------|-----|------|
+| Guardrails System | 0.20 | [GS] | `completed/guardrails-system.md` |
+| Live Dashboard (tmux) | 0.23 | [LD] | `completed/live-dashboard.md` |
+| Vision-to-Tasks Pipeline | 0.14 | [VTP] | `completed/vision-to-tasks-pipeline.md` |
+| Plan Review | 0.15 | [PR] | `completed/plan-review.md` |
+| Interview Mode | 0.16 | [IM] | `completed/interview-mode.md` |
+| PRD Import / Document Conversion | 0.17 | [PRD] | `completed/prd-import.md` |
+| Onboarding & Project Organization | 0.18 | [OPO] | `completed/onboarding-and-organization.md` |
+| Git Workflow Integration | 0.19 | [GWI] | `completed/git-workflow-integration.md` |
+
+**Notes:**
+- Guardrails: CLI + bash lib implemented, auto-learning pending
+- Live Dashboard: `cub monitor` command working, tmux integration complete
+- Interview: `cub interview` command implemented
+- Import: `cub import` supports PRD and document formats
+
+---
+
+## 🚧 In Progress
 
 Features currently being worked on.
 
-| Feature | ID | Notes |
-|---------|-----|-------|
-| Language Migration (Go + Python) | [LM] | Python CLI complete, bash delegation working |
+| Feature | ID | Branch | Status | Spec |
+|---------|-----|--------|--------|------|
+| Language Migration (Go + Python) | [LM] | `feat/go-rewrite` | Active | `roadmap/language-migration.md` |
+
+**Status:** Python CLI complete, bash delegation working, core modules migrated.
 
 ---
 
-## Next (Ready to Start)
+## 🎯 Ready (Next Priority)
 
-Prioritized features ready to pick up. Order reflects current thinking but can shift.
+Features ready to start, ordered by priority. All have clear specs and no blockers.
 
-| Feature | ID | Complexity | Notes |
-|---------|-----|------------|-------|
-| Circuit Breaker / Stagnation | [CB] | Medium | Standalone, high value |
-| Re-anchoring Mechanism | [RA] | Low | Standalone |
-| Codebase Health Audit | [CHA] | Medium | Useful during/after migration |
-| Advanced Error Detection | [AED] | Low | Enhances existing logging |
-| Sandbox Mode | [SM] | Medium | Docker first, then Sprites |
+| Feature | ID | Complexity | Priority | Spec |
+|---------|-----|------------|----------|------|
+| Circuit Breaker / Stagnation Detection | [CB] | Medium | High | `roadmap/circuit-breaker.md` |
+| Receipt-Based Gating | [RBG] | Low | High | `roadmap/receipt-based-gating.md` |
+| Re-anchoring Mechanism | [RA] | Low | Medium | `roadmap/re-anchoring.md` |
 
----
-
-## Later (Backlog)
-
-Sequenced primarily by dependencies. Items without dependencies can be reordered freely.
-
-| Feature | ID | Depends On | Notes |
-|---------|-----|------------|-------|
-| Parallel Development with Worktrees | [PDW] | — | Enables multi-branch work |
-| Dual-Condition Exit Gate | [DCE] | [CB] soft | More robust completion detection |
-| Fresh Context Mode | [FCM] | [RA] | Prevents context pollution |
-| Implementation Review | [IR] | [PR] for full workflow | Post-task code review |
-| Receipt-Based Gating | [RBG] | [IR] | Proof-of-work validation |
-| Multi-Model Review | [MMR] | [IR] | Cross-model validation |
-| Runs Analysis & Intelligence | [RAI] | — | Post-run insights |
-| Verification Integrations | [VI] | — | Protocol + plugins |
+**Quick wins:** Circuit-breaker and receipt-based gating are standalone, high-value features.
 
 ---
 
-## Ideas (Research Needed)
+## 📋 Planned Features
 
-New features identified from external tools analysis. Need investigation before planning.
+Features with specs but not yet prioritized for immediate work.
 
-| Feature | ID | Source | Notes |
-|---------|-----|--------|-------|
-| Multi-Agent Orchestration | [MAO] | Gas Town | Swarm coordination, 20-30 agents |
-| Session Checkpointing | [SC] | Gas Town | Git-backed state persistence across restarts |
-| Team Knowledge Base | [TKB] | Compound Eng | Cross-project knowledge compounding |
-| Agent Personas | [AP] | Gas Town | Specialized agents for different task types |
-| Workflow Recipes | [WR] | Gas Town | TOML-based reusable workflow templates |
-| Standing Orders | [SO] | Gas Town | Auto-run tasks at session startup |
-| Convergent Review (Rule of 5) | [CR] | Yegge | 5-pass review for convergence |
-| Heresy Detection | [HD] | Gas Town | Detect incorrect beliefs spreading in code |
+### Quality & Reliability
 
----
+| Feature | ID | Complexity | Spec |
+|---------|-----|------------|------|
+| Advanced Error Detection | [AED] | Medium | `roadmap/advanced-error-detection.md` |
+| Dual-Condition Exit | [DCE] | Low | `roadmap/dual-condition-exit.md` |
+| Fresh Context Mode | [FCM] | Medium | `roadmap/fresh-context-mode.md` |
+| Implementation Review | [IR] | Medium | `roadmap/implementation-review.md` |
+| Sandbox Mode | [SM] | High | `roadmap/sandbox-mode.md` |
 
-## Dependencies
+**Blockers:**
+- Advanced Error Detection: Needs error taxonomy definition
+- Fresh Context Mode: Needs workflow integration
+- Sandbox Mode: Requires Docker setup
 
-```
-STANDALONE (no dependencies):
-[CB] Circuit Breaker
-[RA] Re-anchoring
-[CHA] Codebase Health Audit
-[AED] Advanced Error Detection
-[SM] Sandbox Mode
-[PDW] Parallel Development
-[RAI] Runs Analysis
-[VI] Verification Integrations
+### Tooling & Integration
 
-DEPENDENCY CHAINS:
-[DCE] Dual-Condition Exit -----> [CB] Circuit Breaker (soft)
-[FCM] Fresh Context Mode ------> [RA] Re-anchoring
-[IR] Implementation Review ----> [PR] Plan Review
-[RBG] Receipt-Based Gating ----> [IR] Implementation Review
-[MMR] Multi-Model Review ------> [IR] Implementation Review
+| Feature | ID | Complexity | Spec |
+|---------|-----|------------|------|
+| Verification Integrations | [VI] | Medium | `roadmap/verification-integrations.md` |
+| Multi-Model Review | [MMR] | Medium | `roadmap/multi-model-review.md` |
+| Runs Analysis | [RunA] | Medium | `roadmap/runs-analysis.md` |
 
-IDEAS (dependencies TBD):
-[MAO] Multi-Agent ------------> [PDW] Parallel Development
-[SC] Session Checkpointing ---> [CB] Circuit Breaker (soft)
-[TKB] Team Knowledge Base ----> [GS] Guardrails System
-```
+**Blockers:**
+- Multi-Model Review: Depends on harness abstraction
+- Runs Analysis: Needs metrics definition
+
+### Project Management
+
+| Feature | ID | Complexity | Spec |
+|---------|-----|------------|------|
+| Codebase Health Audit | [CHA] | Medium | `roadmap/codebase-health-audit.md` |
+
+**Status:** Partial implementation exists (`cub audit` command), needs completion.
 
 ---
 
-## Synergies
+## 🔬 Research & Exploration
 
-Features that work well together:
+Features in research phase. Specs exist but need more design work before implementation.
 
-- **[SM] + [LD]** — Safe execution with full visibility ("confident autonomy")
-- **[CB] + [DCE]** — Robust loop termination
-- **[GS] + [CB]** — Failures feed guardrails
-- **[GS] + [RA]** — Guardrails are part of anchoring context
-- **[RAI] + [CHA]** — Runtime + static quality signals
-- **[VI] + [IR]** — AI review + real-world validation
+### Core Infrastructure
 
----
+| Feature | ID | Status | Spec |
+|---------|-----|--------|------|
+| Tools Registry | [TR] | Draft (6/10) | `research/tools-registry.md` |
+| Workflow Management | [WM] | Draft (7/10) | `research/workflow-management.md` |
+| AI-Assisted PM Shaping | [PMSH] | Draft (5/10) | `research/ai-assisted-pm-shaping-model.md` |
 
-## Feature Details
+**Readiness:**
+- Tools Registry: Needs format decisions, MCP integration design
+- Workflow Management: Needs expression language choice, human handoff UX
+- PM Shaping: Needs operationalization into specific features
 
-### [LM] Language Migration (Go + Python)
+### External Inspiration
 
-**Source:** Performance analysis
-**Status:** In progress
+| Feature | ID | Source | Spec |
+|---------|-----|--------|------|
+| Session Checkpointing | [SC] | Gas Town | `roadmap/session-checkpointing.md` |
+| Team Knowledge Base | [TKB] | Compound | `roadmap/team-knowledge-base.md` |
+| Agent Personas | [AP] | Gas Town | `roadmap/agent-personas.md` |
+| Workflow Recipes | [WR] | Gas Town | `roadmap/workflow-recipes.md` |
 
-Rewrite performance-critical components from Bash to Go:
-
-**Phase 1 - Core Data (Go):** Task management + config
-- 10-50x faster task operations (eliminate jq subprocesses)
-- In-memory caching, type safety
-
-**Phase 2 - Harness Layer (Go):** AI backend abstraction
-- Proper streaming JSON parsing
-- Accurate token counting
-
-**Phase 3 - Git Operations (Go):** Using go-git library
-- Batch operations, fewer subprocesses
-
-**Phase 4 - Artifacts (Go):** File I/O and state
-
-**Keep as Bash:** CLI dispatch, hooks, installation
-**Keep as Python:** CLI (Typer), pipeline stages, verification plugins
+See: `specs/research/external-tools-analysis.md` for analysis of Gas Town, Compound, and other tools.
 
 ---
 
-### [CB] Circuit Breaker / Stagnation Detection
+## 🎨 Feature Capture
 
-**Source:** Ralph
-**Complexity:** Medium
+Active feature development pipeline.
 
-Detect when the loop is stuck without making progress:
-- Track meaningful changes per iteration (file diffs, task completions)
-- Configurable threshold (e.g., 3 loops without progress)
-- Actions: pause, alert, escalate, or auto-abort
-- **Stale task recovery:** Auto-reopen tasks stuck `in_progress` beyond timeout
+| Feature | Status | Readiness | Spec |
+|---------|--------|-----------|------|
+| Capture System | Partial | 7/10 | `features/capture.md` |
+| Capture Workflow | Draft | 4/10 | `features/capture-workflow.md` |
+| Investigate Command | Complete | 10/10 | `features/investigate-command.md` |
+| PM Workbench | Draft | 3/10 | `features/pm-workbench.md` |
 
-Configuration: `stagnation.threshold`, `stagnation.action`
-
----
-
-### [RA] Re-anchoring Mechanism
-
-**Source:** Flow-Next
-**Complexity:** Low
-
-Prevent task drift by re-reading context before each task:
-- Reload PROMPT.md, AGENT.md, and current task spec before each iteration
-- Include git status summary in task context
-- Configurable anchoring sources
-
-Configuration: `anchoring.sources`, `anchoring.include_git_state`
+**Status:**
+- Capture: Core implemented, needs import/organize commands
+- Investigate: Fully implemented, generates research/design/audit reports
+- PM Workbench: Vision doc, needs breaking down into smaller features
 
 ---
 
-### [CHA] Codebase Health Audit
+## Key Blockers & Dependencies
 
-**Source:** Original
-**Complexity:** Medium
+### Architectural Decisions Needed
 
-Systematic analysis to maintain codebase quality:
+1. **Harness Abstraction** - Many specs assume ability to swap LLM providers
+   - Blocks: Multi-Model Review, Tools Registry, Workflow Management
+   - **Decision needed:** Define harness interface design
 
-- **Dead Code Detection** — Unused functions, variables, orphan files
-- **Documentation Freshness** — README validation, docstring coverage
-- **Test Coverage Analysis** — Per-file coverage, test-code alignment
-- **Consistency Analysis** — Naming conventions, pattern consistency
+2. **Workflow Engine** - Multiple specs need orchestration
+   - Blocks: Capture Workflow, Interview Mode enhancements, PM Shaping
+   - **Decision needed:** Choose YAML vs Python, native vs Windmill/Temporal
 
-Commands: `cub audit`, `cub audit --fix`, `cub audit --ci`
+3. **State Management** - How to persist agent state across sessions
+   - Blocks: Re-anchoring, Fresh Context Mode, Workflow Management
+   - **Decision needed:** File-based vs database, schema design
 
----
+### Design Questions
 
-### [AED] Advanced Error Detection
+4. **Error Taxonomy** - What failure patterns should we detect?
+   - Blocks: Advanced Error Detection, Circuit Breaker tuning
+   - **Tool needed:** Error pattern analyzer (scan run logs)
 
-**Source:** Ralph
-**Complexity:** Low
+5. **Metrics/Observability** - What should we measure?
+   - Blocks: Runs Analysis, Live Dashboard enhancements
+   - **Tool needed:** Metrics discovery tool
 
-Improved error identification in AI output:
-- Two-stage filtering to eliminate false positives
-- Multi-line pattern matching for complex errors
-- Categorize errors (syntax, runtime, test failure, etc.)
+6. **Human Handoff UX** - How to pause and ask for input?
+   - Blocks: Workflow Management, Interview Mode, Plan Review enhancements
+   - **Tool needed:** UX prototyper for CLI/notifications
 
----
+### Integration Points
 
-### [SM] Sandbox Mode
+7. **MCP Protocol** - Need stable MCP integration
+   - Blocks: Tools Registry, Verification Integrations
+   - **Tool needed:** MCP discovery/test harness
 
-**Source:** Original
-**Complexity:** Medium
-
-Execute cub runs in isolated sandbox environments:
-- Provider-agnostic abstraction (Docker, Sprites.dev)
-- Isolated filesystem, optional network isolation
-- Resource limits (CPU, memory, timeout)
-- Easy diff viewing and change extraction
-
-Commands: `cub run --sandbox`, `cub sandbox diff|apply|clean`
-
----
-
-### [PDW] Parallel Development with Worktrees
-
-**Source:** Original
-**Complexity:** Medium
-
-Safe testing of multiple approaches using git worktrees:
-- Isolate experimental work
-- Run multiple cub sessions on different branches
-- Foundation for multi-agent orchestration
+8. **External Tools** - Integration with pytest, jest, git, gh, etc
+   - Blocks: Verification Integrations, Tools Registry
+   - **Tool needed:** Tool capability mapper
 
 ---
 
-### [DCE] Dual-Condition Exit Gate
+## Recommended Next Steps
 
-**Source:** Ralph
-**Depends on:** [CB] (soft)
-**Complexity:** Low
+### This Week
 
-More sophisticated completion detection:
-- Require both completion indicators AND explicit exit signal
-- Configurable indicator threshold
-- Prevent premature exits on false positives
+1. ✅ Add frontmatter to all specs
+2. ✅ Move completed specs to `specs/completed/`
+3. **Implement Circuit Breaker** - Clear spec, high value, standalone
+4. **Implement Receipt-Based Gating** - Similar to guardrails, straightforward
 
----
+### Next 2 Weeks
 
-### [FCM] Fresh Context Mode
+5. **Resolve Harness Abstraction** - Critical blocker
+   - Design harness interface
+   - Implement Claude harness
+   - Add config for harness selection
 
-**Source:** Flow-Next
-**Depends on:** [RA]
-**Complexity:** Low
+6. **Build Minimal Workflow Engine** - Unblocks many features
+   - Start with simple sequential workflows (YAML)
+   - Add conditional branching
+   - Implement tool execution layer
 
-Option to start fresh context each iteration:
-- Clear accumulated context between tasks
-- Trade-off: loses inter-task learning vs gains consistency
-- Useful for overnight autonomous runs
+7. **Define Core Metrics** - Needed for observability
+   - What to track per run
+   - Success/failure criteria
+   - Performance indicators
 
-Configuration: `context.fresh_per_task: true`
+### Next Month
 
----
-
-### [IR] Implementation Review
-
-**Source:** Flow-Next
-**Depends on:** [PR] for full workflow
-**Complexity:** Medium
-
-Automated review after task completion:
-- Correctness verification
-- DRY principle adherence
-- Test coverage assessment
-- Security scan (OWASP basics)
-
-Command: `cub review <task-id>`
+8. **Complete Capture Workflow** - Builds on capture feature
+9. **Enhance Interview Mode** - Improves UX for ambiguous tasks
+10. **Build Runs Analysis** - Uses metrics from step 7
 
 ---
 
-### [RBG] Receipt-Based Gating
+## Tools Wishlist
 
-**Source:** Flow-Next
-**Depends on:** [IR]
-**Complexity:** Medium
+To move specs from draft → ready, we need better research/design/decision tools.
 
-Require proof-of-work before marking tasks complete:
-- Define required artifacts per task type
-- Validate artifacts exist and pass checks
-- Configurable strictness levels
+See `specs/TOOLS-WISHLIST.md` for comprehensive list including:
 
----
+**High Priority:**
+- Complexity Estimator
+- Trade-off Analyzer  
+- Dependency Analyzer
+- Readiness Score Calculator
+- Technical Feasibility Checker
 
-### [MMR] Multi-Model Review
-
-**Source:** Flow-Next
-**Depends on:** [IR]
-**Complexity:** Medium
-
-Cross-validate work using different AI models:
-- Run implementation review with secondary model
-- Compare assessments for discrepancies
-- Flag disagreements for human review
+**Medium Priority:**
+- Design Pattern Matcher
+- Risk Scorer
+- API Design Validator
+- Test Coverage Planner
 
 ---
 
-### [RAI] Runs Analysis & Intelligence
+## Spec Health
 
-**Source:** Original
-**Complexity:** Medium
+### Consolidation Needed
 
-Extract actionable insights from completed runs:
-- **Instruction Clarity** — Detect agent confusion signals
-- **Task Quality** — Correlate structure with success/failure
-- **Hook Opportunities** — Suggest automation patterns
-- **Delegation Gaps** — Find improvisation vs cub commands
+These specs overlap and should be unified:
+- `pm-workbench.md` + `ai-assisted-pm-shaping-model.md` + `vision-to-tasks-pipeline.md`
 
-Commands: `cub analyze`, `cub analyze --suggest-hooks`
+### Missing Critical Specs
 
----
-
-### [VI] Verification Integrations
-
-**Source:** Ramp's Inspect
-**Complexity:** High
-
-Connect cub to external services for real-world validation:
-- **Verification Protocol** — Standard interface for verifiers
-- **Built-in verifiers** — tests, build, lint
-- **External verifiers** — Sentry, Datadog, Lighthouse (plugins)
-
-Commands: `cub verify <task-id>`, `cub verify --list`
-
----
-
-### [MAO] Multi-Agent Orchestration
-
-**Source:** Gas Town
-**Complexity:** High
-**Status:** Research
-
-Coordinate multiple AI agents working concurrently:
-- Convoy system for bundling related tasks
-- Worktree-per-agent isolation
-- Merge queue for conflict resolution
-- Scale to 20-30 agents
-
-See: `specs/research/external-tools-analysis.md`
-
----
-
-### [SC] Session Checkpointing
-
-**Source:** Gas Town
-**Complexity:** Medium
-**Status:** Research
-
-Persist session state to git for resume after interrupts:
-- Periodic automatic checkpoints
-- Preserve conversation context and partial work
-- Resume from specific checkpoint
-
----
-
-### [TKB] Team Knowledge Base
-
-**Source:** Compound Engineering
-**Complexity:** Medium
-**Status:** Research
-
-Cross-project knowledge that compounds over time:
-- Patterns and anti-patterns library
-- Promote guardrails to team knowledge
-- Git-backed sync across team
-
----
-
-### [AP] Agent Personas
-
-**Source:** Gas Town
-**Complexity:** Medium
-**Status:** Research
-
-Specialized agent configurations for different task types:
-- `test-writer` — Edge cases, thorough coverage
-- `refactorer` — Careful, test-preserving changes
-- `security-auditor` — Adversarial thinking
-
----
-
-### [WR] Workflow Recipes
-
-**Source:** Gas Town
-**Complexity:** Low
-**Status:** Research
-
-TOML-based reusable workflow templates:
-- Parameterized multi-step workflows
-- Built-in recipes for common patterns
-- Shareable across projects
+Need to create:
+- Harness abstraction spec (critical dependency)
+- Autonomy model spec (referenced but doesn't exist)
+- MCP integration spec (assumed by tools-registry)
 
 ---
 
 ## Notes
 
-- Features marked standalone can be implemented in any order
-- Dependent features should follow their prerequisites
-- Version numbers are assigned at release time based on what ships
-- The "Next" section reflects current priorities but isn't a commitment
-- Move features between sections freely as priorities evolve
+- Features can move between sections as priorities evolve
+- Version numbers assigned at release time, not pre-planned
+- Standalone features can be implemented in any order
+- See `specs/SPEC-TEMPLATE.md` for frontmatter schema
+- See `specs/SPEC-STATUS.md` for detailed per-spec analysis (deprecated - content merged here)
+
+---
+
+**Related Docs:**
+- `specs/SPEC-TEMPLATE.md` - Frontmatter schema for specs
+- `specs/TOOLS-WISHLIST.md` - Tools we wish we had
+- `CHANGELOG.md` - Released features by version
+- `specs/research/external-tools-analysis.md` - Analysis of adjacent tools

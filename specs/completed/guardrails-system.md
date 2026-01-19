@@ -1,23 +1,20 @@
 ---
-status: ready
+status: complete
+version: 0.20
 priority: high
 complexity: low
 dependencies: []
-blocks:
-  - re-anchoring.md
-  - fresh-context-mode.md
 created: 2026-01-10
 updated: 2026-01-19
-readiness:
-  score: 9
-  blockers: []
-  questions:
-    - Should auto-learning be enabled by default or opt-in?
-    - What's the ideal size limit for guardrails file?
-  decisions_needed:
-    - Choose AI model for auto-learning (haiku vs sonnet)
-    - Decide on guardrails file location (.cub/ vs docs/)
-  tools_needed: []
+completed: 2026-01-17
+implementation:
+  - src/cub/bash/lib/guardrails.sh
+  - src/cub/bash/lib/cmd_guardrails.sh
+  - src/cub/bash/templates/guardrails.md
+  - cub guardrails command
+notes: |
+  Core implementation complete. CLI and bash library working.
+  Auto-learning feature and curation tools remain pending (future enhancement).
 source: ralph (https://github.com/iannuttall/ralph)
 ---
 

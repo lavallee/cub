@@ -1,7 +1,23 @@
+---
+status: complete
+version: 0.15
+priority: high
+complexity: medium
+dependencies: []
+created: 2026-01-08
+updated: 2026-01-19
+completed: 2026-01-14
+implementation:
+  - src/cub/cli/review.py
+  - cub review command
+notes: |
+  Implemented as quality gate in prep pipeline. Reviews architect and plan outputs.
+source: gmickel-claude-marketplace (Flow-Next)
+---
+
 # Plan Review
 
-**Source:** [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace) (Flow-Next)
-**Dependencies:** None
+**Dependencies:** None  
 **Complexity:** Medium
 
 ---

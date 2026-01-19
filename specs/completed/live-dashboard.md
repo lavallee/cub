@@ -1,7 +1,28 @@
+---
+status: complete
+version: 0.23
+priority: high
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+completed: 2026-01-17
+implementation:
+  - src/cub/cli/monitor.py
+  - src/cub/dashboard/renderer.py
+  - src/cub/dashboard/status.py
+  - src/cub/dashboard/tmux.py
+  - cub monitor command
+notes: |
+  Core dashboard implementation complete with rich TUI.
+  `cub monitor` command working with live updates.
+  tmux integration and multi-session support implemented.
+source: ralph-claude-code, ralph
+---
+
 # Live Dashboard (tmux)
 
-**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code), [ralph](https://github.com/iannuttall/ralph)
-**Dependencies:** None
+**Dependencies:** None  
 **Complexity:** Medium
 
 ## Overview

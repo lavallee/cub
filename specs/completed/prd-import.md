@@ -1,7 +1,23 @@
+---
+status: complete
+version: 0.17
+priority: high
+complexity: medium
+dependencies: []
+created: 2026-01-08
+updated: 2026-01-19
+completed: 2026-01-15
+implementation:
+  - src/cub/cli/import_.py
+  - cub import command
+notes: |
+  Supports importing PRDs and documents into capture/spec format.
+source: ralph-claude-code
+---
+
 # PRD Import / Document Conversion
 
-**Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code)
-**Dependencies:** None
+**Dependencies:** None  
 **Complexity:** High
 
 ---
