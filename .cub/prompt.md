@@ -5,69 +5,68 @@ This file provides context for AI coding agents working on this project.
 ## Overview
 
 
-Plan releases 0.21-0.25 for Cub, focusing on migrating performance-critical Bash code to Python (not Go initially), adding visibility via a live dashboard, enabling parallel development with git worktrees, and providing safe autonomous execution via Docker-based sandboxing. The goal is to establish the technical foundation that enables confident overnight autonomous operation.
+Improve test coverage for the Cub CLI to ensure critical paths are tested, CI is trustworthy, and the codebase can evolve quickly with confidence. The approach should be realistic about what can be validated via tests vs. what remains "less proven," with this confidence level tracked and surfaced to AI coding agents working on the codebase.
 
 ## Problem Statement
 
 ## Problem Statement
 
 
-Cub is currently ~9,400 lines of Bash with significant jq subprocess overhead (~10-50ms per JSON operation). This limits performance, maintainability, and the ability to add advanced features like parallel execution and real-time dashboards. Users need confidence to run cub autonomously overnight, which requires visibility (dashboard) and safety (sandbox).
+Cub has 54% overall test coverage (779 pytest tests, ~496 BATS tests), but critical execution paths like `cli/run.py` (the core loop) have only 14% coverage. This creates risk when evolving the codebase - developers and AI agents can't trust that changes won't break existing functionality. The concern is not just hitting coverage numbers, but ensuring the tests reflect reality and provide genuine confidence.
 
 ## Refined Vision
 
 ## Technical Approach
 
 
-Cub 0.21-0.25 migrates from a Bash-based CLI to a full Python CLI while maintaining the existing pluggable architecture for task backends, AI harnesses, and adding new pluggable systems for sandbox providers.
+This architecture establishes a layered testing strategy for Cub that provides high confidence in critical paths while remaining maintainable as the codebase evolves. The design introduces stability tiers that communicate module confidence levels to both human developers and AI agents, with coverage thresholds enforced per tier.
 
-The architecture uses modern Python tooling:
-- **Typer** for type-safe CLI with auto-generated help and shell completion
-- **Pydantic v2** for all data models with validation and serialization
-- **Rich** for terminal output, progress bars, and live dashboard rendering
-- **Protocol classes** for pluggable interfaces ensuring extensibility
+The core insight is that not all code needs the same testing rigor. Core abstractions (config, task backend, harness backend) are "solid" and require 80%+ coverage. The main execution loop and primary implementations are "moderate" at 60%+. Newer features are "experimental" at 40%+. UI-heavy and bash-delegated code has no threshold but is covered by BATS tests.
 
-The design prioritizes pluggability across all major subsystems (harnesses, task backends, sandbox providers, hooks) while keeping the implementation focused on the immediate needs (existing harnesses, Docker sandbox).
+For external dependencies—especially AI harnesses—we use a three-layer approach: unit tests with mocks for fast feedback, contract tests to catch breaking changes in CLI interfaces, and optional integration tests for full end-to-end verification.
+
+## Technology Stack
+
+| Layer | Choice | Rationale |
 
 ## Architecture
 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         cub (Python CLI)                         │
-│                    typer + rich + pydantic                       │
+│                         TEST PYRAMID                            │
 ├─────────────────────────────────────────────────────────────────┤
-│  cub run       │  cub status    │  cub audit   │  cub sandbox   │
-│  cub monitor   │  cub worktree  │  cub init    │  cub doctor    │
-└────────────────┴────────────────┴──────────────┴────────────────┘
-                              │
-┌─────────────────────────────┴───────────────────────────────────┐
-│                       cub.core (library)                         │
-├───────────────┬───────────────┬───────────────┬─────────────────┤
-│   tasks/      │   config/     │   harness/    │   sandbox/      │
-│  (backends)   │  (pydantic)   │  (backends)   │  (providers)    │
-├───────────────┼───────────────┼───────────────┼─────────────────┤
-│  • beads      │               │  • claude     │  • docker       │
-│  • json       │               │  • codex      │  • (future)     │
-│  • (future)   │               │  • gemini     │                 │
-│               │               │  • opencode   │                 │
+│                                                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │              INTEGRATION TESTS                          │   │
+│   │   Real subprocess calls in isolated environments        │   │
+│   │   Run: CI only (slow), skip by default locally          │   │
+│   │   Location: tests/integration/                          │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                            ▲                                    │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │              CONTRACT TESTS                             │   │
+│   │   Verify external tool behavior matches expectations    │   │
+│   │   Run: Weekly CI job (catch upstream changes)           │   │
+│   │   Location: tests/contracts/                            │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                            ▲                                    │
 
 ## Requirements
 
 ### P0 (Must Have)
 
-- **Python Core (0.21):** Migrate tasks, config, and harness layers to Python
-  - Eliminates jq subprocess overhead (10-50x performance improvement expected)
-  - Python chosen over Go for flexibility, library ecosystem, and developer familiarity
-  - Harness layer in Python enables easier prompt iteration
+- **Critical path coverage**: Test the core execution loop (`cli/run.py`) with meaningful tests that exercise real logic, not just mocked shells
+- **Layered test strategy**: Unit tests for pure logic, integration tests for external dependency interactions (git, harnesses, Docker)
+- **Stability tracking**: Create `.cub/STABILITY.md` that documents per-module confidence levels, referenced by CLAUDE.md/AGENTS.md
+- **CI reliability**: Ensure test suite runs consistently without flaky failures that erode trust
 
 ## Constraints
 
 
-- **Solo developer:** Scope must be realistic for one person
-- **No backward compatibility needed:** Only user is the developer
-- **Modern Bash acceptable:** Can require Bash 5.x via Homebrew if needed, but likely moot after Python migration
-- **Docker required for sandbox:** Sprites and other providers deferred
+- Use existing pytest framework (no new test frameworks)
+- Must work with current GitHub Actions infrastructure
+- Tests must be maintainable as code evolves - avoid over-mocking that creates fragile tests
 
 ---
 
