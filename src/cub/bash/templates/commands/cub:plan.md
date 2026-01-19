@@ -117,9 +117,15 @@ Mark checkpoints explicitly in the plan.
 
 ### Step 6: Wire Dependencies
 
+**Epic Membership (use labels):**
+Tasks belong to epics via the `epic:{epic-id}` label. This is a parent-child relationship—NOT a blocking dependency.
+
+**Sequential Dependencies (use blocked_by/blocks):**
+Only use blocking dependencies for tasks that have true sequential dependencies—where one task MUST complete before another can start.
+
 For each task, identify:
-- **Parent**: Which epic does this belong to?
-- **Blocked by**: What tasks must complete first?
+- **Epic membership**: Add `epic:{epic-id}` label (e.g., `epic:E01`)
+- **Sequential blockers**: What tasks must complete first? (use sparingly)
 
 ### Step 7: Generate Strict Markdown Plan
 
@@ -148,6 +154,9 @@ Generate a **strict markdown plan** that will be deterministically converted to 
 - Epics: E01, E02, etc.
 - Tasks: 001, 002, etc. (or E01.1, E01.2 for nested numbering)
 
+**Epic Linking via Labels:**
+Tasks belong to epics via the `epic:{epic-id}` label. Do NOT use blocking dependencies for epic membership.
+
 **Example:**
 
 ```markdown
@@ -161,17 +170,23 @@ Set up project foundation and tooling.
 
 ### Task: 001 - Initialize project structure
 Priority: 0
-Labels: phase-1, setup, model:haiku, complexity:low
+Labels: phase-1, epic:E01, setup, model:haiku, complexity:low
 Description:
 Create directory structure, pyproject.toml, and basic config.
 
 ### Task: 002 - Configure logging
 Priority: 0
-Labels: phase-1, setup, model:haiku, complexity:low
+Labels: phase-1, epic:E01, setup, model:haiku, complexity:low
 Blocks: 001
 Description:
 Set up structured logging with appropriate handlers.
 ```
+
+**Important:**
+- `epic:E01` in Labels = task belongs to Epic E01 (parent-child relationship)
+- `Blocks: 001` = task 002 can only start after task 001 completes (sequential dependency)
+
+Do NOT confuse these two concepts. Epic membership is organizational; blocking is sequential.
 
 **After generating the markdown**, the converter will run automatically to produce `plan.jsonl`.
 
