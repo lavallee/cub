@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Requires Docker setup and security model
+  questions:
+    - What level of isolation is needed?
+    - How to handle network/file access?
+  decisions_needed:
+    - Choose containerization approach (Docker, other)
+    - Define security model and escape hatches
+  tools_needed:
+    - Technical Feasibility Checker (Docker approach viable?)
+    - Risk Scorer (security implications)
+    - Complexity Estimator (scope this properly)
 notes: |
   Requires Docker setup and security model.
-source: See spec for details
+  High complexity, significant infrastructure work.
+source: ralph
 ---
 
 # Sandbox Mode

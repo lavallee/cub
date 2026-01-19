@@ -8,11 +8,20 @@ updated: 2026-01-19
 readiness:
   score: 8
   blockers: []
-  questions: []
-  decisions_needed: []
+  questions:
+    - What format should receipts use (JSON, markdown, structured)?
+    - Should receipts be versioned or immutable?
+  decisions_needed:
+    - Choose receipt storage format and location
+    - Define receipt validation rules
+  tools_needed:
+    - API Design Validator (design receipt format/interface)
+    - Design Pattern Matcher (find similar proof-of-work patterns)
+    - Test Coverage Planner (how to test receipt validation)
 notes: |
   Ready to implement. Similar to guardrails system.
-source: See spec for details
+  Receipt format and validation rules are main decisions.
+source: ralph
 ---
 
 # Receipt-Based Gating

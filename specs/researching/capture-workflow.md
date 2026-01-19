@@ -1,3 +1,32 @@
+---
+status: researching
+priority: medium
+complexity: medium
+dependencies:
+  - workflow-management.md
+  - capture.md
+created: 2026-01-15
+updated: 2026-01-19
+readiness:
+  score: 4
+  blockers:
+    - Depends on workflow engine
+    - Capture feature needs completion
+  questions:
+    - How much automation vs manual transition?
+    - What triggers workflow progression?
+  decisions_needed:
+    - Define workflow stages and transitions
+    - Choose automation level
+  tools_needed:
+    - Dependency Analyzer (needs workflow engine + capture)
+    - Design Pattern Matcher (workflow patterns for progressive refinement)
+    - Trade-off Analyzer (automation level: manual, assisted, automatic)
+notes: |
+  Depends on workflow engine and capture feature.
+  Progressive refinement from idea to task.
+---
+
 # Capture-to-Task Workflow
 
 ## Overview

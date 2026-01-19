@@ -30,11 +30,15 @@ readiness:
     - Decide on workflow execution mode (blocking vs background)
     - Choose state persistence format (JSON vs SQLite vs files)
   tools_needed:
-    - Workflow validator (check YAML syntax, tool availability, logic)
-    - Workflow visualizer (show workflow as graph/flowchart)
-    - Workflow simulator (dry-run with mocked tools)
-    - Autonomy scorer (calculate autonomy requirement for workflow)
-    - Workflow debugger (step through execution, inspect variables)
+    - Competitive Analysis Tool (existing workflow engines: Windmill, Temporal, etc)
+    - Trade-off Analyzer (YAML vs Python, native vs external engine)
+    - Design Pattern Matcher (workflow orchestration patterns)
+    - API Design Validator (workflow DSL design)
+    - Workflow validator (domain-specific: check YAML syntax, tool availability, logic)
+    - Workflow visualizer (domain-specific: show workflow as graph/flowchart)
+    - Workflow simulator (domain-specific: dry-run with mocked tools)
+    - Autonomy scorer (domain-specific: calculate autonomy requirement for workflow)
+    - Workflow debugger (domain-specific: step through execution, inspect variables)
 ---
 
 # Workflow Management Specification

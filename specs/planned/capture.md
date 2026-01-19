@@ -28,9 +28,11 @@ readiness:
     - Choose search backend (grep vs fzf vs dedicated index)
     - Decide on capture promotion workflow (manual vs assisted)
   tools_needed:
-    - Tag suggester (analyze content and suggest relevant tags)
-    - Capture search indexer (for faster search across many captures)
-    - Similarity detector (find related/duplicate captures)
+    - API Design Validator (design CLI interface and capture format)
+    - Implementation Path Generator (break into tasks)
+    - Tag suggester (domain-specific: analyze content and suggest relevant tags)
+    - Capture search indexer (domain-specific: for faster search across many captures)
+    - Similarity detector (domain-specific: find related/duplicate captures)
 ---
 
 # Feature Spec: Capture

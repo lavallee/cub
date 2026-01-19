@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Need to define error taxonomy (what patterns to detect)
+  questions:
+    - Which error patterns are most common/costly?
+    - How to balance false positives vs false negatives?
+  decisions_needed:
+    - Define error taxonomy and detection rules
+    - Choose detection approach (regex, LLM, hybrid)
+  tools_needed:
+    - Competitive Analysis Tool (how others detect errors)
+    - Design Pattern Matcher (error detection patterns)
+    - User Research Summarizer (which errors matter most in practice)
 notes: |
   Needs error taxonomy definition.
-source: See spec for details
+  Must analyze actual run logs to identify common patterns.
+source: ralph, cub original
 ---
 
 # Advanced Error Detection

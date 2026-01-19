@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 5
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Depends on harness abstraction
+  questions:
+    - Which models to use for review?
+    - How to aggregate review results?
+  decisions_needed:
+    - Implement harness abstraction first
+    - Define review aggregation strategy
+  tools_needed:
+    - Dependency Analyzer (depends on harness abstraction)
+    - Trade-off Analyzer (which models to use when)
+    - API Design Validator (review API design)
 notes: |
   Depends on harness abstraction.
-source: See spec for details
+  Cannot implement until harness interface exists.
+source: cub original
 ---
 
 # Multi-Model Review

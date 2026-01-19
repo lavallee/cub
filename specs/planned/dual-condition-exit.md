@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 7
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Config format not defined
+  questions:
+    - How to express complex exit conditions in config?
+    - Should conditions be composable (AND/OR logic)?
+  decisions_needed:
+    - Choose config format (YAML, JSON, DSL)
+    - Define condition expression language
+  tools_needed:
+    - API Design Validator (design config format)
+    - Design Pattern Matcher (multi-condition exit patterns)
+    - Spec Clarity Checker (ensure design is implementable)
 notes: |
   Needs config format definition.
-source: See spec for details
+  Simple concept but needs clear configuration API.
+source: ralph
 ---
 
 # Dual-Condition Exit Gate

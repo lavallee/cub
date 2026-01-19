@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 7
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - In progress on feat/go-rewrite branch
+  questions:
+    - How much remains to migrate?
+    - What's the backwards compatibility story?
+  decisions_needed:
+    - Define migration completion criteria
+    - Plan deprecation/transition path
+  tools_needed:
+    - Complexity Estimator (scope remaining work)
+    - Risk Scorer (breaking changes)
+    - Backward Compatibility Checker (migration safety)
 notes: |
-  In progress on feat/go-rewrite branch.
-source: See spec for details
+  In progress on feat/go-rewrite.
+  Python CLI complete, core modules migrating.
+source: cub original
 ---
 
 # Language Migration Strategy

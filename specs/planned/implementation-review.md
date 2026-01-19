@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 7
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Review criteria not defined
+  questions:
+    - What should code review check for?
+    - Who performs review (human, AI, both)?
+  decisions_needed:
+    - Define review criteria checklist
+    - Choose review workflow (blocking vs advisory)
+  tools_needed:
+    - Design Pattern Matcher (code review patterns)
+    - Trade-off Analyzer (what to check vs skip)
+    - Spec Clarity Checker (define clear review criteria)
 notes: |
   Needs review criteria definition.
-source: See spec for details
+  Should integrate with existing review command.
+source: gmickel-claude-marketplace
 ---
 
 # Implementation Review

@@ -1,3 +1,35 @@
+---
+status: researching
+priority: medium
+complexity: high
+dependencies:
+  - ai-assisted-pm-shaping-model.md
+  - capture.md
+  - workflow-management.md
+created: 2026-01-15
+updated: 2026-01-19
+readiness:
+  score: 3
+  blockers:
+    - Vision doc, needs breaking down into smaller specs
+    - Overlaps with PM shaping model
+  questions:
+    - How to scope this realistically?
+    - Which pieces can be built independently?
+  decisions_needed:
+    - Break into smaller, implementable features
+    - Prioritize components
+  tools_needed:
+    - Competitive Analysis Tool (similar PM/planning tools)
+    - Complexity Estimator (scope this realistically - likely too broad)
+    - Implementation Path Generator (break into smaller specs)
+    - Dependency Analyzer (what's needed to build this)
+notes: |
+  Vision doc for integrated PM environment.
+  Too broad, needs consolidation with PM shaping model.
+  Should break into incremental features.
+---
+
 # Feature Spec: PM Workbench (Unknowns Ledger + Next Move)
 
 ## Summary

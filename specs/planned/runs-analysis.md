@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Metrics not defined
+  questions:
+    - Which metrics matter most?
+    - How to visualize analysis results?
+  decisions_needed:
+    - Define core metrics to track
+    - Choose analysis and visualization approach
+  tools_needed:
+    - Competitive Analysis Tool (how others analyze runs)
+    - Trade-off Analyzer (which metrics matter)
+    - Design Pattern Matcher (analytics patterns)
 notes: |
   Needs metrics definition.
-source: See spec for details
+  Should build on existing status tracking.
+source: cub original
 ---
 
 # Runs Analysis & Intelligence

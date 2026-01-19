@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Needs workflow integration design
+  questions:
+    - When should context be cleared vs preserved?
+    - How to integrate with workflow engine?
+  decisions_needed:
+    - Define context clearing triggers
+    - Design workflow integration API
+  tools_needed:
+    - Dependency Analyzer (needs workflow integration)
+    - Design Pattern Matcher (context reset patterns)
+    - Trade-off Analyzer (when to clear vs keep context)
 notes: |
   Needs workflow integration design.
-source: See spec for details
+  Depends on workflow engine being implemented.
+source: ralph
 ---
 
 # Fresh Context Mode

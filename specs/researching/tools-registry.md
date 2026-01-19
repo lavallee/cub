@@ -28,10 +28,14 @@ readiness:
     - Define tool installation security model
     - Decide on tool versioning strategy
   tools_needed:
-    - Tool discovery scanner (scan system for available CLIs, MCPs, skills)
-    - Schema validator (validate tool definitions against registry schema)
-    - Capability matcher (semantic search for tools by capability)
-    - Installation verifier (check if tool install succeeded)
+    - API Design Validator (design registry format and interfaces)
+    - Technical Feasibility Checker (verify MCP integration approach)
+    - Trade-off Analyzer (YAML vs JSON vs code, storage formats)
+    - Design Pattern Matcher (registry patterns from other systems)
+    - Tool discovery scanner (domain-specific: scan system for available CLIs, MCPs, skills)
+    - Schema validator (domain-specific: validate tool definitions against registry schema)
+    - Capability matcher (domain-specific: semantic search for tools by capability)
+    - Installation verifier (domain-specific: check if tool install succeeded)
 ---
 
 # Tools Registry Specification

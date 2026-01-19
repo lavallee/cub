@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Partial implementation exists, needs completion
+  questions:
+    - Which health metrics to track?
+    - How to integrate with existing cub audit?
+  decisions_needed:
+    - Define complete health metric set
+    - Extend existing cub audit command
+  tools_needed:
+    - Competitive Analysis Tool (existing audit tools)
+    - Trade-off Analyzer (which metrics to track)
+    - Implementation Path Generator (extend partial impl)
 notes: |
   Partial implementation exists (cub audit).
-source: See spec for details
+  Needs expansion and metric definition.
+source: cub original
 ---
 
 # Codebase Health Audit

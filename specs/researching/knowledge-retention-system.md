@@ -1,3 +1,35 @@
+---
+status: researching
+priority: medium
+complexity: high
+dependencies:
+  - runs-analysis.md (related)
+  - guardrails-system.md (related)
+created: 2026-01-18
+updated: 2026-01-19
+readiness:
+  score: 5
+  blockers:
+    - Storage format not defined
+    - Integration points unclear
+  questions:
+    - File-based vs database storage?
+    - How to integrate with existing systems?
+  decisions_needed:
+    - Choose storage approach (files, DB, hybrid)
+    - Define ledger format
+    - Design API for querying completed work
+  tools_needed:
+    - Competitive Analysis Tool (how others compound knowledge: Letta, Compound Engineering)
+    - Design Pattern Matcher (knowledge base patterns)
+    - API Design Validator (ledger format and query API)
+    - Trade-off Analyzer (storage approaches: files vs DB)
+notes: |
+  Research doc for cross-run knowledge compounding.
+  Proposes Completed Work Ledger between beads and git.
+  Needs concrete design and implementation plan.
+---
+
 # Knowledge Retention System Research
 
 **Date:** 2026-01-18

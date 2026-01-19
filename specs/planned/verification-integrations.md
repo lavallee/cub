@@ -7,12 +7,22 @@ created: 2026-01-10
 updated: 2026-01-19
 readiness:
   score: 6
-  blockers: []
-  questions: []
-  decisions_needed: []
+  blockers:
+    - Per-tool integration design needed
+  questions:
+    - Which tools to integrate first?
+    - How to handle tool-specific quirks?
+  decisions_needed:
+    - Prioritize integration targets (pytest, jest, etc)
+    - Design unified verification interface
+  tools_needed:
+    - Technical Feasibility Checker (which tools can we integrate)
+    - API Design Validator (integration interface)
+    - Integration Point Mapper (where tools connect)
 notes: |
   Needs integration design per tool.
-source: See spec for details
+  Should use tools registry when available.
+source: Inspired by Ramp's Inspect
 ---
 
 # Verification Integrations

@@ -8,11 +8,20 @@ updated: 2026-01-19
 readiness:
   score: 8
   blockers: []
-  questions: []
-  decisions_needed: []
+  questions:
+    - When to trigger re-anchoring (after N iterations, on demand)?
+    - What context to preserve vs reset?
+  decisions_needed:
+    - Define re-anchoring triggers
+    - Choose context preservation strategy
+  tools_needed:
+    - Design Pattern Matcher (context management patterns)
+    - Technical Feasibility Checker (verify approach works)
+    - Trade-off Analyzer (when to re-anchor vs fresh context)
 notes: |
   Ready to implement. Standalone context management.
-source: See spec for details
+  Main decision is when/how to trigger re-anchoring.
+source: ralph
 ---
 
 # Re-anchoring Mechanism

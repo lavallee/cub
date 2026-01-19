@@ -8,11 +8,20 @@ updated: 2026-01-19
 readiness:
   score: 8
   blockers: []
-  questions: []
-  decisions_needed: []
+  questions:
+    - What thresholds should trigger circuit breaker?
+    - How to detect "test-only" loops vs real progress?
+  decisions_needed:
+    - Choose stagnation metrics (file changes, test pass rate, etc)
+    - Define recovery actions (prompt adjustment, context reset, abort)
+  tools_needed:
+    - Design Pattern Matcher (find proven circuit breaker patterns)
+    - Technical Feasibility Checker (verify metrics tracking approach)
+    - Test Coverage Planner (how to test stagnation detection logic)
 notes: |
   Ready to implement. Clear pattern from Ralph.
-source: See spec for details
+  Main questions are tuning thresholds and defining recovery actions.
+source: ralph, ralph-claude-code
 ---
 
 # Circuit Breaker / Stagnation Detection
