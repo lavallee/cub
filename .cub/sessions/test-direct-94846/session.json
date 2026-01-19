@@ -1,0 +1,12 @@
+{
+  "id": "test-direct-94846",
+  "epic_id": "vqrr1",
+  "created": "2026-01-18T22:13:08Z",
+  "status": "created",
+  "stages": {
+    "triage": null,
+    "architect": null,
+    "plan": null,
+    "bootstrap": null
+  }
+}

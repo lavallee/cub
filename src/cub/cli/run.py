@@ -79,7 +79,8 @@ def generate_system_prompt(project_dir: Path) -> str:
     prompt_files = [
         project_dir / "PROMPT.md",
         project_dir / "templates" / "PROMPT.md",
-        Path(__file__).parent.parent.parent.parent / "templates" / "PROMPT.md",
+        # Canonical template location (src/cub/bash/templates/)
+        Path(__file__).parent.parent / "bash" / "templates" / "PROMPT.md",
     ]
 
     for prompt_file in prompt_files:
