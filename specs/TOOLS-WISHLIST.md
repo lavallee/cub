@@ -54,7 +54,7 @@ This wishlist informs tool registry and workflow development priorities.
 **Need:** Understand what needs to be built first  
 **Use case:** When spec touches multiple systems  
 **Capabilities:**
-- Map dependencies between specs/features
+- Map dependencies between specs
 - Identify circular dependencies
 - Suggest implementation order
 - Flag breaking changes

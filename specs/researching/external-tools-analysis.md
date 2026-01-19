@@ -88,7 +88,7 @@ This analysis examines three significant AI coding orchestration approaches:
 - Measure guardrail effectiveness (did lesson prevent repeat failure?)
 - Auto-suggest PROMPT.md improvements from guardrails patterns
 
-**Suggested additions to `specs/roadmap/guardrails-system.md`:**
+**Suggested additions to `specs/completed/guardrails-system.md`:**
 
 ```markdown
 ## Effectiveness Tracking (from Compound Engineering)
@@ -118,7 +118,7 @@ Extend beyond failures to capture positive patterns:
 - Health checks independent of the agent's self-reporting
 - Multiple signal sources for stagnation
 
-**Suggested additions to `specs/roadmap/circuit-breaker.md`:**
+**Suggested additions to `specs/planned/circuit-breaker.md`:**
 
 ```markdown
 ## External Witness Pattern (from Gas Town)
@@ -158,7 +158,7 @@ cub run --witness &
 - Multi-agent visibility (future-proofing)
 - Convoy/batch progress tracking
 
-**Suggested additions to `specs/roadmap/live-dashboard.md`:**
+**Suggested additions to `specs/completed/live-dashboard.md`:**
 
 ```markdown
 ## Web Dashboard Mode (from Gas Town)
@@ -191,7 +191,7 @@ When parallel development lands (0.24), dashboard shows:
 - Server-side credential storage
 - Session persistence across container restarts
 
-**Suggested additions to `specs/roadmap/sandbox-mode.md`:**
+**Suggested additions to `specs/planned/sandbox-mode.md`:**
 
 ```markdown
 ## Kubernetes Provider (from Loom "Weaver")
@@ -247,7 +247,7 @@ Local CLI ──> Cub Proxy Server ──> AI Provider
 - Explicit "compound" step that feeds back into planning
 - Lessons from execution inform next planning cycle
 
-**Suggested additions to `specs/roadmap/vision-to-tasks-pipeline.md`:**
+**Suggested additions to `specs/completed/vision-to-tasks-pipeline.md`:**
 
 ```markdown
 ## Feedback Loop Integration (from Compound Engineering)

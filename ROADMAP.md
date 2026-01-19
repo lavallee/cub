@@ -1,244 +1,208 @@
 # Cub Roadmap
 
-Comprehensive status of all features and specifications. Features marked complete have been moved to `specs/completed/`.
+Comprehensive status of all features and specifications.
 
 **Last Updated:** 2026-01-19
 
 ---
 
+## Spec Organization
+
+Specs are organized into three states:
+
+1. **`specs/completed/`** - Features merged to main and shipped
+2. **`specs/planned/`** - Ready to break into tasks and implement
+3. **`specs/researching/`** - Early research, design exploration, open questions
+
+Additional:
+- **`sketches/`** - Investigations, notes, artifacts (not locked-down specs)
+- **`specs/SPEC-TEMPLATE.md`** - Frontmatter schema for specs
+- **`specs/TOOLS-WISHLIST.md`** - Research/design tools we need
+
+---
+
 ## Summary Stats
 
-- **Completed:** 8 features
-- **In Progress:** 1 feature  
-- **Ready (Next):** 3 features
-- **Planned:** 12 features
-- **Research:** 7 features
+- **Completed:** 9 features
+- **Planned:** 13 features
+- **Researching:** 8 specs
 
 ---
 
-## ✅ Completed
+## ✅ Completed (`specs/completed/`)
 
-Features fully implemented and shipped. Specs moved to `specs/completed/`.
+Features fully implemented and shipped to main.
 
-| Feature | Version | ID | Spec |
-|---------|---------|-----|------|
-| Guardrails System | 0.20 | [GS] | `completed/guardrails-system.md` |
-| Live Dashboard (tmux) | 0.23 | [LD] | `completed/live-dashboard.md` |
-| Vision-to-Tasks Pipeline | 0.14 | [VTP] | `completed/vision-to-tasks-pipeline.md` |
-| Plan Review | 0.15 | [PR] | `completed/plan-review.md` |
-| Interview Mode | 0.16 | [IM] | `completed/interview-mode.md` |
-| PRD Import / Document Conversion | 0.17 | [PRD] | `completed/prd-import.md` |
-| Onboarding & Project Organization | 0.18 | [OPO] | `completed/onboarding-and-organization.md` |
-| Git Workflow Integration | 0.19 | [GWI] | `completed/git-workflow-integration.md` |
+| Feature | Version | Spec |
+|---------|---------|------|
+| Vision-to-Tasks Pipeline | 0.14 | `completed/vision-to-tasks-pipeline.md` |
+| Plan Review | 0.15 | `completed/plan-review.md` |
+| Interview Mode | 0.16 | `completed/interview-mode.md` |
+| PRD Import / Document Conversion | 0.17 | `completed/prd-import.md` |
+| Onboarding & Project Organization | 0.18 | `completed/onboarding-and-organization.md` |
+| Git Workflow Integration | 0.19 | `completed/git-workflow-integration.md` |
+| Guardrails System | 0.20 | `completed/guardrails-system.md` |
+| Live Dashboard (tmux) | 0.23 | `completed/live-dashboard.md` |
+| Investigate Command | 0.22 | `completed/investigate-command.md` |
 
-**Notes:**
-- Guardrails: CLI + bash lib implemented, auto-learning pending
-- Live Dashboard: `cub monitor` command working, tmux integration complete
-- Interview: `cub interview` command implemented
-- Import: `cub import` supports PRD and document formats
-
----
-
-## 🚧 In Progress
-
-Features currently being worked on.
-
-| Feature | ID | Branch | Status | Spec |
-|---------|-----|--------|--------|------|
-| Language Migration (Go + Python) | [LM] | `feat/go-rewrite` | Active | `roadmap/language-migration.md` |
-
-**Status:** Python CLI complete, bash delegation working, core modules migrated.
+**Key accomplishments:**
+- Full prep pipeline (triage→architect→plan→bootstrap)
+- Interactive refinement modes (interview, review)
+- Branch/PR workflow integration
+- Live monitoring dashboard
+- Institutional memory (guardrails)
+- Research/design/audit command
 
 ---
 
-## 🎯 Ready (Next Priority)
+## 📋 Planned (`specs/planned/`)
 
-Features ready to start, ordered by priority. All have clear specs and no blockers.
+Features ready to break into tasks and implement. Design is clear, open questions answered.
 
-| Feature | ID | Complexity | Priority | Spec |
-|---------|-----|------------|----------|------|
-| Circuit Breaker / Stagnation Detection | [CB] | Medium | High | `roadmap/circuit-breaker.md` |
-| Receipt-Based Gating | [RBG] | Low | High | `roadmap/receipt-based-gating.md` |
-| Re-anchoring Mechanism | [RA] | Low | Medium | `roadmap/re-anchoring.md` |
+### High Priority / Quick Wins
 
-**Quick wins:** Circuit-breaker and receipt-based gating are standalone, high-value features.
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Circuit Breaker / Stagnation Detection | Medium | `planned/circuit-breaker.md` |
+| Receipt-Based Gating | Low | `planned/receipt-based-gating.md` |
+| Re-anchoring Mechanism | Low | `planned/re-anchoring.md` |
 
----
-
-## 📋 Planned Features
-
-Features with specs but not yet prioritized for immediate work.
+**Why these are next:**
+- Circuit breaker: Prevents wasted iterations, standalone
+- Receipt-based gating: Like guardrails, straightforward
+- Re-anchoring: Standalone, improves context management
 
 ### Quality & Reliability
 
-| Feature | ID | Complexity | Spec |
-|---------|-----|------------|------|
-| Advanced Error Detection | [AED] | Medium | `roadmap/advanced-error-detection.md` |
-| Dual-Condition Exit | [DCE] | Low | `roadmap/dual-condition-exit.md` |
-| Fresh Context Mode | [FCM] | Medium | `roadmap/fresh-context-mode.md` |
-| Implementation Review | [IR] | Medium | `roadmap/implementation-review.md` |
-| Sandbox Mode | [SM] | High | `roadmap/sandbox-mode.md` |
-
-**Blockers:**
-- Advanced Error Detection: Needs error taxonomy definition
-- Fresh Context Mode: Needs workflow integration
-- Sandbox Mode: Requires Docker setup
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Advanced Error Detection | Medium | `planned/advanced-error-detection.md` |
+| Dual-Condition Exit | Low | `planned/dual-condition-exit.md` |
+| Fresh Context Mode | Medium | `planned/fresh-context-mode.md` |
+| Implementation Review | Medium | `planned/implementation-review.md` |
+| Sandbox Mode | High | `planned/sandbox-mode.md` |
 
 ### Tooling & Integration
 
-| Feature | ID | Complexity | Spec |
-|---------|-----|------------|------|
-| Verification Integrations | [VI] | Medium | `roadmap/verification-integrations.md` |
-| Multi-Model Review | [MMR] | Medium | `roadmap/multi-model-review.md` |
-| Runs Analysis | [RunA] | Medium | `roadmap/runs-analysis.md` |
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Multi-Model Review | Medium | `planned/multi-model-review.md` |
+| Runs Analysis | Medium | `planned/runs-analysis.md` |
+| Verification Integrations | Medium | `planned/verification-integrations.md` |
+| Codebase Health Audit | Medium | `planned/codebase-health-audit.md` |
 
-**Blockers:**
-- Multi-Model Review: Depends on harness abstraction
-- Runs Analysis: Needs metrics definition
+### In Progress
 
-### Project Management
-
-| Feature | ID | Complexity | Spec |
-|---------|-----|------------|------|
-| Codebase Health Audit | [CHA] | Medium | `roadmap/codebase-health-audit.md` |
-
-**Status:** Partial implementation exists (`cub audit` command), needs completion.
+| Feature | Status | Spec |
+|---------|--------|------|
+| Language Migration (Go + Python) | Active (feat/go-rewrite) | `planned/language-migration.md` |
 
 ---
 
-## 🔬 Research & Exploration
+## 🔬 Researching (`specs/researching/`)
 
-Features in research phase. Specs exist but need more design work before implementation.
+Features in early research/design phase. Still answering key questions, exploring approaches.
 
 ### Core Infrastructure
 
-| Feature | ID | Status | Spec |
-|---------|-----|--------|------|
-| Tools Registry | [TR] | Draft (6/10) | `research/tools-registry.md` |
-| Workflow Management | [WM] | Draft (7/10) | `research/workflow-management.md` |
-| AI-Assisted PM Shaping | [PMSH] | Draft (5/10) | `research/ai-assisted-pm-shaping-model.md` |
+| Spec | Focus | Status |
+|------|-------|--------|
+| `tools-registry.md` | Unified tool discovery/execution | Needs format decisions, MCP integration |
+| `workflow-management.md` | YAML-based orchestration | Needs expression language, human handoff UX |
+| `ai-assisted-pm-shaping-model.md` | PM workflow modes | Needs operationalization |
 
-**Readiness:**
-- Tools Registry: Needs format decisions, MCP integration design
-- Workflow Management: Needs expression language choice, human handoff UX
-- PM Shaping: Needs operationalization into specific features
+**Blockers:**
+- Tools registry: Needs MCP integration design, authentication approach
+- Workflow management: Expression language choice, state persistence format
+- PM shaping: Needs breaking down into specific features
 
-### External Inspiration
+### Feature Development
 
-| Feature | ID | Source | Spec |
-|---------|-----|--------|------|
-| Session Checkpointing | [SC] | Gas Town | `roadmap/session-checkpointing.md` |
-| Team Knowledge Base | [TKB] | Compound | `roadmap/team-knowledge-base.md` |
-| Agent Personas | [AP] | Gas Town | `roadmap/agent-personas.md` |
-| Workflow Recipes | [WR] | Gas Town | `roadmap/workflow-recipes.md` |
+| Spec | Focus | Status |
+|------|-------|--------|
+| `capture.md` | Low-friction idea collection | Partial - needs import/organize commands |
+| `capture-workflow.md` | Capture → spec pipeline | Depends on workflow engine |
+| `pm-workbench.md` | Integrated PM environment | Vision doc, needs scoping |
 
-See: `specs/research/external-tools-analysis.md` for analysis of Gas Town, Compound, and other tools.
+### Analysis & Strategy
 
----
-
-## 🎨 Feature Capture
-
-Active feature development pipeline.
-
-| Feature | Status | Readiness | Spec |
-|---------|--------|-----------|------|
-| Capture System | Partial | 7/10 | `features/capture.md` |
-| Capture Workflow | Draft | 4/10 | `features/capture-workflow.md` |
-| Investigate Command | Complete | 10/10 | `features/investigate-command.md` |
-| PM Workbench | Draft | 3/10 | `features/pm-workbench.md` |
-
-**Status:**
-- Capture: Core implemented, needs import/organize commands
-- Investigate: Fully implemented, generates research/design/audit reports
-- PM Workbench: Vision doc, needs breaking down into smaller features
+| Spec | Purpose |
+|------|---------|
+| `external-tools-analysis.md` | Analysis of Gas Town, Compound, Loom |
+| `knowledge-retention-system.md` | Cross-run knowledge compounding |
 
 ---
 
-## Key Blockers & Dependencies
+## Key Dependencies & Blockers
 
 ### Architectural Decisions Needed
 
-1. **Harness Abstraction** - Many specs assume ability to swap LLM providers
+1. **Harness Abstraction**
    - Blocks: Multi-Model Review, Tools Registry, Workflow Management
-   - **Decision needed:** Define harness interface design
+   - Need: Define harness interface for swappable LLM providers
 
-2. **Workflow Engine** - Multiple specs need orchestration
-   - Blocks: Capture Workflow, Interview Mode enhancements, PM Shaping
-   - **Decision needed:** Choose YAML vs Python, native vs Windmill/Temporal
+2. **Workflow Engine**
+   - Blocks: Capture Workflow, PM Shaping implementation
+   - Need: Decide native YAML vs Windmill/Temporal
 
-3. **State Management** - How to persist agent state across sessions
-   - Blocks: Re-anchoring, Fresh Context Mode, Workflow Management
-   - **Decision needed:** File-based vs database, schema design
+3. **MCP Integration**
+   - Blocks: Tools Registry, Verification Integrations
+   - Need: Stable MCP protocol integration
 
-### Design Questions
+### Design Questions to Resolve
 
 4. **Error Taxonomy** - What failure patterns should we detect?
    - Blocks: Advanced Error Detection, Circuit Breaker tuning
-   - **Tool needed:** Error pattern analyzer (scan run logs)
 
 5. **Metrics/Observability** - What should we measure?
    - Blocks: Runs Analysis, Live Dashboard enhancements
-   - **Tool needed:** Metrics discovery tool
 
 6. **Human Handoff UX** - How to pause and ask for input?
-   - Blocks: Workflow Management, Interview Mode, Plan Review enhancements
-   - **Tool needed:** UX prototyper for CLI/notifications
-
-### Integration Points
-
-7. **MCP Protocol** - Need stable MCP integration
-   - Blocks: Tools Registry, Verification Integrations
-   - **Tool needed:** MCP discovery/test harness
-
-8. **External Tools** - Integration with pytest, jest, git, gh, etc
-   - Blocks: Verification Integrations, Tools Registry
-   - **Tool needed:** Tool capability mapper
+   - Blocks: Workflow Management, Interview Mode enhancements
 
 ---
 
-## Recommended Next Steps
+## Next Steps
 
-### This Week
+### Immediate (This Week)
 
-1. ✅ Add frontmatter to all specs
-2. ✅ Move completed specs to `specs/completed/`
-3. **Implement Circuit Breaker** - Clear spec, high value, standalone
-4. **Implement Receipt-Based Gating** - Similar to guardrails, straightforward
+1. **Implement Circuit Breaker** - Clear spec, high value, standalone
+2. **Implement Receipt-Based Gating** - Similar to guardrails
 
-### Next 2 Weeks
+### Short Term (Next 2 Weeks)
 
-5. **Resolve Harness Abstraction** - Critical blocker
+3. **Resolve Harness Abstraction** - Critical blocker
    - Design harness interface
    - Implement Claude harness
    - Add config for harness selection
 
-6. **Build Minimal Workflow Engine** - Unblocks many features
-   - Start with simple sequential workflows (YAML)
-   - Add conditional branching
-   - Implement tool execution layer
+4. **Build Minimal Workflow Engine** - Unblocks multiple features
+   - Simple sequential workflows (YAML)
+   - Conditional branching
+   - Tool execution layer
 
-7. **Define Core Metrics** - Needed for observability
+5. **Define Core Metrics** - Needed for observability
    - What to track per run
    - Success/failure criteria
    - Performance indicators
 
-### Next Month
+### Medium Term (Next Month)
 
-8. **Complete Capture Workflow** - Builds on capture feature
-9. **Enhance Interview Mode** - Improves UX for ambiguous tasks
-10. **Build Runs Analysis** - Uses metrics from step 7
+6. **Complete Capture Feature** - Finish implementation
+7. **Enhance Interview Mode** - Improve UX for ambiguous tasks
+8. **Build Runs Analysis** - Use metrics from step 5
 
 ---
 
 ## Tools Wishlist
 
-To move specs from draft → ready, we need better research/design/decision tools.
+To move specs from researching → planned, we need better research/design/decision tools.
 
 See `specs/TOOLS-WISHLIST.md` for comprehensive list including:
 
 **High Priority:**
 - Complexity Estimator
-- Trade-off Analyzer  
+- Trade-off Analyzer
 - Dependency Analyzer
 - Readiness Score Calculator
 - Technical Feasibility Checker
@@ -251,29 +215,50 @@ See `specs/TOOLS-WISHLIST.md` for comprehensive list including:
 
 ---
 
-## Spec Health
+## External Inspiration
 
-### Consolidation Needed
+Features being considered based on analysis of adjacent tools:
 
-These specs overlap and should be unified:
-- `pm-workbench.md` + `ai-assisted-pm-shaping-model.md` + `vision-to-tasks-pipeline.md`
+| Feature | Source | Status |
+|---------|--------|--------|
+| Session Checkpointing | Gas Town | Research |
+| Team Knowledge Base | Compound | Research |
+| Agent Personas | Gas Town | Research |
+| Workflow Recipes | Gas Town | Research |
+
+See: `specs/researching/external-tools-analysis.md` for analysis of Gas Town, Compound, and other tools.
+
+---
+
+## Spec Health Notes
+
+### Consolidation Candidates
+
+These specs may overlap and could be unified:
+- `pm-workbench.md` + `ai-assisted-pm-shaping-model.md` + parts of `vision-to-tasks-pipeline.md`
 
 ### Missing Critical Specs
 
 Need to create:
-- Harness abstraction spec (critical dependency)
-- Autonomy model spec (referenced but doesn't exist)
-- MCP integration spec (assumed by tools-registry)
+- **Harness abstraction** (critical dependency for multiple features)
+- **Autonomy model** (referenced but doesn't exist)
+- **MCP integration** (assumed by tools-registry)
 
 ---
 
-## Notes
+## Version History
 
-- Features can move between sections as priorities evolve
-- Version numbers assigned at release time, not pre-planned
-- Standalone features can be implemented in any order
-- See `specs/SPEC-TEMPLATE.md` for frontmatter schema
-- See `specs/SPEC-STATUS.md` for detailed per-spec analysis (deprecated - content merged here)
+Recent releases (see `CHANGELOG.md` for complete history):
+
+- **v0.26.x** (current) - Python CLI migration, GitHub integration improvements
+- **v0.23.0** - Live Dashboard
+- **v0.20.0** - Guardrails System
+- **v0.19.0** - Git Workflow Integration
+- **v0.18.0** - Onboarding & Organization
+- **v0.17.0** - PRD Import
+- **v0.16.0** - Interview Mode
+- **v0.15.0** - Plan Review
+- **v0.14.0** - Vision-to-Tasks Pipeline
 
 ---
 
@@ -281,4 +266,4 @@ Need to create:
 - `specs/SPEC-TEMPLATE.md` - Frontmatter schema for specs
 - `specs/TOOLS-WISHLIST.md` - Tools we wish we had
 - `CHANGELOG.md` - Released features by version
-- `specs/research/external-tools-analysis.md` - Analysis of adjacent tools
+- `sketches/` - Investigations, notes, and artifacts

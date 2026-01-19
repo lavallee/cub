@@ -273,5 +273,5 @@ The system proposes exactly one move (or at most 2 alternatives) and explains wh
 - Artifacts drawer → `specs/investigations/*` + linked tasks
 
 See also:
-- `specs/features/pm-workbench.md` (concrete feature spec)
+- `specs/researching/pm-workbench.md` (concrete feature spec)
 - `specs/notes/repo-as-workbench.md` (repo structure proposal)

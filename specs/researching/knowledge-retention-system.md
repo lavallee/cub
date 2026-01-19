@@ -348,7 +348,7 @@ Community feedback: Drift between initial spec and result remains a challenge.
 
 **index.jsonl schema (one line per completed task):**
 ```json
-{"id":"beads-abc","title":"Implement auth","completed":"2026-01-18","cost_usd":0.09,"files":["src/auth/"],"commit":"abc123f","spec":"specs/features/auth.md"}
+{"id":"beads-abc","title":"Implement auth","completed":"2026-01-18","cost_usd":0.09,"files":["src/auth/"],"commit":"abc123f","spec":"specs/planned/auth.md"}
 ```
 
 **Individual task record (beads-abc.md):**
@@ -389,7 +389,7 @@ From spec: Enable users to log in with email/password and receive JWT tokens.
 - [ ] Security review pending
 
 ## References
-- Spec: `specs/features/auth.md`
+- Spec: `specs/planned/auth.md`
 - Run log: `.cub/runs/fox-20260118-100000/tasks/beads-abc/`
 - Commit: `abc123f` - "feat: implement user authentication"
 ```
@@ -460,7 +460,7 @@ Cub wraps AI coding assistants (Claude Code, Codex, Gemini) to provide a reliabl
 - View tasks: `bd list --status open`
 
 ## Detailed Documentation
-- [Architecture](specs/research/knowledge-retention-system.md)
+- [Architecture](specs/researching/knowledge-retention-system.md)
 - [CLI Reference](README.md)
 - [Development Guide](CLAUDE.md)
 
@@ -529,7 +529,7 @@ When agent begins work:
 **Approach:** Compare specs to ledger entries, not to code directly.
 
 ```
-specs/features/auth.md     ←──compare──→   .cub/ledger/by-epic/auth.md
+specs/planned/auth.md     ←──compare──→   .cub/ledger/by-epic/auth.md
      (intent)                                    (what was built)
 ```
 
@@ -920,7 +920,7 @@ cub ledger index --quiet 2>/dev/null || true
 
 This knowledge retention system connects to several existing specs:
 
-#### Connection to Runs Analysis (specs/roadmap/runs-analysis.md)
+#### Connection to Runs Analysis (specs/planned/runs-analysis.md)
 
 The runs-analysis spec defines intelligence extraction from runs. The knowledge retention system provides the data it analyzes:
 
@@ -940,7 +940,7 @@ Guardrails                     →  Runs Analysis measures effectiveness
 - Codebase map updates (areas of frequent change)
 - Constitutional principles extraction
 
-#### Connection to Guardrails System (specs/roadmap/guardrails-system.md)
+#### Connection to Guardrails System (specs/completed/guardrails-system.md)
 
 Guardrails are one layer of institutional memory. The ledger provides context for why guardrails exist:
 
@@ -1037,7 +1037,7 @@ cub ledger stats --since 2026-01-01
 # → Most expensive: beads-xyz ($3.20)
 
 # Drift check
-cub drift check specs/features/auth.md
+cub drift check specs/planned/auth.md
 # → 2 items diverged (documented)
 # → 1 item diverged (undocumented) ⚠️
 
@@ -1084,4 +1084,4 @@ Constitution is loaded alongside guardrails but represents immutable rules rathe
 - Current run logs: `src/cub/core/status/writer.py`
 - Guardrails system: `src/cub/bash/lib/guardrails.sh`
 - Token tracking: `src/cub/core/harness/models.py`
-- Existing research: `specs/research/external-tools-analysis.md`
+- Existing research: `specs/researching/external-tools-analysis.md`
