@@ -1,5 +1,5 @@
 ---
-status: partial
+status: planned
 priority: high
 complexity: medium
 dependencies: []
@@ -8,6 +8,11 @@ blocks:
   - pm-workbench.md
 created: 2026-01-15
 updated: 2026-01-19
+implementation_status: partial
+notes: |
+  Core capture command implemented in Clawdbot skill.
+  Needs cub capture CLI, import-captures, organize-captures.
+  Auto-tagging and search improvements remain.
 readiness:
   score: 7
   blockers:

@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: low
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 7
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Needs config format definition.
+source: See spec for details
+---
+
 # Dual-Condition Exit Gate
 
 **Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code)

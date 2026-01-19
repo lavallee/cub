@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Needs error taxonomy definition.
+source: See spec for details
+---
+
 # Advanced Error Detection
 
 **Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code)

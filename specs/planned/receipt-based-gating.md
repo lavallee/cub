@@ -1,3 +1,20 @@
+---
+status: planned
+priority: high
+complexity: low
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 8
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Ready to implement. Similar to guardrails system.
+source: See spec for details
+---
+
 # Receipt-Based Gating
 
 **Source:** [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace) (Flow-Next)

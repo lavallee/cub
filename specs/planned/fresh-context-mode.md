@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Needs workflow integration design.
+source: See spec for details
+---
+
 # Fresh Context Mode
 
 **Source:** [gmickel-claude-marketplace](https://github.com/gmickel/gmickel-claude-marketplace) (Flow-Next)

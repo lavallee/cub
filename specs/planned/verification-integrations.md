@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Needs integration design per tool.
+source: See spec for details
+---
+
 # Verification Integrations
 
 **Source:** Inspired by [Ramp's Inspect](https://builders.ramp.com/post/why-we-built-our-background-agent)

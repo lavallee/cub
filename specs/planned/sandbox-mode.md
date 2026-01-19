@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: high
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Requires Docker setup and security model.
+source: See spec for details
+---
+
 # Sandbox Mode
 
 **Source:** Original feature for cub

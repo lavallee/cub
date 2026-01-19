@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Needs metrics definition.
+source: See spec for details
+---
+
 # Runs Analysis & Intelligence
 
 **Source:** Original feature for cub, enhanced artifacts pattern from [ralph](https://github.com/iannuttall/ralph)

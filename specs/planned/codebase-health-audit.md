@@ -1,3 +1,20 @@
+---
+status: planned
+priority: medium
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 6
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Partial implementation exists (cub audit).
+source: See spec for details
+---
+
 # Codebase Health Audit
 
 **Source:** Original feature for cub

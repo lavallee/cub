@@ -1,3 +1,20 @@
+---
+status: planned
+priority: high
+complexity: medium
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 8
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  Ready to implement. Clear pattern from Ralph.
+source: See spec for details
+---
+
 # Circuit Breaker / Stagnation Detection
 
 **Source:** [ralph-claude-code](https://github.com/frankbria/ralph-claude-code), [ralph](https://github.com/iannuttall/ralph)

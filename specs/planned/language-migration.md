@@ -1,3 +1,20 @@
+---
+status: planned
+priority: high
+complexity: high
+dependencies: []
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 7
+  blockers: []
+  questions: []
+  decisions_needed: []
+notes: |
+  In progress on feat/go-rewrite branch.
+source: See spec for details
+---
+
 # Language Migration Strategy
 
 **Source:** Original analysis of cub codebase
