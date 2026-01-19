@@ -79,8 +79,7 @@ def generate_system_prompt(project_dir: Path) -> str:
     prompt_files = [
         project_dir / "PROMPT.md",
         project_dir / "templates" / "PROMPT.md",
-        # Canonical template location (src/cub/bash/templates/)
-        Path(__file__).parent.parent / "bash" / "templates" / "PROMPT.md",
+        Path(__file__).parent.parent.parent.parent / "templates" / "PROMPT.md",
     ]
 
     for prompt_file in prompt_files:
@@ -769,7 +768,6 @@ def run(
                     break
             else:
                 # Get next ready task
-                # Epic filtering uses parent relationship in beads
                 ready_tasks = task_backend.get_ready_tasks(parent=epic, label=label)
 
                 if not ready_tasks:
@@ -1338,7 +1336,6 @@ def _show_ready_tasks(
         console.print("[red]Invalid task backend[/red]")
         return
 
-    # Epic filtering uses parent relationship in beads
     ready_tasks = task_backend.get_ready_tasks(parent=epic, label=label)
 
     if not ready_tasks:
