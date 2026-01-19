@@ -1,8 +1,30 @@
+---
+status: ready
+priority: high
+complexity: low
+dependencies: []
+blocks:
+  - re-anchoring.md
+  - fresh-context-mode.md
+created: 2026-01-10
+updated: 2026-01-19
+readiness:
+  score: 9
+  blockers: []
+  questions:
+    - Should auto-learning be enabled by default or opt-in?
+    - What's the ideal size limit for guardrails file?
+  decisions_needed:
+    - Choose AI model for auto-learning (haiku vs sonnet)
+    - Decide on guardrails file location (.cub/ vs docs/)
+  tools_needed: []
+source: ralph (https://github.com/iannuttall/ralph)
+---
+
 # Guardrails System (Institutional Memory)
 
-**Source:** [ralph](https://github.com/iannuttall/ralph)
-**Dependencies:** None
-**Complexity:** Low
+**Dependencies:** None  
+**Complexity:** Low  
 **Priority:** High (quick win, high value)
 
 ## Overview

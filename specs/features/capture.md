@@ -1,3 +1,33 @@
+---
+status: partial
+priority: high
+complexity: medium
+dependencies: []
+blocks:
+  - capture-workflow.md
+  - pm-workbench.md
+created: 2026-01-15
+updated: 2026-01-19
+readiness:
+  score: 7
+  blockers:
+    - import-captures command not yet implemented
+    - organize-captures command not yet implemented
+    - Auto-tagging not yet implemented
+  questions:
+    - Should we maintain a suggested tag vocabulary per project?
+    - Any concern about captures/ growing unboundedly? Periodic archive prompts?
+    - Search implementation: simple grep or build an index?
+    - Should URL capture fetch and summarize content automatically?
+  decisions_needed:
+    - Choose search backend (grep vs fzf vs dedicated index)
+    - Decide on capture promotion workflow (manual vs assisted)
+  tools_needed:
+    - Tag suggester (analyze content and suggest relevant tags)
+    - Capture search indexer (for faster search across many captures)
+    - Similarity detector (find related/duplicate captures)
+---
+
 # Feature Spec: Capture
 
 ## Overview
