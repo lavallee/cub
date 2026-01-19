@@ -24,8 +24,8 @@ Additional:
 ## Summary Stats
 
 - **Completed:** 9 features
-- **Planned:** 13 features
-- **Researching:** 8 specs
+- **Planned:** 14 features
+- **Researching:** 7 specs
 
 ---
 
@@ -66,11 +66,13 @@ Features ready to break into tasks and implement. Design is clear, open question
 | Circuit Breaker / Stagnation Detection | Medium | `planned/circuit-breaker.md` |
 | Receipt-Based Gating | Low | `planned/receipt-based-gating.md` |
 | Re-anchoring Mechanism | Low | `planned/re-anchoring.md` |
+| Capture System | Medium | `planned/capture.md` |
 
 **Why these are next:**
 - Circuit breaker: Prevents wasted iterations, standalone
 - Receipt-based gating: Like guardrails, straightforward
 - Re-anchoring: Standalone, improves context management
+- Capture: Core implemented, needs CLI completion
 
 ### Quality & Reliability
 
@@ -120,7 +122,6 @@ Features in early research/design phase. Still answering key questions, explorin
 
 | Spec | Focus | Status |
 |------|-------|--------|
-| `capture.md` | Low-friction idea collection | Partial - needs import/organize commands |
 | `capture-workflow.md` | Capture → spec pipeline | Depends on workflow engine |
 | `pm-workbench.md` | Integrated PM environment | Vision doc, needs scoping |
 
