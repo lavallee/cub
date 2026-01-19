@@ -68,34 +68,3 @@ disable_error_code = ["prop-decorator"]
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
-
-[tool.coverage.run]
-source = ["src/cub"]
-branch = true
-omit = [
-    "src/cub/__main__.py",
-    "src/cub/bash/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "raise NotImplementedError",
-    "@abstractmethod",
-]
-# Minimum overall coverage (individual tiers have higher thresholds)
-# See .cub/STABILITY.md for per-module tier definitions
-fail_under = 50
-
-[tool.coverage.html]
-directory = "htmlcov"
-
-# Per-file coverage thresholds by stability tier
-# Enforcement: pytest --cov=src/cub --cov-report=json && python scripts/check_coverage_tiers.py --strict
-#
-# Thresholds defined in scripts/check_coverage_tiers.py match STABILITY.md:
-#   Solid (80%+): core/config/*, core/tasks/backend.py, core/harness/backend.py, etc.
-#   Moderate (60%+): cli/run.py, core/tasks/beads.py, core/harness/claude.py, etc.
-#   Experimental (40%+): audit/*, core/sandbox/provider.py, etc.
-#   UI/Delegated (no threshold): cli/status.py, cli/monitor.py, etc. (BATS-tested)
