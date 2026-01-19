@@ -30,9 +30,10 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
+
 
 _EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
 _TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
@@ -130,11 +131,11 @@ def parse_plan_markdown(text: str) -> list[PlanEpic]:
                 continue
             if key == "Priority":
                 try:
-                    target.priority = int(value)
+                    target.priority = int(value)  # type: ignore[attr-defined]
                 except ValueError:
                     pass
             elif key == "Labels":
-                target.labels = _split_csv(value)
+                target.labels = _split_csv(value)  # type: ignore[attr-defined]
             elif key == "Blocks" and current_task is not None:
                 current_task.blocks = _split_csv(value)
             in_description = False
@@ -152,7 +153,7 @@ def parse_plan_markdown(text: str) -> list[PlanEpic]:
     return epics
 
 
-def iter_beads_jsonl(epics: Iterable[PlanEpic], *, prefix: str) -> Iterable[dict[str, object]]:
+def iter_beads_jsonl(epics: Iterable[PlanEpic], *, prefix: str) -> Iterable[dict]:
     for epic in epics:
         epic_id = _normalize_id(epic.epic_id, prefix)
         yield {

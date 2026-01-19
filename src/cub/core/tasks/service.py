@@ -269,7 +269,7 @@ class TaskService:
             labels=["spike"] + (labels or []),
             complexity=TaskComplexity.MEDIUM,
             estimated_duration="2-4h",
-            notes="Exploration goals:\n"
+            notes=f"Exploration goals:\n"
             + "\n".join(f"- {goal}" for goal in exploration_goals),
             source_capture_id=source_capture_id,
         )

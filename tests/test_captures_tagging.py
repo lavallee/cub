@@ -4,6 +4,7 @@ Tests for capture auto-tagging functionality.
 Tests the suggest_tags function for keyword extraction and tag suggestion.
 """
 
+import pytest
 
 from cub.core.captures.tagging import suggest_tags
 

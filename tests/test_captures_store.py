@@ -80,7 +80,7 @@ class TestCaptureStoreNextId:
             capture = Capture(
                 id=new_id,
                 created=datetime.now(),
-                title="Capture",
+                title=f"Capture",
             )
             store.save_capture(capture, "Content")
 
