@@ -117,134 +117,76 @@ Mark checkpoints explicitly in the plan.
 
 ### Step 6: Wire Dependencies
 
-**Epic Membership (use labels):**
-Tasks belong to epics via the `epic:{epic-id}` label. This is a parent-child relationship—NOT a blocking dependency.
-
-**Sequential Dependencies (use blocked_by/blocks):**
-Only use blocking dependencies for tasks that have true sequential dependencies—where one task MUST complete before another can start.
-
 For each task, identify:
-- **Epic membership**: Add `epic:{epic-id}` label (e.g., `epic:E01`)
-- **Sequential blockers**: What tasks must complete first? (use sparingly)
+- **Parent**: Which epic does this belong to?
+- **Blocked by**: What tasks must complete first?
 
-### Step 7: Generate JSONL
+### Step 7: Generate Strict Markdown Plan
 
-Generate a JSONL file with the complete beads schema.
+Generate a **strict markdown plan** that will be deterministically converted to beads JSONL.
 
-**File:** `.cub/sessions/plan.jsonl` (or `$ARGUMENTS/plan.jsonl`)
+**File:** `.cub/sessions/plan.md` (or `$ARGUMENTS/plan.md`)
 
-**Schema for each line:**
+**Format requirements (must follow exactly):**
+- Start with `# Plan`
+- Epic sections start with: `## Epic: <id> - <title>`
+- Task sections start with: `### Task: <id> - <title>`
+- Each epic and each task MUST include these metadata lines (exact keys):
+  ```
+  Priority: <integer>
+  Labels: comma,separated,labels
+  Description:
+  <freeform markdown>
+  ```
+- Tasks may additionally include:
+  ```
+  Blocks: comma,separated,task_ids
+  ```
 
-```json
-{
-  "id": "{prefix}-{NNN}",
-  "title": "Task title",
-  "description": "Full markdown description with implementation hints",
-  "status": "open",
-  "priority": 0,
-  "issue_type": "epic|task",
-  "labels": ["phase-1", "epic:E01", "model:sonnet", "complexity:medium", "logic"],
-  "dependencies": [
-    {"depends_on_id": "{prefix}-001", "type": "blocks"}
-  ]
-}
-```
+**ID Format:**
+- IDs should be short (e.g., E01, 001, 002) — do NOT include the project prefix
+- Epics: E01, E02, etc.
+- Tasks: 001, 002, etc. (or E01.1, E01.2 for nested numbering)
 
-**Important - Epic Linking:**
-- Use `epic:{epic-id}` in labels for parent-child epic relationships (e.g., `"epic:E01"`)
-- Use `dependencies` with `"type": "blocks"` ONLY for true sequential dependencies
-- Do NOT use `"type": "parent-child"` in dependencies - use labels instead
-
-**ID Numbering:**
-- Epics: `{prefix}-E01`, `{prefix}-E02`, etc.
-- Tasks: `{prefix}-001`, `{prefix}-002`, etc. (sequential across all phases)
-
-### Step 8: Generate Human-Readable Plan
-
-Also generate `.cub/sessions/plan.md`:
+**Example:**
 
 ```markdown
-# Implementation Plan: {Project Name}
+# Plan
 
-**Date:** {date}
-**Granularity:** {micro|standard|macro}
-**Total:** {N} epics, {M} tasks
+## Epic: E01 - Setup Infrastructure
+Priority: 1
+Labels: phase-1, setup
+Description:
+Set up project foundation and tooling.
 
----
+### Task: 001 - Initialize project structure
+Priority: 0
+Labels: phase-1, setup, model:haiku, complexity:low
+Description:
+Create directory structure, pyproject.toml, and basic config.
 
-## Summary
-
-{Brief overview of the implementation approach}
-
----
-
-## Task Hierarchy
-
-### Epic 1: {Phase Name} [P0]
-
-| ID | Task | Model | Priority | Blocked By | Est |
-|----|------|-------|----------|------------|-----|
-| {prefix}-001 | {Task title} | haiku | P0 | - | 15m |
-| {prefix}-002 | {Task title} | sonnet | P0 | {prefix}-001 | 30m |
-
-{Repeat for each epic}
-
----
-
-## Dependency Graph
-
-```
-{prefix}-001 (setup)
-  ├─> {prefix}-002 (config)
-  │     └─> {prefix}-004 (integrate)
-  └─> {prefix}-003 (logger)
+### Task: 002 - Configure logging
+Priority: 0
+Labels: phase-1, setup, model:haiku, complexity:low
+Blocks: 001
+Description:
+Set up structured logging with appropriate handlers.
 ```
 
----
+**After generating the markdown**, the converter will run automatically to produce `plan.jsonl`.
 
-## Model Distribution
+### Step 8: Present Plan (markdown preview)
 
-| Model | Tasks | Rationale |
-|-------|-------|-----------|
-| opus | {N} | {Brief explanation} |
-| sonnet | {M} | {Brief explanation} |
-| haiku | {K} | {Brief explanation} |
+Show a brief summary of the generated markdown plan:
 
----
+### Step 9: Present Plan Summary
 
-## Validation Checkpoints
-
-### Checkpoint 1: {Name} (after {prefix}-XXX)
-**What's testable:** {Description}
-**Key questions:**
-- {Question to validate}
-
----
-
-## Ready to Start
-
-These tasks have no blockers:
-- **{prefix}-001**: {Title} [P0] (haiku) - 15m
-
----
-
-## Critical Path
-
-{prefix}-001 → {prefix}-002 → {prefix}-005 → ...
-
----
-
-**Next Step:** Run `cub bootstrap` to import tasks into beads.
-```
-
-### Step 9: Present Plan
-
-Show the user the task hierarchy and ask:
+Count the epics and tasks in your generated markdown, then show the user:
 > Please review this implementation plan.
 >
 > - **{N} epics** across {P} phases
 > - **{M} tasks** total
-> - **{R} tasks** ready to start immediately
+> - **{R} tasks** ready to start immediately (no blockers)
 >
 > Reply with:
 > - **approved** to save the plan
@@ -252,21 +194,21 @@ Show the user the task hierarchy and ask:
 
 ### Step 10: Write Output
 
-Once approved, write output files:
-- `plan.jsonl` (beads-compatible, for import)
-- `plan.md` (human-readable)
+Once approved, write the strict markdown plan to:
+- `plan.md` (or `$ARGUMENTS/plan.md`)
+
+**Important:** Output ONLY the strict markdown format described in Step 7.
+Do NOT output JSONL directly — the converter will handle that automatically.
 
 ### Step 11: Handoff
 
-After writing outputs, tell the user:
+After writing the markdown plan, tell the user:
 
 > Planning complete!
 >
-> **Outputs saved:**
-> - `.cub/sessions/plan.jsonl` (beads-compatible)
-> - `.cub/sessions/plan.md` (human-readable)
+> **Markdown plan saved:** `plan.md`
 >
-> **Next step:** Run `cub bootstrap` to initialize beads and start development.
+> Converting to beads JSONL now...
 
 ---
 

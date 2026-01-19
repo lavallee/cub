@@ -1180,17 +1180,9 @@ _wire_dependencies_from_plan() {
             dep_type=$(echo "$dep" | jq -r '.type // "blocks"')
 
             if [[ -n "$depends_on_id" ]]; then
-                if [[ "$dep_type" == "parent-child" ]]; then
-                    # For parent-child, set the parent on the child issue
-                    # The depends_on_id is the parent (epic), issue_id is the child (task)
-                    if bd update "$issue_id" --parent "$depends_on_id" 2>/dev/null; then
-                        ((dep_count++)) || true
-                    fi
-                else
-                    # Add the dependency silently
-                    if bd dep add "$issue_id" "$depends_on_id" --type "$dep_type" 2>/dev/null; then
-                        ((dep_count++)) || true
-                    fi
+                # Add the dependency silently
+                if bd dep add "$issue_id" "$depends_on_id" --type "$dep_type" 2>/dev/null; then
+                    ((dep_count++)) || true
                 fi
             fi
         done
