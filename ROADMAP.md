@@ -88,7 +88,7 @@ Features ready to break into tasks and implement. Design is clear, open question
 
 | Feature | Complexity | Spec |
 |---------|------------|------|
-| Multi-Model Review | Medium | `planned/multi-model-review.md` |
+| Multi-Model Review | Medium | `planned/multi-model-review.md` ⬆️ Ready once harness implemented |
 | Runs Analysis | Medium | `planned/runs-analysis.md` |
 | Verification Integrations | Medium | `planned/verification-integrations.md` |
 | Codebase Health Audit | Medium | `planned/codebase-health-audit.md` |
@@ -116,17 +116,26 @@ Features in early research/design phase. Still answering key questions, explorin
 | `workflow-management.md` | YAML-based orchestration | Needs expression language, human handoff UX |
 | `ai-assisted-pm-shaping-model.md` | PM workflow modes | Needs operationalization |
 
-**Blockers:**
-- **Harness Abstraction (CRITICAL):** Interface design, hook system, provider authentication patterns. **Blocks multi-model-review, tools-registry, workflow-management, toolsmith.**
-- Toolsmith: Needs discovery source prioritization (which to search first), evaluation criteria definition
+**Major Decisions Made:**
+- ✅ **Python is primary language** (enables Claude Agent SDK, simplifies harness design)
+- ✅ **Claude Agent SDK as foundation** (use hooks, custom tools, streaming)
+- ✅ **Harness abstraction spec complete** (researching/harness-abstraction.md)
+
+**Blockers Resolved:**
+- ~~Harness Abstraction~~ → **Spec complete, unblocks implementation of:**
+  - Multi-model review (readiness: 5 → 7)
+  - Tools registry (readiness: 6 → 7)
+  - Workflow management (readiness: 7 → 8)
+  - Toolsmith (readiness: 4 → 5)
+
+**Remaining Blockers:**
+- Toolsmith: Needs discovery source prioritization, evaluation criteria definition
 - Tool Marketplace: Needs distribution model (central vs git-based), packaging format, quality standards
-- Tools registry: Needs MCP integration design, authentication approach
-- Workflow management: Expression language choice, state persistence format
+- Tools registry: Needs registry format decision, MCP integration design, authentication approach
+- Workflow management: Needs expression language choice, human handoff UX, state persistence format
 - PM shaping: Needs breaking down into specific features
 
-**Decision made:** Python is primary language (enables Claude Agent SDK use, simplifies harness design).
-
-**Note:** Harness abstraction is the critical missing piece for multi-LLM support. Claude harness will use Agent SDK for special abilities (hooks, custom tools). Toolsmith can help bootstrap other wishlist tools by discovering and adopting existing components. Tool marketplace publishes these implementations for community use.
+**Note:** Harness abstraction provides unified interface for multi-LLM support. Claude harness uses Agent SDK for special abilities (hooks, custom tools, streaming). Other harnesses use appropriate SDKs or shell-out with graceful feature degradation. Toolsmith can help bootstrap other wishlist tools. Tool marketplace publishes implementations for community use.
 
 ### Feature Development
 

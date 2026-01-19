@@ -8,9 +8,9 @@ dependencies:
 created: 2026-01-19
 updated: 2026-01-19
 readiness:
-  score: 4
+  score: 5
   blockers:
-    - Depends on tools registry
+    - Tools registry spec in research phase
     - Tool evaluation criteria not defined
     - Discovery sources need cataloging
   questions:
@@ -18,11 +18,13 @@ readiness:
     - How to evaluate tool quality automatically?
     - When to use existing tool vs build custom?
     - How to handle authentication/API keys?
+    - How to detect if tool needs harness features (hooks, custom tools)?
   decisions_needed:
     - Define tool evaluation rubric
     - Choose discovery sources (priority order)
     - Design human handoff workflow for auth/budget
     - Define tool adoption workflow
+    - Map tool requirements to harness features
   tools_needed:
     - Competitive Analysis Tool (ironically, to find tools!)
     - Technical Feasibility Checker (verify tool viability)
@@ -33,6 +35,11 @@ notes: |
   Searches common sources (MCP registries, Claude skills, npm, PyPI, GitHub).
   Tracks multiple options per need, surfaces when human input needed.
   Self-bootstrapping: can help build the other wishlist tools.
+  
+  Harness abstraction integration:
+  - Can evaluate if tool needs harness features (hooks, custom tools)
+  - Tools requiring CUSTOM_TOOLS feature only work with compatible harnesses
+  - Tool evaluation includes harness compatibility check
 ---
 
 # Toolsmith: Automated Tool Discovery and Adoption

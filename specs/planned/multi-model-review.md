@@ -6,22 +6,24 @@ dependencies: []
 created: 2026-01-10
 updated: 2026-01-19
 readiness:
-  score: 5
+  score: 7
   blockers:
-    - Depends on harness abstraction
+    - Harness abstraction in research phase (spec exists)
   questions:
     - Which models to use for review?
     - How to aggregate review results?
+    - Weight reviews by model capabilities?
   decisions_needed:
-    - Implement harness abstraction first
-    - Define review aggregation strategy
+    - Define review aggregation strategy (consensus, voting, weighted)
+    - Choose initial models for review (Claude + GPT-4 + ?)
+    - Design review comparison UI/output
   tools_needed:
-    - Dependency Analyzer (depends on harness abstraction)
     - Trade-off Analyzer (which models to use when)
-    - API Design Validator (review API design)
+    - API Design Validator (review aggregation API)
 notes: |
-  Depends on harness abstraction.
-  Cannot implement until harness interface exists.
+  Harness abstraction spec now exists (researching/harness-abstraction.md).
+  Can implement once harness abstraction reaches planned/implementation phase.
+  Core approach: Run same task on multiple harnesses, compare outputs.
 source: cub original
 ---
 

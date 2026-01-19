@@ -12,7 +12,7 @@ blocks:
 created: 2026-01-19
 updated: 2026-01-19
 readiness:
-  score: 6
+  score: 7
   blockers:
     - Need to decide on registry format (YAML vs JSON vs code)
     - MCP discovery protocol not fully defined
@@ -23,10 +23,12 @@ readiness:
     - Should tools self-describe (introspection protocol)?
     - How to version the registry schema itself?
     - Should we support tool aliases/shortcuts?
+    - Integration with harness custom tools feature?
   decisions_needed:
     - Choose registry file format
     - Define tool installation security model
     - Decide on tool versioning strategy
+    - Map to harness abstraction's register_tool() API
   tools_needed:
     - API Design Validator (design registry format and interfaces)
     - Technical Feasibility Checker (verify MCP integration approach)
@@ -36,6 +38,10 @@ readiness:
     - Schema validator (domain-specific: validate tool definitions against registry schema)
     - Capability matcher (domain-specific: semantic search for tools by capability)
     - Installation verifier (domain-specific: check if tool install succeeded)
+notes: |
+  Harness abstraction spec now exists with register_tool() API.
+  Tools can be registered with harnesses that support CUSTOM_TOOLS feature.
+  Registry tracks tools from all sources (harness, MCP, skills, CLI).
 ---
 
 # Tools Registry Specification

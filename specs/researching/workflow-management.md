@@ -10,12 +10,11 @@ blocks:
 created: 2026-01-19
 updated: 2026-01-19
 readiness:
-  score: 7
+  score: 8
   blockers:
     - Need to choose expression language (Jinja2 vs custom DSL)
     - Human handoff UX not designed (CLI prompt? Notification?)
     - State persistence format not finalized
-    - Error recovery strategy unclear
   questions:
     - Should workflows support sub-workflows (composition)?
     - How to handle long-running workflows (days/weeks)?
@@ -24,11 +23,13 @@ readiness:
     - Should workflows have access control/permissions?
     - How to share workflows across projects/teams?
     - When to integrate Windmill/Temporal vs stay native?
+    - How to map workflow hooks to harness hooks?
   decisions_needed:
     - Choose template/expression language
     - Define human handoff notification mechanism
     - Decide on workflow execution mode (blocking vs background)
     - Choose state persistence format (JSON vs SQLite vs files)
+    - Design workflow → harness hook integration
   tools_needed:
     - Competitive Analysis Tool (existing workflow engines: Windmill, Temporal, etc)
     - Trade-off Analyzer (YAML vs Python, native vs external engine)
@@ -39,6 +40,11 @@ readiness:
     - Workflow simulator (domain-specific: dry-run with mocked tools)
     - Autonomy scorer (domain-specific: calculate autonomy requirement for workflow)
     - Workflow debugger (domain-specific: step through execution, inspect variables)
+notes: |
+  Harness abstraction spec now exists with hook system.
+  Workflows can use harness.run_task() for LLM interactions.
+  Can leverage harness hooks (PRE_TASK, PRE_TOOL_USE, etc) for workflow control.
+  Error recovery strategy clearer: use harness ON_ERROR hooks.
 ---
 
 # Workflow Management Specification
