@@ -4,7 +4,6 @@ Cub CLI - Upgrade command.
 Upgrade cub to a new version or reinstall from local source.
 """
 
-import os
 import shutil
 import subprocess
 import sys
@@ -180,7 +179,7 @@ def run_pipx_install_local(path: Path, force: bool = False) -> bool:
             if result.returncode == 0:
                 return True
 
-        console.print(f"[red]pipx install failed:[/red]")
+        console.print("[red]pipx install failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -218,7 +217,7 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print(f"[red]pip install failed:[/red]")
+        console.print("[red]pip install failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -253,7 +252,7 @@ def run_pip_install_editable(path: Path) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print(f"[red]pip install -e failed:[/red]")
+        console.print("[red]pip install -e failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -374,7 +373,9 @@ def upgrade(
             console.print()
             console.print(f"[green]Successfully installed cub v{local_version} from local[/green]")
             if editable:
-                console.print("[dim]Installed in editable mode - changes take effect immediately[/dim]")
+                console.print(
+                    "[dim]Installed in editable mode - changes take effect immediately[/dim]"
+                )
             raise typer.Exit(0)
         else:
             console.print("[red]Installation failed[/red]")
