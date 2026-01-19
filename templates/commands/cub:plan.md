@@ -117,15 +117,9 @@ Mark checkpoints explicitly in the plan.
 
 ### Step 6: Wire Dependencies
 
-**Epic Membership (use labels):**
-Tasks belong to epics via the `epic:{epic-id}` label. This is a parent-child relationship—NOT a blocking dependency.
-
-**Sequential Dependencies (use blocked_by/blocks):**
-Only use blocking dependencies for tasks that have true sequential dependencies—where one task MUST complete before another can start.
-
 For each task, identify:
-- **Epic membership**: Add `epic:{epic-id}` label (e.g., `epic:E01`)
-- **Sequential blockers**: What tasks must complete first? (use sparingly)
+- **Parent**: Which epic does this belong to?
+- **Blocked by**: What tasks must complete first?
 
 ### Step 7: Generate JSONL
 
@@ -143,17 +137,13 @@ Generate a JSONL file with the complete beads schema.
   "status": "open",
   "priority": 0,
   "issue_type": "epic|task",
-  "labels": ["phase-1", "epic:E01", "model:sonnet", "complexity:medium", "logic"],
+  "labels": ["phase-1", "model:sonnet", "complexity:medium", "logic"],
   "dependencies": [
+    {"depends_on_id": "{prefix}-E01", "type": "parent-child"},
     {"depends_on_id": "{prefix}-001", "type": "blocks"}
   ]
 }
 ```
-
-**Important - Epic Linking:**
-- Use `epic:{epic-id}` in labels for parent-child epic relationships (e.g., `"epic:E01"`)
-- Use `dependencies` with `"type": "blocks"` ONLY for true sequential dependencies
-- Do NOT use `"type": "parent-child"` in dependencies - use labels instead
 
 **ID Numbering:**
 - Epics: `{prefix}-E01`, `{prefix}-E02`, etc.
