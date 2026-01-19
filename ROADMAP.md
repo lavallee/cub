@@ -25,7 +25,7 @@ Additional:
 
 - **Completed:** 9 features
 - **Planned:** 14 features
-- **Researching:** 9 specs
+- **Researching:** 10 specs
 
 ---
 
@@ -109,6 +109,7 @@ Features in early research/design phase. Still answering key questions, explorin
 
 | Spec | Focus | Status |
 |------|-------|--------|
+| `harness-abstraction.md` | **🔥 Multi-provider LLM interface** | **CRITICAL - Interface design, hook system, provider auth** |
 | `toolsmith.md` | **Meta-tool for tool discovery/adoption** | **Needs discovery source prioritization, evaluation criteria** |
 | `tool-marketplace.md` | **ClawdHub-style collection of cub tools** | **Needs distribution model, packaging format, quality standards** |
 | `tools-registry.md` | Unified tool discovery/execution | Needs format decisions, MCP integration |
@@ -116,13 +117,16 @@ Features in early research/design phase. Still answering key questions, explorin
 | `ai-assisted-pm-shaping-model.md` | PM workflow modes | Needs operationalization |
 
 **Blockers:**
+- **Harness Abstraction (CRITICAL):** Interface design, hook system, provider authentication patterns. **Blocks multi-model-review, tools-registry, workflow-management, toolsmith.**
 - Toolsmith: Needs discovery source prioritization (which to search first), evaluation criteria definition
 - Tool Marketplace: Needs distribution model (central vs git-based), packaging format, quality standards
 - Tools registry: Needs MCP integration design, authentication approach
 - Workflow management: Expression language choice, state persistence format
 - PM shaping: Needs breaking down into specific features
 
-**Note:** Toolsmith can help bootstrap other wishlist tools by discovering and adopting existing components (see spec for 5 concrete examples). Tool marketplace publishes these implementations for community use.
+**Decision made:** Python is primary language (enables Claude Agent SDK use, simplifies harness design).
+
+**Note:** Harness abstraction is the critical missing piece for multi-LLM support. Claude harness will use Agent SDK for special abilities (hooks, custom tools). Toolsmith can help bootstrap other wishlist tools by discovering and adopting existing components. Tool marketplace publishes these implementations for community use.
 
 ### Feature Development
 
