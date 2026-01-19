@@ -25,7 +25,7 @@ Additional:
 
 - **Completed:** 9 features
 - **Planned:** 14 features
-- **Researching:** 7 specs
+- **Researching:** 8 specs
 
 ---
 
@@ -109,14 +109,18 @@ Features in early research/design phase. Still answering key questions, explorin
 
 | Spec | Focus | Status |
 |------|-------|--------|
+| `toolsmith.md` | **Meta-tool for tool discovery/adoption** | **Needs discovery source prioritization, evaluation criteria** |
 | `tools-registry.md` | Unified tool discovery/execution | Needs format decisions, MCP integration |
 | `workflow-management.md` | YAML-based orchestration | Needs expression language, human handoff UX |
 | `ai-assisted-pm-shaping-model.md` | PM workflow modes | Needs operationalization |
 
 **Blockers:**
+- Toolsmith: Needs discovery source prioritization (which to search first), evaluation criteria definition
 - Tools registry: Needs MCP integration design, authentication approach
 - Workflow management: Expression language choice, state persistence format
 - PM shaping: Needs breaking down into specific features
+
+**Note:** Toolsmith can help bootstrap other wishlist tools by discovering and adopting existing components (see spec for 5 concrete examples).
 
 ### Feature Development
 
