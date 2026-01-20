@@ -3,7 +3,7 @@
 # spec-to-issues.sh - Convert a feature spec to beads issues
 #
 # Usage:
-#   ./scripts/spec-to-issues.sh specs/features/capture.md --feature cap
+#   ./scripts/spec-to-issues.sh specs/researching/capture.md --feature cap
 #
 # This script:
 #   1. Reads the spec file
@@ -49,9 +49,9 @@ Options:
   --help, -h             Show this help message
 
 Examples:
-  $(basename "$0") specs/features/capture.md --feature cap
-  $(basename "$0") specs/features/capture.md -f cap --dry-run
-  $(basename "$0") specs/features/capture.md -f cap -o /tmp/capture-plan.jsonl
+  $(basename "$0") specs/researching/capture.md --feature cap
+  $(basename "$0") specs/researching/capture.md -f cap --dry-run
+  $(basename "$0") specs/researching/capture.md -f cap -o /tmp/capture-plan.jsonl
 EOF
 }
 

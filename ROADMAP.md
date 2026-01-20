@@ -1,407 +1,289 @@
 # Cub Roadmap
 
-Features inspired by adjacent tools like [chopshop](https://github.com/lavallee/chopshop), [ralph](https://github.com/iannuttall/ralph), [Gas Town](https://github.com/steveyegge/gastown), [Compound Engineering](https://every.to/chain-of-thought/compound-engineering-how-every-codes-with-agents), and original cub features.
+Comprehensive status of all features and specifications.
 
-**Versioning:** Features use stable IDs (e.g., `[CB]`). Version numbers are assigned at release time, not pre-planned.
-
----
-
-## Completed
-
-| Version | Feature | ID |
-|---------|---------|-----|
-| 0.14 | Vision-to-Tasks Pipeline | [VTP] |
-| 0.15 | Plan Review | [PR] |
-| 0.16 | Interview Mode | [IM] |
-| 0.17 | PRD Import / Document Conversion | [PRD] |
-| 0.18 | Onboarding & Project Organization | [OPO] |
-| 0.19 | Git Workflow Integration | [GWI] |
-| 0.20 | Guardrails System | [GS] |
-| 0.23 | Live Dashboard | [LD] |
+**Last Updated:** 2026-01-19
 
 ---
 
-## Now (Active Development)
+## Spec Organization
 
-Features currently being worked on.
+Specs are organized into three states:
 
-| Feature | ID | Notes |
-|---------|-----|-------|
-| Language Migration (Go + Python) | [LM] | Python CLI complete, bash delegation working |
+1. **`specs/completed/`** - Features merged to main and shipped
+2. **`specs/planned/`** - Ready to break into tasks and implement
+3. **`specs/researching/`** - Early research, design exploration, open questions
 
----
-
-## Next (Ready to Start)
-
-Prioritized features ready to pick up. Order reflects current thinking but can shift.
-
-| Feature | ID | Complexity | Notes |
-|---------|-----|------------|-------|
-| Circuit Breaker / Stagnation | [CB] | Medium | Standalone, high value |
-| Re-anchoring Mechanism | [RA] | Low | Standalone |
-| Codebase Health Audit | [CHA] | Medium | Useful during/after migration |
-| Advanced Error Detection | [AED] | Low | Enhances existing logging |
-| Sandbox Mode | [SM] | Medium | Docker first, then Sprites |
+Additional:
+- **`sketches/`** - Investigations, notes, artifacts (not locked-down specs)
+- **`specs/SPEC-TEMPLATE.md`** - Frontmatter schema for specs
+- **`specs/TOOLS-WISHLIST.md`** - Research/design tools we need
 
 ---
 
-## Later (Backlog)
+## Summary Stats
 
-Sequenced primarily by dependencies. Items without dependencies can be reordered freely.
-
-| Feature | ID | Depends On | Notes |
-|---------|-----|------------|-------|
-| Parallel Development with Worktrees | [PDW] | — | Enables multi-branch work |
-| Dual-Condition Exit Gate | [DCE] | [CB] soft | More robust completion detection |
-| Fresh Context Mode | [FCM] | [RA] | Prevents context pollution |
-| Implementation Review | [IR] | [PR] for full workflow | Post-task code review |
-| Receipt-Based Gating | [RBG] | [IR] | Proof-of-work validation |
-| Multi-Model Review | [MMR] | [IR] | Cross-model validation |
-| Runs Analysis & Intelligence | [RAI] | — | Post-run insights |
-| Verification Integrations | [VI] | — | Protocol + plugins |
+- **Completed:** 9 features
+- **Planned:** 14 features
+- **Researching:** 10 specs
 
 ---
 
-## Ideas (Research Needed)
+## ✅ Completed (`specs/completed/`)
 
-New features identified from external tools analysis. Need investigation before planning.
+Features fully implemented and shipped to main.
 
-| Feature | ID | Source | Notes |
-|---------|-----|--------|-------|
-| Multi-Agent Orchestration | [MAO] | Gas Town | Swarm coordination, 20-30 agents |
-| Session Checkpointing | [SC] | Gas Town | Git-backed state persistence across restarts |
-| Team Knowledge Base | [TKB] | Compound Eng | Cross-project knowledge compounding |
-| Agent Personas | [AP] | Gas Town | Specialized agents for different task types |
-| Workflow Recipes | [WR] | Gas Town | TOML-based reusable workflow templates |
-| Standing Orders | [SO] | Gas Town | Auto-run tasks at session startup |
-| Convergent Review (Rule of 5) | [CR] | Yegge | 5-pass review for convergence |
-| Heresy Detection | [HD] | Gas Town | Detect incorrect beliefs spreading in code |
+| Feature | Version | Spec |
+|---------|---------|------|
+| Vision-to-Tasks Pipeline | 0.14 | `completed/vision-to-tasks-pipeline.md` |
+| Plan Review | 0.15 | `completed/plan-review.md` |
+| Interview Mode | 0.16 | `completed/interview-mode.md` |
+| PRD Import / Document Conversion | 0.17 | `completed/prd-import.md` |
+| Onboarding & Project Organization | 0.18 | `completed/onboarding-and-organization.md` |
+| Git Workflow Integration | 0.19 | `completed/git-workflow-integration.md` |
+| Guardrails System | 0.20 | `completed/guardrails-system.md` |
+| Live Dashboard (tmux) | 0.23 | `completed/live-dashboard.md` |
+| Investigate Command | 0.22 | `completed/investigate-command.md` |
 
----
-
-## Dependencies
-
-```
-STANDALONE (no dependencies):
-[CB] Circuit Breaker
-[RA] Re-anchoring
-[CHA] Codebase Health Audit
-[AED] Advanced Error Detection
-[SM] Sandbox Mode
-[PDW] Parallel Development
-[RAI] Runs Analysis
-[VI] Verification Integrations
-
-DEPENDENCY CHAINS:
-[DCE] Dual-Condition Exit -----> [CB] Circuit Breaker (soft)
-[FCM] Fresh Context Mode ------> [RA] Re-anchoring
-[IR] Implementation Review ----> [PR] Plan Review
-[RBG] Receipt-Based Gating ----> [IR] Implementation Review
-[MMR] Multi-Model Review ------> [IR] Implementation Review
-
-IDEAS (dependencies TBD):
-[MAO] Multi-Agent ------------> [PDW] Parallel Development
-[SC] Session Checkpointing ---> [CB] Circuit Breaker (soft)
-[TKB] Team Knowledge Base ----> [GS] Guardrails System
-```
+**Key accomplishments:**
+- Full prep pipeline (triage→architect→plan→bootstrap)
+- Interactive refinement modes (interview, review)
+- Branch/PR workflow integration
+- Live monitoring dashboard
+- Institutional memory (guardrails)
+- Research/design/audit command
 
 ---
 
-## Synergies
+## 📋 Planned (`specs/planned/`)
 
-Features that work well together:
+Features ready to break into tasks and implement. Design is clear, open questions answered.
 
-- **[SM] + [LD]** — Safe execution with full visibility ("confident autonomy")
-- **[CB] + [DCE]** — Robust loop termination
-- **[GS] + [CB]** — Failures feed guardrails
-- **[GS] + [RA]** — Guardrails are part of anchoring context
-- **[RAI] + [CHA]** — Runtime + static quality signals
-- **[VI] + [IR]** — AI review + real-world validation
+### High Priority / Quick Wins
 
----
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Circuit Breaker / Stagnation Detection | Medium | `planned/circuit-breaker.md` |
+| Receipt-Based Gating | Low | `planned/receipt-based-gating.md` |
+| Re-anchoring Mechanism | Low | `planned/re-anchoring.md` |
+| Capture System | Medium | `planned/capture.md` |
 
-## Feature Details
+**Why these are next:**
+- Circuit breaker: Prevents wasted iterations, standalone
+- Receipt-based gating: Like guardrails, straightforward
+- Re-anchoring: Standalone, improves context management
+- Capture: Core implemented, needs CLI completion
 
-### [LM] Language Migration (Go + Python)
+### Quality & Reliability
 
-**Source:** Performance analysis
-**Status:** In progress
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Advanced Error Detection | Medium | `planned/advanced-error-detection.md` |
+| Dual-Condition Exit | Low | `planned/dual-condition-exit.md` |
+| Fresh Context Mode | Medium | `planned/fresh-context-mode.md` |
+| Implementation Review | Medium | `planned/implementation-review.md` |
+| Sandbox Mode | High | `planned/sandbox-mode.md` |
 
-Rewrite performance-critical components from Bash to Go:
+### Tooling & Integration
 
-**Phase 1 - Core Data (Go):** Task management + config
-- 10-50x faster task operations (eliminate jq subprocesses)
-- In-memory caching, type safety
+| Feature | Complexity | Spec |
+|---------|------------|------|
+| Multi-Model Review | Medium | `planned/multi-model-review.md` ⬆️ Ready once harness implemented |
+| Runs Analysis | Medium | `planned/runs-analysis.md` |
+| Verification Integrations | Medium | `planned/verification-integrations.md` |
+| Codebase Health Audit | Medium | `planned/codebase-health-audit.md` |
 
-**Phase 2 - Harness Layer (Go):** AI backend abstraction
-- Proper streaming JSON parsing
-- Accurate token counting
+### In Progress
 
-**Phase 3 - Git Operations (Go):** Using go-git library
-- Batch operations, fewer subprocesses
-
-**Phase 4 - Artifacts (Go):** File I/O and state
-
-**Keep as Bash:** CLI dispatch, hooks, installation
-**Keep as Python:** CLI (Typer), pipeline stages, verification plugins
-
----
-
-### [CB] Circuit Breaker / Stagnation Detection
-
-**Source:** Ralph
-**Complexity:** Medium
-
-Detect when the loop is stuck without making progress:
-- Track meaningful changes per iteration (file diffs, task completions)
-- Configurable threshold (e.g., 3 loops without progress)
-- Actions: pause, alert, escalate, or auto-abort
-- **Stale task recovery:** Auto-reopen tasks stuck `in_progress` beyond timeout
-
-Configuration: `stagnation.threshold`, `stagnation.action`
+| Feature | Status | Spec |
+|---------|--------|------|
+| Language Migration (Go + Python) | Active (feat/go-rewrite) | `planned/language-migration.md` |
 
 ---
 
-### [RA] Re-anchoring Mechanism
+## 🔬 Researching (`specs/researching/`)
 
-**Source:** Flow-Next
-**Complexity:** Low
+Features in early research/design phase. Still answering key questions, exploring approaches.
 
-Prevent task drift by re-reading context before each task:
-- Reload PROMPT.md, AGENT.md, and current task spec before each iteration
-- Include git status summary in task context
-- Configurable anchoring sources
+### Core Infrastructure
 
-Configuration: `anchoring.sources`, `anchoring.include_git_state`
+| Spec | Focus | Status |
+|------|-------|--------|
+| `harness-abstraction.md` | **🔥 Multi-provider LLM interface** | **CRITICAL - Interface design, hook system, provider auth** |
+| `toolsmith.md` | **Meta-tool for tool discovery/adoption** | **Needs discovery source prioritization, evaluation criteria** |
+| `tool-marketplace.md` | **ClawdHub-style collection of cub tools** | **Needs distribution model, packaging format, quality standards** |
+| `tools-registry.md` | Unified tool discovery/execution | Needs format decisions, MCP integration |
+| `workflow-management.md` | YAML-based orchestration | Needs expression language, human handoff UX |
+| `ai-assisted-pm-shaping-model.md` | PM workflow modes | Needs operationalization |
 
----
+**Major Decisions Made:**
+- ✅ **Python is primary language** (enables Claude Agent SDK, simplifies harness design)
+- ✅ **Claude Agent SDK as foundation** (use hooks, custom tools, streaming)
+- ✅ **Harness abstraction spec complete** (researching/harness-abstraction.md)
 
-### [CHA] Codebase Health Audit
+**Blockers Resolved:**
+- ~~Harness Abstraction~~ → **Spec complete, unblocks implementation of:**
+  - Multi-model review (readiness: 5 → 7)
+  - Tools registry (readiness: 6 → 7)
+  - Workflow management (readiness: 7 → 8)
+  - Toolsmith (readiness: 4 → 5)
 
-**Source:** Original
-**Complexity:** Medium
+**Remaining Blockers:**
+- Toolsmith: Needs discovery source prioritization, evaluation criteria definition
+- Tool Marketplace: Needs distribution model (central vs git-based), packaging format, quality standards
+- Tools registry: Needs registry format decision, MCP integration design, authentication approach
+- Workflow management: Needs expression language choice, human handoff UX, state persistence format
+- PM shaping: Needs breaking down into specific features
 
-Systematic analysis to maintain codebase quality:
+**Note:** Harness abstraction provides unified interface for multi-LLM support. Claude harness uses Agent SDK for special abilities (hooks, custom tools, streaming). Other harnesses use appropriate SDKs or shell-out with graceful feature degradation. Toolsmith can help bootstrap other wishlist tools. Tool marketplace publishes implementations for community use.
 
-- **Dead Code Detection** — Unused functions, variables, orphan files
-- **Documentation Freshness** — README validation, docstring coverage
-- **Test Coverage Analysis** — Per-file coverage, test-code alignment
-- **Consistency Analysis** — Naming conventions, pattern consistency
+### Feature Development
 
-Commands: `cub audit`, `cub audit --fix`, `cub audit --ci`
+| Spec | Focus | Status |
+|------|-------|--------|
+| `capture-workflow.md` | Capture → spec pipeline | Depends on workflow engine |
+| `pm-workbench.md` | Integrated PM environment | Vision doc, needs scoping |
 
----
+### Analysis & Strategy
 
-### [AED] Advanced Error Detection
-
-**Source:** Ralph
-**Complexity:** Low
-
-Improved error identification in AI output:
-- Two-stage filtering to eliminate false positives
-- Multi-line pattern matching for complex errors
-- Categorize errors (syntax, runtime, test failure, etc.)
-
----
-
-### [SM] Sandbox Mode
-
-**Source:** Original
-**Complexity:** Medium
-
-Execute cub runs in isolated sandbox environments:
-- Provider-agnostic abstraction (Docker, Sprites.dev)
-- Isolated filesystem, optional network isolation
-- Resource limits (CPU, memory, timeout)
-- Easy diff viewing and change extraction
-
-Commands: `cub run --sandbox`, `cub sandbox diff|apply|clean`
+| Spec | Purpose |
+|------|---------|
+| `external-tools-analysis.md` | Analysis of Gas Town, Compound, Loom |
+| `knowledge-retention-system.md` | Cross-run knowledge compounding |
 
 ---
 
-### [PDW] Parallel Development with Worktrees
+## Key Dependencies & Blockers
 
-**Source:** Original
-**Complexity:** Medium
+### Architectural Decisions Needed
 
-Safe testing of multiple approaches using git worktrees:
-- Isolate experimental work
-- Run multiple cub sessions on different branches
-- Foundation for multi-agent orchestration
+1. **Harness Abstraction**
+   - Blocks: Multi-Model Review, Tools Registry, Workflow Management
+   - Need: Define harness interface for swappable LLM providers
 
----
+2. **Workflow Engine**
+   - Blocks: Capture Workflow, PM Shaping implementation
+   - Need: Decide native YAML vs Windmill/Temporal
 
-### [DCE] Dual-Condition Exit Gate
+3. **MCP Integration**
+   - Blocks: Tools Registry, Verification Integrations
+   - Need: Stable MCP protocol integration
 
-**Source:** Ralph
-**Depends on:** [CB] (soft)
-**Complexity:** Low
+### Design Questions to Resolve
 
-More sophisticated completion detection:
-- Require both completion indicators AND explicit exit signal
-- Configurable indicator threshold
-- Prevent premature exits on false positives
+4. **Error Taxonomy** - What failure patterns should we detect?
+   - Blocks: Advanced Error Detection, Circuit Breaker tuning
 
----
+5. **Metrics/Observability** - What should we measure?
+   - Blocks: Runs Analysis, Live Dashboard enhancements
 
-### [FCM] Fresh Context Mode
-
-**Source:** Flow-Next
-**Depends on:** [RA]
-**Complexity:** Low
-
-Option to start fresh context each iteration:
-- Clear accumulated context between tasks
-- Trade-off: loses inter-task learning vs gains consistency
-- Useful for overnight autonomous runs
-
-Configuration: `context.fresh_per_task: true`
+6. **Human Handoff UX** - How to pause and ask for input?
+   - Blocks: Workflow Management, Interview Mode enhancements
 
 ---
 
-### [IR] Implementation Review
+## Next Steps
 
-**Source:** Flow-Next
-**Depends on:** [PR] for full workflow
-**Complexity:** Medium
+### Immediate (This Week)
 
-Automated review after task completion:
-- Correctness verification
-- DRY principle adherence
-- Test coverage assessment
-- Security scan (OWASP basics)
+1. **Implement Circuit Breaker** - Clear spec, high value, standalone
+2. **Implement Receipt-Based Gating** - Similar to guardrails
 
-Command: `cub review <task-id>`
+### Short Term (Next 2 Weeks)
 
----
+3. **Resolve Harness Abstraction** - Critical blocker
+   - Design harness interface
+   - Implement Claude harness
+   - Add config for harness selection
 
-### [RBG] Receipt-Based Gating
+4. **Build Minimal Workflow Engine** - Unblocks multiple features
+   - Simple sequential workflows (YAML)
+   - Conditional branching
+   - Tool execution layer
 
-**Source:** Flow-Next
-**Depends on:** [IR]
-**Complexity:** Medium
+5. **Define Core Metrics** - Needed for observability
+   - What to track per run
+   - Success/failure criteria
+   - Performance indicators
 
-Require proof-of-work before marking tasks complete:
-- Define required artifacts per task type
-- Validate artifacts exist and pass checks
-- Configurable strictness levels
+### Medium Term (Next Month)
 
----
-
-### [MMR] Multi-Model Review
-
-**Source:** Flow-Next
-**Depends on:** [IR]
-**Complexity:** Medium
-
-Cross-validate work using different AI models:
-- Run implementation review with secondary model
-- Compare assessments for discrepancies
-- Flag disagreements for human review
+6. **Complete Capture Feature** - Finish implementation
+7. **Enhance Interview Mode** - Improve UX for ambiguous tasks
+8. **Build Runs Analysis** - Use metrics from step 5
 
 ---
 
-### [RAI] Runs Analysis & Intelligence
+## Tools Wishlist
 
-**Source:** Original
-**Complexity:** Medium
+To move specs from researching → planned, we need better research/design/decision tools.
 
-Extract actionable insights from completed runs:
-- **Instruction Clarity** — Detect agent confusion signals
-- **Task Quality** — Correlate structure with success/failure
-- **Hook Opportunities** — Suggest automation patterns
-- **Delegation Gaps** — Find improvisation vs cub commands
+See `specs/TOOLS-WISHLIST.md` for comprehensive list including:
 
-Commands: `cub analyze`, `cub analyze --suggest-hooks`
+**High Priority:**
+- Complexity Estimator
+- Trade-off Analyzer
+- Dependency Analyzer
+- Readiness Score Calculator
+- Technical Feasibility Checker
 
----
-
-### [VI] Verification Integrations
-
-**Source:** Ramp's Inspect
-**Complexity:** High
-
-Connect cub to external services for real-world validation:
-- **Verification Protocol** — Standard interface for verifiers
-- **Built-in verifiers** — tests, build, lint
-- **External verifiers** — Sentry, Datadog, Lighthouse (plugins)
-
-Commands: `cub verify <task-id>`, `cub verify --list`
+**Medium Priority:**
+- Design Pattern Matcher
+- Risk Scorer
+- API Design Validator
+- Test Coverage Planner
 
 ---
 
-### [MAO] Multi-Agent Orchestration
+## External Inspiration
 
-**Source:** Gas Town
-**Complexity:** High
-**Status:** Research
+Features being considered based on analysis of adjacent tools:
 
-Coordinate multiple AI agents working concurrently:
-- Convoy system for bundling related tasks
-- Worktree-per-agent isolation
-- Merge queue for conflict resolution
-- Scale to 20-30 agents
+| Feature | Source | Status |
+|---------|--------|--------|
+| Session Checkpointing | Gas Town | Research |
+| Team Knowledge Base | Compound | Research |
+| Agent Personas | Gas Town | Research |
+| Workflow Recipes | Gas Town | Research |
 
-See: `specs/research/external-tools-analysis.md`
-
----
-
-### [SC] Session Checkpointing
-
-**Source:** Gas Town
-**Complexity:** Medium
-**Status:** Research
-
-Persist session state to git for resume after interrupts:
-- Periodic automatic checkpoints
-- Preserve conversation context and partial work
-- Resume from specific checkpoint
+See: `specs/researching/external-tools-analysis.md` for analysis of Gas Town, Compound, and other tools.
 
 ---
 
-### [TKB] Team Knowledge Base
+## Spec Health Notes
 
-**Source:** Compound Engineering
-**Complexity:** Medium
-**Status:** Research
+### Consolidation Candidates
 
-Cross-project knowledge that compounds over time:
-- Patterns and anti-patterns library
-- Promote guardrails to team knowledge
-- Git-backed sync across team
+These specs may overlap and could be unified:
+- `pm-workbench.md` + `ai-assisted-pm-shaping-model.md` + parts of `vision-to-tasks-pipeline.md`
 
----
+### Missing Critical Specs
 
-### [AP] Agent Personas
-
-**Source:** Gas Town
-**Complexity:** Medium
-**Status:** Research
-
-Specialized agent configurations for different task types:
-- `test-writer` — Edge cases, thorough coverage
-- `refactorer` — Careful, test-preserving changes
-- `security-auditor` — Adversarial thinking
+Need to create:
+- **Harness abstraction** (critical dependency for multiple features)
+- **Autonomy model** (referenced but doesn't exist)
+- **MCP integration** (assumed by tools-registry)
 
 ---
 
-### [WR] Workflow Recipes
+## Version History
 
-**Source:** Gas Town
-**Complexity:** Low
-**Status:** Research
+Recent releases (see `CHANGELOG.md` for complete history):
 
-TOML-based reusable workflow templates:
-- Parameterized multi-step workflows
-- Built-in recipes for common patterns
-- Shareable across projects
+- **v0.26.x** (current) - Python CLI migration, GitHub integration improvements
+- **v0.23.0** - Live Dashboard
+- **v0.20.0** - Guardrails System
+- **v0.19.0** - Git Workflow Integration
+- **v0.18.0** - Onboarding & Organization
+- **v0.17.0** - PRD Import
+- **v0.16.0** - Interview Mode
+- **v0.15.0** - Plan Review
+- **v0.14.0** - Vision-to-Tasks Pipeline
 
 ---
 
-## Notes
-
-- Features marked standalone can be implemented in any order
-- Dependent features should follow their prerequisites
-- Version numbers are assigned at release time based on what ships
-- The "Next" section reflects current priorities but isn't a commitment
-- Move features between sections freely as priorities evolve
+**Related Docs:**
+- `specs/SPEC-TEMPLATE.md` - Frontmatter schema for specs
+- `specs/TOOLS-WISHLIST.md` - Tools we wish we had
+- `CHANGELOG.md` - Released features by version
+- `sketches/` - Investigations, notes, and artifacts
