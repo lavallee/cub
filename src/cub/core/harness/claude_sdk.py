@@ -9,17 +9,25 @@ Requires:
     - Claude Code CLI (bundled with the package)
 """
 
+import logging
 import shutil
 import subprocess
 import time
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from .async_backend import register_async_backend
+
+# SDK permission mode type
+PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
 from .models import (
     HarnessCapabilities,
     HarnessFeature,
+    HookContext,
+    HookEvent,
+    HookHandler,
+    HookResult,
     Message,
     TaskInput,
     TaskResult,
@@ -30,6 +38,8 @@ from .models import (
 if TYPE_CHECKING:
     from claude_agent_sdk import ClaudeAgentOptions
     from claude_agent_sdk import Message as SDKMessage
+
+logger = logging.getLogger(__name__)
 
 
 def _sdk_available() -> bool:
@@ -62,7 +72,7 @@ def _build_options(task_input: TaskInput) -> "ClaudeAgentOptions":
     from claude_agent_sdk import ClaudeAgentOptions
 
     # Determine permission mode based on auto_approve
-    permission_mode: str | None = None
+    permission_mode: PermissionMode | None = None
     if task_input.auto_approve:
         permission_mode = "acceptEdits"
 
@@ -216,7 +226,18 @@ class ClaudeSDKHarness:
     - Custom tool definitions via MCP servers
     - Stateful sessions via ClaudeSDKClient
     - Token usage and cost tracking from ResultMessage
+
+    Hook System:
+        The harness supports registering hooks for various events (PRE_TASK,
+        POST_TASK, PRE_TOOL_USE, POST_TOOL_USE, ON_ERROR, ON_MESSAGE).
+        PRE_TOOL_USE hooks are mapped to the SDK's PreToolUse hook mechanism.
     """
+
+    def __init__(self) -> None:
+        """Initialize the harness with empty hook registry."""
+        self._hooks: dict[HookEvent, list[HookHandler]] = {
+            event: [] for event in HookEvent
+        }
 
     @property
     def name(self) -> str:
@@ -270,6 +291,128 @@ class ClaudeSDKHarness:
         """
         return True
 
+    def register_hook(
+        self,
+        event: HookEvent,
+        handler: HookHandler,
+    ) -> None:
+        """
+        Register a hook handler for an event.
+
+        Multiple handlers can be registered for the same event and will
+        be executed in registration order. If any handler returns a
+        HookResult with block=True, subsequent handlers are not called.
+
+        Currently supported events:
+        - PRE_TASK: Executed before task starts (can block task)
+        - POST_TASK: Executed after task completes (run_task only)
+        - ON_ERROR: Executed when an error occurs
+        - ON_MESSAGE: Executed when a message is received (run_task only)
+
+        Future SDK integration (requires ClaudeSDKClient):
+        - PRE_TOOL_USE: Will map to SDK's PreToolUse hook
+        - POST_TOOL_USE: Will map to SDK's PostToolUse hook
+
+        Args:
+            event: Event to hook (PRE_TASK, POST_TASK, PRE_TOOL_USE, etc.)
+            handler: Async function that receives HookContext and returns
+                     HookResult or None
+
+        Note:
+            PRE_TOOL_USE and POST_TOOL_USE hooks are registered but not yet
+            executed via the SDK. Full SDK hook integration requires using
+            ClaudeSDKClient instead of query() function. These hooks will be
+            activated in a future update.
+        """
+        self._hooks[event].append(handler)
+        if event in (HookEvent.PRE_TOOL_USE, HookEvent.POST_TOOL_USE):
+            logger.warning(
+                "Hook for event %s registered but not yet active. "
+                "Tool-level hooks require ClaudeSDKClient (future feature).",
+                event.value,
+            )
+        logger.debug("Registered hook for event %s: %s", event.value, handler.__name__)
+
+    def unregister_hook(
+        self,
+        event: HookEvent,
+        handler: HookHandler,
+    ) -> bool:
+        """
+        Unregister a hook handler.
+
+        Args:
+            event: Event the handler was registered for
+            handler: Handler function to remove
+
+        Returns:
+            True if handler was found and removed, False otherwise
+        """
+        try:
+            self._hooks[event].remove(handler)
+            logger.debug(
+                "Unregistered hook for event %s: %s", event.value, handler.__name__
+            )
+            return True
+        except ValueError:
+            return False
+
+    def clear_hooks(self, event: HookEvent | None = None) -> None:
+        """
+        Clear all hooks for an event, or all hooks if no event specified.
+
+        Args:
+            event: Event to clear hooks for, or None to clear all
+        """
+        if event is None:
+            for ev in HookEvent:
+                self._hooks[ev] = []
+            logger.debug("Cleared all hooks")
+        else:
+            self._hooks[event] = []
+            logger.debug("Cleared hooks for event %s", event.value)
+
+    async def _execute_hooks(
+        self,
+        event: HookEvent,
+        context: HookContext,
+    ) -> HookResult:
+        """
+        Execute all registered hooks for an event.
+
+        Hooks are executed in registration order. If any hook returns
+        a HookResult with block=True, execution stops and that result
+        is returned. Otherwise, a non-blocking result is returned.
+
+        Args:
+            event: Event being triggered
+            context: Context with event details
+
+        Returns:
+            HookResult with block status and optional modifications
+        """
+        for handler in self._hooks[event]:
+            try:
+                result = await handler(context)
+                if result is not None and result.block:
+                    logger.debug(
+                        "Hook blocked event %s: %s (reason: %s)",
+                        event.value,
+                        handler.__name__,
+                        result.reason,
+                    )
+                    return result
+            except Exception as e:
+                logger.warning(
+                    "Hook %s raised exception for event %s: %s",
+                    handler.__name__,
+                    event.value,
+                    e,
+                )
+                # Continue with other hooks on exception
+
+        return HookResult(block=False)
+
     async def run_task(
         self,
         task_input: TaskInput,
@@ -280,6 +423,12 @@ class ClaudeSDKHarness:
 
         Uses the SDK's query() function to run a single-shot task.
         Collects all messages and returns complete result.
+
+        Hook execution points:
+        - PRE_TASK: Before task execution (can block task)
+        - POST_TASK: After task completion
+        - ON_ERROR: When an error occurs
+        - ON_MESSAGE: When a message is received (per-message)
 
         Args:
             task_input: Task parameters (prompt, model, permissions, etc.)
@@ -305,6 +454,25 @@ class ClaudeSDKHarness:
         )
 
         start_time = time.time()
+
+        # Execute PRE_TASK hooks - can block task execution
+        pre_task_context = HookContext(
+            event=HookEvent.PRE_TASK,
+            task_id=task_input.session_id,
+            metadata={"prompt": task_input.prompt, "model": task_input.model},
+        )
+        pre_task_result = await self._execute_hooks(HookEvent.PRE_TASK, pre_task_context)
+        if pre_task_result.block:
+            duration = time.time() - start_time
+            return TaskResult(
+                output="",
+                usage=TokenUsage(),
+                duration_seconds=duration,
+                exit_code=1,
+                error=f"Task blocked by hook: {pre_task_result.reason or 'No reason given'}",
+                messages=[],
+            )
+
         options = _build_options(task_input)
 
         # Collect messages and output
@@ -321,6 +489,15 @@ class ClaudeSDKHarness:
                 parsed = _parse_sdk_message(sdk_message)
                 if parsed is not None:
                     messages.append(parsed)
+
+                    # Execute ON_MESSAGE hooks
+                    msg_context = HookContext(
+                        event=HookEvent.ON_MESSAGE,
+                        task_id=task_input.session_id,
+                        message_content=parsed.content,
+                        message_role=parsed.role,
+                    )
+                    await self._execute_hooks(HookEvent.ON_MESSAGE, msg_context)
 
                 # Extract text for output
                 text = _extract_text_from_message(sdk_message)
@@ -341,6 +518,13 @@ class ClaudeSDKHarness:
 
         except CLINotFoundError as e:
             duration = time.time() - start_time
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             return TaskResult(
                 output="",
                 usage=TokenUsage(),
@@ -352,6 +536,13 @@ class ClaudeSDKHarness:
 
         except CLIConnectionError as e:
             duration = time.time() - start_time
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             return TaskResult(
                 output="",
                 usage=TokenUsage(),
@@ -363,6 +554,13 @@ class ClaudeSDKHarness:
 
         except ProcessError as e:
             duration = time.time() - start_time
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             return TaskResult(
                 output="",
                 usage=TokenUsage(),
@@ -374,6 +572,13 @@ class ClaudeSDKHarness:
 
         except Exception as e:
             duration = time.time() - start_time
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             return TaskResult(
                 output="",
                 usage=TokenUsage(),
@@ -386,7 +591,7 @@ class ClaudeSDKHarness:
         duration = time.time() - start_time
         output_text = "".join(output_chunks)
 
-        return TaskResult(
+        result = TaskResult(
             output=output_text,
             usage=usage,
             duration_seconds=duration,
@@ -395,6 +600,20 @@ class ClaudeSDKHarness:
             messages=messages,
             session_id=session_id,
         )
+
+        # Execute POST_TASK hooks
+        post_task_context = HookContext(
+            event=HookEvent.POST_TASK,
+            task_id=session_id,
+            metadata={
+                "output": output_text,
+                "exit_code": exit_code,
+                "usage": usage.model_dump() if usage else {},
+            },
+        )
+        await self._execute_hooks(HookEvent.POST_TASK, post_task_context)
+
+        return result
 
     async def stream_task(
         self,
@@ -407,6 +626,13 @@ class ClaudeSDKHarness:
         Uses the SDK's query() function with real-time text extraction.
         Yields text chunks as they're generated.
 
+        Hook execution points:
+        - PRE_TASK: Before task execution (can block task)
+        - ON_ERROR: When an error occurs
+
+        Note: POST_TASK hooks are not executed in streaming mode since
+        the caller controls when iteration ends.
+
         Args:
             task_input: Task parameters
             debug: Enable debug logging
@@ -415,7 +641,8 @@ class ClaudeSDKHarness:
             Output chunks as strings
 
         Raises:
-            RuntimeError: If SDK is not available or invocation fails
+            RuntimeError: If SDK is not available, invocation fails,
+                         or task is blocked by PRE_TASK hook
         """
         if not self.is_available():
             raise RuntimeError(
@@ -429,6 +656,18 @@ class ClaudeSDKHarness:
             query,
         )
 
+        # Execute PRE_TASK hooks - can block task execution
+        pre_task_context = HookContext(
+            event=HookEvent.PRE_TASK,
+            task_id=task_input.session_id,
+            metadata={"prompt": task_input.prompt, "model": task_input.model},
+        )
+        pre_task_result = await self._execute_hooks(HookEvent.PRE_TASK, pre_task_context)
+        if pre_task_result.block:
+            raise RuntimeError(
+                f"Task blocked by hook: {pre_task_result.reason or 'No reason given'}"
+            )
+
         options = _build_options(task_input)
 
         try:
@@ -439,12 +678,33 @@ class ClaudeSDKHarness:
                     yield text
 
         except CLINotFoundError as e:
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             raise RuntimeError(f"Claude Code CLI not found: {e}") from e
 
         except CLIConnectionError as e:
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             raise RuntimeError(f"Failed to connect to Claude Code: {e}") from e
 
         except ProcessError as e:
+            # Execute ON_ERROR hooks
+            error_context = HookContext(
+                event=HookEvent.ON_ERROR,
+                task_id=task_input.session_id,
+                error=e,
+            )
+            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             raise RuntimeError(f"Claude Code process failed: {e}") from e
 
     def get_version(self) -> str:

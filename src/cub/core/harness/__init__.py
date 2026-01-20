@@ -62,6 +62,10 @@ from .models import (
     HarnessCapabilities,
     HarnessFeature,
     HarnessResult,
+    HookContext,
+    HookEvent,
+    HookHandler,
+    HookResult,
     Message,
     TaskInput,
     TaskResult,
@@ -97,6 +101,11 @@ __all__ = [
     "TokenUsage",
     "Message",
     "ToolUse",
+    # Hook types
+    "HookEvent",
+    "HookContext",
+    "HookResult",
+    "HookHandler",
     # Constants
     "HARNESS_CAP_STREAMING",
     "HARNESS_CAP_TOKEN_REPORTING",
