@@ -20,6 +20,13 @@ ID Formats (beads-compatible):
     - Subtask: {task_id}.{number} (e.g., cub-k7m.1.1)
 """
 
+from cub.core.plan.context import (
+    OrientDepth,
+    PlanContext,
+    PlanContextError,
+    PlanExistsError,
+    SpecNotFoundError,
+)
 from cub.core.plan.ids import (
     generate_epic_id,
     generate_subtask_id,
@@ -37,6 +44,14 @@ from cub.core.plan.models import (
     SpecStage,
     StageStatus,
 )
+from cub.core.plan.orient import (
+    OrientInputError,
+    OrientQuestion,
+    OrientResult,
+    OrientStage,
+    OrientStageError,
+    run_orient,
+)
 
 __all__ = [
     # Models
@@ -45,6 +60,19 @@ __all__ = [
     "PlanStatus",
     "SpecStage",
     "StageStatus",
+    # Context
+    "PlanContext",
+    "PlanContextError",
+    "PlanExistsError",
+    "SpecNotFoundError",
+    "OrientDepth",
+    # Orient Stage
+    "OrientStage",
+    "OrientResult",
+    "OrientQuestion",
+    "OrientStageError",
+    "OrientInputError",
+    "run_orient",
     # ID utilities
     "generate_epic_id",
     "generate_task_id",

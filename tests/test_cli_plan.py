@@ -50,23 +50,25 @@ class TestPlanOrientSubcommand:
         # Should show spec argument
         assert "spec" in result.output.lower()
 
-    def test_orient_not_implemented(self) -> None:
-        """Test that orient shows 'not implemented' message."""
+    def test_orient_requires_spec(self) -> None:
+        """Test that orient without spec shows appropriate message."""
         result = runner.invoke(app, ["plan", "orient"])
         assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+        # Now implemented - requires a spec
+        assert "no spec provided" in result.output.lower()
 
-    def test_orient_with_spec_argument(self) -> None:
-        """Test that orient accepts a spec argument."""
+    def test_orient_with_nonexistent_spec(self) -> None:
+        """Test that orient with non-existent spec shows error."""
         result = runner.invoke(app, ["plan", "orient", "spec-abc123"])
         assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+        # Should report spec not found
+        assert "spec not found" in result.output.lower()
 
     def test_orient_verbose_flag(self) -> None:
         """Test that orient accepts --verbose flag."""
         result = runner.invoke(app, ["plan", "orient", "-v"])
         assert result.exit_code == 1
-        # Verbose mode should be accepted
+        # Verbose mode should be accepted (still errors without spec)
 
 
 class TestPlanArchitectSubcommand:

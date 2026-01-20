@@ -2457,3 +2457,81 @@ Created beads-compatible ID generation utilities for the plan module.
 
 4. **Three-Level Hierarchy Limit:** Deliberately limited to epic -> task -> subtask (3 levels) to match beads issue tracking constraints. `parse_id()` validates this and raises for deeper nesting.
 
+
+## 2026-01-20: cub-p2p.1 - Create cub plan CLI skeleton
+
+### Task Summary
+Created the `cub plan` CLI skeleton with three subcommands: orient, architect, and itemize.
+
+### Implementation Details
+- Created `src/cub/cli/plan.py` with a Typer app structure
+- Three subcommands: orient, architect, itemize - all accept optional spec argument and verbose flag
+- Commands exit with code 1 showing "not yet implemented" message (skeleton)
+- Updated `src/cub/cli/__init__.py` to import and register the plan module
+- Replaced the bash-delegated `plan` command with native Typer app
+- Created comprehensive tests in `tests/test_cli_plan.py`
+- Updated test files that referenced delegated `plan` command
+
+### Patterns Used
+- `app = typer.Typer(name="plan", help="...", no_args_is_help=True)` for the main app
+- `@app.command()` decorator for subcommands
+- `ctx.obj.get("debug", False)` pattern for accessing global debug flag
+- `typer.Exit(1)` for not-implemented skeleton commands
+
+### Test Updates Required
+When converting a delegated command to native Typer:
+1. Remove from delegated command parametrized tests
+2. Create new test file for the native command
+3. Update any existing tests that specifically tested delegation
+
+### Notes
+- Typer's `no_args_is_help=True` returns exit code 2 (not 0) when showing help
+- Pre-existing lint and mypy errors in other files are not related to this task
+- All 62 related tests pass, overall 1005 tests pass
+
+
+## 2026-01-20: cub-p2p.2 - Implement orient stage
+
+### Task Summary
+Implemented the orient interview stage for gathering requirements and understanding the problem space from spec files.
+
+### Implementation Details
+Created two new modules:
+
+**src/cub/core/plan/context.py - PlanContext class:**
+- Factory method `create()` handles slug derivation from spec path
+- Slug collision detection with `_alt_[a-z]` suffix pattern  
+- Path helpers for plan_dir, orientation_path, etc.
+- Methods for reading spec content, SYSTEM-PLAN.md, and CLAUDE.md
+- `load()` method for resuming existing plans
+
+**src/cub/core/plan/orient.py - OrientStage class:**
+- Validation requiring a spec file (interactive mode deferred)
+- Context gathering from project (spec, system plan, agent instructions)
+- Spec parsing with regex extraction of title, overview, goals, questions
+- Orientation.md generation with markdown structure matching existing example
+- OrientResult dataclass with timing and extracted information
+
+**CLI Implementation:**
+- Updated `cub plan orient` to accept spec argument with path resolution
+- Searches spec directories (researching, planned, staged, implementing, released)
+- Options: --depth (light/standard/deep), --slug, --project-root, --verbose
+- Project identifier detection from pyproject.toml or package.json
+
+### Test Coverage
+36 new tests in `tests/test_plan_orient.py` covering:
+- PlanContext creation, paths, reading, loading
+- OrientStage validation, running, extraction
+- CLI integration tests with real file creation
+
+### Patterns Used
+- Pydantic BaseModel with `computed_field` for derived properties
+- TYPE_CHECKING guard for circular import prevention
+- Factory pattern with `@classmethod` for flexible construction
+- Regex-based markdown parsing (simple extraction, LLM enhancement deferred)
+
+### Design Decisions
+1. **Spec Required:** Interactive mode without spec file is explicitly deferred - raises OrientInputError
+2. **Simple Extraction:** Used regex to extract title, overview, goals from spec markdown. More sophisticated LLM-based extraction can be added later.
+3. **Collision Handling:** Tries `_alt_a` through `_alt_z` suffixes, raises PlanExistsError if all exhausted
+4. **Path Relative:** Orientation.md includes relative link back to source spec using `../../specs/...` pattern
