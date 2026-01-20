@@ -14,6 +14,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from cub.core.plan.architect import ArchitectStage, ArchitectStageError
 from cub.core.plan.context import (
     OrientDepth,
     PlanContext,
@@ -284,15 +285,38 @@ def orient(
 @app.command()
 def architect(
     ctx: typer.Context,
-    spec: str | None = typer.Argument(
+    plan_slug: str | None = typer.Argument(
         None,
-        help="Spec ID or path to architect from (default: active spec)",
+        help="Plan slug to continue architecturing (default: infer from spec)",
+    ),
+    spec: str | None = typer.Option(
+        None,
+        "--spec",
+        "-s",
+        help="Spec ID or path to find existing plan",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
         "-v",
         help="Show detailed output",
+    ),
+    mindset: str = typer.Option(
+        "mvp",
+        "--mindset",
+        "-m",
+        help="Technical mindset: prototype, mvp, production, or enterprise",
+    ),
+    scale: str = typer.Option(
+        "team",
+        "--scale",
+        help="Expected scale: personal, team, product, or internet-scale",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
     ),
 ) -> None:
     """
@@ -303,20 +327,143 @@ def architect(
     - Identifies integration points
     - Documents design decisions and trade-offs
 
+    Requires orient phase to be complete first.
+
     Examples:
-        cub plan architect
-        cub plan architect spec-abc123
-        cub plan architect path/to/spec.md
+        cub plan architect                     # Use most recent plan
+        cub plan architect my-feature          # Specific plan by slug
+        cub plan architect --spec my-feature   # Find plan by spec name
+        cub plan architect --mindset production
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
+    project_root = project_root.resolve()
 
     if verbose or debug:
-        console.print(f"[dim]Debug mode: {debug}[/dim]")
+        console.print(f"[dim]Project root: {project_root}[/dim]")
+        if plan_slug:
+            console.print(f"[dim]Plan slug: {plan_slug}[/dim]")
         if spec:
             console.print(f"[dim]Spec: {spec}[/dim]")
 
-    console.print("[yellow]architect command not yet implemented[/yellow]")
-    raise typer.Exit(1)
+    # Validate mindset
+    valid_mindsets = ["prototype", "mvp", "production", "enterprise"]
+    if mindset.lower() not in valid_mindsets:
+        console.print(
+            f"[red]Invalid mindset: {mindset}. Valid options: {', '.join(valid_mindsets)}[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Validate scale
+    valid_scales = ["personal", "team", "product", "internet-scale"]
+    if scale.lower() not in valid_scales:
+        console.print(
+            f"[red]Invalid scale: {scale}. Valid options: {', '.join(valid_scales)}[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Find the plan to continue
+    plan_dir: Path | None = None
+
+    if plan_slug:
+        # Direct slug provided
+        plan_dir = project_root / "plans" / plan_slug
+        if not plan_dir.exists():
+            console.print(f"[red]Plan not found: {plan_slug}[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+    elif spec:
+        # Find plan by spec name
+        spec_name = Path(spec).stem
+        plan_dir = project_root / "plans" / spec_name
+        if not plan_dir.exists():
+            # Try finding by searching plans directory
+            plans_root = project_root / "plans"
+            if plans_root.exists():
+                for candidate in plans_root.iterdir():
+                    if candidate.is_dir() and spec_name in candidate.name:
+                        plan_dir = candidate
+                        break
+        if not plan_dir or not plan_dir.exists():
+            console.print(f"[red]No plan found for spec: {spec}[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+    else:
+        # Find most recent plan
+        plans_root = project_root / "plans"
+        if not plans_root.exists():
+            console.print("[red]No plans found.[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+
+        # Find most recently modified plan directory
+        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir() and (d / "plan.json").exists()]
+        if not plan_dirs:
+            console.print("[red]No plans found.[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+
+        # Sort by modification time, most recent first
+        plan_dirs.sort(key=lambda p: (p / "plan.json").stat().st_mtime, reverse=True)
+        plan_dir = plan_dirs[0]
+
+    if verbose or debug:
+        console.print(f"[dim]Using plan: {plan_dir.name}[/dim]")
+
+    # Load plan context
+    try:
+        plan_ctx = PlanContext.load(plan_dir, project_root)
+    except FileNotFoundError as e:
+        console.print(f"[red]Error loading plan: {e}[/red]")
+        raise typer.Exit(1)
+    except PlanContextError as e:
+        console.print(f"[red]Error loading plan context: {e}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]Architecting:[/bold] {plan_ctx.plan.slug}")
+    console.print(f"[dim]Mindset: {mindset} | Scale: {scale}[/dim]")
+
+    # Run architect stage
+    try:
+        stage = ArchitectStage(plan_ctx, mindset=mindset.lower(), scale=scale.lower())
+        result = stage.run()
+    except ArchitectStageError as e:
+        console.print(f"[red]Architect stage failed: {e}[/red]")
+        raise typer.Exit(1)
+    except SpecNotFoundError as e:
+        console.print(f"[red]Spec not found: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        if debug:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # Report success
+    console.print()
+    console.print("[green]Architect complete![/green]")
+    console.print(
+        f"[dim]Output: {result.output_path.relative_to(project_root)}[/dim]"
+    )
+    console.print(
+        f"[dim]Duration: {result.duration_seconds:.1f}s[/dim]"
+    )
+
+    if verbose:
+        console.print()
+        console.print("[bold]Summary:[/bold]")
+        console.print(f"  Mindset: {result.mindset}")
+        console.print(f"  Scale: {result.scale}")
+        if result.tech_stack:
+            console.print(f"  Tech stack choices: {len(result.tech_stack)}")
+        if result.components:
+            console.print(f"  Components: {len(result.components)}")
+        if result.implementation_phases:
+            console.print(f"  Implementation phases: {len(result.implementation_phases)}")
+
+    console.print()
+    console.print("[bold]Next step:[/bold] cub plan itemize")
 
 
 @app.command()

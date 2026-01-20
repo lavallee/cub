@@ -44,6 +44,18 @@ from cub.core.plan.models import (
     SpecStage,
     StageStatus,
 )
+from cub.core.plan.architect import (
+    ArchitectInputError,
+    ArchitectQuestion,
+    ArchitectResult,
+    ArchitectStage,
+    ArchitectStageError,
+    Component,
+    ImplementationPhase,
+    TechStackChoice,
+    TechnicalRisk,
+    run_architect,
+)
 from cub.core.plan.orient import (
     OrientInputError,
     OrientQuestion,
@@ -73,6 +85,17 @@ __all__ = [
     "OrientStageError",
     "OrientInputError",
     "run_orient",
+    # Architect Stage
+    "ArchitectStage",
+    "ArchitectResult",
+    "ArchitectQuestion",
+    "ArchitectStageError",
+    "ArchitectInputError",
+    "TechStackChoice",
+    "Component",
+    "ImplementationPhase",
+    "TechnicalRisk",
+    "run_architect",
     # ID utilities
     "generate_epic_id",
     "generate_task_id",
