@@ -21,6 +21,7 @@ from cub.cli import (
     pr,
     run,
     sandbox,
+    stage,
     status,
     uninstall,
     upgrade,
@@ -114,6 +115,7 @@ app.command(
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )(delegated.architect)
 app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PREP)
+app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PREP)
 app.command(
     name="bootstrap",
     rich_help_panel=PANEL_PREP,
