@@ -2139,3 +2139,122 @@ Implemented interactive capture mode that launches Claude with the /cub:capture 
 ### Commit
 884abc4 task(cub-CAP.6): Implement cub capture -i interactive mode
 
+
+## Session: 2026-01-19 - Async Harness Protocol Foundation
+
+### Task
+cub-k41.1: Create async harness protocol and models
+
+### What Changed
+
+Created the foundational async harness architecture for multi-provider support:
+
+1. **Dependencies**: Added `anyio>=4.0.0` to runtime deps and `pytest-asyncio>=0.23.0` to dev deps
+2. **Extended HarnessCapabilities**: Added 5 new capability fields for SDK features (hooks, custom_tools, sessions, session_forking, subagents)
+3. **New HarnessFeature Enum**: Type-safe enum for feature queries (11 features total)
+4. **New Models in models.py**:
+   - `TaskInput`: Input params for async harness execution (distinct from beads Task)
+   - `TaskResult`: Extended result with messages, files_changed, files_created
+   - `Message`: Conversation history turn with tool_uses
+   - `ToolUse`: Tool invocation tracking
+5. **AsyncHarnessBackend Protocol**: New async_backend.py with Protocol for async-first harnesses
+   - `run_task()`: Blocking async execution
+   - `stream_task()`: Async generator for streaming
+   - `supports_feature()`: Type-safe feature checking
+6. **Async Registry**: Full registry system (register, get, detect, list, is_available, get_capabilities)
+7. **Exports**: Updated harness __init__.py to export all new types
+
+### Learnings
+
+1. **Protocol pattern consistency**: Used same `@runtime_checkable` Protocol pattern as sync backend for consistency. This makes both sync and async harnesses pluggable without ABC inheritance.
+
+2. **Model separation**: TaskInput is intentionally distinct from beads Task model to avoid coupling harness interface to specific task backend. This enables harnesses to be used standalone or with different task systems.
+
+3. **TaskResult vs HarnessResult**: Created new TaskResult class instead of extending HarnessResult because the async API returns richer metadata (messages, file tracking) that sync harnesses can't provide. Keeps the models clean.
+
+4. **Pydantic v2 patterns**: Used `Field(default_factory=list)` for lists and `Field(default_factory=datetime.now)` for timestamps. This is the v2 way vs v1's `default=[]` which mypy strict mode rejects.
+
+5. **Async detection order**: Mirrored sync backend's detection logic (env var > priority list > default order) but made the fallback order explicit: claude > openai > gemini > local. This matches the feature richness hierarchy.
+
+6. **Type safety**: HarnessFeature enum enables `supports_feature(HarnessFeature.HOOKS)` instead of string literals. mypy catches typos at dev time.
+
+7. **Graceful degradation design**: The Protocol doesn't mandate all features - harnesses report capabilities and cub adapts. This enables fallback to shell-out for simpler harnesses.
+
+8. **No async wrapper yet**: Intentionally didn't modify cub run entry point. That's a separate task (cub-k41.2). This task is pure foundation without runtime changes.
+
+### Test Results
+- 835 tests passed, 1 skipped (all existing tests still pass)
+- mypy strict mode passes for harness module
+- No breaking changes to existing sync harness code
+
+### Commit
+bdbc3ec task(cub-k41.1): Create async harness protocol and models
+
+
+## Session: 2026-01-19 - Claude SDK Harness Implementation
+
+### Task
+cub-k41.2: Implement Claude SDK harness
+
+### What Changed
+
+Implemented the core ClaudeSDKHarness using the Claude Agent SDK:
+
+1. **Dependency**: Added `claude-agent-sdk>=0.1.0` to runtime dependencies
+2. **mypy Configuration**: Added override for `claude_agent_sdk` module to ignore missing stubs
+3. **New File `claude_sdk.py`**:
+   - `_sdk_available()`: Check if SDK is installed
+   - `_cli_available()`: Check if Claude Code CLI is available
+   - `_build_options()`: Map TaskInput to ClaudeAgentOptions
+   - `_parse_sdk_message()`: Parse SDK messages into our Message model
+   - `_extract_usage()`: Extract TokenUsage from ResultMessage
+   - `_extract_text_from_message()`: Extract text content from messages
+   - `ClaudeSDKHarness`: Full AsyncHarnessBackend implementation
+4. **Backend Registration**: Registered as "claude" using `@register_async_backend("claude")`
+5. **Comprehensive Tests**: 32 tests covering all functionality
+
+### Key Implementation Details
+
+**Message Parsing**:
+- UserMessage → role="user", content from string or content blocks
+- AssistantMessage → role="assistant", text + tool uses extracted
+- SystemMessage → role="system", message from data dict
+- ResultMessage → skipped for history, used for usage/session_id extraction
+
+**Option Mapping**:
+- `system_prompt` → `options.system_prompt`
+- `working_dir` → `options.cwd`
+- `auto_approve` → `options.permission_mode = "acceptEdits"`
+- `model` → `options.model`
+
+**Error Handling**:
+- CLINotFoundError → TaskResult with "CLI not found" error
+- CLIConnectionError → TaskResult with connection error
+- ProcessError → TaskResult with exit code from SDK
+- Generic exceptions → TaskResult with "Unexpected error"
+
+### Learnings
+
+1. **TypeVar for decorator typing**: Changed `register_async_backend` signature from `Callable[[type[AsyncHarnessBackend]], ...]` to `Callable[[type[_T]], type[_T]]` to avoid mypy complaints about Protocol compatibility.
+
+2. **SDK type stubs**: claude-agent-sdk has type annotations but mypy needed an explicit override in pyproject.toml to ignore missing stubs. The SDK is typed but not packaged as py.typed.
+
+3. **Late imports for SDK**: Imported SDK types inside functions (not at module level) because the SDK may not be installed. This allows the module to be imported even when SDK is missing.
+
+4. **Patching in tests**: When patching SDK functions that are imported inside methods, patch at the SDK module (`"claude_agent_sdk.query"`) not at the consuming module (`"cub.core.harness.claude_sdk.query"`).
+
+5. **Async generator mocking**: For async generators, use regular functions with yield and patch the SDK function. The async for loop in the harness handles the iteration correctly.
+
+6. **ResultMessage handling**: SDK's ResultMessage contains usage, cost, and session_id. It's the last message yielded and signals completion. The is_error flag indicates task failure.
+
+7. **ToolResultBlock placement**: In the SDK, ToolResultBlocks appear in AssistantMessage content blocks after the corresponding ToolUseBlock. We match them by finding tool_uses without output.
+
+8. **Model names**: SDK model identifiers like "claude-sonnet-4-20250514" differ from cub's short names like "sonnet". The mapping happens in _build_options.
+
+### Test Results
+- 867 tests passed, 3 skipped (all existing tests still pass)
+- mypy strict mode passes for harness module
+- Integration tests skip when ANTHROPIC_API_KEY not set
+
+### Commit
+6ee46a9 task(cub-k41.2): Implement Claude SDK harness
