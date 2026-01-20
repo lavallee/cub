@@ -29,6 +29,7 @@ Usage:
 # Import backends to trigger registration
 from . import (
     claude,  # noqa: F401
+    claude_sdk,  # noqa: F401
     codex,  # noqa: F401
 )
 from .async_backend import (

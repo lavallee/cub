@@ -9,9 +9,12 @@ and stateful sessions.
 import os
 import shutil
 from collections.abc import AsyncIterator, Callable
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 from .models import HarnessCapabilities, HarnessFeature, TaskInput, TaskResult
+
+# Type variable for the backend class
+_T = TypeVar("_T")
 
 
 @runtime_checkable
@@ -132,7 +135,7 @@ _async_backends: dict[str, type[AsyncHarnessBackend]] = {}
 
 def register_async_backend(
     name: str,
-) -> Callable[[type[AsyncHarnessBackend]], type[AsyncHarnessBackend]]:
+) -> Callable[[type[_T]], type[_T]]:
     """
     Decorator to register an async harness backend implementation.
 
@@ -151,8 +154,9 @@ def register_async_backend(
         Decorator function
     """
 
-    def decorator(backend_class: type[AsyncHarnessBackend]) -> type[AsyncHarnessBackend]:
-        _async_backends[name] = backend_class
+    def decorator(backend_class: type[_T]) -> type[_T]:
+        # Store as AsyncHarnessBackend compatible type
+        _async_backends[name] = backend_class  # type: ignore[assignment]
         return backend_class
 
     return decorator
