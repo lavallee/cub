@@ -18,6 +18,134 @@ from cub.core.branches import BranchStore, ResolvedTarget
 from cub.core.github.client import GitHubClient, GitHubClientError
 
 
+def _find_worktree_for_branch(project_dir: Path, branch: str) -> Path | None:
+    """
+    Find the worktree directory for a given branch.
+
+    Checks both beads worktrees (.git/beads-worktrees/) and cub worktrees
+    (.cub/worktrees/).
+
+    Args:
+        project_dir: Project root directory
+        branch: Branch name to find
+
+    Returns:
+        Path to worktree directory, or None if not found
+    """
+    try:
+        result = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+
+        # Parse worktree list
+        current_path: str | None = None
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("worktree "):
+                current_path = line[len("worktree ") :]
+            elif line.startswith("branch "):
+                worktree_branch = line[len("branch ") :]
+                # Branch can be refs/heads/main or just main
+                if worktree_branch.endswith(f"/{branch}") or worktree_branch == branch:
+                    if current_path:
+                        return Path(current_path)
+
+        return None
+    except (OSError, FileNotFoundError):
+        return None
+
+
+def _update_worktree(worktree_path: Path) -> bool:
+    """
+    Update a worktree by pulling from remote.
+
+    Args:
+        worktree_path: Path to the worktree
+
+    Returns:
+        True if update succeeded, False otherwise
+    """
+    try:
+        result = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            capture_output=True,
+            text=True,
+            cwd=worktree_path,
+            check=False,
+        )
+        return result.returncode == 0
+    except (OSError, FileNotFoundError):
+        return False
+
+
+def _delete_local_branch(project_dir: Path, branch: str) -> bool:
+    """
+    Delete a local branch.
+
+    Args:
+        project_dir: Project root directory
+        branch: Branch name to delete
+
+    Returns:
+        True if deletion succeeded or branch doesn't exist, False otherwise
+    """
+    try:
+        # Check if we're currently on this branch
+        result = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            check=False,
+        )
+        current_branch = result.stdout.strip()
+        if current_branch == branch:
+            # Can't delete current branch
+            return False
+
+        # Delete the branch
+        result = subprocess.run(
+            ["git", "branch", "-d", branch],
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            check=False,
+        )
+        # Success if deleted or branch doesn't exist
+        return result.returncode == 0 or "not found" in result.stderr.lower()
+    except (OSError, FileNotFoundError):
+        return False
+
+
+def _prune_remote_tracking(project_dir: Path) -> bool:
+    """
+    Prune stale remote-tracking branches.
+
+    Args:
+        project_dir: Project root directory
+
+    Returns:
+        True if prune succeeded
+    """
+    try:
+        result = subprocess.run(
+            ["git", "fetch", "--prune"],
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            check=False,
+        )
+        return result.returncode == 0
+    except (OSError, FileNotFoundError):
+        return False
+
+
 class PRServiceError(Exception):
     """Error from PR service operations."""
 
@@ -598,6 +726,33 @@ Generated with [cub](https://github.com/lavallee/cub)
             self.branch_store.update_status(resolved.epic_id, "merged")
 
         self._console.print(f"[green]PR #{pr_number} merged[/green]")
+
+        # Post-merge cleanup: update local main and clean up branches
+        base_branch = resolved.binding.base_branch if resolved.binding else "main"
+        feature_branch = resolved.branch
+
+        # Update main in worktree (if worktree exists)
+        main_worktree = _find_worktree_for_branch(self.project_dir, base_branch)
+        if main_worktree:
+            self._console.print(f"Updating {base_branch} in worktree...")
+            if _update_worktree(main_worktree):
+                self._console.print(f"[green]{base_branch} updated[/green]")
+            else:
+                self._console.print(
+                    f"[yellow]Could not update {base_branch} worktree[/yellow]"
+                )
+
+        # Prune stale remote-tracking branches
+        _prune_remote_tracking(self.project_dir)
+
+        # Delete local feature branch if delete_branch was requested
+        if delete_branch and feature_branch:
+            if _delete_local_branch(self.project_dir, feature_branch):
+                self._console.print(f"Deleted local branch {feature_branch}")
+            else:
+                self._console.print(
+                    f"[dim]Local branch {feature_branch} kept (may be current branch)[/dim]"
+                )
 
         return MergeResult(
             success=True,

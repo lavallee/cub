@@ -2,13 +2,20 @@
 Tests for PR service functionality.
 """
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cub.core.github.client import GitHubClient
 from cub.core.github.models import RepoInfo
-from cub.core.pr.service import PRService
+from cub.core.pr.service import (
+    PRService,
+    _delete_local_branch,
+    _find_worktree_for_branch,
+    _prune_remote_tracking,
+    _update_worktree,
+)
 
 
 class TestPRServiceGeneratePRBody:
@@ -189,3 +196,114 @@ class TestPRServiceGeneratePRBody:
 
             assert "+100" in body
             assert "-0" not in body  # Should not show zero deletions
+
+
+class TestWorktreeHelpers:
+    """Tests for worktree helper functions."""
+
+    def test_find_worktree_for_branch_found(self, tmp_path):
+        """Test finding worktree for an existing branch."""
+        worktree_output = """worktree /path/to/repo
+HEAD abc1234567890
+branch refs/heads/feature
+
+worktree /path/to/repo/.git/beads-worktrees/main
+HEAD def5678901234
+branch refs/heads/main
+"""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=worktree_output)
+            result = _find_worktree_for_branch(tmp_path, "main")
+
+        assert result == Path("/path/to/repo/.git/beads-worktrees/main")
+
+    def test_find_worktree_for_branch_not_found(self, tmp_path):
+        """Test finding worktree for non-existent branch."""
+        worktree_output = """worktree /path/to/repo
+HEAD abc1234567890
+branch refs/heads/feature
+"""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout=worktree_output)
+            result = _find_worktree_for_branch(tmp_path, "main")
+
+        assert result is None
+
+    def test_find_worktree_for_branch_git_error(self, tmp_path):
+        """Test finding worktree when git command fails."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="error")
+            result = _find_worktree_for_branch(tmp_path, "main")
+
+        assert result is None
+
+    def test_update_worktree_success(self, tmp_path):
+        """Test updating worktree successfully."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            result = _update_worktree(tmp_path)
+
+        assert result is True
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        assert call_args[0][0] == ["git", "pull", "--ff-only"]
+        assert call_args[1]["cwd"] == tmp_path
+
+    def test_update_worktree_failure(self, tmp_path):
+        """Test updating worktree when pull fails."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1)
+            result = _update_worktree(tmp_path)
+
+        assert result is False
+
+    def test_delete_local_branch_success(self, tmp_path):
+        """Test deleting local branch successfully."""
+        with patch("subprocess.run") as mock_run:
+            # First call: get current branch
+            # Second call: delete branch
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="main\n"),  # current branch
+                MagicMock(returncode=0),  # delete success
+            ]
+            result = _delete_local_branch(tmp_path, "feature")
+
+        assert result is True
+
+    def test_delete_local_branch_is_current(self, tmp_path):
+        """Test cannot delete current branch."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="feature\n")
+            result = _delete_local_branch(tmp_path, "feature")
+
+        assert result is False
+
+    def test_delete_local_branch_not_found(self, tmp_path):
+        """Test deleting non-existent branch returns True."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [
+                MagicMock(returncode=0, stdout="main\n"),
+                MagicMock(returncode=1, stderr="error: branch 'feature' not found."),
+            ]
+            result = _delete_local_branch(tmp_path, "feature")
+
+        assert result is True  # Not found is considered success
+
+    def test_prune_remote_tracking_success(self, tmp_path):
+        """Test pruning remote tracking branches."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0)
+            result = _prune_remote_tracking(tmp_path)
+
+        assert result is True
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        assert call_args[0][0] == ["git", "fetch", "--prune"]
+
+    def test_prune_remote_tracking_failure(self, tmp_path):
+        """Test pruning when fetch fails."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=1)
+            result = _prune_remote_tracking(tmp_path)
+
+        assert result is False
