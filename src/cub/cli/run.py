@@ -257,7 +257,7 @@ def run(
         None,
         "--harness",
         "-h",
-        help="AI harness to use (claude, claude-legacy, codex, openai, gemini, local)",
+        help="AI harness to use (claude, claude-legacy, codex, gemini, opencode). Claude uses SDK with hooks; claude-legacy uses shell-out.",
     ),
     once: bool = typer.Option(
         False,

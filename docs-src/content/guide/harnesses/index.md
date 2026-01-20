@@ -10,28 +10,36 @@ A harness adapts an AI coding assistant's CLI to work with cub's autonomous loop
 - **Streaming**: Real-time output as the AI generates responses
 - **Token tracking**: Monitoring usage for budget management
 - **Auto mode**: Enabling autonomous operation without user prompts
+- **Hooks**: Event interception for guardrails and custom behavior (v0.24+)
 
 ## Supported Harnesses
 
-| Harness | CLI Binary | Documentation |
-|---------|------------|---------------|
-| [Claude Code](claude.md) | `claude` | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) |
-| [Codex](codex.md) | `codex` | [github.com/openai/codex](https://github.com/openai/codex) |
-| [Gemini](gemini.md) | `gemini` | [github.com/google/gemini-cli](https://github.com/google/gemini-cli) |
-| [OpenCode](opencode.md) | `opencode` | [github.com/sst/opencode](https://github.com/sst/opencode) |
+| Harness | Name | CLI Binary | Documentation |
+|---------|------|------------|---------------|
+| [Claude Code (SDK)](claude.md) | `claude` | `claude` | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) |
+| [Claude Code (Legacy)](claude.md#legacy-backend) | `claude-legacy` | `claude` | Shell-out mode for compatibility |
+| [Codex](codex.md) | `codex` | `codex` | [github.com/openai/codex](https://github.com/openai/codex) |
+| [Gemini](gemini.md) | `gemini` | `gemini` | [github.com/google/gemini-cli](https://github.com/google/gemini-cli) |
+| [OpenCode](opencode.md) | `opencode` | `opencode` | [github.com/sst/opencode](https://github.com/sst/opencode) |
+
+!!! note "Claude Code SDK (v0.24+)"
+    The default `claude` harness now uses the Claude Agent SDK for full hook support and better integration. Use `claude-legacy` for the previous shell-out behavior.
 
 ## Capability Matrix
 
 Different harnesses have different features. Cub adapts its behavior based on what each harness supports.
 
-| Capability | Claude Code | Codex | Gemini | OpenCode |
-|------------|:-----------:|:-----:|:------:|:--------:|
-| **streaming** | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: |
-| **token_reporting** | :white_check_mark: | :x: | :x:* | :white_check_mark: |
-| **system_prompt** | :white_check_mark: | :x: | :x: | :x: |
-| **auto_mode** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
-| **json_output** | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: |
-| **model_selection** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: |
+| Capability | Claude (SDK) | Claude (Legacy) | Codex | Gemini | OpenCode |
+|------------|:------------:|:---------------:|:-----:|:------:|:--------:|
+| **streaming** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: |
+| **token_reporting** | :white_check_mark: | :white_check_mark: | :x: | :x:* | :white_check_mark: |
+| **system_prompt** | :white_check_mark: | :white_check_mark: | :x: | :x: | :x: |
+| **auto_mode** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: |
+| **json_output** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: |
+| **model_selection** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: |
+| **hooks** | :white_check_mark: | :x: | :x: | :x: | :x: |
+| **custom_tools** | :white_check_mark: | :x: | :x: | :x: | :x: |
+| **sessions** | :white_check_mark: | :x: | :x: | :x: | :x: |
 
 *Gemini uses character-based estimation (~4 chars/token)
 
@@ -54,6 +62,15 @@ Different harnesses have different features. Cub adapts its behavior based on wh
 
 **model_selection**
 :   Runtime model selection via CLI flag. Enables task labels like `model:haiku` to select specific models.
+
+**hooks** (v0.24+)
+:   Event interception for guardrails and custom behavior. Enables blocking dangerous commands, logging tool usage, and implementing circuit breakers. See [Hooks System](../hooks/index.md).
+
+**custom_tools** (v0.24+)
+:   Register custom tools that the AI can invoke. Enables extending the AI's capabilities with project-specific functionality.
+
+**sessions** (v0.24+)
+:   Stateful conversation sessions. Enables multi-turn interactions and context preservation across tool calls.
 
 ## Harness Selection
 
@@ -157,11 +174,18 @@ harness_get_capabilities_json
 
 ## Choosing a Harness
 
-**Choose Claude Code if:**
+**Choose Claude Code (SDK) if:** (default, recommended)
 
-- You need all features (streaming, tokens, system prompts)
-- Budget tracking is important
-- You want model selection per task
+- You need hooks for guardrails and circuit breakers
+- You want custom tools and stateful sessions
+- Budget tracking and streaming are important
+- You want the most full-featured experience
+
+**Choose Claude Code (Legacy) if:**
+
+- You need the previous shell-out behavior
+- You're troubleshooting SDK integration issues
+- Your environment doesn't support the Claude Agent SDK
 
 **Choose Codex if:**
 
@@ -177,3 +201,36 @@ harness_get_capabilities_json
 
 - You need streaming and token tracking
 - You don't need separate system prompts
+
+---
+
+## Async Harness Interface (v0.24+)
+
+Starting in v0.24, all harnesses use an async interface internally. This enables:
+
+- **Non-blocking execution**: Other tasks can run while waiting for AI responses
+- **Better streaming**: True async generators for real-time output
+- **Hook integration**: Hooks can intercept and modify behavior asynchronously
+
+The async interface is transparent to users - `cub run` handles the async execution automatically.
+
+### Python API
+
+```python
+from cub.core.harness import get_async_backend, detect_async_harness
+
+# Auto-detect best available harness
+harness_name = detect_async_harness()
+
+# Get the async backend
+backend = get_async_backend(harness_name)
+
+# Check capabilities
+if backend.supports_feature("hooks"):
+    print("Hooks available for guardrails")
+
+# Run a task (async)
+async def run():
+    result = await backend.run_task(task_input)
+    print(f"Completed with {result.usage.total_tokens} tokens")
+```
