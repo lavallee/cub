@@ -1165,9 +1165,11 @@ class TestInvalidHarness:
         """Test error with invalid harness name."""
         with (
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
         ):
             mock_config.return_value = MagicMock()
+            mock_get_task.return_value = MagicMock()
             mock_get_harness.side_effect = ValueError("Unknown harness: invalid")
 
             result = runner.invoke(app, ["--harness", "invalid", "--once"])
