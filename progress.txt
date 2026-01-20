@@ -1,5 +1,63 @@
 # Cub Project Progress
 
+## 2026-01-20 - cub-p1f.4: Create SpecWorkflow class
+
+### Task Completed
+Created `SpecWorkflow` class to manage spec lifecycle: finding specs across stage directories and moving via git mv.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/specs/`**
+- `models.py` - Stage enum (RESEARCHING, PLANNED, COMPLETED) and Spec Pydantic model
+- `workflow.py` - SpecWorkflow class for listing, finding, and moving specs
+- `__init__.py` - Public API exports
+
+**Stage Enum:**
+- Three stages: `RESEARCHING`, `PLANNED`, `COMPLETED`
+- `from_directory()` class method to convert directory names to stages
+
+**Spec Model:**
+- Parses YAML frontmatter from markdown spec files
+- Tracks status, priority, complexity, dependencies, readiness scoring
+- `is_ready_for_implementation` property checks if spec can be implemented
+- `to_frontmatter_dict()` and `from_frontmatter_dict()` for serialization
+
+**SpecWorkflow Class:**
+- `list_specs(stage)` - List specs, optionally filtered by stage
+- `find_spec(name)` - Find spec by name across all stages
+- `move_to_stage(spec, target_stage)` - Move spec using git mv
+- `promote(spec)` / `demote(spec)` - Convenience methods for stage transitions
+- `count_by_stage()` - Count specs in each stage
+- `get_ready_specs()` / `get_blocked_specs()` - Filter specs by readiness
+
+**Testing:**
+- 43 comprehensive tests covering models and workflow operations
+- Tests for git mv mocking, file operations, transition validation
+
+### Key Design Decisions
+
+1. **Three-Stage Lifecycle:** Specs progress through researching → planned → completed, matching the existing specs/ directory structure.
+
+2. **Git Integration:** Uses git mv by default for version-controlled moves. Falls back to regular file move if git isn't available or file isn't tracked.
+
+3. **Readiness Scoring:** Spec readiness is tracked with score 0-10, blockers list, and open questions. A spec is ready for implementation when score >= 7, stage is PLANNED, and no blockers.
+
+4. **Flexible Transitions:** While promote/demote provide convenient linear progression, direct transitions between any stages are allowed (useful for moving specs back from completed to researching for rework).
+
+5. **Pydantic Models:** Following the codebase pattern, all models use Pydantic v2 for validation and serialization.
+
+### Learnings
+
+1. **Mock Git Operations Carefully:** When mocking `subprocess.run` for git mv, the mock needs to actually perform the file move if subsequent code expects the file at the new location.
+
+2. **Title Extraction Pattern:** Used regex `^#\s+(.+)$` with `re.MULTILINE` to extract the first markdown heading as the spec title.
+
+3. **Date vs DateTime:** Spec dates use `date` not `datetime` since the frontmatter format is YYYY-MM-DD without time component.
+
+4. **Following Captures Pattern:** The captures module provided a good template for the specs module - similar frontmatter parsing, Pydantic models, and storage abstraction.
+
+---
+
 ## 2026-01-16 - cub-CAP.7: Implement cub organize-captures command
 
 ### Task Completed
