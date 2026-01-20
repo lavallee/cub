@@ -151,9 +151,10 @@ pipeline_session_dir() {
 }
 
 # Create a new session directory
-# Args: session_id
+# Args: session_id [vision_path]
 pipeline_create_session() {
     local session_id="$1"
+    local vision_path="${2:-}"
     local session_dir="${PIPELINE_SESSIONS_DIR}/${session_id}"
 
     mkdir -p "$session_dir"
@@ -162,6 +163,16 @@ pipeline_create_session() {
     local epic_id
     epic_id=$(pipeline_random_epic_id)
 
+    # Create session metadata with optional vision_path
+    local vision_json="null"
+    if [[ -n "$vision_path" ]]; then
+        # Convert to absolute path if relative
+        if [[ ! "$vision_path" = /* ]]; then
+            vision_path="${PROJECT_DIR}/${vision_path}"
+        fi
+        vision_json="\"${vision_path}\""
+    fi
+
     # Create session metadata
     cat > "${session_dir}/session.json" <<EOF
 {
@@ -169,6 +180,7 @@ pipeline_create_session() {
   "epic_id": "${epic_id}",
   "created": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "created",
+  "vision_path": ${vision_json},
   "stages": {
     "triage": null,
     "architect": null,
@@ -225,6 +237,19 @@ pipeline_session_info() {
         cat "$session_file"
     else
         echo "{}"
+    fi
+}
+
+# Get vision path from session metadata
+# Args: session_id
+# Returns: vision path or empty if not set
+pipeline_get_vision_path() {
+    local session_id="$1"
+    local session_dir="${PIPELINE_SESSIONS_DIR}/${session_id}"
+    local session_file="${session_dir}/session.json"
+
+    if [[ -f "$session_file" ]]; then
+        jq -r '.vision_path // empty' "$session_file" 2>/dev/null
     fi
 }
 
@@ -363,9 +388,14 @@ cmd_triage() {
         fi
         session_id="$resume_session"
         log_info "Resuming session: ${session_id}"
+
+        # Get vision path from session if not explicitly provided
+        if [[ -z "$vision_path" ]]; then
+            vision_path=$(pipeline_get_vision_path "$session_id")
+        fi
     else
         session_id=$(pipeline_new_session_id)
-        pipeline_create_session "$session_id"
+        pipeline_create_session "$session_id" "$vision_path"
         log_info "Starting new triage session: ${session_id}"
     fi
 
@@ -386,7 +416,7 @@ cmd_triage() {
         _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TRIAGE document from a raw vision input.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If you are blocked on critical missing info, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput a triage document with these sections:\n- ## Summary\n- ## Goals\n- ## Non-Goals\n- ## Requirements\n- ## Constraints\n- ## Risks\n- ## Open Questions\n- ## Needs Human Input (only if blocked)\n\nVISION INPUT:\n---\n${vision}\n---\n" "$output_file"
     else
         # Run claude with the /triage skill
-        claude "/cub:triage ${output_file}"
+        claude --dangerously-skip-permissions "/cub:triage ${output_file}"
     fi
 
     # Check if output was created
@@ -419,22 +449,28 @@ cmd_triage() {
 
 _triage_help() {
     cat <<EOF
-Usage: cub triage [OPTIONS]
+Usage: cub triage [OPTIONS] [VISION_FILE]
 
 Stage 1: Requirements Refinement
 
 Launches an interactive Claude session to conduct a product triage interview,
 clarify requirements, identify gaps, and produce a refined requirements document.
 
+Arguments:
+  VISION_FILE              Vision/spec document to use as input
+                           (e.g., specs/researching/new-idea.md)
+
 Options:
   --session ID             Resume an existing session
   --non-interactive        Run without an interactive Claude session
-  --vision PATH            Vision/input markdown file (required with --non-interactive)
+  --vision PATH            Vision/input file path (alternative to positional arg)
   -h, --help               Show this help message
 
 Examples:
-  cub triage                      # Start new triage session
-  cub triage --session myproj-... # Resume existing session
+  cub triage                           # Start new triage session
+  cub triage specs/new-feature.md      # Start with specific spec
+  cub triage --session myproj-...      # Resume existing session
+  cub triage --vision specs/ideas.md   # Explicit vision file
 
 Output:
   .cub/sessions/{session-id}/triage.md
@@ -533,7 +569,7 @@ cmd_architect() {
         _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TECHNICAL ARCHITECTURE document based on triage output.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If blocked on a critical missing decision, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput an architecture document with these sections:\n- ## Summary\n- ## Approach\n- ## Components\n- ## Data & State\n- ## Interfaces\n- ## Risks & Tradeoffs\n- ## Testing & Verification\n- ## Needs Human Input (only if blocked)\n\nTRIAGE INPUT:\n---\n${triage}\n---\n" "$output_file"
     else
         # Run claude with the /architect skill
-        claude "/cub:architect ${output_file}"
+        claude --dangerously-skip-permissions "/cub:architect ${output_file}"
     fi
 
     # Check if output was created
@@ -922,7 +958,7 @@ PY
         fi
     else
         # Run claude with the /plan skill (outputs plan.md)
-        claude "/cub:plan ${session_dir}"
+        claude --dangerously-skip-permissions "/cub:plan ${session_dir}"
 
         # Convert the markdown plan to beads JSONL
         if [[ -f "$md_file" ]]; then
@@ -1604,12 +1640,22 @@ cmd_prep() {
         fi
         session_dir=$(pipeline_session_dir "$session_id")
         log_info "Resuming session: ${session_id}"
+
+        # Get vision path from session if not explicitly provided
+        if [[ -z "$vision_path" ]]; then
+            vision_path=$(pipeline_get_vision_path "$session_id")
+        fi
     elif [[ "$continue_last" == "true" ]]; then
         # Continue most recent session
         session_id=$(pipeline_most_recent_session)
         if [[ -n "$session_id" ]]; then
             session_dir=$(pipeline_session_dir "$session_id")
             log_info "Continuing most recent session: ${session_id}"
+
+            # Get vision path from session if not explicitly provided
+            if [[ -z "$vision_path" ]]; then
+                vision_path=$(pipeline_get_vision_path "$session_id")
+            fi
         else
             _log_error_console "No existing sessions found. Run without --continue to create a new session."
             return 1
@@ -1639,11 +1685,15 @@ cmd_prep() {
         triage)
             log_info "Starting Stage 1: Triage"
             echo ""
+            # Build triage arguments
+            local triage_args=()
             if [[ "$non_interactive" == "true" ]]; then
-                cmd_triage --non-interactive --vision "$vision_path"
-            else
-                cmd_triage
+                triage_args+=("--non-interactive")
             fi
+            if [[ -n "$vision_path" ]]; then
+                triage_args+=("--vision" "$vision_path")
+            fi
+            cmd_triage "${triage_args[@]}"
             ;;
         architect)
             log_info "Starting Stage 2: Architect"
@@ -1757,7 +1807,7 @@ _prep_report_status() {
 
 _prep_help() {
     cat <<EOF
-Usage: cub prep [OPTIONS]
+Usage: cub prep [OPTIONS] [VISION_FILE]
 
 Run the Vision-to-Tasks prep workflow one stage at a time.
 
@@ -1771,35 +1821,43 @@ Stages:
   3. Plan      - Interactive task decomposition (/cub:plan)
   4. Bootstrap - Initialize beads and import tasks (shell)
 
+Arguments:
+  VISION_FILE              Vision/spec document to prime the prep pipeline
+                           (e.g., specs/researching/new-idea.md)
+                           Stored in session metadata for all stages
+
 Options:
   --session ID             Resume a specific session
   --continue               Resume the most recent session (default: create new)
-  --non-interactive        Run stages using `claude -p` (best-effort)
-  --vision PATH            Vision/input markdown file (required for non-interactive triage)
+  --non-interactive        Run stages using \`claude -p\` (best-effort)
+  --vision PATH            Explicit vision file path (alternative to positional arg)
   -h, --help               Show this help message
 
 Examples:
-  cub prep                          # Start or continue prep
-  cub prep --session myproj-...     # Resume specific session
+  cub prep                               # Start or continue prep
+  cub prep specs/new-feature.md          # Start prep with specific spec
+  cub prep --session myproj-...          # Resume specific session
+  cub prep --vision specs/ideas.md       # Explicit vision file
 
 Workflow:
-  1. Run 'cub prep' - starts triage session
+  1. Run 'cub prep specs/doc.md' - starts triage session with spec
   2. Complete triage interview, exit Claude
-  3. Run 'cub prep' again - continues to architect
+  3. Run 'cub prep' again - continues to architect (uses saved spec)
   4. Repeat until all stages complete
 
 Output:
   .cub/sessions/{session-id}/
+    ├── session.json         # Session metadata (includes vision_path)
     ├── triage.md            # Refined requirements
     ├── architect.md         # Technical design
     ├── plan.jsonl           # Beads-compatible tasks
     └── plan.md              # Human-readable plan
 
 Individual Commands:
-  cub triage                 # Just run triage
-  cub architect              # Just run architect
-  cub plan                   # Just run plan
-  cub bootstrap              # Just run bootstrap
+  cub triage [VISION_FILE]   # Just run triage
+  cub architect [SESSION]    # Just run architect
+  cub plan [SESSION]         # Just run plan
+  cub bootstrap [SESSION]    # Just run bootstrap
 EOF
 }
 

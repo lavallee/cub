@@ -10,7 +10,6 @@ import os
 import signal
 import sys
 import time
-import types
 from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
@@ -46,33 +45,13 @@ from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
 
-# Lazy import for anyio to avoid bootstrap issues during upgrades.
-# This allows 'cub upgrade' to run even if anyio is not yet installed.
-# Falls back to asyncio.run() when anyio is not available.
-_anyio_module: types.ModuleType | None = None
-_anyio_available: bool | None = None  # Cached availability check
-
-
-def _check_anyio_available() -> bool:
-    """Check if anyio is available (cached)."""
-    global _anyio_available, _anyio_module
-    if _anyio_available is None:
-        try:
-            import anyio
-
-            _anyio_module = anyio
-            _anyio_available = True
-        except ImportError:
-            _anyio_available = False
-    return _anyio_available
-
 
 def _run_async(func: Any, *args: Any) -> Any:
     """
     Run an async function from a sync context.
 
-    Tries anyio.from_thread.run() first for better async runtime support,
-    falls back to asyncio.run() if anyio is not installed.
+    Uses asyncio.run() to execute async code from Typer's sync CLI context.
+    This works with all async harness backends (both SDK and legacy shell-out).
 
     Args:
         func: An async function to call
@@ -90,12 +69,7 @@ def _run_async(func: Any, *args: Any) -> Any:
     """
     import asyncio
 
-    if _check_anyio_available() and _anyio_module is not None:
-        # Use anyio for better async runtime support
-        return _anyio_module.from_thread.run(func, *args)
-    else:
-        # Fall back to asyncio.run() - works for standard async code
-        return asyncio.run(func(*args))
+    return asyncio.run(func(*args))
 
 
 def _setup_harness(

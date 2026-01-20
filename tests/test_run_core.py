@@ -1125,7 +1125,12 @@ class TestHarnessInvocationErrors:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.side_effect = Exception("Harness crashed")
+
+        # Mock run_task to raise an exception (async method used by run loop)
+        async def mock_crash(task_input, debug=False):
+            raise Exception("Harness crashed")
+
+        deps["harness_backend"].run_task.side_effect = mock_crash
 
         result = runner.invoke(app, ["--once"])
 
@@ -1145,7 +1150,12 @@ class TestHarnessInvocationErrors:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.side_effect = Exception("Harness crashed")
+
+        # Mock run_task to raise an exception (async method used by run loop)
+        async def mock_crash(task_input, debug=False):
+            raise Exception("Harness crashed")
+
+        deps["harness_backend"].run_task.side_effect = mock_crash
 
         runner.invoke(app, ["--once"])
 
