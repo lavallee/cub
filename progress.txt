@@ -2258,3 +2258,29 @@ Implemented the core ClaudeSDKHarness using the Claude Agent SDK:
 
 ### Commit
 6ee46a9 task(cub-k41.2): Implement Claude SDK harness
+
+
+## Task cub-p1f.1: Add import_tasks() to TaskBackend Protocol
+
+**Date:** 2026-01-20
+
+**Status:** Already implemented
+
+**Discovery:**
+The task asked to add `import_tasks(self, tasks: list[Task]) -> list[Task]` method to TaskBackend Protocol, but this method was already fully implemented in the codebase:
+- Protocol definition: `src/cub/core/tasks/backend.py` (lines 184-202)
+- BeadsBackend implementation: `src/cub/core/tasks/beads.py` (lines 483-518)
+- JsonBackend implementation: `src/cub/core/tasks/json.py` (lines 559-619)
+
+**Validation:**
+- mypy: Passed for all task backend files
+- pytest: All 66 tests passed for task backend tests
+- ruff: All checks passed
+
+**Learnings:**
+1. Always search before assuming work needs to be done - the feature may already exist
+2. Use `bd show <task-id>` to see if there are details about what's actually needed before implementing
+
+### Commit
+No changes needed - task was already complete
+
