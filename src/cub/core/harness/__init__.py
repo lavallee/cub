@@ -29,7 +29,18 @@ Usage:
 # Import backends to trigger registration
 from . import (
     claude,  # noqa: F401
+    claude_sdk,  # noqa: F401
     codex,  # noqa: F401
+)
+from .async_backend import (
+    AsyncHarnessBackend,
+    detect_async_harness,
+    get_async_backend,
+    get_async_capabilities,
+    is_async_backend_available,
+    list_async_backends,
+    list_available_async_backends,
+    register_async_backend,
 )
 from .backend import (
     HarnessBackend,
@@ -49,12 +60,17 @@ from .models import (
     HARNESS_CAP_SYSTEM_PROMPT,
     HARNESS_CAP_TOKEN_REPORTING,
     HarnessCapabilities,
+    HarnessFeature,
     HarnessResult,
+    Message,
+    TaskInput,
+    TaskResult,
     TokenUsage,
+    ToolUse,
 )
 
 __all__ = [
-    # Backend interface
+    # Sync backend interface
     "HarnessBackend",
     "register_backend",
     "get_backend",
@@ -63,10 +79,24 @@ __all__ = [
     "list_available_backends",
     "is_backend_available",
     "get_capabilities",
+    # Async backend interface
+    "AsyncHarnessBackend",
+    "register_async_backend",
+    "get_async_backend",
+    "detect_async_harness",
+    "list_async_backends",
+    "list_available_async_backends",
+    "is_async_backend_available",
+    "get_async_capabilities",
     # Models
     "HarnessCapabilities",
+    "HarnessFeature",
     "HarnessResult",
+    "TaskInput",
+    "TaskResult",
     "TokenUsage",
+    "Message",
+    "ToolUse",
     # Constants
     "HARNESS_CAP_STREAMING",
     "HARNESS_CAP_TOKEN_REPORTING",

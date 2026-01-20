@@ -126,6 +126,18 @@ ruff format src/ tests/
 - `cub.utils.hooks` - Hook execution system
 - `cub.core.bash_delegate` - Delegates unported commands to bash cub
 
+## Module Stability Tiers
+
+See **[.cub/STABILITY.md](.cub/STABILITY.md)** for per-module stability tiers and coverage requirements.
+
+The codebase uses a tiered approach to test coverage:
+- **Solid (80%+)**: Core abstractions (`config`, `tasks/backend`, `harness/backend`) - high confidence required
+- **Moderate (60%+)**: Primary implementations (`cli/run.py`, `harness/claude.py`) - good coverage needed
+- **Experimental (40%+)**: Newer features - tests encouraged but not blocking
+- **UI/Delegated (no threshold)**: Terminal UI and bash-delegated commands - covered by BATS tests
+
+When modifying code, check the tier in STABILITY.md to understand the expected testing rigor.
+
 ## Hybrid CLI Architecture (v0.23.1)
 
 Cub uses a hybrid Python/Bash CLI architecture to enable gradual migration from Bash to Python without blocking new development. Commands are implemented in Python where possible, with remaining commands delegated to the bash version.
@@ -480,3 +492,25 @@ cub init --global         # Set up global config
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+
+## Task cub-k41.3: Migrate legacy harnesses to async interface
+
+**Date:** 2026-01-19
+
+**Key Learnings:**
+
+1. **Async Wrapper Pattern**: Used `asyncio.to_thread()` to wrap synchronous shell-out methods for async compatibility. This preserves existing behavior while enabling async interface support.
+
+2. **Backend Registry Decoupling**: Backend names (e.g., "claude-legacy") don't need to match CLI command names (e.g., "claude"). The `is_available()` method handles the mapping.
+
+3. **Detection Logic Evolution**: Changed from `shutil.which(harness)` to `backend.is_available()` to support backends where the name and CLI command differ. This is critical for aliases like "claude-legacy".
+
+4. **Deprecation Strategy**: Used Python's `warnings.warn()` with `DeprecationWarning` in `__init__()` to signal deprecated backends. Tests suppress warnings with `warnings.catch_warnings()`.
+
+5. **Test Migration**: When renaming classes, update both class usage AND expected values in assertions. Also needed to update detection order expectations in tests.
+
+6. **Dual Registration**: Backends can be registered in both sync and async registries using multiple decorators (`@register_backend()` and `@register_async_backend()`).
+
+7. **Import Cleanup**: After refactoring detection logic, `shutil` was no longer needed in `backend.py`. Always check for unused imports after major changes.
+
+**Outcome:** Successfully migrated ClaudeBackend (→ ClaudeLegacyBackend) and CodexBackend to async interface. All tests passing, mypy clean, ready for SDK-based harnesses to take priority.
