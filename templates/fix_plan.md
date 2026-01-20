@@ -35,7 +35,7 @@ This file is committed to git and read by every session.
   Example: "User input not sanitized in comments field"
 
 ❌ DON'T ADD:
-- Feature requests (use task backlog: prd.json or .beads/issues.jsonl)
+- Feature requests (use task backlog instead)
 - Completed fixes (delete when merged/fixed - archive in git history)
 - Vague complaints ("Code is messy" - be specific!)
 - Architecture discussions (use specs/ directory)

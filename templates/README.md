@@ -64,24 +64,17 @@ WHY THIS FILE EXISTS:
 cub status
 
 # Start the autonomous loop
-cub
+cub run
 
 # Run single iteration
-cub --once
+cub run --once
 
 # Show ready tasks
-cub --ready
-
-# Create a new task
-bd create "Task description"
-
-# View a task
-bd show <task-id>
-
-# Update task status
-bd update <task-id> --status in_progress
-bd close <task-id>
+cub run --ready
 ```
+
+> **Task Management:** Add your project's task commands here.
+> The task backend will provide closure instructions in each task prompt.
 
 ### Development Commands
 
@@ -165,8 +158,7 @@ When an AI coding assistant works on this project:
 2. Check `.cub/progress.txt` for known gotchas
 3. Review `.cub/fix_plan.md` before making changes
 4. Update these files as you learn new things
-5. Use `bd list` to see open tasks
-6. Update task status with `bd update <id> --status in_progress` when starting work
+5. Follow task management instructions provided in each task prompt
 
 ---
 

@@ -37,7 +37,7 @@ Every session reads this file FIRST, before starting work on any task.
    - Add performance requirements: "API endpoints must respond in <100ms"
 
 4. When You're Done (line ~70):
-   - Specify task closure method: bd close vs prd.json update
+   - Task closure instructions are provided in the CURRENT TASK section
    - Include any deployment/notification steps
    - Add merge/PR creation steps if needed
 
@@ -121,7 +121,7 @@ Study these files to understand the project:
 ## When You're Done
 
 After successfully completing the task and all checks pass:
-1. Close the task using the method shown in CURRENT TASK (either `bd close` or prd.json update)
+1. Close the task using the method shown in CURRENT TASK
 2. Commit your changes with format: `type(task-id): description`
 3. Append learnings to @progress.txt
 4. If ALL tasks are closed, output exactly:

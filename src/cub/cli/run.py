@@ -179,8 +179,6 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     Returns:
         Task prompt string
     """
-    backend_name = task_backend.backend_name
-
     # Build the task prompt
     prompt_parts = []
 
@@ -202,23 +200,18 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
             prompt_parts.append(f"- {criterion}")
         prompt_parts.append("")
 
-    # Add completion instructions based on backend
-    prompt_parts.append("When complete:")
-    prompt_parts.append("1. Run feedback loops (typecheck, test, lint)")
-
-    task_type_str = task.type.value if hasattr(task.type, "value") else task.type
-    if backend_name == "beads":
-        prompt_parts.append(f"2. Mark task complete: bd close {task.id}")
-        prompt_parts.append(f"3. Commit: {task_type_str}({task.id}): {task.title}")
-    else:
-        prompt_parts.append(f'2. Update prd.json: set status to "closed" for {task.id}')
-        prompt_parts.append(f"3. Commit: {task_type_str}({task.id}): {task.title}")
-
-    prompt_parts.append("4. Append learnings to progress.txt")
-
-    # Add backend-specific instructions from the backend itself
+    # Add backend-specific task management instructions
+    prompt_parts.append("## Task Management\n")
+    prompt_parts.append(task_backend.get_agent_instructions(task.id))
     prompt_parts.append("")
-    prompt_parts.append("Note: " + task_backend.get_agent_instructions(task.id))
+
+    # Add completion workflow (backend-agnostic)
+    task_type_str = task.type.value if hasattr(task.type, "value") else task.type
+    prompt_parts.append("## When Complete\n")
+    prompt_parts.append("1. Run feedback loops (typecheck, test, lint)")
+    prompt_parts.append("2. Mark the task complete (see Task Management above)")
+    prompt_parts.append(f"3. Commit: `{task_type_str}({task.id}): {task.title}`")
+    prompt_parts.append("4. Append learnings to progress.txt")
 
     return "\n".join(prompt_parts)
 

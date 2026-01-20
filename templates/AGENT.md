@@ -217,9 +217,6 @@ If a command doesn't exist for your project, delete that section entirely.
 │   ├── prompt.md         # System prompt for AI assistants
 │   ├── progress.txt      # Session learnings and discoveries
 │   └── fix_plan.md       # Known issues and technical debt
-├── .beads/               # Task backend (if using beads)
-│   └── issues.jsonl      # Task database
-├── prd.json              # Task backlog (if using JSON backend)
 ├── .env.example          # Environment template (copy to .env)
 ├── .gitignore            # Git ignore patterns
 ├── package.json          # Dependencies and scripts
@@ -319,11 +316,11 @@ Examples (Python):
 - pytest --lf - Re-run last failed tests (quick regression testing)
 - python -m flask shell - Interactive Python shell with app context (debug queries)
 
-Examples (Task Management):
-- bd list --status open - Show all open tasks in the backlog
-- bd show <id> - View detailed task info and dependencies
-- bd close <id> - Mark a task complete
-- bd create "..." - Create a new task
+Examples (Task Management - add your project's task commands here):
+- List open tasks
+- Show task details
+- Mark task complete
+- Create new task
 
 When to add a command:
 - It's something you run frequently (multiple times per week)

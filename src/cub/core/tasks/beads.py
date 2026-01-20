@@ -494,7 +494,16 @@ class BeadsBackend:
         Returns:
             Multiline string with agent instructions
         """
-        return f"""This project uses the beads task backend. Use 'bd' commands for task management:
-- bd close {task_id}  - Mark this task complete
-- bd show {task_id}   - Check task status
-- bd list             - See all tasks"""
+        return f"""This project uses the beads task backend (`bd` CLI).
+
+**Task lifecycle:**
+- `bd update {task_id} --status in_progress` - Claim the task (do this first)
+- `bd close {task_id}` - Mark task complete (after all checks pass)
+- `bd close {task_id} -r "reason"` - Close with explanation
+
+**Useful commands:**
+- `bd show {task_id}` - View task details and dependencies
+- `bd list --status open` - See remaining open tasks
+- `bd ready` - See tasks ready to work on (no blockers)
+
+**Important:** Always run feedback loops (tests, typecheck, lint) BEFORE closing the task."""

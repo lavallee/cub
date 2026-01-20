@@ -571,7 +571,20 @@ class JsonBackend:
         Returns:
             Multiline string with agent instructions
         """
-        return f"""This project uses the JSON task backend (prd.json). To manage tasks:
-- Update prd.json: set status to "closed" for {task_id}
-- Read prd.json to check task status
-- View all tasks in the "tasks" array"""
+        return f"""This project uses the JSON task backend (prd.json).
+
+**Task lifecycle:**
+1. Read `prd.json` to view task details
+2. Set `"status": "in_progress"` for task `{task_id}` when starting
+3. Set `"status": "closed"` for task `{task_id}` when complete
+
+**File structure:**
+```json
+{{
+  "tasks": [
+    {{"id": "{task_id}", "status": "open|in_progress|closed", ...}}
+  ]
+}}
+```
+
+**Important:** Always run feedback loops (tests, typecheck, lint) BEFORE marking the task closed."""
