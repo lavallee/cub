@@ -620,8 +620,10 @@ src/cub/
 Files to retire:
 - `src/cub/bash/lib/cmd_prep.sh` (1,700+ lines)
 - `src/cub/cli/delegated.py` prep-related functions
-- `.claude/commands/cub:triage.md` → `.claude/commands/cub:orientation.md`
-- `.claude/commands/cub:plan.md` → `.claude/commands/cub:itemized-plan.md`
+
+Files to rename:
+- `.claude/commands/cub:triage.md` → `.claude/commands/cub:orient.md`
+- `.claude/commands/cub:plan.md` → `.claude/commands/cub:itemize.md`
 
 ### Artifacts to Update
 
@@ -637,17 +639,49 @@ Files to retire:
 - [ ] Update SDK harness for pipeline support
 - [ ] Create SYSTEM-PLAN.md management
 
-**Skills/Commands**:
-- [ ] Rename `cub:triage` → `cub:orient`
-- [ ] Rename `cub:plan` → `cub:itemize`
-- [ ] Update `cub:architect` prompts
-- [ ] Create `cub:stage` skill (if needed)
+**Skills/Commands** (`.claude/commands/`):
+- [ ] Rename `cub:triage.md` → `cub:orient.md` (outputs `orientation.md`)
+- [ ] Rename `cub:plan.md` → `cub:itemize.md` (outputs `itemized-plan.md`)
+- [ ] Update `cub:architect.md` prompts (outputs `architecture.md`)
+- [ ] Create `cub:stage.md` skill (if needed)
+- [ ] Update `cub:spec-to-issues.md` if it references old pipeline
 
 **Documentation**:
-- [ ] Update CLAUDE.md with new commands
-- [ ] Update README with new workflow
-- [ ] Create migration guide for existing sessions
-- [ ] Update UPGRADING.md
+
+*Root-level docs:*
+- [ ] Update `README.md` with new workflow (prep→plan, bootstrap→stage)
+- [ ] Update `CLAUDE.md` with new commands and nomenclature
+- [ ] Update `UPGRADING.md` with migration guide for existing sessions
+- [ ] Update `CHANGELOG.md` with breaking changes
+- [ ] Update `CONTRIBUTING.md` if it references prep pipeline
+
+*MkDocs source (`docs-src/`):*
+- [ ] Rename `docs-src/content/guide/prep-pipeline/` → `plan-pipeline/`
+- [ ] Rename `triage.md` → `orient.md`
+- [ ] Update `architect.md` content
+- [ ] Rename `plan.md` → `itemize.md`
+- [ ] Rename `bootstrap.md` → `stage.md`
+- [ ] Update `index.md` with new overview
+- [ ] Update `mkdocs.yml` navigation structure
+- [ ] Rebuild site: `mkdocs build`
+
+*Built documentation site (`docs/`):*
+- [ ] Regenerate `docs/index.html` from docs-src
+- [ ] Update `docs/HOOKS.md` if it references prep/bootstrap hooks
+- [ ] Update `docs/install.sh` if it installs skills
+
+*CLI help text (Typer docstrings):*
+- [ ] Update all command docstrings in `src/cub/cli/plan.py`
+- [ ] Update `cub --help` output to reflect new commands
+- [ ] Add deprecation warnings to old command names
+
+*Guardrails and project docs:*
+- [ ] Update `.cub/guardrails.md` if it references old commands
+- [ ] Update `.cub/README.md` if it documents session structure
+
+*Migration artifacts:*
+- [ ] Create `MIGRATION-PREP-TO-PLAN.md` one-pager for users
+- [ ] Document `.cub/sessions/` → `/plans/` migration path
 
 **Tests**:
 - [ ] Unit tests for plan models
