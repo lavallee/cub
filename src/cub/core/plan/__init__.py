@@ -73,6 +73,18 @@ from cub.core.plan.orient import (
     OrientStageError,
     run_orient,
 )
+from cub.core.plan.parser import (
+    ParsedEpic,
+    ParsedPlan,
+    ParsedTask,
+    PlanFileNotFoundError,
+    PlanFormatError,
+    PlanMetadata,
+    PlanParseError,
+    convert_to_task_models,
+    parse_itemized_plan,
+    parse_itemized_plan_content,
+)
 from cub.core.plan.pipeline import (
     PipelineConfig,
     PipelineConfigError,
@@ -145,4 +157,15 @@ __all__ = [
     "is_valid_subtask_id",
     "parse_id",
     "get_parent_id",
+    # Parser
+    "ParsedEpic",
+    "ParsedTask",
+    "ParsedPlan",
+    "PlanMetadata",
+    "PlanParseError",
+    "PlanFileNotFoundError",
+    "PlanFormatError",
+    "parse_itemized_plan",
+    "parse_itemized_plan_content",
+    "convert_to_task_models",
 ]
