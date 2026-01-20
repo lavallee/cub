@@ -16,20 +16,33 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class Stage(str, Enum):
     """Spec lifecycle stages.
 
-    Specs move through these stages as they progress from idea to completion:
-    - RESEARCHING: Initial exploration phase, many unknowns
-    - PLANNED: Ready to implement, all major decisions made
-    - COMPLETED: Implementation finished
+    Specs move through these stages as planning and implementation proceeds:
+    - RESEARCHING: Initial exploration phase, many unknowns (-ing = active)
+    - PLANNED: Plan exists, ready to stage (past = at rest)
+    - STAGED: Tasks in backend, ready to build (past = at rest)
+    - IMPLEMENTING: Active work happening (-ing = active)
+    - RELEASED: Shipped, available for drift audit (past = at rest)
+
+    The word forms (-ing vs past tense) indicate whether the spec is
+    actively being worked on or is at rest awaiting the next action.
 
     Stage directories:
     - specs/researching/
     - specs/planned/
-    - specs/completed/
+    - specs/staged/
+    - specs/implementing/
+    - specs/released/
+
+    Note: COMPLETED is kept as an alias for RELEASED for backwards compatibility.
     """
 
     RESEARCHING = "researching"
     PLANNED = "planned"
-    COMPLETED = "completed"
+    STAGED = "staged"
+    IMPLEMENTING = "implementing"
+    RELEASED = "released"
+    # Backwards compatibility alias
+    COMPLETED = "released"
 
     @classmethod
     def from_directory(cls, directory_name: str) -> "Stage":
@@ -44,10 +57,19 @@ class Stage(str, Enum):
         Raises:
             ValueError: If directory name doesn't match any stage
         """
+        # Handle 'completed' as alias for 'released'
+        if directory_name == "completed":
+            return cls.RELEASED
+
         for stage in cls:
             if stage.value == directory_name:
                 return stage
         raise ValueError(f"Unknown stage directory: {directory_name}")
+
+    @property
+    def is_active(self) -> bool:
+        """Check if this stage represents active work (-ing form)."""
+        return self in (Stage.RESEARCHING, Stage.IMPLEMENTING)
 
 
 class SpecStatus(str, Enum):
@@ -210,7 +232,7 @@ class Spec(BaseModel):
         """Check if spec is ready to be implemented.
 
         A spec is ready if:
-        - Stage is PLANNED (in planned/ directory)
+        - Stage is PLANNED or STAGED
         - Readiness score is >= 7
         - Has no blockers
 
@@ -218,7 +240,7 @@ class Spec(BaseModel):
             True if spec can be implemented
         """
         return (
-            self.stage == Stage.PLANNED
+            self.stage in (Stage.PLANNED, Stage.STAGED)
             and self.readiness.score >= 7
             and len(self.readiness.blockers) == 0
         )

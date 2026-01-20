@@ -61,10 +61,14 @@ class SpecWorkflow:
     """
 
     # Valid stage transitions (from -> allowed destinations)
+    # The primary flow is: researching -> planned -> staged -> implementing -> released
+    # Some backtracking is allowed for corrections
     VALID_TRANSITIONS: dict[Stage, list[Stage]] = {
-        Stage.RESEARCHING: [Stage.PLANNED, Stage.COMPLETED],
-        Stage.PLANNED: [Stage.COMPLETED, Stage.RESEARCHING],
-        Stage.COMPLETED: [Stage.PLANNED, Stage.RESEARCHING],
+        Stage.RESEARCHING: [Stage.PLANNED],
+        Stage.PLANNED: [Stage.STAGED, Stage.RESEARCHING],
+        Stage.STAGED: [Stage.IMPLEMENTING, Stage.PLANNED],
+        Stage.IMPLEMENTING: [Stage.RELEASED, Stage.STAGED],
+        Stage.RELEASED: [Stage.IMPLEMENTING],  # Re-open for fixes
     }
 
     def __init__(self, specs_root: Path, use_git: bool = True) -> None:
@@ -140,7 +144,9 @@ class SpecWorkflow:
             raise FileNotFoundError(f"Specs root not found: {self.specs_root}")
 
         specs: list[Spec] = []
-        stages_to_scan = [stage] if stage else list(Stage)
+        # Filter out COMPLETED since it's an alias for RELEASED (same directory)
+        all_stages = [s for s in Stage if s != Stage.COMPLETED]
+        stages_to_scan = [stage] if stage else all_stages
 
         for s in stages_to_scan:
             stage_dir = self._get_stage_dir(s)
@@ -340,7 +346,7 @@ class SpecWorkflow:
         """
         Promote a spec to the next stage.
 
-        Promotion order: researching -> planned -> completed
+        Promotion order: researching -> planned -> staged -> implementing -> released
 
         Args:
             spec: Spec object or spec name to promote
@@ -350,25 +356,31 @@ class SpecWorkflow:
 
         Raises:
             SpecNotFoundError: If spec cannot be found
-            InvalidStageTransitionError: If spec is already completed
+            InvalidStageTransitionError: If spec is already released
         """
         if isinstance(spec, str):
             spec = self.find_spec(spec)
 
-        if spec.stage == Stage.RESEARCHING:
-            return self.move_to_stage(spec, Stage.PLANNED)
-        elif spec.stage == Stage.PLANNED:
-            return self.move_to_stage(spec, Stage.COMPLETED)
+        # Define promotion order
+        promotion_map: dict[Stage, Stage] = {
+            Stage.RESEARCHING: Stage.PLANNED,
+            Stage.PLANNED: Stage.STAGED,
+            Stage.STAGED: Stage.IMPLEMENTING,
+            Stage.IMPLEMENTING: Stage.RELEASED,
+        }
+
+        if spec.stage in promotion_map:
+            return self.move_to_stage(spec, promotion_map[spec.stage])
         else:
             raise InvalidStageTransitionError(
-                f"Cannot promote spec in {spec.stage.value} stage - already completed"
+                f"Cannot promote spec in {spec.stage.value} stage - already released"
             )
 
     def demote(self, spec: Spec | str) -> Spec:
         """
         Demote a spec to the previous stage.
 
-        Demotion order: completed -> planned -> researching
+        Demotion order: released -> implementing -> staged -> planned -> researching
 
         Args:
             spec: Spec object or spec name to demote
@@ -383,10 +395,16 @@ class SpecWorkflow:
         if isinstance(spec, str):
             spec = self.find_spec(spec)
 
-        if spec.stage == Stage.COMPLETED:
-            return self.move_to_stage(spec, Stage.PLANNED)
-        elif spec.stage == Stage.PLANNED:
-            return self.move_to_stage(spec, Stage.RESEARCHING)
+        # Define demotion order
+        demotion_map: dict[Stage, Stage] = {
+            Stage.RELEASED: Stage.IMPLEMENTING,
+            Stage.IMPLEMENTING: Stage.STAGED,
+            Stage.STAGED: Stage.PLANNED,
+            Stage.PLANNED: Stage.RESEARCHING,
+        }
+
+        if spec.stage in demotion_map:
+            return self.move_to_stage(spec, demotion_map[spec.stage])
         else:
             raise InvalidStageTransitionError(
                 f"Cannot demote spec in {spec.stage.value} stage - already at earliest stage"

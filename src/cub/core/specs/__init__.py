@@ -6,16 +6,27 @@ Specs are Markdown files with YAML frontmatter organized in stage
 directories under the specs/ folder.
 
 Spec lifecycle stages:
-- RESEARCHING: Initial exploration phase
-- PLANNED: Ready to implement
-- COMPLETED: Implementation finished
+- RESEARCHING: Initial exploration phase (-ing = active)
+- PLANNED: Plan exists, ready to stage (past = at rest)
+- STAGED: Tasks in backend, ready to build (past = at rest)
+- IMPLEMENTING: Active work happening (-ing = active)
+- RELEASED: Shipped, available for drift audit (past = at rest)
 
 Stage directories:
 - specs/researching/
 - specs/planned/
-- specs/completed/
+- specs/staged/
+- specs/implementing/
+- specs/released/
 """
 
+from cub.core.specs.lifecycle import (
+    SpecLifecycleError,
+    get_spec_lifecycle_stage_from_plan,
+    move_spec_to_implementing,
+    move_spec_to_staged,
+    move_specs_to_released,
+)
 from cub.core.specs.models import (
     Readiness,
     Spec,
@@ -46,4 +57,10 @@ __all__ = [
     "SpecNotFoundError",
     "SpecWorkflow",
     "SpecWorkflowError",
+    # Lifecycle
+    "SpecLifecycleError",
+    "get_spec_lifecycle_stage_from_plan",
+    "move_spec_to_implementing",
+    "move_spec_to_staged",
+    "move_specs_to_released",
 ]

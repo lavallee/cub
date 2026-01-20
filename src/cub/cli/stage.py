@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cub.core.plan.context import PlanContext, PlanContextError
+from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_staged
 from cub.core.stage.stager import (
     ItemizedPlanNotFoundError,
     PlanAlreadyStagedError,
@@ -203,6 +204,18 @@ def stage(
             console.print(traceback.format_exc())
         raise typer.Exit(1)
 
+    # Move spec from planned/ to staged/ (only on successful, non-dry-run staging)
+    spec_moved = False
+    spec_new_path = None
+    if not dry_run:
+        try:
+            spec_new_path = move_spec_to_staged(plan_ctx, verbose=verbose or debug)
+            if spec_new_path is not None:
+                spec_moved = True
+        except SpecLifecycleError as e:
+            # Non-fatal: warn but don't fail staging
+            console.print(f"[yellow]Warning: Could not move spec: {e}[/yellow]")
+
     # Report results
     console.print()
     if dry_run:
@@ -216,6 +229,10 @@ def stage(
     console.print()
     console.print(f"[bold]Created:[/bold] {len(result.epics_created)} epics, "
                   f"{len(result.tasks_created)} tasks")
+
+    # Report spec move
+    if spec_moved and spec_new_path is not None:
+        console.print(f"[cyan]Spec moved to:[/cyan] {spec_new_path.relative_to(project_root)}")
 
     if verbose:
         _print_detailed_results(result, project_root)

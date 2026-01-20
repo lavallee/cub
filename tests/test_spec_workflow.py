@@ -40,18 +40,34 @@ class TestStage:
         """Test that Stage enum has expected values."""
         assert Stage.RESEARCHING.value == "researching"
         assert Stage.PLANNED.value == "planned"
-        assert Stage.COMPLETED.value == "completed"
+        assert Stage.STAGED.value == "staged"
+        assert Stage.IMPLEMENTING.value == "implementing"
+        assert Stage.RELEASED.value == "released"
+        # COMPLETED is backwards-compat alias for RELEASED
+        assert Stage.COMPLETED.value == "released"
 
     def test_from_directory_valid(self) -> None:
         """Test Stage.from_directory with valid directory names."""
         assert Stage.from_directory("researching") == Stage.RESEARCHING
         assert Stage.from_directory("planned") == Stage.PLANNED
-        assert Stage.from_directory("completed") == Stage.COMPLETED
+        assert Stage.from_directory("staged") == Stage.STAGED
+        assert Stage.from_directory("implementing") == Stage.IMPLEMENTING
+        assert Stage.from_directory("released") == Stage.RELEASED
+        # "completed" maps to RELEASED for backwards compatibility
+        assert Stage.from_directory("completed") == Stage.RELEASED
 
     def test_from_directory_invalid(self) -> None:
         """Test Stage.from_directory with invalid directory name."""
         with pytest.raises(ValueError, match="Unknown stage directory"):
             Stage.from_directory("invalid")
+
+    def test_is_active(self) -> None:
+        """Test is_active property for active vs at-rest stages."""
+        assert Stage.RESEARCHING.is_active is True
+        assert Stage.PLANNED.is_active is False
+        assert Stage.STAGED.is_active is False
+        assert Stage.IMPLEMENTING.is_active is True
+        assert Stage.RELEASED.is_active is False
 
 
 # =============================================================================
@@ -290,10 +306,12 @@ class TestSpecWorkflowList:
         """Create a specs directory structure with test files."""
         specs_root = tmp_path / "specs"
 
-        # Create stage directories
+        # Create all stage directories
         (specs_root / "researching").mkdir(parents=True)
         (specs_root / "planned").mkdir(parents=True)
-        (specs_root / "completed").mkdir(parents=True)
+        (specs_root / "staged").mkdir(parents=True)
+        (specs_root / "implementing").mkdir(parents=True)
+        (specs_root / "released").mkdir(parents=True)
 
         # Create test specs
         researching_spec = """---
@@ -331,20 +349,6 @@ Ready to implement.
 """
         (specs_root / "planned" / "planned-feature.md").write_text(planned_spec)
 
-        completed_spec = """---
-status: complete
-priority: high
-created: 2026-01-10
-readiness:
-  score: 10
----
-
-# Completed Feature
-
-Done!
-"""
-        (specs_root / "completed" / "completed-feature.md").write_text(completed_spec)
-
         return specs_root
 
     def test_list_all_specs(self, specs_dir: Path) -> None:
@@ -352,11 +356,11 @@ Done!
         workflow = SpecWorkflow(specs_dir)
         specs = workflow.list_specs()
 
-        assert len(specs) == 3
+        # Only 2 specs in the fixture now (researching and planned)
+        assert len(specs) == 2
         names = [s.name for s in specs]
         assert "research-feature" in names
         assert "planned-feature" in names
-        assert "completed-feature" in names
 
     def test_list_specs_by_stage(self, specs_dir: Path) -> None:
         """Test listing specs filtered by stage."""
@@ -370,9 +374,10 @@ Done!
         assert len(planned) == 1
         assert planned[0].name == "planned-feature"
 
-        completed = workflow.list_specs(Stage.COMPLETED)
-        assert len(completed) == 1
-        assert completed[0].name == "completed-feature"
+        # No specs in other stages
+        assert len(workflow.list_specs(Stage.STAGED)) == 0
+        assert len(workflow.list_specs(Stage.IMPLEMENTING)) == 0
+        assert len(workflow.list_specs(Stage.RELEASED)) == 0
 
     def test_list_specs_nonexistent_root(self, tmp_path: Path) -> None:
         """Test listing specs when root doesn't exist."""
@@ -382,12 +387,10 @@ Done!
 
     def test_list_specs_empty_stage(self, specs_dir: Path) -> None:
         """Test listing specs from empty stage returns empty list."""
-        # Remove all completed specs
-        (specs_dir / "completed" / "completed-feature.md").unlink()
-
         workflow = SpecWorkflow(specs_dir)
-        completed = workflow.list_specs(Stage.COMPLETED)
-        assert completed == []
+        # staged/ exists but has no specs
+        staged = workflow.list_specs(Stage.STAGED)
+        assert staged == []
 
     def test_list_specs_extracts_title(self, specs_dir: Path) -> None:
         """Test that spec title is extracted from heading."""
@@ -459,9 +462,12 @@ class TestSpecWorkflowMove:
     def specs_dir(self, tmp_path: Path) -> Path:
         """Create a specs directory with spec to move."""
         specs_root = tmp_path / "specs"
+        # Create all stage directories
         (specs_root / "researching").mkdir(parents=True)
         (specs_root / "planned").mkdir(parents=True)
-        (specs_root / "completed").mkdir(parents=True)
+        (specs_root / "staged").mkdir(parents=True)
+        (specs_root / "implementing").mkdir(parents=True)
+        (specs_root / "released").mkdir(parents=True)
 
         spec_content = """---
 status: researching
@@ -596,18 +602,27 @@ class TestSpecWorkflowTransitions:
         return SpecWorkflow(tmp_path / "specs", use_git=False)
 
     def test_valid_transitions(self, workflow: SpecWorkflow) -> None:
-        """Test valid stage transitions."""
-        # From researching
+        """Test valid stage transitions through the 5-stage pipeline."""
+        # Forward flow: researching -> planned -> staged -> implementing -> released
         assert workflow.validate_transition(Stage.RESEARCHING, Stage.PLANNED)
-        assert workflow.validate_transition(Stage.RESEARCHING, Stage.COMPLETED)
+        assert workflow.validate_transition(Stage.PLANNED, Stage.STAGED)
+        assert workflow.validate_transition(Stage.STAGED, Stage.IMPLEMENTING)
+        assert workflow.validate_transition(Stage.IMPLEMENTING, Stage.RELEASED)
 
-        # From planned
-        assert workflow.validate_transition(Stage.PLANNED, Stage.COMPLETED)
+        # Allowed backtracking
         assert workflow.validate_transition(Stage.PLANNED, Stage.RESEARCHING)
+        assert workflow.validate_transition(Stage.STAGED, Stage.PLANNED)
+        assert workflow.validate_transition(Stage.IMPLEMENTING, Stage.STAGED)
+        assert workflow.validate_transition(Stage.RELEASED, Stage.IMPLEMENTING)
 
-        # From completed (can go back)
-        assert workflow.validate_transition(Stage.COMPLETED, Stage.PLANNED)
-        assert workflow.validate_transition(Stage.COMPLETED, Stage.RESEARCHING)
+    def test_invalid_transitions(self, workflow: SpecWorkflow) -> None:
+        """Test that invalid transitions raise errors."""
+        # Cannot skip stages in forward direction
+        with pytest.raises(InvalidStageTransitionError):
+            workflow.validate_transition(Stage.RESEARCHING, Stage.STAGED)
+
+        with pytest.raises(InvalidStageTransitionError):
+            workflow.validate_transition(Stage.PLANNED, Stage.IMPLEMENTING)
 
     def test_same_stage_transition_fails(self, workflow: SpecWorkflow) -> None:
         """Test that same stage transition fails."""
@@ -622,14 +637,18 @@ class TestSpecWorkflowPromoteDemote:
     def specs_dir(self, tmp_path: Path) -> Path:
         """Create specs in different stages."""
         specs_root = tmp_path / "specs"
-        for stage in Stage:
+        # Create all stage directories (excluding COMPLETED alias)
+        for stage in [Stage.RESEARCHING, Stage.PLANNED, Stage.STAGED,
+                      Stage.IMPLEMENTING, Stage.RELEASED]:
             (specs_root / stage.value).mkdir(parents=True)
 
         # Create specs in each stage
         for stage, name in [
             (Stage.RESEARCHING, "researching-spec"),
             (Stage.PLANNED, "planned-spec"),
-            (Stage.COMPLETED, "completed-spec"),
+            (Stage.STAGED, "staged-spec"),
+            (Stage.IMPLEMENTING, "implementing-spec"),
+            (Stage.RELEASED, "released-spec"),
         ]:
             content = f"""---
 status: {stage.value}
@@ -649,26 +668,58 @@ status: {stage.value}
 
         assert promoted.stage == Stage.PLANNED
 
-    def test_promote_planned_to_completed(self, specs_dir: Path) -> None:
-        """Test promoting from planned to completed."""
+    def test_promote_planned_to_staged(self, specs_dir: Path) -> None:
+        """Test promoting from planned to staged."""
         workflow = SpecWorkflow(specs_dir, use_git=False)
 
         promoted = workflow.promote("planned-spec")
 
-        assert promoted.stage == Stage.COMPLETED
+        assert promoted.stage == Stage.STAGED
 
-    def test_promote_completed_fails(self, specs_dir: Path) -> None:
-        """Test that promoting completed spec fails."""
+    def test_promote_staged_to_implementing(self, specs_dir: Path) -> None:
+        """Test promoting from staged to implementing."""
         workflow = SpecWorkflow(specs_dir, use_git=False)
 
-        with pytest.raises(InvalidStageTransitionError, match="already completed"):
-            workflow.promote("completed-spec")
+        promoted = workflow.promote("staged-spec")
 
-    def test_demote_completed_to_planned(self, specs_dir: Path) -> None:
-        """Test demoting from completed to planned."""
+        assert promoted.stage == Stage.IMPLEMENTING
+
+    def test_promote_implementing_to_released(self, specs_dir: Path) -> None:
+        """Test promoting from implementing to released."""
         workflow = SpecWorkflow(specs_dir, use_git=False)
 
-        demoted = workflow.demote("completed-spec")
+        promoted = workflow.promote("implementing-spec")
+
+        assert promoted.stage == Stage.RELEASED
+
+    def test_promote_released_fails(self, specs_dir: Path) -> None:
+        """Test that promoting released spec fails."""
+        workflow = SpecWorkflow(specs_dir, use_git=False)
+
+        with pytest.raises(InvalidStageTransitionError, match="already released"):
+            workflow.promote("released-spec")
+
+    def test_demote_released_to_implementing(self, specs_dir: Path) -> None:
+        """Test demoting from released to implementing."""
+        workflow = SpecWorkflow(specs_dir, use_git=False)
+
+        demoted = workflow.demote("released-spec")
+
+        assert demoted.stage == Stage.IMPLEMENTING
+
+    def test_demote_implementing_to_staged(self, specs_dir: Path) -> None:
+        """Test demoting from implementing to staged."""
+        workflow = SpecWorkflow(specs_dir, use_git=False)
+
+        demoted = workflow.demote("implementing-spec")
+
+        assert demoted.stage == Stage.STAGED
+
+    def test_demote_staged_to_planned(self, specs_dir: Path) -> None:
+        """Test demoting from staged to planned."""
+        workflow = SpecWorkflow(specs_dir, use_git=False)
+
+        demoted = workflow.demote("staged-spec")
 
         assert demoted.stage == Stage.PLANNED
 
@@ -696,8 +747,9 @@ class TestSpecWorkflowCounts:
         """Create specs directory with multiple specs."""
         specs_root = tmp_path / "specs"
 
-        # Create stage directories
-        for stage in Stage:
+        # Create all stage directories (excluding COMPLETED alias)
+        for stage in [Stage.RESEARCHING, Stage.PLANNED, Stage.STAGED,
+                      Stage.IMPLEMENTING, Stage.RELEASED]:
             (specs_root / stage.value).mkdir(parents=True)
 
         # 2 researching specs
@@ -731,8 +783,8 @@ readiness:
 # Not Ready
 """)
 
-        # 1 completed spec
-        (specs_root / "completed" / "done.md").write_text("""---
+        # 1 released spec
+        (specs_root / "released" / "done.md").write_text("""---
 status: complete
 readiness:
   score: 10
@@ -749,7 +801,9 @@ readiness:
 
         assert counts[Stage.RESEARCHING] == 2
         assert counts[Stage.PLANNED] == 3
-        assert counts[Stage.COMPLETED] == 1
+        assert counts[Stage.STAGED] == 0
+        assert counts[Stage.IMPLEMENTING] == 0
+        assert counts[Stage.RELEASED] == 1
 
     def test_get_ready_specs(self, specs_dir: Path) -> None:
         """Test getting specs ready for implementation."""

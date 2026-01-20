@@ -26,9 +26,12 @@ from rich.table import Table
 from cub.core.config.loader import load_config
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
+from cub.core.plan.context import PlanContext
+from cub.core.plan.models import PlanStatus
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
+from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
@@ -206,6 +209,56 @@ def _signal_handler(signum: int, frame: object) -> None:
         sys.exit(130)
     _interrupted = True
     console.print("\n[yellow]Interrupt received. Finishing current task...[/yellow]")
+
+
+def _transition_staged_specs_to_implementing(
+    project_dir: Path,
+    debug: bool = False,
+) -> list[Path]:
+    """
+    Transition specs from staged/ to implementing/ at run start.
+
+    Finds all plans in STAGED status and moves their specs from
+    specs/staged/ to specs/implementing/.
+
+    Args:
+        project_dir: Project root directory.
+        debug: Show debug output.
+
+    Returns:
+        List of moved spec paths.
+    """
+    plans_dir = project_dir / "plans"
+    if not plans_dir.exists():
+        return []
+
+    moved: list[Path] = []
+
+    for plan_dir in plans_dir.iterdir():
+        if not plan_dir.is_dir():
+            continue
+
+        plan_json = plan_dir / "plan.json"
+        if not plan_json.exists():
+            continue
+
+        try:
+            ctx = PlanContext.load(plan_dir, project_dir)
+            if ctx.plan.status != PlanStatus.STAGED:
+                continue
+
+            # Try to move spec to implementing
+            new_path = move_spec_to_implementing(ctx, verbose=debug)
+            if new_path is not None:
+                moved.append(new_path)
+                if debug:
+                    console.print(f"[dim]Moved spec to implementing: {new_path}[/dim]")
+        except (FileNotFoundError, SpecLifecycleError) as e:
+            if debug:
+                console.print(f"[dim]Could not process plan {plan_dir.name}: {e}[/dim]")
+            continue
+
+    return moved
 
 
 def generate_system_prompt(project_dir: Path) -> str:
@@ -830,6 +883,17 @@ def run(
     status.phase = RunPhase.RUNNING
     status.add_event("Run started", EventLevel.INFO)
     status_writer.write(status)
+
+    # Transition specs from staged/ to implementing/ at run start
+    moved_specs = _transition_staged_specs_to_implementing(project_dir, debug)
+    if moved_specs:
+        console.print(f"[cyan]Moved {len(moved_specs)} spec(s) to implementing/[/cyan]")
+        for spec_path in moved_specs:
+            status.add_event(
+                f"Spec moved to implementing: {spec_path.name}",
+                EventLevel.INFO,
+            )
+        status_writer.write(status)
 
     # Run pre-loop hooks (sync - must complete before loop starts)
     pre_loop_context = HookContext(
