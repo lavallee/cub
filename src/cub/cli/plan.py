@@ -22,6 +22,7 @@ from cub.core.plan.context import (
     PlanExistsError,
     SpecNotFoundError,
 )
+from cub.core.plan.itemize import ItemizeStage, ItemizeStageError
 from cub.core.plan.orient import OrientStage, OrientStageError
 
 app = typer.Typer(
@@ -469,15 +470,27 @@ def architect(
 @app.command()
 def itemize(
     ctx: typer.Context,
-    spec: str | None = typer.Argument(
+    plan_slug: str | None = typer.Argument(
         None,
-        help="Spec ID or path to itemize from (default: active spec)",
+        help="Plan slug to itemize (default: most recent plan with architect complete)",
+    ),
+    spec: str | None = typer.Option(
+        None,
+        "--spec",
+        "-s",
+        help="Spec ID or path to find existing plan",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
         "-v",
         help="Show detailed output",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
     ),
 ) -> None:
     """
@@ -487,18 +500,123 @@ def itemize(
     - Generates well-scoped tasks from the architecture
     - Orders tasks by dependencies
     - Assigns estimates and priorities
+    - Creates beads-compatible IDs
+
+    Requires architect phase to be complete first.
 
     Examples:
-        cub plan itemize
-        cub plan itemize spec-abc123
-        cub plan itemize path/to/spec.md
+        cub plan itemize                     # Use most recent plan
+        cub plan itemize my-feature          # Specific plan by slug
+        cub plan itemize --spec my-feature   # Find plan by spec name
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
+    project_root = project_root.resolve()
 
     if verbose or debug:
-        console.print(f"[dim]Debug mode: {debug}[/dim]")
+        console.print(f"[dim]Project root: {project_root}[/dim]")
+        if plan_slug:
+            console.print(f"[dim]Plan slug: {plan_slug}[/dim]")
         if spec:
             console.print(f"[dim]Spec: {spec}[/dim]")
 
-    console.print("[yellow]itemize command not yet implemented[/yellow]")
-    raise typer.Exit(1)
+    # Find the plan to continue
+    plan_dir: Path | None = None
+
+    if plan_slug:
+        # Direct slug provided
+        plan_dir = project_root / "plans" / plan_slug
+        if not plan_dir.exists():
+            console.print(f"[red]Plan not found: {plan_slug}[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+    elif spec:
+        # Find plan by spec name
+        spec_name = Path(spec).stem
+        plan_dir = project_root / "plans" / spec_name
+        if not plan_dir.exists():
+            # Try finding by searching plans directory
+            plans_root = project_root / "plans"
+            if plans_root.exists():
+                for candidate in plans_root.iterdir():
+                    if candidate.is_dir() and spec_name in candidate.name:
+                        plan_dir = candidate
+                        break
+        if not plan_dir or not plan_dir.exists():
+            console.print(f"[red]No plan found for spec: {spec}[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+    else:
+        # Find most recent plan
+        plans_root = project_root / "plans"
+        if not plans_root.exists():
+            console.print("[red]No plans found.[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+
+        # Find most recently modified plan directory
+        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir() and (d / "plan.json").exists()]
+        if not plan_dirs:
+            console.print("[red]No plans found.[/red]")
+            console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
+            raise typer.Exit(1)
+
+        # Sort by modification time, most recent first
+        plan_dirs.sort(key=lambda p: (p / "plan.json").stat().st_mtime, reverse=True)
+        plan_dir = plan_dirs[0]
+
+    if verbose or debug:
+        console.print(f"[dim]Using plan: {plan_dir.name}[/dim]")
+
+    # Load plan context
+    try:
+        plan_ctx = PlanContext.load(plan_dir, project_root)
+    except FileNotFoundError as e:
+        console.print(f"[red]Error loading plan: {e}[/red]")
+        raise typer.Exit(1)
+    except PlanContextError as e:
+        console.print(f"[red]Error loading plan context: {e}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]Itemizing:[/bold] {plan_ctx.plan.slug}")
+
+    # Run itemize stage
+    try:
+        stage = ItemizeStage(plan_ctx)
+        result = stage.run()
+    except ItemizeStageError as e:
+        console.print(f"[red]Itemize stage failed: {e}[/red]")
+        raise typer.Exit(1)
+    except SpecNotFoundError as e:
+        console.print(f"[red]Spec not found: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        if debug:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # Report success
+    console.print()
+    console.print("[green]Itemize complete![/green]")
+    console.print(
+        f"[dim]Output: {result.output_path.relative_to(project_root)}[/dim]"
+    )
+    console.print(
+        f"[dim]Duration: {result.duration_seconds:.1f}s[/dim]"
+    )
+
+    if verbose:
+        console.print()
+        console.print("[bold]Summary:[/bold]")
+        console.print(f"  Epics: {len(result.epics)}")
+        console.print(f"  Tasks: {result.total_tasks}")
+        if result.epics:
+            console.print("  Epic IDs:")
+            for epic in result.epics:
+                task_count = len([t for t in result.tasks if t.epic_id == epic.id])
+                console.print(f"    - {epic.id}: {epic.title} ({task_count} tasks)")
+
+    console.print()
+    console.print("[bold]Next step:[/bold] cub stage")

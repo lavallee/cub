@@ -80,17 +80,20 @@ class TestPlanArchitectSubcommand:
         assert result.exit_code == 0
         assert "architect" in result.output.lower() or "design" in result.output.lower()
 
-    def test_architect_not_implemented(self) -> None:
-        """Test that architect shows 'not implemented' message."""
-        result = runner.invoke(app, ["plan", "architect"])
-        assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+    def test_architect_requires_plan(self) -> None:
+        """Test that architect without existing plan shows appropriate error."""
+        # Use isolated filesystem to avoid picking up existing plans
+        with runner.isolated_filesystem():
+            result = runner.invoke(app, ["plan", "architect"])
+            # Now implemented - requires existing plan
+            assert result.exit_code == 1
+            assert "no plans found" in result.output.lower()
 
-    def test_architect_with_spec_argument(self) -> None:
-        """Test that architect accepts a spec argument."""
+    def test_architect_with_nonexistent_plan(self) -> None:
+        """Test that architect with non-existent plan shows error."""
         result = runner.invoke(app, ["plan", "architect", "spec-abc123"])
         assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+        assert "plan not found" in result.output.lower()
 
 
 class TestPlanItemizeSubcommand:
@@ -104,17 +107,20 @@ class TestPlanItemizeSubcommand:
         output_lower = result.output.lower()
         assert "itemize" in output_lower or "task" in output_lower or "break" in output_lower
 
-    def test_itemize_not_implemented(self) -> None:
-        """Test that itemize shows 'not implemented' message."""
-        result = runner.invoke(app, ["plan", "itemize"])
-        assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+    def test_itemize_requires_plan(self) -> None:
+        """Test that itemize without existing plan shows appropriate error."""
+        # Use isolated filesystem to avoid picking up existing plans
+        with runner.isolated_filesystem():
+            result = runner.invoke(app, ["plan", "itemize"])
+            # Now implemented - requires existing plan
+            assert result.exit_code == 1
+            assert "no plans found" in result.output.lower()
 
-    def test_itemize_with_spec_argument(self) -> None:
-        """Test that itemize accepts a spec argument."""
+    def test_itemize_with_nonexistent_plan(self) -> None:
+        """Test that itemize with non-existent plan shows error."""
         result = runner.invoke(app, ["plan", "itemize", "spec-abc123"])
         assert result.exit_code == 1
-        assert "not yet implemented" in result.output.lower()
+        assert "plan not found" in result.output.lower()
 
 
 class TestPlanCommandIntegration:
