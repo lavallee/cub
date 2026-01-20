@@ -2342,3 +2342,118 @@ The task asked to add `import_tasks(self, tasks: list[Task]) -> list[Task]` meth
 ### Commit
 No changes needed - task was already complete
 
+
+## 2026-01-20 - cub-p1f.5: Create plan data models
+
+### Task Completed
+Created Pydantic models for Plan, PlanStage, PlanStatus, SpecStage, and StageStatus enums with load/save functionality.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/`**
+- `models.py` - Plan model and related enums
+- `__init__.py` - Public API exports
+
+**Enums:**
+- `PlanStatus`: pending, in_progress, complete, staged, archived
+- `PlanStage`: orient, architect, itemize (with output_file and next/previous_stage properties)
+- `StageStatus`: pending, in_progress, complete
+- `SpecStage`: researching, planned, staged, implementing, released (5-stage lifecycle per spec)
+
+**Plan Model:**
+- Core fields: slug, project, status, spec_file (optional), stages dict, timestamps
+- Stage methods: start_stage(), complete_stage(), mark_staged(), archive()
+- Computed fields: is_complete, current_stage, next_pending_stage, completed_stages
+- Path helpers: get_plan_dir(), get_stage_output_path()
+- Serialization: to_json_dict(), from_json_dict()
+- File I/O: save(project_root), load(plan_dir) for plan.json
+
+**Testing:**
+- 43 comprehensive tests covering all enums, model validation, computed fields, stage transitions, serialization, and file operations
+
+### Key Design Decisions
+
+1. **Separated SpecStage from existing specs/models.py Stage:** The plan-phase-redesign spec defines a 5-stage spec lifecycle (researching → planned → staged → implementing → released) which is different from the 3-stage system in specs/models.py. Created a new SpecStage enum to represent this expanded lifecycle.
+
+2. **Stage Prerequisites:** Plan stages must be completed in order (orient → architect → itemize). The start_stage() method validates that the previous stage is complete before allowing a new stage to start.
+
+3. **Status Auto-Update:** Plan status automatically updates based on stage completions (pending → in_progress → complete).
+
+4. **Immutable After Staging:** Once a plan is staged or archived, stage completions don't change the status.
+
+5. **typing_extensions.Self:** Used `from typing_extensions import Self` for Python 3.10 compatibility (Self type was added in 3.11).
+
+### Learnings
+
+1. **Self Type in Python 3.10:** Use `from typing_extensions import Self` instead of `from typing import Self` for Python 3.10 compatibility.
+
+2. **Dict Validator for Enum Keys:** Pydantic v2 field validators can convert string keys to enum values when loading from JSON. The validator handles both string and enum input forms.
+
+3. **Existing Async Test Failures:** The codebase has 17 pre-existing async test failures in test_harness_*.py files due to missing pytest-asyncio plugin. These are unrelated to new code.
+
+4. **Mypy on src/ Only:** The project runs mypy on `src/cub` only (not tests), matching the pattern in AGENT.md feedback loops.
+---
+
+## 2026-01-20 - cub-p1f.6: Create ID generation utilities
+
+### Task Completed
+Created beads-compatible ID generation utilities for the plan module.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/ids.py`**
+
+**ID Generation Functions:**
+- `generate_epic_id(project, existing_ids)` - Generates `{project}-{3 random chars}` (e.g., `cub-k7m`)
+- `generate_task_id(epic_id, task_num)` - Generates `{epic_id}.{number}` (e.g., `cub-k7m.1`)
+- `generate_subtask_id(task_id, subtask_num)` - Generates `{task_id}.{number}` (e.g., `cub-k7m.1.1`)
+
+**Validation Functions:**
+- `is_valid_epic_id(epic_id)` - Check if string matches epic ID format
+- `is_valid_task_id(task_id)` - Check if string matches task ID format
+- `is_valid_subtask_id(subtask_id)` - Check if string matches subtask ID format
+
+**Parsing Functions:**
+- `parse_id(id_str)` - Parse any ID into (epic_id, [numbers]) tuple
+- `get_parent_id(id_str)` - Get parent ID (task->epic, subtask->task, epic->None)
+
+**Constants:**
+- `ID_CHARS` - Lowercase letters + digits for suffix generation
+- `EPIC_SUFFIX_LENGTH = 3` - Length of random suffix
+- `MAX_GENERATION_ATTEMPTS = 100` - Collision retry limit
+
+### Key Design Decisions
+
+1. **Hierarchical ID Format:** IDs follow the spec from `plans/plan-phase-redesign/architecture.md`:
+   - Epic: `{project}-{random 3 chars}` (e.g., cub-k7m)
+   - Task: `{epic_id}.{number}` (e.g., cub-k7m.1)
+   - Subtask: `{task_id}.{number}` (e.g., cub-k7m.1.1)
+
+2. **Collision Avoidance:** `generate_epic_id` accepts an optional `existing_ids` set and retries up to 100 times to find a unique ID.
+
+3. **Strict Validation:** Project identifiers must start with a letter and contain only lowercase alphanumeric characters and hyphens.
+
+4. **Following Captures Pattern:** Used `secrets.choice()` for cryptographically secure random generation, matching the captures store pattern.
+
+5. **Regex-Based Validation:** Pre-compiled regex patterns for efficient ID validation.
+
+### Testing
+
+48 comprehensive tests in `tests/test_plan_ids.py`:
+- Epic ID generation and collision handling
+- Task ID generation with validation
+- Subtask ID generation with validation
+- Validation functions for all ID types
+- ID parsing and parent lookup
+- Full hierarchy integration tests
+
+### Learnings
+
+1. **Regex for ID Validation:** Pre-compiled regex patterns (`re.compile()`) are cleaner than inline patterns and more efficient when called repeatedly.
+
+2. **Exhaustion Testing Strategy:** To test collision exhaustion without generating all 36^3 = 46,656 possible IDs, used a custom class that always returns True for `__contains__` to force immediate exhaustion.
+
+3. **Type Annotation for Set-like Objects:** The `existing_ids` parameter is typed as `set[str] | None`, but the implementation only uses `in` operator, so duck typing allows any object with `__contains__`.
+
+4. **Three-Level Hierarchy Limit:** Deliberately limited to epic -> task -> subtask (3 levels) to match beads issue tracking constraints. `parse_id()` validates this and raises for deeper nesting.
+
