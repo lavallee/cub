@@ -25,7 +25,7 @@ class TestDelegatedCommandsHelp:
             "prep",
             "triage",
             "architect",
-            "plan",
+            # "plan" is now a native Python command (not delegated)
             "bootstrap",
             "sessions",
             "interview",
@@ -231,7 +231,7 @@ class TestSpecificDelegatedCommands:
             ("prep", []),
             ("triage", []),
             ("architect", []),
-            ("plan", []),
+            # ("plan", []) - plan is now a native Python command
             ("bootstrap", []),
             ("sessions", []),
             ("interview", ["task-456"]),

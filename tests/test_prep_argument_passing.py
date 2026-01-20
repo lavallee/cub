@@ -135,28 +135,17 @@ class TestPrepArgumentPassing:
                 "myproj-20260120-123456",
             ]
 
-    def test_plan_with_session_argument(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that 'cub plan session-id' passes the session ID."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["plan", "myproj-20260120-123456"])
-
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [
-                str(bash_script),
-                "plan",
-                "myproj-20260120-123456",
-            ]
+    def test_plan_command_is_native_typer_app(self) -> None:
+        """Test that 'cub plan' is now a native Typer app with subcommands."""
+        # cub plan is no longer bash-delegated; it's a native Typer app
+        # with subcommands: orient, architect, itemize
+        # Running 'cub plan' without subcommand shows help (exit code 2 for no_args_is_help)
+        result = runner.invoke(app, ["plan"])
+        assert result.exit_code == 2  # Typer returns 2 when showing help via no_args_is_help
+        # Should show the subcommands in help
+        assert "orient" in result.output
+        assert "architect" in result.output
+        assert "itemize" in result.output
 
     def test_bootstrap_with_session_argument(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

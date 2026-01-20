@@ -17,6 +17,7 @@ from cub.cli import (
     merge,
     monitor,
     organize_captures,
+    plan,
     pr,
     run,
     sandbox,
@@ -112,11 +113,7 @@ app.command(
     rich_help_panel=PANEL_PREP,
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )(delegated.architect)
-app.command(
-    name="plan",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.plan)
+app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PREP)
 app.command(
     name="bootstrap",
     rich_help_panel=PANEL_PREP,
