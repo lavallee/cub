@@ -5,11 +5,8 @@ Defines models for AI coding assistant integration, including
 capabilities detection, invocation results, and usage tracking.
 """
 
-from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -33,61 +30,6 @@ class HarnessFeature(str, Enum):
     SESSIONS = "sessions"
     SESSION_FORKING = "session_forking"
     SUBAGENTS = "subagents"
-
-
-class HookEvent(str, Enum):
-    """
-    Events that can trigger hooks.
-
-    Hooks intercept these events during task execution, allowing
-    external code to block or modify behavior.
-    """
-
-    PRE_TASK = "pre_task"  # Before task execution starts
-    POST_TASK = "post_task"  # After task execution completes
-    PRE_TOOL_USE = "pre_tool_use"  # Before a tool is invoked
-    POST_TOOL_USE = "post_tool_use"  # After a tool completes
-    ON_ERROR = "on_error"  # When an error occurs
-    ON_MESSAGE = "on_message"  # When a message is received
-
-
-@dataclass
-class HookContext:
-    """
-    Context provided to hook handlers.
-
-    Contains information about the current event and relevant data
-    for the hook to make decisions.
-    """
-
-    event: HookEvent
-    task_id: str | None = None
-    tool_name: str | None = None
-    tool_input: dict[str, Any] | None = None
-    tool_output: str | None = None
-    message_content: str | None = None
-    message_role: str | None = None
-    error: Exception | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class HookResult:
-    """
-    Result returned from a hook handler.
-
-    Indicates whether to block the action and provides optional
-    modifications to the input.
-    """
-
-    block: bool = False  # Whether to block the action
-    reason: str | None = None  # Reason for blocking (for logging/debugging)
-    modified_input: dict[str, Any] | None = None  # Modified input for tool calls
-
-
-# Type alias for hook handlers
-# Handlers receive context and return an optional result (None = allow action)
-HookHandler = Callable[["HookContext"], Awaitable["HookResult | None"]]
 
 
 class HarnessCapabilities(BaseModel):

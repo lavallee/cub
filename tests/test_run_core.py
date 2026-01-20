@@ -68,10 +68,7 @@ def mock_task_backend():
 
 @pytest.fixture
 def mock_harness_backend():
-    """Provide a mock async harness backend."""
-    from unittest.mock import AsyncMock
-    from cub.core.harness.models import HarnessResult, TaskResult, TokenUsage
-
+    """Provide a mock harness backend."""
     backend = MagicMock()
     backend.name = "claude"
     backend.is_available.return_value = True
@@ -82,39 +79,6 @@ def mock_harness_backend():
         system_prompt=True,
         auto_mode=True,
     )
-
-    # Mock async methods for new code
-    async def mock_run_task(task_input, debug=False):
-        return TaskResult(
-            output="Task completed successfully",
-            usage=TokenUsage(total_tokens=1000, cost_usd=0.01),
-            duration_seconds=1.5,
-            exit_code=0,
-        )
-
-    async def mock_stream_task(task_input, debug=False):
-        yield "chunk1"
-        yield "chunk2"
-
-    backend.run_task = AsyncMock(side_effect=mock_run_task)
-    backend.stream_task = MagicMock(side_effect=mock_stream_task)
-
-    # Keep old sync methods for backwards compatibility with tests
-    backend.invoke = MagicMock(
-        return_value=HarnessResult(
-            output="Task completed successfully",
-            exit_code=0,
-            usage=TokenUsage(total_tokens=1000, cost_usd=0.01),
-        )
-    )
-    backend.invoke_streaming = MagicMock(
-        return_value=HarnessResult(
-            output="Streamed output",
-            exit_code=0,
-            usage=TokenUsage(total_tokens=1000, cost_usd=0.01),
-        )
-    )
-
     return backend
 
 
@@ -600,7 +564,7 @@ class TestFlagValidation:
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
 
-            with patch("cub.cli.run.detect_async_harness", return_value=None):
+            with patch("cub.cli.run.detect_harness", return_value=None):
                 result = runner.invoke(
                     app, ["--worktree", "--worktree-keep", "--once"]
                 )
@@ -622,8 +586,8 @@ class TestRunLoopIntegration:
         """Set up all dependencies for run loop tests."""
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
-            patch("cub.cli.run.detect_async_harness") as mock_detect,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.detect_harness") as mock_detect,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
@@ -965,8 +929,8 @@ class TestBudgetTracking:
         """Set up dependencies for budget tests."""
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
-            patch("cub.cli.run.detect_async_harness") as mock_detect,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.detect_harness") as mock_detect,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
@@ -1051,8 +1015,8 @@ class TestHarnessInvocationErrors:
         """Set up dependencies for error handling tests."""
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
-            patch("cub.cli.run.detect_async_harness") as mock_detect,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.detect_harness") as mock_detect,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
@@ -1129,7 +1093,7 @@ class TestInvalidHarness:
         """Test error with invalid harness name."""
         with (
             patch("cub.cli.run.load_config") as mock_config,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
         ):
             mock_config.return_value = MagicMock()
             mock_get_harness.side_effect = ValueError("Unknown harness: invalid")
@@ -1176,8 +1140,8 @@ class TestMaxIterations:
         """Set up dependencies for iteration tests."""
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
-            patch("cub.cli.run.detect_async_harness") as mock_detect,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.detect_harness") as mock_detect,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
@@ -1264,8 +1228,8 @@ class TestFiltering:
         """Set up dependencies for filtering tests."""
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
-            patch("cub.cli.run.detect_async_harness") as mock_detect,
-            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.detect_harness") as mock_detect,
+            patch("cub.cli.run.get_harness_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
             patch("cub.cli.run.run_hooks") as mock_run_hooks,

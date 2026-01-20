@@ -23,8 +23,6 @@ from .models import (
     HarnessCapabilities,
     HarnessFeature,
     HarnessResult,
-    HookEvent,
-    HookHandler,
     TaskInput,
     TaskResult,
     TokenUsage,
@@ -473,23 +471,3 @@ class CodexBackend:
 
         if result.error:
             raise RuntimeError(f"Harness invocation failed: {result.error}")
-
-    def register_hook(
-        self,
-        event: HookEvent,
-        handler: HookHandler,
-    ) -> None:
-        """
-        Register a hook handler (no-op for Codex harness).
-
-        The Codex shell-out harness does not support hooks. Hook registration
-        is accepted but logged as a warning and the hooks will not be executed.
-
-        Args:
-            event: Event to hook (ignored)
-            handler: Handler function (ignored)
-        """
-        logger.warning(
-            "Hook registration ignored: harness '%s' does not support hooks.",
-            self.name,
-        )
