@@ -241,8 +241,9 @@ class BeadsBackend:
         args = ["ready", "--json"]
 
         if parent:
-            # bd ready supports --parent filter
-            args.extend(["--parent", parent])
+            # Use label filter for epic filtering (--parent requires explicit parent field,
+            # but tasks created with --id don't get parent set automatically)
+            args.extend(["--label", parent])
         if label:
             args.extend(["--label", label])
 

@@ -401,7 +401,11 @@ class TestGetReadyTasks:
                 assert args == ["bd", "ready", "--json"]
 
     def test_get_ready_tasks_with_filters(self, project_dir):
-        """Test getting ready tasks with parent and label filters."""
+        """Test getting ready tasks with parent (epic) and label filters.
+
+        Note: parent/epic filtering now uses --label instead of --parent
+        because beads tasks created with --id don't get explicit parent field set.
+        """
         mock_result = Mock()
         mock_result.stdout = "[]"
         mock_result.returncode = 0
@@ -412,9 +416,9 @@ class TestGetReadyTasks:
                 backend.get_ready_tasks(parent="epic-001", label="backend")
 
                 args = mock_run.call_args[0][0]
-                assert "--parent" in args
+                # Both parent and label now use --label flag
+                assert args.count("--label") == 2
                 assert "epic-001" in args
-                assert "--label" in args
                 assert "backend" in args
 
     def test_get_ready_tasks_command_error(self, project_dir):
