@@ -1,50 +1,74 @@
-# Ralph Loop Iteration
+# Project Prompt
 
-You are an autonomous coding agent working through a task backlog.
+This file provides context for AI coding agents working on this project.
 
-## Context Files
+## Overview
 
-Study these files to understand the project:
-- @AGENT.md - Build, test, and run instructions
-- @specs/* - Detailed specifications (if present)
-- @progress.txt - Learnings from previous iterations
-- @fix_plan.md - Known issues and technical debt
 
-## Your Workflow
+Toolsmith is a meta-tool that helps Cub discover and catalog tools from curated sources (MCP registries, skill marketplaces). It creates a compounding layer of tool knowledge that persists across sessions and projects, enabling Cub to self-serve capabilities rather than requiring manual tool research.
 
-1. **Understand**: Read the CURRENT TASK section below carefully
-2. **Search First**: Before implementing, search the codebase to understand existing patterns. Do NOT assume something is not implemented.
-3. **Implement**: Complete the task fully. NO placeholders or minimal implementations.
-4. **Validate**: Run all feedback loops:
-   - Type checking: `mypy src/cub`
-   - Tests: `pytest tests/ -v`
-   - Linting: `ruff check src/ tests/`
-5. **Complete**: If all checks pass, close the task using the method shown in CURRENT TASK, then commit your changes.
+## Problem Statement
 
-## Critical Rules
+## Problem Statement
 
-- **ONE TASK**: Focus only on the task assigned below
-- **FULL IMPLEMENTATION**: No stubs, no TODOs, no "implement later"
-- **SEARCH BEFORE WRITING**: Use parallel subagents to search the codebase before assuming code doesn't exist
-- **FIX WHAT YOU BREAK**: If tests unrelated to your work fail, fix them
-- **DOCUMENT DISCOVERIES**: If you find bugs or issues, add them to @fix_plan.md
-- **UPDATE AGENT.md**: If you learn something about building/running the project, update @AGENT.md
-- **CLOSE THE TASK**: Always mark the task as closed using the method specified in CURRENT TASK
 
-## Parallelism Guidance
+Tool discovery and creation is a compounding investment - each tool learned or built makes future work faster. Modern LLMs are good at using tools (Claude skills, MCP servers), but there's no layer that accumulates this learning across sessions and projects. Toolsmith is that layer - a way for Cub to build institutional knowledge about what tools exist, which work well, and how to use them.
 
-- Use parallel subagents for: file searches, reading multiple files
-- Use SINGLE sequential execution for: build, test, typecheck
-- Before making changes, always search first using subagents
+**Current state:** When Cub needs a capability, humans manually search, evaluate, integrate, and maintain tools. This doesn't scale and doesn't compound.
 
-## When You're Done
+## Technical Approach
 
-After successfully completing the task and all checks pass:
-1. Close the task using the method shown in CURRENT TASK
-2. Commit your changes with format: `type(task-id): description`
-3. Append learnings to @progress.txt
-4. If ALL tasks are closed, output exactly:
 
-<promise>COMPLETE</promise>
+Toolsmith is a tool discovery system that maintains a searchable catalog of MCP servers and Claude skills from curated sources. It follows Cub's existing architectural patterns: a **Source protocol** for pluggable data fetchers (like `TaskBackend`), a **ToolsmithStore** for catalog persistence (like `CaptureStore`), and Pydantic v2 models for type-safe data.
 
-This signals the loop should terminate.
+The system uses a hybrid storage approach: a local JSON catalog that syncs on-demand from 5 curated sources, with optional live fallback when local search returns no results. This balances speed (local search) with freshness (live queries when needed).
+
+The architecture prioritizes maintainability and testability appropriate for a production-quality public product, with clear separation between CLI, service, storage, and source layers.
+
+## Technology Stack
+
+| Layer | Choice | Rationale |
+
+## Architecture
+
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLI Layer                                 │
+│  cub toolsmith sync    cub toolsmith search    cub toolsmith stats│
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     ToolsmithService                             │
+│  - Orchestrates sync across sources                              │
+│  - Executes search against catalog                               │
+│  - Handles live fallback when local search fails                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│ ToolsmithStore  │  │  Source Layer   │  │   Search Engine │
+│ (.cub/toolsmith │  │  (Protocol +    │  │   (keyword      │
+
+## Requirements
+
+### P0 (Must Have)
+
+- **Catalog sync from curated sources**: Fetch and parse tool metadata from MCP official repo, Smithery.ai, Glama.ai, Claude skills, and community skill repos
+- **Local storage**: Store catalog in `.cub/toolsmith/catalog.json` for fast local search
+- **Keyword search**: Search tool names and descriptions for query terms
+- **Rich output**: Return tool name, source, type, description, and installation hints
+
+## Constraints
+
+
+- **Tech stack**: Python 3.10+, Typer CLI (matches existing Cub architecture)
+- **Harness integration**: Tools may require harness features; catalog should note requirements
+- **Auth handling**: API keys for sources or tools require human setup (no auto-provisioning)
+- **No trawling**: Do not search GitHub, npm, PyPI, or other general package registries in v1
+
+---
+
+Generated by cub prep. Session artifacts in .cub/sessions/
