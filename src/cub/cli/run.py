@@ -4,14 +4,17 @@ Cub CLI - Run command.
 Execute autonomous task loop with specified harness.
 """
 
+from __future__ import annotations
+
 import os
 import signal
 import sys
 import time
+import types
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-import anyio
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -38,6 +41,36 @@ from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
+
+# Lazy import for anyio to avoid bootstrap issues during upgrades.
+# This allows 'cub upgrade' to run even if anyio is not yet installed.
+_anyio_module: types.ModuleType | None = None
+
+
+def _get_anyio() -> Any:
+    """Get the anyio module, importing it lazily on first use."""
+    global _anyio_module
+    if _anyio_module is None:
+        try:
+            import anyio
+
+            _anyio_module = anyio
+        except ImportError as e:
+            err_console = Console()
+            err_console.print("[red]Error: Missing required dependency 'anyio'[/red]")
+            err_console.print()
+            err_console.print("This can happen after upgrading cub. To fix, run:")
+            err_console.print()
+            err_console.print("  [cyan]pip install anyio>=4.0.0[/cyan]")
+            err_console.print()
+            err_console.print("Or reinstall cub to get all dependencies:")
+            err_console.print()
+            err_console.print("  [cyan]pip install --force-reinstall cub[/cyan]")
+            err_console.print("  [dim]# or if using pipx:[/dim]")
+            err_console.print("  [cyan]pipx reinstall cub[/cyan]")
+            raise typer.Exit(1) from e
+    return _anyio_module
+
 
 app = typer.Typer(
     name="run",
@@ -867,7 +900,7 @@ def run(
                             collected += chunk
                         return collected
 
-                    result_output = anyio.from_thread.run(_stream_and_collect)
+                    result_output = _get_anyio().from_thread.run(_stream_and_collect)
                     sys.stdout.write("\n")
                     sys.stdout.flush()
 
@@ -881,7 +914,7 @@ def run(
                     )
                 else:
                     # Blocking execution with async backend
-                    task_result = anyio.from_thread.run(
+                    task_result = _get_anyio().from_thread.run(
                         harness_backend.run_task, task_input, debug
                     )
 
@@ -1186,7 +1219,7 @@ def _run_direct(
                     collected += chunk
                 return collected
 
-            result_output = anyio.from_thread.run(_stream_and_collect)
+            result_output = _get_anyio().from_thread.run(_stream_and_collect)
             sys.stdout.write("\n")
             sys.stdout.flush()
 
@@ -1198,7 +1231,7 @@ def _run_direct(
             )
         else:
             # Blocking execution
-            task_result = anyio.from_thread.run(
+            task_result = _get_anyio().from_thread.run(
                 harness_backend.run_task, task_input, debug
             )
 
@@ -1359,7 +1392,7 @@ def _run_gh_issue(
                     collected += chunk
                 return collected
 
-            result_output = anyio.from_thread.run(_stream_and_collect)
+            result_output = _get_anyio().from_thread.run(_stream_and_collect)
             sys.stdout.write("\n")
             sys.stdout.flush()
 
@@ -1371,7 +1404,7 @@ def _run_gh_issue(
             )
         else:
             # Blocking execution
-            task_result = anyio.from_thread.run(
+            task_result = _get_anyio().from_thread.run(
                 harness_backend.run_task, task_input, debug
             )
 

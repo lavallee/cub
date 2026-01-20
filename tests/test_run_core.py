@@ -645,7 +645,7 @@ class TestRunLoopIntegration:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks") as mock_wait_hooks,
-            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
+            patch("anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1007,7 +1007,7 @@ class TestBudgetTracking:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks"),
-            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
+            patch("anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1235,7 +1235,7 @@ class TestMaxIterations:
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("cub.cli.run.time.sleep"),  # Don't actually sleep
-            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
+            patch("anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1328,7 +1328,7 @@ class TestFiltering:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
-            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
+            patch("anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
