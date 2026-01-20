@@ -65,16 +65,22 @@ class BeadsBackend:
         """Check if bd CLI is available in PATH."""
         return shutil.which("bd") is not None
 
-    def _run_bd(self, args: list[str], check: bool = True) -> dict[str, Any] | list[dict[str, Any]]:
+    def _run_bd(
+        self, args: list[str], check: bool = True, expect_json: bool = True
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """
-        Run a bd CLI command and return parsed JSON output.
+        Run a bd CLI command and optionally parse JSON output.
 
         Args:
             args: Command arguments (e.g., ["list", "--json"])
             check: Whether to raise exception on command failure
+            expect_json: Whether to parse output as JSON. Set to False for
+                commands like 'update', 'close', 'comment' that return
+                human-readable output.
 
         Returns:
-            Parsed JSON output as dict or list
+            Parsed JSON output as dict or list (if expect_json=True),
+            or empty dict (if expect_json=False)
 
         Raises:
             BeadsCommandError: If command fails and check=True
@@ -89,6 +95,10 @@ class BeadsBackend:
                 text=True,
                 check=check,
             )
+
+            # Skip JSON parsing for commands that don't return JSON
+            if not expect_json:
+                return {}
 
             # Parse JSON output
             if result.stdout:
@@ -303,7 +313,7 @@ class BeadsBackend:
 
         try:
             # bd update doesn't return JSON, so we need to fetch the updated task
-            self._run_bd(args)
+            self._run_bd(args, expect_json=False)
             updated_task = self.get_task(task_id)
 
             if updated_task is None:
@@ -336,7 +346,8 @@ class BeadsBackend:
             args.extend(["-r", reason])
 
         try:
-            self._run_bd(args)
+            # bd close doesn't return JSON
+            self._run_bd(args, expect_json=False)
             closed_task = self.get_task(task_id)
 
             if closed_task is None:
@@ -407,7 +418,8 @@ class BeadsBackend:
                 for dep_id in depends_on:
                     # bd dep add <task> <depends-on> --type blocks
                     # This means task blocks the dependency (dependency must complete first)
-                    self._run_bd(["dep", "add", new_id, dep_id, "--type", "blocks"])
+                    # bd dep add doesn't return JSON
+                    self._run_bd(["dep", "add", new_id, dep_id, "--type", "blocks"], expect_json=False)
 
             # Fetch and return the created task
             created_task = self.get_task(new_id)
@@ -467,8 +479,8 @@ class BeadsBackend:
             ValueError: If task not found
         """
         try:
-            # bd comment <task_id> <note>
-            self._run_bd(["comment", task_id, note])
+            # bd comment doesn't return JSON
+            self._run_bd(["comment", task_id, note], expect_json=False)
 
             # Fetch and return the updated task
             updated_task = self.get_task(task_id)
