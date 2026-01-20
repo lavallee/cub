@@ -480,6 +480,43 @@ class BeadsBackend:
         except BeadsCommandError as e:
             raise ValueError(f"Failed to add note to task {task_id}: {e}")
 
+    def import_tasks(self, tasks: list[Task]) -> list[Task]:
+        """
+        Bulk import tasks.
+
+        This method enables efficient bulk import of multiple tasks at once.
+        Each task is created via the bd CLI.
+
+        Args:
+            tasks: List of Task objects to import
+
+        Returns:
+            List of imported Task objects (may have updated IDs or fields
+            assigned by the backend)
+
+        Raises:
+            ValueError: If import fails
+        """
+        imported_tasks: list[Task] = []
+
+        for task in tasks:
+            try:
+                # Create task using create_task method
+                created = self.create_task(
+                    title=task.title,
+                    description=task.description,
+                    task_type=task.type.value,
+                    priority=task.priority_numeric,
+                    labels=task.labels if task.labels else None,
+                    depends_on=task.depends_on if task.depends_on else None,
+                    parent=task.parent,
+                )
+                imported_tasks.append(created)
+            except ValueError as e:
+                raise ValueError(f"Failed to import task '{task.title}': {e}") from e
+
+        return imported_tasks
+
     @property
     def backend_name(self) -> str:
         """Get the name of this backend."""

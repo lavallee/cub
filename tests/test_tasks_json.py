@@ -674,3 +674,151 @@ class TestGetTaskCounts:
 
         assert counts.total == 0
         assert counts.completion_percentage == 0.0
+
+
+# ==============================================================================
+# Import Tasks Tests
+# ==============================================================================
+
+
+class TestImportTasks:
+    """Test bulk importing tasks."""
+
+    def test_import_single_task(self, temp_dir):
+        """Test importing a single task."""
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Create a task to import
+        task_to_import = Task(
+            id="temp-001",  # This ID will be replaced
+            title="Imported Task",
+            description="A task imported via bulk import",
+        )
+
+        imported = backend.import_tasks([task_to_import])
+
+        assert len(imported) == 1
+        assert imported[0].title == "Imported Task"
+        assert imported[0].description == "A task imported via bulk import"
+        # ID should be assigned by the backend
+        assert imported[0].id.endswith("-001")
+
+        # Verify saved to file
+        saved_task = backend.get_task(imported[0].id)
+        assert saved_task is not None
+        assert saved_task.title == "Imported Task"
+
+    def test_import_multiple_tasks(self, temp_dir):
+        """Test importing multiple tasks at once."""
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        tasks_to_import = [
+            Task(id="temp-001", title="Task 1", description="First task"),
+            Task(id="temp-002", title="Task 2", description="Second task"),
+            Task(id="temp-003", title="Task 3", description="Third task"),
+        ]
+
+        imported = backend.import_tasks(tasks_to_import)
+
+        assert len(imported) == 3
+        assert imported[0].title == "Task 1"
+        assert imported[1].title == "Task 2"
+        assert imported[2].title == "Task 3"
+
+        # IDs should be sequential
+        assert imported[0].id.endswith("-001")
+        assert imported[1].id.endswith("-002")
+        assert imported[2].id.endswith("-003")
+
+        # All should be saved
+        all_tasks = backend.list_tasks()
+        assert len(all_tasks) == 3
+
+    def test_import_tasks_with_existing_tasks(self, temp_dir):
+        """Test importing tasks when some tasks already exist."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [{"id": "test-001", "title": "Existing Task", "status": "open"}],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        tasks_to_import = [
+            Task(id="temp-001", title="New Task 1"),
+            Task(id="temp-002", title="New Task 2"),
+        ]
+
+        imported = backend.import_tasks(tasks_to_import)
+
+        assert len(imported) == 2
+        # New IDs should start after existing task
+        assert imported[0].id == "test-002"
+        assert imported[1].id == "test-003"
+
+        # Total tasks should be 3
+        all_tasks = backend.list_tasks()
+        assert len(all_tasks) == 3
+
+    def test_import_tasks_preserves_fields(self, temp_dir):
+        """Test that import preserves task fields."""
+        from cub.core.tasks.models import Task, TaskPriority, TaskType
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        task_to_import = Task(
+            id="temp-001",
+            title="Full Task",
+            description="Detailed description",
+            type=TaskType.FEATURE,
+            priority=TaskPriority.P0,
+            labels=["backend", "urgent"],
+            depends_on=["other-001"],
+            parent="epic-001",
+            acceptance_criteria=["Criterion 1", "Criterion 2"],
+            notes="Some notes",
+        )
+
+        imported = backend.import_tasks([task_to_import])
+
+        assert len(imported) == 1
+        task = imported[0]
+        assert task.title == "Full Task"
+        assert task.description == "Detailed description"
+        assert task.type == TaskType.FEATURE
+        assert task.priority == TaskPriority.P0
+        assert "backend" in task.labels
+        assert "urgent" in task.labels
+        assert task.depends_on == ["other-001"]
+        assert task.parent == "epic-001"
+        assert task.acceptance_criteria == ["Criterion 1", "Criterion 2"]
+        assert task.notes == "Some notes"
+
+    def test_import_empty_list(self, temp_dir):
+        """Test importing empty list returns empty list."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        imported = backend.import_tasks([])
+
+        assert imported == []
+        assert backend.list_tasks() == []
+
+    def test_import_tasks_uses_prefix(self, temp_dir):
+        """Test that imported tasks use the file's prefix."""
+        prd_data = {"prefix": "myapp", "tasks": []}
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        task_to_import = Task(id="temp-001", title="Test Task")
+        imported = backend.import_tasks([task_to_import])
+
+        assert imported[0].id.startswith("myapp-")

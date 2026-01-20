@@ -181,6 +181,26 @@ class TaskBackend(Protocol):
         """
         ...
 
+    def import_tasks(self, tasks: list[Task]) -> list[Task]:
+        """
+        Bulk import tasks.
+
+        This method enables efficient bulk import of multiple tasks at once.
+        Backends should implement this efficiently (e.g., single file write,
+        single CLI call) rather than simply looping over create_task().
+
+        Args:
+            tasks: List of Task objects to import
+
+        Returns:
+            List of imported Task objects (may have updated IDs or fields
+            assigned by the backend)
+
+        Raises:
+            ValueError: If import fails
+        """
+        ...
+
     @property
     def backend_name(self) -> str:
         """
