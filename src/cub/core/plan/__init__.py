@@ -20,6 +20,18 @@ ID Formats (beads-compatible):
     - Subtask: {task_id}.{number} (e.g., cub-k7m.1.1)
 """
 
+from cub.core.plan.architect import (
+    ArchitectInputError,
+    ArchitectQuestion,
+    ArchitectResult,
+    ArchitectStage,
+    ArchitectStageError,
+    Component,
+    ImplementationPhase,
+    TechnicalRisk,
+    TechStackChoice,
+    run_architect,
+)
 from cub.core.plan.context import (
     OrientDepth,
     PlanContext,
@@ -37,24 +49,21 @@ from cub.core.plan.ids import (
     is_valid_task_id,
     parse_id,
 )
+from cub.core.plan.itemize import (
+    Epic,
+    ItemizeInputError,
+    ItemizeResult,
+    ItemizeStage,
+    ItemizeStageError,
+    Task,
+    run_itemize,
+)
 from cub.core.plan.models import (
     Plan,
     PlanStage,
     PlanStatus,
     SpecStage,
     StageStatus,
-)
-from cub.core.plan.architect import (
-    ArchitectInputError,
-    ArchitectQuestion,
-    ArchitectResult,
-    ArchitectStage,
-    ArchitectStageError,
-    Component,
-    ImplementationPhase,
-    TechStackChoice,
-    TechnicalRisk,
-    run_architect,
 )
 from cub.core.plan.orient import (
     OrientInputError,
@@ -63,6 +72,18 @@ from cub.core.plan.orient import (
     OrientStage,
     OrientStageError,
     run_orient,
+)
+from cub.core.plan.pipeline import (
+    PipelineConfig,
+    PipelineConfigError,
+    PipelineError,
+    PipelineResult,
+    PipelineStageError,
+    PlanPipeline,
+    ProgressCallback,
+    StageResult,
+    continue_pipeline,
+    run_pipeline,
 )
 
 __all__ = [
@@ -96,6 +117,25 @@ __all__ = [
     "ImplementationPhase",
     "TechnicalRisk",
     "run_architect",
+    # Itemize Stage
+    "ItemizeStage",
+    "ItemizeResult",
+    "ItemizeStageError",
+    "ItemizeInputError",
+    "Epic",
+    "Task",
+    "run_itemize",
+    # Pipeline
+    "PlanPipeline",
+    "PipelineConfig",
+    "PipelineResult",
+    "PipelineError",
+    "PipelineConfigError",
+    "PipelineStageError",
+    "StageResult",
+    "ProgressCallback",
+    "run_pipeline",
+    "continue_pipeline",
     # ID utilities
     "generate_epic_id",
     "generate_task_id",

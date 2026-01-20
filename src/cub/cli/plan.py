@@ -23,7 +23,14 @@ from cub.core.plan.context import (
     SpecNotFoundError,
 )
 from cub.core.plan.itemize import ItemizeStage, ItemizeStageError
+from cub.core.plan.models import PlanStage
 from cub.core.plan.orient import OrientStage, OrientStageError
+from cub.core.plan.pipeline import (
+    PipelineConfig,
+    PipelineConfigError,
+    PipelineError,
+    PlanPipeline,
+)
 
 app = typer.Typer(
     name="plan",
@@ -620,3 +627,227 @@ def itemize(
 
     console.print()
     console.print("[bold]Next step:[/bold] cub stage")
+
+
+@app.command("run")
+def run_pipeline(
+    ctx: typer.Context,
+    spec: str | None = typer.Argument(
+        None,
+        help="Spec ID or path to plan from",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed output",
+    ),
+    depth: str = typer.Option(
+        OrientDepth.STANDARD,
+        "--depth",
+        "-d",
+        help="Orient depth: light, standard, or deep",
+    ),
+    mindset: str = typer.Option(
+        "mvp",
+        "--mindset",
+        "-m",
+        help="Technical mindset: prototype, mvp, production, or enterprise",
+    ),
+    scale: str = typer.Option(
+        "team",
+        "--scale",
+        help="Expected scale: personal, team, product, or internet-scale",
+    ),
+    slug: str | None = typer.Option(
+        None,
+        "--slug",
+        "-s",
+        help="Explicit plan slug (default: derived from spec name)",
+    ),
+    continue_from: str | None = typer.Option(
+        None,
+        "--continue",
+        "-c",
+        help="Continue from existing plan slug or path",
+    ),
+    no_move_spec: bool = typer.Option(
+        False,
+        "--no-move-spec",
+        help="Don't move spec to planned/ on completion",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
+    ),
+) -> None:
+    """
+    Run the full planning pipeline (orient -> architect -> itemize).
+
+    This command runs all three planning phases in sequence:
+    1. Orient: Research and understand the problem space
+    2. Architect: Design the solution architecture
+    3. Itemize: Break down into actionable tasks
+
+    On completion, the spec is moved from researching/ to planned/.
+
+    Examples:
+        cub plan run specs/researching/my-feature.md
+        cub plan run my-feature
+        cub plan run spec.md --depth deep --mindset production
+        cub plan run --continue my-feature  # Resume incomplete plan
+    """
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
+    project_root = project_root.resolve()
+
+    if verbose or debug:
+        console.print(f"[dim]Project root: {project_root}[/dim]")
+        if spec:
+            console.print(f"[dim]Spec argument: {spec}[/dim]")
+        if continue_from:
+            console.print(f"[dim]Continuing from: {continue_from}[/dim]")
+
+    # Resolve continue_from to a path
+    continue_path: Path | None = None
+    if continue_from:
+        # Try as plan slug first
+        plan_dir = project_root / "plans" / continue_from
+        if plan_dir.exists() and (plan_dir / "plan.json").exists():
+            continue_path = plan_dir
+        else:
+            # Try as direct path
+            direct_path = Path(continue_from)
+            if direct_path.exists() and (direct_path / "plan.json").exists():
+                continue_path = direct_path.resolve()
+            else:
+                console.print(f"[red]Plan not found: {continue_from}[/red]")
+                console.print(
+                    "[dim]Provide a plan slug or path to an existing plan directory.[/dim]"
+                )
+                raise typer.Exit(1)
+
+    # Resolve spec path if provided
+    spec_path: Path | None = None
+    if spec and not continue_path:
+        try:
+            spec_path = _resolve_spec_path(spec, project_root)
+        except typer.BadParameter as e:
+            console.print(f"[red]Error: {e}[/red]")
+            raise typer.Exit(1)
+
+    # Must have either spec or continue_from
+    if spec_path is None and continue_path is None:
+        console.print(
+            "[yellow]No spec provided. Interactive mode not yet implemented.[/yellow]"
+        )
+        console.print("[dim]Usage: cub plan run <spec-path-or-name>[/dim]")
+        console.print("[dim]       cub plan run --continue <plan-slug>[/dim]")
+        raise typer.Exit(1)
+
+    # Create pipeline configuration
+    try:
+        config = PipelineConfig(
+            spec_path=spec_path,
+            slug=slug,
+            depth=depth.lower(),
+            mindset=mindset.lower(),
+            scale=scale.lower(),
+            verbose=verbose,
+            move_spec=not no_move_spec,
+            continue_from=continue_path,
+        )
+    except PipelineConfigError as e:
+        console.print(f"[red]Configuration error: {e}[/red]")
+        raise typer.Exit(1)
+
+    # Progress callback for Rich output
+    def on_progress(stage: PlanStage, status: str, message: str) -> None:
+        if status == "starting":
+            console.print(f"[bold blue]{stage.value.title()}:[/bold blue] {message}")
+        elif status == "complete":
+            console.print(f"[green]{message}[/green]")
+        elif status == "error":
+            console.print(f"[red]Error: {message}[/red]")
+
+    # Run the pipeline
+    console.print("[bold]Running planning pipeline...[/bold]")
+    if spec_path:
+        try:
+            relative_spec = spec_path.relative_to(project_root)
+        except ValueError:
+            relative_spec = spec_path
+        console.print(f"[dim]Source: {relative_spec}[/dim]")
+    elif continue_path:
+        console.print(f"[dim]Continuing: {continue_path.name}[/dim]")
+    console.print(f"[dim]Depth: {depth} | Mindset: {mindset} | Scale: {scale}[/dim]")
+    console.print()
+
+    try:
+        pipeline = PlanPipeline(project_root, config, on_progress)
+        result = pipeline.run()
+    except PipelineError as e:
+        console.print(f"[red]Pipeline error: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Unexpected error: {e}[/red]")
+        if debug:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # Report results
+    console.print()
+    if result.success:
+        console.print("[bold green]Pipeline complete![/bold green]")
+        console.print(f"[dim]Plan: {result.plan_dir.name}[/dim]")
+        console.print(f"[dim]Duration: {result.duration_seconds:.1f}s[/dim]")
+
+        if verbose:
+            console.print()
+            console.print("[bold]Stages completed:[/bold]")
+            for stage_result in result.stage_results:
+                status = "[green]\u2713[/green]" if stage_result.success else "[red]\u2717[/red]"
+                console.print(
+                    f"  {status} {stage_result.stage.value}: {stage_result.duration_seconds:.1f}s"
+                )
+
+            if result.itemize_result:
+                console.print()
+                console.print("[bold]Summary:[/bold]")
+                console.print(f"  Epics: {len(result.itemize_result.epics)}")
+                console.print(f"  Tasks: {result.itemize_result.total_tasks}")
+
+        if result.spec_moved and result.spec_new_path:
+            console.print()
+            try:
+                relative_new = result.spec_new_path.relative_to(project_root)
+            except ValueError:
+                relative_new = result.spec_new_path
+            console.print(f"[dim]Spec moved to: {relative_new}[/dim]")
+
+        console.print()
+        console.print("[bold]Next step:[/bold] cub stage")
+    else:
+        console.print("[bold red]Pipeline failed![/bold red]")
+        if result.error:
+            console.print(f"[red]{result.error}[/red]")
+
+        # Show which stages completed
+        if result.stage_results:
+            console.print()
+            console.print("[bold]Stage results:[/bold]")
+            for stage_result in result.stage_results:
+                status = "[green]\u2713[/green]" if stage_result.success else "[red]\u2717[/red]"
+                console.print(f"  {status} {stage_result.stage.value}")
+
+        # Suggest how to resume
+        if result.plan.slug != "error":
+            console.print()
+            console.print(
+                f"[dim]Resume with: cub plan run --continue {result.plan.slug}[/dim]"
+            )
+
+        raise typer.Exit(1)
