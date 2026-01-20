@@ -126,18 +126,6 @@ ruff format src/ tests/
 - `cub.utils.hooks` - Hook execution system
 - `cub.core.bash_delegate` - Delegates unported commands to bash cub
 
-## Module Stability Tiers
-
-See **[.cub/STABILITY.md](.cub/STABILITY.md)** for per-module stability tiers and coverage requirements.
-
-The codebase uses a tiered approach to test coverage:
-- **Solid (80%+)**: Core abstractions (`config`, `tasks/backend`, `harness/backend`) - high confidence required
-- **Moderate (60%+)**: Primary implementations (`cli/run.py`, `harness/claude.py`) - good coverage needed
-- **Experimental (40%+)**: Newer features - tests encouraged but not blocking
-- **UI/Delegated (no threshold)**: Terminal UI and bash-delegated commands - covered by BATS tests
-
-When modifying code, check the tier in STABILITY.md to understand the expected testing rigor.
-
 ## Hybrid CLI Architecture (v0.23.1)
 
 Cub uses a hybrid Python/Bash CLI architecture to enable gradual migration from Bash to Python without blocking new development. Commands are implemented in Python where possible, with remaining commands delegated to the bash version.
