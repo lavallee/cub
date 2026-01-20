@@ -1,0 +1,13 @@
+{
+  "id": "cubnext-20260120-112300",
+  "epic_id": "e4h8a",
+  "created": "2026-01-20T16:23:00Z",
+  "status": "created",
+  "stages": {
+    "triage": "complete",
+    "architect": null,
+    "plan": null,
+    "bootstrap": "complete"
+  },
+  "updated": "2026-01-20T17:31:39Z"
+}
