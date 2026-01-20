@@ -1,24 +1,43 @@
 """
-Codex CLI harness backend implementation.
+Codex CLI harness backend implementation (legacy shell-out).
 
 This backend wraps the `codex` CLI tool for AI coding assistance with streaming
 support, model selection, and autonomous execution.
+
+Note: Since there is no SDK-based Codex harness yet, this is the primary
+implementation. It has been migrated to support the async interface for
+compatibility with the harness abstraction layer.
 """
 
+import asyncio
 import json
+import logging
 import shutil
 import subprocess
 import time
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 
+from .async_backend import register_async_backend
 from .backend import register_backend
-from .models import HarnessCapabilities, HarnessResult, TokenUsage
+from .models import (
+    HarnessCapabilities,
+    HarnessFeature,
+    HarnessResult,
+    HookEvent,
+    HookHandler,
+    TaskInput,
+    TaskResult,
+    TokenUsage,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @register_backend("codex")
+@register_async_backend("codex")
 class CodexBackend:
     """
-    Codex CLI harness backend.
+    Codex CLI harness backend with async support.
 
     Wraps the `codex` CLI tool with:
     - Streaming support via --json JSONL output
@@ -26,6 +45,10 @@ class CodexBackend:
     - Auto mode via --dangerously-bypass-approvals-and-sandbox
     - No separate system prompt (combined with task prompt)
     - Token usage estimation (CLI doesn't report actual usage)
+    - Async wrapper around sync shell-out methods
+
+    Note: This is the primary Codex implementation. No SDK-based
+    harness exists yet, so no deprecation warning is shown.
     """
 
     @property
@@ -342,3 +365,131 @@ class CodexBackend:
             return result.stdout.strip() or "unknown"
         except Exception:
             return "unknown"
+
+    def supports_feature(self, feature: HarnessFeature) -> bool:
+        """
+        Check if harness supports a specific feature.
+
+        Args:
+            feature: Feature to check (from HarnessFeature enum)
+
+        Returns:
+            True if feature is supported
+        """
+        # Codex supports these features
+        supported = {
+            HarnessFeature.STREAMING,
+            HarnessFeature.AUTO_MODE,
+            HarnessFeature.JSON_OUTPUT,
+            HarnessFeature.MODEL_SELECTION,
+        }
+        return feature in supported
+
+    # Async interface methods (AsyncHarnessBackend protocol)
+
+    async def run_task(
+        self,
+        task_input: TaskInput,
+        debug: bool = False,
+    ) -> TaskResult:
+        """
+        Execute task with blocking execution (async wrapper).
+
+        Wraps sync invoke() method with asyncio.to_thread() for
+        compatibility with async interface.
+
+        Args:
+            task_input: Task parameters (prompt, model, permissions, etc.)
+            debug: Enable debug logging
+
+        Returns:
+            TaskResult with output, usage, messages, and file changes
+
+        Raises:
+            RuntimeError: If harness invocation fails
+        """
+        # Build system prompt (Codex combines system and task prompts)
+        system_prompt = task_input.system_prompt or ""
+
+        # Run sync method in thread pool
+        result = await asyncio.to_thread(
+            self.invoke,
+            system_prompt=system_prompt,
+            task_prompt=task_input.prompt,
+            model=task_input.model,
+            debug=debug,
+        )
+
+        # Convert HarnessResult to TaskResult
+        return TaskResult(
+            output=result.output,
+            usage=result.usage,
+            duration_seconds=result.duration_seconds,
+            exit_code=result.exit_code,
+            error=result.error,
+            timestamp=result.timestamp,
+            messages=[],  # Legacy harness doesn't track messages
+            files_changed=[],  # Legacy harness doesn't track file changes
+            files_created=[],
+        )
+
+    async def stream_task(
+        self,
+        task_input: TaskInput,
+        debug: bool = False,
+    ) -> AsyncIterator[str]:
+        """
+        Execute task with streaming output (async generator).
+
+        Wraps sync invoke_streaming() method with asyncio.to_thread().
+
+        Args:
+            task_input: Task parameters
+            debug: Enable debug logging
+
+        Yields:
+            Output chunks as strings
+
+        Raises:
+            RuntimeError: If harness invocation fails
+        """
+        # Build system prompt
+        system_prompt = task_input.system_prompt or ""
+
+        # Run sync streaming in thread and collect output
+        result = await asyncio.to_thread(
+            self.invoke_streaming,
+            system_prompt=system_prompt,
+            task_prompt=task_input.prompt,
+            model=task_input.model,
+            debug=debug,
+            callback=None,  # Don't use callback for now
+        )
+
+        # Yield the complete output
+        # This is not true streaming, but compatible with async interface
+        if result.output:
+            yield result.output
+
+        if result.error:
+            raise RuntimeError(f"Harness invocation failed: {result.error}")
+
+    def register_hook(
+        self,
+        event: HookEvent,
+        handler: HookHandler,
+    ) -> None:
+        """
+        Register a hook handler (no-op for Codex harness).
+
+        The Codex shell-out harness does not support hooks. Hook registration
+        is accepted but logged as a warning and the hooks will not be executed.
+
+        Args:
+            event: Event to hook (ignored)
+            handler: Handler function (ignored)
+        """
+        logger.warning(
+            "Hook registration ignored: harness '%s' does not support hooks.",
+            self.name,
+        )

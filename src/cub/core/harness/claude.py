@@ -1,38 +1,72 @@
 """
-Claude Code harness backend implementation.
+Claude Code harness backend implementation (legacy shell-out).
 
 This backend wraps the `claude` CLI tool for AI coding assistance with full
 streaming support, token reporting, and model selection.
+
+DEPRECATED: Use the SDK-based harness (claude_sdk.py) for new code.
+This legacy harness is provided for backward compatibility and will be
+removed in a future version.
 """
 
+import asyncio
 import json
+import logging
 import os
 import shutil
 import subprocess
 import time
-from collections.abc import Callable
+import warnings
+from collections.abc import AsyncIterator, Callable
 
+from .async_backend import register_async_backend
 from .backend import register_backend
-from .models import HarnessCapabilities, HarnessResult, TokenUsage
+from .models import (
+    HarnessCapabilities,
+    HarnessFeature,
+    HarnessResult,
+    HookEvent,
+    HookHandler,
+    TaskInput,
+    TaskResult,
+    TokenUsage,
+)
+
+logger = logging.getLogger(__name__)
 
 
-@register_backend("claude")
-class ClaudeBackend:
+@register_backend("claude-legacy")
+@register_async_backend("claude-legacy")
+class ClaudeLegacyBackend:
     """
-    Claude Code harness backend.
+    Claude Code legacy harness backend (shell-out).
 
-    Wraps the `claude` CLI tool with:
+    DEPRECATED: Use ClaudeSDKBackend for new code. This legacy harness
+    wraps the `claude` CLI tool with async compatibility via asyncio.to_thread().
+
+    Features:
     - Full streaming support via --output-format stream-json
     - Token usage reporting from JSON output
     - System prompt support via --append-system-prompt
     - Auto mode via --dangerously-skip-permissions
     - Model selection via --model flag
+    - Async wrapper around sync shell-out methods
     """
+
+    def __init__(self) -> None:
+        """Initialize and emit deprecation warning."""
+        warnings.warn(
+            "ClaudeLegacyBackend is deprecated. Use ClaudeSDKBackend (harness='claude') "
+            "for SDK features like hooks, custom tools, and stateful sessions. "
+            "Legacy harness will be removed in a future version.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     @property
     def name(self) -> str:
-        """Return 'claude' as the harness name."""
-        return "claude"
+        """Return 'claude-legacy' as the harness name."""
+        return "claude-legacy"
 
     @property
     def capabilities(self) -> HarnessCapabilities:
@@ -350,3 +384,138 @@ class ClaudeBackend:
             return result.stdout.strip() or "unknown"
         except Exception:
             return "unknown"
+
+    def supports_feature(self, feature: HarnessFeature) -> bool:
+        """
+        Check if harness supports a specific feature.
+
+        Args:
+            feature: Feature to check (from HarnessFeature enum)
+
+        Returns:
+            True if feature is supported
+        """
+        # Legacy harness supports basic shell-out features
+        supported = {
+            HarnessFeature.STREAMING,
+            HarnessFeature.TOKEN_REPORTING,
+            HarnessFeature.SYSTEM_PROMPT,
+            HarnessFeature.AUTO_MODE,
+            HarnessFeature.JSON_OUTPUT,
+            HarnessFeature.MODEL_SELECTION,
+        }
+        return feature in supported
+
+    # Async interface methods (AsyncHarnessBackend protocol)
+
+    async def run_task(
+        self,
+        task_input: TaskInput,
+        debug: bool = False,
+    ) -> TaskResult:
+        """
+        Execute task with blocking execution (async wrapper).
+
+        Wraps sync invoke() method with asyncio.to_thread() for
+        compatibility with async interface.
+
+        Args:
+            task_input: Task parameters (prompt, model, permissions, etc.)
+            debug: Enable debug logging
+
+        Returns:
+            TaskResult with output, usage, messages, and file changes
+
+        Raises:
+            RuntimeError: If harness invocation fails
+        """
+        # Build system prompt
+        system_prompt = task_input.system_prompt or ""
+
+        # Run sync method in thread pool
+        result = await asyncio.to_thread(
+            self.invoke,
+            system_prompt=system_prompt,
+            task_prompt=task_input.prompt,
+            model=task_input.model,
+            debug=debug,
+        )
+
+        # Convert HarnessResult to TaskResult
+        return TaskResult(
+            output=result.output,
+            usage=result.usage,
+            duration_seconds=result.duration_seconds,
+            exit_code=result.exit_code,
+            error=result.error,
+            timestamp=result.timestamp,
+            messages=[],  # Legacy harness doesn't track messages
+            files_changed=[],  # Legacy harness doesn't track file changes
+            files_created=[],
+        )
+
+    async def stream_task(
+        self,
+        task_input: TaskInput,
+        debug: bool = False,
+    ) -> AsyncIterator[str]:
+        """
+        Execute task with streaming output (async generator).
+
+        Wraps sync invoke_streaming() method with asyncio.to_thread()
+        and yields chunks via queue.
+
+        Args:
+            task_input: Task parameters
+            debug: Enable debug logging
+
+        Yields:
+            Output chunks as strings
+
+        Raises:
+            RuntimeError: If harness invocation fails
+        """
+        # Build system prompt
+        system_prompt = task_input.system_prompt or ""
+
+        # For now, run sync streaming in thread and collect output
+        # TODO: Implement true async streaming with queue
+        result = await asyncio.to_thread(
+            self.invoke_streaming,
+            system_prompt=system_prompt,
+            task_prompt=task_input.prompt,
+            model=task_input.model,
+            debug=debug,
+            callback=None,  # Don't use callback for now
+        )
+
+        # Yield the complete output
+        # This is not true streaming, but compatible with async interface
+        if result.output:
+            yield result.output
+
+        if result.error:
+            raise RuntimeError(f"Harness invocation failed: {result.error}")
+
+    def register_hook(
+        self,
+        event: HookEvent,
+        handler: HookHandler,
+    ) -> None:
+        """
+        Register a hook handler (no-op for legacy harness).
+
+        The legacy shell-out harness does not support hooks. Hook registration
+        is accepted but logged as a warning and the hooks will not be executed.
+
+        For hook support, use the SDK-based harness (harness='claude').
+
+        Args:
+            event: Event to hook (ignored)
+            handler: Handler function (ignored)
+        """
+        logger.warning(
+            "Hook registration ignored: legacy harness '%s' does not support hooks. "
+            "Use harness='claude' for SDK-based hook support.",
+            self.name,
+        )

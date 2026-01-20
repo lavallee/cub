@@ -1,4 +1,123 @@
-# Upgrading to Cub 0.21+
+# Upgrading Cub
+
+This guide covers major version upgrades and migration paths.
+
+---
+
+## Upgrading to Cub 0.24+ (Harness Abstraction)
+
+Cub 0.24 introduces a new async harness architecture with support for hooks, custom tools, and the Claude Agent SDK.
+
+### TL;DR
+
+!!! success "Quick Upgrade"
+
+    1. Update cub: `git pull && uv sync`
+    2. The default `claude` harness now uses the SDK backend
+    3. Use `--harness claude-legacy` for the previous behavior
+    4. Install `claude-agent-sdk` for hook support (optional)
+
+### What Changed
+
+**New Harness Architecture:**
+
+- All harnesses now use an async interface (`run_task`, `stream_task`)
+- Claude backend split into `claude` (SDK) and `claude-legacy` (shell-out)
+- New capabilities: hooks, custom_tools, sessions
+
+**New Capabilities (Claude SDK only):**
+
+| Capability | Description |
+|------------|-------------|
+| **hooks** | Event interception for guardrails and circuit breakers |
+| **custom_tools** | Register project-specific tools |
+| **sessions** | Stateful multi-turn conversations |
+
+### Migration Steps
+
+**1. Update your installation:**
+
+```bash
+cd ~/tools/cub
+git pull origin main
+uv sync
+```
+
+**2. (Optional) Install SDK for hooks:**
+
+```bash
+pip install claude-agent-sdk
+```
+
+**3. Test the new backend:**
+
+```bash
+# Uses new SDK backend by default
+cub run --once
+
+# Fall back to legacy if needed
+cub run --once --harness claude-legacy
+```
+
+### Breaking Changes
+
+**Harness detection order changed:**
+
+=== "Before (v0.23)"
+
+    ```
+    claude > opencode > codex > gemini
+    ```
+
+=== "After (v0.24)"
+
+    ```
+    claude (SDK) > claude-legacy > codex > gemini > opencode
+    ```
+
+**Python API changes:**
+
+=== "Before (v0.23)"
+
+    ```python
+    from cub.core.harness import get_backend, detect_harness
+
+    backend = get_backend("claude")
+    result = backend.invoke(prompt, system)
+    ```
+
+=== "After (v0.24)"
+
+    ```python
+    from cub.core.harness import get_async_backend, detect_async_harness
+
+    backend = get_async_backend("claude")
+    result = await backend.run_task(task_input)
+    ```
+
+### Troubleshooting
+
+**"Claude SDK not available"**
+
+Install the SDK or use legacy mode:
+
+```bash
+pip install claude-agent-sdk
+# or
+cub run --harness claude-legacy
+```
+
+**Hooks not working**
+
+Hooks only work with the SDK backend. Verify you're using `claude`, not `claude-legacy`:
+
+```bash
+cub run --harness claude  # SDK with hooks
+```
+
+---
+
+## Upgrading to Cub 0.21+ (Bash to Python)
 
 Cub 0.21 is a major architectural rewrite that migrates from Bash to Python while maintaining the existing feature set and workflow. This guide explains what changed, why, and how to upgrade.
 

@@ -1,17 +1,28 @@
 # Claude Code Harness
 
-Claude Code is the most full-featured harness, supporting all capabilities. It is the recommended choice for complex autonomous coding tasks.
+Claude Code is the most full-featured harness, supporting all capabilities including hooks, custom tools, and stateful sessions. It is the recommended choice for complex autonomous coding tasks.
+
+!!! note "SDK vs Legacy (v0.24+)"
+    Cub now offers two Claude backends:
+
+    - **`claude`** (default): Uses Claude Agent SDK for full hook support
+    - **`claude-legacy`**: Uses shell-out mode for compatibility
+
+    The SDK backend is recommended for new projects.
 
 ## Capabilities
 
-| Capability | Status |
-|------------|:------:|
-| streaming | :white_check_mark: Supported |
-| token_reporting | :white_check_mark: Supported |
-| system_prompt | :white_check_mark: Supported |
-| auto_mode | :white_check_mark: Supported |
-| json_output | :white_check_mark: Supported |
-| model_selection | :white_check_mark: Supported |
+| Capability | SDK (`claude`) | Legacy (`claude-legacy`) |
+|------------|:--------------:|:------------------------:|
+| streaming | :white_check_mark: | :white_check_mark: |
+| token_reporting | :white_check_mark: | :white_check_mark: |
+| system_prompt | :white_check_mark: | :white_check_mark: |
+| auto_mode | :white_check_mark: | :white_check_mark: |
+| json_output | :white_check_mark: | :white_check_mark: |
+| model_selection | :white_check_mark: | :white_check_mark: |
+| **hooks** | :white_check_mark: | :x: |
+| **custom_tools** | :white_check_mark: | :x: |
+| **sessions** | :white_check_mark: | :x: |
 
 ## Installation
 
@@ -26,6 +37,16 @@ claude --version
 ```
 
 For detailed installation instructions, see the [Claude Code documentation](https://github.com/anthropics/claude-code).
+
+### SDK Dependencies (Optional)
+
+For SDK features (hooks, custom tools), install the Python SDK:
+
+```bash
+pip install claude-agent-sdk
+```
+
+If the SDK is not installed, cub automatically falls back to legacy mode.
 
 ## Features
 
@@ -203,3 +224,105 @@ If token usage seems high:
 1. Check PROMPT.md - large system prompts increase every invocation
 2. Review task descriptions - overly verbose tasks consume more tokens
 3. Use streaming to monitor what the AI is doing
+
+---
+
+## Hooks System (SDK Only)
+
+The SDK backend (`claude`) supports hooks for intercepting and controlling AI behavior. Hooks enable:
+
+- **Guardrails**: Block dangerous commands before execution
+- **Logging**: Track tool usage and decisions
+- **Circuit breakers**: Stop runaway loops
+- **Custom behavior**: Modify prompts or inject context
+
+### Hook Events
+
+| Event | When Fired | Use Case |
+|-------|------------|----------|
+| `PRE_TASK` | Before task starts | Validate inputs, inject context |
+| `POST_TASK` | After task completes | Log results, cleanup |
+| `PRE_TOOL_USE` | Before tool execution | Block dangerous commands |
+| `POST_TOOL_USE` | After tool execution | Log tool results |
+| `ON_ERROR` | When error occurs | Custom error handling |
+| `ON_MESSAGE` | On each AI message | Real-time monitoring |
+
+### Example: Blocking Dangerous Commands
+
+```python
+from cub.core.harness import HookEvent, HookContext, HookResult
+
+def block_dangerous_commands(context: HookContext) -> HookResult:
+    """Block rm -rf and other dangerous commands."""
+    if context.event == HookEvent.PRE_TOOL_USE:
+        if context.tool_name == "bash":
+            command = context.tool_input.get("command", "")
+            if "rm -rf" in command or "sudo" in command:
+                return HookResult(
+                    block=True,
+                    message="Blocked dangerous command"
+                )
+    return HookResult(block=False)
+
+# Register the hook
+backend.register_hook(HookEvent.PRE_TOOL_USE, block_dangerous_commands)
+```
+
+### Configuring Hooks
+
+Hooks can be configured in `.cub.json`:
+
+```json
+{
+  "harness": {
+    "hooks": {
+      "block_patterns": ["rm -rf", "sudo", "curl | sh"],
+      "log_tool_usage": true,
+      "max_iterations": 50
+    }
+  }
+}
+```
+
+For more details, see the [Hooks System](../hooks/index.md) guide.
+
+---
+
+## Legacy Backend
+
+The legacy backend (`claude-legacy`) uses shell-out mode, invoking Claude Code as a subprocess. Use this for:
+
+- Compatibility with older environments
+- Troubleshooting SDK integration issues
+- Simpler deployments without SDK dependencies
+
+### Selecting Legacy Mode
+
+```bash
+# Via CLI flag
+cub run --harness claude-legacy
+
+# Via environment variable
+HARNESS=claude-legacy cub run
+
+# Via config
+# .cub.json
+{
+  "harness": {
+    "default": "claude-legacy"
+  }
+}
+```
+
+### Differences from SDK
+
+| Feature | SDK | Legacy |
+|---------|-----|--------|
+| Hooks | Full support | No-op (silent) |
+| Custom tools | Supported | Not available |
+| Sessions | Supported | Not available |
+| Execution | In-process async | Subprocess |
+| Streaming | Async generator | Line-buffered |
+
+!!! warning "Deprecation Notice"
+    The legacy backend is deprecated and will be removed in a future version. Migrate to the SDK backend for continued support.
