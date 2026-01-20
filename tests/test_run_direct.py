@@ -114,8 +114,8 @@ class TestDirectFlagValidation:
         """Mock dependencies for run command."""
         with (
             patch("cub.cli.run.load_config") as mock_config,
-            patch("cub.cli.run.detect_harness") as mock_detect,
-            patch("cub.cli.run.get_harness_backend") as mock_harness,
+            patch("cub.cli.run.detect_async_harness") as mock_detect,
+            patch("cub.cli.run.get_async_backend") as mock_harness,
             patch("cub.cli.run._read_direct_input") as mock_read,
         ):
             # Setup mock config

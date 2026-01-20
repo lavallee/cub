@@ -620,6 +620,22 @@ class TestRunLoopIntegration:
     @pytest.fixture
     def mock_run_dependencies(self, mock_config, mock_harness_backend, mock_task_backend):
         """Set up all dependencies for run loop tests."""
+        import asyncio
+
+        def sync_run_async(func, *args, **kwargs):
+            """Run async function synchronously for testing."""
+            loop = asyncio.new_event_loop()
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return loop.run_until_complete(func(*args, **kwargs))
+                # For AsyncMock, call it and run the coroutine
+                result = func(*args, **kwargs)
+                if asyncio.iscoroutine(result):
+                    return loop.run_until_complete(result)
+                return result
+            finally:
+                loop.close()
+
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
             patch("cub.cli.run.detect_async_harness") as mock_detect,
@@ -629,6 +645,7 @@ class TestRunLoopIntegration:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks") as mock_wait_hooks,
+            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -797,11 +814,13 @@ class TestRunLoopIntegration:
 
         runner.invoke(app, ["--once"])
 
-        # Harness was invoked
-        deps["harness_backend"].invoke.assert_called_once()
+        # Harness was invoked (async method)
+        deps["harness_backend"].run_task.assert_called_once()
 
     def test_run_task_failure_stops(self, runner, mock_run_dependencies):
         """Test that task failure stops the loop when configured."""
+        from cub.core.harness.models import TaskResult
+
         deps = mock_run_dependencies
         deps["config"].loop.on_task_failure = "stop"
         task = Task(
@@ -812,12 +831,18 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="",
-            exit_code=1,
-            error="Task execution failed",
-            usage=TokenUsage(input_tokens=50, output_tokens=10),
-        )
+
+        # Mock run_task to return a failure result
+        async def mock_failure(task_input, debug=False):
+            return TaskResult(
+                output="",
+                exit_code=1,
+                error="Task execution failed",
+                usage=TokenUsage(input_tokens=50, output_tokens=10),
+                duration_seconds=0.1,
+            )
+
+        deps["harness_backend"].run_task.side_effect = mock_failure
 
         result = runner.invoke(app, ["--once"])
 
@@ -825,6 +850,8 @@ class TestRunLoopIntegration:
 
     def test_run_task_failure_continues(self, runner, mock_run_dependencies):
         """Test that task failure continues when configured."""
+        from cub.core.harness.models import TaskResult
+
         deps = mock_run_dependencies
         deps["config"].loop.on_task_failure = "continue"
         task = Task(
@@ -835,12 +862,18 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="",
-            exit_code=1,
-            error="Task execution failed",
-            usage=TokenUsage(input_tokens=50, output_tokens=10),
-        )
+
+        # Mock run_task to return a failure result
+        async def mock_failure(task_input, debug=False):
+            return TaskResult(
+                output="",
+                exit_code=1,
+                error="Task execution failed",
+                usage=TokenUsage(input_tokens=50, output_tokens=10),
+                duration_seconds=0.1,
+            )
+
+        deps["harness_backend"].run_task.side_effect = mock_failure
 
         runner.invoke(app, ["--once"])
 
@@ -890,17 +923,13 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="Done",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=100),
-        )
 
         runner.invoke(app, ["--once", "--model", "opus"])
 
-        # Verify model was passed to harness
-        call_kwargs = deps["harness_backend"].invoke.call_args
-        assert call_kwargs[1]["model"] == "opus"
+        # Verify model was passed to harness via TaskInput
+        call_args = deps["harness_backend"].run_task.call_args
+        task_input = call_args[0][0]  # First positional argument
+        assert task_input.model == "opus"
 
     def test_run_uses_model_from_task_label(self, runner, mock_run_dependencies):
         """Test that task model label is used when no CLI model."""
@@ -915,18 +944,14 @@ class TestRunLoopIntegration:
             labels=["model:haiku"],  # This sets model_label via computed property
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="Done",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=100),
-        )
         deps["config"].harness.model = None  # No default, so task label should be used
 
         runner.invoke(app, ["--once"])
 
-        # Verify task model label was used
-        call_kwargs = deps["harness_backend"].invoke.call_args
-        assert call_kwargs[1]["model"] == "haiku"
+        # Verify task model label was used via TaskInput
+        call_args = deps["harness_backend"].run_task.call_args
+        task_input = call_args[0][0]  # First positional argument
+        assert task_input.model == "haiku"
 
     def test_run_streaming_mode(self, runner, mock_run_dependencies):
         """Test streaming mode invokes streaming method."""
@@ -939,17 +964,12 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke_streaming.return_value = HarnessResult(
-            output="Streamed output",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=100),
-        )
 
         runner.invoke(app, ["--once", "--stream"])
 
-        # Verify streaming method was called
-        deps["harness_backend"].invoke_streaming.assert_called_once()
-        deps["harness_backend"].invoke.assert_not_called()
+        # Verify streaming method was called (stream_task for async)
+        deps["harness_backend"].stream_task.assert_called_once()
+        deps["harness_backend"].run_task.assert_not_called()
 
 
 # ==============================================================================
@@ -963,6 +983,21 @@ class TestBudgetTracking:
     @pytest.fixture
     def budget_mock_deps(self, mock_config, mock_harness_backend, mock_task_backend):
         """Set up dependencies for budget tests."""
+        import asyncio
+
+        def sync_run_async(func, *args, **kwargs):
+            """Run async function synchronously for testing."""
+            loop = asyncio.new_event_loop()
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return loop.run_until_complete(func(*args, **kwargs))
+                result = func(*args, **kwargs)
+                if asyncio.iscoroutine(result):
+                    return loop.run_until_complete(result)
+                return result
+            finally:
+                loop.close()
+
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
             patch("cub.cli.run.detect_async_harness") as mock_detect,
@@ -972,6 +1007,7 @@ class TestBudgetTracking:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks"),
+            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1174,6 +1210,21 @@ class TestMaxIterations:
     @pytest.fixture
     def iteration_mock_deps(self, mock_config, mock_harness_backend, mock_task_backend):
         """Set up dependencies for iteration tests."""
+        import asyncio
+
+        def sync_run_async(func, *args, **kwargs):
+            """Run async function synchronously for testing."""
+            loop = asyncio.new_event_loop()
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return loop.run_until_complete(func(*args, **kwargs))
+                result = func(*args, **kwargs)
+                if asyncio.iscoroutine(result):
+                    return loop.run_until_complete(result)
+                return result
+            finally:
+                loop.close()
+
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
             patch("cub.cli.run.detect_async_harness") as mock_detect,
@@ -1184,6 +1235,7 @@ class TestMaxIterations:
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("cub.cli.run.time.sleep"),  # Don't actually sleep
+            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1213,16 +1265,11 @@ class TestMaxIterations:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="Done",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=100),
-        )
 
         runner.invoke(app, ["--once"])
 
-        # Should only invoke harness once
-        assert deps["harness_backend"].invoke.call_count == 1
+        # Should only invoke harness once (async method)
+        assert deps["harness_backend"].run_task.call_count == 1
 
     def test_max_iterations_from_config(self, runner, iteration_mock_deps):
         """Test max iterations comes from config when not using --once."""
@@ -1238,16 +1285,11 @@ class TestMaxIterations:
         )
         # Return the same task each time (simulates it not being closed)
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="Done",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=100),
-        )
 
         result = runner.invoke(app, [])
 
-        # Should invoke harness twice (max_iterations = 2)
-        assert deps["harness_backend"].invoke.call_count == 2
+        # Should invoke harness twice (max_iterations = 2, using async method)
+        assert deps["harness_backend"].run_task.call_count == 2
         assert "Reached max iterations" in result.output
 
 
@@ -1262,6 +1304,21 @@ class TestFiltering:
     @pytest.fixture
     def filter_mock_deps(self, mock_config, mock_harness_backend, mock_task_backend):
         """Set up dependencies for filtering tests."""
+        import asyncio
+
+        def sync_run_async(func, *args, **kwargs):
+            """Run async function synchronously for testing."""
+            loop = asyncio.new_event_loop()
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return loop.run_until_complete(func(*args, **kwargs))
+                result = func(*args, **kwargs)
+                if asyncio.iscoroutine(result):
+                    return loop.run_until_complete(result)
+                return result
+            finally:
+                loop.close()
+
         with (
             patch("cub.cli.run.load_config") as mock_load_config,
             patch("cub.cli.run.detect_async_harness") as mock_detect,
@@ -1271,6 +1328,7 @@ class TestFiltering:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
+            patch("cub.cli.run.anyio.from_thread.run", side_effect=sync_run_async),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
