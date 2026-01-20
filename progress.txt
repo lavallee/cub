@@ -2535,3 +2535,129 @@ Created two new modules:
 2. **Simple Extraction:** Used regex to extract title, overview, goals from spec markdown. More sophisticated LLM-based extraction can be added later.
 3. **Collision Handling:** Tries `_alt_a` through `_alt_z` suffixes, raises PlanExistsError if all exhausted
 4. **Path Relative:** Orientation.md includes relative link back to source spec using `../../specs/...` pattern
+
+## 2026-01-20 - cub-p2p.3: Implement architect stage
+
+### Task Completed
+Implemented the architect interview stage for designing technical approach based on orientation.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/architect.py`**
+- `ArchitectStage` class following the same pattern as `OrientStage`
+- Data classes: `TechStackChoice`, `Component`, `ImplementationPhase`, `TechnicalRisk`, `ArchitectResult`
+- `ArchitectQuestion` dataclass for interview questions
+- `DEFAULT_ARCHITECT_QUESTIONS` covering mindset, scale, tech stack, and integrations
+
+**ArchitectStage Features:**
+- Validates orient stage is complete before running
+- Reads orientation.md and extracts problem statement, requirements, MVP scope
+- Gathers project context (AGENT.md, SYSTEM-PLAN.md, spec content)
+- Infers tech stack from project files and agent instructions
+- Adapts output based on mindset (prototype/mvp/production/enterprise)
+- Adapts output based on scale (personal/team/product/internet-scale)
+- Generates component design appropriate for mindset
+- Creates implementation phases with MVP scope items
+- Produces architecture.md with full design document
+
+**CLI Command: `cub plan architect`**
+- Accepts plan slug as argument or finds most recent plan
+- `--spec/-s` option to find plan by spec name
+- `--mindset/-m` option (prototype/mvp/production/enterprise)
+- `--scale` option (personal/team/product/internet-scale)
+- `--verbose/-v` for detailed output
+- `--project-root/-p` for non-cwd projects
+- Shows summary including tech stack, components, and phases count
+
+**Exports in `__init__.py`:**
+- All architect classes and functions exported from plan module
+
+**Testing: 35 tests in `tests/test_plan_architect.py`**
+- Validation tests (orient complete, orientation.md exists)
+- Run tests (creates architecture.md, updates plan status, saves plan.json)
+- Tech stack inference tests
+- Component generation tests (minimal for prototype, full for production)
+- Implementation phase tests
+- Technical risk tests
+- Data class tests
+- CLI integration tests
+
+### Key Design Decisions
+
+1. **Mindset-Driven Architecture:** The mindset parameter (prototype/mvp/production/enterprise) significantly affects output - prototypes get minimal structure, enterprise gets security considerations and monitoring.
+
+2. **Scale Awareness:** Scale affects recommendations but is less impactful than mindset on structure.
+
+3. **Tech Stack Inference:** When possible, infer tech stack from existing project files (AGENT.md mentions Python 3.10+, Typer, Pydantic, etc.). Fall back to mindset-appropriate defaults.
+
+4. **Progressive Complexity:** Foundation phase is always present, Core Features phase uses MVP scope from orientation, Polish phase only for mvp/production/enterprise.
+
+5. **Following Orient Pattern:** Used the same structural pattern as OrientStage - validate, gather context, extract info, generate output, update plan status.
+
+### Learnings
+
+- The plan stages follow a clear workflow pattern that can be reused for itemize stage
+- Extracting info from orientation.md requires careful regex patterns for tables and sections
+- CLI commands that continue from previous stage need to locate existing plans smartly
+
+---
+
+## Session: 2026-01-20 - cub-p2p.4: Implement itemize stage
+
+### Summary
+
+Implemented the itemize stage of the plan pipeline. This stage takes orientation.md and architecture.md as input and produces itemized-plan.md with epics and tasks using beads-compatible IDs.
+
+**ItemizeStage Features:**
+- Validates architect stage is complete before running
+- Reads orientation.md and extracts title, problem statement, requirements
+- Reads architecture.md and extracts phases, components, mindset, scale
+- Generates epics from implementation phases (or from P0 requirements if no phases)
+- Generates tasks with beads-compatible IDs using generate_epic_id() and generate_task_id()
+- Each task includes context, implementation steps, and acceptance criteria
+- Produces itemized-plan.md with proper markdown formatting
+
+**CLI Command: `cub plan itemize`**
+- Accepts plan slug as argument or finds most recent plan
+- `--spec/-s` option to find plan by spec name
+- `--verbose/-v` for detailed output including epic/task counts
+- `--project-root/-p` for non-cwd projects
+- Shows summary with epic IDs and task counts
+
+**Testing: 35 tests in `tests/test_plan_itemize.py`**
+- Validation tests (architect complete, architecture.md exists, orientation.md exists)
+- Run tests (creates itemized-plan.md, updates plan status to COMPLETE, saves plan.json)
+- Content extraction tests (phases, tasks, mindset)
+- Task generation tests (implementation steps, acceptance criteria, unique IDs)
+- Output format tests (header, context summary, epic sections, task sections, summary table)
+- CLI integration tests
+- Edge case tests (empty phases, special characters in titles)
+
+### Key Implementation Details
+
+1. **Phase Extraction Regex:** The regex for extracting phases from architecture.md needed careful adjustment:
+   - `(?=\n##[^#]|\Z)` to stop at the next `## ` heading (not `###`)
+   - `(?=\n###|$)` to capture all phases in the section
+
+2. **Epic/Task ID Generation:** Uses the ids.py module from cub-p1f.6:
+   - Epic IDs: `{project}-{random 3 chars}` (e.g., `test-k7m`)
+   - Task IDs: `{epic_id}.{task_num}` (e.g., `test-k7m.1`)
+   - Uses collision detection to ensure uniqueness
+
+3. **Fallback for No Phases:** If no implementation phases found in architecture.md, falls back to creating tasks from P0 requirements in orientation.md.
+
+4. **Plan Status Update:** After itemize completes, plan status becomes COMPLETE (all three stages done).
+
+### Test File Updates
+
+Updated `tests/test_cli_plan.py` to reflect that architect and itemize commands are now implemented:
+- Changed "not implemented" tests to "requires plan" tests
+- Added `runner.isolated_filesystem()` to avoid picking up plans from the actual project directory
+
+### Learnings
+
+- When testing CLI commands that look for files, use `runner.isolated_filesystem()` to prevent picking up actual project files
+- Regex patterns for markdown parsing need careful lookaheads - `(?=\n##[^#]|\Z)` stops at next level-2 heading while allowing level-3 headings
+- The plan pipeline follows a consistent pattern: validate -> gather context -> extract -> generate -> update status
+- Beads ID format uses random suffixes, not sequential numbers, for better distributed collaboration
+
