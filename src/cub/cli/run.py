@@ -11,9 +11,13 @@ import signal
 import sys
 import time
 import types
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from cub.core.harness.async_backend import AsyncHarnessBackend
 
 import typer
 from rich.console import Console
@@ -44,32 +48,160 @@ from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_
 
 # Lazy import for anyio to avoid bootstrap issues during upgrades.
 # This allows 'cub upgrade' to run even if anyio is not yet installed.
+# Falls back to asyncio.run() when anyio is not available.
 _anyio_module: types.ModuleType | None = None
+_anyio_available: bool | None = None  # Cached availability check
 
 
-def _get_anyio() -> Any:
-    """Get the anyio module, importing it lazily on first use."""
-    global _anyio_module
-    if _anyio_module is None:
+def _check_anyio_available() -> bool:
+    """Check if anyio is available (cached)."""
+    global _anyio_available, _anyio_module
+    if _anyio_available is None:
         try:
             import anyio
 
             _anyio_module = anyio
-        except ImportError as e:
-            err_console = Console()
-            err_console.print("[red]Error: Missing required dependency 'anyio'[/red]")
-            err_console.print()
-            err_console.print("This can happen after upgrading cub. To fix, run:")
-            err_console.print()
-            err_console.print("  [cyan]pip install anyio>=4.0.0[/cyan]")
-            err_console.print()
-            err_console.print("Or reinstall cub to get all dependencies:")
-            err_console.print()
-            err_console.print("  [cyan]pip install --force-reinstall cub[/cyan]")
-            err_console.print("  [dim]# or if using pipx:[/dim]")
-            err_console.print("  [cyan]pipx reinstall cub[/cyan]")
-            raise typer.Exit(1) from e
-    return _anyio_module
+            _anyio_available = True
+        except ImportError:
+            _anyio_available = False
+    return _anyio_available
+
+
+def _run_async(func: Any, *args: Any) -> Any:
+    """
+    Run an async function from a sync context.
+
+    Tries anyio.from_thread.run() first for better async runtime support,
+    falls back to asyncio.run() if anyio is not installed.
+
+    Args:
+        func: An async function to call
+        *args: Arguments to pass to the function
+
+    Returns:
+        The result of the async operation
+
+    Example:
+        # With no args
+        result = _run_async(my_async_func)
+
+        # With args
+        result = _run_async(harness.run_task, task_input, debug)
+    """
+    import asyncio
+
+    if _check_anyio_available() and _anyio_module is not None:
+        # Use anyio for better async runtime support
+        return _anyio_module.from_thread.run(func, *args)
+    else:
+        # Fall back to asyncio.run() - works for standard async code
+        return asyncio.run(func(*args))
+
+
+def _setup_harness(
+    harness: str | None,
+    priority_list: list[str] | None,
+    debug: bool,
+) -> tuple[str, "AsyncHarnessBackend"] | None:
+    """
+    Detect and validate harness backend.
+
+    Centralizes harness setup logic used by main run loop, --direct, and --gh-issue.
+
+    Args:
+        harness: Explicit harness name or None for auto-detect
+        priority_list: Priority list for auto-detection
+        debug: Enable debug logging
+
+    Returns:
+        Tuple of (harness_name, backend) on success, or None on failure
+        (error message already printed to console)
+    """
+    # Use module-level imports for detect_async_harness and get_async_backend
+    # so that tests can mock them properly
+    harness_name = harness or detect_async_harness(priority_list)
+    if not harness_name:
+        console.print(
+            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
+        )
+        return None
+
+    try:
+        harness_backend: AsyncHarnessBackend = get_async_backend(harness_name)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        return None
+
+    if not harness_backend.is_available():
+        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
+        return None
+
+    if debug:
+        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+
+    return harness_name, harness_backend
+
+
+def _invoke_harness(
+    harness_backend: "AsyncHarnessBackend",
+    task_input: TaskInput,
+    stream: bool,
+    debug: bool,
+) -> HarnessResult:
+    """
+    Invoke harness with unified streaming/blocking execution.
+
+    Centralizes harness invocation logic used by main run loop, --direct, and --gh-issue.
+
+    Args:
+        harness_backend: The harness backend to use
+        task_input: Task parameters (prompt, system_prompt, model, etc.)
+        stream: Whether to stream output
+        debug: Enable debug logging
+
+    Returns:
+        HarnessResult with output, usage, and timing
+    """
+    start_time = time.time()
+
+    if stream and harness_backend.capabilities.streaming:
+        # Stream execution
+        sys.stdout.flush()
+
+        async def _stream_and_collect() -> str:
+            """Stream output and collect for result."""
+            collected = ""
+            # stream_task returns AsyncIterator[str] directly (async generator)
+            stream_iter: AsyncIterator[str] = harness_backend.stream_task(
+                task_input, debug=debug
+            )  # type: ignore[assignment]
+            async for chunk in stream_iter:
+                _stream_callback(chunk)
+                collected += chunk
+            return collected
+
+        result_output = _run_async(_stream_and_collect)
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+        return HarnessResult(
+            output=result_output,
+            usage=TokenUsage(),  # Usage tracking TBD for streaming
+            duration_seconds=time.time() - start_time,
+            exit_code=0,
+        )
+    else:
+        # Blocking execution with async backend
+        task_result = _run_async(harness_backend.run_task, task_input, debug)
+
+        return HarnessResult(
+            output=task_result.output,
+            usage=task_result.usage,
+            duration_seconds=task_result.duration_seconds,
+            exit_code=task_result.exit_code,
+            error=task_result.error,
+            timestamp=task_result.timestamp,
+        )
 
 
 app = typer.Typer(
@@ -667,26 +799,11 @@ def run(
         # _run_parallel handles its own exit
         raise typer.Exit(0)
 
-    # Detect or validate harness
-    harness_name = harness or detect_async_harness(config.harness.priority)
-    if not harness_name:
-        console.print(
-            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
-        )
+    # Setup harness
+    harness_result = _setup_harness(harness, config.harness.priority, debug)
+    if harness_result is None:
         raise typer.Exit(1)
-
-    try:
-        harness_backend = get_async_backend(harness_name)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        raise typer.Exit(1)
-
-    if not harness_backend.is_available():
-        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
-        raise typer.Exit(1)
-
-    if debug:
-        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+    harness_name, harness_backend = harness_result
 
     # Set up signal handler for graceful interrupts
     signal.signal(signal.SIGINT, _signal_handler)
@@ -870,10 +987,8 @@ def run(
 
             # Invoke harness
             console.print(f"[bold]Running {harness_name}...[/bold]")
-            start_time = time.time()
 
             try:
-                # Create task input for async backend
                 task_input = TaskInput(
                     prompt=task_prompt,
                     system_prompt=system_prompt,
@@ -882,51 +997,7 @@ def run(
                     auto_approve=True,  # Auto-approve for unattended execution
                 )
 
-                if stream and harness_backend.capabilities.streaming:
-                    # Stream execution with async generator
-                    sys.stdout.flush()
-
-                    async def _stream_and_collect() -> str:
-                        """Stream output and collect for result."""
-                        from collections.abc import AsyncIterator
-
-                        collected = ""
-                        # stream_task returns AsyncIterator[str] directly (async generator)
-                        stream_iter: AsyncIterator[str] = harness_backend.stream_task(
-                            task_input, debug=debug
-                        )  # type: ignore[assignment]
-                        async for chunk in stream_iter:
-                            _stream_callback(chunk)
-                            collected += chunk
-                        return collected
-
-                    result_output = _get_anyio().from_thread.run(_stream_and_collect)
-                    sys.stdout.write("\n")
-                    sys.stdout.flush()
-
-                    # For streaming, we need to construct a result manually
-                    # (stream_task doesn't return TaskResult, only yields chunks)
-                    result = HarnessResult(
-                        output=result_output,
-                        usage=TokenUsage(),  # Usage tracking TBD for streaming
-                        duration_seconds=time.time() - start_time,
-                        exit_code=0,
-                    )
-                else:
-                    # Blocking execution with async backend
-                    task_result = _get_anyio().from_thread.run(
-                        harness_backend.run_task, task_input, debug
-                    )
-
-                    # Convert TaskResult to HarnessResult for compatibility
-                    result = HarnessResult(
-                        output=task_result.output,
-                        usage=task_result.usage,
-                        duration_seconds=task_result.duration_seconds,
-                        exit_code=task_result.exit_code,
-                        error=task_result.error,
-                        timestamp=task_result.timestamp,
-                    )
+                result = _invoke_harness(harness_backend, task_input, stream, debug)
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
                 status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
@@ -935,7 +1006,7 @@ def run(
                     break
                 continue
 
-            duration = time.time() - start_time
+            duration = result.duration_seconds
 
             # Update budget tracking
             status.budget.tokens_used += result.usage.total_tokens
@@ -1146,26 +1217,11 @@ def _run_direct(
     if debug:
         console.print(f"[dim]Direct task: {task_content[:100]}...[/dim]")
 
-    # Detect or validate harness
-    harness_name = harness or detect_async_harness(config.harness.priority)
-    if not harness_name:
-        console.print(
-            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
-        )
+    # Setup harness
+    harness_result = _setup_harness(harness, config.harness.priority, debug)
+    if harness_result is None:
         return 1
-
-    try:
-        harness_backend = get_async_backend(harness_name)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        return 1
-
-    if not harness_backend.is_available():
-        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
-        return 1
-
-    if debug:
-        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+    harness_name, harness_backend = harness_result
 
     # Generate prompts
     system_prompt = generate_system_prompt(project_dir)
@@ -1189,10 +1245,8 @@ def _run_direct(
 
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
-    start_time = time.time()
 
     try:
-        # Create task input for async backend
         task_input = TaskInput(
             prompt=task_prompt,
             system_prompt=system_prompt,
@@ -1201,58 +1255,15 @@ def _run_direct(
             auto_approve=True,
         )
 
-        if stream and harness_backend.capabilities.streaming:
-            # Stream execution
-            sys.stdout.flush()
-
-            async def _stream_and_collect() -> str:
-                """Stream output and collect for result."""
-                from collections.abc import AsyncIterator
-
-                collected = ""
-                # stream_task returns AsyncIterator[str] directly (async generator)
-                stream_iter: AsyncIterator[str] = harness_backend.stream_task(
-                    task_input, debug=debug
-                )  # type: ignore[assignment]
-                async for chunk in stream_iter:
-                    _stream_callback(chunk)
-                    collected += chunk
-                return collected
-
-            result_output = _get_anyio().from_thread.run(_stream_and_collect)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-
-            result = HarnessResult(
-                output=result_output,
-                usage=TokenUsage(),
-                duration_seconds=time.time() - start_time,
-                exit_code=0,
-            )
-        else:
-            # Blocking execution
-            task_result = _get_anyio().from_thread.run(
-                harness_backend.run_task, task_input, debug
-            )
-
-            result = HarnessResult(
-                output=task_result.output,
-                usage=task_result.usage,
-                duration_seconds=task_result.duration_seconds,
-                exit_code=task_result.exit_code,
-                error=task_result.error,
-                timestamp=task_result.timestamp,
-            )
+        result = _invoke_harness(harness_backend, task_input, stream, debug)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1
 
-    duration = time.time() - start_time
-
     # Display result
     console.print()
     if result.success:
-        console.print(f"[green]Completed in {duration:.1f}s[/green]")
+        console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
         console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
         if result.usage.cost_usd:
             console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
@@ -1311,26 +1322,11 @@ def _run_gh_issue(
         console.print(f"[dim]Repository: {issue_mode.repo.full_name}[/dim]")
         console.print(f"[dim]Issue: #{issue_mode.issue.number}[/dim]")
 
-    # Detect or validate harness
-    harness_name = harness or detect_async_harness(config.harness.priority)
-    if not harness_name:
-        console.print(
-            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
-        )
+    # Setup harness
+    harness_result = _setup_harness(harness, config.harness.priority, debug)
+    if harness_result is None:
         return 1
-
-    try:
-        harness_backend = get_async_backend(harness_name)
-    except ValueError as e:
-        console.print(f"[red]{e}[/red]")
-        return 1
-
-    if not harness_backend.is_available():
-        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
-        return 1
-
-    if debug:
-        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+    harness_name, harness_backend = harness_result
 
     # Display issue info
     table = Table(show_header=False, box=None)
@@ -1362,10 +1358,8 @@ def _run_gh_issue(
 
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
-    start_time = time.time()
 
     try:
-        # Create task input for async backend
         task_input = TaskInput(
             prompt=task_prompt,
             system_prompt=system_prompt,
@@ -1374,58 +1368,15 @@ def _run_gh_issue(
             auto_approve=True,
         )
 
-        if stream and harness_backend.capabilities.streaming:
-            # Stream execution
-            sys.stdout.flush()
-
-            async def _stream_and_collect() -> str:
-                """Stream output and collect for result."""
-                from collections.abc import AsyncIterator
-
-                collected = ""
-                # stream_task returns AsyncIterator[str] directly (async generator)
-                stream_iter: AsyncIterator[str] = harness_backend.stream_task(
-                    task_input, debug=debug
-                )  # type: ignore[assignment]
-                async for chunk in stream_iter:
-                    _stream_callback(chunk)
-                    collected += chunk
-                return collected
-
-            result_output = _get_anyio().from_thread.run(_stream_and_collect)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-
-            result = HarnessResult(
-                output=result_output,
-                usage=TokenUsage(),
-                duration_seconds=time.time() - start_time,
-                exit_code=0,
-            )
-        else:
-            # Blocking execution
-            task_result = _get_anyio().from_thread.run(
-                harness_backend.run_task, task_input, debug
-            )
-
-            result = HarnessResult(
-                output=task_result.output,
-                usage=task_result.usage,
-                duration_seconds=task_result.duration_seconds,
-                exit_code=task_result.exit_code,
-                error=task_result.error,
-                timestamp=task_result.timestamp,
-            )
+        result = _invoke_harness(harness_backend, task_input, stream, debug)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1
 
-    duration = time.time() - start_time
-
     # Display result
     console.print()
     if result.success:
-        console.print(f"[green]Completed in {duration:.1f}s[/green]")
+        console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
         console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
         if result.usage.cost_usd:
             console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
