@@ -6,6 +6,7 @@ must implement, enabling pluggable AI coding assistants (Claude, Codex, etc.).
 """
 
 import os
+import shutil
 from collections.abc import Callable
 from typing import Protocol, runtime_checkable
 
@@ -198,10 +199,10 @@ def detect_harness(
     Detection order:
     1. HARNESS environment variable (if set and not 'auto')
     2. Priority list (if provided)
-    3. Default detection order: claude-legacy > codex > opencode > gemini
+    3. Default detection order: claude > opencode > codex > gemini
 
     Only returns harnesses that are both:
-    - Available (backend.is_available() returns True)
+    - Available (CLI found in PATH via shutil.which)
     - Registered (has a Python backend in _backends registry)
 
     Args:
@@ -214,36 +215,19 @@ def detect_harness(
     harness_env = os.environ.get("HARNESS", "").lower()
     if harness_env and harness_env != "auto":
         # Verify it's available AND registered
-        if harness_env in _backends:
-            try:
-                backend = _backends[harness_env]()
-                if backend.is_available():
-                    return harness_env
-            except Exception:
-                pass
+        if harness_env in _backends and shutil.which(harness_env):
+            return harness_env
 
     # Try priority list if provided
     if priority_list:
         for harness in priority_list:
-            if harness in _backends:
-                try:
-                    backend = _backends[harness]()
-                    if backend.is_available():
-                        return harness
-                except Exception:
-                    continue
+            if harness in _backends and shutil.which(harness):
+                return harness
 
     # Default detection order
-    # Note: Prefer SDK-based harnesses (async registry) for new code
-    # This sync registry is for backward compatibility
-    for harness in ["claude-legacy", "codex", "opencode", "gemini"]:
-        if harness in _backends:
-            try:
-                backend = _backends[harness]()
-                if backend.is_available():
-                    return harness
-            except Exception:
-                continue
+    for harness in ["claude", "opencode", "codex", "gemini"]:
+        if harness in _backends and shutil.which(harness):
+            return harness
 
     return None
 

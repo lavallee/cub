@@ -1,42 +1,25 @@
 """
-Tests for Claude harness backend (legacy).
+Tests for Claude harness backend.
 """
 
 import json
-import warnings
 from unittest.mock import MagicMock, Mock, patch
 
 from cub.core.harness import get_backend, is_backend_available
-from cub.core.harness.claude import ClaudeLegacyBackend
+from cub.core.harness.claude import ClaudeBackend
 
 
-class TestClaudeLegacyBackend:
-    """Tests for ClaudeLegacyBackend."""
-
-    @staticmethod
-    def _create_backend():
-        """Create a backend instance with deprecation warnings suppressed."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            return ClaudeLegacyBackend()
+class TestClaudeBackend:
+    """Tests for ClaudeBackend."""
 
     def test_name(self):
-        """Test backend name is 'claude-legacy'."""
-        backend = self._create_backend()
-        assert backend.name == "claude-legacy"
-
-    def test_deprecation_warning(self):
-        """Test that deprecation warning is emitted on instantiation."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            _ = ClaudeLegacyBackend()
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "deprecated" in str(w[0].message).lower()
+        """Test backend name is 'claude'."""
+        backend = ClaudeBackend()
+        assert backend.name == "claude"
 
     def test_capabilities(self):
         """Test Claude supports all major capabilities."""
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         caps = backend.capabilities
 
         assert caps.streaming is True
@@ -51,7 +34,7 @@ class TestClaudeLegacyBackend:
         """Test is_available returns True when claude is in PATH."""
         mock_which.return_value = "/usr/local/bin/claude"
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         assert backend.is_available() is True
         mock_which.assert_called_once_with("claude")
 
@@ -60,7 +43,7 @@ class TestClaudeLegacyBackend:
         """Test is_available returns False when claude not in PATH."""
         mock_which.return_value = None
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         assert backend.is_available() is False
 
     @patch("subprocess.run")
@@ -84,7 +67,7 @@ class TestClaudeLegacyBackend:
         mock_result.stderr = ""
         mock_run.return_value = mock_result
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         result = backend.invoke(
             system_prompt="You are a helpful assistant.",
             task_prompt="Write a prime checking function.",
@@ -109,7 +92,7 @@ class TestClaudeLegacyBackend:
         mock_result.stderr = ""
         mock_run.return_value = mock_result
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         backend.invoke(
             system_prompt="System",
             task_prompt="Task",
@@ -130,7 +113,7 @@ class TestClaudeLegacyBackend:
         mock_result.stderr = "Error: failed to parse"
         mock_run.return_value = mock_result
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         result = backend.invoke(
             system_prompt="System",
             task_prompt="Task",
@@ -159,7 +142,7 @@ class TestClaudeLegacyBackend:
         mock_process.wait.return_value = None
         mock_popen.return_value = mock_process
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         result = backend.invoke_streaming(
             system_prompt="System",
             task_prompt="Task",
@@ -191,7 +174,7 @@ class TestClaudeLegacyBackend:
         def callback(chunk):
             callback_chunks.append(chunk)
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         result = backend.invoke_streaming(
             system_prompt="System",
             task_prompt="Task",
@@ -209,7 +192,7 @@ class TestClaudeLegacyBackend:
         mock_result.stdout = "claude version 1.2.3\n"
         mock_run.return_value = mock_result
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         version = backend.get_version()
 
         assert version == "claude version 1.2.3"
@@ -219,27 +202,25 @@ class TestClaudeLegacyBackend:
         """Test get_version returns 'unknown' on error."""
         mock_run.side_effect = FileNotFoundError("claude not found")
 
-        backend = self._create_backend()
+        backend = ClaudeBackend()
         version = backend.get_version()
 
         assert version == "unknown"
 
 
-class TestClaudeLegacyBackendRegistry:
-    """Test Claude legacy backend is registered correctly."""
+class TestClaudeBackendRegistry:
+    """Test Claude backend is registered correctly."""
 
     @patch("cub.core.harness.claude.shutil.which")
     def test_backend_registered(self, mock_which):
-        """Test Claude legacy backend can be retrieved from registry."""
+        """Test Claude backend can be retrieved from registry."""
         mock_which.return_value = "/usr/local/bin/claude"
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            backend = get_backend("claude-legacy")
-        assert backend.name == "claude-legacy"
+        backend = get_backend("claude")
+        assert backend.name == "claude"
 
     @patch("cub.core.harness.claude.shutil.which")
     def test_backend_available_when_claude_installed(self, mock_which):
         """Test backend is reported as available when claude CLI exists."""
         mock_which.return_value = "/usr/local/bin/claude"
-        assert is_backend_available("claude-legacy") is True
+        assert is_backend_available("claude") is True

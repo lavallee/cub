@@ -555,9 +555,8 @@ class TestDetectHarness:
         monkeypatch.setenv("HARNESS", "auto")
 
         # Should ignore 'auto' and use default detection
-        # Note: sync backend registry has "claude-legacy" now
         result = detect_harness()
-        assert result == "claude-legacy"
+        assert result == "claude"
 
 
 class TestGetBackendAutoDetect:
@@ -565,22 +564,40 @@ class TestGetBackendAutoDetect:
 
     def test_get_backend_auto_detects(self, monkeypatch):
         """Test get_backend auto-detects when name is None."""
-        # Since claude-legacy is now the first in detection order,
-        # auto-detection should find it
         import shutil
-        import warnings
 
-        # Mock shutil.which to return claude CLI
+        @register_backend("claude")  # Use a backend name in the default list
+        class TestBackend:
+            @property
+            def name(self) -> str:
+                return "claude"
+
+            @property
+            def capabilities(self) -> HarnessCapabilities:
+                return HarnessCapabilities()
+
+            def is_available(self) -> bool:
+                return True
+
+            def invoke(self, *args, **kwargs) -> HarnessResult:
+                return HarnessResult(output="")
+
+            def invoke_streaming(self, *args, **kwargs) -> HarnessResult:
+                return HarnessResult(output="")
+
+            def get_version(self) -> str:
+                return "1.0.0"
+
+        # Mock shutil.which to return claude
         monkeypatch.setattr(
             shutil, "which", lambda cmd: "/usr/bin/claude" if cmd == "claude" else None
         )
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            backend = get_backend(None)
+        backend = get_backend(None)
+        assert backend.name == "claude"
 
-        # Should detect claude-legacy since it's first in the default order
-        assert backend.name == "claude-legacy"
+        # Clean up (but don't remove claude if it was already registered)
+        # harness_backend._backends.pop("claude", None)
 
     def test_get_backend_auto_detects_with_auto_string(self, monkeypatch):
         """Test get_backend auto-detects when name is 'auto'."""
@@ -621,22 +638,9 @@ class TestGetBackendAutoDetect:
 
     def test_get_backend_no_harness_available(self, monkeypatch):
         """Test get_backend raises when no harness is available."""
-        # Mock all registered backends to be unavailable
-        import warnings
+        import shutil
 
-        from cub.core.harness import backend as harness_backend
+        monkeypatch.setattr(shutil, "which", lambda cmd: None)
 
-        # Save original backends
-        original_backends = harness_backend._backends.copy()
-
-        # Clear all backends temporarily
-        harness_backend._backends.clear()
-
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                with pytest.raises(ValueError, match="No harness available"):
-                    get_backend(None)
-        finally:
-            # Restore original backends
-            harness_backend._backends.update(original_backends)
+        with pytest.raises(ValueError, match="No harness available"):
+            get_backend(None)

@@ -6,30 +6,8 @@ capabilities detection, invocation results, and usage tracking.
 """
 
 from datetime import datetime
-from enum import Enum
 
 from pydantic import BaseModel, Field
-
-
-class HarnessFeature(str, Enum):
-    """
-    Enum for type-safe feature queries.
-
-    Provides type-safe way to query harness capabilities via
-    supports_feature() method.
-    """
-
-    STREAMING = "streaming"
-    TOKEN_REPORTING = "token_reporting"
-    SYSTEM_PROMPT = "system_prompt"
-    AUTO_MODE = "auto_mode"
-    JSON_OUTPUT = "json_output"
-    MODEL_SELECTION = "model_selection"
-    HOOKS = "hooks"
-    CUSTOM_TOOLS = "custom_tools"
-    SESSIONS = "sessions"
-    SESSION_FORKING = "session_forking"
-    SUBAGENTS = "subagents"
 
 
 class HarnessCapabilities(BaseModel):
@@ -46,11 +24,6 @@ class HarnessCapabilities(BaseModel):
         auto_mode: Has autonomous/auto-approve mode
         json_output: Supports JSON output format
         model_selection: Supports model selection via CLI flag
-        hooks: Supports SDK hooks (circuit breakers, tool interception)
-        custom_tools: Supports custom tool definitions
-        sessions: Supports stateful multi-turn sessions
-        session_forking: Supports forking sessions to preserve context
-        subagents: Supports launching subagents within a session
     """
 
     streaming: bool = Field(
@@ -66,21 +39,6 @@ class HarnessCapabilities(BaseModel):
     json_output: bool = Field(default=False, description="Supports JSON output format")
     model_selection: bool = Field(
         default=False, description="Supports model selection via CLI flag"
-    )
-    hooks: bool = Field(
-        default=False, description="Supports SDK hooks for circuit breakers and tool interception"
-    )
-    custom_tools: bool = Field(
-        default=False, description="Supports custom tool definitions"
-    )
-    sessions: bool = Field(
-        default=False, description="Supports stateful multi-turn sessions"
-    )
-    session_forking: bool = Field(
-        default=False, description="Supports forking sessions to preserve context"
-    )
-    subagents: bool = Field(
-        default=False, description="Supports launching subagents within a session"
     )
 
     def has(self, capability: str) -> bool:
@@ -161,84 +119,3 @@ HARNESS_CAP_SYSTEM_PROMPT = "system_prompt"
 HARNESS_CAP_AUTO_MODE = "auto_mode"
 HARNESS_CAP_JSON_OUTPUT = "json_output"
 HARNESS_CAP_MODEL_SELECTION = "model_selection"
-
-
-class TaskInput(BaseModel):
-    """
-    Input parameters for async harness execution.
-
-    Distinct from beads Task model to avoid coupling harness
-    interface to specific task backend implementation.
-    """
-
-    prompt: str = Field(description="User/task prompt to execute")
-    system_prompt: str | None = Field(default=None, description="System prompt (prepended instructions)")
-    working_dir: str | None = Field(default=None, description="Working directory for task execution")
-    model: str | None = Field(default=None, description="Model name (e.g., 'sonnet', 'opus')")
-    auto_approve: bool = Field(default=False, description="Auto-approve mode for unattended execution")
-    permissions: dict[str, bool] | None = Field(
-        default=None, description="Permission flags (e.g., network access, file writes)"
-    )
-    session_id: str | None = Field(default=None, description="Session ID for stateful execution")
-    parent_session_id: str | None = Field(default=None, description="Parent session ID for forking")
-    custom_tools: list[dict[str, object]] | None = Field(
-        default=None, description="Custom tool definitions for SDK"
-    )
-
-
-class ToolUse(BaseModel):
-    """
-    Tool invocation from SDK message parsing.
-
-    Tracks tool calls made during harness execution.
-    """
-
-    tool_name: str = Field(description="Name of tool invoked")
-    tool_input: dict[str, object] = Field(default_factory=dict, description="Input parameters to tool")
-    tool_output: str | None = Field(default=None, description="Output from tool execution")
-    success: bool = Field(default=True, description="Whether tool execution succeeded")
-
-
-class Message(BaseModel):
-    """
-    Message from SDK message parsing.
-
-    Represents a single turn in the conversation history.
-    """
-
-    role: str = Field(description="Message role (user, assistant, system)")
-    content: str = Field(description="Message content text")
-    tool_uses: list[ToolUse] = Field(default_factory=list, description="Tool invocations in this message")
-    timestamp: datetime = Field(default_factory=datetime.now, description="When message was created")
-
-
-class TaskResult(BaseModel):
-    """
-    Extended result from async harness execution.
-
-    Extends HarnessResult with SDK-specific fields for message
-    history, file tracking, and rich execution metadata.
-    """
-
-    output: str = Field(default="", description="Text output from harness")
-    usage: TokenUsage = Field(default_factory=TokenUsage, description="Token usage statistics")
-    duration_seconds: float = Field(default=0.0, description="How long the invocation took")
-    exit_code: int = Field(default=0, description="Exit code from harness")
-    error: str | None = Field(default=None, description="Error message if invocation failed")
-    timestamp: datetime = Field(
-        default_factory=datetime.now, description="When the invocation occurred"
-    )
-    messages: list[Message] = Field(default_factory=list, description="Conversation history from SDK")
-    files_changed: list[str] = Field(default_factory=list, description="Files modified during execution")
-    files_created: list[str] = Field(default_factory=list, description="Files created during execution")
-    session_id: str | None = Field(default=None, description="Session ID if stateful execution")
-
-    @property
-    def success(self) -> bool:
-        """Check if invocation was successful."""
-        return self.exit_code == 0 and self.error is None
-
-    @property
-    def failed(self) -> bool:
-        """Check if invocation failed."""
-        return not self.success
