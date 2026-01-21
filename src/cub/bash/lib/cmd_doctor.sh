@@ -307,7 +307,7 @@ _doctor_check_env() {
         pipx_version=$(pipx --version 2>&1 || echo "unknown")
         _doctor_ok "pipx - v${pipx_version}"
     else
-        _doctor_info "pipx not installed (optional, for 'cub upgrade')"
+        _doctor_info "pipx not installed (optional, for 'cub system-upgrade')"
     fi
 
     return $issues

@@ -492,7 +492,7 @@ Answers to commonly asked questions about Cub.
 
     ```bash
     # If installed via one-liner
-    cub upgrade
+    cub system-upgrade
 
     # If installed via pipx
     pipx upgrade cub-cli

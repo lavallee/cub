@@ -410,7 +410,8 @@ SUBCOMMANDS:
   cub verify-task <task-id>     Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
   cub guardrails show           Display institutional memory
-  cub upgrade [--head|--local]  Upgrade cub to newer version
+  cub system-upgrade [--local]  Upgrade cub installation
+  cub update [--force]          Update project templates/skills
   cub version                   Show version
 
 INTERVIEW MODE (v0.16):
@@ -429,7 +430,8 @@ USE --help WITH ANY SUBCOMMAND:
   cub status --help             Status subcommand help
   cub explain-task --help       Explain-task subcommand help
   cub artifacts --help          Artifacts subcommand help
-  cub upgrade --help            Upgrade subcommand help
+  cub system-upgrade --help     System upgrade subcommand help
+  cub update --help             Update project templates help
 
 EXECUTION MODES:
   cub                           Run continuous loop

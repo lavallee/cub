@@ -238,7 +238,8 @@ nav:
       - cub merge: cli/merge.md
     - Install Commands:
       - cub doctor: cli/doctor.md
-      - cub upgrade: cli/upgrade.md
+      - cub update: cli/update.md
+      - cub system-upgrade: cli/system-upgrade.md
       - cub uninstall: cli/uninstall.md
     - Capture Commands:
       - cub capture: cli/capture.md

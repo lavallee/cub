@@ -25,6 +25,7 @@ from cub.cli import (
     stage,
     status,
     uninstall,
+    update,
     upgrade,
     worktree,
 )
@@ -150,7 +151,8 @@ def version() -> None:
     raise typer.Exit(0)
 
 
-app.add_typer(upgrade.app, name="upgrade", rich_help_panel=PANEL_INSTALL)
+app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
+app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
 

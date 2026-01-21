@@ -62,7 +62,8 @@ Commands for managing your Cub installation:
 | Command | Description |
 |---------|-------------|
 | [`cub doctor`](doctor.md) | Diagnose and fix configuration issues |
-| [`cub upgrade`](upgrade.md) | Upgrade cub to newer version |
+| [`cub update`](update.md) | Update project templates and skills |
+| [`cub system-upgrade`](system-upgrade.md) | Upgrade cub installation |
 | [`cub uninstall`](uninstall.md) | Remove cub installation |
 
 ### Capture Commands
