@@ -483,10 +483,10 @@ class TestContentExtraction:
         stage = ItemizeStage(ctx)
         result = stage.run()
 
-        # Should have epics for each phase
+        # Should have epics for each phase (titles now include plan slug)
         epic_titles = [e.title for e in result.epics]
-        assert "Foundation" in epic_titles
-        assert "Core Features" in epic_titles
+        assert any("Foundation" in title for title in epic_titles)
+        assert any("Core Features" in title for title in epic_titles)
 
     def test_extracts_tasks_from_phases(
         self, plan_with_architect: tuple[Path, PlanContext]
@@ -968,3 +968,146 @@ Test with special characters.
         assert result.output_path.exists()
         content = result.output_path.read_text()
         assert "# Itemized Plan:" in content
+
+
+# ==============================================================================
+# Plan Label Tests
+# ==============================================================================
+
+
+class TestPlanLabels:
+    """Test plan:<slug> label generation for task visibility."""
+
+    def test_epics_have_plan_label(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that epics include the plan:<slug> label."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for epic in result.epics:
+            plan_labels = [lbl for lbl in epic.labels if lbl.startswith("plan:")]
+            assert len(plan_labels) == 1, f"Epic {epic.id} should have exactly one plan label"
+            assert plan_labels[0] == "plan:my-feature"
+
+    def test_tasks_have_plan_label(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that tasks include the plan:<slug> label."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for task in result.tasks:
+            plan_labels = [lbl for lbl in task.labels if lbl.startswith("plan:")]
+            assert len(plan_labels) == 1, f"Task {task.id} should have exactly one plan label"
+            assert plan_labels[0] == "plan:my-feature"
+
+    def test_epic_description_includes_plan_reference(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that epic descriptions include plan directory reference."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for epic in result.epics:
+            assert "Plan: plans/my-feature/" in epic.description
+            assert "Spec:" in epic.description
+
+    def test_task_context_includes_plan_reference(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that task context includes plan directory reference."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for task in result.tasks:
+            assert "plans/my-feature/" in task.context
+
+    def test_plan_label_in_output_md(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that plan label appears in the generated markdown."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        content = result.output_path.read_text()
+        assert "plan:my-feature" in content
+
+    def test_epic_titles_include_plan_slug(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that epic titles include the plan slug for self-documentation."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for epic in result.epics:
+            assert epic.title.startswith("my-feature:"), (
+                f"Epic title '{epic.title}' should start with plan slug"
+            )
+            # Title should be in format "plan-slug: Phase Name"
+            assert ": " in epic.title
+
+    def test_plan_label_with_no_phases(self, tmp_path: Path) -> None:
+        """Test that plan label is added even when no phases are found."""
+        plan_dir = tmp_path / "plans" / "simple-plan"
+        plan_dir.mkdir(parents=True)
+
+        plan_json = {
+            "slug": "simple-plan",
+            "project": "test",
+            "status": "in_progress",
+            "spec_file": "simple.md",
+            "stages": {
+                "orient": "complete",
+                "architect": "complete",
+                "itemize": "pending",
+            },
+        }
+        (plan_dir / "plan.json").write_text(json.dumps(plan_json))
+
+        (plan_dir / "orientation.md").write_text(
+            """# Orientation: Simple Plan
+
+## Problem Statement
+
+Test problem.
+
+## Requirements
+
+### P0 (Must Have)
+
+- Requirement one
+"""
+        )
+
+        (plan_dir / "architecture.md").write_text(
+            """# Architecture Design: Simple Plan
+
+**Mindset:** prototype
+**Scale:** personal
+
+## Technical Summary
+
+Simple test.
+"""
+        )
+
+        ctx = PlanContext.load(plan_dir, tmp_path)
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        # Check epics have plan label
+        for epic in result.epics:
+            assert "plan:simple-plan" in epic.labels
+            assert "Plan: plans/simple-plan/" in epic.description
+
+        # Check tasks have plan label
+        for task in result.tasks:
+            assert "plan:simple-plan" in task.labels
+            assert "plans/simple-plan/" in task.context

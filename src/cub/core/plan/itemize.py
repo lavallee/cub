@@ -380,12 +380,20 @@ class ItemizeStage:
             epic_id = generate_epic_id(project, existing_ids)
             existing_ids.add(epic_id)
 
+            # Generate plan label and description with plan reference
+            plan_label = f"plan:{self.ctx.plan.slug}"
+            spec_ref = self.ctx.plan.spec_file or "N/A"
+
             epic = Epic(
                 id=epic_id,
-                title="Foundation",
+                title=f"{self.ctx.plan.slug}: Foundation",
                 priority=0,
-                labels=["phase-1", "foundation"],
-                description="Core implementation based on P0 requirements.",
+                labels=[plan_label, "phase-1", "foundation"],
+                description=(
+                    f"Core implementation based on P0 requirements.\n\n"
+                    f"Plan: plans/{self.ctx.plan.slug}/\n"
+                    f"Spec: {spec_ref}"
+                ),
             )
             epics.append(epic)
 
@@ -397,9 +405,12 @@ class ItemizeStage:
                     id=task_id,
                     title=str(req)[:100] if req else f"Task {task_num}",
                     priority=0,
-                    labels=["foundation"],
+                    labels=[plan_label, "foundation"],
                     epic_id=epic_id,
-                    context=f"Implements P0 requirement: {req}",
+                    context=(
+                        f"Implements P0 requirement: {req}\n"
+                        f"See: plans/{self.ctx.plan.slug}/"
+                    ),
                     implementation_steps=["Implement the feature", "Add tests"],
                     acceptance_criteria=[f"Feature works as described: {req}"],
                 )
@@ -425,15 +436,24 @@ class ItemizeStage:
             # Determine priority based on phase number
             priority = phase_idx
 
-            # Generate labels
-            labels = [f"phase-{phase_idx + 1}", phase_name.lower().replace(" ", "-")]
+            # Generate labels with plan reference
+            plan_label = f"plan:{self.ctx.plan.slug}"
+            labels = [plan_label, f"phase-{phase_idx + 1}", phase_name.lower().replace(" ", "-")]
+
+            # Generate epic description with plan/spec reference
+            spec_ref = self.ctx.plan.spec_file or "N/A"
+            epic_description = (
+                f"Implementation phase {phase_idx + 1}: {phase_name}\n\n"
+                f"Plan: plans/{self.ctx.plan.slug}/\n"
+                f"Spec: {spec_ref}"
+            )
 
             epic = Epic(
                 id=epic_id,
-                title=str(phase_name),
+                title=f"{self.ctx.plan.slug}: {phase_name}",
                 priority=priority,
                 labels=labels,
-                description=f"Implementation phase {phase_idx + 1}: {phase_name}",
+                description=epic_description,
             )
             epics.append(epic)
 
@@ -463,7 +483,7 @@ class ItemizeStage:
                     priority=priority,
                     labels=labels,
                     epic_id=epic_id,
-                    context=f"Part of {phase_name} phase.",
+                    context=f"Part of {phase_name} phase. See: plans/{self.ctx.plan.slug}/",
                     implementation_steps=impl_steps,
                     acceptance_criteria=acceptance,
                 )
