@@ -2823,3 +2823,46 @@ Implemented the `cub stage` command that bridges planning and execution by impor
 2. **Pydantic Priority Validation:** The Task model's `validate_priority` accepts int|str|TaskPriority, so direct TaskPriority construction is safe.
 
 3. **Plan Status Lifecycle:** PlanStatus.COMPLETE means all stages done; PlanStatus.STAGED means tasks imported to backend. `plan.mark_staged()` validates is_complete before setting STAGED.
+
+## 2026-01-20 - cub-p3s.3: Wire spec lifecycle transitions
+
+### Task Completed
+Automatically move specs through lifecycle stages at key triggers:
+- staged -> implementing (on cub run start)
+- implementing -> released (on release)
+
+### What Was Implemented
+
+**Extended Stage Enum (5 stages)**
+- RESEARCHING: Initial exploration phase (-ing = active)
+- PLANNED: Plan exists, ready to stage (past = at rest)
+- STAGED: Tasks in backend, ready to build (past = at rest)  
+- IMPLEMENTING: Active work happening (-ing = active)
+- RELEASED: Shipped, available for drift audit (past = at rest)
+- COMPLETED kept as alias for RELEASED (backwards compatibility)
+
+**New Module: `src/cub/core/specs/lifecycle.py`**
+- `move_spec_to_staged(plan_ctx)` - Move spec from planned/ to staged/
+- `move_spec_to_implementing(plan_ctx)` - Move spec from staged/ to implementing/
+- `move_specs_to_released(specs_root)` - Move all specs from implementing/ to released/
+- `get_spec_lifecycle_stage_from_plan(plan_ctx)` - Determine current spec stage
+
+**CLI Integrations**
+- `src/cub/cli/stage.py` - After successful staging, moves spec to staged/
+- `src/cub/cli/run.py` - At run start, moves all staged specs to implementing/
+
+**Release Script Integration**
+- `scripts/move_specs_released.py` - Python helper script for spec transitions
+- `scripts/cut-release.sh` - Updated to call move_specs_released.py before commit
+
+### Key Patterns/Learnings
+1. Used word forms to indicate activity: -ing suffix for active stages (researching, implementing), past tense for at-rest stages (planned, staged, released)
+2. Enum alias (COMPLETED = "released") provides backwards compatibility while transitioning to new stage names
+3. Non-fatal handling for spec moves - CLI warns but doesn't fail if move fails
+4. Spec transition happens at natural boundaries: stage command, run start, release commit
+
+### Test Updates
+- Updated all spec workflow tests in `tests/test_spec_workflow.py` to use 5-stage model
+- Added test for `is_active` property
+- Updated promote/demote tests for full 5-stage pipeline
+- Updated valid transitions tests for new allowed/disallowed transitions
