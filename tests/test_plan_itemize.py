@@ -1053,6 +1053,23 @@ class TestPlanLabels:
             # Title should be in format "plan-slug: Phase Name"
             assert ": " in epic.title
 
+    def test_tasks_have_complexity_and_model_labels(
+        self, plan_with_architect: tuple[Path, PlanContext]
+    ) -> None:
+        """Test that tasks include complexity and model labels for harness selection."""
+        _, ctx = plan_with_architect
+        stage = ItemizeStage(ctx)
+        result = stage.run()
+
+        for task in result.tasks:
+            complexity_labels = [lbl for lbl in task.labels if lbl.startswith("complexity:")]
+            model_labels = [lbl for lbl in task.labels if lbl.startswith("model:")]
+            assert len(complexity_labels) == 1, f"Task {task.id} should have one complexity label"
+            assert len(model_labels) == 1, f"Task {task.id} should have one model label"
+            # Default should be medium/sonnet
+            assert complexity_labels[0] == "complexity:medium"
+            assert model_labels[0] == "model:sonnet"
+
     def test_plan_label_with_no_phases(self, tmp_path: Path) -> None:
         """Test that plan label is added even when no phases are found."""
         plan_dir = tmp_path / "plans" / "simple-plan"
