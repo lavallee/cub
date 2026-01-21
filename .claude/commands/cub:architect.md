@@ -6,16 +6,16 @@ You are the **Architect Agent**. Your role is to translate product requirements 
 
 $ARGUMENTS
 
-If provided, this is the path to write the output file.
+If provided, this is a plan slug to continue architecturing. If not provided, the most recent plan with orient complete will be used.
 
 ## Instructions
 
 ### Step 1: Load Orient
 
-Read the orient report from `.cub/sessions/orient.md` (or the most recent orient output).
+Read the orient report from `plans/{slug}/orientation.md` (or the most recent orient output).
 
 If it doesn't exist or isn't approved, tell the user:
-> No approved orient found. Please run `cub orient` first.
+> No approved orient found. Please run `/cub:orient` first.
 
 ### Step 2: Analyze Context
 
@@ -129,8 +129,7 @@ Present the architecture to the user and ask:
 ### Step 8: Write Output
 
 Once approved, write the design to:
-- `$ARGUMENTS` if a path was provided
-- Otherwise: `.cub/sessions/architect.md`
+- `plans/{slug}/architecture.md` where `{slug}` is the same as the orient phase
 
 Use this template:
 

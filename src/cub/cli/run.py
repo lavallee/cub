@@ -23,7 +23,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
+from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.plan.context import PlanContext
@@ -683,10 +685,16 @@ def run(
         "--main-ok",
         help="Allow running on main/master branch (normally blocked)",
     ),
+    use_current_branch: bool = typer.Option(
+        False,
+        "--use-current-branch",
+        help="Run in the current branch instead of creating a new one",
+    ),
     from_branch: str | None = typer.Option(
         None,
         "--from-branch",
-        help="Base branch for auto-created feature branches (default: main)",
+        help="Base branch for new feature branch (default: origin/main). "
+        "Ignored with --use-current-branch.",
     ),
 ) -> None:
     """
@@ -701,25 +709,21 @@ def run(
         automatically created. Use --main-ok to explicitly allow main.
 
     Examples:
-        cub run                         # Run with default harness
-        cub run --harness claude        # Run with Claude
-        cub run --once                  # Run one iteration
-        cub run --task cub-123          # Run specific task
-        cub run --budget 5.0            # Set budget to $5
-        cub run --epic backend-v2       # Work on epic (auto-creates feature/backend-v2)
-        cub run --label priority        # Work on labeled tasks (auto-creates feature/priority)
-        cub run --gh-issue 123          # Work on GitHub issue (auto-creates fix/issue-title)
-        cub run --main-ok               # Explicitly allow running on main
-        cub run --from-branch develop   # Create feature branch from develop instead of main
-        cub run --ready                 # List ready tasks
-        cub run --worktree              # Run in isolated worktree
-        cub run --worktree --worktree-keep  # Keep worktree after run
-        cub run --parallel 3            # Run 3 independent tasks in parallel
-        cub run --sandbox               # Run in Docker sandbox
-        cub run --sandbox --no-network  # Run in sandbox without network
-        cub run --direct "Add a logout button to the navbar"  # Direct task
-        cub run --direct @task.txt      # Read task from file
-        echo "Fix the typo" | cub run --direct -  # Read from stdin
+        cub run                      # Creates new branch from origin/main
+        cub run --use-current-branch # Run in current branch
+        cub run --harness claude     # Run with Claude
+        cub run --once               # Run one iteration
+        cub run --task cub-123       # Run specific task
+        cub run --budget 5.0         # Set budget to $5
+        cub run --epic backend-v2    # Work on epic
+        cub run --label priority     # Work on labeled tasks
+        cub run --gh-issue 123       # Work on GitHub issue
+        cub run --from-branch develop  # Create branch from develop
+        cub run --ready              # List ready tasks
+        cub run --worktree           # Run in isolated worktree
+        cub run --parallel 3         # Run 3 tasks in parallel
+        cub run --sandbox            # Run in Docker sandbox
+        cub run --direct "task"      # Direct task
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -779,11 +783,32 @@ def run(
     from cub.core.branches.store import BranchStore
 
     current_branch = BranchStore.get_current_branch()
-    base_branch = from_branch or "main"
+    # Use origin/main as default to avoid issues with stale local main
+    base_branch = from_branch if from_branch else "origin/main"
 
-    # Check if on main/master branch
-    if current_branch in ("main", "master"):
-        # Determine if we should auto-create a branch
+    # Determine branch behavior based on --use-current-branch flag
+    if use_current_branch:
+        # --use-current-branch: work in current branch (explicit opt-in)
+        # Still protect main/master unless --main-ok is set
+        if current_branch in ("main", "master") and not main_ok:
+            console.print(
+                f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]"
+            )
+            console.print(
+                "[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]"
+            )
+            console.print("[dim]or add --main-ok to explicitly allow running on main.[/dim]")
+            raise typer.Exit(1)
+        elif current_branch in ("main", "master"):
+            # --main-ok was set, warn but continue
+            console.print(
+                f"[yellow]Warning: Running on '{current_branch}' branch "
+                "(--use-current-branch --main-ok)[/yellow]"
+            )
+        # else: on a feature branch with --use-current-branch, proceed normally
+    else:
+        # Default behavior: create a new branch from origin/main (or --from-branch)
+        # Generate branch name based on context
         auto_branch_name: str | None = None
 
         if label:
@@ -805,11 +830,25 @@ def run(
             else:
                 # Fallback to issue number
                 auto_branch_name = f"fix/issue-{gh_issue}"
+        elif task_id:
+            # --task cub-123 → task/cub-123
+            auto_branch_name = f"task/{_slugify(task_id)}"
+        else:
+            # No specific context - generate timestamp-based branch
+            auto_branch_name = f"cub/run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
-        if auto_branch_name:
-            # Auto-create and switch to branch
+        # Check if we're already on a feature branch (not main/master)
+        if current_branch not in ("main", "master", None):
+            # Already on a feature branch - check if we should create a new one anyway
+            # For now, reuse existing feature branch to avoid branch sprawl
+            if debug:
+                console.print(
+                    f"[dim]Already on feature branch '{current_branch}', continuing...[/dim]"
+                )
+        else:
+            # On main/master or detached HEAD - create and switch to new branch
             console.print(
-                f"[yellow]On {current_branch} branch - creating '{auto_branch_name}'[/yellow]"
+                f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]"
             )
             if not _create_branch_from_base(auto_branch_name, base_branch, console):
                 raise typer.Exit(1)
@@ -828,19 +867,6 @@ def run(
 
             # Update current_branch for any subsequent checks
             current_branch = auto_branch_name
-        elif not main_ok:
-            # No auto-branch trigger and --main-ok not set
-            console.print(f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]")
-            console.print(
-                "[dim]Use --label, --epic, or --gh-issue to auto-create a feature branch,[/dim]"
-            )
-            console.print("[dim]or use --main-ok to explicitly allow running on main.[/dim]")
-            raise typer.Exit(1)
-        else:
-            # --main-ok was set, warn but continue
-            console.print(
-                f"[yellow]Warning: Running on '{current_branch}' branch (--main-ok)[/yellow]"
-            )
 
     # Handle --sandbox flag: run in Docker container
     if sandbox:
@@ -1049,6 +1075,9 @@ def run(
         run_id=run_id,
         session_name=session_name or run_id,
         phase=RunPhase.INITIALIZING,
+        epic=epic,
+        label=label,
+        branch=current_branch,
         iteration=IterationInfo(
             current=0,
             max=max_iterations,
@@ -1074,6 +1103,10 @@ def run(
     status.tasks_open = counts.open
     status.tasks_in_progress = counts.in_progress
     status.tasks_closed = counts.closed
+
+    # Initialize task entries for Kanban display
+    initial_tasks = task_backend.get_ready_tasks(parent=epic, label=label)
+    status.set_task_entries([(t.id, t.title) for t in initial_tasks])
 
     console.print(f"[bold]Starting cub run: {run_id}[/bold]")
     console.print(
@@ -1188,6 +1221,7 @@ def run(
             # Update status
             status.current_task_id = current_task.id
             status.current_task_title = current_task.title
+            status.start_task_entry(current_task.id)  # Mark task as DOING in Kanban
             status.add_event(
                 f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
             )
@@ -1282,6 +1316,7 @@ def run(
                 console.print(f"[green]Task completed in {duration:.1f}s[/green]")
                 console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
                 status.budget.tasks_completed += 1
+                status.complete_task_entry(current_task.id)  # Mark task as DONE in Kanban
                 status.add_event(
                     f"Task completed: {current_task.title}",
                     EventLevel.INFO,
@@ -1373,6 +1408,20 @@ def run(
         # Wait for all async hooks to complete (post-task, on-error)
         wait_async_hooks()
 
+        # Auto-close epic if all tasks are complete
+        if epic:
+            try:
+                closed, message = task_backend.try_close_epic(epic)
+                if closed:
+                    console.print(f"[green]{message}[/green]")
+                    status.add_event(message, EventLevel.INFO)
+                elif debug:
+                    console.print(f"[dim]{message}[/dim]")
+            except Exception as e:
+                # Non-fatal: epic closure failed but run completed
+                if debug:
+                    console.print(f"[dim]Failed to check epic closure: {e}[/dim]")
+
         # Final status write
         status_writer.write(status)
 
@@ -1382,6 +1431,52 @@ def run(
 
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
+
+        # Clean up working directory (commit artifacts, remove temp files)
+        if isinstance(config, CubConfig) and config.cleanup.enabled:
+            try:
+                cleanup_service = CleanupService(
+                    config=config.cleanup,
+                    project_dir=project_dir,
+                    debug=debug,
+                )
+
+                if debug:
+                    # Show preview of what will be cleaned
+                    preview = cleanup_service.get_cleanup_preview()
+                    if any(preview.values()):
+                        console.print("\n[dim]Cleanup preview:[/dim]")
+                        for category, files in preview.items():
+                            if files:
+                                console.print(f"[dim]  {category}: {len(files)} file(s)[/dim]")
+
+                cleanup_result = cleanup_service.cleanup()
+
+                # Display cleanup summary
+                if cleanup_result.committed_files or cleanup_result.removed_files:
+                    console.print(f"\n[cyan]{cleanup_result.summary()}[/cyan]")
+                elif debug:
+                    console.print(f"\n[dim]{cleanup_result.summary()}[/dim]")
+
+                if cleanup_result.error:
+                    console.print(f"[yellow]Cleanup warning: {cleanup_result.error}[/yellow]")
+
+                if not cleanup_result.is_clean and cleanup_result.remaining_files:
+                    if debug:
+                        console.print("[dim]Remaining uncommitted files:[/dim]")
+                        for f in cleanup_result.remaining_files[:10]:
+                            console.print(f"[dim]  - {f}[/dim]")
+                        if len(cleanup_result.remaining_files) > 10:
+                            remaining = len(cleanup_result.remaining_files) - 10
+                            console.print(f"[dim]  ... and {remaining} more[/dim]")
+
+            except Exception as e:
+                # Non-fatal: cleanup failed but run completed
+                console.print(f"[yellow]Cleanup warning: {e}[/yellow]")
+                if debug:
+                    import traceback
+
+                    console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
         # Cleanup worktree if requested
         if worktree and worktree_path and not worktree_keep:

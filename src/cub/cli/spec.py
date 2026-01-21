@@ -10,7 +10,19 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from cub.core.specs import Spec, SpecWorkflow, Stage
+from cub.utils.project import find_project_root
+
 console = Console()
+
+# Stage colors for display
+STAGE_COLORS: dict[Stage, str] = {
+    Stage.RESEARCHING: "yellow",
+    Stage.PLANNED: "blue",
+    Stage.STAGED: "magenta",
+    Stage.IMPLEMENTING: "cyan",
+    Stage.RELEASED: "green",
+}
 
 
 def spec(
@@ -23,7 +35,7 @@ def spec(
         False,
         "--list",
         "-l",
-        help="List specs in researching stage",
+        help="List specs in all lifecycle stages",
     ),
 ) -> None:
     """
@@ -41,17 +53,18 @@ def spec(
     Examples:
         cub spec                           # Start interview with no topic
         cub spec "user authentication"    # Start with a topic
-        cub spec --list                    # List researching specs
+        cub spec --list                    # List all specs
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
 
     # Handle --list flag
     if list_specs:
-        _list_researching_specs(debug)
+        _list_all_specs(debug)
         return
 
-    # Ensure specs/researching directory exists
-    specs_dir = Path("specs/researching")
+    # Ensure specs/researching directory exists (relative to project root or cwd)
+    project_root = find_project_root() or Path.cwd()
+    specs_dir = project_root / "specs" / "researching"
     specs_dir.mkdir(parents=True, exist_ok=True)
 
     # Build the skill invocation
@@ -84,99 +97,82 @@ def spec(
         raise typer.Exit(1)
 
 
-def _list_researching_specs(debug: bool) -> None:
-    """List specs in the researching stage."""
-    specs_dir = Path("specs/researching")
+def _list_all_specs(debug: bool) -> None:
+    """List specs in all lifecycle stages."""
+    # Find project root from current directory
+    project_root = find_project_root()
+    if project_root is None:
+        console.print(
+            "[yellow]Not in a project directory.[/yellow] "
+            "Could not find .beads/, .cub/, .cub.json, or .git/"
+        )
+        console.print("[dim]Run 'cub init' to initialize a project.[/dim]")
+        return
+
+    specs_dir = project_root / "specs"
 
     if not specs_dir.exists():
-        console.print("[yellow]No specs/researching directory found.[/yellow]")
+        console.print("[yellow]No specs/ directory found.[/yellow]")
         console.print("[dim]Run 'cub spec' to create your first spec.[/dim]")
         return
 
-    spec_files = sorted(specs_dir.glob("*.md"))
-
-    if not spec_files:
-        console.print("[yellow]No specs in researching stage.[/yellow]")
+    # Use SpecWorkflow to list all specs
+    try:
+        workflow = SpecWorkflow(specs_dir)
+        all_specs = workflow.list_specs()
+    except FileNotFoundError:
+        console.print("[yellow]No specs/ directory found.[/yellow]")
         console.print("[dim]Run 'cub spec' to create your first spec.[/dim]")
         return
 
-    console.print(f"[bold]Specs in researching ({len(spec_files)}):[/bold]")
+    if not all_specs:
+        console.print("[yellow]No specs found in any stage.[/yellow]")
+        console.print("[dim]Run 'cub spec' to create your first spec.[/dim]")
+        return
+
+    # Group specs by stage for display
+    specs_by_stage: dict[Stage, list[Spec]] = {}
+    for s in all_specs:
+        if s.stage not in specs_by_stage:
+            specs_by_stage[s.stage] = []
+        specs_by_stage[s.stage].append(s)
+
+    # Display total count
+    console.print(f"[bold]Specs ({len(all_specs)} total):[/bold]")
     console.print()
 
-    for spec_file in spec_files:
-        # Try to extract title from frontmatter or first heading
-        title = _extract_spec_title(spec_file)
-        readiness = _extract_readiness(spec_file)
+    # Display specs grouped by stage in lifecycle order
+    stage_order = [
+        Stage.RESEARCHING,
+        Stage.PLANNED,
+        Stage.STAGED,
+        Stage.IMPLEMENTING,
+        Stage.RELEASED,
+    ]
 
-        readiness_str = f"[{readiness}/10]" if readiness is not None else ""
-        console.print(f"  [cyan]{spec_file.stem}[/cyan] {readiness_str}")
-        if title and title != spec_file.stem:
-            console.print(f"    [dim]{title}[/dim]")
+    for stage in stage_order:
+        if stage not in specs_by_stage:
+            continue
 
-    console.print()
-    console.print("[dim]View a spec: cat specs/researching/<name>.md[/dim]")
-    console.print("[dim]Plan a spec: cub plan run specs/researching/<name>.md[/dim]")
+        stage_specs = specs_by_stage[stage]
+        color = STAGE_COLORS.get(stage, "white")
+        console.print(f"[bold {color}]{stage.value}[/bold {color}] ({len(stage_specs)}):")
 
+        for spec in stage_specs:
+            readiness_str = (
+                f"[{spec.readiness.score}/10]" if spec.readiness.score > 0 else ""
+            )
+            console.print(f"  [cyan]{spec.name}[/cyan] {readiness_str}")
+            if spec.title and spec.title != spec.name:
+                console.print(f"    [dim]{spec.title}[/dim]")
 
-def _extract_spec_title(spec_file: Path) -> str | None:
-    """Extract title from spec file (first heading or frontmatter)."""
-    try:
-        content = spec_file.read_text()
-        lines = content.split("\n")
+        console.print()
 
-        # Skip frontmatter
-        in_frontmatter = False
-        for line in lines:
-            if line.strip() == "---":
-                in_frontmatter = not in_frontmatter
-                continue
-            if in_frontmatter:
-                continue
-            # First non-frontmatter line that's a heading
-            if line.startswith("# "):
-                return line[2:].strip()
-
-        return None
-    except OSError:
-        return None
+    # Show helpful commands
+    console.print("[dim]View a spec: cat specs/<stage>/<name>.md[/dim]")
+    if Stage.RESEARCHING in specs_by_stage:
+        console.print(
+            "[dim]Plan a spec: cub plan run specs/researching/<name>.md[/dim]"
+        )
 
 
-def _extract_readiness(spec_file: Path) -> int | None:
-    """Extract readiness score from spec frontmatter."""
-    try:
-        content = spec_file.read_text()
-        lines = content.split("\n")
-
-        in_frontmatter = False
-        in_readiness = False
-
-        for line in lines:
-            if line.strip() == "---":
-                if in_frontmatter:
-                    break  # End of frontmatter
-                in_frontmatter = True
-                continue
-
-            if not in_frontmatter:
-                continue
-
-            if line.startswith("readiness:"):
-                in_readiness = True
-                continue
-
-            if in_readiness and "score:" in line:
-                # Extract score value
-                parts = line.split(":")
-                if len(parts) >= 2:
-                    try:
-                        return int(parts[-1].strip())
-                    except ValueError:
-                        pass
-
-            # Reset if we hit another top-level key
-            if in_readiness and line and not line.startswith(" ") and not line.startswith("\t"):
-                in_readiness = False
-
-        return None
-    except OSError:
-        return None

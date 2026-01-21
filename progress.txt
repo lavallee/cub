@@ -1,5 +1,210 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-3wxc.9: Handle branch switch failure in cub merge
+
+### Task Completed
+Implemented graceful branch switch handling in `cub merge` to handle cases where beads or other tools may prevent switching to the base branch after a successful merge.
+
+### What Was Implemented
+
+**New Helper Function (`_switch_to_branch`):**
+- Attempts to switch to a specified branch using `git switch`
+- Returns tuple of (success, error_message) for flexible error handling
+- Gracefully handles failures without raising exceptions
+
+**Updated `merge_pr` Method:**
+1. After successful merge, checks if we're on the feature branch
+2. If so, attempts to switch to the base branch (usually main)
+3. On success: prints confirmation and allows feature branch deletion
+4. On failure: prints warning with error message, stays on current branch
+5. Merge command exits successfully regardless of branch switch result
+
+### Key Design Decisions
+
+1. **Non-Fatal Branch Switch**: The branch switch is a convenience operation; the actual merge (via GitHub API) is the critical operation. A failed switch shouldn't mark the merge as failed.
+
+2. **User-Friendly Messages**: When switch fails, we show:
+   - Yellow warning about the failed switch
+   - The actual error message (dimmed, for debugging)
+   - Information about staying on current branch
+
+3. **Branch Deletion Logic**: Updated delete message to distinguish between:
+   - Expected case: still on the branch (can't delete)
+   - Unexpected case: switched but still couldn't delete
+
+### Files Modified
+- `src/cub/core/pr/service.py` - Added `_switch_to_branch` helper, updated `merge_pr`
+- `tests/test_pr_service.py` - Added 4 tests for `_switch_to_branch`
+
+### Key Learning
+The `cub merge` command uses GitHub API for the actual merge operation (remote merge), so the local branch operations (switch, delete) are convenience operations for cleanup. Making these operations non-fatal improves UX when working with tools like beads that may lock branches.
+
+---
+
+## 2026-01-21 - cub-3wxc.6: Auto-execute /cub: handoff after plan stage approval
+
+### Task Completed
+Implemented `/cub:` slash command handoff messaging for plan stages to provide seamless workflow continuation in Claude Code.
+
+### What Was Implemented
+
+**New Handoff Module (`cub.utils.handoff`):**
+- `try_handoff_or_message(command, args)` - Main entry point for handoff messaging
+- `format_slash_command(skill, args)` - Format `/cub:` commands with backticks
+- `format_shell_command(command, args)` - Format shell commands with backticks
+- `SLASH_COMMAND_MAP` - Maps CLI commands to slash command skills
+- `HandoffResult` enum and `HandoffOutcome` dataclass for extensibility
+
+**Plan Stage Updates:**
+- orient → Shows `/cub:architect {slug}` after completion
+- architect → Shows `/cub:itemize {slug}` after completion
+- itemize → Shows `cub stage {slug}` (no slash equivalent)
+- run pipeline → Shows `cub stage {slug}`
+
+**Tests:**
+- Added 33 tests covering format functions, command mapping, handoff attempts
+
+### Key Design Decisions
+
+1. **Slash Commands vs Shell Commands**: Commands with Claude Code skill equivalents (`orient`, `architect`, `itemize`) use `/cub:` syntax. Commands without skills (`stage`) use shell syntax.
+
+2. **No Automatic Execution**: The subprocess approach (like capture.py uses) launches a new Claude session rather than continuing the current one, so automatic handoff isn't suitable for seamless continuation. Instead, we provide clear instructions.
+
+3. **Extensibility**: The `SLASH_COMMAND_MAP` allows easy addition of new slash command mappings. The `attempt_handoff()` function is available for future use if Claude Code integration evolves.
+
+### Files Modified
+- `src/cub/cli/plan.py` - Added try_handoff_or_message calls after stage completion
+- `src/cub/utils/__init__.py` - Exported handoff module symbols
+- `src/cub/utils/handoff.py` (new) - Handoff utility module
+- `tests/test_handoff.py` (new) - Comprehensive test coverage
+
+### Key Learning
+Claude Code slash commands (`.claude/commands/cub:*.md`) are skill files that guide the AI, not direct CLI invocations. The subprocess `claude /cub:skill` approach launches a new session. For seamless workflow in Claude Code, the AI must be instructed with the slash command syntax rather than attempting automatic execution.
+
+---
+
+## 2026-01-21 - cub-3wxc.4: Fix cub:orient help text and plan output path
+
+### Task Completed
+Fixed incorrect help text in Claude Code skill files that described $ARGUMENTS as output paths instead of inputs.
+
+### What Was Changed
+
+**Help Text Corrections:**
+- `cub:orient.md` - Changed ARGUMENTS description from "path to write the output file" to "spec file path or spec ID to orient from"
+- `cub:architect.md` - Changed ARGUMENTS description from "path to write the output file" to "plan slug to continue architecturing"
+- `cub:itemize.md` - Changed ARGUMENTS description from "session directory path for output files" to "plan slug to itemize"
+
+**Output Path Updates:**
+- Updated all skill files to use `plans/{slug}/` directory pattern for outputs:
+  - orient → `plans/{slug}/orientation.md`
+  - architect → `plans/{slug}/architecture.md`
+  - itemize → `plans/{slug}/itemized-plan.md` and `itemized-plan.jsonl`
+
+**Fixed Stale References:**
+- Updated architect to read from `plans/{slug}/orientation.md` instead of `.cub/sessions/orient.md`
+- Fixed reference to "triage" → "orient" in template files
+- Updated next step from `cub bootstrap` → `cub stage`
+
+### Files Modified
+- `.claude/commands/cub:orient.md`
+- `.claude/commands/cub:architect.md`
+- `.claude/commands/cub:itemize.md`
+- `templates/commands/cub:orient.md`
+- `templates/commands/cub:architect.md`
+- `templates/commands/cub:itemize.md`
+
+### Key Learning
+Claude Code skill files (markdown slash commands) store their documentation separately from the Python CLI. The Python `cub plan orient` command already had correct help text, but the skill files (`/cub:orient`) had outdated/incorrect documentation that needed updating.
+
+---
+
+## 2026-01-21 - cub-3wxc.3: Add --use-current-branch flag to cub run
+
+### Task Completed
+Added `--use-current-branch` flag to `cub run` command and changed default behavior to create new branches from `origin/main`.
+
+### What Was Implemented
+
+**New CLI Option:**
+- `--use-current-branch` flag to opt-in to running in current branch
+- Updated `--from-branch` help text to indicate it's ignored with `--use-current-branch`
+
+**Branch Creation Logic Changes:**
+1. Default base branch is now `origin/main` instead of local `main` (prevents stale local main issues)
+2. When `--use-current-branch` is NOT set (default):
+   - If on main/master: creates new branch from `origin/main` (or `--from-branch`)
+   - If on feature branch: reuses existing branch (no sprawl)
+   - Branch names follow conventions: `task/`, `feature/`, `fix/`, or `cub/run-{timestamp}`
+3. When `--use-current-branch` IS set:
+   - Works in current branch
+   - Still protects main/master unless `--main-ok` is also set
+
+**Tests Added:**
+- `TestBranchCreation` class with 11 tests covering all scenarios
+- Tests for `--use-current-branch` with/without `--main-ok`
+- Tests for default branch creation from `origin/main`
+- Tests for `--from-branch` override
+- Tests for branch reuse on feature branches
+
+### Key Design Decisions
+
+1. **origin/main Default:** Using `origin/main` instead of local `main` handles beads' worktree setup where local main may be stale.
+
+2. **Feature Branch Reuse:** When already on a feature branch, don't create new one - prevents branch sprawl.
+
+3. **Backward Compatibility:** Use `--use-current-branch` to preserve old behavior for users who want it.
+
+4. **Timestamp Branches:** Generic runs without context get `cub/run-{timestamp}` branches.
+
+### Verification
+
+- All 1408 tests pass
+- mypy clean (4 pre-existing errors unrelated to changes)
+- ruff check passes for modified files (pre-existing issues in other files)
+
+---
+
+## 2026-01-21 - cub-3wxc.2: Auto-close epics with no incomplete tasks
+
+### Task Completed
+Enhanced `cub doctor` to detect and auto-close stale epics where all subtasks are complete.
+
+### What Was Implemented
+
+**New Functions in cmd_doctor.sh:**
+1. `_doctor_check_stale_epics()` - Detects epics with all closed subtasks
+   - Queries both beads (`bd list --parent --all`) and JSON backends
+   - Handles multiple association methods: parent field, labels, ID prefixes
+   - Skips epics with no subtasks (parent containers)
+   - Reports stale count and details
+
+2. `_doctor_fix_stale_epics()` - Auto-closes stale epics in fix mode
+   - Uses `bd close` for beads backend with reason "Auto-closed: all subtasks complete"
+   - Uses `cub task close` for JSON backend
+   - Respects `--dry-run` flag
+   - Provides summary of closed/failed epics
+
+**Integration:**
+- Added to help text documenting new check and fix action
+- Integrated into `cmd_doctor()` main flow between task check and recommendations
+- Exports `_DOCTOR_STALE_EPICS` variable for fix phase coordination
+
+### Key Learnings
+
+1. **Beads Parent-Child Relationships:** The beads CLI uses `--parent` flag with `--all` to query subtasks. Without `--all`, closed tasks are excluded from results.
+
+2. **jq != Escaping:** In bash, `!=` in jq expressions can cause issues with history expansion. Use `(.status == "closed" | not)` instead of `.status != "closed"`.
+
+3. **Variable Scope in Bash:** When using `|| exit_code=$?` pattern, the variable assignment happens in the current shell. However, subprocess.run() from Python creates a separate process where exported variables persist within that process.
+
+4. **Beads ID Convention:** Subtasks often use `{parent}.{n}` ID pattern (e.g., `cub-abc.1`, `cub-abc.2`), which can be detected via `startswith()` as a fallback for parent-child detection.
+
+### Tests
+All 1397 existing tests pass. No new unit tests required as this is bash script functionality tested via integration (cub doctor command).
+
+---
+
 ## 2026-01-21 - cub-p4x.3: Rename skill files
 
 ### Task Completed
@@ -3021,3 +3226,293 @@ Added comprehensive test coverage for specs/lifecycle.py module, bringing covera
 
 Successfully achieved 60%+ test coverage for all plan/stage/spec modules (Moderate tier requirement). The lifecycle module, which had the lowest coverage (11.2%), now has excellent coverage at 95.9%. All feedback loops passing (pytest, ruff). The overall plan→stage workflow now has comprehensive unit test coverage ensuring reliability of the new planning features.
 
+
+## 2026-01-21 - cub-3wxc.1: Auto-close epic when all tasks complete
+
+### Task Completed
+Implemented automatic epic closure when all tasks belonging to an epic are completed.
+
+### What Was Implemented
+
+**New Protocol Method:**
+- Added `try_close_epic(epic_id: str) -> tuple[bool, str]` to TaskBackend protocol
+- Returns (closed, message) tuple indicating whether epic was closed and why
+
+**BeadsBackend Implementation:**
+- Queries tasks by parent field and by label matching epic ID
+- Deduplicates tasks found through both methods
+- Counts open, in_progress, and closed tasks
+- Closes epic via `bd close` if all tasks are closed
+- Handles errors gracefully with descriptive messages
+
+**JsonBackend Implementation:**
+- Same logic as BeadsBackend but using JSON file operations
+- Uses list_tasks with parent filter and has_label checks
+- Calls close_task method to close the epic
+
+**Run Command Integration:**
+- Added auto-close logic in run.py finally block (after post-loop hooks)
+- Only runs when `--epic` flag is provided
+- Shows green success message when epic is auto-closed
+- Shows debug message when epic stays open (if --debug)
+- Non-fatal: errors during epic closure don't affect run exit code
+
+### Tests Added
+- 8 tests for JsonBackend.try_close_epic
+- 7 tests for BeadsBackend.try_close_epic  
+- 3 tests for run command auto-close behavior
+- Test coverage: all tasks closed, some open, some in-progress, epic not found,
+  epic already closed, no tasks found, tasks associated by label, mixed associations
+
+### Learnings
+- TaskBackend protocol is runtime-checkable and requires `...` for method signatures
+- Beads backend tasks can be associated with epics via parent field OR label
+- The run.py finally block is the right place for cleanup actions like epic closure
+- Tests for backends use mock subprocess.run with side_effect for multiple calls
+
+
+## 2026-01-21 - cub-3wxc.5: Fix cub spec --list to work from project subdirectories
+
+### Task Completed
+Fixed `cub spec --list` to work from any directory within a project by adding project root discovery and showing specs from all lifecycle stages.
+
+### What Was Implemented
+
+**Project Root Discovery Utility:**
+- New module `src/cub/utils/project.py` with `find_project_root()` and `get_project_root()` functions
+- Searches upward through parent directories for project markers: `.beads/`, `.cub/`, `.cub.json`, `.git/`
+- Markers checked in priority order (.beads first for this project's preferred backend)
+- Returns None if no project root found (don't crash, show helpful message)
+
+**Updated spec --list Command:**
+- Now uses project root discovery instead of assuming current directory
+- Uses SpecWorkflow to list all specs (reuses existing logic)
+- Shows specs grouped by lifecycle stage in order: researching → planned → staged → implementing → released
+- Each stage has a color for visual distinction
+- Readiness scores displayed for specs that have them
+- Spec titles shown below spec names for clarity
+
+**Bug Fix in SpecWorkflow.list_specs():**
+- Fixed a bug where `Stage.COMPLETED` alias filtering was inadvertently excluding `Stage.RELEASED` specs
+- Issue: `s != Stage.COMPLETED` is true for all stages because COMPLETED == RELEASED in Python's enum
+- Fix: Simply use `list(Stage)` since Python enum iteration already excludes aliases
+
+### Tests Added
+- `tests/test_cli_spec.py`: 22 tests covering:
+  - Command help output
+  - Listing from project root with various states (no project, no specs dir, empty, single stage, multiple stages)
+  - Listing from subdirectories (src/, deeply nested, various marker types)
+  - Project root discovery
+  - Display formatting (readiness scores, titles, stage grouping)
+  - Edge cases (malformed specs, no frontmatter, no title)
+
+- `tests/test_utils_project.py`: 19 tests covering:
+  - Finding root from various directory levels
+  - All marker types (.beads, .git, .cub, .cub.json)
+  - Nested projects (finds closest root)
+  - Error cases (no markers found)
+  - get_project_root raises on missing root
+
+### Learnings
+1. **Python Enum Alias Behavior**: When enum members have the same value (like COMPLETED = "released" as alias for RELEASED = "released"), they share identity. Iterating over the enum only yields the canonical member, not aliases. Be careful with equality checks against aliases.
+
+2. **Project Root Discovery Pattern**: Useful utility for any command that needs to find project context. Could be reused for other commands that currently assume cwd is project root.
+
+3. **CLI Isolation Testing**: Typer's `runner.isolated_filesystem()` creates a fresh temp dir, but `os.chdir()` needs to be paired with cleanup to restore cwd in test teardown.
+
+4. **SpecWorkflow Reuse**: Good example of leveraging existing core module (`SpecWorkflow.list_specs()`) instead of reimplementing spec parsing in CLI layer.
+
+### Outcome
+Command now works reliably from any subdirectory within a project. Users can run `cub spec --list` from anywhere and see all their specs organized by lifecycle stage. Bug fix ensures specs in `released/` stage are properly shown.
+
+---
+
+## 2026-01-21 - cub-3wxc.8: Add --stream option to cub pr for real-time output
+
+### Task Completed
+Implemented `--stream` flag for `cub pr` command and enhanced `--debug` support to provide visibility into the PR creation process.
+
+### What Was Implemented
+
+**StreamConfig Class (`cub.core.pr.service.StreamConfig`):**
+- `enabled: bool` - Controls whether streaming messages are shown
+- `debug: bool` - Controls whether debug details are shown
+- `console: Console` - Rich console for output
+- `stream(message)` - Print streaming status messages (when enabled)
+- `debug_log(message)` - Print debug messages (when debug enabled)
+- `debug_value(name, value)` - Print debug variable values (when debug enabled)
+
+**CLI Updates:**
+- Added `--stream/-s` flag to `cub pr` command
+- Passes `--debug` flag from global context to PRService
+- StreamConfig integrates debug flag from parent command's ctx.obj
+
+**Streaming Output in `PRService.create_pr()`:**
+- Resolving target (shows target value in debug)
+- Checking for existing PR
+- Validating current branch (shows current vs expected in debug)
+- Checking if branch needs push
+- Verifying branch exists on remote
+- Determining PR title
+- Generating PR body
+- Creating PR via GitHub API
+
+**Tests Added:**
+- `TestStreamConfig` - 8 tests for StreamConfig class functionality
+- `TestPRServiceWithStreaming` - 4 tests for streaming integration with PRService
+
+### Key Design Decisions
+
+1. **Dataclass-based Configuration**: Used `dataclass` with `field(default_factory=Console)` for lazy console initialization. This allows callers to provide their own console for testing.
+
+2. **Dual Flag Design**: `--stream` shows progress messages, `--debug` shows variable values. Both can be used together for full visibility.
+
+3. **Default Console Sharing**: PRService uses the StreamConfig's console as its `_console` property, ensuring all output goes to the same destination.
+
+4. **Non-intrusive Integration**: Streaming/debug calls don't affect control flow - they just add visibility when flags are enabled.
+
+### Files Modified
+- `src/cub/cli/pr.py` - Added `--stream` flag and StreamConfig integration
+- `src/cub/core/pr/__init__.py` - Exported StreamConfig
+- `src/cub/core/pr/service.py` - Added StreamConfig class and streaming calls in create_pr()
+- `tests/test_pr_service.py` - Added comprehensive tests for streaming functionality
+
+### Key Learning
+When testing Rich console output with StringIO, the output includes ANSI escape codes that can split tokens unexpectedly (e.g., `"target="` becomes `"target" + escape codes + "="`). Tests should check for word presence rather than exact substring matches.
+
+## Task cub-bcrc.1: Improve cub monitor dashboard layout and display
+
+**Date:** 2026-01-21
+
+### Changes Made
+
+1. **RunStatus Model Updates** (`src/cub/core/status/models.py`):
+   - Added `TaskState` enum (TODO, DOING, DONE) for Kanban states
+   - Added `TaskEntry` model with task_id, title, state, started_at, completed_at
+   - Added run context fields: `epic`, `label`, `branch`
+   - Added `task_entries` list for Kanban display
+   - Added helper methods: `set_task_entries()`, `start_task_entry()`, `complete_task_entry()`, `get_tasks_by_state()`
+
+2. **DashboardRenderer Refactored** (`src/cub/dashboard/renderer.py`):
+   - **Removed**: Budget column entirely
+   - **Added**: Header section with run type (--epic/--label), branch name, task progress (X/Y)
+   - **Changed**: Layout from 2-column (task/budget) to Kanban (todo/doing/done) + activity
+   - **New panels**: `_render_todo_panel()`, `_render_doing_panel()`, `_render_done_panel()`
+   - **Fallback**: When task_entries empty, falls back to current_task_id for backward compatibility
+
+3. **Run CLI Integration** (`src/cub/cli/run.py`):
+   - Initialize RunStatus with `epic`, `label`, `branch` context
+   - Initialize `task_entries` from ready tasks at run start
+   - Call `start_task_entry()` when task starts
+   - Call `complete_task_entry()` when task succeeds
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    HEADER (5 rows)                   │
+│  Run: --epic cub-abc / Branch: feature/xyz          │
+│  Progress: 3/9 tasks completed / Status: RUNNING    │
+├──────────────┬───────────────┬──────────────────────┤
+│   To Do      │     Doing     │        Done          │
+│   (count)    │    (count)    │       (count)        │
+│              │               │                      │
+│  task-1      │  task-2 time  │   task-0  time       │
+│  task-3      │               │                      │
+├──────────────┴───────────────┴──────────────────────┤
+│                Recent Activity                       │
+│  HH:MM:SS  Event message here...                    │
+└─────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+1. **Backward Compatibility**: The Doing panel falls back to `current_task_id` when `task_entries` is empty, supporting existing status files without task entries.
+
+2. **State Tracking**: Each task entry tracks `started_at` and `completed_at` timestamps for visibility into task progress timing.
+
+3. **Truncation**: Long task titles (>40 chars) and task IDs (>12 chars) are truncated to prevent overflow in terminal.
+
+4. **Activity Log**: Reduced to 8 events (from 10) for more compact display with the Kanban layout.
+
+### Tests Updated
+
+- Updated existing tests to use new Kanban layout structure (`body.kanban.todo/doing/done` vs `body.task.current/budget`)
+- Added new tests for: task entries, epic/label context, fallback behavior, empty columns
+- Added `TestRunStatusTaskEntries` class for model helper method testing
+
+### Files Modified
+- `src/cub/core/status/models.py` - Added TaskState, TaskEntry, context fields, helper methods
+- `src/cub/dashboard/renderer.py` - Refactored to Kanban layout
+- `src/cub/cli/run.py` - Integrated context fields and task entry tracking
+- `tests/test_dashboard_renderer.py` - Updated for new structure, added new tests
+
+---
+
+## Task cub-bcrc.2: Clean working directory after cub run completes
+
+**Date:** 2026-01-21
+
+### Summary
+
+Implemented a working directory cleanup service that runs after `cub run` completes. The cleanup:
+1. Commits useful artifacts (progress files, logs, reports) to git
+2. Removes temporary files (*.bak, *.tmp, caches)
+3. Ensures the working directory is clean after execution
+
+### Implementation Details
+
+1. **CleanupConfig** (`src/cub/core/config/models.py`):
+   - `enabled`: Enable/disable automatic cleanup
+   - `commit_artifacts`: Commit useful artifacts to git
+   - `remove_temp_files`: Remove temporary files
+   - `artifact_patterns`: Glob patterns for files to commit (progress.txt, *.log, etc.)
+   - `temp_patterns`: Glob patterns for temp files to remove (*.bak, __pycache__/**, etc.)
+   - `ignore_patterns`: Patterns for files to never touch (.git/**, .env, etc.)
+   - `commit_message`: Customizable commit message for artifact commits
+
+2. **CleanupService** (`src/cub/core/cleanup/service.py`):
+   - `cleanup()`: Main method that orchestrates the cleanup workflow
+   - `_get_uncommitted_files()`: Uses `git status --porcelain` to find uncommitted files
+   - `_remove_temp_files()`: Removes files matching temp patterns
+   - `_commit_artifacts()`: Stages and commits files matching artifact patterns
+   - `_matches_pattern()`: Pattern matching supporting glob wildcards and ** for directories
+   - `get_cleanup_preview()`: Preview what cleanup would do without making changes
+
+3. **Integration** (`src/cub/cli/run.py`):
+   - Added cleanup logic to the finally block after task execution
+   - Shows preview in debug mode before cleanup
+   - Displays cleanup summary after completion
+   - Non-fatal: cleanup errors don't fail the run
+
+### Configuration Example
+
+```json
+{
+  "cleanup": {
+    "enabled": true,
+    "commit_artifacts": true,
+    "remove_temp_files": true,
+    "artifact_patterns": ["progress.txt", "*.log"],
+    "temp_patterns": ["*.bak", "*.tmp"],
+    "ignore_patterns": [".git/**", ".env"]
+  }
+}
+```
+
+### Key Design Decisions
+
+1. **Non-fatal cleanup**: Cleanup errors are warnings, not failures
+2. **Configurable patterns**: Users can customize what gets committed/removed
+3. **Safety first**: Ignore patterns protect sensitive files (.env, secrets)
+4. **Preview mode**: Debug flag shows what would be cleaned before doing it
+5. **Git integration**: Uses subprocess for git operations (status, add, commit)
+
+### Tests
+
+Added comprehensive tests in `tests/test_cleanup.py`:
+- CleanupConfig model tests
+- CleanupResult summary tests
+- CleanupService tests with real git operations
+- Pattern matching edge cases
+- Integration tests with CubConfig

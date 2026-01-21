@@ -251,6 +251,27 @@ class TaskBackend(Protocol):
         """
         ...
 
+    def try_close_epic(self, epic_id: str) -> tuple[bool, str]:
+        """
+        Attempt to close an epic if all its tasks are complete.
+
+        Checks all tasks belonging to the epic and closes the epic if
+        all tasks have status CLOSED. This is a no-op if:
+        - The epic doesn't exist
+        - The epic is already closed
+        - Some tasks are still open or in progress
+        - The backend doesn't support epic closure
+
+        Args:
+            epic_id: The epic ID to potentially close
+
+        Returns:
+            Tuple of (closed: bool, message: str) where:
+            - closed: True if epic was closed, False otherwise
+            - message: Human-readable explanation of the result
+        """
+        ...
+
 
 # Backend registry
 _backends: dict[str, type[TaskBackend]] = {}

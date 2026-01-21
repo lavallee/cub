@@ -594,3 +594,68 @@ class BeadsBackend:
         except BranchStoreError:
             # .beads directory might not exist or other issue
             return False
+
+    def try_close_epic(self, epic_id: str) -> tuple[bool, str]:
+        """
+        Attempt to close an epic if all its tasks are complete.
+
+        Checks all tasks belonging to the epic and closes the epic if
+        all tasks have status CLOSED.
+
+        Args:
+            epic_id: The epic ID to potentially close
+
+        Returns:
+            Tuple of (closed: bool, message: str)
+        """
+        # First, check if the epic exists and get its current status
+        epic = self.get_task(epic_id)
+        if epic is None:
+            return False, f"Epic '{epic_id}' not found"
+
+        if epic.status == TaskStatus.CLOSED:
+            return False, f"Epic '{epic_id}' is already closed"
+
+        # Get all tasks that belong to this epic (using parent filter)
+        # Also check for tasks labeled with the epic ID
+        tasks_by_parent = self.list_tasks(parent=epic_id)
+        tasks_by_label = self.list_tasks(label=epic_id)
+
+        # Combine and deduplicate
+        seen_ids: set[str] = set()
+        all_epic_tasks: list[Task] = []
+        for task in tasks_by_parent + tasks_by_label:
+            if task.id not in seen_ids and task.id != epic_id:
+                seen_ids.add(task.id)
+                all_epic_tasks.append(task)
+
+        if not all_epic_tasks:
+            return False, f"No tasks found for epic '{epic_id}'"
+
+        # Check status of all tasks
+        open_count = 0
+        in_progress_count = 0
+        closed_count = 0
+
+        for task in all_epic_tasks:
+            if task.status == TaskStatus.CLOSED:
+                closed_count += 1
+            elif task.status == TaskStatus.IN_PROGRESS:
+                in_progress_count += 1
+            else:
+                open_count += 1
+
+        # If any tasks are not closed, don't close the epic
+        if open_count > 0 or in_progress_count > 0:
+            return False, (
+                f"Epic '{epic_id}' has {open_count} open and "
+                f"{in_progress_count} in-progress tasks remaining "
+                f"({closed_count} closed)"
+            )
+
+        # All tasks are closed - close the epic
+        try:
+            self.close_task(epic_id, reason="All tasks completed")
+            return True, f"Epic '{epic_id}' auto-closed ({closed_count} tasks completed)"
+        except (ValueError, BeadsCommandError) as e:
+            return False, f"Failed to close epic '{epic_id}': {e}"

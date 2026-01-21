@@ -18,11 +18,13 @@ from cub.cli import (
     organize_captures,
     plan,
     pr,
+    punchlist,
     run,
     sandbox,
     spec,
     stage,
     status,
+    task,
     triage,
     uninstall,
     update,
@@ -91,6 +93,8 @@ app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
 # Work with Tasks
 # =============================================================================
 
+app.add_typer(task.app, name="task", rich_help_panel=PANEL_TASKS)
+app.add_typer(punchlist.app, name="punchlist", rich_help_panel=PANEL_TASKS)
 app.command(name="interview", rich_help_panel=PANEL_TASKS)(delegated.interview)
 app.command(name="explain-task", rich_help_panel=PANEL_TASKS)(delegated.explain_task)
 app.command(name="close-task", rich_help_panel=PANEL_TASKS)(delegated.close_task)

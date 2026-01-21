@@ -8,15 +8,15 @@ You output tasks in a format compatible with **Beads** task management system.
 
 $ARGUMENTS
 
-If provided, this is the session directory path for output files.
+If provided, this is a plan slug to itemize. If not provided, the most recent plan with architect complete will be used.
 
 ## Instructions
 
 ### Step 1: Load Session
 
-Read both previous outputs:
-- `.cub/sessions/orient.md`
-- `.cub/sessions/architect.md`
+Read both previous outputs from the plan directory:
+- `plans/{slug}/orientation.md`
+- `plans/{slug}/architecture.md`
 
 If either file doesn't exist or isn't approved, tell the user which step needs to be completed first.
 
@@ -125,7 +125,7 @@ For each task, identify:
 
 Generate a JSONL file with the complete beads schema.
 
-**File:** `.cub/sessions/itemize.jsonl` (or `$ARGUMENTS/itemize.jsonl`)
+**File:** `plans/{slug}/itemized-plan.jsonl`
 
 **Schema for each line:**
 
@@ -151,7 +151,7 @@ Generate a JSONL file with the complete beads schema.
 
 ### Step 8: Generate Human-Readable Plan
 
-Also generate `.cub/sessions/itemize.md`:
+Also generate `plans/{slug}/itemized-plan.md`:
 
 ```markdown
 # Itemization Plan: {Project Name}
@@ -242,9 +242,9 @@ Show the user the task hierarchy and ask:
 
 ### Step 10: Write Output
 
-Once approved, write output files:
-- `itemize.jsonl` (beads-compatible, for import)
-- `itemize.md` (human-readable)
+Once approved, write output files to `plans/{slug}/`:
+- `itemized-plan.jsonl` (beads-compatible, for import)
+- `itemized-plan.md` (human-readable)
 
 ### Step 11: Handoff
 
@@ -253,10 +253,10 @@ After writing outputs, tell the user:
 > Itemization complete!
 >
 > **Outputs saved:**
-> - `.cub/sessions/itemize.jsonl` (beads-compatible)
-> - `.cub/sessions/itemize.md` (human-readable)
+> - `plans/{slug}/itemized-plan.jsonl` (beads-compatible)
+> - `plans/{slug}/itemized-plan.md` (human-readable)
 >
-> **Next step:** Run `cub bootstrap` to initialize beads and start development.
+> **Next step:** Run `cub stage` to import tasks into beads and start development.
 
 ---
 

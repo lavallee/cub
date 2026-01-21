@@ -144,9 +144,9 @@ class SpecWorkflow:
             raise FileNotFoundError(f"Specs root not found: {self.specs_root}")
 
         specs: list[Spec] = []
-        # Filter out COMPLETED since it's an alias for RELEASED (same directory)
-        all_stages = [s for s in Stage if s != Stage.COMPLETED]
-        stages_to_scan = [stage] if stage else all_stages
+        # Note: Stage.COMPLETED is an alias for RELEASED and doesn't appear
+        # in iteration over Stage (Python enum behavior for aliases)
+        stages_to_scan = [stage] if stage else list(Stage)
 
         for s in stages_to_scan:
             stage_dir = self._get_stage_dir(s)
