@@ -2866,3 +2866,39 @@ Automatically move specs through lifecycle stages at key triggers:
 - Added test for `is_active` property
 - Updated promote/demote tests for full 5-stage pipeline
 - Updated valid transitions tests for new allowed/disallowed transitions
+
+## Task cub-p4x.2: Update documentation (2026-01-21)
+
+**What was done:**
+- Renamed docs-src/content/guide/prep-pipeline/ to plan-pipeline/
+- Updated all references from "prep-pipeline" to "plan-pipeline" in documentation
+- Updated README.md to use new "plan flow" terminology (prep→plan, triage→orient, bootstrap→stage)
+- Created UPGRADING.md with comprehensive migration guide for v0.27.0
+- Updated navigation in docs-src/mkdocs.yml
+
+**Key learnings:**
+
+1. **Terminology migration requires comprehensive updates**: When changing naming conventions, must update:
+   - Directory structures (docs-src/content/guide/prep-pipeline/ → plan-pipeline/)
+   - All markdown file links (relative path references)
+   - Navigation files (mkdocs.yml)
+   - Main documentation (README.md, AGENT.md)
+   - Migration guides (UPGRADING.md)
+
+2. **Search strategy**: Used `grep -r "prep-pipeline"` to find all references, ensuring none were missed. This caught the mkdocs.yml navigation config that wasn't in the main content directory.
+
+3. **Sed for bulk replacements**: Used `sed -i 's|prep-pipeline|plan-pipeline|g'` to update multiple files at once, which is faster than manual editing.
+
+4. **UPGRADING.md structure**: Created a comprehensive migration guide with:
+   - Table of old vs new commands
+   - Rationale for the change
+   - Step-by-step migration instructions
+   - Backward compatibility notes
+   - Version compatibility matrix
+   - Previous upgrade sections for reference
+
+5. **Documentation consistency**: The "prep pipeline" was actually already migrated to "plan flow" in code (v0.27.0), but docs lagged behind. This task brought documentation in line with the actual command structure.
+
+6. **Pre-existing errors in feedback loops**: Encountered mypy errors and ruff linting issues that were unrelated to the documentation changes - these were pre-existing and not blocking for this task.
+
+**Outcome:** Documentation now consistently uses "plan flow" terminology that matches the actual CLI commands (cub plan orient/architect/itemize, cub stage). Users have clear migration path via UPGRADING.md.

@@ -186,7 +186,7 @@ readiness:
 > **Next steps:**
 > - Review and refine the spec manually if needed
 > - When ready, run `cub plan run specs/researching/{filename}` to plan implementation
-> - Or continue refining with `/cub:triage` for deeper requirements analysis"
+> - Or continue refining with `/cub:orient` for deeper requirements analysis"
 
 ---
 
@@ -207,7 +207,7 @@ readiness:
 - **Not architecture**: Don't design the solution in detail (that's `cub plan architect`)
 - **Not task breakdown**: Don't create tasks (that's `cub plan itemize`)
 - **Not capture**: This is more structured than idea capture (use `/cub:capture` for raw thoughts)
-- **Not triage**: This is broader than requirements refinement (use `/cub:triage` for deep-dive on a specific spec)
+- **Not orient**: This is broader than requirements refinement (use `/cub:orient` for deep-dive on a specific spec)
 
 This is the bridge between a raw idea and a plannable spec.
 
