@@ -3379,3 +3379,140 @@ Implemented `--stream` flag for `cub pr` command and enhanced `--debug` support 
 
 ### Key Learning
 When testing Rich console output with StringIO, the output includes ANSI escape codes that can split tokens unexpectedly (e.g., `"target="` becomes `"target" + escape codes + "="`). Tests should check for word presence rather than exact substring matches.
+
+## Task cub-bcrc.1: Improve cub monitor dashboard layout and display
+
+**Date:** 2026-01-21
+
+### Changes Made
+
+1. **RunStatus Model Updates** (`src/cub/core/status/models.py`):
+   - Added `TaskState` enum (TODO, DOING, DONE) for Kanban states
+   - Added `TaskEntry` model with task_id, title, state, started_at, completed_at
+   - Added run context fields: `epic`, `label`, `branch`
+   - Added `task_entries` list for Kanban display
+   - Added helper methods: `set_task_entries()`, `start_task_entry()`, `complete_task_entry()`, `get_tasks_by_state()`
+
+2. **DashboardRenderer Refactored** (`src/cub/dashboard/renderer.py`):
+   - **Removed**: Budget column entirely
+   - **Added**: Header section with run type (--epic/--label), branch name, task progress (X/Y)
+   - **Changed**: Layout from 2-column (task/budget) to Kanban (todo/doing/done) + activity
+   - **New panels**: `_render_todo_panel()`, `_render_doing_panel()`, `_render_done_panel()`
+   - **Fallback**: When task_entries empty, falls back to current_task_id for backward compatibility
+
+3. **Run CLI Integration** (`src/cub/cli/run.py`):
+   - Initialize RunStatus with `epic`, `label`, `branch` context
+   - Initialize `task_entries` from ready tasks at run start
+   - Call `start_task_entry()` when task starts
+   - Call `complete_task_entry()` when task succeeds
+
+### Layout Structure
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    HEADER (5 rows)                   │
+│  Run: --epic cub-abc / Branch: feature/xyz          │
+│  Progress: 3/9 tasks completed / Status: RUNNING    │
+├──────────────┬───────────────┬──────────────────────┤
+│   To Do      │     Doing     │        Done          │
+│   (count)    │    (count)    │       (count)        │
+│              │               │                      │
+│  task-1      │  task-2 time  │   task-0  time       │
+│  task-3      │               │                      │
+├──────────────┴───────────────┴──────────────────────┤
+│                Recent Activity                       │
+│  HH:MM:SS  Event message here...                    │
+└─────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+1. **Backward Compatibility**: The Doing panel falls back to `current_task_id` when `task_entries` is empty, supporting existing status files without task entries.
+
+2. **State Tracking**: Each task entry tracks `started_at` and `completed_at` timestamps for visibility into task progress timing.
+
+3. **Truncation**: Long task titles (>40 chars) and task IDs (>12 chars) are truncated to prevent overflow in terminal.
+
+4. **Activity Log**: Reduced to 8 events (from 10) for more compact display with the Kanban layout.
+
+### Tests Updated
+
+- Updated existing tests to use new Kanban layout structure (`body.kanban.todo/doing/done` vs `body.task.current/budget`)
+- Added new tests for: task entries, epic/label context, fallback behavior, empty columns
+- Added `TestRunStatusTaskEntries` class for model helper method testing
+
+### Files Modified
+- `src/cub/core/status/models.py` - Added TaskState, TaskEntry, context fields, helper methods
+- `src/cub/dashboard/renderer.py` - Refactored to Kanban layout
+- `src/cub/cli/run.py` - Integrated context fields and task entry tracking
+- `tests/test_dashboard_renderer.py` - Updated for new structure, added new tests
+
+---
+
+## Task cub-bcrc.2: Clean working directory after cub run completes
+
+**Date:** 2026-01-21
+
+### Summary
+
+Implemented a working directory cleanup service that runs after `cub run` completes. The cleanup:
+1. Commits useful artifacts (progress files, logs, reports) to git
+2. Removes temporary files (*.bak, *.tmp, caches)
+3. Ensures the working directory is clean after execution
+
+### Implementation Details
+
+1. **CleanupConfig** (`src/cub/core/config/models.py`):
+   - `enabled`: Enable/disable automatic cleanup
+   - `commit_artifacts`: Commit useful artifacts to git
+   - `remove_temp_files`: Remove temporary files
+   - `artifact_patterns`: Glob patterns for files to commit (progress.txt, *.log, etc.)
+   - `temp_patterns`: Glob patterns for temp files to remove (*.bak, __pycache__/**, etc.)
+   - `ignore_patterns`: Patterns for files to never touch (.git/**, .env, etc.)
+   - `commit_message`: Customizable commit message for artifact commits
+
+2. **CleanupService** (`src/cub/core/cleanup/service.py`):
+   - `cleanup()`: Main method that orchestrates the cleanup workflow
+   - `_get_uncommitted_files()`: Uses `git status --porcelain` to find uncommitted files
+   - `_remove_temp_files()`: Removes files matching temp patterns
+   - `_commit_artifacts()`: Stages and commits files matching artifact patterns
+   - `_matches_pattern()`: Pattern matching supporting glob wildcards and ** for directories
+   - `get_cleanup_preview()`: Preview what cleanup would do without making changes
+
+3. **Integration** (`src/cub/cli/run.py`):
+   - Added cleanup logic to the finally block after task execution
+   - Shows preview in debug mode before cleanup
+   - Displays cleanup summary after completion
+   - Non-fatal: cleanup errors don't fail the run
+
+### Configuration Example
+
+```json
+{
+  "cleanup": {
+    "enabled": true,
+    "commit_artifacts": true,
+    "remove_temp_files": true,
+    "artifact_patterns": ["progress.txt", "*.log"],
+    "temp_patterns": ["*.bak", "*.tmp"],
+    "ignore_patterns": [".git/**", ".env"]
+  }
+}
+```
+
+### Key Design Decisions
+
+1. **Non-fatal cleanup**: Cleanup errors are warnings, not failures
+2. **Configurable patterns**: Users can customize what gets committed/removed
+3. **Safety first**: Ignore patterns protect sensitive files (.env, secrets)
+4. **Preview mode**: Debug flag shows what would be cleaned before doing it
+5. **Git integration**: Uses subprocess for git operations (status, add, commit)
+
+### Tests
+
+Added comprehensive tests in `tests/test_cleanup.py`:
+- CleanupConfig model tests
+- CleanupResult summary tests
+- CleanupService tests with real git operations
+- Pattern matching edge cases
+- Integration tests with CubConfig

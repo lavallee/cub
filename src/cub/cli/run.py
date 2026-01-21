@@ -23,7 +23,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
+from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.plan.context import PlanContext
@@ -1429,6 +1431,52 @@ def run(
 
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
+
+        # Clean up working directory (commit artifacts, remove temp files)
+        if isinstance(config, CubConfig) and config.cleanup.enabled:
+            try:
+                cleanup_service = CleanupService(
+                    config=config.cleanup,
+                    project_dir=project_dir,
+                    debug=debug,
+                )
+
+                if debug:
+                    # Show preview of what will be cleaned
+                    preview = cleanup_service.get_cleanup_preview()
+                    if any(preview.values()):
+                        console.print("\n[dim]Cleanup preview:[/dim]")
+                        for category, files in preview.items():
+                            if files:
+                                console.print(f"[dim]  {category}: {len(files)} file(s)[/dim]")
+
+                cleanup_result = cleanup_service.cleanup()
+
+                # Display cleanup summary
+                if cleanup_result.committed_files or cleanup_result.removed_files:
+                    console.print(f"\n[cyan]{cleanup_result.summary()}[/cyan]")
+                elif debug:
+                    console.print(f"\n[dim]{cleanup_result.summary()}[/dim]")
+
+                if cleanup_result.error:
+                    console.print(f"[yellow]Cleanup warning: {cleanup_result.error}[/yellow]")
+
+                if not cleanup_result.is_clean and cleanup_result.remaining_files:
+                    if debug:
+                        console.print("[dim]Remaining uncommitted files:[/dim]")
+                        for f in cleanup_result.remaining_files[:10]:
+                            console.print(f"[dim]  - {f}[/dim]")
+                        if len(cleanup_result.remaining_files) > 10:
+                            remaining = len(cleanup_result.remaining_files) - 10
+                            console.print(f"[dim]  ... and {remaining} more[/dim]")
+
+            except Exception as e:
+                # Non-fatal: cleanup failed but run completed
+                console.print(f"[yellow]Cleanup warning: {e}[/yellow]")
+                if debug:
+                    import traceback
+
+                    console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
         # Cleanup worktree if requested
         if worktree and worktree_path and not worktree_keep:
