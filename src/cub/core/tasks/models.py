@@ -147,21 +147,52 @@ class Task(BaseModel):
                 return TaskPriority(f"P{v}")
         return v
 
+    # Complexity to model mapping for fallback
+    _COMPLEXITY_MODEL_MAP: dict[str, str] = {
+        "low": "haiku",
+        "medium": "sonnet",
+        "high": "opus",
+    }
+
+    @computed_field
+    @property
+    def complexity_label(self) -> str | None:
+        """
+        Extract complexity level from labels.
+
+        Looks for labels matching pattern "complexity:X" and returns X.
+
+        Returns:
+            Complexity level (e.g., "low", "medium", "high") or None if not found
+        """
+        for label in self.labels:
+            if label.startswith("complexity:"):
+                return label.split(":", 1)[1]
+        return None
+
     @computed_field
     @property
     def model_label(self) -> str | None:
         """
-        Extract model name from labels.
+        Extract model name from labels, with complexity fallback.
 
-        Looks for labels matching pattern "model:X" and returns X.
-        Used to identify which AI model should be used for this task.
+        Priority:
+        1. Direct "model:X" label (e.g., "model:sonnet")
+        2. Derived from "complexity:X" label (low→haiku, medium→sonnet, high→opus)
+        3. None if neither found
 
         Returns:
-            Model name (e.g., "sonnet", "haiku") or None if no model label found
+            Model name (e.g., "sonnet", "haiku", "opus") or None
         """
+        # First, check for direct model label
         for label in self.labels:
             if label.startswith("model:"):
                 return label.split(":", 1)[1]
+
+        # Fall back to complexity-based model selection
+        if self.complexity_label:
+            return self._COMPLEXITY_MODEL_MAP.get(self.complexity_label)
+
         return None
 
     @computed_field

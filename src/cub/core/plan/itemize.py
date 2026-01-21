@@ -401,11 +401,13 @@ class ItemizeStage:
             task_num = 1
             for req in requirements:
                 task_id = generate_task_id(epic_id, task_num)
+                # Add complexity and model labels (default to medium/sonnet)
+                task_labels = [plan_label, "foundation", "complexity:medium", "model:sonnet"]
                 task = Task(
                     id=task_id,
                     title=str(req)[:100] if req else f"Task {task_num}",
                     priority=0,
-                    labels=[plan_label, "foundation"],
+                    labels=task_labels,
                     epic_id=epic_id,
                     context=(
                         f"Implements P0 requirement: {req}\n"
@@ -477,11 +479,14 @@ class ItemizeStage:
                     "mypy strict passes",
                 ]
 
+                # Add complexity and model labels (default to medium/sonnet)
+                task_labels = labels + ["complexity:medium", "model:sonnet"]
+
                 task = Task(
                     id=task_id,
                     title=task_title,
                     priority=priority,
-                    labels=labels,
+                    labels=task_labels,
                     epic_id=epic_id,
                     context=f"Part of {phase_name} phase. See: plans/{self.ctx.plan.slug}/",
                     implementation_steps=impl_steps,
