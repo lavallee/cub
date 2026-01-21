@@ -822,3 +822,218 @@ class TestImportTasks:
         imported = backend.import_tasks([task_to_import])
 
         assert imported[0].id.startswith("myapp-")
+
+
+# ==============================================================================
+# Try Close Epic Tests
+# ==============================================================================
+
+
+class TestTryCloseEpic:
+    """Test auto-closing epics when all tasks complete."""
+
+    def test_close_epic_all_tasks_closed(self, temp_dir):
+        """Test that epic is closed when all its tasks are closed."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True
+        assert "auto-closed" in message
+        assert "2 tasks completed" in message
+
+        # Verify epic is now closed
+        epic = backend.get_task("epic-001")
+        assert epic.status == TaskStatus.CLOSED
+
+    def test_epic_stays_open_with_open_tasks(self, temp_dir):
+        """Test that epic stays open when some tasks are still open."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "parent": "epic-001",
+                    "status": "open",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "1 open" in message
+
+        # Verify epic is still open
+        epic = backend.get_task("epic-001")
+        assert epic.status == TaskStatus.OPEN
+
+    def test_epic_stays_open_with_in_progress_tasks(self, temp_dir):
+        """Test that epic stays open when some tasks are in progress."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "parent": "epic-001",
+                    "status": "in_progress",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "1 in-progress" in message
+
+        # Verify epic is still open
+        epic = backend.get_task("epic-001")
+        assert epic.status == TaskStatus.OPEN
+
+    def test_epic_not_found(self, temp_dir):
+        """Test handling of non-existent epic."""
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("nonexistent")
+
+        assert closed is False
+        assert "not found" in message
+
+    def test_epic_already_closed(self, temp_dir):
+        """Test handling of already closed epic."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "closed"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "already closed" in message
+
+    def test_epic_no_tasks(self, temp_dir):
+        """Test handling of epic with no tasks."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "No tasks found" in message
+
+    def test_close_epic_with_tasks_by_label(self, temp_dir):
+        """Test that tasks with epic ID as label are included."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "labels": ["epic-001"],
+                    "status": "closed",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "labels": ["epic-001", "urgent"],
+                    "status": "closed",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True
+        assert "auto-closed" in message
+
+    def test_close_epic_mixed_parent_and_label(self, temp_dir):
+        """Test that tasks with either parent or label are included."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [
+                {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"},
+                {
+                    "id": "test-001",
+                    "title": "Task 1",
+                    "parent": "epic-001",
+                    "status": "closed",
+                },
+                {
+                    "id": "test-002",
+                    "title": "Task 2",
+                    "labels": ["epic-001"],
+                    "status": "closed",
+                },
+                {
+                    "id": "test-003",
+                    "title": "Task 3",
+                    "parent": "epic-001",
+                    "labels": ["epic-001"],  # Both parent and label
+                    "status": "closed",
+                },
+            ],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        backend = JsonBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True
+        assert "3 tasks completed" in message

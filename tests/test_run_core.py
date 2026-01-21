@@ -1396,3 +1396,48 @@ class TestFiltering:
         deps["task_backend"].get_ready_tasks.assert_called_with(
             parent="v2", label="critical"
         )
+
+    def test_auto_close_epic_when_all_tasks_complete(self, runner, filter_mock_deps):
+        """Test that epic is auto-closed when all tasks are complete."""
+        deps = filter_mock_deps
+        deps["task_backend"].get_ready_tasks.return_value = []
+        deps["task_backend"].get_task_counts.return_value = MagicMock(remaining=0)
+        deps["task_backend"].try_close_epic.return_value = (
+            True,
+            "Epic 'backend-v2' auto-closed (3 tasks completed)",
+        )
+
+        result = runner.invoke(app, ["--once", "--epic", "backend-v2"])
+
+        # Verify try_close_epic was called
+        deps["task_backend"].try_close_epic.assert_called_once_with("backend-v2")
+        # Check success message in output
+        assert "auto-closed" in result.output or result.exit_code == 0
+
+    def test_epic_not_closed_when_tasks_remain(self, runner, filter_mock_deps):
+        """Test that epic stays open when tasks remain."""
+        deps = filter_mock_deps
+        deps["task_backend"].get_ready_tasks.return_value = []
+        deps["task_backend"].get_task_counts.return_value = MagicMock(remaining=0)
+        deps["task_backend"].try_close_epic.return_value = (
+            False,
+            "Epic 'backend-v2' has 1 open and 0 in-progress tasks remaining",
+        )
+
+        result = runner.invoke(app, ["--once", "--epic", "backend-v2"])
+
+        # Verify try_close_epic was called
+        deps["task_backend"].try_close_epic.assert_called_once_with("backend-v2")
+        # No auto-closed message should appear
+        assert "auto-closed" not in result.output
+
+    def test_no_close_epic_without_epic_flag(self, runner, filter_mock_deps):
+        """Test that try_close_epic is not called without --epic flag."""
+        deps = filter_mock_deps
+        deps["task_backend"].get_ready_tasks.return_value = []
+        deps["task_backend"].get_task_counts.return_value = MagicMock(remaining=0)
+
+        runner.invoke(app, ["--once"])
+
+        # Verify try_close_epic was NOT called
+        deps["task_backend"].try_close_epic.assert_not_called()

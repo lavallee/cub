@@ -1373,6 +1373,20 @@ def run(
         # Wait for all async hooks to complete (post-task, on-error)
         wait_async_hooks()
 
+        # Auto-close epic if all tasks are complete
+        if epic:
+            try:
+                closed, message = task_backend.try_close_epic(epic)
+                if closed:
+                    console.print(f"[green]{message}[/green]")
+                    status.add_event(message, EventLevel.INFO)
+                elif debug:
+                    console.print(f"[dim]{message}[/dim]")
+            except Exception as e:
+                # Non-fatal: epic closure failed but run completed
+                if debug:
+                    console.print(f"[dim]Failed to check epic closure: {e}[/dim]")
+
         # Final status write
         status_writer.write(status)
 
