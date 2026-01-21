@@ -13,6 +13,7 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from cub.core.plan.architect import ArchitectStage, ArchitectStageError
 from cub.core.plan.context import (
@@ -39,6 +40,45 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _find_vision_document(project_root: Path) -> Path | None:
+    """
+    Find a vision document in the project.
+
+    Searches common locations for vision/requirements documents:
+    - VISION.md
+    - docs/PRD.md
+    - docs/VISION.md
+    - README.md (last resort)
+
+    Args:
+        project_root: Project root directory.
+
+    Returns:
+        Path to vision document, or None if not found.
+    """
+    candidates = [
+        project_root / "VISION.md",
+        project_root / "docs" / "PRD.md",
+        project_root / "docs" / "VISION.md",
+        project_root / "docs" / "vision.md",
+        project_root / "PRD.md",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+
+    # README.md is last resort - only if it has meaningful content
+    readme = project_root / "README.md"
+    if readme.exists():
+        content = readme.read_text()
+        # Only use README if it's substantial (>500 chars, not just a stub)
+        if len(content) > 500 and "## " in content:
+            return readme.resolve()
+
+    return None
 
 
 def _resolve_spec_path(spec: str | None, project_root: Path) -> Path | None:
@@ -676,6 +716,12 @@ def run_pipeline(
         "--no-move-spec",
         help="Don't move spec to planned/ on completion",
     ),
+    non_interactive: bool = typer.Option(
+        False,
+        "--non-interactive",
+        "--auto",
+        help="Run without user interaction (for CI/automation)",
+    ),
     project_root: Path = typer.Option(
         Path("."),
         "--project-root",
@@ -739,12 +785,21 @@ def run_pipeline(
 
     # Must have either spec or continue_from
     if spec_path is None and continue_path is None:
-        console.print(
-            "[yellow]No spec provided. Interactive mode not yet implemented.[/yellow]"
-        )
-        console.print("[dim]Usage: cub plan run <spec-path-or-name>[/dim]")
-        console.print("[dim]       cub plan run --continue <plan-slug>[/dim]")
-        raise typer.Exit(1)
+        # Try to find a vision document automatically
+        vision_doc = _find_vision_document(project_root)
+        if vision_doc:
+            spec_path = vision_doc
+            console.print(f"[dim]Auto-discovered: {vision_doc.relative_to(project_root)}[/dim]")
+        else:
+            console.print(
+                "[yellow]No spec provided and no vision document found.[/yellow]"
+            )
+            console.print("[dim]Usage: cub plan run <spec-path-or-name>[/dim]")
+            console.print("[dim]       cub plan run --continue <plan-slug>[/dim]")
+            console.print(
+                "[dim]Or create VISION.md, docs/PRD.md, or similar in your project root.[/dim]"
+            )
+            raise typer.Exit(1)
 
     # Create pipeline configuration
     try:
@@ -757,6 +812,7 @@ def run_pipeline(
             verbose=verbose,
             move_spec=not no_move_spec,
             continue_from=continue_path,
+            non_interactive=non_interactive,
         )
     except PipelineConfigError as e:
         console.print(f"[red]Configuration error: {e}[/red]")
@@ -773,6 +829,8 @@ def run_pipeline(
 
     # Run the pipeline
     console.print("[bold]Running planning pipeline...[/bold]")
+    if non_interactive:
+        console.print("[dim]Mode: non-interactive (CI/automation)[/dim]")
     if spec_path:
         try:
             relative_spec = spec_path.relative_to(project_root)
@@ -851,3 +909,115 @@ def run_pipeline(
             )
 
         raise typer.Exit(1)
+
+
+@app.command("list")
+def list_plans(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed output including stage status",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
+    ),
+) -> None:
+    """
+    List all plans in the project.
+
+    Shows existing plans with their status, spec source, and completion state.
+    Replaces the old 'cub sessions' command.
+
+    Examples:
+        cub plan list              # List all plans
+        cub plan list --verbose    # Show detailed stage status
+    """
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
+    project_root = project_root.resolve()
+
+    plans_root = project_root / "plans"
+    if not plans_root.exists():
+        console.print("[yellow]No plans found.[/yellow]")
+        console.print("[dim]Run 'cub plan run <spec>' to create a plan.[/dim]")
+        return
+
+    # Find all plan directories
+    plan_dirs = [
+        d for d in plans_root.iterdir()
+        if d.is_dir() and (d / "plan.json").exists()
+    ]
+
+    if not plan_dirs:
+        console.print("[yellow]No plans found.[/yellow]")
+        console.print("[dim]Run 'cub plan run <spec>' to create a plan.[/dim]")
+        return
+
+    # Sort by modification time, most recent first
+    plan_dirs.sort(key=lambda p: (p / "plan.json").stat().st_mtime, reverse=True)
+
+    console.print(f"[bold]Plans ({len(plan_dirs)}):[/bold]")
+    console.print()
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Slug")
+    table.add_column("Status")
+    table.add_column("Spec")
+    if verbose:
+        table.add_column("Orient")
+        table.add_column("Architect")
+        table.add_column("Itemize")
+
+    for plan_dir in plan_dirs:
+        try:
+            plan_ctx = PlanContext.load(plan_dir, project_root)
+            plan = plan_ctx.plan
+            spec_name = plan.spec_file or "-"
+
+            # Status color
+            if plan.is_complete:
+                status_str = "[green]complete[/green]"
+            elif plan.status.value == "in_progress":
+                status_str = "[yellow]in progress[/yellow]"
+            else:
+                status_str = f"[dim]{plan.status.value}[/dim]"
+
+            if verbose:
+                # Stage status
+                orient = _stage_indicator(plan.stages.get(PlanStage.ORIENT))
+                architect = _stage_indicator(plan.stages.get(PlanStage.ARCHITECT))
+                itemize = _stage_indicator(plan.stages.get(PlanStage.ITEMIZE))
+                table.add_row(plan.slug, status_str, spec_name, orient, architect, itemize)
+            else:
+                table.add_row(plan.slug, status_str, spec_name)
+        except Exception as e:
+            if debug:
+                console.print(f"[red]Error loading {plan_dir.name}: {e}[/red]")
+            if verbose:
+                table.add_row(plan_dir.name, "[red]error[/red]", "-", "-", "-", "-")
+            else:
+                table.add_row(plan_dir.name, "[red]error[/red]", "-")
+
+    console.print(table)
+
+    if verbose:
+        console.print()
+        console.print("[dim]Legend: \u2713 complete, \u2717 not started, \u25cb in progress[/dim]")
+
+
+def _stage_indicator(status: object) -> str:
+    """Get a visual indicator for stage status."""
+    from cub.core.plan.models import StageStatus
+
+    if status is None:
+        return "[dim]\u2717[/dim]"
+    elif status == StageStatus.COMPLETE:
+        return "[green]\u2713[/green]"
+    elif status == StageStatus.IN_PROGRESS:
+        return "[yellow]\u25cb[/yellow]"
+    else:
+        return "[dim]\u2717[/dim]"

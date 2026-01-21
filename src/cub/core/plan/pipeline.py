@@ -93,6 +93,7 @@ class PipelineConfig:
         verbose: Whether to show verbose output.
         move_spec: Whether to move spec on plan completion.
         continue_from: Optional plan directory to continue from.
+        non_interactive: Whether to run without user interaction (for CI/automation).
     """
 
     spec_path: Path | None = None
@@ -103,6 +104,7 @@ class PipelineConfig:
     verbose: bool = False
     move_spec: bool = True
     continue_from: Path | None = None
+    non_interactive: bool = False
 
 
 @dataclass
