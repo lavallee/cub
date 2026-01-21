@@ -228,6 +228,29 @@ class TaskBackend(Protocol):
         """
         ...
 
+    def bind_branch(
+        self,
+        epic_id: str,
+        branch_name: str,
+        base_branch: str = "main",
+    ) -> bool:
+        """
+        Bind a git branch to an epic/task.
+
+        Creates an association between a git branch and an epic, useful for
+        tracking which branch is being used to implement which epic.
+
+        Args:
+            epic_id: Epic or task ID to bind
+            branch_name: Git branch name
+            base_branch: Base branch for merging (default: main)
+
+        Returns:
+            True if binding was created, False if binding already exists
+            or backend doesn't support branch bindings
+        """
+        ...
+
 
 # Backend registry
 _backends: dict[str, type[TaskBackend]] = {}

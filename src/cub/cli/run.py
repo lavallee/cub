@@ -813,6 +813,19 @@ def run(
             )
             if not _create_branch_from_base(auto_branch_name, base_branch, console):
                 raise typer.Exit(1)
+
+            # Bind branch to epic if --epic was specified
+            if epic:
+                try:
+                    backend = get_task_backend(project_dir=project_dir)
+                    if backend.bind_branch(epic, auto_branch_name, base_branch):
+                        console.print(
+                            f"[green]Bound branch '{auto_branch_name}' to epic '{epic}'[/green]"
+                        )
+                except Exception:
+                    # Non-fatal: binding failed but branch was created
+                    pass
+
             # Update current_branch for any subsequent checks
             current_branch = auto_branch_name
         elif not main_ok:

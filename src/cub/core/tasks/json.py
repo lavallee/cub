@@ -650,3 +650,27 @@ class JsonBackend:
 ```
 
 **Important:** Always run feedback loops (tests, typecheck, lint) BEFORE marking the task closed."""
+
+    def bind_branch(
+        self,
+        epic_id: str,
+        branch_name: str,
+        base_branch: str = "main",
+    ) -> bool:
+        """
+        Bind a git branch to an epic.
+
+        The JSON backend doesn't have native branch binding support.
+        This is a no-op that returns False.
+
+        Args:
+            epic_id: Epic ID to bind
+            branch_name: Git branch name
+            base_branch: Base branch for merging
+
+        Returns:
+            False (branch binding not supported in JSON backend)
+        """
+        # JSON backend doesn't support branch bindings
+        # Could optionally store in prd.json metadata in the future
+        return False

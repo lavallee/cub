@@ -419,7 +419,9 @@ class BeadsBackend:
                     # bd dep add <task> <depends-on> --type blocks
                     # This means task blocks the dependency (dependency must complete first)
                     # bd dep add doesn't return JSON
-                    self._run_bd(["dep", "add", new_id, dep_id, "--type", "blocks"], expect_json=False)
+                    self._run_bd(
+                        ["dep", "add", new_id, dep_id, "--type", "blocks"], expect_json=False
+                    )
 
             # Fetch and return the created task
             created_task = self.get_task(new_id)
@@ -557,3 +559,38 @@ class BeadsBackend:
 - `bd ready` - See tasks ready to work on (no blockers)
 
 **Important:** Always run feedback loops (tests, typecheck, lint) BEFORE closing the task."""
+
+    def bind_branch(
+        self,
+        epic_id: str,
+        branch_name: str,
+        base_branch: str = "main",
+    ) -> bool:
+        """
+        Bind a git branch to an epic using beads branch store.
+
+        Args:
+            epic_id: Epic ID to bind
+            branch_name: Git branch name
+            base_branch: Base branch for merging
+
+        Returns:
+            True if binding was created, False if already exists
+        """
+        from cub.core.branches.store import BranchStore, BranchStoreError
+
+        try:
+            store = BranchStore()
+            # Check if binding already exists
+            existing = store.get_binding(epic_id)
+            if existing:
+                return False
+            existing_branch = store.get_binding_by_branch(branch_name)
+            if existing_branch:
+                return False
+            # Create new binding
+            store.add_binding(epic_id, branch_name, base_branch)
+            return True
+        except BranchStoreError:
+            # .beads directory might not exist or other issue
+            return False
