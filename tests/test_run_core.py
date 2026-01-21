@@ -1441,3 +1441,229 @@ class TestFiltering:
 
         # Verify try_close_epic was NOT called
         deps["task_backend"].try_close_epic.assert_not_called()
+
+
+# ==============================================================================
+# Tests for Branch Creation Behavior
+# ==============================================================================
+
+
+class TestBranchCreation:
+    """Tests for --use-current-branch flag and branch creation behavior."""
+
+    def test_use_current_branch_on_main_without_main_ok_fails(self, runner):
+        """Test --use-current-branch on main without --main-ok fails."""
+        with patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get:
+            mock_get.return_value = "main"
+
+            result = runner.invoke(app, ["--use-current-branch", "--once"])
+
+            assert result.exit_code == 1
+            assert "Cannot run on 'main' branch without --main-ok" in result.output
+
+    def test_use_current_branch_on_main_with_main_ok_succeeds(self, runner):
+        """Test --use-current-branch on main with --main-ok succeeds."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            result = runner.invoke(
+                app, ["--use-current-branch", "--main-ok", "--once"]
+            )
+
+            # Should fail for no harness, not branch protection
+            assert "No harness available" in result.output
+            assert "Cannot run on 'main'" not in result.output
+
+    def test_use_current_branch_on_feature_branch_succeeds(self, runner):
+        """Test --use-current-branch on feature branch works without --main-ok."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "feature/my-work"
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            result = runner.invoke(app, ["--use-current-branch", "--once"])
+
+            # Should fail for no harness, not branch protection
+            assert "No harness available" in result.output
+            assert "Cannot run on" not in result.output
+
+    def test_default_creates_branch_from_origin_main(self, runner):
+        """Test default behavior creates branch from origin/main."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_create.return_value = True  # Branch creation succeeds
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            runner.invoke(app, ["--once"])
+
+            # Should create branch from origin/main
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert call_args[0][1] == "origin/main"  # base_branch is origin/main
+
+    def test_from_branch_overrides_default_base(self, runner):
+        """Test --from-branch overrides the default origin/main base."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_create.return_value = True
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            runner.invoke(app, ["--from-branch", "develop", "--once"])
+
+            # Should create branch from develop
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert call_args[0][1] == "develop"  # base_branch is develop
+
+    def test_use_current_branch_ignores_from_branch(self, runner):
+        """Test --use-current-branch ignores --from-branch (no-op)."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "feature/existing"
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            result = runner.invoke(
+                app, ["--use-current-branch", "--from-branch", "develop", "--once"]
+            )
+
+            # Should NOT create a branch
+            mock_create.assert_not_called()
+            # Should fail for no harness, not branch issues
+            assert "No harness available" in result.output
+
+    def test_on_feature_branch_reuses_existing(self, runner):
+        """Test running on existing feature branch reuses it (no new branch)."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "feature/existing-work"
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            result = runner.invoke(app, ["--once"])
+
+            # Should NOT create a new branch when already on a feature branch
+            mock_create.assert_not_called()
+            # Should fail for no harness, not branch issues
+            assert "No harness available" in result.output
+
+    def test_task_specific_branch_name(self, runner):
+        """Test --task creates branch with task ID in name."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_create.return_value = True
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            runner.invoke(app, ["--task", "cub-123", "--once"])
+
+            # Should create branch with task ID
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert "task/cub-123" in call_args[0][0]  # branch_name contains task ID
+
+    def test_epic_branch_name(self, runner):
+        """Test --epic creates branch with epic name."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run._get_epic_title", return_value="Backend API"),
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_create.return_value = True
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            runner.invoke(app, ["--epic", "cub-xyz", "--once"])
+
+            # Should create branch with epic title slug
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert "feature/backend-api" in call_args[0][0]
+
+    def test_label_branch_name(self, runner):
+        """Test --label creates branch with label name."""
+        with (
+            patch(
+                "cub.core.branches.store.BranchStore.get_current_branch"
+            ) as mock_get,
+            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.detect_async_harness", return_value=None),
+        ):
+            mock_get.return_value = "main"
+            mock_create.return_value = True
+            mock_config.return_value = MagicMock()
+            mock_config.return_value.harness.priority = []
+
+            runner.invoke(app, ["--label", "priority", "--once"])
+
+            # Should create branch with label name
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args
+            assert "feature/priority" in call_args[0][0]
+
+    def test_master_branch_also_protected(self, runner):
+        """Test 'master' branch is also protected like 'main'."""
+        with patch(
+            "cub.core.branches.store.BranchStore.get_current_branch"
+        ) as mock_get:
+            mock_get.return_value = "master"
+
+            result = runner.invoke(app, ["--use-current-branch", "--once"])
+
+            assert result.exit_code == 1
+            assert "Cannot run on 'master' branch without --main-ok" in result.output

@@ -683,10 +683,16 @@ def run(
         "--main-ok",
         help="Allow running on main/master branch (normally blocked)",
     ),
+    use_current_branch: bool = typer.Option(
+        False,
+        "--use-current-branch",
+        help="Run in the current branch instead of creating a new one",
+    ),
     from_branch: str | None = typer.Option(
         None,
         "--from-branch",
-        help="Base branch for auto-created feature branches (default: main)",
+        help="Base branch for new feature branch (default: origin/main). "
+        "Ignored with --use-current-branch.",
     ),
 ) -> None:
     """
@@ -701,25 +707,21 @@ def run(
         automatically created. Use --main-ok to explicitly allow main.
 
     Examples:
-        cub run                         # Run with default harness
-        cub run --harness claude        # Run with Claude
-        cub run --once                  # Run one iteration
-        cub run --task cub-123          # Run specific task
-        cub run --budget 5.0            # Set budget to $5
-        cub run --epic backend-v2       # Work on epic (auto-creates feature/backend-v2)
-        cub run --label priority        # Work on labeled tasks (auto-creates feature/priority)
-        cub run --gh-issue 123          # Work on GitHub issue (auto-creates fix/issue-title)
-        cub run --main-ok               # Explicitly allow running on main
-        cub run --from-branch develop   # Create feature branch from develop instead of main
-        cub run --ready                 # List ready tasks
-        cub run --worktree              # Run in isolated worktree
-        cub run --worktree --worktree-keep  # Keep worktree after run
-        cub run --parallel 3            # Run 3 independent tasks in parallel
-        cub run --sandbox               # Run in Docker sandbox
-        cub run --sandbox --no-network  # Run in sandbox without network
-        cub run --direct "Add a logout button to the navbar"  # Direct task
-        cub run --direct @task.txt      # Read task from file
-        echo "Fix the typo" | cub run --direct -  # Read from stdin
+        cub run                      # Creates new branch from origin/main
+        cub run --use-current-branch # Run in current branch
+        cub run --harness claude     # Run with Claude
+        cub run --once               # Run one iteration
+        cub run --task cub-123       # Run specific task
+        cub run --budget 5.0         # Set budget to $5
+        cub run --epic backend-v2    # Work on epic
+        cub run --label priority     # Work on labeled tasks
+        cub run --gh-issue 123       # Work on GitHub issue
+        cub run --from-branch develop  # Create branch from develop
+        cub run --ready              # List ready tasks
+        cub run --worktree           # Run in isolated worktree
+        cub run --parallel 3         # Run 3 tasks in parallel
+        cub run --sandbox            # Run in Docker sandbox
+        cub run --direct "task"      # Direct task
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -779,11 +781,32 @@ def run(
     from cub.core.branches.store import BranchStore
 
     current_branch = BranchStore.get_current_branch()
-    base_branch = from_branch or "main"
+    # Use origin/main as default to avoid issues with stale local main
+    base_branch = from_branch if from_branch else "origin/main"
 
-    # Check if on main/master branch
-    if current_branch in ("main", "master"):
-        # Determine if we should auto-create a branch
+    # Determine branch behavior based on --use-current-branch flag
+    if use_current_branch:
+        # --use-current-branch: work in current branch (explicit opt-in)
+        # Still protect main/master unless --main-ok is set
+        if current_branch in ("main", "master") and not main_ok:
+            console.print(
+                f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]"
+            )
+            console.print(
+                "[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]"
+            )
+            console.print("[dim]or add --main-ok to explicitly allow running on main.[/dim]")
+            raise typer.Exit(1)
+        elif current_branch in ("main", "master"):
+            # --main-ok was set, warn but continue
+            console.print(
+                f"[yellow]Warning: Running on '{current_branch}' branch "
+                "(--use-current-branch --main-ok)[/yellow]"
+            )
+        # else: on a feature branch with --use-current-branch, proceed normally
+    else:
+        # Default behavior: create a new branch from origin/main (or --from-branch)
+        # Generate branch name based on context
         auto_branch_name: str | None = None
 
         if label:
@@ -805,11 +828,25 @@ def run(
             else:
                 # Fallback to issue number
                 auto_branch_name = f"fix/issue-{gh_issue}"
+        elif task_id:
+            # --task cub-123 → task/cub-123
+            auto_branch_name = f"task/{_slugify(task_id)}"
+        else:
+            # No specific context - generate timestamp-based branch
+            auto_branch_name = f"cub/run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
-        if auto_branch_name:
-            # Auto-create and switch to branch
+        # Check if we're already on a feature branch (not main/master)
+        if current_branch not in ("main", "master", None):
+            # Already on a feature branch - check if we should create a new one anyway
+            # For now, reuse existing feature branch to avoid branch sprawl
+            if debug:
+                console.print(
+                    f"[dim]Already on feature branch '{current_branch}', continuing...[/dim]"
+                )
+        else:
+            # On main/master or detached HEAD - create and switch to new branch
             console.print(
-                f"[yellow]On {current_branch} branch - creating '{auto_branch_name}'[/yellow]"
+                f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]"
             )
             if not _create_branch_from_base(auto_branch_name, base_branch, console):
                 raise typer.Exit(1)
@@ -828,19 +865,6 @@ def run(
 
             # Update current_branch for any subsequent checks
             current_branch = auto_branch_name
-        elif not main_ok:
-            # No auto-branch trigger and --main-ok not set
-            console.print(f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]")
-            console.print(
-                "[dim]Use --label, --epic, or --gh-issue to auto-create a feature branch,[/dim]"
-            )
-            console.print("[dim]or use --main-ok to explicitly allow running on main.[/dim]")
-            raise typer.Exit(1)
-        else:
-            # --main-ok was set, warn but continue
-            console.print(
-                f"[yellow]Warning: Running on '{current_branch}' branch (--main-ok)[/yellow]"
-            )
 
     # Handle --sandbox flag: run in Docker container
     if sandbox:
