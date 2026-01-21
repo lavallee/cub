@@ -33,8 +33,10 @@ def _run_claude_for_ci(prompt: str) -> None:
 
     try:
         # Use subprocess to run claude with the prompt
+        # --dangerously-skip-permissions allows Claude to handle GitHub CLI
+        # operations (check CI, respond to reviews, merge) without prompts
         result = subprocess.run(
-            ["claude", "--print", prompt],
+            ["claude", "--dangerously-skip-permissions", "--print", prompt],
             check=False,
         )
         if result.returncode != 0:
