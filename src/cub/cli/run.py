@@ -1073,6 +1073,9 @@ def run(
         run_id=run_id,
         session_name=session_name or run_id,
         phase=RunPhase.INITIALIZING,
+        epic=epic,
+        label=label,
+        branch=current_branch,
         iteration=IterationInfo(
             current=0,
             max=max_iterations,
@@ -1098,6 +1101,10 @@ def run(
     status.tasks_open = counts.open
     status.tasks_in_progress = counts.in_progress
     status.tasks_closed = counts.closed
+
+    # Initialize task entries for Kanban display
+    initial_tasks = task_backend.get_ready_tasks(parent=epic, label=label)
+    status.set_task_entries([(t.id, t.title) for t in initial_tasks])
 
     console.print(f"[bold]Starting cub run: {run_id}[/bold]")
     console.print(
@@ -1212,6 +1219,7 @@ def run(
             # Update status
             status.current_task_id = current_task.id
             status.current_task_title = current_task.title
+            status.start_task_entry(current_task.id)  # Mark task as DOING in Kanban
             status.add_event(
                 f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
             )
@@ -1306,6 +1314,7 @@ def run(
                 console.print(f"[green]Task completed in {duration:.1f}s[/green]")
                 console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
                 status.budget.tasks_completed += 1
+                status.complete_task_entry(current_task.id)  # Mark task as DONE in Kanban
                 status.add_event(
                     f"Task completed: {current_task.title}",
                     EventLevel.INFO,

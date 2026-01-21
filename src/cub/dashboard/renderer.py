@@ -12,7 +12,7 @@ from rich.progress import BarColumn, Progress, TextColumn
 from rich.table import Table
 from rich.text import Text
 
-from cub.core.status.models import EventLevel, RunPhase, RunStatus
+from cub.core.status.models import EventLevel, RunPhase, RunStatus, TaskEntry, TaskState
 
 
 class DashboardRenderer:
@@ -20,9 +20,8 @@ class DashboardRenderer:
     Render a live dashboard for cub run status using Rich.
 
     The dashboard displays:
-    - Header: session name, run status
-    - Current task: task ID, title, iteration
-    - Budget: progress bars for tokens, tasks, cost
+    - Header: run type (epic/label), branch, task progress (X/Y)
+    - Kanban board: To Do, Doing, Done columns with timestamps
     - Activity log: recent events with timestamps
 
     Example:
@@ -53,158 +52,219 @@ class DashboardRenderer:
         # Create root layout with header and body
         layout = Layout()
         layout.split_column(
-            Layout(name="header", size=3),
+            Layout(name="header", size=5),
             Layout(name="body"),
         )
 
-        # Split body into left (task info) and right (budget)
-        layout["body"].split_row(
-            Layout(name="task", ratio=2),
-            Layout(name="budget", ratio=1),
+        # Split body into kanban (main) and activity (bottom)
+        layout["body"].split_column(
+            Layout(name="kanban", ratio=2),
+            Layout(name="activity", ratio=1),
         )
 
-        # Split task area into current task and activity log
-        layout["task"].split_column(
-            Layout(name="current", size=7),
-            Layout(name="activity"),
+        # Split kanban into three columns: To Do, Doing, Done
+        layout["kanban"].split_row(
+            Layout(name="todo", ratio=1),
+            Layout(name="doing", ratio=1),
+            Layout(name="done", ratio=1),
         )
 
         # Populate panels
         layout["header"].update(self._render_header(status))
-        layout["current"].update(self._render_current_task(status))
-        layout["budget"].update(self._render_budget(status))
+        layout["todo"].update(self._render_todo_panel(status))
+        layout["doing"].update(self._render_doing_panel(status))
+        layout["done"].update(self._render_done_panel(status))
         layout["activity"].update(self._render_activity_log(status))
 
         return layout
 
     def _render_header(self, status: RunStatus) -> Panel:
-        """Render the header panel with session info and status."""
-        # Status indicator with color
+        """Render the header panel with run context and progress."""
         status_color = self._get_status_color(status.phase)
+
+        # Build run type line
+        run_type_parts = []
+        if status.epic:
+            run_type_parts.append(f"--epic {status.epic}")
+        if status.label:
+            run_type_parts.append(f"--label {status.label}")
+        run_type = "  ".join(run_type_parts) if run_type_parts else "all tasks"
+
+        # Build branch line
+        branch_display = status.branch or status.session_name or "unknown"
+
+        # Build progress line (X/Y format)
+        progress_str = f"{status.tasks_closed}/{status.tasks_total}"
+
+        # Status indicator
         status_text = Text()
         status_text.append("Status: ", style="bold")
         status_text.append(status.phase.value.upper(), style=f"bold {status_color}")
 
-        # Build header content
-        lines = [
-            Text("CUB DASHBOARD", style="bold cyan", justify="center"),
-            Text(f"Session: {status.session_name}  |  Run: {status.run_id}", justify="center"),
-            status_text,
-        ]
+        # Build header content as a grid
+        grid = Table.grid(padding=(0, 2))
+        grid.add_column(style="bold cyan", justify="right", width=10)
+        grid.add_column()
+
+        grid.add_row("Run:", run_type)
+        grid.add_row("Branch:", branch_display)
+        grid.add_row("Progress:", f"{progress_str} tasks completed")
 
         return Panel(
-            Group(*lines),
+            Group(
+                Text("CUB MONITOR", style="bold cyan", justify="center"),
+                Text(""),
+                grid,
+                status_text,
+            ),
             border_style=status_color,
             padding=(0, 1),
         )
 
-    def _render_current_task(self, status: RunStatus) -> Panel:
-        """Render the current task panel."""
-        if status.current_task_id:
-            # Active task display
-            content = Table.grid(padding=(0, 2))
-            content.add_column(style="bold cyan", justify="right")
-            content.add_column()
+    def _render_todo_panel(self, status: RunStatus) -> Panel:
+        """Render the To Do column with pending tasks."""
+        todo_tasks = status.get_tasks_by_state(TaskState.TODO)
 
-            content.add_row("Task:", status.current_task_id)
-            if status.current_task_title:
-                content.add_row("Title:", status.current_task_title)
-
-            content.add_row(
-                "Iteration:",
-                f"{status.iteration.task_iteration}/{status.iteration.max_task_iteration}",
-            )
-            content.add_row(
-                "Total:",
-                f"{status.iteration.current}/{status.iteration.max}",
-            )
-
-            # Warning if nearing iteration limit
-            warning = None
-            if status.iteration.is_near_limit:
-                warning = Text(
-                    f"⚠️  Approaching iteration limit ({status.iteration.percentage:.0f}%)",
-                    style="bold yellow",
-                )
-
-            panel_content: RenderableType = Group(content, warning) if warning else content
-        else:
-            # No active task
-            panel_content = Text(
-                "No active task",
+        if not todo_tasks:
+            content: RenderableType = Text(
+                "No pending tasks",
                 style="dim italic",
                 justify="center",
             )
+        else:
+            content = self._render_task_list(todo_tasks, show_started=False)
 
         return Panel(
-            panel_content,
-            title="[bold]Current Task[/bold]",
+            content,
+            title=f"[bold]To Do[/bold] ({len(todo_tasks)})",
             border_style="blue",
-            padding=(1, 2),
+            padding=(0, 1),
         )
 
-    def _render_budget(self, status: RunStatus) -> Panel:
-        """Render the budget panel with progress bars."""
-        # Create progress display
-        content: list[Text | Progress] = []
+    def _render_doing_panel(self, status: RunStatus) -> Panel:
+        """Render the Doing column with in-progress tasks."""
+        doing_tasks = status.get_tasks_by_state(TaskState.DOING)
 
-        # Task completion progress
-        if status.tasks_total > 0:
-            content.append(Text("Tasks", style="bold"))
-            task_bar = self._create_progress_bar(
-                completed=status.tasks_closed,
-                total=status.tasks_total,
-                label=f"{status.tasks_closed}/{status.tasks_total}",
-            )
-            content.append(task_bar)
-            content.append(Text(f"{status.completion_percentage:.1f}% complete\n", style="dim"))
-
-        # Token usage progress
-        if status.budget.tokens_limit:
-            content.append(Text("Tokens", style="bold"))
-            token_bar = self._create_progress_bar(
-                completed=status.budget.tokens_used,
-                total=status.budget.tokens_limit,
-                label=f"{status.budget.tokens_used:,}/{status.budget.tokens_limit:,}",
-            )
-            content.append(token_bar)
-            if status.budget.tokens_percentage is not None:
-                content.append(Text(f"{status.budget.tokens_percentage:.1f}% used\n", style="dim"))
-
-        # Cost tracking
-        if status.budget.cost_limit or status.budget.cost_usd > 0:
-            content.append(Text("Cost", style="bold"))
-            if status.budget.cost_limit:
-                cost_bar = self._create_progress_bar(
-                    completed=status.budget.cost_usd,
-                    total=status.budget.cost_limit,
-                    label=f"${status.budget.cost_usd:.2f}/${status.budget.cost_limit:.2f}",
-                )
-                content.append(cost_bar)
-                if status.budget.cost_percentage is not None:
-                    content.append(Text(f"{status.budget.cost_percentage:.1f}% spent", style="dim"))
+        if not doing_tasks:
+            # Fall back to current_task_id if task_entries not populated
+            if status.current_task_id:
+                content: RenderableType = self._render_current_task_fallback(status)
             else:
-                content.append(Text(f"${status.budget.cost_usd:.2f}", style="dim"))
+                content = Text(
+                    "No active task",
+                    style="dim italic",
+                    justify="center",
+                )
+        else:
+            content = self._render_task_list(doing_tasks, show_started=True)
 
-        # Budget warning
-        if status.budget.is_over_budget:
-            content.append(Text("\n⚠️  Budget limit exceeded", style="bold red"))
-
-        panel_content: RenderableType = (
-            Group(*content) if content else Text("No budget limits set", style="dim italic")
+        doing_count = len(doing_tasks) or (1 if status.current_task_id else 0)
+        return Panel(
+            content,
+            title=f"[bold]Doing[/bold] ({doing_count})",
+            border_style="yellow",
+            padding=(0, 1),
         )
+
+    def _render_done_panel(self, status: RunStatus) -> Panel:
+        """Render the Done column with completed tasks."""
+        done_tasks = status.get_tasks_by_state(TaskState.DONE)
+
+        if not done_tasks:
+            content: RenderableType = Text(
+                "No completed tasks",
+                style="dim italic",
+                justify="center",
+            )
+        else:
+            # Show most recent completed tasks first, limit to 10
+            content = self._render_task_list(
+                list(reversed(done_tasks))[:10], show_completed=True
+            )
 
         return Panel(
-            panel_content,
-            title="[bold]Budget[/bold]",
-            border_style="green" if not status.budget.is_over_budget else "red",
-            padding=(1, 2),
+            content,
+            title=f"[bold]Done[/bold] ({len(done_tasks)})",
+            border_style="green",
+            padding=(0, 1),
         )
+
+    def _render_task_list(
+        self,
+        tasks: list[TaskEntry],
+        show_started: bool = False,
+        show_completed: bool = False,
+    ) -> Table:
+        """
+        Render a list of tasks as a table.
+
+        Args:
+            tasks: List of TaskEntry objects
+            show_started: Show started_at timestamp
+            show_completed: Show completed_at timestamp
+
+        Returns:
+            Rich Table with task information
+        """
+        table = Table.grid(padding=(0, 1))
+        table.add_column(style="cyan", width=12)  # Task ID
+        table.add_column()  # Title
+        if show_started or show_completed:
+            table.add_column(style="dim", width=10)  # Timestamp
+
+        for task in tasks:
+            row: list[str | Text] = [
+                task.task_id[:12],  # Truncate long IDs
+                Text(task.title[:40] + ("..." if len(task.title) > 40 else "")),
+            ]
+
+            if show_started and task.started_at:
+                row.append(task.started_at.strftime("%H:%M:%S"))
+            elif show_completed and task.completed_at:
+                row.append(task.completed_at.strftime("%H:%M:%S"))
+            elif show_started or show_completed:
+                row.append("")
+
+            table.add_row(*row)
+
+        return table
+
+    def _render_current_task_fallback(self, status: RunStatus) -> RenderableType:
+        """
+        Render current task info when task_entries is not populated.
+
+        Used for backward compatibility when task_entries list is empty.
+        """
+        content = Table.grid(padding=(0, 2))
+        content.add_column(style="bold cyan", justify="right")
+        content.add_column()
+
+        content.add_row("Task:", status.current_task_id or "")
+        if status.current_task_title:
+            title_display = status.current_task_title
+            if len(title_display) > 35:
+                title_display = title_display[:35] + "..."
+            content.add_row("Title:", title_display)
+
+        content.add_row(
+            "Iter:",
+            f"{status.iteration.task_iteration}/{status.iteration.max_task_iteration}",
+        )
+
+        # Warning if nearing iteration limit
+        warning = None
+        if status.iteration.is_near_limit:
+            warning = Text(
+                f"Near limit ({status.iteration.percentage:.0f}%)",
+                style="bold yellow",
+            )
+
+        return Group(content, warning) if warning else content
 
     def _render_activity_log(self, status: RunStatus) -> Panel:
         """Render the activity log panel with recent events."""
-        # Get recent events (last 10)
-        recent_events = status.events[-10:] if status.events else []
+        # Get recent events (last 8 for compact display)
+        recent_events = status.events[-8:] if status.events else []
 
         if not recent_events:
             content: RenderableType = Text(
@@ -227,6 +287,10 @@ class DashboardRenderer:
                 if event.task_id:
                     message = f"[{event.task_id}] {message}"
 
+                # Truncate long messages
+                if len(message) > 60:
+                    message = message[:60] + "..."
+
                 table.add_row(timestamp, Text(message, style=message_style))
 
             content = table
@@ -234,8 +298,8 @@ class DashboardRenderer:
         return Panel(
             content,
             title="[bold]Recent Activity[/bold]",
-            border_style="yellow",
-            padding=(1, 2),
+            border_style="magenta",
+            padding=(0, 1),
         )
 
     def _create_progress_bar(
