@@ -17,6 +17,7 @@ from cub.core.pr.service import (
     _delete_local_branch,
     _find_worktree_for_branch,
     _prune_remote_tracking,
+    _switch_to_branch,
     _update_worktree,
 )
 
@@ -310,6 +311,54 @@ branch refs/heads/feature
             result = _prune_remote_tracking(tmp_path)
 
         assert result is False
+
+    def test_switch_to_branch_success(self, tmp_path):
+        """Test switching to branch successfully."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+            success, error_msg = _switch_to_branch(tmp_path, "main")
+
+        assert success is True
+        assert error_msg == ""
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args
+        assert call_args[0][0] == ["git", "switch", "main"]
+        assert call_args[1]["cwd"] == tmp_path
+
+    def test_switch_to_branch_failure(self, tmp_path):
+        """Test switching to branch when it fails."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1,
+                stdout="",
+                stderr="error: Your local changes would be overwritten",
+            )
+            success, error_msg = _switch_to_branch(tmp_path, "main")
+
+        assert success is False
+        assert "local changes would be overwritten" in error_msg
+
+    def test_switch_to_branch_failure_with_stdout(self, tmp_path):
+        """Test switching to branch when it fails with stdout message."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1,
+                stdout="fatal: cannot switch to main",
+                stderr="",
+            )
+            success, error_msg = _switch_to_branch(tmp_path, "main")
+
+        assert success is False
+        assert "cannot switch to main" in error_msg
+
+    def test_switch_to_branch_oserror(self, tmp_path):
+        """Test switching to branch when git not found."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = OSError("git not found")
+            success, error_msg = _switch_to_branch(tmp_path, "main")
+
+        assert success is False
+        assert "git not found" in error_msg
 
 
 class TestStreamConfig:

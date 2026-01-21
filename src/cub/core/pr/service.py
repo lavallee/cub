@@ -166,6 +166,34 @@ def _delete_local_branch(project_dir: Path, branch: str) -> bool:
         return False
 
 
+def _switch_to_branch(project_dir: Path, branch: str) -> tuple[bool, str]:
+    """
+    Switch to a different branch.
+
+    Args:
+        project_dir: Project root directory
+        branch: Branch name to switch to
+
+    Returns:
+        Tuple of (success, error_message). error_message is empty on success.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "switch", branch],
+            capture_output=True,
+            text=True,
+            cwd=project_dir,
+            check=False,
+        )
+        if result.returncode == 0:
+            return (True, "")
+        # Return the error message for display
+        error_msg = result.stderr.strip() or result.stdout.strip()
+        return (False, error_msg)
+    except (OSError, FileNotFoundError) as e:
+        return (False, str(e))
+
+
 def _prune_remote_tracking(project_dir: Path) -> bool:
     """
     Prune stale remote-tracking branches.
@@ -838,14 +866,54 @@ Generated with [cub](https://github.com/lavallee/cub)
         # Prune stale remote-tracking branches
         _prune_remote_tracking(self.project_dir)
 
+        # Try to switch to base branch before deleting feature branch
+        # This allows the feature branch to be deleted since we can't delete the current branch
+        switched_to_base = False
+        if feature_branch:
+            # Check if we're on the feature branch
+            try:
+                result = subprocess.run(
+                    ["git", "branch", "--show-current"],
+                    capture_output=True,
+                    text=True,
+                    cwd=self.project_dir,
+                    check=False,
+                )
+                current_branch = result.stdout.strip()
+                if current_branch == feature_branch:
+                    # We're on the feature branch, try to switch to base
+                    success, error_msg = _switch_to_branch(self.project_dir, base_branch)
+                    if success:
+                        self._console.print(f"Switched to {base_branch}")
+                        switched_to_base = True
+                    else:
+                        # Branch switch failed - this is OK, merge succeeded
+                        self._console.print(
+                            f"[yellow]Could not switch to {base_branch}[/yellow]"
+                        )
+                        if error_msg:
+                            self._console.print(f"[dim]  {error_msg}[/dim]")
+                        self._console.print(
+                            f"[dim]  Staying on {feature_branch}[/dim]"
+                        )
+            except (OSError, FileNotFoundError):
+                pass  # Can't determine current branch, continue without switching
+
         # Delete local feature branch if delete_branch was requested
         if delete_branch and feature_branch:
             if _delete_local_branch(self.project_dir, feature_branch):
                 self._console.print(f"Deleted local branch {feature_branch}")
             else:
-                self._console.print(
-                    f"[dim]Local branch {feature_branch} kept (may be current branch)[/dim]"
-                )
+                if switched_to_base:
+                    # We switched but still couldn't delete - unexpected
+                    self._console.print(
+                        f"[yellow]Could not delete local branch {feature_branch}[/yellow]"
+                    )
+                else:
+                    # Expected - we're still on the branch
+                    self._console.print(
+                        f"[dim]Local branch {feature_branch} kept (still on this branch)[/dim]"
+                    )
 
         return MergeResult(
             success=True,
