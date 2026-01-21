@@ -32,6 +32,7 @@ from cub.core.plan.pipeline import (
     PipelineError,
     PlanPipeline,
 )
+from cub.utils.handoff import try_handoff_or_message
 
 app = typer.Typer(
     name="plan",
@@ -327,7 +328,8 @@ def orient(
             console.print(f"  Open questions: {len(result.open_questions)}")
 
     console.print()
-    console.print("[bold]Next step:[/bold] cub plan architect")
+    _success, next_msg = try_handoff_or_message("plan architect", plan_ctx.plan.slug)
+    console.print(next_msg)
 
 
 @app.command()
@@ -511,7 +513,8 @@ def architect(
             console.print(f"  Implementation phases: {len(result.implementation_phases)}")
 
     console.print()
-    console.print("[bold]Next step:[/bold] cub plan itemize")
+    _success, next_msg = try_handoff_or_message("plan itemize", plan_ctx.plan.slug)
+    console.print(next_msg)
 
 
 @app.command()
@@ -666,7 +669,8 @@ def itemize(
                 console.print(f"    - {epic.id}: {epic.title} ({task_count} tasks)")
 
     console.print()
-    console.print("[bold]Next step:[/bold] cub stage")
+    _success, next_msg = try_handoff_or_message("stage", plan_ctx.plan.slug)
+    console.print(next_msg)
 
 
 @app.command("run")
@@ -887,7 +891,8 @@ def run_pipeline(
             console.print(f"[dim]Spec moved to: {relative_new}[/dim]")
 
         console.print()
-        console.print("[bold]Next step:[/bold] cub stage")
+        _success, next_msg = try_handoff_or_message("stage", result.plan.slug)
+        console.print(next_msg)
     else:
         console.print("[bold red]Pipeline failed![/bold red]")
         if result.error:

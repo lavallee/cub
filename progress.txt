@@ -1,5 +1,47 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-3wxc.6: Auto-execute /cub: handoff after plan stage approval
+
+### Task Completed
+Implemented `/cub:` slash command handoff messaging for plan stages to provide seamless workflow continuation in Claude Code.
+
+### What Was Implemented
+
+**New Handoff Module (`cub.utils.handoff`):**
+- `try_handoff_or_message(command, args)` - Main entry point for handoff messaging
+- `format_slash_command(skill, args)` - Format `/cub:` commands with backticks
+- `format_shell_command(command, args)` - Format shell commands with backticks
+- `SLASH_COMMAND_MAP` - Maps CLI commands to slash command skills
+- `HandoffResult` enum and `HandoffOutcome` dataclass for extensibility
+
+**Plan Stage Updates:**
+- orient → Shows `/cub:architect {slug}` after completion
+- architect → Shows `/cub:itemize {slug}` after completion
+- itemize → Shows `cub stage {slug}` (no slash equivalent)
+- run pipeline → Shows `cub stage {slug}`
+
+**Tests:**
+- Added 33 tests covering format functions, command mapping, handoff attempts
+
+### Key Design Decisions
+
+1. **Slash Commands vs Shell Commands**: Commands with Claude Code skill equivalents (`orient`, `architect`, `itemize`) use `/cub:` syntax. Commands without skills (`stage`) use shell syntax.
+
+2. **No Automatic Execution**: The subprocess approach (like capture.py uses) launches a new Claude session rather than continuing the current one, so automatic handoff isn't suitable for seamless continuation. Instead, we provide clear instructions.
+
+3. **Extensibility**: The `SLASH_COMMAND_MAP` allows easy addition of new slash command mappings. The `attempt_handoff()` function is available for future use if Claude Code integration evolves.
+
+### Files Modified
+- `src/cub/cli/plan.py` - Added try_handoff_or_message calls after stage completion
+- `src/cub/utils/__init__.py` - Exported handoff module symbols
+- `src/cub/utils/handoff.py` (new) - Handoff utility module
+- `tests/test_handoff.py` (new) - Comprehensive test coverage
+
+### Key Learning
+Claude Code slash commands (`.claude/commands/cub:*.md`) are skill files that guide the AI, not direct CLI invocations. The subprocess `claude /cub:skill` approach launches a new session. For seamless workflow in Claude Code, the AI must be instructed with the slash command syntax rather than attempting automatic execution.
+
+---
+
 ## 2026-01-21 - cub-3wxc.4: Fix cub:orient help text and plan output path
 
 ### Task Completed
@@ -3186,3 +3228,58 @@ Implemented automatic epic closure when all tasks belonging to an epic are compl
 - Beads backend tasks can be associated with epics via parent field OR label
 - The run.py finally block is the right place for cleanup actions like epic closure
 - Tests for backends use mock subprocess.run with side_effect for multiple calls
+
+
+## 2026-01-21 - cub-3wxc.5: Fix cub spec --list to work from project subdirectories
+
+### Task Completed
+Fixed `cub spec --list` to work from any directory within a project by adding project root discovery and showing specs from all lifecycle stages.
+
+### What Was Implemented
+
+**Project Root Discovery Utility:**
+- New module `src/cub/utils/project.py` with `find_project_root()` and `get_project_root()` functions
+- Searches upward through parent directories for project markers: `.beads/`, `.cub/`, `.cub.json`, `.git/`
+- Markers checked in priority order (.beads first for this project's preferred backend)
+- Returns None if no project root found (don't crash, show helpful message)
+
+**Updated spec --list Command:**
+- Now uses project root discovery instead of assuming current directory
+- Uses SpecWorkflow to list all specs (reuses existing logic)
+- Shows specs grouped by lifecycle stage in order: researching → planned → staged → implementing → released
+- Each stage has a color for visual distinction
+- Readiness scores displayed for specs that have them
+- Spec titles shown below spec names for clarity
+
+**Bug Fix in SpecWorkflow.list_specs():**
+- Fixed a bug where `Stage.COMPLETED` alias filtering was inadvertently excluding `Stage.RELEASED` specs
+- Issue: `s != Stage.COMPLETED` is true for all stages because COMPLETED == RELEASED in Python's enum
+- Fix: Simply use `list(Stage)` since Python enum iteration already excludes aliases
+
+### Tests Added
+- `tests/test_cli_spec.py`: 22 tests covering:
+  - Command help output
+  - Listing from project root with various states (no project, no specs dir, empty, single stage, multiple stages)
+  - Listing from subdirectories (src/, deeply nested, various marker types)
+  - Project root discovery
+  - Display formatting (readiness scores, titles, stage grouping)
+  - Edge cases (malformed specs, no frontmatter, no title)
+
+- `tests/test_utils_project.py`: 19 tests covering:
+  - Finding root from various directory levels
+  - All marker types (.beads, .git, .cub, .cub.json)
+  - Nested projects (finds closest root)
+  - Error cases (no markers found)
+  - get_project_root raises on missing root
+
+### Learnings
+1. **Python Enum Alias Behavior**: When enum members have the same value (like COMPLETED = "released" as alias for RELEASED = "released"), they share identity. Iterating over the enum only yields the canonical member, not aliases. Be careful with equality checks against aliases.
+
+2. **Project Root Discovery Pattern**: Useful utility for any command that needs to find project context. Could be reused for other commands that currently assume cwd is project root.
+
+3. **CLI Isolation Testing**: Typer's `runner.isolated_filesystem()` creates a fresh temp dir, but `os.chdir()` needs to be paired with cleanup to restore cwd in test teardown.
+
+4. **SpecWorkflow Reuse**: Good example of leveraging existing core module (`SpecWorkflow.list_specs()`) instead of reimplementing spec parsing in CLI layer.
+
+### Outcome
+Command now works reliably from any subdirectory within a project. Users can run `cub spec --list` from anywhere and see all their specs organized by lifecycle stage. Bug fix ensures specs in `released/` stage are properly shown.
