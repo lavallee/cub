@@ -3021,3 +3021,46 @@ Added comprehensive test coverage for specs/lifecycle.py module, bringing covera
 
 Successfully achieved 60%+ test coverage for all plan/stage/spec modules (Moderate tier requirement). The lifecycle module, which had the lowest coverage (11.2%), now has excellent coverage at 95.9%. All feedback loops passing (pytest, ruff). The overall plan→stage workflow now has comprehensive unit test coverage ensuring reliability of the new planning features.
 
+
+## 2026-01-21 - cub-3wxc.1: Auto-close epic when all tasks complete
+
+### Task Completed
+Implemented automatic epic closure when all tasks belonging to an epic are completed.
+
+### What Was Implemented
+
+**New Protocol Method:**
+- Added `try_close_epic(epic_id: str) -> tuple[bool, str]` to TaskBackend protocol
+- Returns (closed, message) tuple indicating whether epic was closed and why
+
+**BeadsBackend Implementation:**
+- Queries tasks by parent field and by label matching epic ID
+- Deduplicates tasks found through both methods
+- Counts open, in_progress, and closed tasks
+- Closes epic via `bd close` if all tasks are closed
+- Handles errors gracefully with descriptive messages
+
+**JsonBackend Implementation:**
+- Same logic as BeadsBackend but using JSON file operations
+- Uses list_tasks with parent filter and has_label checks
+- Calls close_task method to close the epic
+
+**Run Command Integration:**
+- Added auto-close logic in run.py finally block (after post-loop hooks)
+- Only runs when `--epic` flag is provided
+- Shows green success message when epic is auto-closed
+- Shows debug message when epic stays open (if --debug)
+- Non-fatal: errors during epic closure don't affect run exit code
+
+### Tests Added
+- 8 tests for JsonBackend.try_close_epic
+- 7 tests for BeadsBackend.try_close_epic  
+- 3 tests for run command auto-close behavior
+- Test coverage: all tasks closed, some open, some in-progress, epic not found,
+  epic already closed, no tasks found, tasks associated by label, mixed associations
+
+### Learnings
+- TaskBackend protocol is runtime-checkable and requires `...` for method signatures
+- Beads backend tasks can be associated with epics via parent field OR label
+- The run.py finally block is the right place for cleanup actions like epic closure
+- Tests for backends use mock subprocess.run with side_effect for multiple calls
