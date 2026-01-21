@@ -252,7 +252,7 @@ If no spec is provided, `cub plan run` looks for documents in this order:
 
 ## See Also
 
-- [Plan Flow Guide](../guide/prep-pipeline/index.md) - Detailed pipeline documentation
-- [Orient Stage](../guide/prep-pipeline/orient.md) - Problem research
-- [Architect Stage](../guide/prep-pipeline/architect.md) - Technical design
-- [Itemize Stage](../guide/prep-pipeline/itemize.md) - Task decomposition
+- [Plan Flow Guide](../guide/plan-pipeline/index.md) - Detailed pipeline documentation
+- [Orient Stage](../guide/plan-pipeline/orient.md) - Problem research
+- [Architect Stage](../guide/plan-pipeline/architect.md) - Technical design
+- [Itemize Stage](../guide/plan-pipeline/itemize.md) - Task decomposition

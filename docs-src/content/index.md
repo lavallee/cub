@@ -91,7 +91,7 @@ cub plan run my-feature.md  # Full pipeline
 cub stage                   # Import to backend
 ```
 
-[Learn about Planning](guide/prep-pipeline/index.md){ .md-button }
+[Learn about Planning](guide/plan-pipeline/index.md){ .md-button }
 
 </div>
 

@@ -6097,3 +6097,70 @@ The prompt for lesson extraction:
 - Could use larger model (sonnet) for more complex failure analysis
 - Could track lesson effectiveness (how often they're referenced in subsequent tasks)
 
+
+## Session: Add deprecation warnings to old commands (cub-p4x.1)
+
+### Task: Add deprecation warnings for prep pipeline commands
+- **Status**: COMPLETED
+- **Date**: 2026-01-21
+
+### What was implemented:
+
+1. **Deprecated command handlers** (`src/cub/cli/delegated.py`)
+   - Added `prep()` function with deprecation warning pointing to `cub plan`
+   - Added `bootstrap()` function with deprecation warning pointing to `cub stage`
+   - Did NOT add `triage` as it conflicts with the new capture processing command
+   - Commands delegate to bash but show visible warning messages
+
+2. **CLI registration** (`src/cub/cli/__init__.py`)
+   - Registered deprecated commands as hidden (not shown in main help)
+   - Added comment explaining the triage naming conflict
+   - Deprecated commands still work but don't clutter help output
+
+3. **Bash delegation** (`src/cub/core/bash_delegate.py`)
+   - Added `prep` and `bootstrap` to bash_commands set
+   - Updated comments to clarify why `triage` is not included
+   - Commands properly delegate through the bash cub script
+
+4. **Test coverage** (`tests/test_cli_delegated.py`)
+   - Added TestDeprecatedCommands class with comprehensive tests
+   - Tests verify warning messages are displayed
+   - Tests verify commands still delegate correctly to bash
+   - Tests verify commands are hidden from help output
+   - All 32 tests in test_cli_delegated.py passing
+
+### Key learnings:
+
+1. **Command name conflicts**: The old `triage` command from the prep pipeline
+   cannot be added as a deprecated top-level command because `triage` is now
+   used for capture processing (a completely different feature). This is a case
+   where the command name was repurposed rather than deprecated.
+
+2. **Hidden commands in Typer**: Use `hidden=True` parameter when registering
+   commands to keep them functional but not shown in help output. This is
+   perfect for deprecated commands.
+
+3. **Deprecation UX**: Rich console with colored warning messages provides
+   clear feedback to users without blocking execution. The format
+   `[yellow]⚠️  Warning: ... [/yellow]` is visible but not alarming.
+
+4. **Testing deprecations**: Important to test three aspects:
+   - Warning message is shown
+   - Command still functions (delegates correctly)
+   - Command is hidden from help output
+
+5. **Line length linting**: Rich colored output strings can easily exceed
+   100 character line limit. Break them into multiple lines with proper
+   indentation.
+
+### Feedback loops:
+- Tests: 1271 passed, 3 skipped ✅
+- Linting: All checks passed ✅
+- Type checking: Pre-existing errors unrelated to this change ⚠️
+
+### Migration notes:
+- Users running `cub prep` will see warning but command still works
+- Users running `cub bootstrap` will see warning but command still works
+- Users of old `cub triage` (prep pipeline) should use `cub plan orient`
+- No breaking changes - all commands remain functional
+

@@ -223,6 +223,6 @@ Add custom questions in `.cub.json`:
 
 ## Related Commands
 
-- [`cub plan orient`](../guide/prep-pipeline/orient.md) - Project-level requirements refinement
+- [`cub plan orient`](../guide/plan-pipeline/orient.md) - Project-level requirements refinement
 - [`cub explain-task`](explain-task.md) - View task details
 - [`cub run`](../guide/run-loop/index.md) - Execute tasks

@@ -202,5 +202,5 @@ bd show auth-001
 
 ## See Also
 
-- [Stage Guide](../guide/prep-pipeline/stage.md) - Detailed staging documentation
-- [Plan Flow](../guide/prep-pipeline/index.md) - Complete pipeline overview
+- [Stage Guide](../guide/plan-pipeline/stage.md) - Detailed staging documentation
+- [Plan Flow](../guide/plan-pipeline/index.md) - Complete pipeline overview
