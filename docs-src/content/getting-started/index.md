@@ -31,7 +31,7 @@ A 5-minute guide to initializing a project, creating tasks, and running your fir
 
 #### [Core Concepts](concepts.md)
 
-Understand the "prep and run" workflow, task backends, harnesses, and how all the pieces fit together.
+Understand the "plan and run" workflow, task backends, harnesses, and how all the pieces fit together.
 
 </div>
 
@@ -62,7 +62,7 @@ You want to use AI coding agents, but:
 
 Cub helps you work *ahead* of execution so you can be more hands-off *during* execution:
 
-1. **Prep** - Turn your ideas into structured, agent-sized tasks
+1. **Plan** - Turn your ideas into structured, agent-sized tasks
 2. **Run** - Let Cub execute tasks autonomously
 
 ```bash
@@ -73,8 +73,9 @@ curl -LsSf https://docs.cub.tools/install.sh | bash
 cub init --global
 cd my-project && cub init
 
-# Prep your work
-cub prep
+# Plan your work
+cub plan run specs/my-feature.md
+cub stage
 
 # Let it run
 cub run
@@ -92,7 +93,7 @@ Before installing Cub, make sure you have:
 | **At least one harness** | Claude Code, Codex, Gemini, or OpenCode |
 
 !!! info "Harness Installation"
-    Cub doesn't include AI harnesses - you need to install at least one separately. [Claude Code](https://github.com/anthropics/claude-code) is recommended for both `cub prep` (required) and `cub run`.
+    Cub doesn't include AI harnesses - you need to install at least one separately. [Claude Code](https://github.com/anthropics/claude-code) is recommended for both `cub plan` (required) and `cub run`.
 
 ---
 

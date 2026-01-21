@@ -1,5 +1,5 @@
 """
-Cub CLI - Investigate command.
+Cub CLI - Triage command.
 
 Intelligent capture processing that categorizes ideas and moves them forward.
 """
@@ -19,7 +19,7 @@ from cub.core.captures.store import CaptureStore
 from cub.core.tasks import get_task_service
 
 console = Console()
-app = typer.Typer(help="Investigate and process captures")
+app = typer.Typer(help="Triage and process captures")
 
 # Default output directory for investigation artifacts
 INVESTIGATIONS_DIR = Path("specs/investigations")
@@ -688,7 +688,7 @@ This capture needs more detail before it can be processed. Please answer the fol
 
 {questions_text}
 
-Once clarified, run `cub investigate {capture.id}` again.
+Once clarified, run `cub triage {capture.id}` again.
 """,
         )
         return f"Marked for review with {len(questions)} questions"
@@ -707,17 +707,17 @@ PROCESSORS = {
 
 
 @app.callback(invoke_without_command=True)
-def investigate(
+def triage(
     ctx: typer.Context,
     capture_id: str | None = typer.Argument(
         None,
-        help="Capture ID to investigate (e.g., cap-abc123)",
+        help="Capture ID to triage (e.g., cap-abc123)",
     ),
     all_captures: bool = typer.Option(
         False,
         "--all",
         "-a",
-        help="Investigate all active captures",
+        help="Triage all active captures",
     ),
     mode: CaptureCategory | None = typer.Option(
         None,
@@ -738,7 +738,7 @@ def investigate(
     ),
 ) -> None:
     """
-    Investigate captures and move them forward.
+    Triage captures and move them forward.
 
     Analyzes each capture to determine what action it needs:
     - quick: Small fixes → create task
@@ -749,10 +749,10 @@ def investigate(
     - unclear: Needs clarification → ask questions
 
     Examples:
-        cub investigate cap-abc123
-        cub investigate --all
-        cub investigate --all --dry-run
-        cub investigate cap-abc123 --mode=research
+        cub triage cap-abc123
+        cub triage --all
+        cub triage --all --dry-run
+        cub triage cap-abc123 --mode=research
     """
     if ctx.invoked_subcommand is not None:
         return

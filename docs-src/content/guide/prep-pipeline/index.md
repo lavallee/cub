@@ -1,15 +1,15 @@
-# Prep Pipeline
+# Plan Flow
 
-The prep pipeline transforms your ideas into structured, agent-ready tasks. It's a 4-stage guided process that refines requirements, designs architecture, decomposes work into tasks, and writes them to your task backend.
+The plan flow transforms your ideas into structured, agent-ready tasks. It's a 3-stage planning process followed by staging to import tasks into your backend.
 
-## What Prep Does
+## What Plan Does
 
 ```mermaid
 flowchart LR
-    A[Vision] --> B[Triage]
+    A[Spec] --> B[Orient]
     B --> C[Architect]
-    C --> D[Plan]
-    D --> E[Bootstrap]
+    C --> D[Itemize]
+    D --> E[Stage]
     E --> F[Ready Tasks]
 
     style A fill:#FFC107
@@ -22,75 +22,149 @@ flowchart LR
 
 | Stage | Purpose | Output |
 |-------|---------|--------|
-| [Triage](triage.md) | Clarify requirements and goals | `triage.md` |
-| [Architect](architect.md) | Design technical approach | `architect.md` |
-| [Plan](plan.md) | Break into agent-sized tasks | `plan.jsonl`, `plan.md` |
-| [Bootstrap](bootstrap.md) | Write tasks to backend | Tasks in Beads/JSON |
+| [Orient](orient.md) | Research and understand the problem | `orientation.md` |
+| [Architect](architect.md) | Design technical approach | `architecture.md` |
+| [Itemize](itemize.md) | Break into agent-sized tasks | `itemized-plan.md` |
+| [Stage](stage.md) | Import tasks to backend | Tasks in Beads |
 
-## The Full Pipeline
+## Quick Start
 
-Run the entire prep pipeline with one command:
+Run the full planning pipeline with one command:
 
 ```bash
-cub prep
+# From a spec file
+cub plan run specs/researching/my-feature.md
+
+# Or let cub auto-discover VISION.md, docs/PRD.md, etc.
+cub plan run
 ```
 
-This launches an interactive session for each stage sequentially. After each stage completes, run `cub prep` again to continue to the next stage.
+This runs all three stages (orient, architect, itemize) in sequence. When complete, stage the plan to create tasks:
 
-### Session-Based Workflow
-
-Prep uses **sessions** to track your progress through the pipeline. Each session stores artifacts in `.cub/sessions/{session-id}/`:
-
-```
-.cub/sessions/myproject-20260117-143022/
-+-- session.json     # Session metadata
-+-- triage.md        # Refined requirements
-+-- architect.md     # Technical design
-+-- plan.jsonl       # Beads-compatible task data
-+-- plan.md          # Human-readable plan
+```bash
+cub stage
 ```
 
-!!! tip "One Stage at a Time"
-    Each `cub prep` invocation runs one stage. This gives you a natural checkpoint to review outputs before proceeding.
+## Creating Specs
+
+Before planning, create a spec that describes your feature:
+
+```bash
+# Interactive interview mode
+cub spec "user authentication"
+
+# Or write a spec manually in specs/researching/
+```
+
+Specs are stored in `specs/` with subdirectories for each lifecycle stage:
+
+```
+specs/
+├── researching/   # Active exploration
+├── planned/       # Plan exists
+├── staged/        # Tasks in backend
+├── implementing/  # Active work
+└── released/      # Shipped
+```
+
+## The Planning Pipeline
+
+### Stage 1: Orient
+
+Research and understand the problem space:
+
+```bash
+cub plan orient specs/researching/my-feature.md
+```
+
+- Analyzes your spec and existing codebase
+- Identifies requirements and constraints
+- Surfaces open questions and risks
+- Outputs `plans/{slug}/orientation.md`
+
+### Stage 2: Architect
+
+Design the technical approach:
+
+```bash
+cub plan architect
+```
+
+- Proposes system structure and components
+- Documents technology choices
+- Creates implementation phases
+- Outputs `plans/{slug}/architecture.md`
+
+### Stage 3: Itemize
+
+Break architecture into actionable tasks:
+
+```bash
+cub plan itemize
+```
+
+- Generates well-scoped epics and tasks
+- Assigns priorities and estimates
+- Creates beads-compatible IDs
+- Outputs `plans/{slug}/itemized-plan.md`
+
+### Stage 4: Stage
+
+Import tasks into your backend:
+
+```bash
+cub stage
+```
+
+- Runs pre-flight checks (git, tools)
+- Creates epics and tasks in beads
+- Generates `.cub/prompt.md` and `.cub/agent.md`
+- Moves spec from `planned/` to `staged/`
+
+## Plan Directory Structure
+
+Plans are stored in `plans/{slug}/`:
+
+```
+plans/my-feature/
+├── plan.json          # Plan metadata
+├── orientation.md     # Orient stage output
+├── architecture.md    # Architect stage output
+└── itemized-plan.md   # Itemize stage output
+```
 
 ## Running Individual Stages
 
-You can also run each stage independently:
+Run stages separately for more control:
 
 ```bash
-cub triage                  # Stage 1: Requirements refinement
-cub architect               # Stage 2: Technical design
-cub plan                    # Stage 3: Task decomposition
-cub bootstrap               # Stage 4: Initialize tasks
+cub plan orient my-feature.md --depth deep
+cub plan architect --mindset production
+cub plan itemize
+cub stage --dry-run
 ```
 
-### Resuming a Session
+## Managing Plans
 
-Resume a specific session:
+List all plans:
 
 ```bash
-cub prep --session myproject-20260117-143022
-
-# Or continue the most recent session
-cub prep --continue
+cub plan list
+cub plan list --verbose  # Show stage status
 ```
 
-### Managing Sessions
-
-List and manage your prep sessions:
+Continue an incomplete plan:
 
 ```bash
-cub sessions              # List all sessions
-cub sessions show         # Show most recent session details
-cub sessions delete ID    # Delete a session
+cub plan run --continue my-feature
 ```
 
-## When to Use Prep vs Direct Task Creation
+## When to Use Plan vs Direct Task Creation
 
-Use the prep pipeline when:
+Use the plan flow when:
 
 - Starting a new project or major feature
-- You have a vision document but need to clarify requirements
+- You have a spec but need to clarify requirements
 - You want AI-assisted decomposition into right-sized tasks
 - You need technical design before implementation
 
@@ -99,95 +173,48 @@ Create tasks directly when:
 - Adding a small feature or bug fix
 - Tasks are already well-defined
 - Quick experiments or prototypes
-- Integrating external issue tracking (GitHub Issues, Jira)
 
 ```bash
 # Direct task creation with beads
 bd create "Fix login bug" --type bugfix --priority 1
-
-# Or import from external sources
-cub import github://owner/repo/issues/123
 ```
 
 ## Non-Interactive Mode
 
-For CI/CD or automated workflows, run prep without interactive prompts:
+For CI/CD or automated workflows:
 
 ```bash
-cub prep --non-interactive --vision VISION.md
+cub plan run specs/researching/my-feature.md --non-interactive
 ```
 
 !!! warning "Best-Effort Mode"
-    Non-interactive mode makes best-effort assumptions when details are missing. Review outputs carefully or use interactive mode for important projects.
-
-## Artifacts and Outputs
-
-Each stage produces artifacts that feed into the next:
-
-```mermaid
-flowchart TD
-    subgraph Triage
-        T1[VISION.md] --> T2[triage.md]
-    end
-
-    subgraph Architect
-        T2 --> A1[architect.md]
-    end
-
-    subgraph Plan
-        T2 --> P1[plan.md]
-        A1 --> P1
-        P1 --> P2[plan.jsonl]
-    end
-
-    subgraph Bootstrap
-        P2 --> B1[.beads/issues.jsonl]
-        P2 --> B2[PROMPT.md]
-        P2 --> B3[AGENT.md]
-    end
-```
-
-## Prep Status
-
-After any stage, prep shows your current progress:
-
-```
-PREP STATUS
-Session: myproject-20260117-143022
-
-  [x] Triage    - triage.md
-  [x] Architect - architect.md
-  [ ] Plan      - pending
-  [ ] Bootstrap - pending
-
-Next step: cub plan --session myproject-20260117-143022
-```
+    Non-interactive mode makes best-effort assumptions when details are missing. Review outputs carefully.
 
 ## Quick Reference
 
 | Command | Description |
 |---------|-------------|
-| `cub prep` | Run next incomplete stage |
-| `cub prep --continue` | Continue most recent session |
-| `cub prep --session ID` | Resume specific session |
-| `cub prep --non-interactive` | Automated mode (requires `--vision`) |
-| `cub triage` | Run only triage stage |
-| `cub architect` | Run only architect stage |
-| `cub plan` | Run only plan stage |
-| `cub bootstrap` | Run only bootstrap stage |
-| `cub sessions` | List all sessions |
+| `cub spec` | Create spec interactively |
+| `cub plan run <spec>` | Run full pipeline |
+| `cub plan run --continue <slug>` | Resume incomplete plan |
+| `cub plan orient <spec>` | Run only orient stage |
+| `cub plan architect` | Run only architect stage |
+| `cub plan itemize` | Run only itemize stage |
+| `cub plan list` | List all plans |
+| `cub stage` | Import tasks to backend |
+| `cub stage --dry-run` | Preview staging |
 
 ## Next Steps
 
 <div class="grid cards" markdown>
 
--   :material-clipboard-check: **Triage**
+-   :material-clipboard-check: **Orient**
 
     ---
 
-    Start by clarifying your requirements and goals.
+    Start by researching and understanding your problem space.
 
-    [:octicons-arrow-right-24: Triage Stage](triage.md)
+    [:octicons-arrow-right-24: Orient Stage](orient.md)
 
 -   :material-sitemap: **Architect**
 
@@ -197,20 +224,20 @@ Next step: cub plan --session myproject-20260117-143022
 
     [:octicons-arrow-right-24: Architect Stage](architect.md)
 
--   :material-format-list-numbered: **Plan**
+-   :material-format-list-numbered: **Itemize**
 
     ---
 
     Break work into agent-sized tasks.
 
-    [:octicons-arrow-right-24: Plan Stage](plan.md)
+    [:octicons-arrow-right-24: Itemize Stage](itemize.md)
 
--   :material-rocket-launch: **Bootstrap**
+-   :material-rocket-launch: **Stage**
 
     ---
 
-    Initialize your task backend.
+    Import tasks and start execution.
 
-    [:octicons-arrow-right-24: Bootstrap Stage](bootstrap.md)
+    [:octicons-arrow-right-24: Stage](stage.md)
 
 </div>

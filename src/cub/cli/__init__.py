@@ -13,7 +13,6 @@ from cub.cli import (
     capture,
     captures,
     delegated,
-    investigate,
     merge,
     monitor,
     organize_captures,
@@ -24,6 +23,7 @@ from cub.cli import (
     spec,
     stage,
     status,
+    triage,
     uninstall,
     update,
     upgrade,
@@ -132,7 +132,7 @@ app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 app.command(name="capture", rich_help_panel=PANEL_ROADMAP)(capture.capture)
 app.add_typer(captures.app, name="captures", rich_help_panel=PANEL_ROADMAP)
 app.command(name="spec", rich_help_panel=PANEL_ROADMAP)(spec.spec)
-app.add_typer(investigate.app, name="investigate", rich_help_panel=PANEL_ROADMAP)
+app.add_typer(triage.app, name="triage", rich_help_panel=PANEL_ROADMAP)
 app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
