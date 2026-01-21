@@ -1,5 +1,41 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-3wxc.4: Fix cub:orient help text and plan output path
+
+### Task Completed
+Fixed incorrect help text in Claude Code skill files that described $ARGUMENTS as output paths instead of inputs.
+
+### What Was Changed
+
+**Help Text Corrections:**
+- `cub:orient.md` - Changed ARGUMENTS description from "path to write the output file" to "spec file path or spec ID to orient from"
+- `cub:architect.md` - Changed ARGUMENTS description from "path to write the output file" to "plan slug to continue architecturing"
+- `cub:itemize.md` - Changed ARGUMENTS description from "session directory path for output files" to "plan slug to itemize"
+
+**Output Path Updates:**
+- Updated all skill files to use `plans/{slug}/` directory pattern for outputs:
+  - orient → `plans/{slug}/orientation.md`
+  - architect → `plans/{slug}/architecture.md`
+  - itemize → `plans/{slug}/itemized-plan.md` and `itemized-plan.jsonl`
+
+**Fixed Stale References:**
+- Updated architect to read from `plans/{slug}/orientation.md` instead of `.cub/sessions/orient.md`
+- Fixed reference to "triage" → "orient" in template files
+- Updated next step from `cub bootstrap` → `cub stage`
+
+### Files Modified
+- `.claude/commands/cub:orient.md`
+- `.claude/commands/cub:architect.md`
+- `.claude/commands/cub:itemize.md`
+- `templates/commands/cub:orient.md`
+- `templates/commands/cub:architect.md`
+- `templates/commands/cub:itemize.md`
+
+### Key Learning
+Claude Code skill files (markdown slash commands) store their documentation separately from the Python CLI. The Python `cub plan orient` command already had correct help text, but the skill files (`/cub:orient`) had outdated/incorrect documentation that needed updating.
+
+---
+
 ## 2026-01-21 - cub-3wxc.3: Add --use-current-branch flag to cub run
 
 ### Task Completed

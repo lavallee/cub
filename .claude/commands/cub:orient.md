@@ -8,7 +8,7 @@ Your job is to review the product vision, identify gaps, challenge assumptions, 
 
 $ARGUMENTS
 
-If provided, this is the path to write the output file.
+If provided, this is a spec file path or spec ID to orient from. The spec provides context about the feature or project being planned.
 
 ## Instructions
 
@@ -107,8 +107,7 @@ Present the orient report to the user and ask:
 ### Step 8: Write Output
 
 Once approved, write the report to:
-- `$ARGUMENTS` if a path was provided
-- Otherwise: `.cub/sessions/orient.md`
+- `plans/{slug}/orientation.md` where `{slug}` is derived from the spec name or project name
 
 Use this template:
 
