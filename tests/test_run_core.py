@@ -646,6 +646,9 @@ class TestRunLoopIntegration:
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks") as mock_wait_hooks,
             patch("anyio.from_thread.run", side_effect=sync_run_async),
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -659,6 +662,11 @@ class TestRunLoopIntegration:
                 total=5, open=3, in_progress=1, closed=1, remaining=4
             )
 
+            # Set up branch mocks to simulate being on a feature branch
+            # This prevents the tests from trying to create branches in CI
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
+
             yield {
                 "load_config": mock_load_config,
                 "detect_harness": mock_detect,
@@ -671,6 +679,8 @@ class TestRunLoopIntegration:
                 "config": mock_config,
                 "harness_backend": mock_harness_backend,
                 "task_backend": mock_task_backend,
+                "branch_store": mock_branch_store,
+                "create_branch": mock_create_branch,
             }
 
     def test_run_once_with_specific_task(self, runner, mock_run_dependencies):
@@ -1094,6 +1104,9 @@ class TestHarnessInvocationErrors:
             patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1105,6 +1118,10 @@ class TestHarnessInvocationErrors:
             mock_task_backend.get_task_counts.return_value = MagicMock(
                 total=5, open=3, in_progress=1, closed=1, remaining=4
             )
+
+            # Set up branch mocks to simulate being on a feature branch
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
 
             yield {
                 "config": mock_config,
@@ -1177,10 +1194,15 @@ class TestInvalidHarness:
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_config.return_value = MagicMock()
             mock_get_task.return_value = MagicMock()
             mock_get_harness.side_effect = ValueError("Unknown harness: invalid")
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
 
             result = runner.invoke(app, ["--harness", "invalid", "--once"])
 
@@ -1201,9 +1223,14 @@ class TestTaskBackendInitialization:
         with (
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_config.return_value = MagicMock()
             mock_get_task.side_effect = Exception("No beads found")
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
 
             result = runner.invoke(app, ["--once"])
 
@@ -1248,6 +1275,9 @@ class TestMaxIterations:
             patch("cub.cli.run.wait_async_hooks"),
             patch("cub.cli.run.time.sleep"),  # Don't actually sleep
             patch("anyio.from_thread.run", side_effect=sync_run_async),
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1259,6 +1289,10 @@ class TestMaxIterations:
             mock_task_backend.get_task_counts.return_value = MagicMock(
                 total=100, open=90, in_progress=5, closed=5, remaining=95
             )
+
+            # Set up branch mocks to simulate being on a feature branch
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
 
             yield {
                 "config": mock_config,
@@ -1341,6 +1375,9 @@ class TestFiltering:
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("anyio.from_thread.run", side_effect=sync_run_async),
+            # Mock branch operations to avoid git calls in CI
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
@@ -1352,6 +1389,10 @@ class TestFiltering:
             mock_task_backend.get_task_counts.return_value = MagicMock(
                 total=10, open=5, in_progress=2, closed=3, remaining=7
             )
+
+            # Set up branch mocks to simulate being on a feature branch
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
 
             yield {
                 "task_backend": mock_task_backend,

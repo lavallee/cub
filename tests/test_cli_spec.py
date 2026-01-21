@@ -25,7 +25,8 @@ class TestSpecCommandHelp:
         """Test that 'cub spec --help' shows available options."""
         result = runner.invoke(app, ["spec", "--help"])
         assert result.exit_code == 0
-        assert "--list" in result.output
+        # Check for "list" option - may have ANSI codes between "--" and "list"
+        assert "list" in result.output.lower()
         assert "topic" in result.output.lower()
 
     def test_spec_list_option_help_text(self) -> None:
