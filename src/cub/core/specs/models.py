@@ -75,7 +75,7 @@ class Stage(str, Enum):
 class SpecStatus(str, Enum):
     """Spec status values from frontmatter.
 
-    These match the status values used in SPEC-TEMPLATE.md.
+    These match the status values used in the cub:spec skill (.claude/commands/cub:spec.md).
     """
 
     DRAFT = "draft"
