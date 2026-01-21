@@ -9,13 +9,56 @@ from __future__ import annotations
 
 import json
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from rich.console import Console
 
 from cub.core.branches import BranchStore, ResolvedTarget
 from cub.core.github.client import GitHubClient, GitHubClientError
+
+
+@dataclass
+class StreamConfig:
+    """Configuration for streaming output during PR operations.
+
+    Attributes:
+        enabled: Whether to show real-time streaming output
+        debug: Whether to show detailed debug information
+        console: Rich console for output (defaults to new Console)
+    """
+
+    enabled: bool = False
+    debug: bool = False
+    console: Console = field(default_factory=Console)
+
+    def stream(self, message: str) -> None:
+        """Print a streaming message if streaming is enabled.
+
+        Args:
+            message: Message to print
+        """
+        if self.enabled:
+            self.console.print(f"[cyan]→[/cyan] {message}")
+
+    def debug_log(self, message: str) -> None:
+        """Print a debug message if debug is enabled.
+
+        Args:
+            message: Debug message to print
+        """
+        if self.debug:
+            self.console.print(f"[dim][DEBUG][/dim] {message}")
+
+    def debug_value(self, name: str, value: object) -> None:
+        """Print a named debug value if debug is enabled.
+
+        Args:
+            name: Variable/value name
+            value: The value to display
+        """
+        if self.debug:
+            self.console.print(f"[dim][DEBUG][/dim] {name}={value!r}")
 
 
 def _find_worktree_for_branch(project_dir: Path, branch: str) -> Path | None:
@@ -188,15 +231,21 @@ class PRService:
         >>> print(result.url)
     """
 
-    def __init__(self, project_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        project_dir: Path | None = None,
+        stream_config: StreamConfig | None = None,
+    ) -> None:
         """
         Initialize PRService.
 
         Args:
             project_dir: Project directory (defaults to cwd)
+            stream_config: Configuration for streaming output
         """
         self.project_dir = project_dir or Path.cwd()
-        self._console = Console()
+        self._stream_config = stream_config or StreamConfig()
+        self._console = self._stream_config.console
         self._branch_store: BranchStore | None = None
         self._github_client: GitHubClient | None = None
 
@@ -445,15 +494,25 @@ Generated with [cub](https://github.com/lavallee/cub)
         Raises:
             PRServiceError: If PR cannot be created
         """
+        stream = self._stream_config
+
         # Resolve input
+        stream.stream("Resolving target...")
+        stream.debug_value("target", target)
         resolved = self.resolve_input(target)
+        stream.debug_value("resolved.type", resolved.type)
+        stream.debug_value("resolved.branch", resolved.branch)
+        stream.debug_value("resolved.epic_id", resolved.epic_id)
+        stream.debug_value("resolved.binding", resolved.binding)
 
         # Get branch name
         branch = resolved.branch
         if not branch:
             if resolved.type == "pr":
                 # Already have a PR - get its branch
+                stream.stream(f"Looking up existing PR #{resolved.pr_number}...")
                 pr_info = self.github_client.get_pr(resolved.pr_number or 0)
+                stream.debug_value("pr_info", pr_info)
                 if pr_info:
                     return PRResult(
                         url=str(pr_info.get("url", "")),
@@ -470,11 +529,16 @@ Generated with [cub](https://github.com/lavallee/cub)
         if not base:
             if resolved.binding:
                 base = resolved.binding.base_branch
+                stream.debug_log(f"Using base branch from binding: {base}")
             else:
                 base = "main"
+                stream.debug_log("Using default base branch: main")
+        stream.debug_value("base", base)
 
         # Check for existing PR
+        stream.stream(f"Checking for existing PR ({branch} -> {base})...")
         existing_pr = self.github_client.get_pr_by_branch(branch, base)
+        stream.debug_value("existing_pr", existing_pr)
         if existing_pr:
             pr_number = existing_pr.get("number")
             pr_url = existing_pr.get("url")
@@ -483,6 +547,9 @@ Generated with [cub](https://github.com/lavallee/cub)
 
             # Update binding if needed
             if resolved.binding and resolved.binding.pr_number != pr_number:
+                stream.debug_log(
+                    f"Updating binding PR number from {resolved.binding.pr_number} to {pr_number}"
+                )
                 if not dry_run:
                     self.branch_store.update_pr(
                         resolved.epic_id or resolved.binding.epic_id,
@@ -497,7 +564,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Check if on correct branch
+        stream.stream("Validating current branch...")
         current_branch = BranchStore.get_current_branch()
+        stream.debug_value("current_branch", current_branch)
+        stream.debug_value("expected_branch", branch)
         if current_branch != branch:
             raise PRServiceError(
                 f"Not on expected branch.\n"
@@ -507,26 +577,37 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Push if needed
-        if push or self.github_client.needs_push(branch):
+        stream.stream("Checking if branch needs push...")
+        needs_push = self.github_client.needs_push(branch)
+        stream.debug_value("needs_push", needs_push)
+        stream.debug_value("push_flag", push)
+        if push or needs_push:
             if dry_run:
                 self._console.print(f"[dry-run] Would push branch {branch}")
             else:
+                stream.stream(f"Pushing branch {branch} to origin...")
                 self._console.print(f"Pushing branch {branch} to origin...")
                 self.github_client.push_branch(branch)
                 self._console.print("[green]Branch pushed[/green]")
 
         # Verify branch is on remote
-        if not dry_run and not self.github_client.branch_exists_on_remote(branch):
-            raise PRServiceError(
-                f"Branch {branch} is not on remote.\n"
-                "Push it first with: git push -u origin {branch}\n"
-                "Or use --push flag."
-            )
+        stream.stream("Verifying branch exists on remote...")
+        if not dry_run:
+            branch_on_remote = self.github_client.branch_exists_on_remote(branch)
+            stream.debug_value("branch_on_remote", branch_on_remote)
+            if not branch_on_remote:
+                raise PRServiceError(
+                    f"Branch {branch} is not on remote.\n"
+                    "Push it first with: git push -u origin {branch}\n"
+                    "Or use --push flag."
+                )
 
         # Get title
+        stream.stream("Determining PR title...")
         if not title:
             if resolved.epic_id:
                 # Try to get from beads
+                stream.debug_log(f"Fetching epic info from beads: {resolved.epic_id}")
                 try:
                     bd_result = subprocess.run(
                         ["bd", "show", resolved.epic_id, "--json"],
@@ -534,16 +615,22 @@ Generated with [cub](https://github.com/lavallee/cub)
                         text=True,
                         check=False,
                     )
+                    stream.debug_value("bd_show_returncode", bd_result.returncode)
                     if bd_result.returncode == 0:
                         epic_data = json.loads(bd_result.stdout)
+                        stream.debug_value("epic_data", epic_data)
                         title = epic_data.get("title", resolved.epic_id)
-                except (json.JSONDecodeError, OSError, FileNotFoundError):
+                except (json.JSONDecodeError, OSError, FileNotFoundError) as e:
+                    stream.debug_log(f"Failed to get epic title: {e}")
                     title = resolved.epic_id
             else:
                 title = branch
+        stream.debug_value("title", title)
 
         # Generate body
+        stream.stream("Generating PR body...")
         body = self.generate_pr_body(resolved.epic_id, branch, base)
+        stream.debug_log(f"Generated PR body ({len(body)} chars)")
 
         if dry_run:
             self._console.print("[dry-run] Would create PR:")
@@ -559,8 +646,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Create PR
+        stream.stream("Creating PR via GitHub API...")
         self._console.print(f"Creating PR: {title}")
         self._console.print(f"  {branch} -> {base}")
+        stream.debug_value("draft", draft)
 
         try:
             result = self.github_client.create_pr(
@@ -570,7 +659,9 @@ Generated with [cub](https://github.com/lavallee/cub)
                 body=body,
                 draft=draft,
             )
+            stream.debug_value("gh_pr_create_result", result)
         except GitHubClientError as e:
+            stream.debug_log(f"GitHub API error: {e}")
             raise PRServiceError(str(e))
 
         pr_url = str(result["url"])
@@ -578,6 +669,8 @@ Generated with [cub](https://github.com/lavallee/cub)
 
         # Update binding with PR number
         if resolved.binding and resolved.epic_id:
+            stream.stream("Updating branch binding with PR number...")
+            stream.debug_log(f"Setting PR #{pr_number} on epic {resolved.epic_id}")
             self.branch_store.update_pr(resolved.epic_id, pr_number)
 
         self._console.print(f"[green]PR #{pr_number} created[/green]")

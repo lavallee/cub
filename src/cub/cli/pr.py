@@ -16,7 +16,7 @@ import typer
 from rich.console import Console
 
 from cub.core.github.client import GitHubClientError
-from cub.core.pr import PRService, PRServiceError
+from cub.core.pr import PRService, PRServiceError, StreamConfig
 
 app = typer.Typer(
     name="pr",
@@ -182,6 +182,14 @@ def pr_command(
             help="Show what would be done without making changes",
         ),
     ] = False,
+    stream: Annotated[
+        bool,
+        typer.Option(
+            "--stream",
+            "-s",
+            help="Show real-time output from PR creation process",
+        ),
+    ] = False,
 ) -> None:
     """
     Create a pull request for an epic or branch.
@@ -207,6 +215,12 @@ def pr_command(
 
         # Push branch and create PR
         cub pr --push
+
+        # Show real-time progress
+        cub pr --stream
+
+        # Show progress with debug details
+        cub pr --stream --debug
     """
     # Skip if a subcommand was invoked
     if ctx.invoked_subcommand is not None:
@@ -214,8 +228,20 @@ def pr_command(
 
     project_dir = Path.cwd()
 
+    # Get debug flag from context
+    debug = False
+    if ctx.obj:
+        debug = ctx.obj.get("debug", False)
+
+    # Configure streaming output
+    stream_config = StreamConfig(
+        enabled=stream,
+        debug=debug,
+        console=console,
+    )
+
     try:
-        service = PRService(project_dir)
+        service = PRService(project_dir, stream_config=stream_config)
 
         # Create PR
         result = service.create_pr(

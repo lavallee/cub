@@ -2,15 +2,18 @@
 Tests for PR service functionality.
 """
 
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from rich.console import Console
 
 from cub.core.github.client import GitHubClient
 from cub.core.github.models import RepoInfo
 from cub.core.pr.service import (
     PRService,
+    StreamConfig,
     _delete_local_branch,
     _find_worktree_for_branch,
     _prune_remote_tracking,
@@ -307,3 +310,331 @@ branch refs/heads/feature
             result = _prune_remote_tracking(tmp_path)
 
         assert result is False
+
+
+class TestStreamConfig:
+    """Tests for StreamConfig class."""
+
+    def test_stream_config_defaults(self):
+        """Test StreamConfig default values."""
+        config = StreamConfig()
+        assert config.enabled is False
+        assert config.debug is False
+        assert config.console is not None
+
+    def test_stream_config_with_values(self):
+        """Test StreamConfig with explicit values."""
+        console = Console()
+        config = StreamConfig(enabled=True, debug=True, console=console)
+        assert config.enabled is True
+        assert config.debug is True
+        assert config.console is console
+
+    def test_stream_outputs_when_enabled(self):
+        """Test that stream() outputs when enabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(enabled=True, console=console)
+
+        config.stream("Test message")
+
+        output.seek(0)
+        content = output.read()
+        assert "Test message" in content
+
+    def test_stream_silent_when_disabled(self):
+        """Test that stream() is silent when disabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(enabled=False, console=console)
+
+        config.stream("Test message")
+
+        output.seek(0)
+        content = output.read()
+        assert content == ""
+
+    def test_debug_log_outputs_when_enabled(self):
+        """Test that debug_log() outputs when debug enabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(debug=True, console=console)
+
+        config.debug_log("Debug message")
+
+        output.seek(0)
+        content = output.read()
+        assert "DEBUG" in content
+        assert "Debug message" in content
+
+    def test_debug_log_silent_when_disabled(self):
+        """Test that debug_log() is silent when debug disabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(debug=False, console=console)
+
+        config.debug_log("Debug message")
+
+        output.seek(0)
+        content = output.read()
+        assert content == ""
+
+    def test_debug_value_outputs_when_enabled(self):
+        """Test that debug_value() outputs when debug enabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(debug=True, console=console)
+
+        config.debug_value("my_var", "my_value")
+
+        output.seek(0)
+        content = output.read()
+        assert "DEBUG" in content
+        assert "my_var" in content
+        assert "my_value" in content
+
+    def test_debug_value_silent_when_disabled(self):
+        """Test that debug_value() is silent when debug disabled."""
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        config = StreamConfig(debug=False, console=console)
+
+        config.debug_value("my_var", "my_value")
+
+        output.seek(0)
+        content = output.read()
+        assert content == ""
+
+
+class TestPRServiceWithStreaming:
+    """Tests for PRService with streaming configuration."""
+
+    @pytest.fixture
+    def mock_github_client(self):
+        """Create a mock GitHub client."""
+        repo = RepoInfo(owner="user", repo="project")
+        return GitHubClient(repo)
+
+    @pytest.fixture
+    def stream_output(self):
+        """Create a StringIO for capturing output."""
+        return StringIO()
+
+    @pytest.fixture
+    def stream_console(self, stream_output):
+        """Create a console that writes to StringIO."""
+        return Console(file=stream_output, force_terminal=True)
+
+    @pytest.fixture
+    def pr_service_with_streaming(self, tmp_path, mock_github_client, stream_console):
+        """Create a PR service with streaming enabled."""
+        config = StreamConfig(enabled=True, debug=False, console=stream_console)
+        service = PRService(tmp_path, stream_config=config)
+        service._github_client = mock_github_client
+        return service
+
+    @pytest.fixture
+    def pr_service_with_debug(self, tmp_path, mock_github_client, stream_console):
+        """Create a PR service with debug enabled."""
+        config = StreamConfig(enabled=True, debug=True, console=stream_console)
+        service = PRService(tmp_path, stream_config=config)
+        service._github_client = mock_github_client
+        return service
+
+    def test_service_uses_stream_config_console(
+        self, tmp_path, mock_github_client, stream_console
+    ):
+        """Test that service uses the console from stream config."""
+        config = StreamConfig(enabled=True, console=stream_console)
+        service = PRService(tmp_path, stream_config=config)
+        assert service._console is stream_console
+
+    def test_create_pr_with_streaming_shows_progress(
+        self, pr_service_with_streaming, stream_output
+    ):
+        """Test that create_pr shows streaming output when enabled."""
+        with (
+            patch.object(
+                pr_service_with_streaming.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service_with_streaming.github_client, "needs_push"
+            ) as mock_needs_push,
+            patch.object(
+                pr_service_with_streaming.github_client, "branch_exists_on_remote"
+            ) as mock_remote,
+            patch.object(
+                pr_service_with_streaming.github_client, "create_pr"
+            ) as mock_create,
+            patch.object(
+                pr_service_with_streaming.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(
+                pr_service_with_streaming.github_client, "get_files_changed"
+            ) as mock_files,
+            patch.object(
+                pr_service_with_streaming.github_client, "get_diff_stat"
+            ) as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_branch_exists,
+            patch.object(
+                pr_service_with_streaming.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service_with_streaming.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+        ):
+            mock_existing.return_value = None
+            mock_needs_push.return_value = False
+            mock_remote.return_value = True
+            mock_current.return_value = "feature-branch"
+            mock_branch_exists.return_value = True
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+            mock_create.return_value = {
+                "url": "https://github.com/user/repo/pull/42",
+                "number": 42,
+            }
+
+            pr_service_with_streaming.create_pr(target="feature-branch")
+
+        stream_output.seek(0)
+        content = stream_output.read()
+        # Check for streaming messages
+        assert "Resolving target" in content
+        assert "Checking for existing PR" in content
+        assert "Validating current branch" in content
+        assert "Generating PR body" in content
+        assert "Creating PR via GitHub API" in content
+
+    def test_create_pr_with_debug_shows_variable_values(
+        self, pr_service_with_debug, stream_output
+    ):
+        """Test that create_pr shows debug info when debug enabled."""
+        with (
+            patch.object(
+                pr_service_with_debug.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service_with_debug.github_client, "needs_push"
+            ) as mock_needs_push,
+            patch.object(
+                pr_service_with_debug.github_client, "branch_exists_on_remote"
+            ) as mock_remote,
+            patch.object(
+                pr_service_with_debug.github_client, "create_pr"
+            ) as mock_create,
+            patch.object(
+                pr_service_with_debug.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(
+                pr_service_with_debug.github_client, "get_files_changed"
+            ) as mock_files,
+            patch.object(
+                pr_service_with_debug.github_client, "get_diff_stat"
+            ) as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_branch_exists,
+            patch.object(
+                pr_service_with_debug.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service_with_debug.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+        ):
+            mock_existing.return_value = None
+            mock_needs_push.return_value = False
+            mock_remote.return_value = True
+            mock_current.return_value = "feature-branch"
+            mock_branch_exists.return_value = True
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+            mock_create.return_value = {
+                "url": "https://github.com/user/repo/pull/42",
+                "number": 42,
+            }
+
+            pr_service_with_debug.create_pr(target="feature-branch")
+
+        stream_output.seek(0)
+        content = stream_output.read()
+        # Check for debug output (note: Rich may add escape codes between words)
+        assert "DEBUG" in content
+        # Check for target variable (Rich may format as "target=" or "target" separately)
+        assert "target" in content
+        assert "feature-branch" in content
+        assert "resolved" in content
+        assert "type" in content
+        assert "needs_push" in content
+
+    def test_create_pr_without_streaming_is_quiet(
+        self, tmp_path, mock_github_client, stream_output, stream_console
+    ):
+        """Test that create_pr is quiet when streaming disabled."""
+        config = StreamConfig(enabled=False, debug=False, console=stream_console)
+        service = PRService(tmp_path, stream_config=config)
+        service._github_client = mock_github_client
+
+        with (
+            patch.object(
+                service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(service.github_client, "needs_push") as mock_needs_push,
+            patch.object(
+                service.github_client, "branch_exists_on_remote"
+            ) as mock_remote,
+            patch.object(service.github_client, "create_pr") as mock_create,
+            patch.object(
+                service.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(service.github_client, "get_files_changed") as mock_files,
+            patch.object(service.github_client, "get_diff_stat") as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_branch_exists,
+            patch.object(service.branch_store, "get_binding") as mock_get_binding,
+            patch.object(
+                service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+        ):
+            mock_existing.return_value = None
+            mock_needs_push.return_value = False
+            mock_remote.return_value = True
+            mock_current.return_value = "feature-branch"
+            mock_branch_exists.return_value = True
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+            mock_create.return_value = {
+                "url": "https://github.com/user/repo/pull/42",
+                "number": 42,
+            }
+
+            service.create_pr(target="feature-branch")
+
+        stream_output.seek(0)
+        content = stream_output.read()
+        # Stream messages should not be present
+        assert "Resolving target" not in content
+        assert "DEBUG" not in content
+        # But normal output (PR created) should still be there
+        assert "Creating PR" in content
