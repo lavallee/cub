@@ -1,5 +1,46 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-3wxc.9: Handle branch switch failure in cub merge
+
+### Task Completed
+Implemented graceful branch switch handling in `cub merge` to handle cases where beads or other tools may prevent switching to the base branch after a successful merge.
+
+### What Was Implemented
+
+**New Helper Function (`_switch_to_branch`):**
+- Attempts to switch to a specified branch using `git switch`
+- Returns tuple of (success, error_message) for flexible error handling
+- Gracefully handles failures without raising exceptions
+
+**Updated `merge_pr` Method:**
+1. After successful merge, checks if we're on the feature branch
+2. If so, attempts to switch to the base branch (usually main)
+3. On success: prints confirmation and allows feature branch deletion
+4. On failure: prints warning with error message, stays on current branch
+5. Merge command exits successfully regardless of branch switch result
+
+### Key Design Decisions
+
+1. **Non-Fatal Branch Switch**: The branch switch is a convenience operation; the actual merge (via GitHub API) is the critical operation. A failed switch shouldn't mark the merge as failed.
+
+2. **User-Friendly Messages**: When switch fails, we show:
+   - Yellow warning about the failed switch
+   - The actual error message (dimmed, for debugging)
+   - Information about staying on current branch
+
+3. **Branch Deletion Logic**: Updated delete message to distinguish between:
+   - Expected case: still on the branch (can't delete)
+   - Unexpected case: switched but still couldn't delete
+
+### Files Modified
+- `src/cub/core/pr/service.py` - Added `_switch_to_branch` helper, updated `merge_pr`
+- `tests/test_pr_service.py` - Added 4 tests for `_switch_to_branch`
+
+### Key Learning
+The `cub merge` command uses GitHub API for the actual merge operation (remote merge), so the local branch operations (switch, delete) are convenience operations for cleanup. Making these operations non-fatal improves UX when working with tools like beads that may lock branches.
+
+---
+
 ## 2026-01-21 - cub-3wxc.6: Auto-execute /cub: handoff after plan stage approval
 
 ### Task Completed
@@ -3283,3 +3324,58 @@ Fixed `cub spec --list` to work from any directory within a project by adding pr
 
 ### Outcome
 Command now works reliably from any subdirectory within a project. Users can run `cub spec --list` from anywhere and see all their specs organized by lifecycle stage. Bug fix ensures specs in `released/` stage are properly shown.
+
+---
+
+## 2026-01-21 - cub-3wxc.8: Add --stream option to cub pr for real-time output
+
+### Task Completed
+Implemented `--stream` flag for `cub pr` command and enhanced `--debug` support to provide visibility into the PR creation process.
+
+### What Was Implemented
+
+**StreamConfig Class (`cub.core.pr.service.StreamConfig`):**
+- `enabled: bool` - Controls whether streaming messages are shown
+- `debug: bool` - Controls whether debug details are shown
+- `console: Console` - Rich console for output
+- `stream(message)` - Print streaming status messages (when enabled)
+- `debug_log(message)` - Print debug messages (when debug enabled)
+- `debug_value(name, value)` - Print debug variable values (when debug enabled)
+
+**CLI Updates:**
+- Added `--stream/-s` flag to `cub pr` command
+- Passes `--debug` flag from global context to PRService
+- StreamConfig integrates debug flag from parent command's ctx.obj
+
+**Streaming Output in `PRService.create_pr()`:**
+- Resolving target (shows target value in debug)
+- Checking for existing PR
+- Validating current branch (shows current vs expected in debug)
+- Checking if branch needs push
+- Verifying branch exists on remote
+- Determining PR title
+- Generating PR body
+- Creating PR via GitHub API
+
+**Tests Added:**
+- `TestStreamConfig` - 8 tests for StreamConfig class functionality
+- `TestPRServiceWithStreaming` - 4 tests for streaming integration with PRService
+
+### Key Design Decisions
+
+1. **Dataclass-based Configuration**: Used `dataclass` with `field(default_factory=Console)` for lazy console initialization. This allows callers to provide their own console for testing.
+
+2. **Dual Flag Design**: `--stream` shows progress messages, `--debug` shows variable values. Both can be used together for full visibility.
+
+3. **Default Console Sharing**: PRService uses the StreamConfig's console as its `_console` property, ensuring all output goes to the same destination.
+
+4. **Non-intrusive Integration**: Streaming/debug calls don't affect control flow - they just add visibility when flags are enabled.
+
+### Files Modified
+- `src/cub/cli/pr.py` - Added `--stream` flag and StreamConfig integration
+- `src/cub/core/pr/__init__.py` - Exported StreamConfig
+- `src/cub/core/pr/service.py` - Added StreamConfig class and streaming calls in create_pr()
+- `tests/test_pr_service.py` - Added comprehensive tests for streaming functionality
+
+### Key Learning
+When testing Rich console output with StringIO, the output includes ANSI escape codes that can split tokens unexpectedly (e.g., `"target="` becomes `"target" + escape codes + "="`). Tests should check for word presence rather than exact substring matches.

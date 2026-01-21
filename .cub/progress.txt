@@ -6164,3 +6164,48 @@ The prompt for lesson extraction:
 - Users of old `cub triage` (prep pipeline) should use `cub plan orient`
 - No breaking changes - all commands remain functional
 
+
+## Session: Fix cub pr async error handling (cub-3wxc.7)
+
+**Date:** 2026-01-21
+
+### Task: Fix async error handling in cub pr command
+
+**Problem:** When invoking `cub pr`, the command could fail with "Error: No messages returned" from an unhandled async rejection during the Claude Code CI/review integration phase.
+
+### Solution implemented:
+
+1. **Structured outcome handling**: Created `ClaudeCIResult` enum and `ClaudeCIOutcome` dataclass to represent all possible outcomes from Claude CLI invocation:
+   - SUCCESS, CLAUDE_NOT_FOUND, EXECUTION_FAILED, TIMEOUT, INTERRUPTED
+
+2. **Improved subprocess handling in `_run_claude_for_ci()`**:
+   - Added `capture_output=True` to get stderr for error diagnostics
+   - Added 10-minute timeout to prevent hanging
+   - Detect common error patterns (e.g., "No messages returned", "connection")
+   - Return structured outcome instead of raising exceptions
+   - Comprehensive exception handling for all error types
+
+3. **Graceful degradation in `pr_command()`**:
+   - Show PR URL immediately after creation (before Claude invocation)
+   - Handle all outcome types with appropriate user messaging
+   - Provide manual CI check instructions when Claude fails
+   - PR creation is not affected by Claude CI failures
+
+### Key learnings:
+
+1. **Graceful degradation pattern**: Show important results (PR URL) BEFORE attempting optional features (Claude CI). This ensures users always get value even if the enhancement fails.
+
+2. **Structured error handling**: Using enums and dataclasses for error outcomes makes the code more testable and the control flow clearer than try/except chains.
+
+3. **Error pattern detection**: Capturing stderr allows detecting specific error patterns (like "No messages returned") to provide more helpful error messages.
+
+4. **Subprocess timeout**: Always set a reasonable timeout for subprocess calls to prevent hanging. 10 minutes for CI management is appropriate.
+
+### Feedback loops:
+- Tests: 1499 passed, 3 skipped ✅ (added 17 new tests)
+- Linting: All checks passed ✅
+- Type checking: Pre-existing errors unrelated to this change ⚠️
+
+### Files changed:
+- `src/cub/cli/pr.py` - Restructured error handling
+- `tests/test_cli_pr.py` - New test file with 17 tests
