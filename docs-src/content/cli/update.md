@@ -155,4 +155,4 @@ To preserve modifications while getting updates:
 ## See Also
 
 - [Configuration](../guide/configuration/index.md) - Customizing templates
-- [Skills Reference](../guide/skills/index.md) - Claude Code skills
+- [Hooks](../guide/hooks/index.md) - Customizing cub behavior

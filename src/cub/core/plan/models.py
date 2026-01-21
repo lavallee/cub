@@ -402,16 +402,16 @@ class Plan(BaseModel):
         Returns:
             Plan instance
         """
-        # Parse timestamps
+        # Parse timestamps (replace 'Z' suffix for Python 3.10 compatibility)
         created_at = datetime.now(timezone.utc)
         created_raw = data.get("created")
         if isinstance(created_raw, str):
-            created_at = datetime.fromisoformat(created_raw)
+            created_at = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
 
         updated_at = datetime.now(timezone.utc)
         updated_raw = data.get("updated")
         if isinstance(updated_raw, str):
-            updated_at = datetime.fromisoformat(updated_raw)
+            updated_at = datetime.fromisoformat(updated_raw.replace("Z", "+00:00"))
 
         # Parse status
         status = PlanStatus.PENDING
