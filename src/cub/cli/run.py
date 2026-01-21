@@ -149,9 +149,7 @@ def _invoke_harness(
             """Stream output and collect for result."""
             collected = ""
             # stream_task returns AsyncIterator[str] directly (async generator)
-            stream_iter: AsyncIterator[str] = harness_backend.stream_task(
-                task_input, debug=debug
-            )  # type: ignore[assignment]
+            stream_iter: AsyncIterator[str] = harness_backend.stream_task(task_input, debug=debug)  # type: ignore[assignment]
             async for chunk in stream_iter:
                 _stream_callback(chunk)
                 collected += chunk
@@ -179,6 +177,127 @@ def _invoke_harness(
             error=task_result.error,
             timestamp=task_result.timestamp,
         )
+
+
+def _slugify(text: str, max_length: int = 40) -> str:
+    """Convert text to a URL/branch-friendly slug."""
+    import re
+
+    # Convert to lowercase
+    slug = text.lower()
+    # Replace spaces and underscores with hyphens
+    slug = re.sub(r"[\s_]+", "-", slug)
+    # Remove non-alphanumeric characters (except hyphens)
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    # Collapse multiple hyphens
+    slug = re.sub(r"-+", "-", slug)
+    # Strip leading/trailing hyphens
+    slug = slug.strip("-")
+    # Truncate to max length (at word boundary if possible)
+    if len(slug) > max_length:
+        slug = slug[:max_length].rsplit("-", 1)[0]
+    return slug
+
+
+def _create_branch_from_base(
+    branch_name: str,
+    base_branch: str,
+    console: Console,
+) -> bool:
+    """
+    Create a new git branch from a base branch.
+
+    Args:
+        branch_name: Name for the new branch
+        base_branch: Branch to create from
+        console: Rich console for output
+
+    Returns:
+        True if branch was created successfully
+    """
+    import subprocess
+
+    from cub.core.branches.store import BranchStore
+
+    # Check if branch already exists
+    if BranchStore.git_branch_exists(branch_name):
+        console.print(f"[yellow]Branch '{branch_name}' already exists[/yellow]")
+        # Switch to it
+        result = subprocess.run(
+            ["git", "checkout", branch_name],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            console.print(f"[red]Failed to switch to branch: {result.stderr}[/red]")
+            return False
+        console.print(f"[green]Switched to existing branch '{branch_name}'[/green]")
+        return True
+
+    # Verify base branch exists
+    if not BranchStore.git_branch_exists(base_branch):
+        # Try with origin/ prefix
+        remote_base = f"origin/{base_branch}"
+        if BranchStore.git_branch_exists(remote_base):
+            base_branch = remote_base
+        else:
+            console.print(f"[red]Base branch '{base_branch}' does not exist[/red]")
+            return False
+
+    # Create and checkout new branch from base
+    result = subprocess.run(
+        ["git", "checkout", "-b", branch_name, base_branch],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        console.print(f"[red]Failed to create branch: {result.stderr}[/red]")
+        return False
+
+    console.print(f"[green]Created branch '{branch_name}' from '{base_branch}'[/green]")
+    return True
+
+
+def _get_gh_issue_title(issue_number: int) -> str | None:
+    """Get the title of a GitHub issue."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["gh", "issue", "view", str(issue_number), "--json", "title", "-q", ".title"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return None
+    except (OSError, FileNotFoundError):
+        return None
+
+
+def _get_epic_title(epic_id: str) -> str | None:
+    """Get the title of an epic from beads."""
+    import json
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["bd", "show", epic_id, "--json"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            title = data.get("title")
+            if isinstance(title, str):
+                return title
+        return None
+    except (OSError, FileNotFoundError, json.JSONDecodeError):
+        return None
 
 
 app = typer.Typer(
@@ -559,6 +678,16 @@ def run(
         "--gh-issue",
         help="Work on a specific GitHub issue by number",
     ),
+    main_ok: bool = typer.Option(
+        False,
+        "--main-ok",
+        help="Allow running on main/master branch (normally blocked)",
+    ),
+    from_branch: str | None = typer.Option(
+        None,
+        "--from-branch",
+        help="Base branch for auto-created feature branches (default: main)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -566,14 +695,22 @@ def run(
     Runs the main cub loop, picking up tasks and executing them with the
     specified AI harness until stopped or budget is exhausted.
 
+    Branch Protection:
+        By default, cub run will not execute on main/master branch. When
+        --label, --epic, or --gh-issue is specified, a feature branch is
+        automatically created. Use --main-ok to explicitly allow main.
+
     Examples:
         cub run                         # Run with default harness
         cub run --harness claude        # Run with Claude
         cub run --once                  # Run one iteration
         cub run --task cub-123          # Run specific task
         cub run --budget 5.0            # Set budget to $5
-        cub run --epic backend-v2       # Work on epic only
-        cub run --label priority        # Work on labeled tasks
+        cub run --epic backend-v2       # Work on epic (auto-creates feature/backend-v2)
+        cub run --label priority        # Work on labeled tasks (auto-creates feature/priority)
+        cub run --gh-issue 123          # Work on GitHub issue (auto-creates fix/issue-title)
+        cub run --main-ok               # Explicitly allow running on main
+        cub run --from-branch develop   # Create feature branch from develop instead of main
         cub run --ready                 # List ready tasks
         cub run --worktree              # Run in isolated worktree
         cub run --worktree --worktree-keep  # Keep worktree after run
@@ -583,7 +720,6 @@ def run(
         cub run --direct "Add a logout button to the navbar"  # Direct task
         cub run --direct @task.txt      # Read task from file
         echo "Fix the typo" | cub run --direct -  # Read from stdin
-        cub run --gh-issue 123          # Work on GitHub issue #123
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -635,6 +771,63 @@ def run(
         if direct:
             console.print("[red]--gh-issue cannot be used with --direct[/red]")
             raise typer.Exit(1)
+
+    # ==========================================================================
+    # Branch protection and auto-branch creation
+    # ==========================================================================
+
+    from cub.core.branches.store import BranchStore
+
+    current_branch = BranchStore.get_current_branch()
+    base_branch = from_branch or "main"
+
+    # Check if on main/master branch
+    if current_branch in ("main", "master"):
+        # Determine if we should auto-create a branch
+        auto_branch_name: str | None = None
+
+        if label:
+            # --label foo → feature/foo
+            auto_branch_name = f"feature/{_slugify(label)}"
+        elif epic:
+            # --epic cub-xyz → feature/[epic-slug]
+            epic_title = _get_epic_title(epic)
+            if epic_title:
+                auto_branch_name = f"feature/{_slugify(epic_title)}"
+            else:
+                # Fallback to epic ID
+                auto_branch_name = f"feature/{_slugify(epic)}"
+        elif gh_issue is not None:
+            # --gh-issue 47 → fix/[issue-slug]
+            issue_title = _get_gh_issue_title(gh_issue)
+            if issue_title:
+                auto_branch_name = f"fix/{_slugify(issue_title)}"
+            else:
+                # Fallback to issue number
+                auto_branch_name = f"fix/issue-{gh_issue}"
+
+        if auto_branch_name:
+            # Auto-create and switch to branch
+            console.print(
+                f"[yellow]On {current_branch} branch - creating '{auto_branch_name}'[/yellow]"
+            )
+            if not _create_branch_from_base(auto_branch_name, base_branch, console):
+                raise typer.Exit(1)
+            # Update current_branch for any subsequent checks
+            current_branch = auto_branch_name
+        elif not main_ok:
+            # No auto-branch trigger and --main-ok not set
+            console.print(f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]")
+            console.print(
+                "[dim]Use --label, --epic, or --gh-issue to auto-create a feature branch,[/dim]"
+            )
+            console.print("[dim]or use --main-ok to explicitly allow running on main.[/dim]")
+            raise typer.Exit(1)
+        else:
+            # --main-ok was set, warn but continue
+            console.print(
+                f"[yellow]Warning: Running on '{current_branch}' branch (--main-ok)[/yellow]"
+            )
 
     # Handle --sandbox flag: run in Docker container
     if sandbox:
@@ -963,9 +1156,7 @@ def run(
                             harness=harness_name,
                             session_id=run_id,
                         )
-                        run_hooks_async(
-                            "on-all-tasks-complete", complete_context, project_dir
-                        )
+                        run_hooks_async("on-all-tasks-complete", complete_context, project_dir)
                         status.mark_completed()
                         break
                     else:
@@ -1060,9 +1251,7 @@ def run(
                     f"[yellow]Budget warning: {budget_pct:.1f}% used "
                     f"(threshold: {warning_threshold:.0f}%)[/yellow]"
                 )
-                status.add_event(
-                    f"Budget warning: {budget_pct:.1f}% used", EventLevel.WARNING
-                )
+                status.add_event(f"Budget warning: {budget_pct:.1f}% used", EventLevel.WARNING)
                 # Fire on-budget-warning hook (async)
                 budget_context = HookContext(
                     hook_name="on-budget-warning",
