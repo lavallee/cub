@@ -119,9 +119,20 @@ class Stager:
 
     @property
     def backend(self) -> TaskBackend:
-        """Get the task backend, auto-detecting if not set."""
+        """
+        Get the task backend, auto-detecting if not set.
+
+        Raises:
+            StagerError: If backend cannot be detected or initialized.
+        """
         if self._backend is None:
-            self._backend = get_backend(project_dir=self.plan_ctx.project_root)
+            try:
+                self._backend = get_backend(project_dir=self.plan_ctx.project_root)
+            except ValueError as e:
+                raise StagerError(
+                    f"Cannot detect task backend: {e}. "
+                    "Ensure you have beads configured or .tasks.json present."
+                ) from e
         return self._backend
 
     def validate(self) -> None:
@@ -274,6 +285,22 @@ class Stager:
         # Convert tasks to Task models
         tasks = [self._convert_parsed_task_to_task(t) for t in parsed_plan.tasks]
 
+        # Validate that we have something to stage
+        if not epic_tasks and not tasks:
+            raise StagerError(
+                "Parsed plan contains no epics or tasks. "
+                "Cannot stage an empty plan."
+            )
+
+        # Validate task relationships
+        epic_ids = {e.id for e in epic_tasks}
+        for task in tasks:
+            if task.parent and task.parent not in epic_ids:
+                raise StagerError(
+                    f"Task '{task.id}' references non-existent epic '{task.parent}'. "
+                    "Fix the itemized-plan.md before staging."
+                )
+
         if dry_run:
             # Return what would be created without actually creating
             return StagingResult(
@@ -288,15 +315,51 @@ class Stager:
         try:
             # Import epics first (they may be parents of tasks)
             created_epics = self.backend.import_tasks(epic_tasks)
+        except ValueError as e:
+            raise TaskImportError(
+                f"Failed to import epics to task backend: {e}. "
+                "No changes have been made to the plan status."
+            ) from e
 
-            # Import tasks
+        # Import tasks (if epics succeeded)
+        try:
             created_tasks = self.backend.import_tasks(tasks)
         except ValueError as e:
-            raise TaskImportError(f"Failed to import tasks: {e}") from e
+            raise TaskImportError(
+                f"Failed to import tasks to task backend: {e}. "
+                f"Note: {len(created_epics)} epics were already imported. "
+                "You may need to clean up the backend manually."
+            ) from e
+
+        # Validate import results
+        if len(created_epics) != len(epic_tasks):
+            raise TaskImportError(
+                f"Backend import mismatch: expected {len(epic_tasks)} epics, "
+                f"got {len(created_epics)}. Import may be incomplete."
+            )
+        if len(created_tasks) != len(tasks):
+            raise TaskImportError(
+                f"Backend import mismatch: expected {len(tasks)} tasks, "
+                f"got {len(created_tasks)}. Import may be incomplete."
+            )
 
         # Update plan status
-        self.plan_ctx.plan.mark_staged()
-        self.plan_ctx.save_plan()
+        try:
+            self.plan_ctx.plan.mark_staged()
+        except ValueError as e:
+            raise StagerError(
+                f"Cannot mark plan as staged: {e}. "
+                f"Tasks were imported successfully but plan status not updated."
+            ) from e
+
+        try:
+            self.plan_ctx.save_plan()
+        except (OSError, ValueError) as e:
+            raise StagerError(
+                f"Cannot save plan after staging: {e}. "
+                f"Tasks were imported successfully but plan.json not updated. "
+                f"Plan status is now STAGED in memory but not persisted."
+            ) from e
 
         return StagingResult(
             plan_slug=self.plan_ctx.plan.slug,
