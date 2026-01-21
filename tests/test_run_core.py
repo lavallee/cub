@@ -1509,11 +1509,13 @@ class TestBranchCreation:
                 "cub.core.branches.store.BranchStore.get_current_branch"
             ) as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             result = runner.invoke(
                 app, ["--use-current-branch", "--main-ok", "--once"]
@@ -1530,11 +1532,13 @@ class TestBranchCreation:
                 "cub.core.branches.store.BranchStore.get_current_branch"
             ) as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "feature/my-work"
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             result = runner.invoke(app, ["--use-current-branch", "--once"])
 
@@ -1594,11 +1598,13 @@ class TestBranchCreation:
             ) as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "feature/existing"
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             result = runner.invoke(
                 app, ["--use-current-branch", "--from-branch", "develop", "--once"]
@@ -1617,11 +1623,13 @@ class TestBranchCreation:
             ) as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "feature/existing-work"
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             result = runner.invoke(app, ["--once"])
 
