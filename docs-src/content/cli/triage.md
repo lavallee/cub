@@ -1,21 +1,21 @@
 ---
-title: cub investigate
-description: Investigate and process captures into actionable items based on their type.
+title: cub triage
+description: Triage and process captures into actionable items based on their type.
 ---
 
-# cub investigate
+# cub triage
 
-Investigate and process captures into actionable items based on their type.
+Triage and process captures into actionable items based on their type.
 
 ## Synopsis
 
 ```bash
-cub investigate [OPTIONS] [CAPTURE_ID]
+cub triage [OPTIONS] [CAPTURE_ID]
 ```
 
 ## Description
 
-The `cub investigate` command analyzes captures and determines what action each needs. It automatically categorizes captures and processes them appropriately:
+The `cub triage` command analyzes captures and determines what action each needs. It automatically categorizes captures and processes them appropriately:
 
 | Category | Description | Action Taken |
 |----------|-------------|--------------|
@@ -32,7 +32,7 @@ Output artifacts are saved to `specs/investigations/`.
 
 | Argument | Description |
 |----------|-------------|
-| `CAPTURE_ID` | Capture ID to investigate (e.g., cap-042). Optional if using `--all`. |
+| `CAPTURE_ID` | Capture ID to triage (e.g., cap-042). Optional if using `--all`. |
 
 ## Options
 
@@ -46,7 +46,7 @@ Output artifacts are saved to `specs/investigations/`.
 
 ## Category Detection
 
-The investigate command uses heuristics to categorize captures:
+The triage command uses heuristics to categorize captures:
 
 ### quick
 
@@ -75,7 +75,7 @@ Detected when content suggests code exploration:
 Detected when content suggests external investigation:
 
 - "check out", "look at", "research"
-- "investigate", "compare", "inspiration"
+- "triage", "compare", "inspiration"
 - "best practice", "how does", "what is"
 
 **Action:** Creates a research template at `specs/investigations/{id}-research.md` with suggested search queries.
@@ -216,7 +216,7 @@ Found in 5 file(s):
 ### Investigate a single capture
 
 ```bash
-cub investigate cap-042
+cub triage cap-042
 ```
 
 Output:
@@ -238,7 +238,7 @@ Summary:
 ### Investigate all captures
 
 ```bash
-cub investigate --all
+cub triage --all
 ```
 
 Processes all active captures that haven't been marked for review.
@@ -246,7 +246,7 @@ Processes all active captures that haven't been marked for review.
 ### Preview without changes
 
 ```bash
-cub investigate --all --dry-run
+cub triage --all --dry-run
 ```
 
 Output:
@@ -275,7 +275,7 @@ Summary:
 ### Override categorization
 
 ```bash
-cub investigate cap-042 --mode=design
+cub triage cap-042 --mode=design
 ```
 
 Forces the capture to be processed as a design item regardless of detected category.
@@ -283,7 +283,7 @@ Forces the capture to be processed as a design item regardless of detected categ
 ### Batch quick fixes
 
 ```bash
-cub investigate --all --batch-quick-fixes
+cub triage --all --batch-quick-fixes
 ```
 
 Instead of creating individual tasks, groups all quick fixes into a single batched task:
@@ -299,10 +299,10 @@ Processing 4 batched quick fixes...
 
 ```bash
 # Review what needs attention
-cub investigate --all --dry-run
+cub triage --all --dry-run
 
 # Process everything
-cub investigate --all
+cub triage --all
 ```
 
 ### Targeted investigation
@@ -310,7 +310,7 @@ cub investigate --all
 ```bash
 # Focus on a specific capture
 cub captures show cap-042
-cub investigate cap-042
+cub triage cap-042
 
 # Review the output
 cat specs/investigations/cap-042-*.md
@@ -322,7 +322,7 @@ Sometimes the automatic categorization is wrong:
 
 ```bash
 # Force a capture to be treated as research
-cub investigate cap-042 --mode=research
+cub triage cap-042 --mode=research
 ```
 
 ## Clarifying Questions
@@ -340,7 +340,7 @@ This capture needs more detail. Please answer:
 - What specific question are you trying to answer?
 - Which part of the codebase does this relate to?
 
-Once clarified, run `cub investigate cap-042` again.
+Once clarified, run `cub triage cap-042` again.
 ```
 
 ## Summary Table

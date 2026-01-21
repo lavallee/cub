@@ -15,13 +15,13 @@ Cub's workflow is built around two distinct phases:
 
 <div class="workflow-card prep" markdown>
 
-### Prep: Vision to Tasks
+### Plan: Spec to Tasks
 
 **When:** Starting new work, refining requirements
 
 **Purpose:** Transform ideas into structured, agent-ready tasks
 
-**Commands:** `cub prep`, `cub triage`, `cub architect`, `cub plan`, `cub bootstrap`
+**Commands:** `cub spec`, `cub plan run`, `cub plan orient`, `cub plan architect`, `cub plan itemize`, `cub stage`
 
 </div>
 
@@ -45,7 +45,7 @@ The separation exists because different work benefits from different approaches:
 
 | Phase | You Provide | Cub Does | Result |
 |-------|-------------|----------|--------|
-| **Prep** | Ideas, requirements, context | Guided refinement, structured decomposition | Clear, agent-sized tasks |
+| **Plan** | Specs, requirements, context | Guided refinement, structured decomposition | Clear, agent-sized tasks |
 | **Run** | Ready tasks | Autonomous execution, monitoring | Working code |
 
 This lets you invest time *before* code starts flying, making the autonomous execution more reliable.
@@ -450,6 +450,6 @@ Configure behavior on task failure:
 Now that you understand the concepts:
 
 - **[Configuration Guide](../guide/configuration/index.md)** - Customize Cub
-- **[Prep Pipeline](../guide/prep-pipeline/index.md)** - Master vision-to-tasks
+- **[Plan Flow](../guide/prep-pipeline/index.md)** - Master spec-to-tasks
 - **[Run Loop](../guide/run-loop/index.md)** - Deep dive on execution
 - **[AI Harnesses](../guide/harnesses/index.md)** - Harness details

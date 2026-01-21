@@ -173,17 +173,25 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `init_cmd.py` - Configuration setup
 - `monitor.py` - Live dashboard via Rich
 
+### Plan Flow Commands (Native Python)
+
+These commands are the new planning pipeline, fully implemented in Python:
+
+**Planning Pipeline:**
+- `cub plan orient` - Research and understand the problem space
+- `cub plan architect` - Design the technical approach
+- `cub plan itemize` - Break architecture into tasks
+- `cub plan run` - Run full pipeline (orient→architect→itemize)
+- `cub plan list` - List existing plans
+- `cub stage` - Import tasks to backend after planning
+- `cub spec` - Create specs interactively
+
+**Capture Processing:**
+- `cub triage` - Triage and process captures into actions
+
 ### Delegated Commands (Bash-Implemented)
 
-These commands are not yet ported to Python. They are registered as Typer commands but delegate execution to the bash version:
-
-**Vision-to-Tasks Prep Pipeline:**
-- `prep` - Run full prep pipeline (triage→architect→plan→bootstrap)
-- `triage` - Requirements refinement
-- `architect` - Technical design
-- `plan` - Task decomposition
-- `bootstrap` - Initialize beads from prep artifacts
-- `sessions` - List and manage prep sessions
+Some commands still delegate to bash:
 
 **Task & Artifact Management:**
 - `explain-task` - Show detailed task information
@@ -256,18 +264,17 @@ Delegation is implemented in `cub.core.bash_delegate`:
 
 ### Migration Path to Full Python
 
-Eventually, all delegated commands will be ported to Python. The migration order should prioritize:
+The prep pipeline has been migrated to native Python as `cub plan` with subcommands (orient, architect, itemize) and `cub stage`. The remaining delegated commands will be ported. Priority:
 
 1. **High-frequency commands** (used in every session)
    - Interview mode (`interview`)
    - Task validation (`validate`)
 
-2. **Core infrastructure** (used by prep pipeline)
-   - Prep pipeline commands (`triage`, `architect`, `plan`, `bootstrap`)
+2. **Git integration**
    - Branch management (`branch`, `branches`)
-
-3. **Advanced features** (nice-to-have)
    - PR management (`pr`)
+
+3. **Utilities** (nice-to-have)
    - Doctor/upgrade utilities
 
 When porting a command:

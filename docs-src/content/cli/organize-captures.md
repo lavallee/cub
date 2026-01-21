@@ -255,7 +255,7 @@ cub organize-captures            # Fix if needed
 
 - [`cub capture`](capture.md) - Create properly formatted captures
 - [`cub captures`](captures.md) - List and manage captures
-- [`cub investigate`](investigate.md) - Process captures into actions
+- [`cub triage`](triage.md) - Process captures into actions
 
 ## See Also
 

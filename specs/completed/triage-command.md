@@ -1,8 +1,8 @@
-# cub investigate - Intelligent Capture Processing
+# cub triage - Intelligent Capture Triage
 
 ## Overview
 
-The `cub investigate` command processes captures (ideas, notes, observations) and moves them forward by determining what action each needs and taking it.
+The `cub triage` command processes captures (ideas, notes, observations) and moves them forward by determining what action each needs and taking it.
 
 ## The Problem
 
@@ -58,7 +58,7 @@ Need external investigation - web search, docs, examples.
 Need thinking, planning, architecture decisions, user feedback.
 
 **Examples:**
-- "think through investigate command workflow"
+- "think through triage command workflow"
 - "design plugin system"
 - "plan v2.0 architecture"
 
@@ -84,22 +84,22 @@ Too vague or ambiguous to act on.
 
 ```bash
 # Investigate a single capture
-cub investigate cap-abc123
+cub triage cap-abc123
 
 # Investigate all active captures
-cub investigate --all
+cub triage --all
 
 # Investigate with specific mode
-cub investigate cap-abc123 --mode=research
+cub triage cap-abc123 --mode=research
 
 # Batch quick fixes together
-cub investigate --all --batch-quick-fixes
+cub triage --all --batch-quick-fixes
 
 # Dry run - show what would be done
-cub investigate --all --dry-run
+cub triage --all --dry-run
 
 # Interactive mode - confirm each action
-cub investigate --all --interactive
+cub triage --all --interactive
 ```
 
 ## Workflow
@@ -151,7 +151,7 @@ specs/investigations/
 
 ### With Captures System
 - Reads from global/project capture stores
-- Updates capture status (active → investigated)
+- Updates capture status (active → triaged)
 - Links captures to resulting tasks/artifacts
 
 ### With Beads
@@ -194,7 +194,7 @@ specs/investigations/
 ## Example Session
 
 ```
-$ cub investigate --all
+$ cub triage --all
 
 Analyzing 4 captures...
 
@@ -213,9 +213,9 @@ cap-001: "check out julia from google for inspiration"
   Action: Searching for "julia google AI coding assistant"...
   Summary: specs/investigations/cap-001-research.md
 
-cap-b04hr9: "think through investigate command workflow"
+cap-b04hr9: "think through triage command workflow"
   Category: design
-  Action: This capture is about the investigate command itself!
+  Action: This capture is about the triage command itself!
   Skipping (meta-investigation)
 
 Summary:
