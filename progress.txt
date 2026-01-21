@@ -1,5 +1,91 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-3wxc.3: Add --use-current-branch flag to cub run
+
+### Task Completed
+Added `--use-current-branch` flag to `cub run` command and changed default behavior to create new branches from `origin/main`.
+
+### What Was Implemented
+
+**New CLI Option:**
+- `--use-current-branch` flag to opt-in to running in current branch
+- Updated `--from-branch` help text to indicate it's ignored with `--use-current-branch`
+
+**Branch Creation Logic Changes:**
+1. Default base branch is now `origin/main` instead of local `main` (prevents stale local main issues)
+2. When `--use-current-branch` is NOT set (default):
+   - If on main/master: creates new branch from `origin/main` (or `--from-branch`)
+   - If on feature branch: reuses existing branch (no sprawl)
+   - Branch names follow conventions: `task/`, `feature/`, `fix/`, or `cub/run-{timestamp}`
+3. When `--use-current-branch` IS set:
+   - Works in current branch
+   - Still protects main/master unless `--main-ok` is also set
+
+**Tests Added:**
+- `TestBranchCreation` class with 11 tests covering all scenarios
+- Tests for `--use-current-branch` with/without `--main-ok`
+- Tests for default branch creation from `origin/main`
+- Tests for `--from-branch` override
+- Tests for branch reuse on feature branches
+
+### Key Design Decisions
+
+1. **origin/main Default:** Using `origin/main` instead of local `main` handles beads' worktree setup where local main may be stale.
+
+2. **Feature Branch Reuse:** When already on a feature branch, don't create new one - prevents branch sprawl.
+
+3. **Backward Compatibility:** Use `--use-current-branch` to preserve old behavior for users who want it.
+
+4. **Timestamp Branches:** Generic runs without context get `cub/run-{timestamp}` branches.
+
+### Verification
+
+- All 1408 tests pass
+- mypy clean (4 pre-existing errors unrelated to changes)
+- ruff check passes for modified files (pre-existing issues in other files)
+
+---
+
+## 2026-01-21 - cub-3wxc.2: Auto-close epics with no incomplete tasks
+
+### Task Completed
+Enhanced `cub doctor` to detect and auto-close stale epics where all subtasks are complete.
+
+### What Was Implemented
+
+**New Functions in cmd_doctor.sh:**
+1. `_doctor_check_stale_epics()` - Detects epics with all closed subtasks
+   - Queries both beads (`bd list --parent --all`) and JSON backends
+   - Handles multiple association methods: parent field, labels, ID prefixes
+   - Skips epics with no subtasks (parent containers)
+   - Reports stale count and details
+
+2. `_doctor_fix_stale_epics()` - Auto-closes stale epics in fix mode
+   - Uses `bd close` for beads backend with reason "Auto-closed: all subtasks complete"
+   - Uses `cub task close` for JSON backend
+   - Respects `--dry-run` flag
+   - Provides summary of closed/failed epics
+
+**Integration:**
+- Added to help text documenting new check and fix action
+- Integrated into `cmd_doctor()` main flow between task check and recommendations
+- Exports `_DOCTOR_STALE_EPICS` variable for fix phase coordination
+
+### Key Learnings
+
+1. **Beads Parent-Child Relationships:** The beads CLI uses `--parent` flag with `--all` to query subtasks. Without `--all`, closed tasks are excluded from results.
+
+2. **jq != Escaping:** In bash, `!=` in jq expressions can cause issues with history expansion. Use `(.status == "closed" | not)` instead of `.status != "closed"`.
+
+3. **Variable Scope in Bash:** When using `|| exit_code=$?` pattern, the variable assignment happens in the current shell. However, subprocess.run() from Python creates a separate process where exported variables persist within that process.
+
+4. **Beads ID Convention:** Subtasks often use `{parent}.{n}` ID pattern (e.g., `cub-abc.1`, `cub-abc.2`), which can be detected via `startswith()` as a fallback for parent-child detection.
+
+### Tests
+All 1397 existing tests pass. No new unit tests required as this is bash script functionality tested via integration (cub doctor command).
+
+---
+
 ## 2026-01-21 - cub-p4x.3: Rename skill files
 
 ### Task Completed
