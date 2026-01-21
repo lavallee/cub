@@ -556,6 +556,68 @@ class JsonBackend:
 
         return task
 
+    def import_tasks(self, tasks: list[Task]) -> list[Task]:
+        """
+        Bulk import tasks.
+
+        This method enables efficient bulk import of multiple tasks at once
+        with a single file write for better performance.
+
+        Args:
+            tasks: List of Task objects to import
+
+        Returns:
+            List of imported Task objects (with IDs assigned by the backend)
+
+        Raises:
+            ValueError: If import fails
+        """
+        data = self._load_prd()
+        prefix = data.get("prefix", "prd")
+        existing_ids = {t.get("id", "") for t in data.get("tasks", [])}
+
+        # Find starting task number
+        task_num = 1
+        while f"{prefix}-{task_num:03d}" in existing_ids:
+            task_num += 1
+
+        imported_tasks: list[Task] = []
+        tasks_array = data.get("tasks", [])
+
+        for task in tasks:
+            # Generate unique ID
+            task_id = f"{prefix}-{task_num:03d}"
+            existing_ids.add(task_id)
+            task_num += 1
+
+            # Create new task with generated ID, preserving all fields from source
+            new_task = Task(
+                id=task_id,
+                title=task.title,
+                description=task.description,
+                type=task.type,
+                priority=task.priority,
+                labels=task.labels if task.labels else [],
+                depends_on=task.depends_on if task.depends_on else [],
+                parent=task.parent,
+                status=task.status,
+                assignee=task.assignee,
+                acceptance_criteria=task.acceptance_criteria if task.acceptance_criteria else [],
+                notes=task.notes if task.notes else "",
+                created_at=task.created_at or datetime.now(),
+                updated_at=datetime.now(),
+            )
+
+            tasks_array.append(self._task_to_dict(new_task))
+            imported_tasks.append(new_task)
+
+        data["tasks"] = tasks_array
+
+        # Save atomically (single file write for efficiency)
+        self._save_prd(data)
+
+        return imported_tasks
+
     @property
     def backend_name(self) -> str:
         """Get the name of this backend."""
@@ -588,3 +650,27 @@ class JsonBackend:
 ```
 
 **Important:** Always run feedback loops (tests, typecheck, lint) BEFORE marking the task closed."""
+
+    def bind_branch(
+        self,
+        epic_id: str,
+        branch_name: str,
+        base_branch: str = "main",
+    ) -> bool:
+        """
+        Bind a git branch to an epic.
+
+        The JSON backend doesn't have native branch binding support.
+        This is a no-op that returns False.
+
+        Args:
+            epic_id: Epic ID to bind
+            branch_name: Git branch name
+            base_branch: Base branch for merging
+
+        Returns:
+            False (branch binding not supported in JSON backend)
+        """
+        # JSON backend doesn't support branch bindings
+        # Could optionally store in prd.json metadata in the future
+        return False

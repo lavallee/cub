@@ -1,21 +1,21 @@
 ---
-title: cub upgrade
+title: cub system-upgrade
 description: Upgrade cub to a newer version or reinstall from local source.
 ---
 
-# cub upgrade
+# cub system-upgrade
 
 Upgrade cub to a newer version or reinstall from local source for development.
 
 ## Synopsis
 
 ```bash
-cub upgrade [OPTIONS]
+cub system-upgrade [OPTIONS]
 ```
 
 ## Description
 
-The `cub upgrade` command updates your cub installation to a newer version. It automatically detects how cub was installed (pipx, pip, or editable mode) and uses the appropriate upgrade method.
+The `cub system-upgrade` command updates your cub installation to a newer version. It automatically detects how cub was installed (pipx, pip, or editable mode) and uses the appropriate upgrade method.
 
 The command supports several workflows:
 
@@ -93,7 +93,7 @@ pip index versions cub
 ### Upgrade to latest release
 
 ```bash
-cub upgrade
+cub system-upgrade
 ```
 
 Output:
@@ -109,7 +109,7 @@ Updated: v0.26.2 -> v0.26.3
 ### Check for updates
 
 ```bash
-cub upgrade --check
+cub system-upgrade --check
 ```
 
 Shows whether updates are available without installing.
@@ -117,7 +117,7 @@ Shows whether updates are available without installing.
 ### Install specific version
 
 ```bash
-cub upgrade --version 0.25.0
+cub system-upgrade --version 0.25.0
 ```
 
 Useful for testing or pinning to a known-good version.
@@ -125,7 +125,7 @@ Useful for testing or pinning to a known-good version.
 ### Force reinstall
 
 ```bash
-cub upgrade --force
+cub system-upgrade --force
 ```
 
 Reinstalls even if already at the latest version. Useful for repairing broken installations.
@@ -140,7 +140,7 @@ git clone https://github.com/lavallee/cub.git
 cd cub
 
 # Install from local source
-cub upgrade --local
+cub system-upgrade --local
 ```
 
 ### Install in editable mode
@@ -149,7 +149,7 @@ For active cub development where you want changes to take effect immediately:
 
 ```bash
 cd /path/to/cub
-cub upgrade --editable
+cub system-upgrade --editable
 ```
 
 This runs `pip install -e .` which links the package to your source directory.
@@ -158,7 +158,7 @@ This runs `pip install -e .` which links the package to your source directory.
 
 ```bash
 cd /path/to/cub
-cub upgrade --local --force
+cub system-upgrade --local --force
 ```
 
 Reinstalls from local even if versions match.
@@ -190,14 +190,14 @@ Or pull latest changes: git pull
 Your cub is installed in development mode. Either:
 
 1. Pull latest changes: `git pull`
-2. Reinstall with: `cub upgrade --local`
+2. Reinstall with: `cub system-upgrade --local`
 
 ### Version mismatch after upgrade
 
 If the version doesn't change after upgrade:
 
 1. Check if the correct pip/pipx is in your PATH
-2. Try `cub upgrade --force`
+2. Try `cub system-upgrade --force`
 3. Verify with `which cub` and `cub version`
 
 ### Permission denied

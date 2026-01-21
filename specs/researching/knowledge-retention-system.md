@@ -498,7 +498,26 @@ Cub wraps AI coding assistants (Claude Code, Codex, Gemini) to provide a reliabl
 
 ## Recent Changes
 See `.cub/ledger/index.jsonl` for completed work history.
+
+## Project Insights from Interactive Sessions
+Recent insights extracted from .claude files (last surveyed: 2026-01-18):
+- [Key insights from interactive development sessions would appear here]
 ```
+
+**Surveying .claude Files for Insights:**
+
+Projects often accumulate .claude directories from interactive coding sessions (Claude Code, Codex, etc.). These contain valuable context about:
+- Design decisions made during exploration
+- Approaches tried and abandoned
+- Insights about the codebase that emerged during work
+
+**Proposed approach:**
+1. Periodic survey of `.claude/**/*` files (weekly or on-demand)
+2. Extract key insights using LLM summarization
+3. Update llms.txt with distilled learnings
+4. Optionally promote insights to CLAUDE.md or guardrails
+
+This creates a feedback loop where interactive sessions inform future autonomous work.
 
 **codebase-map.md (auto-generated, repomapper style):**
 ```markdown
@@ -702,13 +721,14 @@ Per-task is the right atomic unit for visibility. Tasks may span multiple commit
 
 Consistent with other cub artifacts. Can be gitignored if desired, though recommended to commit for team visibility.
 
-### D3: Direct Harness Use
-**Decision:** Git hooks as safety net + AGENTS.md instructions
+### D3: Direct Harness Use & Interactive Session Recording
+**Decision:** Git hooks as safety net + AGENTS.md instructions + CLI session logging
 
 When users run harnesses directly (not through `cub run`):
 1. **Instructions in AGENTS.md** - Guide agents to create ledger entries
 2. **Git post-commit hook** - Catch-all that creates minimal entries
 3. **Hook validation** - Can check if agent followed instructions properly
+4. **CLI session recording** - Capture interactive work in ledger format
 
 The hook provides deterministic capture even if instructions aren't followed.
 
@@ -719,6 +739,34 @@ The hook provides deterministic capture even if instructions aren't followed.
 # 2. If yes, create/update ledger entry
 # 3. If no, create orphan entry with warning
 ```
+
+**Interactive Session Recording:**
+
+For direct CLI usage (claude, codex, gemini, pi, etc.), add commands/skills to record sessions in a format similar to cub run logs:
+
+```bash
+# Start recording a session
+claude --record beads-abc123 ...
+
+# Or post-hoc recording
+cub ledger record-session \
+  --task beads-abc123 \
+  --session-dir ~/.claude/sessions/20260118-120000 \
+  --approach "Explored authentication patterns" \
+  --decisions "Chose JWT over sessions"
+```
+
+**Benefits:**
+- Captures ad-hoc exploration work that doesn't go through `cub run`
+- Preserves design rationale from interactive sessions
+- Enables cost tracking for all work (not just orchestrated runs)
+- Provides consistent ledger format regardless of workflow
+
+**Implementation considerations:**
+- Each CLI (claude, codex, etc.) could support `--record` flag
+- Falls back to post-hoc recording via `cub ledger record-session`
+- Session directories already exist for most CLIs (e.g., ~/.claude/sessions/)
+- Extract token usage from session logs if available
 
 ### D4: Git Commit Integration
 **Decision:** Task IDs in commit messages (structured trailers)
@@ -808,10 +856,12 @@ Plus: Engineer time saved on debugging, cost tracking, context recovery
 7. **Drift detection** - Compare specs to ledger
 8. **Codebase mapping** - Tree-sitter or repomapper integration
 9. **Analysis scripts** - Pattern extraction from history
+10. **.claude file surveying** - Regular extraction of insights from interactive sessions
+11. **Interactive session recording** - Add `--record` flags to CLIs (claude, codex, etc.) to capture sessions in ledger format
 
 ### Deferred
-10. **External observability integration** - Wait for OTel GenAI maturity
-11. **Cross-project knowledge base** - After single-project works well
+12. **External observability integration** - Wait for OTel GenAI maturity
+13. **Cross-project knowledge base** - After single-project works well
 
 ---
 

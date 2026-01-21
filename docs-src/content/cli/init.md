@@ -249,7 +249,7 @@ cd my-project
 cub init
 
 # 3. Start working
-cub prep  # or create tasks manually
+cub plan run  # or create tasks manually
 cub run
 ```
 
@@ -304,10 +304,12 @@ The layout is auto-detected based on existing files.
 
 ## Claude Code Skills
 
-Init installs Claude Code skills for the prep pipeline:
+Init installs Claude Code skills for the plan pipeline:
 
 | Skill | Description |
 |-------|-------------|
+| `cub:spec` | Feature specification interview |
+| `cub:capture` | Quick idea capture |
 | `cub:triage` | Requirements refinement |
 | `cub:architect` | Technical design |
 | `cub:plan` | Task decomposition |
@@ -316,7 +318,7 @@ Use with Claude Code:
 
 ```bash
 claude
-# Then: /cub:triage
+# Then: /cub:spec
 ```
 
 ---
@@ -333,7 +335,7 @@ claude
 ## Related Commands
 
 - [`cub doctor`](doctor.md) - Diagnose configuration issues
-- [`cub prep`](prep.md) - Run the prep pipeline
+- [`cub plan`](plan.md) - Run the planning pipeline
 - [`cub run`](run.md) - Execute the task loop
 
 ---

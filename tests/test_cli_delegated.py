@@ -22,12 +22,7 @@ class TestDelegatedCommandsHelp:
     @pytest.mark.parametrize(
         "command",
         [
-            "prep",
-            "triage",
-            "architect",
-            "plan",
-            "bootstrap",
-            "sessions",
+            # prep pipeline commands removed - now using native cub plan
             "interview",
             "branch",
             "branches",
@@ -35,7 +30,6 @@ class TestDelegatedCommandsHelp:
             # "pr" is now a native Python command (not delegated)
             "explain-task",
             "artifacts",
-            "validate",
             "guardrails",
             "doctor",
             "close-task",
@@ -51,44 +45,6 @@ class TestDelegatedCommandsHelp:
 
 class TestDelegatedCommandPassthrough:
     """Test that delegated commands pass arguments through to bash."""
-
-    def test_prep_command_delegates(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test that 'cub prep' delegates to bash with correct args."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\necho 'prep called'\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["prep"])
-
-            # Should delegate and exit with 0
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            # Verify the command was built correctly
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [str(bash_script), "prep"]
-
-    def test_triage_command_delegates(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that 'cub triage' delegates to bash."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["triage"])
-
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [str(bash_script), "triage"]
 
     def test_interview_with_args_delegates(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -140,7 +96,7 @@ class TestDelegatedCommandPassthrough:
         mock_result.returncode = 42
 
         with patch("subprocess.run", return_value=mock_result):
-            result = runner.invoke(app, ["prep"])
+            result = runner.invoke(app, ["interview", "task-123"])
 
             assert result.exit_code == 42
 
@@ -156,13 +112,13 @@ class TestDelegatedCommandPassthrough:
         mock_result.returncode = 0
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["sessions"])
+            result = runner.invoke(app, ["branches"])
 
             assert result.exit_code == 0
             mock_run.assert_called_once()
             call_args = mock_run.call_args
             # Should have just the command, no extra args
-            assert call_args[0][0] == [str(bash_script), "sessions"]
+            assert call_args[0][0] == [str(bash_script), "branches"]
 
 
 class TestDelegatedCommandsDebugFlag:
@@ -176,13 +132,13 @@ class TestDelegatedCommandsDebugFlag:
 
         # Add --debug to sys.argv to simulate user passing it
         import sys
-        with patch.object(sys, "argv", ["cub", "--debug", "prep"]):
+        with patch.object(sys, "argv", ["cub", "--debug", "interview", "task-123"]):
             mock_result = Mock()
             mock_result.returncode = 0
 
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 # Global --debug flag before command
-                result = runner.invoke(app, ["--debug", "prep"])
+                result = runner.invoke(app, ["--debug", "interview", "task-123"])
 
                 assert result.exit_code == 0
                 mock_run.assert_called_once()
@@ -203,7 +159,7 @@ class TestDelegatedCommandsErrorHandling:
 
             mock_find.side_effect = BashCubNotFoundError("Not found")
 
-            result = runner.invoke(app, ["prep"])
+            result = runner.invoke(app, ["interview", "task-123"])
 
             assert result.exit_code == 1
 
@@ -216,7 +172,7 @@ class TestDelegatedCommandsErrorHandling:
         monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
 
         with patch("subprocess.run", side_effect=KeyboardInterrupt):
-            result = runner.invoke(app, ["prep"])
+            result = runner.invoke(app, ["interview", "task-123"])
 
             # Should exit with 130 (standard for SIGINT)
             assert result.exit_code == 130
@@ -228,12 +184,7 @@ class TestSpecificDelegatedCommands:
     @pytest.mark.parametrize(
         "command,args",
         [
-            ("prep", []),
-            ("triage", []),
-            ("architect", []),
-            ("plan", []),
-            ("bootstrap", []),
-            ("sessions", []),
+            # prep pipeline commands removed - now using native cub plan
             ("interview", ["task-456"]),
             ("branch", ["cub-789"]),
             ("branches", []),
@@ -241,7 +192,6 @@ class TestSpecificDelegatedCommands:
             # ("pr", ["cub-001"]) - pr is now a native Python command
             ("explain-task", ["task-123"]),
             ("artifacts", []),
-            ("validate", []),
             ("guardrails", []),
             ("doctor", []),
             ("close-task", ["task-123"]),

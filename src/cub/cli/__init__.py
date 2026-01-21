@@ -13,15 +13,19 @@ from cub.cli import (
     capture,
     captures,
     delegated,
-    investigate,
     merge,
     monitor,
     organize_captures,
+    plan,
     pr,
     run,
     sandbox,
+    spec,
+    stage,
     status,
+    triage,
     uninstall,
+    update,
     upgrade,
     worktree,
 )
@@ -30,7 +34,7 @@ from cub.cli import (
 PANEL_KEY = "Key Commands"
 PANEL_STATUS = "See What a Run is Doing"
 PANEL_TASKS = "Work with Tasks"
-PANEL_PREP = "Go Deep in Prep/Planning Mode"
+PANEL_PLAN = "Plan from Specs"
 PANEL_EPICS = "Manage Epics (Groups of Tasks)"
 PANEL_PROJECT = "Improve Your Project"
 PANEL_ROADMAP = "Manage Your Roadmap"
@@ -70,11 +74,6 @@ def main(
 # =============================================================================
 
 app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
-app.command(
-    name="prep",
-    rich_help_panel=PANEL_KEY,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.prep)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 
 
@@ -99,39 +98,11 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 
 
 # =============================================================================
-# Go Deep in Prep/Planning Mode
+# Plan from Specs
 # =============================================================================
 
-app.command(
-    name="triage",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.triage)
-app.command(
-    name="architect",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.architect)
-app.command(
-    name="plan",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.plan)
-app.command(
-    name="bootstrap",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.bootstrap)
-app.command(
-    name="sessions",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.sessions)
-app.command(
-    name="validate",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.validate)
+app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PLAN)
+app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PLAN)
 
 
 # =============================================================================
@@ -160,7 +131,8 @@ app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 
 app.command(name="capture", rich_help_panel=PANEL_ROADMAP)(capture.capture)
 app.add_typer(captures.app, name="captures", rich_help_panel=PANEL_ROADMAP)
-app.add_typer(investigate.app, name="investigate", rich_help_panel=PANEL_ROADMAP)
+app.command(name="spec", rich_help_panel=PANEL_ROADMAP)(spec.spec)
+app.add_typer(triage.app, name="triage", rich_help_panel=PANEL_ROADMAP)
 app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
@@ -179,7 +151,8 @@ def version() -> None:
     raise typer.Exit(0)
 
 
-app.add_typer(upgrade.app, name="upgrade", rich_help_panel=PANEL_INSTALL)
+app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
+app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
 

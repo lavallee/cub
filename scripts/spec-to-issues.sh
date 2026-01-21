@@ -6,13 +6,11 @@
 #   ./scripts/spec-to-issues.sh specs/researching/capture.md --feature cap
 #
 # This script:
-#   1. Reads the spec file
-#   2. Determines the next available issue IDs to avoid collisions
-#   3. Invokes Claude with the /cub:spec-to-issues skill to generate plan.jsonl
-#   4. Imports the plan into beads
+#   1. Runs `cub plan run` to generate the plan (orient → architect → itemize)
+#   2. Runs `cub stage` to import tasks into beads
 #
-# The script uses bd commands for import. This should be abstracted into
-# a cub command in the future for backend independence.
+# The planning is handled by the native cub pipeline, which generates
+# structured artifacts in plans/<slug>/ before importing to beads.
 #
 
 set -euo pipefail
@@ -36,113 +34,37 @@ usage() {
     cat <<EOF
 Usage: $(basename "$0") <spec-file> [OPTIONS]
 
-Convert a feature spec to beads issues.
+Convert a feature spec to beads issues using the cub plan + stage pipeline.
 
 Arguments:
   spec-file              Path to the feature spec markdown file
 
 Options:
-  --feature, -f SLUG     Feature slug for labels (e.g., 'cap' for capture)
-  --prefix PREFIX        Issue ID prefix (default: cub)
-  --dry-run              Generate plan.jsonl but don't import
-  --output, -o PATH      Output path for plan.jsonl (default: temp file)
+  --feature, -f SLUG     Feature slug for labels (stored in plan metadata)
+  --slug SLUG            Explicit plan slug (default: derived from spec name)
+  --depth DEPTH          Orient depth: light, standard, or deep (default: standard)
+  --mindset MINDSET      Technical mindset: prototype, mvp, production, enterprise (default: mvp)
+  --scale SCALE          Expected scale: personal, team, product, internet-scale (default: team)
+  --dry-run              Run planning but don't import to beads
+  --verbose, -v          Show detailed output
   --help, -h             Show this help message
 
 Examples:
   $(basename "$0") specs/researching/capture.md --feature cap
   $(basename "$0") specs/researching/capture.md -f cap --dry-run
-  $(basename "$0") specs/researching/capture.md -f cap -o /tmp/capture-plan.jsonl
+  $(basename "$0") specs/researching/capture.md -f cap --depth deep --mindset production
 EOF
-}
-
-# Get the next available issue IDs
-get_next_ids() {
-    local prefix="${1:-cub}"
-
-    # Get highest task ID (format: prefix-NNN)
-    local highest_task
-    highest_task=$(bd list --status all --json 2>/dev/null | \
-        jq -r '.[].id' | \
-        grep -E "^${prefix}-[0-9]+\$" | \
-        sed "s/${prefix}-//" | \
-        sort -n | \
-        tail -1)
-
-    if [[ -z "$highest_task" ]]; then
-        highest_task=0
-    fi
-
-    # Get highest epic ID (format: prefix-ENN)
-    local highest_epic
-    highest_epic=$(bd list --status all --json 2>/dev/null | \
-        jq -r '.[].id' | \
-        grep -E "^${prefix}-E[0-9]+\$" | \
-        sed "s/${prefix}-E//" | \
-        sort -n | \
-        tail -1)
-
-    if [[ -z "$highest_epic" ]]; then
-        highest_epic=0
-    fi
-
-    # Return next available IDs
-    local next_task=$((highest_task + 1))
-    local next_epic=$((highest_epic + 1))
-
-    echo "${next_epic}:${next_task}"
-}
-
-# Wire dependencies after import (bd import doesn't preserve them)
-wire_dependencies() {
-    local plan_file="$1"
-    local dep_count=0
-
-    if [[ ! -f "$plan_file" ]]; then
-        log_warn "Plan file not found: ${plan_file}"
-        return 0
-    fi
-
-    log_info "Wiring dependencies..."
-
-    while IFS= read -r line; do
-        local issue_id
-        issue_id=$(echo "$line" | jq -r '.id // empty')
-
-        if [[ -z "$issue_id" ]]; then
-            continue
-        fi
-
-        # Extract dependencies array
-        local deps
-        deps=$(echo "$line" | jq -c '.dependencies // []')
-
-        if [[ "$deps" == "[]" || "$deps" == "null" ]]; then
-            continue
-        fi
-
-        # Process each dependency
-        echo "$deps" | jq -c '.[]' | while IFS= read -r dep; do
-            local depends_on_id dep_type
-            depends_on_id=$(echo "$dep" | jq -r '.depends_on_id // empty')
-            dep_type=$(echo "$dep" | jq -r '.type // "blocks"')
-
-            if [[ -n "$depends_on_id" ]]; then
-                if bd dep add "$issue_id" "$depends_on_id" --type "$dep_type" 2>/dev/null; then
-                    ((dep_count++)) || true
-                fi
-            fi
-        done
-    done < "$plan_file"
-
-    log_info "  Added ${dep_count} dependencies"
 }
 
 main() {
     local spec_file=""
     local feature_slug=""
-    local prefix="cub"
+    local plan_slug=""
+    local depth="standard"
+    local mindset="mvp"
+    local scale="team"
     local dry_run=false
-    local output_path=""
+    local verbose=false
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -151,17 +73,29 @@ main() {
                 feature_slug="$2"
                 shift 2
                 ;;
-            --prefix)
-                prefix="$2"
+            --slug)
+                plan_slug="$2"
+                shift 2
+                ;;
+            --depth)
+                depth="$2"
+                shift 2
+                ;;
+            --mindset)
+                mindset="$2"
+                shift 2
+                ;;
+            --scale)
+                scale="$2"
                 shift 2
                 ;;
             --dry-run)
                 dry_run=true
                 shift
                 ;;
-            --output|-o)
-                output_path="$2"
-                shift 2
+            --verbose|-v)
+                verbose=true
+                shift
                 ;;
             --help|-h)
                 usage
@@ -197,143 +131,84 @@ main() {
         exit 1
     fi
 
-    if [[ -z "$feature_slug" ]]; then
-        log_error "Feature slug required (--feature)"
-        usage
+    # Check for required tools
+    if ! command -v cub &>/dev/null; then
+        log_error "cub CLI not found"
         exit 1
     fi
 
-    # Check for required tools
     if ! command -v bd &>/dev/null; then
         log_error "beads CLI (bd) not found"
         exit 1
     fi
 
-    if ! command -v claude &>/dev/null; then
-        log_error "Claude CLI not found"
-        exit 1
+    # Build cub plan run command
+    local plan_cmd="cub plan run \"$spec_file\""
+    plan_cmd+=" --depth $depth"
+    plan_cmd+=" --mindset $mindset"
+    plan_cmd+=" --scale $scale"
+    plan_cmd+=" --non-interactive"
+
+    if [[ -n "$plan_slug" ]]; then
+        plan_cmd+=" --slug $plan_slug"
     fi
 
-    # Get next available IDs
-    log_info "Checking for ID collisions..."
-    local next_ids
-    next_ids=$(get_next_ids "$prefix")
-    local next_epic="${next_ids%%:*}"
-    local next_task="${next_ids##*:}"
-    log_info "  Next epic ID: ${prefix}-E$(printf '%02d' "$next_epic")"
-    log_info "  Next task ID: ${prefix}-$(printf '%03d' "$next_task")"
-
-    # Set output path
-    if [[ -z "$output_path" ]]; then
-        output_path=$(mktemp -d)/plan.jsonl
+    if [[ "$verbose" == "true" ]]; then
+        plan_cmd+=" --verbose"
     fi
-    local output_dir
-    output_dir=$(dirname "$output_path")
-    mkdir -p "$output_dir"
 
-    # Generate plan using Claude
-    log_info "Generating plan from spec..."
+    # Step 1: Run planning pipeline
+    log_info "Running planning pipeline..."
     log_info "  Spec: $spec_file"
-    log_info "  Feature: $feature_slug"
-    log_info "  Output: $output_path"
+    log_info "  Depth: $depth"
+    log_info "  Mindset: $mindset"
+    log_info "  Scale: $scale"
 
-    # Read spec content
-    local spec_content
-    spec_content=$(cat "$spec_file")
+    if [[ "$verbose" == "true" ]]; then
+        log_info "  Command: $plan_cmd"
+    fi
 
-    # Invoke Claude with the spec-to-issues skill
-    # Capture stdout and extract JSONL content
-    local claude_output
-    local temp_output
-    temp_output=$(mktemp)
-
-    log_info "Running Claude (this may take a minute)..."
-
-    if ! claude --print "Run /cub:spec-to-issues with these parameters:
-
-SPEC_FILE: $spec_file
-OUTPUT_PATH: $output_path
-FEATURE_SLUG: $feature_slug
-PREFIX: $prefix
-NEXT_EPIC_NUM: $next_epic
-NEXT_TASK_NUM: $next_task
-
-Here is the spec content:
-
-$spec_content" > "$temp_output" 2>&1; then
-        log_error "Claude invocation failed"
-        cat "$temp_output"
-        rm -f "$temp_output"
+    if ! eval "$plan_cmd"; then
+        log_error "Planning pipeline failed"
         exit 1
     fi
 
-    # Extract JSONL content (everything before ---END_JSONL--- marker)
-    # Filter to only lines that start with { and are valid JSON
-    if grep -q "---END_JSONL---" "$temp_output"; then
-        sed -n '/^{/,/---END_JSONL---/p' "$temp_output" | grep -v "---END_JSONL---" | while read -r line; do
-            if echo "$line" | jq -e . >/dev/null 2>&1; then
-                echo "$line"
-            fi
-        done > "$output_path"
-    else
-        # Fallback: extract all lines that look like JSON objects
-        grep '^{' "$temp_output" | while read -r line; do
-            if echo "$line" | jq -e . >/dev/null 2>&1; then
-                echo "$line"
-            fi
-        done > "$output_path"
-    fi
-
-    # Show any summary output
-    if grep -q "---END_JSONL---" "$temp_output"; then
-        sed -n '/---END_JSONL---/,$p' "$temp_output" | tail -n +2
-    fi
-
-    rm -f "$temp_output"
-
-    # Verify output was created and has content
-    if [[ ! -f "$output_path" ]] || [[ ! -s "$output_path" ]]; then
-        log_error "Plan file was not created or is empty: $output_path"
-        exit 1
-    fi
-
-    # Count generated items
-    local epic_count task_count
-    epic_count=$(grep -c '"issue_type":"epic"' "$output_path" 2>/dev/null || echo "0")
-    task_count=$(grep -c '"issue_type":"task"' "$output_path" 2>/dev/null || echo "0")
-
-    log_success "Plan generated: ${epic_count} epics, ${task_count} tasks"
+    log_success "Planning complete!"
 
     if [[ "$dry_run" == "true" ]]; then
-        log_info "Dry run - not importing"
-        log_info "Plan saved to: $output_path"
-        echo ""
-        log_info "To import manually:"
-        echo "  bd import -i $output_path"
+        log_info "Dry run - not importing to beads"
+        log_info ""
+        log_info "To stage manually:"
+        echo "  cub stage"
         exit 0
     fi
 
-    # Import into beads
-    log_info "Importing into beads..."
-    if ! bd import -i "$output_path"; then
-        log_error "Import failed"
+    # Step 2: Stage (import to beads)
+    log_info "Staging tasks to beads..."
+
+    local stage_cmd="cub stage"
+    if [[ "$verbose" == "true" ]]; then
+        stage_cmd+=" --verbose"
+    fi
+
+    if ! eval "$stage_cmd"; then
+        log_error "Staging failed"
         exit 1
     fi
 
-    # Wire up dependencies
-    wire_dependencies "$output_path"
-
-    # Sync
+    # Step 3: Sync beads
     log_info "Syncing beads..."
     bd sync
 
     # Summary
     echo ""
     log_success "Import complete!"
-    log_info "  Epics: ${epic_count}"
-    log_info "  Tasks: ${task_count}"
     echo ""
-    log_info "View with: bd list --label feature:${feature_slug}"
+    if [[ -n "$feature_slug" ]]; then
+        log_info "View with: bd list --label feature:${feature_slug}"
+    else
+        log_info "View with: bd list"
+    fi
 }
 
 main "$@"

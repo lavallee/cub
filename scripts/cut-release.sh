@@ -266,6 +266,10 @@ commit_version_changes() {
     fi
 
     git add pyproject.toml src/cub/__init__.py CHANGELOG.md
+    # Also add specs/ if any were moved
+    if [[ -d "$PROJECT_DIR/specs" ]]; then
+        git add "$PROJECT_DIR/specs/" 2>/dev/null || true
+    fi
 
     # Check if there are changes to commit
     if git diff --cached --quiet; then
@@ -275,6 +279,34 @@ commit_version_changes() {
 
     git commit -m "chore: bump version to $VERSION"
     log_success "Committed version changes"
+}
+
+# Move specs from implementing/ to released/
+move_specs_to_released() {
+    log_info "Moving specs from implementing/ to released/..."
+
+    # Check if move_specs_released.py exists
+    if [[ ! -f "${SCRIPT_DIR}/move_specs_released.py" ]]; then
+        log_warn "move_specs_released.py not found, skipping spec transition"
+        return 0
+    fi
+
+    local dry_run_flag=""
+    if [[ "$DRY_RUN" == "true" ]]; then
+        dry_run_flag="--dry-run"
+    fi
+
+    if python3 "${SCRIPT_DIR}/move_specs_released.py" $dry_run_flag --verbose --project-root "$PROJECT_DIR"; then
+        if [[ "$DRY_RUN" != "true" ]]; then
+            # Stage any spec moves for the release commit
+            if [[ -d "$PROJECT_DIR/specs" ]]; then
+                git add "$PROJECT_DIR/specs/"
+            fi
+        fi
+        log_success "Specs transitioned"
+    else
+        log_warn "Failed to move specs (non-fatal)"
+    fi
 }
 
 # Create and push tag
@@ -409,19 +441,22 @@ main() {
     # Step 3: Update changelog
     update_changelog
 
-    # Step 4: Commit changes
+    # Step 4: Move specs from implementing/ to released/
+    move_specs_to_released
+
+    # Step 5: Commit changes (includes version, changelog, and spec moves)
     commit_version_changes
 
-    # Step 5: Create tag
+    # Step 6: Create tag
     create_tag
 
-    # Step 6: Push
+    # Step 7: Push
     push_changes
 
-    # Step 7: Create GitHub release
+    # Step 8: Create GitHub release
     create_github_release
 
-    # Step 8: Update webpage
+    # Step 9: Update webpage
     update_webpage
 
     echo ""

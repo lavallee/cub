@@ -93,6 +93,19 @@ ruff format src/ tests/
 │   │   │   ├── codex.py      # OpenAI Codex harness
 │   │   │   ├── gemini.py     # Google Gemini harness
 │   │   │   └── opencode.py   # OpenCode harness
+│   │   ├── plan/         # Planning pipeline
+│   │   │   ├── models.py     # Plan data models
+│   │   │   ├── pipeline.py   # Pipeline orchestration
+│   │   │   ├── context.py    # Plan context management
+│   │   │   ├── orient.py     # Orient stage
+│   │   │   ├── architect.py  # Architect stage
+│   │   │   └── itemize.py    # Itemize stage
+│   │   ├── specs/        # Spec lifecycle management
+│   │   │   ├── models.py     # Spec data models
+│   │   │   ├── workflow.py   # Spec workflow
+│   │   │   └── lifecycle.py  # Stage transitions
+│   │   ├── stage/        # Task staging
+│   │   │   └── stager.py     # Plan to task import
 │   │   ├── logger.py     # JSONL structured logging
 │   │   └── git_utils.py  # Git operations
 │   ├── utils/            # Utilities
@@ -123,6 +136,10 @@ ruff format src/ tests/
 - `cub.core.logger` - JSONL logging with structured events
 - `cub.core.tasks.backend` - Abstract task backend interface
 - `cub.core.harness.backend` - Abstract harness interface
+- `cub.core.plan.pipeline` - Planning pipeline orchestration (orient → architect → itemize)
+- `cub.core.plan.models` - Plan data models (Plan, PlanStage, StageStatus)
+- `cub.core.specs.workflow` - Spec lifecycle management
+- `cub.core.stage.stager` - Task staging/import from plans
 - `cub.utils.hooks` - Hook execution system
 - `cub.core.bash_delegate` - Delegates unported commands to bash cub
 
@@ -166,24 +183,36 @@ These commands have been migrated to Python and execute directly without bash:
 - **`status`** - Show task progress and statistics
 - **`init`** - Initialize cub configuration (global or project-level)
 - **`monitor`** - Live dashboard for task execution monitoring
+- **`update`** - Update project templates and skills from installed cub
+- **`system-upgrade`** - Upgrade cub installation itself
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
 - `status.py` - Status reporting
 - `init_cmd.py` - Configuration setup
 - `monitor.py` - Live dashboard via Rich
+- `update.py` - Project template/skill updates
+- `system_upgrade.py` - Installation upgrades
+
+### Plan Flow Commands (Native Python)
+
+These commands are the new planning pipeline, fully implemented in Python:
+
+**Planning Pipeline:**
+- `cub plan orient` - Research and understand the problem space
+- `cub plan architect` - Design the technical approach
+- `cub plan itemize` - Break architecture into tasks
+- `cub plan run` - Run full pipeline (orient→architect→itemize)
+- `cub plan list` - List existing plans
+- `cub stage` - Import tasks to backend after planning
+- `cub spec` - Create specs interactively
+
+**Capture Processing:**
+- `cub triage` - Triage and process captures into actions
 
 ### Delegated Commands (Bash-Implemented)
 
-These commands are not yet ported to Python. They are registered as Typer commands but delegate execution to the bash version:
-
-**Vision-to-Tasks Prep Pipeline:**
-- `prep` - Run full prep pipeline (triage→architect→plan→bootstrap)
-- `triage` - Requirements refinement
-- `architect` - Technical design
-- `plan` - Task decomposition
-- `bootstrap` - Initialize beads from prep artifacts
-- `sessions` - List and manage prep sessions
+Some commands still delegate to bash:
 
 **Task & Artifact Management:**
 - `explain-task` - Show detailed task information
@@ -203,7 +232,7 @@ These commands are not yet ported to Python. They are registered as Typer comman
 **Utility & Maintenance:**
 - `guardrails` - Display and manage institutional memory
 - `doctor` - Diagnose and fix configuration issues
-- `upgrade` - Upgrade cub to newer version
+- `system-upgrade` - Upgrade cub installation itself
 
 **Task Commands (for agent use):**
 - `close-task` - Close a task (for agent use)
@@ -221,9 +250,9 @@ Delegation is implemented in `cub.core.bash_delegate`:
 
 2. **Argument Passing** - Arguments and flags are forwarded directly:
    ```bash
-   # Example: cub prep --verbose
-   # Python CLI receives: prep, --verbose
-   # Delegates to bash as: /path/to/cub prep --verbose
+   # Example: cub interview task-123
+   # Python CLI receives: interview, task-123
+   # Delegates to bash as: /path/to/cub interview task-123
    ```
 
 3. **Exit Code Passthrough** - The bash script's exit code is preserved and returned to the caller
@@ -256,18 +285,17 @@ Delegation is implemented in `cub.core.bash_delegate`:
 
 ### Migration Path to Full Python
 
-Eventually, all delegated commands will be ported to Python. The migration order should prioritize:
+The prep pipeline has been migrated to native Python as `cub plan` with subcommands (orient, architect, itemize) and `cub stage`. The remaining delegated commands will be ported. Priority:
 
 1. **High-frequency commands** (used in every session)
    - Interview mode (`interview`)
    - Task validation (`validate`)
 
-2. **Core infrastructure** (used by prep pipeline)
-   - Prep pipeline commands (`triage`, `architect`, `plan`, `bootstrap`)
+2. **Git integration**
    - Branch management (`branch`, `branches`)
-
-3. **Advanced features** (nice-to-have)
    - PR management (`pr`)
+
+3. **Utilities** (nice-to-have)
    - Doctor/upgrade utilities
 
 When porting a command:

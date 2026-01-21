@@ -268,7 +268,7 @@ Commits session files and cub artifacts automatically.
 
 - [`cub init`](init.md) - Initialize cub in a project
 - [`cub status`](status.md) - Check task progress
-- [`cub upgrade`](upgrade.md) - Upgrade cub to newer version
+- [`cub system-upgrade`](system-upgrade.md) - Upgrade cub installation
 - [`cub status`](status.md) - Check task and project status
 
 ## See Also

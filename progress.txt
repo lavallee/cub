@@ -1,5 +1,63 @@
 # Cub Project Progress
 
+## 2026-01-20 - cub-p1f.4: Create SpecWorkflow class
+
+### Task Completed
+Created `SpecWorkflow` class to manage spec lifecycle: finding specs across stage directories and moving via git mv.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/specs/`**
+- `models.py` - Stage enum (RESEARCHING, PLANNED, COMPLETED) and Spec Pydantic model
+- `workflow.py` - SpecWorkflow class for listing, finding, and moving specs
+- `__init__.py` - Public API exports
+
+**Stage Enum:**
+- Three stages: `RESEARCHING`, `PLANNED`, `COMPLETED`
+- `from_directory()` class method to convert directory names to stages
+
+**Spec Model:**
+- Parses YAML frontmatter from markdown spec files
+- Tracks status, priority, complexity, dependencies, readiness scoring
+- `is_ready_for_implementation` property checks if spec can be implemented
+- `to_frontmatter_dict()` and `from_frontmatter_dict()` for serialization
+
+**SpecWorkflow Class:**
+- `list_specs(stage)` - List specs, optionally filtered by stage
+- `find_spec(name)` - Find spec by name across all stages
+- `move_to_stage(spec, target_stage)` - Move spec using git mv
+- `promote(spec)` / `demote(spec)` - Convenience methods for stage transitions
+- `count_by_stage()` - Count specs in each stage
+- `get_ready_specs()` / `get_blocked_specs()` - Filter specs by readiness
+
+**Testing:**
+- 43 comprehensive tests covering models and workflow operations
+- Tests for git mv mocking, file operations, transition validation
+
+### Key Design Decisions
+
+1. **Three-Stage Lifecycle:** Specs progress through researching → planned → completed, matching the existing specs/ directory structure.
+
+2. **Git Integration:** Uses git mv by default for version-controlled moves. Falls back to regular file move if git isn't available or file isn't tracked.
+
+3. **Readiness Scoring:** Spec readiness is tracked with score 0-10, blockers list, and open questions. A spec is ready for implementation when score >= 7, stage is PLANNED, and no blockers.
+
+4. **Flexible Transitions:** While promote/demote provide convenient linear progression, direct transitions between any stages are allowed (useful for moving specs back from completed to researching for rework).
+
+5. **Pydantic Models:** Following the codebase pattern, all models use Pydantic v2 for validation and serialization.
+
+### Learnings
+
+1. **Mock Git Operations Carefully:** When mocking `subprocess.run` for git mv, the mock needs to actually perform the file move if subsequent code expects the file at the new location.
+
+2. **Title Extraction Pattern:** Used regex `^#\s+(.+)$` with `re.MULTILINE` to extract the first markdown heading as the spec title.
+
+3. **Date vs DateTime:** Spec dates use `date` not `datetime` since the frontmatter format is YYYY-MM-DD without time component.
+
+4. **Following Captures Pattern:** The captures module provided a good template for the specs module - similar frontmatter parsing, Pydantic models, and storage abstraction.
+
+---
+
 ## 2026-01-16 - cub-CAP.7: Implement cub organize-captures command
 
 ### Task Completed
@@ -2258,3 +2316,553 @@ Implemented the core ClaudeSDKHarness using the Claude Agent SDK:
 
 ### Commit
 6ee46a9 task(cub-k41.2): Implement Claude SDK harness
+
+
+## Task cub-p1f.1: Add import_tasks() to TaskBackend Protocol
+
+**Date:** 2026-01-20
+
+**Status:** Already implemented
+
+**Discovery:**
+The task asked to add `import_tasks(self, tasks: list[Task]) -> list[Task]` method to TaskBackend Protocol, but this method was already fully implemented in the codebase:
+- Protocol definition: `src/cub/core/tasks/backend.py` (lines 184-202)
+- BeadsBackend implementation: `src/cub/core/tasks/beads.py` (lines 483-518)
+- JsonBackend implementation: `src/cub/core/tasks/json.py` (lines 559-619)
+
+**Validation:**
+- mypy: Passed for all task backend files
+- pytest: All 66 tests passed for task backend tests
+- ruff: All checks passed
+
+**Learnings:**
+1. Always search before assuming work needs to be done - the feature may already exist
+2. Use `bd show <task-id>` to see if there are details about what's actually needed before implementing
+
+### Commit
+No changes needed - task was already complete
+
+
+## 2026-01-20 - cub-p1f.5: Create plan data models
+
+### Task Completed
+Created Pydantic models for Plan, PlanStage, PlanStatus, SpecStage, and StageStatus enums with load/save functionality.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/`**
+- `models.py` - Plan model and related enums
+- `__init__.py` - Public API exports
+
+**Enums:**
+- `PlanStatus`: pending, in_progress, complete, staged, archived
+- `PlanStage`: orient, architect, itemize (with output_file and next/previous_stage properties)
+- `StageStatus`: pending, in_progress, complete
+- `SpecStage`: researching, planned, staged, implementing, released (5-stage lifecycle per spec)
+
+**Plan Model:**
+- Core fields: slug, project, status, spec_file (optional), stages dict, timestamps
+- Stage methods: start_stage(), complete_stage(), mark_staged(), archive()
+- Computed fields: is_complete, current_stage, next_pending_stage, completed_stages
+- Path helpers: get_plan_dir(), get_stage_output_path()
+- Serialization: to_json_dict(), from_json_dict()
+- File I/O: save(project_root), load(plan_dir) for plan.json
+
+**Testing:**
+- 43 comprehensive tests covering all enums, model validation, computed fields, stage transitions, serialization, and file operations
+
+### Key Design Decisions
+
+1. **Separated SpecStage from existing specs/models.py Stage:** The plan-phase-redesign spec defines a 5-stage spec lifecycle (researching → planned → staged → implementing → released) which is different from the 3-stage system in specs/models.py. Created a new SpecStage enum to represent this expanded lifecycle.
+
+2. **Stage Prerequisites:** Plan stages must be completed in order (orient → architect → itemize). The start_stage() method validates that the previous stage is complete before allowing a new stage to start.
+
+3. **Status Auto-Update:** Plan status automatically updates based on stage completions (pending → in_progress → complete).
+
+4. **Immutable After Staging:** Once a plan is staged or archived, stage completions don't change the status.
+
+5. **typing_extensions.Self:** Used `from typing_extensions import Self` for Python 3.10 compatibility (Self type was added in 3.11).
+
+### Learnings
+
+1. **Self Type in Python 3.10:** Use `from typing_extensions import Self` instead of `from typing import Self` for Python 3.10 compatibility.
+
+2. **Dict Validator for Enum Keys:** Pydantic v2 field validators can convert string keys to enum values when loading from JSON. The validator handles both string and enum input forms.
+
+3. **Existing Async Test Failures:** The codebase has 17 pre-existing async test failures in test_harness_*.py files due to missing pytest-asyncio plugin. These are unrelated to new code.
+
+4. **Mypy on src/ Only:** The project runs mypy on `src/cub` only (not tests), matching the pattern in AGENT.md feedback loops.
+---
+
+## 2026-01-20 - cub-p1f.6: Create ID generation utilities
+
+### Task Completed
+Created beads-compatible ID generation utilities for the plan module.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/ids.py`**
+
+**ID Generation Functions:**
+- `generate_epic_id(project, existing_ids)` - Generates `{project}-{3 random chars}` (e.g., `cub-k7m`)
+- `generate_task_id(epic_id, task_num)` - Generates `{epic_id}.{number}` (e.g., `cub-k7m.1`)
+- `generate_subtask_id(task_id, subtask_num)` - Generates `{task_id}.{number}` (e.g., `cub-k7m.1.1`)
+
+**Validation Functions:**
+- `is_valid_epic_id(epic_id)` - Check if string matches epic ID format
+- `is_valid_task_id(task_id)` - Check if string matches task ID format
+- `is_valid_subtask_id(subtask_id)` - Check if string matches subtask ID format
+
+**Parsing Functions:**
+- `parse_id(id_str)` - Parse any ID into (epic_id, [numbers]) tuple
+- `get_parent_id(id_str)` - Get parent ID (task->epic, subtask->task, epic->None)
+
+**Constants:**
+- `ID_CHARS` - Lowercase letters + digits for suffix generation
+- `EPIC_SUFFIX_LENGTH = 3` - Length of random suffix
+- `MAX_GENERATION_ATTEMPTS = 100` - Collision retry limit
+
+### Key Design Decisions
+
+1. **Hierarchical ID Format:** IDs follow the spec from `plans/plan-phase-redesign/architecture.md`:
+   - Epic: `{project}-{random 3 chars}` (e.g., cub-k7m)
+   - Task: `{epic_id}.{number}` (e.g., cub-k7m.1)
+   - Subtask: `{task_id}.{number}` (e.g., cub-k7m.1.1)
+
+2. **Collision Avoidance:** `generate_epic_id` accepts an optional `existing_ids` set and retries up to 100 times to find a unique ID.
+
+3. **Strict Validation:** Project identifiers must start with a letter and contain only lowercase alphanumeric characters and hyphens.
+
+4. **Following Captures Pattern:** Used `secrets.choice()` for cryptographically secure random generation, matching the captures store pattern.
+
+5. **Regex-Based Validation:** Pre-compiled regex patterns for efficient ID validation.
+
+### Testing
+
+48 comprehensive tests in `tests/test_plan_ids.py`:
+- Epic ID generation and collision handling
+- Task ID generation with validation
+- Subtask ID generation with validation
+- Validation functions for all ID types
+- ID parsing and parent lookup
+- Full hierarchy integration tests
+
+### Learnings
+
+1. **Regex for ID Validation:** Pre-compiled regex patterns (`re.compile()`) are cleaner than inline patterns and more efficient when called repeatedly.
+
+2. **Exhaustion Testing Strategy:** To test collision exhaustion without generating all 36^3 = 46,656 possible IDs, used a custom class that always returns True for `__contains__` to force immediate exhaustion.
+
+3. **Type Annotation for Set-like Objects:** The `existing_ids` parameter is typed as `set[str] | None`, but the implementation only uses `in` operator, so duck typing allows any object with `__contains__`.
+
+4. **Three-Level Hierarchy Limit:** Deliberately limited to epic -> task -> subtask (3 levels) to match beads issue tracking constraints. `parse_id()` validates this and raises for deeper nesting.
+
+
+## 2026-01-20: cub-p2p.1 - Create cub plan CLI skeleton
+
+### Task Summary
+Created the `cub plan` CLI skeleton with three subcommands: orient, architect, and itemize.
+
+### Implementation Details
+- Created `src/cub/cli/plan.py` with a Typer app structure
+- Three subcommands: orient, architect, itemize - all accept optional spec argument and verbose flag
+- Commands exit with code 1 showing "not yet implemented" message (skeleton)
+- Updated `src/cub/cli/__init__.py` to import and register the plan module
+- Replaced the bash-delegated `plan` command with native Typer app
+- Created comprehensive tests in `tests/test_cli_plan.py`
+- Updated test files that referenced delegated `plan` command
+
+### Patterns Used
+- `app = typer.Typer(name="plan", help="...", no_args_is_help=True)` for the main app
+- `@app.command()` decorator for subcommands
+- `ctx.obj.get("debug", False)` pattern for accessing global debug flag
+- `typer.Exit(1)` for not-implemented skeleton commands
+
+### Test Updates Required
+When converting a delegated command to native Typer:
+1. Remove from delegated command parametrized tests
+2. Create new test file for the native command
+3. Update any existing tests that specifically tested delegation
+
+### Notes
+- Typer's `no_args_is_help=True` returns exit code 2 (not 0) when showing help
+- Pre-existing lint and mypy errors in other files are not related to this task
+- All 62 related tests pass, overall 1005 tests pass
+
+
+## 2026-01-20: cub-p2p.2 - Implement orient stage
+
+### Task Summary
+Implemented the orient interview stage for gathering requirements and understanding the problem space from spec files.
+
+### Implementation Details
+Created two new modules:
+
+**src/cub/core/plan/context.py - PlanContext class:**
+- Factory method `create()` handles slug derivation from spec path
+- Slug collision detection with `_alt_[a-z]` suffix pattern  
+- Path helpers for plan_dir, orientation_path, etc.
+- Methods for reading spec content, SYSTEM-PLAN.md, and CLAUDE.md
+- `load()` method for resuming existing plans
+
+**src/cub/core/plan/orient.py - OrientStage class:**
+- Validation requiring a spec file (interactive mode deferred)
+- Context gathering from project (spec, system plan, agent instructions)
+- Spec parsing with regex extraction of title, overview, goals, questions
+- Orientation.md generation with markdown structure matching existing example
+- OrientResult dataclass with timing and extracted information
+
+**CLI Implementation:**
+- Updated `cub plan orient` to accept spec argument with path resolution
+- Searches spec directories (researching, planned, staged, implementing, released)
+- Options: --depth (light/standard/deep), --slug, --project-root, --verbose
+- Project identifier detection from pyproject.toml or package.json
+
+### Test Coverage
+36 new tests in `tests/test_plan_orient.py` covering:
+- PlanContext creation, paths, reading, loading
+- OrientStage validation, running, extraction
+- CLI integration tests with real file creation
+
+### Patterns Used
+- Pydantic BaseModel with `computed_field` for derived properties
+- TYPE_CHECKING guard for circular import prevention
+- Factory pattern with `@classmethod` for flexible construction
+- Regex-based markdown parsing (simple extraction, LLM enhancement deferred)
+
+### Design Decisions
+1. **Spec Required:** Interactive mode without spec file is explicitly deferred - raises OrientInputError
+2. **Simple Extraction:** Used regex to extract title, overview, goals from spec markdown. More sophisticated LLM-based extraction can be added later.
+3. **Collision Handling:** Tries `_alt_a` through `_alt_z` suffixes, raises PlanExistsError if all exhausted
+4. **Path Relative:** Orientation.md includes relative link back to source spec using `../../specs/...` pattern
+
+## 2026-01-20 - cub-p2p.3: Implement architect stage
+
+### Task Completed
+Implemented the architect interview stage for designing technical approach based on orientation.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/architect.py`**
+- `ArchitectStage` class following the same pattern as `OrientStage`
+- Data classes: `TechStackChoice`, `Component`, `ImplementationPhase`, `TechnicalRisk`, `ArchitectResult`
+- `ArchitectQuestion` dataclass for interview questions
+- `DEFAULT_ARCHITECT_QUESTIONS` covering mindset, scale, tech stack, and integrations
+
+**ArchitectStage Features:**
+- Validates orient stage is complete before running
+- Reads orientation.md and extracts problem statement, requirements, MVP scope
+- Gathers project context (AGENT.md, SYSTEM-PLAN.md, spec content)
+- Infers tech stack from project files and agent instructions
+- Adapts output based on mindset (prototype/mvp/production/enterprise)
+- Adapts output based on scale (personal/team/product/internet-scale)
+- Generates component design appropriate for mindset
+- Creates implementation phases with MVP scope items
+- Produces architecture.md with full design document
+
+**CLI Command: `cub plan architect`**
+- Accepts plan slug as argument or finds most recent plan
+- `--spec/-s` option to find plan by spec name
+- `--mindset/-m` option (prototype/mvp/production/enterprise)
+- `--scale` option (personal/team/product/internet-scale)
+- `--verbose/-v` for detailed output
+- `--project-root/-p` for non-cwd projects
+- Shows summary including tech stack, components, and phases count
+
+**Exports in `__init__.py`:**
+- All architect classes and functions exported from plan module
+
+**Testing: 35 tests in `tests/test_plan_architect.py`**
+- Validation tests (orient complete, orientation.md exists)
+- Run tests (creates architecture.md, updates plan status, saves plan.json)
+- Tech stack inference tests
+- Component generation tests (minimal for prototype, full for production)
+- Implementation phase tests
+- Technical risk tests
+- Data class tests
+- CLI integration tests
+
+### Key Design Decisions
+
+1. **Mindset-Driven Architecture:** The mindset parameter (prototype/mvp/production/enterprise) significantly affects output - prototypes get minimal structure, enterprise gets security considerations and monitoring.
+
+2. **Scale Awareness:** Scale affects recommendations but is less impactful than mindset on structure.
+
+3. **Tech Stack Inference:** When possible, infer tech stack from existing project files (AGENT.md mentions Python 3.10+, Typer, Pydantic, etc.). Fall back to mindset-appropriate defaults.
+
+4. **Progressive Complexity:** Foundation phase is always present, Core Features phase uses MVP scope from orientation, Polish phase only for mvp/production/enterprise.
+
+5. **Following Orient Pattern:** Used the same structural pattern as OrientStage - validate, gather context, extract info, generate output, update plan status.
+
+### Learnings
+
+- The plan stages follow a clear workflow pattern that can be reused for itemize stage
+- Extracting info from orientation.md requires careful regex patterns for tables and sections
+- CLI commands that continue from previous stage need to locate existing plans smartly
+
+---
+
+## Session: 2026-01-20 - cub-p2p.4: Implement itemize stage
+
+### Summary
+
+Implemented the itemize stage of the plan pipeline. This stage takes orientation.md and architecture.md as input and produces itemized-plan.md with epics and tasks using beads-compatible IDs.
+
+**ItemizeStage Features:**
+- Validates architect stage is complete before running
+- Reads orientation.md and extracts title, problem statement, requirements
+- Reads architecture.md and extracts phases, components, mindset, scale
+- Generates epics from implementation phases (or from P0 requirements if no phases)
+- Generates tasks with beads-compatible IDs using generate_epic_id() and generate_task_id()
+- Each task includes context, implementation steps, and acceptance criteria
+- Produces itemized-plan.md with proper markdown formatting
+
+**CLI Command: `cub plan itemize`**
+- Accepts plan slug as argument or finds most recent plan
+- `--spec/-s` option to find plan by spec name
+- `--verbose/-v` for detailed output including epic/task counts
+- `--project-root/-p` for non-cwd projects
+- Shows summary with epic IDs and task counts
+
+**Testing: 35 tests in `tests/test_plan_itemize.py`**
+- Validation tests (architect complete, architecture.md exists, orientation.md exists)
+- Run tests (creates itemized-plan.md, updates plan status to COMPLETE, saves plan.json)
+- Content extraction tests (phases, tasks, mindset)
+- Task generation tests (implementation steps, acceptance criteria, unique IDs)
+- Output format tests (header, context summary, epic sections, task sections, summary table)
+- CLI integration tests
+- Edge case tests (empty phases, special characters in titles)
+
+### Key Implementation Details
+
+1. **Phase Extraction Regex:** The regex for extracting phases from architecture.md needed careful adjustment:
+   - `(?=\n##[^#]|\Z)` to stop at the next `## ` heading (not `###`)
+   - `(?=\n###|$)` to capture all phases in the section
+
+2. **Epic/Task ID Generation:** Uses the ids.py module from cub-p1f.6:
+   - Epic IDs: `{project}-{random 3 chars}` (e.g., `test-k7m`)
+   - Task IDs: `{epic_id}.{task_num}` (e.g., `test-k7m.1`)
+   - Uses collision detection to ensure uniqueness
+
+3. **Fallback for No Phases:** If no implementation phases found in architecture.md, falls back to creating tasks from P0 requirements in orientation.md.
+
+4. **Plan Status Update:** After itemize completes, plan status becomes COMPLETE (all three stages done).
+
+### Test File Updates
+
+Updated `tests/test_cli_plan.py` to reflect that architect and itemize commands are now implemented:
+- Changed "not implemented" tests to "requires plan" tests
+- Added `runner.isolated_filesystem()` to avoid picking up plans from the actual project directory
+
+### Learnings
+
+- When testing CLI commands that look for files, use `runner.isolated_filesystem()` to prevent picking up actual project files
+- Regex patterns for markdown parsing need careful lookaheads - `(?=\n##[^#]|\Z)` stops at next level-2 heading while allowing level-3 headings
+- The plan pipeline follows a consistent pattern: validate -> gather context -> extract -> generate -> update status
+- Beads ID format uses random suffixes, not sequential numbers, for better distributed collaboration
+
+
+## 2026-01-20 - cub-p2p.5: Implement pipeline orchestration
+
+### Task Completed
+Implemented full `cub plan run` command that runs orient->architect->itemize in sequence with spec lifecycle management.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/plan/pipeline.py`**
+- `PlanPipeline` class - Main orchestrator for the three-phase planning pipeline
+- `PipelineConfig` dataclass - Configuration for spec, slug, depth, mindset, scale, etc.
+- `PipelineResult` dataclass - Results with stage outcomes, timing, spec movement
+- `StageResult` dataclass - Individual stage success/failure and duration
+- `ProgressCallback` protocol - For UI progress updates during pipeline execution
+
+**Key Features:**
+1. **Full Pipeline Execution:** Runs orient->architect->itemize in sequence, stopping on failure
+2. **Partial Plan Continuation:** Can resume from partially complete plans via `--continue` flag
+3. **Spec Lifecycle Management:** Automatically moves spec from researching/ to planned/ on completion
+4. **Progress Callbacks:** Real-time progress updates for CLI/UI integration
+5. **Configuration Validation:** Validates depth, mindset, scale options before running
+6. **Single Stage Execution:** `run_single_stage()` method for targeted execution
+
+**CLI Command: `cub plan run`**
+- `cub plan run <spec>` - Run full pipeline on a spec
+- `cub plan run --continue <plan-slug>` - Continue from existing partial plan
+- Options: --depth, --mindset, --scale, --slug, --no-move-spec, --verbose
+
+**Convenience Functions:**
+- `run_pipeline()` - One-liner for running pipeline from spec
+- `continue_pipeline()` - One-liner for continuing partial plans
+
+**Testing:**
+- 28 comprehensive tests covering:
+  - Config validation (depth, mindset, scale)
+  - Full pipeline execution
+  - Spec movement to planned/
+  - Partial plan continuation
+  - Progress callbacks
+  - Custom slugs
+  - CLI integration tests
+
+### Key Design Decisions
+
+1. **Dataclass-Based Configuration:** Used dataclasses for PipelineConfig, PipelineResult, StageResult to keep clean separation from Pydantic models in stage implementations.
+
+2. **Protocol for Callbacks:** Used typing.Protocol for ProgressCallback to allow duck-typing of progress handlers.
+
+3. **Stage Skipping:** Stages that are already complete are automatically skipped when continuing a partial plan.
+
+4. **Non-Fatal Spec Move:** If spec move fails (e.g., permissions), pipeline still reports success with warning.
+
+5. **Consistent Error Handling:** PipelineError hierarchy mirrors stage error hierarchies (PipelineConfigError, PipelineStageError).
+
+### Learnings
+
+1. **Import Organization:** Ruff's I001 rule for import sorting is strict - imports must be alphabetized within blocks.
+
+2. **Callable Import:** Use `from collections.abc import Callable` instead of `from typing import Callable` (UP035).
+
+3. **Unused Imports:** Imports used only for type hints should be guarded with `if TYPE_CHECKING`.
+
+4. **Stage Prerequisite Validation:** Each stage validates its prerequisites, so pipeline just needs to check StageStatus.COMPLETE to skip.
+
+---
+
+## 2026-01-20 - cub-p3s.1: Create itemized-plan.md parser
+
+### Task Summary
+Created parser module for itemized-plan.md files at `src/cub/core/plan/parser.py` with comprehensive test coverage in `tests/test_plan_parser.py` (44 tests).
+
+### Implementation Details
+
+**ParsedPlan Model:**
+- `PlanMetadata` - Title, source spec, orient/architect paths, generated date, mindset, scale
+- `ParsedEpic` - ID, title, priority, labels, description  
+- `ParsedTask` - ID, title, priority, labels, epic_id, blocks, context, implementation_steps, acceptance_criteria, files
+
+**Key Functions:**
+- `parse_itemized_plan(path)` - Parse from file path
+- `parse_itemized_plan_content(content)` - Parse from string
+- `convert_to_task_models(parsed)` - Convert to task backend format
+
+**Exception Hierarchy:**
+- `PlanParseError` (base)
+- `PlanFileNotFoundError`
+- `PlanFormatError`
+
+### Technical Decisions
+
+1. **Separate Dataclasses:** Used ParsedEpic/ParsedTask separate from itemize.py Epic/Task to avoid coupling parser to itemize stage.
+
+2. **Regex Pattern Design:** Used `[\s\S]*?` instead of `.+?` with `re.DOTALL` for matching multi-line sections. The lazy quantifier with DOTALL made `.+?` match as little as possible (single char).
+
+3. **ID Patterns:** Epic IDs like `cub-abc` contain hyphens, so regex pattern `[a-z][a-z0-9-]+` captures full IDs (not `[^\s-]+` which stops at hyphen).
+
+4. **Section Parsing:** Used finditer to locate epic boundaries, then parsed tasks within each epic section. Summary section detection prevents parsing table content as tasks.
+
+### Learnings
+
+1. **DOTALL Caution:** With `re.DOTALL`, `.+?` matches minimally including newlines, often just one character. Use `[\s\S]*?` for explicit newline matching or avoid DOTALL with line-based patterns.
+
+2. **ID Regex Gotcha:** Beads IDs like `cub-mh3` have hyphens, so negative character class `[^\s-]` incorrectly splits at hyphen. Use positive class `[a-z][a-z0-9.-]+` instead.
+
+3. **Implementation Steps/Criteria:** Line-based parsing (`^\d+\.\s*(.+)$` with MULTILINE) is simpler and more reliable than trying to match until next item.
+
+4. **Module Exports:** Added all parser types to `__init__.py` __all__ for clean imports from `cub.core.plan`.
+
+---
+
+## 2026-01-20 - cub-p3s.2: Implement cub stage command
+
+### Task Summary
+Implemented the `cub stage` command that bridges planning and execution by importing tasks from itemized-plan.md into the task backend.
+
+### Implementation Details
+
+**Core Module (`src/cub/core/stage/stager.py`):**
+- `Stager` class - Main staging logic
+- `StagingResult` dataclass - Results with epics_created, tasks_created, duration
+- `find_stageable_plans()` - Find all complete but unstaged plans
+
+**Exception Hierarchy:**
+- `StagerError` (base)
+- `PlanNotCompleteError` - Plan not ready (stages incomplete)
+- `PlanAlreadyStagedError` - Plan already staged
+- `ItemizedPlanNotFoundError` - Missing itemized-plan.md
+- `TaskImportError` - Backend import failed
+
+**CLI Command (`src/cub/cli/stage.py`):**
+- `cub stage [plan-slug]` - Stage a specific or most recent complete plan
+- `--dry-run` / `-n` - Preview without importing
+- `--list` / `-l` - List all stageable plans
+- `--verbose` / `-v` - Show detailed output
+
+**Key Flow:**
+1. Validate plan is COMPLETE but not STAGED
+2. Parse itemized-plan.md using parser module
+3. Convert ParsedEpic -> Task (type=EPIC)
+4. Convert ParsedTask -> Task (type=TASK)
+5. Import epics first (may be parents)
+6. Import tasks
+7. Update plan.status = STAGED
+8. Save plan.json
+
+### Technical Decisions
+
+1. **Priority Conversion:** ParsedTask.priority is int (0-4), Task.priority expects TaskPriority enum. Used `TaskPriority(f"P{priority}")` for conversion.
+
+2. **Separate Epic Import:** Import epics before tasks since tasks may reference epic IDs as parents. Backend order matters.
+
+3. **Backend Auto-Detection:** Stager uses `get_backend(project_dir=...)` to auto-detect beads vs JSON backend.
+
+4. **Dry-Run Early Exit:** Dry-run returns StagingResult with converted but not imported tasks, allowing preview without side effects.
+
+### Learnings
+
+1. **Type Alias Imports:** When using `StagingResult` as type annotation in helper function, must import from module - TYPE_CHECKING guard doesn't help for runtime usage.
+
+2. **Pydantic Priority Validation:** The Task model's `validate_priority` accepts int|str|TaskPriority, so direct TaskPriority construction is safe.
+
+3. **Plan Status Lifecycle:** PlanStatus.COMPLETE means all stages done; PlanStatus.STAGED means tasks imported to backend. `plan.mark_staged()` validates is_complete before setting STAGED.
+
+## 2026-01-20 - cub-p3s.3: Wire spec lifecycle transitions
+
+### Task Completed
+Automatically move specs through lifecycle stages at key triggers:
+- staged -> implementing (on cub run start)
+- implementing -> released (on release)
+
+### What Was Implemented
+
+**Extended Stage Enum (5 stages)**
+- RESEARCHING: Initial exploration phase (-ing = active)
+- PLANNED: Plan exists, ready to stage (past = at rest)
+- STAGED: Tasks in backend, ready to build (past = at rest)  
+- IMPLEMENTING: Active work happening (-ing = active)
+- RELEASED: Shipped, available for drift audit (past = at rest)
+- COMPLETED kept as alias for RELEASED (backwards compatibility)
+
+**New Module: `src/cub/core/specs/lifecycle.py`**
+- `move_spec_to_staged(plan_ctx)` - Move spec from planned/ to staged/
+- `move_spec_to_implementing(plan_ctx)` - Move spec from staged/ to implementing/
+- `move_specs_to_released(specs_root)` - Move all specs from implementing/ to released/
+- `get_spec_lifecycle_stage_from_plan(plan_ctx)` - Determine current spec stage
+
+**CLI Integrations**
+- `src/cub/cli/stage.py` - After successful staging, moves spec to staged/
+- `src/cub/cli/run.py` - At run start, moves all staged specs to implementing/
+
+**Release Script Integration**
+- `scripts/move_specs_released.py` - Python helper script for spec transitions
+- `scripts/cut-release.sh` - Updated to call move_specs_released.py before commit
+
+### Key Patterns/Learnings
+1. Used word forms to indicate activity: -ing suffix for active stages (researching, implementing), past tense for at-rest stages (planned, staged, released)
+2. Enum alias (COMPLETED = "released") provides backwards compatibility while transitioning to new stage names
+3. Non-fatal handling for spec moves - CLI warns but doesn't fail if move fails
+4. Spec transition happens at natural boundaries: stage command, run start, release commit
+
+### Test Updates
+- Updated all spec workflow tests in `tests/test_spec_workflow.py` to use 5-stage model
+- Added test for `is_active` property
+- Updated promote/demote tests for full 5-stage pipeline
+- Updated valid transitions tests for new allowed/disallowed transitions

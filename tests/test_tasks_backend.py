@@ -49,6 +49,9 @@ class TestBackendRegistry:
             def add_task_note(self, task_id: str, note: str):
                 return Task(id=task_id, title="Task with note")
 
+            def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                return tasks
+
         # Verify backend is registered
         assert "test-backend" in list_backends()
 
@@ -83,6 +86,9 @@ class TestBackendRegistry:
 
             def add_task_note(self, task_id: str, note: str):
                 return Task(id=task_id, title="Task")
+
+            def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                return tasks
 
         backend = get_backend("test-get")
         assert isinstance(backend, TestBackend)
@@ -128,6 +134,9 @@ class TestBackendRegistry:
             def add_task_note(self, task_id: str, note: str):
                 return Task(id=task_id, title="")
 
+            def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                return tasks
+
         @register_backend("test-list-2")
         class TestBackend2:
             def list_tasks(self, **kwargs):
@@ -153,6 +162,9 @@ class TestBackendRegistry:
 
             def add_task_note(self, task_id: str, note: str):
                 return Task(id=task_id, title="")
+
+            def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                return tasks
 
         backends = list_backends()
         assert "test-list-1" in backends
@@ -194,6 +206,9 @@ class TestBackendAvailability:
 
             def add_task_note(self, task_id: str, note: str):
                 return Task(id=task_id, title="")
+
+            def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                return tasks
 
         assert is_backend_available("test-available") is True
 
@@ -382,6 +397,9 @@ class TestGetBackendAutoDetect:
 
                 def add_task_note(self, task_id: str, note: str):
                     return Task(id=task_id, title="")
+
+                def import_tasks(self, tasks: list[Task]) -> list[Task]:
+                    return tasks
 
         backend = get_backend(None, project_dir)
         assert backend is not None

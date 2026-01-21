@@ -1,7 +1,8 @@
 """
-Cub CLI - Upgrade command.
+Cub CLI - System Upgrade command.
 
-Upgrade cub to a new version or reinstall from local source.
+Upgrade the cub installation to a new version or reinstall from local source.
+This upgrades cub itself, not project templates. For project templates, use `cub update`.
 """
 
 import shutil
@@ -28,8 +29,8 @@ REQUIRED_DEPENDENCIES = [
 ]
 
 app = typer.Typer(
-    name="upgrade",
-    help="Upgrade cub to a newer version",
+    name="system-upgrade",
+    help="Upgrade cub installation to a newer version",
     no_args_is_help=False,
 )
 
@@ -392,18 +393,21 @@ def upgrade(
     ),
 ) -> None:
     """
-    Upgrade cub to a newer version.
+    Upgrade the cub installation to a newer version.
+
+    This upgrades cub itself (the CLI tool). For updating project templates
+    and skills, use `cub update` instead.
 
     By default, upgrades to the latest release. Use --local to install
     from the current directory (for development).
 
     Examples:
-        cub upgrade                  # Upgrade to latest release
-        cub upgrade --check          # Check for available updates
-        cub upgrade --local          # Install from current directory
-        cub upgrade --local --force  # Force reinstall from local
-        cub upgrade --editable       # Install in development mode
-        cub upgrade --version 0.23.3 # Install specific version
+        cub system-upgrade                  # Upgrade to latest release
+        cub system-upgrade --check          # Check for available updates
+        cub system-upgrade --local          # Install from current directory
+        cub system-upgrade --local --force  # Force reinstall from local
+        cub system-upgrade --editable       # Install in development mode
+        cub system-upgrade --version 0.23.3 # Install specific version
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
 

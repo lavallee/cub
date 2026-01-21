@@ -65,16 +65,22 @@ class BeadsBackend:
         """Check if bd CLI is available in PATH."""
         return shutil.which("bd") is not None
 
-    def _run_bd(self, args: list[str], check: bool = True) -> dict[str, Any] | list[dict[str, Any]]:
+    def _run_bd(
+        self, args: list[str], check: bool = True, expect_json: bool = True
+    ) -> dict[str, Any] | list[dict[str, Any]]:
         """
-        Run a bd CLI command and return parsed JSON output.
+        Run a bd CLI command and optionally parse JSON output.
 
         Args:
             args: Command arguments (e.g., ["list", "--json"])
             check: Whether to raise exception on command failure
+            expect_json: Whether to parse output as JSON. Set to False for
+                commands like 'update', 'close', 'comment' that return
+                human-readable output.
 
         Returns:
-            Parsed JSON output as dict or list
+            Parsed JSON output as dict or list (if expect_json=True),
+            or empty dict (if expect_json=False)
 
         Raises:
             BeadsCommandError: If command fails and check=True
@@ -89,6 +95,10 @@ class BeadsBackend:
                 text=True,
                 check=check,
             )
+
+            # Skip JSON parsing for commands that don't return JSON
+            if not expect_json:
+                return {}
 
             # Parse JSON output
             if result.stdout:
@@ -241,8 +251,9 @@ class BeadsBackend:
         args = ["ready", "--json"]
 
         if parent:
-            # bd ready supports --parent filter
-            args.extend(["--parent", parent])
+            # Use label filter for epic filtering (--parent requires explicit parent field,
+            # but tasks created with --id don't get parent set automatically)
+            args.extend(["--label", parent])
         if label:
             args.extend(["--label", label])
 
@@ -302,7 +313,7 @@ class BeadsBackend:
 
         try:
             # bd update doesn't return JSON, so we need to fetch the updated task
-            self._run_bd(args)
+            self._run_bd(args, expect_json=False)
             updated_task = self.get_task(task_id)
 
             if updated_task is None:
@@ -335,7 +346,8 @@ class BeadsBackend:
             args.extend(["-r", reason])
 
         try:
-            self._run_bd(args)
+            # bd close doesn't return JSON
+            self._run_bd(args, expect_json=False)
             closed_task = self.get_task(task_id)
 
             if closed_task is None:
@@ -406,7 +418,10 @@ class BeadsBackend:
                 for dep_id in depends_on:
                     # bd dep add <task> <depends-on> --type blocks
                     # This means task blocks the dependency (dependency must complete first)
-                    self._run_bd(["dep", "add", new_id, dep_id, "--type", "blocks"])
+                    # bd dep add doesn't return JSON
+                    self._run_bd(
+                        ["dep", "add", new_id, dep_id, "--type", "blocks"], expect_json=False
+                    )
 
             # Fetch and return the created task
             created_task = self.get_task(new_id)
@@ -466,8 +481,8 @@ class BeadsBackend:
             ValueError: If task not found
         """
         try:
-            # bd comment <task_id> <note>
-            self._run_bd(["comment", task_id, note])
+            # bd comment doesn't return JSON
+            self._run_bd(["comment", task_id, note], expect_json=False)
 
             # Fetch and return the updated task
             updated_task = self.get_task(task_id)
@@ -478,6 +493,43 @@ class BeadsBackend:
 
         except BeadsCommandError as e:
             raise ValueError(f"Failed to add note to task {task_id}: {e}")
+
+    def import_tasks(self, tasks: list[Task]) -> list[Task]:
+        """
+        Bulk import tasks.
+
+        This method enables efficient bulk import of multiple tasks at once.
+        Each task is created via the bd CLI.
+
+        Args:
+            tasks: List of Task objects to import
+
+        Returns:
+            List of imported Task objects (may have updated IDs or fields
+            assigned by the backend)
+
+        Raises:
+            ValueError: If import fails
+        """
+        imported_tasks: list[Task] = []
+
+        for task in tasks:
+            try:
+                # Create task using create_task method
+                created = self.create_task(
+                    title=task.title,
+                    description=task.description,
+                    task_type=task.type.value,
+                    priority=task.priority_numeric,
+                    labels=task.labels if task.labels else None,
+                    depends_on=task.depends_on if task.depends_on else None,
+                    parent=task.parent,
+                )
+                imported_tasks.append(created)
+            except ValueError as e:
+                raise ValueError(f"Failed to import task '{task.title}': {e}") from e
+
+        return imported_tasks
 
     @property
     def backend_name(self) -> str:
@@ -507,3 +559,38 @@ class BeadsBackend:
 - `bd ready` - See tasks ready to work on (no blockers)
 
 **Important:** Always run feedback loops (tests, typecheck, lint) BEFORE closing the task."""
+
+    def bind_branch(
+        self,
+        epic_id: str,
+        branch_name: str,
+        base_branch: str = "main",
+    ) -> bool:
+        """
+        Bind a git branch to an epic using beads branch store.
+
+        Args:
+            epic_id: Epic ID to bind
+            branch_name: Git branch name
+            base_branch: Base branch for merging
+
+        Returns:
+            True if binding was created, False if already exists
+        """
+        from cub.core.branches.store import BranchStore, BranchStoreError
+
+        try:
+            store = BranchStore()
+            # Check if binding already exists
+            existing = store.get_binding(epic_id)
+            if existing:
+                return False
+            existing_branch = store.get_binding_by_branch(branch_name)
+            if existing_branch:
+                return False
+            # Create new binding
+            store.add_binding(epic_id, branch_name, base_branch)
+            return True
+        except BranchStoreError:
+            # .beads directory might not exist or other issue
+            return False

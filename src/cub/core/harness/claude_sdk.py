@@ -72,9 +72,11 @@ def _build_options(task_input: TaskInput) -> "ClaudeAgentOptions":
     from claude_agent_sdk import ClaudeAgentOptions
 
     # Determine permission mode based on auto_approve
+    # Use bypassPermissions (equivalent to --dangerously-skip-permissions)
+    # to allow autonomous operation without approval prompts
     permission_mode: PermissionMode | None = None
     if task_input.auto_approve:
-        permission_mode = "acceptEdits"
+        permission_mode = "bypassPermissions"
 
     # Build options - SDK expects specific types
     options = ClaudeAgentOptions(

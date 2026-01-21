@@ -81,7 +81,6 @@ source "${CUB_DIR}/lib/cmd_explain.sh"
 source "${CUB_DIR}/lib/cmd_artifacts.sh"
 source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
-source "${CUB_DIR}/lib/cmd_prep.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
 # Source branch management (v0.19)
@@ -245,42 +244,6 @@ main() {
             doctor)
                 # Diagnose and fix common issues
                 cmd_doctor "${args[@]:1}"
-                return $?
-                ;;
-            # Vision-to-Tasks Prep commands (v0.14)
-            prep)
-                # Run full vision-to-tasks prep pipeline
-                cmd_prep "${args[@]:1}"
-                return $?
-                ;;
-            triage)
-                # Stage 1: Requirements refinement
-                cmd_triage "${args[@]:1}"
-                return $?
-                ;;
-            architect)
-                # Stage 2: Technical design
-                cmd_architect "${args[@]:1}"
-                return $?
-                ;;
-            plan)
-                # Stage 3: Task decomposition
-                cmd_plan "${args[@]:1}"
-                return $?
-                ;;
-            bootstrap)
-                # Stage 4: Initialize beads from plan
-                cmd_bootstrap "${args[@]:1}"
-                return $?
-                ;;
-            sessions)
-                # Manage prep sessions
-                cmd_sessions "${args[@]:1}"
-                return $?
-                ;;
-            validate)
-                # Validate beads state
-                cmd_validate "${args[@]:1}"
                 return $?
                 ;;
             interview)
@@ -447,17 +410,9 @@ SUBCOMMANDS:
   cub verify-task <task-id>     Verify task is closed
   cub doctor [--fix]            Diagnose and fix issues
   cub guardrails show           Display institutional memory
-  cub upgrade [--head|--local]  Upgrade cub to newer version
+  cub system-upgrade [--local]  Upgrade cub installation
+  cub update [--force]          Update project templates/skills
   cub version                   Show version
-
-VISION-TO-TASKS PREP (v0.14):
-  cub prep [VISION.md]          Run full prep (triage→architect→plan→bootstrap)
-  cub triage [VISION.md]        Stage 1: Requirements refinement
-  cub architect [SESSION]       Stage 2: Technical design
-  cub plan [SESSION]            Stage 3: Task decomposition
-  cub bootstrap [SESSION]       Stage 4: Initialize beads
-  cub sessions                  List/manage prep sessions
-  cub validate                  Validate beads state
 
 INTERVIEW MODE (v0.16):
   cub interview <task-id>       Deep dive on task specifications
@@ -475,7 +430,8 @@ USE --help WITH ANY SUBCOMMAND:
   cub status --help             Status subcommand help
   cub explain-task --help       Explain-task subcommand help
   cub artifacts --help          Artifacts subcommand help
-  cub upgrade --help            Upgrade subcommand help
+  cub system-upgrade --help     System upgrade subcommand help
+  cub update --help             Update project templates help
 
 EXECUTION MODES:
   cub                           Run continuous loop

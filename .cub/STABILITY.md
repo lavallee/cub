@@ -25,6 +25,8 @@ Core abstractions that the entire system depends on. Changes here ripple everywh
 | `core/captures/models.py` | Capture data models | 93% |
 | `core/branches/models.py` | Branch binding models | 100% |
 | `core/worktree/manager.py` | Git worktree management | 99% |
+| `core/plan/models.py` | Plan data models | 97% |
+| `core/specs/models.py` | Spec data models | 96% |
 | `dashboard/renderer.py` | Dashboard rendering | 100% |
 | `utils/logging.py` | JSONL structured logging | 99% |
 
@@ -50,6 +52,15 @@ Primary implementations and main execution paths. These modules coordinate betwe
 | `utils/hooks.py` | Hook execution system | 81% | Above threshold |
 | `core/github/client.py` | GitHub API client | 51% | **Needs improvement** |
 | `core/pr/service.py` | PR creation service | 39% | **Needs improvement** |
+| `core/plan/pipeline.py` | Planning pipeline orchestration | 89% | Above threshold |
+| `core/plan/context.py` | Plan context management | 96% | Above threshold |
+| `core/plan/orient.py` | Orient stage implementation | 95% | Above threshold |
+| `core/plan/architect.py` | Architect stage implementation | 78% | Above threshold |
+| `core/plan/itemize.py` | Itemize stage implementation | 81% | Above threshold |
+| `core/plan/parser.py` | Plan parser | 66% | Above threshold |
+| `core/specs/workflow.py` | Spec lifecycle management | 89% | Above threshold |
+| `core/specs/lifecycle.py` | Stage transitions | 83% | Above threshold |
+| `core/stage/stager.py` | Task import from plans | 84% | Above threshold |
 
 ### Experimental (40%+ Coverage Required)
 
@@ -98,8 +109,12 @@ User interface components and bash-delegated commands. These are difficult to un
 | `cli/investigate.py` | Investigation CLI | 12% | Interactive |
 | `cli/merge.py` | Merge CLI | 13% | Interactive |
 | `cli/pr.py` | PR CLI | 14% | Interactive |
+| `cli/plan.py` | Plan CLI commands | 25% | BATS-covered |
+| `cli/stage.py` | Stage CLI commands | 28% | BATS-covered |
+| `cli/spec.py` | Spec CLI commands | 24% | BATS-covered |
+| `cli/triage.py` | Triage CLI commands | 18% | Interactive |
 | `dashboard/tmux.py` | Tmux integration | 25% | External process |
-| `core/prep/plan_markdown.py` | Plan parsing | 0% | Low priority |
+| `core/prep/plan_markdown.py` | Plan parsing | 0% | Low priority (deprecated) |
 
 ## Priority Actions
 
@@ -174,5 +189,5 @@ When reviewing changes:
 
 ---
 
-*Last updated: 2026-01-18*
-*Overall codebase coverage: 54% (779 pytest tests)*
+*Last updated: 2026-01-21*
+*Overall codebase coverage: 55% (1268 pytest tests)*

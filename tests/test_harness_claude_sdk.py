@@ -176,14 +176,14 @@ class TestBuildOptions:
         assert options.cwd == "/home/user/project"
 
     def test_build_options_auto_approve(self) -> None:
-        """Test building options with auto_approve enables acceptEdits."""
+        """Test building options with auto_approve enables bypassPermissions."""
         task_input = TaskInput(
             prompt="Hello",
             auto_approve=True,
         )
         options = _build_options(task_input)
 
-        assert options.permission_mode == "acceptEdits"
+        assert options.permission_mode == "bypassPermissions"
 
     def test_build_options_with_model(self) -> None:
         """Test building options with model."""
@@ -209,7 +209,7 @@ class TestBuildOptions:
         assert options.system_prompt == "System"
         assert options.cwd == "/tmp"
         assert options.model == "sonnet"
-        assert options.permission_mode == "acceptEdits"
+        assert options.permission_mode == "bypassPermissions"
 
 
 class TestParseSDKMessage:

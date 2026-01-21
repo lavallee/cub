@@ -35,39 +35,6 @@ def _delegate(command: str, args: list[str], ctx: typer.Context | None = None) -
     delegate_to_bash(command, args, debug=debug)
 
 
-# Vision-to-Tasks Prep Pipeline (v0.14)
-
-
-def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Run full prep pipeline (triage→architect→plan→bootstrap)."""
-    _delegate("prep", args or [], ctx)
-
-
-def triage(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Stage 1: Requirements refinement."""
-    _delegate("triage", args or [], ctx)
-
-
-def architect(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Stage 2: Technical design."""
-    _delegate("architect", args or [], ctx)
-
-
-def plan(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Stage 3: Task decomposition."""
-    _delegate("plan", args or [], ctx)
-
-
-def bootstrap(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Stage 4: Initialize beads from prep artifacts."""
-    _delegate("bootstrap", args or [], ctx)
-
-
-def sessions(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """List and manage prep sessions."""
-    _delegate("sessions", args or [], ctx)
-
-
 # Task & Artifact Commands
 
 
@@ -79,11 +46,6 @@ def explain_task(ctx: typer.Context, args: list[str] | None = typer.Argument(Non
 def artifacts(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """List task output artifacts."""
     _delegate("artifacts", args or [], ctx)
-
-
-def validate(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Validate beads state and configuration."""
-    _delegate("validate", args or [], ctx)
 
 
 # Git Workflow Integration (v0.19)

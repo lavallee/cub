@@ -13,14 +13,16 @@ Cub provides a comprehensive command-line interface for managing autonomous AI c
 
 Commands are organized into logical groups based on their function:
 
-### Key Commands
+### Core Commands
 
 The primary commands for everyday use:
 
 | Command | Description |
 |---------|-------------|
 | [`cub run`](run.md) | Execute the autonomous task loop |
-| [`cub prep`](prep.md) | Run the vision-to-tasks pipeline |
+| [`cub plan`](plan.md) | Run the planning pipeline (orient, architect, itemize) |
+| [`cub stage`](stage.md) | Import planned tasks into task backend |
+| [`cub spec`](spec.md) | Create feature specs interactively |
 | [`cub init`](init.md) | Initialize cub in a project |
 
 ### Status Commands
@@ -62,7 +64,8 @@ Commands for managing your Cub installation:
 | Command | Description |
 |---------|-------------|
 | [`cub doctor`](doctor.md) | Diagnose and fix configuration issues |
-| [`cub upgrade`](upgrade.md) | Upgrade cub to newer version |
+| [`cub update`](update.md) | Update project templates and skills |
+| [`cub system-upgrade`](system-upgrade.md) | Upgrade cub installation |
 | [`cub uninstall`](uninstall.md) | Remove cub installation |
 
 ### Capture Commands
@@ -74,7 +77,7 @@ Commands for managing idea captures:
 | [`cub capture`](capture.md) | Record a new idea or observation |
 | [`cub captures`](captures.md) | List and manage captures |
 | [`cub organize-captures`](organize-captures.md) | Organize captures into tasks |
-| [`cub investigate`](investigate.md) | Deep-dive research on a capture |
+| [`cub triage`](triage.md) | Triage and process captures |
 
 ---
 
@@ -271,7 +274,8 @@ Every command supports the `--help` flag:
 ```bash
 cub --help           # General help
 cub run --help       # Help for run command
-cub prep --help      # Help for prep command
+cub plan --help      # Help for plan command
+cub stage --help     # Help for stage command
 ```
 
 For troubleshooting, see:
