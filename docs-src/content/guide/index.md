@@ -36,7 +36,7 @@ The User Guide provides comprehensive documentation for using Cub effectively. W
 
     Transform specs into executable tasks. Use orient, architect, itemize, and stage to prepare your work.
 
-    [:octicons-arrow-right-24: Plan Flow](prep-pipeline/index.md)
+    [:octicons-arrow-right-24: Plan Flow](plan-pipeline/index.md)
 
 -   :material-robot: **AI Harnesses**
 

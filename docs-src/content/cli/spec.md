@@ -157,4 +157,4 @@ The number in brackets is the readiness score (0-10).
 
 ## See Also
 
-- [Plan Flow Guide](../guide/prep-pipeline/index.md) - Complete workflow overview
+- [Plan Flow Guide](../guide/plan-pipeline/index.md) - Complete workflow overview

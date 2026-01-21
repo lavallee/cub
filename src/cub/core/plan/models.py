@@ -468,16 +468,34 @@ class Plan(BaseModel):
 
         Returns:
             Path to the saved plan.json file
+
+        Raises:
+            OSError: If directory creation or file write fails
         """
         import json
 
         plan_dir = self.get_plan_dir(project_root)
-        plan_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            plan_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise OSError(f"Cannot create plan directory {plan_dir}: {e}") from e
 
         plan_file = plan_dir / "plan.json"
-        with plan_file.open("w") as f:
-            json.dump(self.to_json_dict(), f, indent=2)
-            f.write("\n")
+
+        try:
+            # Write to temporary file first for atomicity
+            temp_file = plan_file.with_suffix(".json.tmp")
+            with temp_file.open("w", encoding="utf-8") as f:
+                json.dump(self.to_json_dict(), f, indent=2)
+                f.write("\n")
+
+            # Atomic rename
+            temp_file.replace(plan_file)
+        except OSError as e:
+            raise OSError(f"Cannot write plan file {plan_file}: {e}") from e
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Cannot serialize plan to JSON: {e}") from e
 
         return plan_file
 
@@ -494,7 +512,8 @@ class Plan(BaseModel):
 
         Raises:
             FileNotFoundError: If plan.json doesn't exist
-            ValueError: If plan.json is invalid
+            ValueError: If plan.json is invalid or malformed
+            OSError: If file cannot be read
         """
         import json
 
@@ -502,10 +521,20 @@ class Plan(BaseModel):
         if not plan_file.exists():
             raise FileNotFoundError(f"No plan.json found in {plan_dir}")
 
-        with plan_file.open() as f:
-            data = json.load(f)
+        try:
+            with plan_file.open(encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Malformed JSON in {plan_file}: {e}") from e
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Invalid UTF-8 encoding in {plan_file}: {e}") from e
+        except OSError as e:
+            raise OSError(f"Cannot read plan file {plan_file}: {e}") from e
 
         if not isinstance(data, dict):
             raise ValueError(f"Invalid plan.json: expected dict, got {type(data)}")
 
-        return cls.from_json_dict(data)
+        try:
+            return cls.from_json_dict(data)
+        except (ValueError, KeyError) as e:
+            raise ValueError(f"Invalid plan data in {plan_file}: {e}") from e

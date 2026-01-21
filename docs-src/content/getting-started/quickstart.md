@@ -323,5 +323,5 @@ Now that you have Cub running:
 
 - **[Core Concepts](concepts.md)** - Understand the architecture
 - **[Configuration](../guide/configuration/index.md)** - Customize Cub for your workflow
-- **[Plan Flow](../guide/prep-pipeline/index.md)** - Master the spec-to-tasks flow
+- **[Plan Flow](../guide/plan-pipeline/index.md)** - Master the spec-to-tasks flow
 - **[AI Harnesses](../guide/harnesses/index.md)** - Learn about different harness options

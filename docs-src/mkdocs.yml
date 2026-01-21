@@ -178,11 +178,11 @@ nav:
       - Completion: guide/run-loop/completion.md
 
     - Plan Flow:
-      - guide/prep-pipeline/index.md
-      - Orient: guide/prep-pipeline/orient.md
-      - Architect: guide/prep-pipeline/architect.md
-      - Itemize: guide/prep-pipeline/itemize.md
-      - Stage: guide/prep-pipeline/stage.md
+      - guide/plan-pipeline/index.md
+      - Orient: guide/plan-pipeline/orient.md
+      - Architect: guide/plan-pipeline/architect.md
+      - Itemize: guide/plan-pipeline/itemize.md
+      - Stage: guide/plan-pipeline/stage.md
 
     - AI Harnesses:
       - guide/harnesses/index.md

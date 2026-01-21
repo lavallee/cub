@@ -161,9 +161,9 @@ my-project/
 │   └── guardrails.md    # Institutional memory
 ├── .claude/
 │   └── commands/        # Claude Code skills
-│       ├── cub:triage.md
+│       ├── cub:orient.md
 │       ├── cub:architect.md
-│       └── cub:plan.md
+│       └── cub:itemize.md
 ├── .beads/              # (beads backend only)
 ├── prd.json             # (json backend only)
 ├── specs/               # Specifications directory
@@ -310,9 +310,9 @@ Init installs Claude Code skills for the plan pipeline:
 |-------|-------------|
 | `cub:spec` | Feature specification interview |
 | `cub:capture` | Quick idea capture |
-| `cub:triage` | Requirements refinement |
+| `cub:orient` | Requirements refinement |
 | `cub:architect` | Technical design |
-| `cub:plan` | Task decomposition |
+| `cub:itemize` | Task decomposition |
 
 Use with Claude Code:
 

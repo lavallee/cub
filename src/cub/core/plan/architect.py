@@ -916,11 +916,21 @@ class ArchitectStage:
 
         # Write architecture.md
         output_path = self.ctx.architecture_path
-        output_path.write_text(architecture_content)
+        try:
+            output_path.write_text(architecture_content, encoding="utf-8")
+        except OSError as e:
+            raise ArchitectStageError(
+                f"Cannot write architecture file {output_path}: {e}"
+            ) from e
 
         # Mark stage as complete
         self.ctx.plan.complete_stage(PlanStage.ARCHITECT)
-        self.ctx.save_plan()
+        try:
+            self.ctx.save_plan()
+        except (OSError, ValueError) as e:
+            raise ArchitectStageError(
+                f"Cannot save plan after architect stage: {e}"
+            ) from e
 
         completed_at = datetime.now(timezone.utc)
 

@@ -489,11 +489,19 @@ class OrientStage:
 
         # Write orientation.md
         output_path = self.ctx.orientation_path
-        output_path.write_text(orientation_content)
+        try:
+            output_path.write_text(orientation_content, encoding="utf-8")
+        except OSError as e:
+            raise OrientStageError(
+                f"Cannot write orientation file {output_path}: {e}"
+            ) from e
 
         # Mark stage as complete
         self.ctx.plan.complete_stage(PlanStage.ORIENT)
-        self.ctx.save_plan()
+        try:
+            self.ctx.save_plan()
+        except (OSError, ValueError) as e:
+            raise OrientStageError(f"Cannot save plan after orient stage: {e}") from e
 
         completed_at = datetime.now(timezone.utc)
 

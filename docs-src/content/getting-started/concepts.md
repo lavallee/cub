@@ -450,6 +450,6 @@ Configure behavior on task failure:
 Now that you understand the concepts:
 
 - **[Configuration Guide](../guide/configuration/index.md)** - Customize Cub
-- **[Plan Flow](../guide/prep-pipeline/index.md)** - Master spec-to-tasks
+- **[Plan Flow](../guide/plan-pipeline/index.md)** - Master spec-to-tasks
 - **[Run Loop](../guide/run-loop/index.md)** - Deep dive on execution
 - **[AI Harnesses](../guide/harnesses/index.md)** - Harness details

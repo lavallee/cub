@@ -285,7 +285,7 @@ Delegation is implemented in `cub.core.bash_delegate`:
 
 ### Migration Path to Full Python
 
-The prep pipeline has been migrated to native Python as `cub plan` with subcommands (orient, architect, itemize) and `cub stage`. The remaining delegated commands will be ported. Priority:
+The planning workflow (formerly "prep pipeline") has been migrated to native Python as `cub plan` with subcommands (orient, architect, itemize) and `cub stage`. The remaining delegated commands will be ported. Priority:
 
 1. **High-frequency commands** (used in every session)
    - Interview mode (`interview`)

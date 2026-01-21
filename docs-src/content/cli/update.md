@@ -53,8 +53,8 @@ Files in `.claude/commands/`:
 | File | Description |
 |------|-------------|
 | `cub:architect.md` | Technical architecture skill |
-| `cub:plan.md` | Task decomposition skill |
-| `cub:triage.md` | Requirements refinement skill |
+| `cub:itemize.md` | Task decomposition skill |
+| `cub:orient.md` | Requirements refinement skill |
 | `cub:spec.md` | Feature specification skill |
 
 ## Examples

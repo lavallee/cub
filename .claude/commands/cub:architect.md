@@ -10,12 +10,12 @@ If provided, this is the path to write the output file.
 
 ## Instructions
 
-### Step 1: Load Triage
+### Step 1: Load Orient
 
-Read the triage report from `.cub/sessions/triage.md` (or the most recent triage output).
+Read the orient report from `.cub/sessions/orient.md` (or the most recent orient output).
 
 If it doesn't exist or isn't approved, tell the user:
-> No approved triage found. Please run `cub triage` first.
+> No approved orient found. Please run `cub orient` first.
 
 ### Step 2: Analyze Context
 
@@ -231,7 +231,7 @@ Use this template:
 
 ---
 
-**Next Step:** Run `cub plan` to generate implementation tasks.
+**Next Step:** Run `cub itemize` to generate implementation tasks.
 ```
 
 ### Step 9: Handoff
@@ -242,7 +242,7 @@ After writing the output file, tell the user:
 >
 > Output saved to: `{output_path}`
 >
-> **Next step:** Run `cub plan` to break this into executable tasks.
+> **Next step:** Run `cub itemize` to break this into executable tasks.
 
 ---
 
