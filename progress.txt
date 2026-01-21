@@ -1,5 +1,48 @@
 # Cub Project Progress
 
+## 2026-01-21 - cub-p4x.3: Rename skill files
+
+### Task Completed
+Successfully renamed Claude Code skill files to use new nomenclature and updated all references throughout the codebase.
+
+### What Was Implemented
+
+**Skill Files Renamed:**
+1. `cub:triage.md` → `cub:orient.md` - Requirements refinement skill
+   - Updated all references from "Triage Agent" to "Orient Agent"
+   - Updated all internal language (triage → orient) to match new nomenclature
+   - Location: `.claude/commands/` and `templates/commands/`
+
+2. `cub:plan.md` → `cub:itemize.md` - Task decomposition skill
+   - Updated all references from "Planner Agent" to "Itemizer Agent"
+   - Updated all internal language (plan → itemize) to match new nomenclature
+   - Location: `.claude/commands/` and `templates/commands/`
+
+**Documentation Updates:**
+- `cub:architect.md` - Updated references to load "orient.md" instead of "triage.md" and generate "itemize.md" instead of "plan.md"
+- `cub:spec.md` - Updated references to `/cub:orient` and task decomposition step references
+- `docs-src/content/cli/init.md` - Updated skill table with new names
+- `docs-src/content/cli/update.md` - Updated skill file references in documentation
+
+### Key Design Decisions
+
+1. **Naming Convention:** Adopted more descriptive action-oriented names ("orient" and "itemize") that better describe what each skill does.
+
+2. **Comprehensive Updates:** Updated nomenclature not just in filenames but throughout the entire content of skill files and all referencing documentation to ensure consistency.
+
+3. **Both Locations:** Updated both the active skill files in `.claude/commands/` and the templates in `templates/commands/` to ensure new projects get the updated skills.
+
+4. **No Breaking Changes:** All skill functionality remains identical - only names and references changed, so existing workflows are unaffected.
+
+### Verification
+
+- All 1271 tests pass
+- No mypy or ruff errors introduced by changes
+- All references across codebase updated consistently
+- Git history shows proper file moves and renames
+
+---
+
 ## 2026-01-20 - cub-p1f.4: Create SpecWorkflow class
 
 ### Task Completed
