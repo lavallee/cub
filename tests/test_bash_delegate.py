@@ -97,13 +97,12 @@ class TestIsBashCommand:
     def test_bash_commands_return_true(self) -> None:
         """Test that bash-only commands return True."""
         bash_commands = [
-            "prep",
-            "triage",
-            "architect",
-            "plan",
-            "bootstrap",
+            # prep pipeline commands removed - now using native cub plan
             "interview",
             "doctor",
+            "branch",
+            "branches",
+            "checkpoints",
         ]
         for cmd in bash_commands:
             assert is_bash_command(cmd) is True
@@ -130,12 +129,12 @@ class TestDelegateToBash:
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
             with pytest.raises(SystemExit) as exc_info:
-                delegate_to_bash("prep", ["--help"])
+                delegate_to_bash("interview", ["--help"])
 
             assert exc_info.value.code == 0
             mock_run.assert_called_once()
             args = mock_run.call_args
-            assert args[0][0] == [str(bash_script), "prep", "--help"]
+            assert args[0][0] == [str(bash_script), "interview", "--help"]
 
     def test_passes_through_exit_codes(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -150,7 +149,7 @@ class TestDelegateToBash:
 
         with patch("subprocess.run", return_value=mock_result):
             with pytest.raises(SystemExit) as exc_info:
-                delegate_to_bash("prep", [])
+                delegate_to_bash("interview", ["task-123"])
 
             assert exc_info.value.code == 42
 
@@ -161,13 +160,13 @@ class TestDelegateToBash:
         monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
 
         # Mock sys.argv to include --debug
-        with patch.object(sys, "argv", ["cub", "--debug", "prep"]):
+        with patch.object(sys, "argv", ["cub", "--debug", "interview", "task-123"]):
             mock_result = Mock()
             mock_result.returncode = 0
 
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 with pytest.raises(SystemExit):
-                    delegate_to_bash("prep", [])
+                    delegate_to_bash("interview", ["task-123"])
 
                 # Check that CUB_DEBUG was set in env
                 call_args = mock_run.call_args
@@ -183,7 +182,7 @@ class TestDelegateToBash:
 
         with patch("subprocess.run", side_effect=KeyboardInterrupt):
             with pytest.raises(SystemExit) as exc_info:
-                delegate_to_bash("prep", [])
+                delegate_to_bash("interview", ["task-123"])
 
             assert exc_info.value.code == 130
 
@@ -195,7 +194,7 @@ class TestDelegateToBash:
 
         with patch("subprocess.run", side_effect=FileNotFoundError):
             with pytest.raises(SystemExit) as exc_info:
-                delegate_to_bash("prep", [])
+                delegate_to_bash("interview", ["task-123"])
 
             assert exc_info.value.code == 1
 
@@ -209,7 +208,7 @@ class TestDelegateToBash:
             mock_find.side_effect = BashCubNotFoundError("Not found")
 
             with pytest.raises(SystemExit) as exc_info:
-                delegate_to_bash("prep", [])
+                delegate_to_bash("interview", ["task-123"])
 
             assert exc_info.value.code == 1
             captured = capsys.readouterr()

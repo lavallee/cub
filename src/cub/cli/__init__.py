@@ -32,7 +32,7 @@ from cub.cli import (
 PANEL_KEY = "Key Commands"
 PANEL_STATUS = "See What a Run is Doing"
 PANEL_TASKS = "Work with Tasks"
-PANEL_PREP = "Go Deep in Prep/Planning Mode"
+PANEL_PLAN = "Plan from Specs"
 PANEL_EPICS = "Manage Epics (Groups of Tasks)"
 PANEL_PROJECT = "Improve Your Project"
 PANEL_ROADMAP = "Manage Your Roadmap"
@@ -72,11 +72,6 @@ def main(
 # =============================================================================
 
 app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
-app.command(
-    name="prep",
-    rich_help_panel=PANEL_KEY,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.prep)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 
 
@@ -101,36 +96,11 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 
 
 # =============================================================================
-# Go Deep in Prep/Planning Mode
+# Plan from Specs
 # =============================================================================
 
-app.command(
-    name="triage",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.triage)
-app.command(
-    name="architect",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.architect)
-app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PREP)
-app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PREP)
-app.command(
-    name="bootstrap",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.bootstrap)
-app.command(
-    name="sessions",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.sessions)
-app.command(
-    name="validate",
-    rich_help_panel=PANEL_PREP,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)(delegated.validate)
+app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PLAN)
+app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PLAN)
 
 
 # =============================================================================
