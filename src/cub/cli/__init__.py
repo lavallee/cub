@@ -157,6 +157,18 @@ app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
 
 
+# =============================================================================
+# Deprecated Commands (for backwards compatibility)
+# =============================================================================
+#
+# Note: The old `cub triage` command from the prep pipeline has been replaced
+# by `cub plan orient`. However, `triage` is now used for capture processing
+# (a different feature), so we don't register a deprecated `triage` command.
+
+app.command(name="prep", hidden=True)(delegated.prep)
+app.command(name="bootstrap", hidden=True)(delegated.bootstrap)
+
+
 def cli_main() -> None:
     """
     Main CLI entry point.

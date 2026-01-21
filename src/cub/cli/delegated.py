@@ -152,3 +152,25 @@ def close_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None)
 def verify_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Verify task is closed (for agent use)."""
     _delegate("verify-task", args or [], ctx)
+
+
+# Deprecated Commands
+#
+# Note: The old `cub triage` command from the prep pipeline has been replaced
+# by `cub plan orient`. However, since `triage` is now used for capture processing
+# (a different feature), we don't register a deprecated top-level `triage` command
+# to avoid conflicts.
+
+
+def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """[DEPRECATED] Use 'cub plan' instead."""
+    console.print("[yellow]⚠️  Warning: 'cub prep' is deprecated. Use 'cub plan' instead.[/yellow]")
+    _delegate("prep", args or [], ctx)
+
+
+def bootstrap(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """[DEPRECATED] Use 'cub stage' instead."""
+    console.print(
+        "[yellow]⚠️  Warning: 'cub bootstrap' is deprecated. Use 'cub stage' instead.[/yellow]"
+    )
+    _delegate("bootstrap", args or [], ctx)

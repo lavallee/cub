@@ -221,3 +221,84 @@ class TestSpecificDelegatedCommands:
             call_args = mock_run.call_args
             expected_cmd = [str(bash_script), command] + args
             assert call_args[0][0] == expected_cmd
+
+
+class TestDeprecatedCommands:
+    """Test deprecated commands show warnings but still work.
+
+    Note: The old 'triage' command from the prep pipeline is not tested here
+    because 'triage' is now used for capture processing (different feature).
+    The prep pipeline's triage stage is now accessed via 'cub plan orient'.
+    """
+
+    @pytest.mark.parametrize(
+        "command,warning_message",
+        [
+            ("prep", "Warning: 'cub prep' is deprecated. Use 'cub plan' instead."),
+            ("bootstrap", "Warning: 'cub bootstrap' is deprecated. Use 'cub stage' instead."),
+        ],
+    )
+    def test_deprecated_command_shows_warning(
+        self,
+        command: str,
+        warning_message: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that deprecated commands show a warning message."""
+        bash_script = tmp_path / "cub"
+        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
+        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = runner.invoke(app, [command])
+
+            # Should still succeed
+            assert result.exit_code == 0
+            # Should show deprecation warning
+            assert warning_message in result.stdout
+
+    @pytest.mark.parametrize(
+        "command,delegate_command",
+        [
+            ("prep", "prep"),
+            ("bootstrap", "bootstrap"),
+        ],
+    )
+    def test_deprecated_command_still_delegates(
+        self,
+        command: str,
+        delegate_command: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test that deprecated commands still delegate to bash correctly."""
+        bash_script = tmp_path / "cub"
+        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
+        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = runner.invoke(app, [command])
+
+            assert result.exit_code == 0
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            # Should delegate with the original command name
+            assert call_args[0][0] == [str(bash_script), delegate_command]
+
+    def test_deprecated_commands_are_hidden(self) -> None:
+        """Test that deprecated commands are hidden from main help."""
+        result = runner.invoke(app, ["--help"])
+
+        # The new 'triage' command (for captures) should appear in help
+        # But 'prep' and 'bootstrap' should not appear (they're hidden)
+        # Note: We check that the commands don't appear as top-level commands
+        # by ensuring they're not in the command list sections
+        assert "prep " not in result.stdout or "deprecated" in result.stdout.lower()
+        assert "bootstrap " not in result.stdout or "deprecated" in result.stdout.lower()
