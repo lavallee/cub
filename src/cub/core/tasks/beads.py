@@ -252,8 +252,10 @@ class BeadsBackend:
 
         if parent:
             # Use label filter for epic filtering (--parent requires explicit parent field,
-            # but tasks created with --id don't get parent set automatically)
-            args.extend(["--label", parent])
+            # but tasks created with --id don't get parent set automatically).
+            # Labels use format "epic:<epic-id>" for epic association.
+            epic_label = f"epic:{parent}" if not parent.startswith("epic:") else parent
+            args.extend(["--label", epic_label])
         if label:
             args.extend(["--label", label])
 
