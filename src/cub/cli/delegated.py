@@ -154,6 +154,44 @@ def verify_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None
     _delegate("verify-task", args or [], ctx)
 
 
+# Planning Pipeline (v0.27 - bash-backed)
+
+
+def plan_orient(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Research and understand the problem space."""
+    _delegate("plan", ["orient"] + (args or []), ctx)
+
+
+def plan_architect(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Design the solution architecture."""
+    _delegate("plan", ["architect"] + (args or []), ctx)
+
+
+def plan_itemize(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Break down the architecture into actionable tasks."""
+    _delegate("plan", ["itemize"] + (args or []), ctx)
+
+
+def plan_run(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Run the full planning pipeline (orient -> architect -> itemize)."""
+    _delegate("plan", ["run"] + (args or []), ctx)
+
+
+def plan_list(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """List all plans in the project."""
+    _delegate("plan", ["list"] + (args or []), ctx)
+
+
+def stage(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Import tasks from completed plans into the task backend."""
+    _delegate("stage", args or [], ctx)
+
+
+def validate(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Validate beads state and task relationships."""
+    _delegate("validate", args or [], ctx)
+
+
 # Deprecated Commands
 #
 # Note: The old `cub triage` command from the prep pipeline has been replaced
@@ -164,7 +202,7 @@ def verify_task(ctx: typer.Context, args: list[str] | None = typer.Argument(None
 
 def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """[DEPRECATED] Use 'cub plan' instead."""
-    console.print("[yellow]⚠️  Warning: 'cub prep' is deprecated. Use 'cub plan' instead.[/yellow]")
+    console.print("[yellow]Warning: 'cub prep' is deprecated. Use 'cub plan' instead.[/yellow]")
     _delegate("prep", args or [], ctx)
 
 

@@ -16,13 +16,13 @@ from cub.cli import (
     merge,
     monitor,
     organize_captures,
-    plan,
+    plan_delegated,
     pr,
     punchlist,
     run,
     sandbox,
     spec,
-    stage,
+    stage_delegated,
     status,
     task,
     triage,
@@ -105,8 +105,8 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 # Plan from Specs
 # =============================================================================
 
-app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PLAN)
-app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PLAN)
+app.add_typer(plan_delegated.app, name="plan", rich_help_panel=PANEL_PLAN)
+app.add_typer(stage_delegated.app, name="stage", rich_help_panel=PANEL_PLAN)
 
 
 # =============================================================================

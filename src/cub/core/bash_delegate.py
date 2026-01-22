@@ -90,8 +90,6 @@ def is_bash_command(command: str) -> bool:
         True if command should delegate to bash
     """
     # Commands that should delegate to bash
-    # Note: prep pipeline commands (prep, triage, architect, bootstrap, sessions, validate)
-    # have been replaced by native Python cub plan commands
     # The old "triage" from prep pipeline is NOT added here because "triage" is now
     # used for capture processing (different feature)
     bash_commands = {
@@ -106,6 +104,10 @@ def is_bash_command(command: str) -> bool:
         "close-task",
         "verify-task",
         "doctor",
+        # Planning pipeline (v0.27 - bash-backed for reliability)
+        "plan",
+        "stage",
+        "validate",
         # Deprecated commands (still delegate to bash but show warnings)
         "prep",
         "bootstrap",

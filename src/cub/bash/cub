@@ -83,6 +83,8 @@ source "${CUB_DIR}/lib/cmd_agent.sh"
 source "${CUB_DIR}/lib/cmd_doctor.sh"
 source "${CUB_DIR}/lib/cmd_interview.sh"
 source "${CUB_DIR}/lib/cmd_import.sh"
+# Source planning pipeline (v0.27)
+source "${CUB_DIR}/lib/cmd_plan.sh"
 # Source branch management (v0.19)
 source "${CUB_DIR}/lib/branches.sh"
 source "${CUB_DIR}/lib/cmd_branch.sh"
@@ -276,6 +278,57 @@ main() {
             guardrails)
                 # Manage institutional memory
                 cmd_guardrails "${args[@]:1}"
+                return $?
+                ;;
+            # Planning pipeline commands (v0.27)
+            plan)
+                # Planning pipeline with subcommands
+                local plan_subcommand="${args[1]:-}"
+                case "$plan_subcommand" in
+                    orient)
+                        cmd_orient "${args[@]:2}"
+                        return $?
+                        ;;
+                    architect)
+                        cmd_architect "${args[@]:2}"
+                        return $?
+                        ;;
+                    itemize)
+                        cmd_itemize "${args[@]:2}"
+                        return $?
+                        ;;
+                    run)
+                        cmd_plan_run "${args[@]:2}"
+                        return $?
+                        ;;
+                    list)
+                        cmd_plan_list "${args[@]:2}"
+                        return $?
+                        ;;
+                    --help|-h|help)
+                        _plan_run_help
+                        return 0
+                        ;;
+                    "")
+                        # No subcommand - show help
+                        _plan_run_help
+                        return 0
+                        ;;
+                    *)
+                        # Unknown subcommand - treat as spec path for run
+                        cmd_plan_run "${args[@]:1}"
+                        return $?
+                        ;;
+                esac
+                ;;
+            stage)
+                # Stage: Import tasks from plan to beads
+                cmd_stage "${args[@]:1}"
+                return $?
+                ;;
+            validate)
+                # Validate beads state
+                cmd_validate "${args[@]:1}"
                 return $?
                 ;;
             version)
