@@ -101,14 +101,16 @@ Mark checkpoints explicitly in the plan.
 
 **Required Labels** (apply to every task):
 
-1. **Phase**: `phase-1`, `phase-2`, etc.
+1. **Epic**: `epic:{epic_id}` - Links task to its parent epic (e.g., `epic:cub-k7m`)
 
-2. **Model** (based on complexity):
+2. **Phase**: `phase-1`, `phase-2`, etc.
+
+3. **Model** (based on complexity):
    - `model:opus` - Complex architectural decisions, security-sensitive, novel problems
    - `model:sonnet` - Standard feature work, moderate complexity
    - `model:haiku` - Boilerplate, repetitive patterns, simple changes
 
-3. **Complexity**: `complexity:high`, `complexity:medium`, `complexity:low`
+4. **Complexity**: `complexity:high`, `complexity:medium`, `complexity:low`
 
 **Optional Labels** (when applicable):
 - **Domain**: `setup`, `model`, `api`, `ui`, `logic`, `test`, `docs`
@@ -166,7 +168,7 @@ Labels: phase-1, {domain labels}
 ### Task: {prefix}-{xxx}.1 - {Task Title}
 
 Priority: {0-3}
-Labels: phase-1, model:sonnet, complexity:medium
+Labels: epic:{prefix}-{xxx}, phase-1, model:sonnet, complexity:medium
 Blocks: {other-task-id} (if applicable)
 
 **Context**: {1-2 sentences on why this task exists}

@@ -22,7 +22,7 @@ Persist token/cost data that currently exists only in-memory during runs. Delive
 ### Task: cub-r7k.1 - Extend task.json schema to include TokenUsage
 
 Priority: 0
-Labels: phase-1, model:sonnet, complexity:low
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:low
 
 **Context**: Currently TokenUsage is extracted during runs but not persisted to task artifacts. This task adds the usage field to task.json so cost data survives after runs complete.
 
@@ -47,7 +47,7 @@ Labels: phase-1, model:sonnet, complexity:low
 ### Task: cub-r7k.2 - Extend run.json schema to include budget totals
 
 Priority: 0
-Labels: phase-1, model:sonnet, complexity:low
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:low
 
 **Context**: run.json currently has minimal metadata. We need to add budget totals so aggregate cost is visible after runs complete.
 
@@ -72,7 +72,7 @@ Labels: phase-1, model:sonnet, complexity:low
 ### Task: cub-r7k.3 - Persist TokenUsage to task.json in run loop
 
 Priority: 0
-Labels: phase-1, model:sonnet, complexity:medium
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:medium
 Blocks: cub-r7k.5, cub-r7k.6, cub-r7k.7
 
 **Context**: With models extended, we need to actually write the token data during task execution. The run loop in cli/run.py handles task execution and should persist usage after each task.
@@ -99,7 +99,7 @@ Blocks: cub-r7k.5, cub-r7k.6, cub-r7k.7
 ### Task: cub-r7k.4 - Persist budget totals to run.json at run completion
 
 Priority: 0
-Labels: phase-1, model:sonnet, complexity:medium
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:medium
 
 **Context**: Aggregate token/cost totals should be written to run.json when a cub run session completes.
 
@@ -124,7 +124,7 @@ Labels: phase-1, model:sonnet, complexity:medium
 ### Task: cub-r7k.5 - Capture harness.log for raw output audit trail
 
 Priority: 1
-Labels: phase-1, model:sonnet, complexity:medium
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:medium
 
 **Context**: Raw harness output is valuable for debugging and enables LLM extraction of approach/decisions in Phase 2. Currently not captured.
 
@@ -150,7 +150,7 @@ Labels: phase-1, model:sonnet, complexity:medium
 ### Task: cub-r7k.6 - Capture prompt.md for rendered prompt audit trail
 
 Priority: 1
-Labels: phase-1, model:haiku, complexity:low
+Labels: epic:cub-r7k, phase-1, model:haiku, complexity:low
 
 **Context**: The rendered prompt (system + task) is valuable for debugging prompt issues. Save it alongside harness.log.
 
@@ -174,7 +174,7 @@ Labels: phase-1, model:haiku, complexity:low
 ### Task: cub-r7k.7 - Update cub status to display cost from persisted data
 
 Priority: 1
-Labels: phase-1, model:sonnet, complexity:medium, checkpoint
+Labels: epic:cub-r7k, phase-1, model:sonnet, complexity:medium, checkpoint
 
 **Context**: cub status currently shows cost from in-memory data during active runs. It should also display cost from persisted run.json/task.json for completed runs.
 
@@ -207,7 +207,7 @@ Create the completed work ledger with entries and queries. Deliverables: `.cub/l
 ### Task: cub-m4j.1 - Create ledger package structure and Pydantic models
 
 Priority: 0
-Labels: phase-2, model:sonnet, complexity:medium
+Labels: epic:cub-m4j, phase-2, model:sonnet, complexity:medium
 
 **Context**: The ledger service needs a clean package structure with well-defined Pydantic models. This is the foundation for all ledger functionality.
 
@@ -232,7 +232,7 @@ Labels: phase-2, model:sonnet, complexity:medium
 ### Task: cub-m4j.2 - Implement LedgerWriter for creating entries
 
 Priority: 0
-Labels: phase-2, model:sonnet, complexity:medium
+Labels: epic:cub-m4j, phase-2, model:sonnet, complexity:medium
 Blocks: cub-m4j.3, cub-m4j.5, cub-m4j.6, cub-w9t.4, cub-w9t.7, cub-h3v.1
 
 **Context**: LedgerWriter creates and updates ledger entries. It writes both the markdown file (human-readable) and updates the JSONL index.
@@ -260,7 +260,7 @@ Blocks: cub-m4j.3, cub-m4j.5, cub-m4j.6, cub-w9t.4, cub-w9t.7, cub-h3v.1
 ### Task: cub-m4j.3 - Implement LedgerReader for queries and search
 
 Priority: 0
-Labels: phase-2, model:sonnet, complexity:medium
+Labels: epic:cub-m4j, phase-2, model:sonnet, complexity:medium
 Blocks: cub-m4j.4, cub-w9t.3, cub-w9t.4
 
 **Context**: LedgerReader provides query capabilities: get single entry, list with filters, search by text, and compute stats.
@@ -287,7 +287,7 @@ Blocks: cub-m4j.4, cub-w9t.3, cub-w9t.4
 ### Task: cub-m4j.4 - Implement cub ledger CLI commands (show, stats, search)
 
 Priority: 0
-Labels: phase-2, model:sonnet, complexity:medium, checkpoint
+Labels: epic:cub-m4j, phase-2, model:sonnet, complexity:medium, checkpoint
 
 **Context**: CLI is prioritized early for manual testing. Implement the three core commands: show, stats, search.
 
@@ -313,7 +313,7 @@ Labels: phase-2, model:sonnet, complexity:medium, checkpoint
 ### Task: cub-m4j.5 - Implement LLM extraction for approach/decisions/lessons
 
 Priority: 1
-Labels: phase-2, model:opus, complexity:high, risk:medium
+Labels: epic:cub-m4j, phase-2, model:opus, complexity:high, risk:medium
 Blocks: cub-m4j.6
 
 **Context**: Ledger entries should include LLM-extracted insights: approach taken, key decisions, and lessons learned. This uses the existing harness interface.
@@ -340,7 +340,7 @@ Blocks: cub-m4j.6
 ### Task: cub-m4j.6 - Wire ledger creation into run loop on task close
 
 Priority: 1
-Labels: phase-2, model:sonnet, complexity:medium, checkpoint
+Labels: epic:cub-m4j, phase-2, model:sonnet, complexity:medium, checkpoint
 
 **Context**: Ledger entries should be created automatically when a task closes. This wires the ledger into the main execution flow.
 
@@ -372,7 +372,7 @@ Add context generation and drift detection. Deliverables: llms.txt generated fro
 ### Task: cub-w9t.1 - Add tree-sitter dependencies and basic setup
 
 Priority: 0
-Labels: phase-3, model:haiku, complexity:low
+Labels: epic:cub-w9t, phase-3, model:haiku, complexity:low
 Blocks: cub-w9t.2
 
 **Context**: Tree-sitter provides AST parsing for accurate codebase structure mapping. Need to add dependencies and verify installation.
@@ -396,7 +396,7 @@ Blocks: cub-w9t.2
 ### Task: cub-w9t.2 - Implement CodebaseMapper with tree-sitter
 
 Priority: 1
-Labels: phase-3, model:sonnet, complexity:high
+Labels: epic:cub-w9t, phase-3, model:sonnet, complexity:high
 Blocks: cub-w9t.6
 
 **Context**: CodebaseMapper uses tree-sitter to extract structure, entry points, and key patterns from the codebase. Outputs codebase-map.md.
@@ -422,7 +422,7 @@ Blocks: cub-w9t.6
 ### Task: cub-w9t.3 - Implement LlmsTxtGenerator for llms.txt
 
 Priority: 1
-Labels: phase-3, model:sonnet, complexity:medium
+Labels: epic:cub-w9t, phase-3, model:sonnet, complexity:medium
 Blocks: cub-w9t.6
 
 **Context**: llms.txt follows the llmstxt.org convention - an LLM-friendly project overview. Generate from CLAUDE.md template plus recent activity.
@@ -447,7 +447,7 @@ Blocks: cub-w9t.6
 ### Task: cub-w9t.4 - Implement drift detection via harness
 
 Priority: 0
-Labels: phase-3, model:opus, complexity:high, risk:medium, experiment
+Labels: epic:cub-w9t, phase-3, model:opus, complexity:high, risk:medium, experiment
 Blocks: cub-w9t.5
 
 **Context**: Drift detection compares specs to ledger entries using LLM-assisted semantic comparison. This is the primary success criteria from orient.
@@ -473,7 +473,7 @@ Blocks: cub-w9t.5
 ### Task: cub-w9t.5 - Implement cub ledger drift command
 
 Priority: 1
-Labels: phase-3, model:sonnet, complexity:medium, checkpoint
+Labels: epic:cub-w9t, phase-3, model:sonnet, complexity:medium, checkpoint
 
 **Context**: CLI command for running drift detection. Takes a spec path and outputs comparison report.
 
@@ -498,7 +498,7 @@ Labels: phase-3, model:sonnet, complexity:medium, checkpoint
 ### Task: cub-w9t.6 - Implement cub context CLI commands
 
 Priority: 1
-Labels: phase-3, model:haiku, complexity:low
+Labels: epic:cub-w9t, phase-3, model:haiku, complexity:low
 Blocks: cub-w9t.8, cub-h3v.3
 
 **Context**: CLI for generating and viewing context files (llms.txt, codebase-map.md).
@@ -523,7 +523,7 @@ Blocks: cub-w9t.8, cub-h3v.3
 ### Task: cub-w9t.7 - Implement git post-commit hook installer
 
 Priority: 2
-Labels: phase-3, model:sonnet, complexity:medium
+Labels: epic:cub-w9t, phase-3, model:sonnet, complexity:medium
 
 **Context**: Git hooks capture commits to ledger even when agents bypass cub run. Install post-commit hook on cub init.
 
@@ -549,7 +549,7 @@ Labels: phase-3, model:sonnet, complexity:medium
 ### Task: cub-w9t.8 - Wire context regeneration to run completion
 
 Priority: 2
-Labels: phase-3, model:haiku, complexity:low
+Labels: epic:cub-w9t, phase-3, model:haiku, complexity:low
 
 **Context**: Context files should be refreshed after cub run completes so agents in future sessions have up-to-date information.
 
@@ -579,7 +579,7 @@ Add epic-level aggregation and production polish. Deliverables: Epic summaries g
 ### Task: cub-h3v.1 - Implement epic summary generation
 
 Priority: 2
-Labels: phase-4, model:sonnet, complexity:medium
+Labels: epic:cub-h3v, phase-4, model:sonnet, complexity:medium
 Blocks: cub-h3v.2
 
 **Context**: When an epic completes (all tasks closed), generate an aggregated summary in .cub/ledger/by-epic/.
@@ -604,7 +604,7 @@ Blocks: cub-h3v.2
 ### Task: cub-h3v.2 - Implement cub ledger epic command
 
 Priority: 2
-Labels: phase-4, model:haiku, complexity:low
+Labels: epic:cub-h3v, phase-4, model:haiku, complexity:low
 
 **Context**: CLI command to view and finalize epic summaries.
 
@@ -628,7 +628,7 @@ Labels: phase-4, model:haiku, complexity:low
 ### Task: cub-h3v.3 - Add comprehensive test coverage for ledger module
 
 Priority: 2
-Labels: phase-4, model:sonnet, complexity:medium
+Labels: epic:cub-h3v, phase-4, model:sonnet, complexity:medium
 
 **Context**: Production code needs good test coverage. Target 60%+ for ledger module.
 
@@ -650,7 +650,7 @@ Labels: phase-4, model:sonnet, complexity:medium
 ### Task: cub-h3v.4 - Add comprehensive test coverage for context module
 
 Priority: 2
-Labels: phase-4, model:sonnet, complexity:medium
+Labels: epic:cub-h3v, phase-4, model:sonnet, complexity:medium
 
 **Context**: Production code needs good test coverage. Target 60%+ for context module.
 
@@ -672,7 +672,7 @@ Labels: phase-4, model:sonnet, complexity:medium
 ### Task: cub-h3v.5 - Update CLAUDE.md with ledger and context documentation
 
 Priority: 2
-Labels: phase-4, model:haiku, complexity:low
+Labels: epic:cub-h3v, phase-4, model:haiku, complexity:low
 
 **Context**: CLAUDE.md is the primary documentation for agents working on cub. Update with ledger and context system docs.
 
@@ -695,7 +695,7 @@ Labels: phase-4, model:haiku, complexity:low
 ### Task: cub-h3v.6 - Performance optimization and final polish
 
 Priority: 3
-Labels: phase-4, model:sonnet, complexity:medium
+Labels: epic:cub-h3v, phase-4, model:sonnet, complexity:medium
 
 **Context**: Final review for performance issues and polish. Address any slow operations or UX rough edges.
 
