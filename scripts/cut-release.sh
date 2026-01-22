@@ -17,12 +17,9 @@
 #   1. Verify we're on main with clean working directory
 #   2. Update version in pyproject.toml and src/cub/__init__.py
 #   3. Auto-generate CHANGELOG.md entry from git commits
-#   4. Verify version consistency across all files
-#   5. Validate CHANGELOG.md entry has proper structure
-#   6. Show pre-commit verification summary
-#   7. Commit version and changelog changes
-#   8. Create and push git tag
-#   9. Create GitHub release with notes from changelog
+#   4. Commit version and changelog changes
+#   5. Create and push git tag
+#   6. Create GitHub release with notes from changelog
 #
 
 set -euo pipefail
@@ -215,46 +212,6 @@ update_init_version() {
     fi
 }
 
-# Verify all version numbers are consistent across the codebase
-verify_version_consistency() {
-    log_info "Verifying version consistency across codebase..."
-
-    local pyproject_version init_version
-    local errors=0
-
-    # Extract version from pyproject.toml
-    pyproject_version=$(grep '^version = ' "$PROJECT_DIR/pyproject.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
-
-    # Extract version from __init__.py
-    init_version=$(grep '^__version__ = ' "$PROJECT_DIR/src/cub/__init__.py" | sed 's/__version__ = "\(.*\)"/\1/')
-
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would verify versions match $VERSION"
-        log_info "  pyproject.toml: ${pyproject_version:-'(not found)'}"
-        log_info "  __init__.py:    ${init_version:-'(not found)'}"
-        return 0
-    fi
-
-    # Check pyproject.toml
-    if [[ "$pyproject_version" != "$VERSION" ]]; then
-        log_error "pyproject.toml has version '$pyproject_version', expected '$VERSION'"
-        ((errors++))
-    fi
-
-    # Check __init__.py
-    if [[ "$init_version" != "$VERSION" ]]; then
-        log_error "src/cub/__init__.py has version '$init_version', expected '$VERSION'"
-        ((errors++))
-    fi
-
-    if [[ $errors -gt 0 ]]; then
-        log_error "Version consistency check failed with $errors error(s)"
-        exit 1
-    fi
-
-    log_success "All version numbers are consistent: $VERSION"
-}
-
 # Generate and update changelog
 update_changelog() {
     local changelog="$PROJECT_DIR/CHANGELOG.md"
@@ -299,88 +256,6 @@ extract_release_notes() {
     awk "/^## \[$VERSION\]/{found=1; next} /^## \[/{if(found) exit} found{print}" "$changelog"
 }
 
-# Validate changelog has proper entry for this version
-validate_changelog() {
-    local changelog="$PROJECT_DIR/CHANGELOG.md"
-
-    log_info "Validating CHANGELOG.md entry for $VERSION..."
-
-    if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would validate changelog entry"
-        return 0
-    fi
-
-    # Check if version header exists
-    if ! grep -q "^## \[$VERSION\]" "$changelog"; then
-        log_error "CHANGELOG.md is missing entry for version $VERSION"
-        exit 1
-    fi
-
-    # Extract and check the release notes have content
-    local notes
-    notes=$(extract_release_notes)
-
-    # Remove empty lines and count remaining
-    local content_lines
-    content_lines=$(echo "$notes" | grep -v '^$' | grep -v '^---$' | wc -l | tr -d ' ')
-
-    if [[ "$content_lines" -lt 2 ]]; then
-        log_warn "CHANGELOG.md entry for $VERSION appears sparse (only $content_lines lines of content)"
-        log_warn "Consider adding more detail about changes in this release"
-    fi
-
-    # Check for required sections (at least one of Added, Changed, Fixed)
-    local has_section=false
-    if echo "$notes" | grep -q "^### "; then
-        has_section=true
-    fi
-
-    if [[ "$has_section" != "true" ]]; then
-        log_error "CHANGELOG.md entry for $VERSION has no sections (### Added/Changed/Fixed/etc.)"
-        exit 1
-    fi
-
-    log_success "CHANGELOG.md entry validated for $VERSION"
-}
-
-# Show pre-commit summary of all changes
-show_precommit_summary() {
-    log_info "═══════════════════════════════════════════════════════════"
-    log_info "  PRE-COMMIT VERIFICATION SUMMARY"
-    log_info "═══════════════════════════════════════════════════════════"
-    echo ""
-
-    local pyproject_version init_version
-    pyproject_version=$(grep '^version = ' "$PROJECT_DIR/pyproject.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
-    init_version=$(grep '^__version__ = ' "$PROJECT_DIR/src/cub/__init__.py" | sed 's/__version__ = "\(.*\)"/\1/')
-
-    log_info "Version Files:"
-    echo "  pyproject.toml:       $pyproject_version"
-    echo "  src/cub/__init__.py:  $init_version"
-    echo ""
-
-    log_info "CHANGELOG.md:"
-    if grep -q "^## \[$VERSION\]" "$PROJECT_DIR/CHANGELOG.md"; then
-        echo "  Entry exists for $VERSION"
-        local section_count
-        section_count=$(extract_release_notes | grep -c "^### " || echo "0")
-        echo "  Sections: $section_count"
-    else
-        log_error "  MISSING entry for $VERSION"
-    fi
-    echo ""
-
-    log_info "Files to be committed:"
-    git diff --cached --name-only 2>/dev/null | while read -r file; do
-        echo "  $file"
-    done
-    git diff --name-only 2>/dev/null | while read -r file; do
-        echo "  $file (unstaged)"
-    done
-    echo ""
-    log_info "═══════════════════════════════════════════════════════════"
-}
-
 # Commit version changes
 commit_version_changes() {
     log_info "Committing version changes..."
@@ -391,10 +266,6 @@ commit_version_changes() {
     fi
 
     git add pyproject.toml src/cub/__init__.py CHANGELOG.md
-    # Also add specs/ if any were moved
-    if [[ -d "$PROJECT_DIR/specs" ]]; then
-        git add "$PROJECT_DIR/specs/" 2>/dev/null || true
-    fi
 
     # Check if there are changes to commit
     if git diff --cached --quiet; then
@@ -404,34 +275,6 @@ commit_version_changes() {
 
     git commit -m "chore: bump version to $VERSION"
     log_success "Committed version changes"
-}
-
-# Move specs from implementing/ to released/
-move_specs_to_released() {
-    log_info "Moving specs from implementing/ to released/..."
-
-    # Check if move_specs_released.py exists
-    if [[ ! -f "${SCRIPT_DIR}/move_specs_released.py" ]]; then
-        log_warn "move_specs_released.py not found, skipping spec transition"
-        return 0
-    fi
-
-    local dry_run_flag=""
-    if [[ "$DRY_RUN" == "true" ]]; then
-        dry_run_flag="--dry-run"
-    fi
-
-    if python3 "${SCRIPT_DIR}/move_specs_released.py" $dry_run_flag --verbose --project-root "$PROJECT_DIR"; then
-        if [[ "$DRY_RUN" != "true" ]]; then
-            # Stage any spec moves for the release commit
-            if [[ -d "$PROJECT_DIR/specs" ]]; then
-                git add "$PROJECT_DIR/specs/"
-            fi
-        fi
-        log_success "Specs transitioned"
-    else
-        log_warn "Failed to move specs (non-fatal)"
-    fi
 }
 
 # Create and push tag
@@ -566,31 +409,19 @@ main() {
     # Step 3: Update changelog
     update_changelog
 
-    # Step 4: Verify version consistency across codebase
-    verify_version_consistency
-
-    # Step 5: Validate changelog entry
-    validate_changelog
-
-    # Step 6: Move specs from implementing/ to released/
-    move_specs_to_released
-
-    # Step 7: Show pre-commit summary
-    show_precommit_summary
-
-    # Step 8: Commit changes (includes version, changelog, and spec moves)
+    # Step 4: Commit changes
     commit_version_changes
 
-    # Step 9: Create tag
+    # Step 5: Create tag
     create_tag
 
-    # Step 10: Push
+    # Step 6: Push
     push_changes
 
-    # Step 11: Create GitHub release
+    # Step 7: Create GitHub release
     create_github_release
 
-    # Step 12: Update webpage
+    # Step 8: Update webpage
     update_webpage
 
     echo ""

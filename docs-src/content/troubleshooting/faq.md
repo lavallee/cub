@@ -30,7 +30,7 @@ Answers to commonly asked questions about Cub.
     **Claude Code is recommended** for most users because it supports:
 
     - All Cub features (streaming, token tracking, system prompts)
-    - Best integration with `cub plan`
+    - Best integration with `cub prep`
     - Active development and support
 
     See the [Harnesses comparison](../guide/harnesses/index.md) for a full capability matrix.
@@ -76,15 +76,14 @@ Answers to commonly asked questions about Cub.
 
 ## Usage
 
-??? question "What's the difference between `cub plan` and `cub run`?"
+??? question "What's the difference between `cub prep` and `cub run`?"
 
-    **`cub plan`** - Planning phase (work *ahead* of execution)
+    **`cub prep`** - Preparation phase (work *ahead* of execution)
 
     - Converts vague ideas into structured tasks
-    - Runs orient, architect, and itemize stages
+    - Runs triage, architect, plan, and bootstrap stages
     - Requires human review and refinement
     - Creates agent-ready task specifications
-    - Use `cub stage` to import tasks to backend
 
     **`cub run`** - Execution phase (autonomous operation)
 
@@ -93,7 +92,7 @@ Answers to commonly asked questions about Cub.
     - Tracks progress, handles errors, manages budget
     - Updates task status as work completes
 
-    The workflow is: **Plan** (human-in-loop) -> **Stage** -> **Run** (autonomous)
+    The workflow is: **Prep** (human-in-loop) -> **Run** (autonomous)
 
 ??? question "How do I run just one task?"
 
@@ -493,7 +492,7 @@ Answers to commonly asked questions about Cub.
 
     ```bash
     # If installed via one-liner
-    cub system-upgrade
+    cub upgrade
 
     # If installed via pipx
     pipx upgrade cub-cli
@@ -518,6 +517,6 @@ Answers to commonly asked questions about Cub.
     Then create tasks and run:
 
     ```bash
-    cub plan run && cub stage  # Or manually create tasks
+    cub prep  # Or manually create tasks
     cub run
     ```

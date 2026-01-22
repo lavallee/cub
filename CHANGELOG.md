@@ -6,36 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [0.27.0] - 2026-01-21
-
-### Added
-
-- Add worktree-aware post-merge cleanup to cub merge
-
-### Changed
-
-- Feature/v0.27.0-roundup: Plan labels, model hints, and beads cleanup (#53)
-- Feature/v0.27.0-roundup (#52)
-- Feature/harness-abstraction (#49)
-- Feature/specs-revamp (#45)
-- Consolidate prompt/guidance architecture
-- Add abbreviations.md for MkDocs snippets
-- Feature/documentation (#40)
-- Other changes
-- **run**: Clarify epic filtering uses beads parent relationship
-- **run**: Clarify epic filtering uses beads parent relationship
-- Working to streamline template locations
-- Working around tr errors on MacOS
-- Update webpage for v0.26.4
-
-### Fixed
-
-- Add pre-approved gh commands guidance to CLAUDE.md (fixes #38)
-- **bootstrap**: Restore parent-child handling fix
-- **bootstrap**: Use --parent for epic-task relationships
-
----
-
 ## [0.26.4] - 2026-01-18
 
 ### Added

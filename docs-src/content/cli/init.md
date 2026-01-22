@@ -161,9 +161,9 @@ my-project/
 │   └── guardrails.md    # Institutional memory
 ├── .claude/
 │   └── commands/        # Claude Code skills
-│       ├── cub:orient.md
+│       ├── cub:triage.md
 │       ├── cub:architect.md
-│       └── cub:itemize.md
+│       └── cub:plan.md
 ├── .beads/              # (beads backend only)
 ├── prd.json             # (json backend only)
 ├── specs/               # Specifications directory
@@ -249,7 +249,7 @@ cd my-project
 cub init
 
 # 3. Start working
-cub plan run  # or create tasks manually
+cub prep  # or create tasks manually
 cub run
 ```
 
@@ -304,21 +304,19 @@ The layout is auto-detected based on existing files.
 
 ## Claude Code Skills
 
-Init installs Claude Code skills for the plan pipeline:
+Init installs Claude Code skills for the prep pipeline:
 
 | Skill | Description |
 |-------|-------------|
-| `cub:spec` | Feature specification interview |
-| `cub:capture` | Quick idea capture |
-| `cub:orient` | Requirements refinement |
+| `cub:triage` | Requirements refinement |
 | `cub:architect` | Technical design |
-| `cub:itemize` | Task decomposition |
+| `cub:plan` | Task decomposition |
 
 Use with Claude Code:
 
 ```bash
 claude
-# Then: /cub:spec
+# Then: /cub:triage
 ```
 
 ---
@@ -335,7 +333,7 @@ claude
 ## Related Commands
 
 - [`cub doctor`](doctor.md) - Diagnose configuration issues
-- [`cub plan`](plan.md) - Run the planning pipeline
+- [`cub prep`](prep.md) - Run the prep pipeline
 - [`cub run`](run.md) - Execute the task loop
 
 ---

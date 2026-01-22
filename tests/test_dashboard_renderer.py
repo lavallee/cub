@@ -16,8 +16,6 @@ from cub.core.status.models import (
     IterationInfo,
     RunPhase,
     RunStatus,
-    TaskEntry,
-    TaskState,
 )
 from cub.dashboard.renderer import DashboardRenderer
 
@@ -59,9 +57,6 @@ class TestDashboardRenderer:
             tasks_in_progress=1,
             tasks_closed=3,
             tasks_total=9,
-            epic="cub-epic-001",
-            label="feature",
-            branch="feature/dashboard-improvements",
         )
 
         # Set iteration info
@@ -81,16 +76,6 @@ class TestDashboardRenderer:
             tasks_completed=3,
             tasks_limit=10,
         )
-
-        # Add task entries
-        status.task_entries = [
-            TaskEntry(task_id="cub-070", title="Setup project", state=TaskState.DONE),
-            TaskEntry(task_id="cub-071", title="Add configuration", state=TaskState.DONE),
-            TaskEntry(task_id="cub-072", title="Create models", state=TaskState.DONE),
-            TaskEntry(task_id="cub-073", title="Implement API", state=TaskState.DOING),
-            TaskEntry(task_id="cub-074", title="Add tests", state=TaskState.TODO),
-            TaskEntry(task_id="cub-075", title="Documentation", state=TaskState.TODO),
-        ]
 
         # Add events
         status.add_event("Task cub-072 started", EventLevel.INFO, task_id="cub-072")
@@ -122,17 +107,16 @@ class TestDashboardRenderer:
     def test_render_has_expected_structure(
         self, renderer: DashboardRenderer, basic_status: RunStatus
     ) -> None:
-        """Test that rendered layout has expected panel structure (Kanban layout)."""
+        """Test that rendered layout has expected panel structure."""
         layout = renderer.render(basic_status)
 
-        # Check that expected panels exist (new Kanban structure)
+        # Check that expected panels exist
         assert layout["header"] is not None
         assert layout["body"] is not None
-        assert layout["body"]["kanban"] is not None
-        assert layout["body"]["kanban"]["todo"] is not None
-        assert layout["body"]["kanban"]["doing"] is not None
-        assert layout["body"]["kanban"]["done"] is not None
-        assert layout["body"]["activity"] is not None
+        assert layout["body"]["task"] is not None
+        assert layout["body"]["budget"] is not None
+        assert layout["body"]["task"]["current"] is not None
+        assert layout["body"]["task"]["activity"] is not None
 
     def test_render_initializing_phase(
         self, renderer: DashboardRenderer, basic_status: RunStatus
@@ -205,12 +189,36 @@ class TestDashboardRenderer:
         layout = renderer.render(full_status)
 
         assert layout is not None
-        # All sections should be populated (Kanban structure)
+        # All sections should be populated
         assert layout["header"] is not None
-        assert layout["body"]["kanban"]["todo"] is not None
-        assert layout["body"]["kanban"]["doing"] is not None
-        assert layout["body"]["kanban"]["done"] is not None
-        assert layout["body"]["activity"] is not None
+        assert layout["body"]["task"]["current"] is not None
+        assert layout["body"]["budget"] is not None
+        assert layout["body"]["task"]["activity"] is not None
+
+    def test_render_budget_no_limits(
+        self, renderer: DashboardRenderer, basic_status: RunStatus
+    ) -> None:
+        """Test rendering budget panel with no limits set."""
+        basic_status.budget = BudgetStatus(
+            tokens_used=50000,
+            cost_usd=2.50,
+        )
+        layout = renderer.render(basic_status)
+
+        assert layout is not None
+
+    def test_render_budget_over_limit(
+        self, renderer: DashboardRenderer, basic_status: RunStatus
+    ) -> None:
+        """Test rendering budget panel when over limit."""
+        basic_status.budget = BudgetStatus(
+            tokens_used=1100000,
+            tokens_limit=1000000,
+        )
+        layout = renderer.render(basic_status)
+
+        assert layout is not None
+        assert basic_status.budget.is_over_budget
 
     def test_render_near_iteration_limit(
         self, renderer: DashboardRenderer, basic_status: RunStatus
@@ -240,10 +248,10 @@ class TestDashboardRenderer:
         assert layout is not None
         assert len(full_status.events) > 0
 
-    def test_render_activity_log_limits_events(
+    def test_render_activity_log_limits_to_10(
         self, renderer: DashboardRenderer, basic_status: RunStatus
     ) -> None:
-        """Test that activity log limits displayed events."""
+        """Test that activity log only shows last 10 events."""
         # Add 15 events
         for i in range(15):
             basic_status.add_event(f"Event {i}", EventLevel.INFO)
@@ -251,7 +259,7 @@ class TestDashboardRenderer:
         layout = renderer.render(basic_status)
         assert layout is not None
 
-        # Status should have all events
+        # Should only show last 10
         assert len(basic_status.events) == 15
 
     def test_get_status_color(self, renderer: DashboardRenderer) -> None:
@@ -313,6 +321,46 @@ class TestDashboardRenderer:
 
         assert layout is not None
 
+    def test_render_with_various_budget_combinations(
+        self, renderer: DashboardRenderer, basic_status: RunStatus
+    ) -> None:
+        """Test rendering with different budget limit combinations."""
+        # Only token limit
+        basic_status.budget = BudgetStatus(
+            tokens_used=100000,
+            tokens_limit=500000,
+        )
+        layout1 = renderer.render(basic_status)
+        assert layout1 is not None
+
+        # Only cost limit
+        basic_status.budget = BudgetStatus(
+            cost_usd=5.0,
+            cost_limit=10.0,
+        )
+        layout2 = renderer.render(basic_status)
+        assert layout2 is not None
+
+        # Only task limit
+        basic_status.budget = BudgetStatus(
+            tasks_completed=3,
+            tasks_limit=10,
+        )
+        layout3 = renderer.render(basic_status)
+        assert layout3 is not None
+
+        # All limits
+        basic_status.budget = BudgetStatus(
+            tokens_used=100000,
+            tokens_limit=500000,
+            cost_usd=5.0,
+            cost_limit=10.0,
+            tasks_completed=3,
+            tasks_limit=10,
+        )
+        layout4 = renderer.render(basic_status)
+        assert layout4 is not None
+
     def test_render_event_with_task_id(
         self, renderer: DashboardRenderer, basic_status: RunStatus
     ) -> None:
@@ -334,167 +382,8 @@ class TestDashboardRenderer:
         """Test that complex status maintains proper panel structure."""
         layout = renderer.render(full_status)
 
-        # Verify hierarchy (Kanban structure)
+        # Verify hierarchy
         assert layout["header"] is not None
-        assert layout["body"]["kanban"]["todo"] is not None
-        assert layout["body"]["kanban"]["doing"] is not None
-        assert layout["body"]["kanban"]["done"] is not None
-        assert layout["body"]["activity"] is not None
-
-    def test_render_with_epic_and_label(
-        self, renderer: DashboardRenderer, basic_status: RunStatus
-    ) -> None:
-        """Test rendering with epic and label context."""
-        basic_status.epic = "cub-abc"
-        basic_status.label = "feature"
-        basic_status.branch = "feature/test-branch"
-
-        layout = renderer.render(basic_status)
-        assert layout is not None
-
-    def test_render_with_task_entries(
-        self, renderer: DashboardRenderer, basic_status: RunStatus
-    ) -> None:
-        """Test rendering with task entries in Kanban view."""
-        # Add task entries
-        basic_status.set_task_entries([
-            ("cub-001", "First task"),
-            ("cub-002", "Second task"),
-            ("cub-003", "Third task"),
-        ])
-
-        # Move one to doing and one to done
-        basic_status.start_task_entry("cub-001")
-        basic_status.complete_task_entry("cub-001")
-        basic_status.start_task_entry("cub-002")
-
-        layout = renderer.render(basic_status)
-        assert layout is not None
-
-        # Verify task states
-        todo_tasks = basic_status.get_tasks_by_state(TaskState.TODO)
-        doing_tasks = basic_status.get_tasks_by_state(TaskState.DOING)
-        done_tasks = basic_status.get_tasks_by_state(TaskState.DONE)
-
-        assert len(todo_tasks) == 1  # cub-003
-        assert len(doing_tasks) == 1  # cub-002
-        assert len(done_tasks) == 1  # cub-001
-
-    def test_render_fallback_to_current_task(
-        self, renderer: DashboardRenderer, basic_status: RunStatus
-    ) -> None:
-        """Test that rendering falls back to current_task_id when task_entries is empty."""
-        # No task_entries, but has current_task_id
-        basic_status.task_entries = []
-        basic_status.current_task_id = "cub-123"
-        basic_status.current_task_title = "Fallback task"
-
-        layout = renderer.render(basic_status)
-        assert layout is not None
-
-    def test_render_kanban_with_empty_columns(
-        self, renderer: DashboardRenderer, basic_status: RunStatus
-    ) -> None:
-        """Test rendering Kanban with empty columns."""
-        basic_status.task_entries = []
-        basic_status.current_task_id = None
-        basic_status.current_task_title = None
-
-        layout = renderer.render(basic_status)
-        assert layout is not None
-
-    def test_render_task_list_truncates_long_titles(
-        self, renderer: DashboardRenderer, basic_status: RunStatus
-    ) -> None:
-        """Test that long task titles are truncated in the Kanban view."""
-        long_title = "This is a very long task title that should be truncated in the display"
-        basic_status.set_task_entries([
-            ("cub-001", long_title),
-        ])
-
-        layout = renderer.render(basic_status)
-        assert layout is not None
-
-
-class TestRunStatusTaskEntries:
-    """Test RunStatus task entry management methods."""
-
-    def test_set_task_entries(self) -> None:
-        """Test initializing task entries."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([
-            ("task-1", "First task"),
-            ("task-2", "Second task"),
-        ])
-
-        assert len(status.task_entries) == 2
-        assert status.task_entries[0].task_id == "task-1"
-        assert status.task_entries[0].title == "First task"
-        assert status.task_entries[0].state == TaskState.TODO
-
-    def test_start_task_entry(self) -> None:
-        """Test marking a task as started."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([("task-1", "First task")])
-
-        status.start_task_entry("task-1")
-
-        assert status.task_entries[0].state == TaskState.DOING
-        assert status.task_entries[0].started_at is not None
-
-    def test_complete_task_entry(self) -> None:
-        """Test marking a task as completed."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([("task-1", "First task")])
-
-        status.start_task_entry("task-1")
-        status.complete_task_entry("task-1")
-
-        assert status.task_entries[0].state == TaskState.DONE
-        assert status.task_entries[0].completed_at is not None
-
-    def test_get_tasks_by_state(self) -> None:
-        """Test filtering tasks by state."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([
-            ("task-1", "First task"),
-            ("task-2", "Second task"),
-            ("task-3", "Third task"),
-        ])
-
-        # Move tasks through states
-        status.start_task_entry("task-1")
-        status.complete_task_entry("task-1")
-        status.start_task_entry("task-2")
-
-        todo = status.get_tasks_by_state(TaskState.TODO)
-        doing = status.get_tasks_by_state(TaskState.DOING)
-        done = status.get_tasks_by_state(TaskState.DONE)
-
-        assert len(todo) == 1
-        assert len(doing) == 1
-        assert len(done) == 1
-
-        assert todo[0].task_id == "task-3"
-        assert doing[0].task_id == "task-2"
-        assert done[0].task_id == "task-1"
-
-    def test_start_nonexistent_task(self) -> None:
-        """Test starting a task that doesn't exist (should be no-op)."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([("task-1", "First task")])
-
-        # Should not raise, just do nothing
-        status.start_task_entry("nonexistent")
-
-        assert status.task_entries[0].state == TaskState.TODO
-
-    def test_complete_nonexistent_task(self) -> None:
-        """Test completing a task that doesn't exist (should be no-op)."""
-        status = RunStatus(run_id="test-001")
-        status.set_task_entries([("task-1", "First task")])
-
-        # Should not raise, just do nothing
-        status.complete_task_entry("nonexistent")
-
-        assert status.task_entries[0].state == TaskState.TODO
+        assert layout["body"]["task"]["current"] is not None
+        assert layout["body"]["task"]["activity"] is not None
+        assert layout["body"]["budget"] is not None

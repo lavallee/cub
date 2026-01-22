@@ -17,9 +17,9 @@ Cub uses a hybrid Python/Bash architecture to enable gradual migration while mai
 |   Native Commands       |   Delegated Commands                          |
 |   (Python)              |   (Bash via bash_delegate.py)                 |
 +-------------------------+-----------------------------------------------+
-| run, status, init       | branch, branches, pr, checkpoints             |
-| monitor, plan, stage    | interview, doctor, upgrade                    |
-| spec                    |                                               |
+| run, status, init       | prep, triage, architect, plan                 |
+| monitor                 | branch, branches, pr, checkpoints             |
+|                         | interview, doctor, upgrade                     |
 +-------------------------+-----------------------------------------------+
 |                           Core Modules (Python)                          |
 +------------------+-----------------+------------------------------------+
@@ -193,13 +193,13 @@ def run(
 
 ### Delegated Commands (Bash)
 
-Some commands still delegate to bash for backwards compatibility:
+Commands not yet ported delegate to bash:
 
 ```python
 # src/cub/cli/delegated.py
-def branch(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Create and bind branch to epic."""
-    _delegate("branch", args or [], ctx)
+def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Run full prep pipeline (triage -> architect -> plan -> bootstrap)."""
+    _delegate("prep", args or [], ctx)
 ```
 
 The delegation mechanism:
@@ -263,22 +263,15 @@ detect_backend()  # .beads/ -> beads, prd.json -> json, default -> json
 | `init` | Complete | `cub.cli.init_cmd` |
 | `monitor` | Complete | `cub.cli.monitor` |
 
-### Native Python Commands (Planning)
-
-| Command | Category | Module |
-|---------|----------|--------|
-| `plan orient` | Pipeline | `cub.cli.plan` |
-| `plan architect` | Pipeline | `cub.cli.plan` |
-| `plan itemize` | Pipeline | `cub.cli.plan` |
-| `plan run` | Pipeline | `cub.cli.plan` |
-| `plan list` | Pipeline | `cub.cli.plan` |
-| `stage` | Pipeline | `cub.cli.stage` |
-| `spec` | Pipeline | `cub.cli.spec` |
-
 ### Delegated Bash Commands
 
 | Command | Category | Notes |
 |---------|----------|-------|
+| `prep` | Pipeline | Full prep pipeline |
+| `triage` | Pipeline | Requirements refinement |
+| `architect` | Pipeline | Technical design |
+| `plan` | Pipeline | Task decomposition |
+| `bootstrap` | Pipeline | Initialize tasks |
 | `interview` | Tasks | Task specification deep-dive |
 | `branch` | Git | Branch-epic binding |
 | `branches` | Git | Manage branch bindings |

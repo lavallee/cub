@@ -235,7 +235,7 @@ cub init --global
 
 ## Related Commands
 
-- [`cub system-upgrade`](system-upgrade.md) - Upgrade cub installation
+- [`cub upgrade`](upgrade.md) - Upgrade cub to newer version
 - [`cub doctor`](doctor.md) - Diagnose installation issues
 - [`cub init`](init.md) - Initialize configuration after reinstall
 

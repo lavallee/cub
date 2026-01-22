@@ -7,8 +7,6 @@ Create and manage pull requests for epics or branches.
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
@@ -16,7 +14,7 @@ import typer
 from rich.console import Console
 
 from cub.core.github.client import GitHubClientError
-from cub.core.pr import PRService, PRServiceError, StreamConfig
+from cub.core.pr import PRService, PRServiceError
 
 app = typer.Typer(
     name="pr",
@@ -28,104 +26,25 @@ app = typer.Typer(
 console = Console()
 
 
-# Timeout for Claude CI invocation (10 minutes max)
-CLAUDE_CI_TIMEOUT_SECONDS = 600
-
-
-class ClaudeCIResult(Enum):
-    """Result of Claude CI invocation."""
-
-    SUCCESS = "success"
-    CLAUDE_NOT_FOUND = "claude_not_found"
-    EXECUTION_FAILED = "execution_failed"
-    TIMEOUT = "timeout"
-    INTERRUPTED = "interrupted"
-
-
-@dataclass
-class ClaudeCIOutcome:
-    """Outcome of Claude CI invocation."""
-
-    result: ClaudeCIResult
-    message: str
-    exit_code: int | None = None
-    stderr: str | None = None
-
-
-def _run_claude_for_ci(prompt: str) -> ClaudeCIOutcome:
-    """
-    Run Claude to handle CI/review workflow.
-
-    Returns an outcome with status and message rather than raising exceptions,
-    allowing the caller to handle graceful degradation.
-
-    Args:
-        prompt: The prompt to send to Claude for CI management.
-
-    Returns:
-        ClaudeCIOutcome with result status, message, and optional details.
-    """
+def _run_claude_for_ci(prompt: str) -> None:
+    """Run Claude to handle CI/review workflow."""
     console.print("[cyan]Invoking Claude to manage CI and reviews...[/cyan]")
     console.print()
 
     try:
         # Use subprocess to run claude with the prompt
-        # --dangerously-skip-permissions allows Claude to handle GitHub CLI
-        # operations (check CI, respond to reviews, merge) without prompts
-        # Capture output to get error details if something goes wrong
         result = subprocess.run(
-            ["claude", "--dangerously-skip-permissions", "--print", prompt],
+            ["claude", "--print", prompt],
             check=False,
-            capture_output=True,
-            text=True,
-            timeout=CLAUDE_CI_TIMEOUT_SECONDS,
         )
-
-        if result.returncode == 0:
-            return ClaudeCIOutcome(
-                result=ClaudeCIResult.SUCCESS,
-                message="Claude CI management completed successfully",
-                exit_code=0,
-            )
-        else:
-            # Extract useful error info from stderr
-            stderr = result.stderr.strip() if result.stderr else None
-            # Common error pattern from Claude CLI
-            error_hint = ""
-            if stderr:
-                if "No messages returned" in stderr:
-                    error_hint = " (Claude returned no response - may be a connection issue)"
-                elif "connection" in stderr.lower():
-                    error_hint = " (connection issue)"
-
-            return ClaudeCIOutcome(
-                result=ClaudeCIResult.EXECUTION_FAILED,
-                message=f"Claude exited with code {result.returncode}{error_hint}",
-                exit_code=result.returncode,
-                stderr=stderr,
-            )
-
+        if result.returncode != 0:
+            console.print("[yellow]Claude exited with non-zero status[/yellow]")
     except FileNotFoundError:
-        return ClaudeCIOutcome(
-            result=ClaudeCIResult.CLAUDE_NOT_FOUND,
-            message="Claude CLI not found. Install Claude Code or use --no-ci flag.",
-        )
-    except subprocess.TimeoutExpired:
-        return ClaudeCIOutcome(
-            result=ClaudeCIResult.TIMEOUT,
-            message=f"Claude CI invocation timed out after {CLAUDE_CI_TIMEOUT_SECONDS}s",
-        )
+        console.print("[red]Claude CLI not found. Install it or use --no-ci flag.[/red]")
+        raise typer.Exit(1)
     except KeyboardInterrupt:
-        return ClaudeCIOutcome(
-            result=ClaudeCIResult.INTERRUPTED,
-            message="Interrupted by user",
-        )
-    except Exception as e:
-        # Catch-all for unexpected errors (e.g., OSError, permission issues)
-        return ClaudeCIOutcome(
-            result=ClaudeCIResult.EXECUTION_FAILED,
-            message=f"Unexpected error invoking Claude: {e}",
-        )
+        console.print("\n[yellow]Interrupted[/yellow]")
+        raise typer.Exit(130)
 
 
 @app.callback(invoke_without_command=True)
@@ -182,14 +101,6 @@ def pr_command(
             help="Show what would be done without making changes",
         ),
     ] = False,
-    stream: Annotated[
-        bool,
-        typer.Option(
-            "--stream",
-            "-s",
-            help="Show real-time output from PR creation process",
-        ),
-    ] = False,
 ) -> None:
     """
     Create a pull request for an epic or branch.
@@ -215,12 +126,6 @@ def pr_command(
 
         # Push branch and create PR
         cub pr --push
-
-        # Show real-time progress
-        cub pr --stream
-
-        # Show progress with debug details
-        cub pr --stream --debug
     """
     # Skip if a subcommand was invoked
     if ctx.invoked_subcommand is not None:
@@ -228,20 +133,8 @@ def pr_command(
 
     project_dir = Path.cwd()
 
-    # Get debug flag from context
-    debug = False
-    if ctx.obj:
-        debug = ctx.obj.get("debug", False)
-
-    # Configure streaming output
-    stream_config = StreamConfig(
-        enabled=stream,
-        debug=debug,
-        console=console,
-    )
-
     try:
-        service = PRService(project_dir, stream_config=stream_config)
+        service = PRService(project_dir)
 
         # Create PR
         result = service.create_pr(
@@ -269,12 +162,8 @@ def pr_command(
             console.print(f"View PR: {result.url}")
             return
 
-        # Always show the PR URL first (graceful degradation - PR exists even if CI fails)
-        console.print()
-        console.print(f"[green]View PR:[/green] {result.url}")
-        console.print()
-
         # Run Claude to handle CI/reviews
+        console.print()
         resolved = service.resolve_input(target)
         branch = resolved.branch or target or "current"
         base_branch = base or (resolved.binding.base_branch if resolved.binding else "main")
@@ -285,31 +174,7 @@ def pr_command(
             base=base_branch,
         )
 
-        outcome = _run_claude_for_ci(prompt)
-
-        # Handle the outcome with graceful degradation
-        if outcome.result == ClaudeCIResult.SUCCESS:
-            console.print()
-            console.print("[green]Claude CI management completed.[/green]")
-        elif outcome.result == ClaudeCIResult.INTERRUPTED:
-            # User interrupted - just note it, PR is already created
-            console.print()
-            console.print("[yellow]Claude CI handling interrupted.[/yellow]")
-            console.print(f"[dim]You can check CI manually: gh pr checks {branch} --watch[/dim]")
-        elif outcome.result == ClaudeCIResult.CLAUDE_NOT_FOUND:
-            console.print()
-            console.print(f"[yellow]Warning:[/yellow] {outcome.message}")
-            console.print(f"[dim]You can check CI manually: gh pr checks {branch} --watch[/dim]")
-        else:
-            # EXECUTION_FAILED or TIMEOUT - PR still created, provide context
-            console.print()
-            console.print(f"[yellow]Warning:[/yellow] {outcome.message}")
-            if outcome.stderr:
-                # Show first line of stderr for context
-                first_line = outcome.stderr.split("\n")[0][:200]
-                if first_line:
-                    console.print(f"[dim]Details: {first_line}[/dim]")
-            console.print(f"[dim]You can check CI manually: gh pr checks {branch} --watch[/dim]")
+        _run_claude_for_ci(prompt)
 
     except PRServiceError as e:
         console.print(f"[red]Error:[/red] {e}")

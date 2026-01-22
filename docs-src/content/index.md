@@ -45,13 +45,13 @@ Set up your global config and project files.
 
 <div class="feature-card" markdown>
 
-#### 2. Plan Your Tasks
+#### 2. Prep Your Tasks
 
 ```bash
-cub plan run
+cub prep
 ```
 
-Transform your ideas into structured, agent-ready tasks through guided planning.
+Transform your ideas into structured, agent-ready tasks through guided refinement.
 
 </div>
 
@@ -77,21 +77,21 @@ Let Cub execute tasks autonomously until complete or budget exhausted.
 
 <div class="workflow-card prep" markdown>
 
-### Plan: Spec to Tasks
+### Prep: Vision to Tasks
 
 Go from a rough idea to structured, agent-sized tasks:
 
-- **Orient** - Research and understand the problem
+- **Triage** - Clarify requirements and goals
 - **Architect** - Design the technical approach
-- **Itemize** - Break work into agent-sized chunks
-- **Stage** - Import tasks to your backend
+- **Plan** - Break work into agent-sized chunks
+- **Bootstrap** - Write tasks to your backend
 
 ```bash
-cub plan run my-feature.md  # Full pipeline
-cub stage                   # Import to backend
+cub prep                 # Full pipeline
+cub triage && cub plan   # Or run stages individually
 ```
 
-[Learn about Planning](guide/plan-pipeline/index.md){ .md-button }
+[Learn about Prep](guide/prep-pipeline/index.md){ .md-button }
 
 </div>
 

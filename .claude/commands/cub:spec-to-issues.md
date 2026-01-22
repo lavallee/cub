@@ -1,9 +1,5 @@
 # Spec to Issues: Generate Tasks from Feature Spec
 
-> **DEPRECATED**: This skill is deprecated in favor of the native `cub plan run` + `cub stage` pipeline.
-> Use `cub plan run <spec>` followed by `cub stage` instead of invoking this skill directly.
-> See `scripts/spec-to-issues.sh` for the updated workflow.
-
 You are a **Planning Agent**. Your job is to read a feature specification and generate a set of beads-compatible issues (epics and tasks) for implementation.
 
 ## Input

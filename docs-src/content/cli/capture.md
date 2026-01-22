@@ -26,7 +26,7 @@ Captures can later be:
 
 - Reviewed with [`cub captures`](captures.md)
 - Organized into tasks with [`cub organize-captures`](organize-captures.md)
-- Triaged and processed with [`cub triage`](triage.md)
+- Investigated and processed with [`cub investigate`](investigate.md)
 
 ## Arguments
 
@@ -236,9 +236,9 @@ Saves as `cap-042.md` instead of generating a descriptive filename.
    cub captures
    ```
 
-3. **Triage** to categorize
+3. **Investigate** to categorize
    ```bash
-   cub triage --all
+   cub investigate --all
    ```
 
 4. **Organize** into tasks
@@ -259,7 +259,7 @@ cub captures import cap-042
 - [`cub captures`](captures.md) - List and manage captures
 - [`cub captures show`](captures.md#show) - View a specific capture
 - [`cub captures import`](captures.md#import) - Import global capture to project
-- [`cub triage`](triage.md) - Process captures into actions
+- [`cub investigate`](investigate.md) - Process captures into actions
 - [`cub organize-captures`](organize-captures.md) - Normalize capture files
 
 ## See Also

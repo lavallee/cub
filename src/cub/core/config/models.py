@@ -157,86 +157,6 @@ class ReviewConfig(BaseModel):
     )
 
 
-class CleanupConfig(BaseModel):
-    """
-    Working directory cleanup configuration.
-
-    Controls what happens at the end of a cub run to ensure clean working directory.
-    """
-
-    enabled: bool = Field(default=True, description="Enable automatic cleanup after run completes")
-
-    commit_artifacts: bool = Field(
-        default=True,
-        description="Commit useful artifacts (progress files, logs, reports) to git",
-    )
-
-    remove_temp_files: bool = Field(
-        default=True,
-        description="Remove clearly temporary files (*.bak, *.tmp, caches, etc.)",
-    )
-
-    # Patterns for files to commit (useful artifacts)
-    artifact_patterns: list[str] = Field(
-        default_factory=lambda: [
-            "progress.txt",
-            "fix_plan.md",
-            "AGENT.md",
-            ".cub/status.json",
-            ".cub/prompt.md",
-            ".cub/agent.md",
-            "*.log",
-        ],
-        description="Glob patterns for files to commit as useful artifacts",
-    )
-
-    # Patterns for files to remove (temporary/disposable)
-    temp_patterns: list[str] = Field(
-        default_factory=lambda: [
-            "*.bak",
-            "*.tmp",
-            "*.orig",
-            "*.swp",
-            "*.swo",
-            "*~",
-            "__pycache__/**",
-            ".pytest_cache/**",
-            ".mypy_cache/**",
-            ".ruff_cache/**",
-            "*.pyc",
-            ".coverage",
-            "htmlcov/**",
-            ".tox/**",
-            "dist/**",
-            "build/**",
-            "*.egg-info/**",
-            "node_modules/**",
-            ".npm/**",
-        ],
-        description="Glob patterns for temporary files to remove",
-    )
-
-    # Patterns to always ignore (never touch these)
-    ignore_patterns: list[str] = Field(
-        default_factory=lambda: [
-            ".git/**",
-            ".beads/**",
-            ".env",
-            ".env.*",
-            "*.key",
-            "*.pem",
-            "credentials*",
-            "secrets*",
-        ],
-        description="Glob patterns for files to never modify during cleanup",
-    )
-
-    commit_message: str = Field(
-        default="chore: cleanup working directory artifacts",
-        description="Commit message for artifact commits",
-    )
-
-
 class HarnessConfig(BaseModel):
     """
     AI harness configuration.
@@ -292,9 +212,6 @@ class CubConfig(BaseModel):
     )
     review: ReviewConfig = Field(
         default_factory=ReviewConfig, description="Review and approval settings"
-    )
-    cleanup: CleanupConfig = Field(
-        default_factory=CleanupConfig, description="Post-run cleanup settings"
     )
 
     model_config = ConfigDict(

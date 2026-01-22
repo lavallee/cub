@@ -366,7 +366,7 @@ cub captures --all --json > captures_backup.json
 ## Related Commands
 
 - [`cub capture`](capture.md) - Create a new capture
-- [`cub triage`](triage.md) - Process captures into actions
+- [`cub investigate`](investigate.md) - Process captures into actions
 - [`cub organize-captures`](organize-captures.md) - Normalize capture files
 
 ## See Also

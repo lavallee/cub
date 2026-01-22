@@ -177,12 +177,12 @@ nav:
       - Task Selection: guide/run-loop/selection.md
       - Completion: guide/run-loop/completion.md
 
-    - Plan Flow:
-      - guide/plan-pipeline/index.md
-      - Orient: guide/plan-pipeline/orient.md
-      - Architect: guide/plan-pipeline/architect.md
-      - Itemize: guide/plan-pipeline/itemize.md
-      - Stage: guide/plan-pipeline/stage.md
+    - Prep Pipeline:
+      - guide/prep-pipeline/index.md
+      - Triage: guide/prep-pipeline/triage.md
+      - Architect: guide/prep-pipeline/architect.md
+      - Plan: guide/prep-pipeline/plan.md
+      - Bootstrap: guide/prep-pipeline/bootstrap.md
 
     - AI Harnesses:
       - guide/harnesses/index.md
@@ -220,9 +220,7 @@ nav:
     - cli/index.md
     - Core Commands:
       - cub run: cli/run.md
-      - cub plan: cli/plan.md
-      - cub stage: cli/stage.md
-      - cub spec: cli/spec.md
+      - cub prep: cli/prep.md
       - cub init: cli/init.md
     - Status Commands:
       - cub status: cli/status.md
@@ -240,14 +238,13 @@ nav:
       - cub merge: cli/merge.md
     - Install Commands:
       - cub doctor: cli/doctor.md
-      - cub update: cli/update.md
-      - cub system-upgrade: cli/system-upgrade.md
+      - cub upgrade: cli/upgrade.md
       - cub uninstall: cli/uninstall.md
     - Capture Commands:
       - cub capture: cli/capture.md
       - cub captures: cli/captures.md
       - cub organize-captures: cli/organize-captures.md
-      - cub triage: cli/triage.md
+      - cub investigate: cli/investigate.md
 
   - Troubleshooting:
     - troubleshooting/index.md

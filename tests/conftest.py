@@ -15,7 +15,6 @@ import pytest
 
 from cub.core.config.models import (
     BudgetConfig,
-    CleanupConfig,
     CubConfig,
     GuardrailsConfig,
     HarnessConfig,

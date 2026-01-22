@@ -1,6 +1,6 @@
 [project]
 name = "cub"
-version = "0.27.0"
+version = "0.26.4"
 description = "AI Coding Assistant Loop - autonomous task execution with Claude, Codex, and more"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -51,10 +51,6 @@ cub = ["bash/**/*"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v --strict-markers"
-asyncio_mode = "auto"
-markers = [
-    "asyncio: mark test as async",
-]
 
 [tool.ruff]
 line-length = 100

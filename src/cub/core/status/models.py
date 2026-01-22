@@ -81,28 +81,6 @@ class IterationInfo(BaseModel):
         return self.percentage >= 80.0
 
 
-class TaskState(str, Enum):
-    """State of a task in the Kanban view."""
-
-    TODO = "todo"
-    DOING = "doing"
-    DONE = "done"
-
-
-class TaskEntry(BaseModel):
-    """
-    A task entry for the Kanban-style dashboard view.
-
-    Tracks individual task state and timestamps for display.
-    """
-
-    task_id: str = Field(..., description="Task identifier")
-    title: str = Field(default="", description="Task title")
-    state: TaskState = Field(default=TaskState.TODO, description="Current task state")
-    started_at: datetime | None = Field(default=None, description="When task was started")
-    completed_at: datetime | None = Field(default=None, description="When task was completed")
-
-
 class BudgetStatus(BaseModel):
     """
     Token and cost budget tracking.
@@ -188,11 +166,6 @@ class RunStatus(BaseModel):
         default=None, description="When the run completed/failed/stopped"
     )
 
-    # Run context (display parameters)
-    epic: str | None = Field(default=None, description="Epic filter for this run")
-    label: str | None = Field(default=None, description="Label filter for this run")
-    branch: str | None = Field(default=None, description="Git branch for this run")
-
     # Current state
     phase: RunPhase = Field(default=RunPhase.INITIALIZING, description="Current run phase")
     current_task_id: str | None = Field(default=None, description="ID of currently executing task")
@@ -209,11 +182,6 @@ class RunStatus(BaseModel):
     tasks_in_progress: int = Field(default=0, ge=0, description="Tasks currently in progress")
     tasks_closed: int = Field(default=0, ge=0, description="Tasks completed")
     tasks_total: int = Field(default=0, ge=0, description="Total number of tasks")
-
-    # Task list for Kanban view
-    task_entries: list[TaskEntry] = Field(
-        default_factory=list, description="Task entries for Kanban display"
-    )
 
     # Event history
     events: list[EventLog] = Field(default_factory=list, description="Chronological event log")
@@ -291,56 +259,3 @@ class RunStatus(BaseModel):
         self.completed_at = datetime.now()
         self.updated_at = datetime.now()
         self.add_event("Run stopped by user", EventLevel.INFO)
-
-    def set_task_entries(self, tasks: list[tuple[str, str]]) -> None:
-        """
-        Initialize task entries from a list of (task_id, title) tuples.
-
-        Args:
-            tasks: List of (task_id, title) tuples to initialize
-        """
-        self.task_entries = [
-            TaskEntry(task_id=task_id, title=title, state=TaskState.TODO)
-            for task_id, title in tasks
-        ]
-        self.updated_at = datetime.now()
-
-    def start_task_entry(self, task_id: str) -> None:
-        """
-        Mark a task entry as started (DOING state).
-
-        Args:
-            task_id: Task ID to mark as started
-        """
-        for entry in self.task_entries:
-            if entry.task_id == task_id:
-                entry.state = TaskState.DOING
-                entry.started_at = datetime.now()
-                break
-        self.updated_at = datetime.now()
-
-    def complete_task_entry(self, task_id: str) -> None:
-        """
-        Mark a task entry as completed (DONE state).
-
-        Args:
-            task_id: Task ID to mark as completed
-        """
-        for entry in self.task_entries:
-            if entry.task_id == task_id:
-                entry.state = TaskState.DONE
-                entry.completed_at = datetime.now()
-                break
-        self.updated_at = datetime.now()
-
-    def get_tasks_by_state(self, state: TaskState) -> list[TaskEntry]:
-        """
-        Get all task entries with the given state.
-
-        Args:
-            state: TaskState to filter by
-
-        Returns:
-            List of TaskEntry objects with the specified state
-        """
-        return [entry for entry in self.task_entries if entry.state == state]

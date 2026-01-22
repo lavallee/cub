@@ -413,4 +413,4 @@ Start simple: LLM-based tools that read specs and code, provide structured analy
 
 ---
 
-**Related**: tools-registry.md, workflow-management.md
+**Related**: tools-registry.md, workflow-management.md, SPEC-TEMPLATE.md

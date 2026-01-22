@@ -110,14 +110,13 @@ Edit `prd.json` directly:
 }
 ```
 
-### Via Cub Plan
+### Via Cub Prep
 
-The plan pipeline generates tasks:
+The prep pipeline generates tasks:
 
 ```bash
-cub plan run specs/my-feature.md
-cub stage
-# After orient, architect, itemize, stage...
+cub prep
+# After triage, architect, plan, bootstrap...
 # Tasks are written to prd.json
 ```
 

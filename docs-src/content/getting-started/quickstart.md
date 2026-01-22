@@ -53,30 +53,23 @@ my-project/
 
 You have two options for creating tasks:
 
-### Option A: Use Plan (Recommended)
+### Option A: Use Prep (Recommended)
 
 Let Cub help you turn your ideas into structured tasks:
 
 ```bash
-# Create a spec (interactive interview)
-cub spec "my feature idea"
-
-# Run the planning pipeline
-cub plan run specs/researching/my-feature.md
-
-# Import tasks to your backend
-cub stage
+cub prep
 ```
 
-The plan pipeline walks you through:
+The prep pipeline walks you through:
 
-1. **Orient** - Research and understand the problem
-2. **Architect** - Design the technical approach
-3. **Itemize** - Break it into agent-sized chunks
-4. **Stage** - Import tasks to your backend
+1. **Triage** - What are you trying to accomplish?
+2. **Architect** - What's the technical approach?
+3. **Plan** - Break it into agent-sized chunks
+4. **Bootstrap** - Write tasks to your backend
 
-!!! tip "Plan Requires Claude Code"
-    The `cub plan` pipeline uses Claude Code for the interactive refinement process.
+!!! tip "Prep Requires Claude Code"
+    The `cub prep` pipeline uses Claude Code for the interactive refinement process.
 
 ### Option B: Create Tasks Directly
 
@@ -201,8 +194,7 @@ cub artifacts
 |---------|-------------|
 | `cub init` | Initialize project |
 | `cub init --global` | Set up global config |
-| `cub plan run` | Run planning pipeline (spec to tasks) |
-| `cub stage` | Import planned tasks to backend |
+| `cub prep` | Run prep pipeline (vision to tasks) |
 | `cub status` | Show task progress |
 | `cub run` | Run autonomous loop |
 | `cub run --once` | Single iteration |
@@ -323,5 +315,5 @@ Now that you have Cub running:
 
 - **[Core Concepts](concepts.md)** - Understand the architecture
 - **[Configuration](../guide/configuration/index.md)** - Customize Cub for your workflow
-- **[Plan Flow](../guide/plan-pipeline/index.md)** - Master the spec-to-tasks flow
+- **[Prep Pipeline](../guide/prep-pipeline/index.md)** - Master the vision-to-tasks flow
 - **[AI Harnesses](../guide/harnesses/index.md)** - Learn about different harness options

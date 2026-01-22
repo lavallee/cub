@@ -16,7 +16,7 @@ Specs are organized into three states:
 
 Additional:
 - **`sketches/`** - Investigations, notes, artifacts (not locked-down specs)
-- **`cub spec`** - Interactive spec creation (format defined in `.claude/commands/cub:spec.md`)
+- **`specs/SPEC-TEMPLATE.md`** - Frontmatter schema for specs
 - **`specs/TOOLS-WISHLIST.md`** - Research/design tools we need
 
 ---
@@ -283,7 +283,7 @@ Recent releases (see `CHANGELOG.md` for complete history):
 ---
 
 **Related Docs:**
-- `.claude/commands/cub:spec.md` - Spec format and interview skill
+- `specs/SPEC-TEMPLATE.md` - Frontmatter schema for specs
 - `specs/TOOLS-WISHLIST.md` - Tools we wish we had
 - `CHANGELOG.md` - Released features by version
 - `sketches/` - Investigations, notes, and artifacts

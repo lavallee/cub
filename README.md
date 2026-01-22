@@ -27,25 +27,25 @@ AI coding agents in 2026 are powerful. They can operate for hours, produce worki
 
 Cub finds the balance. You invest time *before* code starts flying—breaking work into agent-sized tasks, routing complexity to the right models, reviewing the plan—then step back and let execution happen more seamlessly.
 
-## Two Main Steps: Plan and Run
+## Two Main Steps: Prep and Run
 
-### Step 1. `cub plan`: Go From a Vision to Structured Tasks
+### Step 1. `cub prep`: Go From a Vision to Structured Tasks
 
-Bring your ideas (a sentence, a spec, a whole design doc) and go through a structured planning workflow to generate clear tasks for an LLM:
+Bring your ideas (a sentence, a spec, a whole design doc) and go through a structured interview to generate clear tasks for an LLM:
 
-1. **Orient** — Research and understand the problem space
-2. **Architect** — Design the technical approach
-3. **Itemize** — Break it into agent-sized chunks with clear acceptance criteria
-4. **Stage** — Import tasks to your chosen backend (beads or JSON)
+1. **Triage** — What are we trying to accomplish? What are the goals?
+2. **Architect** — What makes sense technically? What's the implementation approach?
+3. **Plan** — Break it into agent-sized chunks with clear acceptance criteria
+4. **Bootstrap** — Write tasks to your chosen backend (beads or JSON)
 
 The goal: observable, reviewable work *before* any code is written. No gaps in understanding slip through.
 
 ```bash
-cub plan run                # Run full pipeline
-cub plan orient             # Or run stages individually
-cub plan architect
-cub plan itemize
-cub stage                   # Import to task backend
+cub prep                    # Run full pipeline
+cub triage                  # Or run stages individually
+cub architect
+cub plan
+cub bootstrap
 ```
 
 ### Step 2: `cub run`: Turn Tasks Into Code
@@ -181,19 +181,19 @@ cd my-project
 cub init                    # Initialize project
 ```
 
-### Path A: Start with Planning (Recommended)
+### Path A: Start with Prep (Recommended)
 
-When starting new work, use the plan flow to turn your ideas into structured tasks:
+When starting new work, use the prep pipeline to turn your ideas into structured tasks:
 
 ```bash
-# Run the full planning pipeline
-cub plan run
+# Run the full prep interview
+cub prep
 
 # Or run stages individually for more control
-cub plan orient     # Research and understand the problem
-cub plan architect  # Design technical approach
-cub plan itemize    # Break into agent-sized tasks
-cub stage           # Import tasks to backend
+cub triage      # Clarify goals and requirements
+cub architect   # Design technical approach
+cub plan        # Break into agent-sized tasks
+cub bootstrap   # Write tasks to backend
 ```
 
 ### Path B: Create Tasks Directly
@@ -223,20 +223,20 @@ cub run --stream        # Watch in real-time
 
 ## Usage
 
-### Plan Commands (Vision → Tasks)
+### Prep Commands (Vision → Tasks)
 
 ```bash
-# Full planning pipeline
-cub plan run                # Run orient → architect → itemize
+# Full prep pipeline
+cub prep                    # Run triage → architect → plan → bootstrap
 
 # Individual stages (for more control)
-cub plan orient             # Research and understand the problem
-cub plan architect          # Design technical approach
-cub plan itemize            # Break into agent-sized tasks
-cub stage                   # Import tasks to backend
+cub triage                  # Clarify requirements and goals
+cub architect               # Design technical implementation
+cub plan                    # Break into agent-sized tasks
+cub bootstrap               # Write tasks to backend
 
-# Manage planning sessions
-cub plan list               # List planning sessions
+# Manage prep sessions
+cub sessions                # List prep sessions
 cub interview <task-id>     # Deep-dive on a specific task
 cub interview --all --auto  # Batch interview all open tasks
 ```
