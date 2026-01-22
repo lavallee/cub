@@ -217,6 +217,11 @@ Show the user the task hierarchy and ask:
 Once approved, write the output file to `plans/{slug}/`:
 - `itemized-plan.md` (the single source of truth with embedded IDs)
 
+Also update `plans/{slug}/plan.json`:
+- Set `stages.itemize` to `"complete"`
+- Set `status` to `"complete"` (all stages are now done)
+- Update the `updated` timestamp
+
 **Important:** Do NOT generate JSONL. The `cub stage` command will parse the markdown and create beads tasks.
 
 ### Step 11: Handoff

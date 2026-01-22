@@ -22,7 +22,7 @@ from cub.cli import (
     run,
     sandbox,
     spec,
-    stage_delegated,
+    stage,
     status,
     task,
     triage,
@@ -106,7 +106,7 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 # =============================================================================
 
 app.add_typer(plan_delegated.app, name="plan", rich_help_panel=PANEL_PLAN)
-app.add_typer(stage_delegated.app, name="stage", rich_help_panel=PANEL_PLAN)
+app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PLAN)
 
 
 # =============================================================================

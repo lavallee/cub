@@ -109,7 +109,30 @@ Present the orient report to the user and ask:
 Once approved, write the report to:
 - `plans/{slug}/orientation.md` where `{slug}` is derived from the spec name or project name
 
-Use this template:
+Also create/update `plans/{slug}/plan.json`:
+
+```json
+{
+  "slug": "{slug}",
+  "project": "{project_name}",
+  "created": "{ISO 8601 timestamp}",
+  "updated": "{ISO 8601 timestamp}",
+  "status": "in_progress",
+  "spec_file": "{spec_filename.md or null}",
+  "stages": {
+    "orient": "complete",
+    "architect": "pending",
+    "itemize": "pending"
+  }
+}
+```
+
+Where:
+- `{slug}` is derived from the spec name or project name
+- `{project_name}` is the project abbreviation (e.g., "cub")
+- `{spec_filename.md}` is the spec file name if planning from a spec, otherwise null
+
+Use this template for orientation.md:
 
 ```markdown
 # Orient Report: {Project Name}

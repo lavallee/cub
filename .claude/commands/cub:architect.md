@@ -131,7 +131,11 @@ Present the architecture to the user and ask:
 Once approved, write the design to:
 - `plans/{slug}/architecture.md` where `{slug}` is the same as the orient phase
 
-Use this template:
+Also update `plans/{slug}/plan.json`:
+- Set `stages.architect` to `"complete"`
+- Update the `updated` timestamp
+
+Use this template for architecture.md:
 
 ```markdown
 # Architecture Design: {Project Name}

@@ -4,71 +4,50 @@ This file provides context for AI coding agents working on this project.
 
 ## Overview
 
-
-Toolsmith is a meta-tool that helps Cub discover and catalog tools from curated sources (MCP registries, skill marketplaces). It creates a compounding layer of tool knowledge that persists across sessions and projects, enabling Cub to self-serve capabilities rather than requiring manual tool research.
-
-## Problem Statement
-
-## Problem Statement
-
-
-Tool discovery and creation is a compounding investment - each tool learned or built makes future work faster. Modern LLMs are good at using tools (Claude skills, MCP servers), but there's no layer that accumulates this learning across sessions and projects. Toolsmith is that layer - a way for Cub to build institutional knowledge about what tools exist, which work well, and how to use them.
-
-**Current state:** When Cub needs a capability, humans manually search, evaluate, integrate, and maintain tools. This doesn't scale and doesn't compound.
-
-## Technical Approach
-
-
-Toolsmith is a tool discovery system that maintains a searchable catalog of MCP servers and Claude skills from curated sources. It follows Cub's existing architectural patterns: a **Source protocol** for pluggable data fetchers (like `TaskBackend`), a **ToolsmithStore** for catalog persistence (like `CaptureStore`), and Pydantic v2 models for type-safe data.
-
-The system uses a hybrid storage approach: a local JSON catalog that syncs on-demand from 5 curated sources, with optional live fallback when local search returns no results. This balances speed (local search) with freshness (live queries when needed).
-
-The architecture prioritizes maintainability and testability appropriate for a production-quality public product, with clear separation between CLI, service, storage, and source layers.
-
-## Technology Stack
-
-| Layer | Choice | Rationale |
-
-## Architecture
-
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLI Layer                                 │
-│  cub toolsmith sync    cub toolsmith search    cub toolsmith stats│
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     ToolsmithService                             │
-│  - Orchestrates sync across sources                              │
-│  - Executes search against catalog                               │
-│  - Handles live fallback when local search fails                 │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-          ┌───────────────────┼───────────────────┐
-          ▼                   ▼                   ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ ToolsmithStore  │  │  Source Layer   │  │   Search Engine │
-│ (.cub/toolsmith │  │  (Protocol +    │  │   (keyword      │
+When tasks transition from "in progress" to "completed," critical information is lost:
+- **What was the original intent?** (beads forgets to keep context small)
+- **What approach did the agent take?** (not recorded)
+- **How much did it cost?** (tokens extracted but not persisted)
+- **What lessons were learned?** (scattered in progress.txt)
 
 ## Requirements
 
-### P0 (Must Have)
+### P0 - Must Have
 
-- **Catalog sync from curated sources**: Fetch and parse tool metadata from MCP official repo, Smithery.ai, Glama.ai, Claude skills, and community skill repos
-- **Local storage**: Store catalog in `.cub/toolsmith/catalog.json` for fast local search
-- **Keyword search**: Search tool names and descriptions for query terms
-- **Rich output**: Return tool name, source, type, description, and installation hints
+- **Token/cost persistence** - Store TokenUsage in task.json, aggregate in run.json, display in cub status
+  - *Rationale: Enables all downstream cost analysis; currently extracted but not saved*
+
+- **Ledger writer** - Create `.cub/ledger/by-task/{id}.md` entries on task close
+  - *Rationale: The core missing piece between beads (in-progress) and git (permanent record)*
+
+- **Ledger index** - Maintain `.cub/ledger/index.jsonl` for fast queries
+  - *Rationale: Enables `cub ledger stats`, `cub ledger search` without parsing all markdown*
+
+## Components
+
+### 1. Enhanced Run Artifacts
+
+**Purpose:** Persist token/cost data that's currently in-memory only during runs.
+
+**Responsibilities:**
+- Save `TokenUsage` to `task.json` after each harness invocation
+- Aggregate totals in `run.json` at run completion
+- Capture raw harness output to `harness.log`
+- Save rendered prompts to `prompt.md`
+
+**Dependencies:** Existing `HarnessResult`, `TaskResult`, `TokenUsage` models
+
+**Interface:** Extensions to existing `StatusWriter` and run loop in `cli/run.py`
+
+**Location:** Modifications to `src/cub/core/status/writer.py` and `src/cub/cli/run.py`
 
 ## Constraints
 
-
-- **Tech stack**: Python 3.10+, Typer CLI (matches existing Cub architecture)
-- **Harness integration**: Tools may require harness features; catalog should note requirements
-- **Auth handling**: API keys for sources or tools require human setup (no auto-provisioning)
-- **No trawling**: Do not search GitHub, npm, PyPI, or other general package registries in v1
+- **File-based storage preferred** - Per Letta research, simple filesystem approaches outperform complex systems (74% on LoCoMo benchmark)
+- **Python preferred** - Must integrate with existing codebase; new languages acceptable if necessary
+- **Breaking changes acceptable** - Does not need to be backward compatible with existing `.cub/` structure
+- **Open to new dependencies** - If they are logical drop-ins, not opposed; but default to rolling our own
 
 ---
 
-Generated by cub prep. Session artifacts in .cub/sessions/
+Generated by cub stage from plan: knowledge-retention-system
