@@ -1,0 +1,30 @@
+{
+  "slug": "knowledge-retention-system",
+  "epic_id": "nxa6f",
+  "created": "2026-01-22T17:08:28Z",
+  "status": "in_progress",
+  "spec_path": "/Users/lavallee/Experiments/cub_next/specs/researching/knowledge-retention-system.md",
+  "stages": {
+    "orient": {
+      "status": "completed",
+      "completed_at": "2026-01-22T17:15:00Z",
+      "output_path": "plans/knowledge-retention-system/orientation.md"
+    },
+    "architect": {
+      "status": "completed",
+      "completed_at": "2026-01-22T17:45:00Z",
+      "output_path": "plans/knowledge-retention-system/architecture.md"
+    },
+    "itemize": {
+      "status": "completed",
+      "completed_at": "2026-01-22T18:15:00Z",
+      "output_path": "plans/knowledge-retention-system/itemized-plan.md",
+      "summary": {
+        "phases": 4,
+        "tasks": 27,
+        "estimated_hours": 40
+      }
+    },
+    "stage": null
+  }
+}

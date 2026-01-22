@@ -121,37 +121,23 @@ For each task, identify:
 - **Parent**: Which epic does this belong to?
 - **Blocked by**: What tasks must complete first?
 
-### Step 7: Generate JSONL
+### Step 7: Generate IDs
 
-Generate a JSONL file with the complete beads schema.
+Generate beads-compatible IDs using random suffixes:
 
-**File:** `plans/{slug}/itemized-plan.jsonl`
+**ID Format:**
+- Epics: `{prefix}-{3 random alphanumeric}` (e.g., `cub-k7m`, `cub-p2x`)
+- Tasks: `{epic_id}.{number}` (e.g., `cub-k7m.1`, `cub-k7m.2`)
 
-**Schema for each line:**
+**Rules:**
+- Use the prefix from Step 2 (default: project abbreviation like `cub`)
+- Each epic gets a unique 3-character random suffix
+- Tasks are numbered sequentially within their epic
+- All IDs must be lowercase alphanumeric with hyphens and dots only
 
-```json
-{
-  "id": "{prefix}-{NNN}",
-  "title": "Task title",
-  "description": "Full markdown description with implementation hints",
-  "status": "open",
-  "priority": 0,
-  "issue_type": "epic|task",
-  "labels": ["phase-1", "model:sonnet", "complexity:medium", "logic"],
-  "dependencies": [
-    {"depends_on_id": "{prefix}-E01", "type": "parent-child"},
-    {"depends_on_id": "{prefix}-001", "type": "blocks"}
-  ]
-}
-```
+### Step 8: Generate Itemized Plan Markdown
 
-**ID Numbering:**
-- Epics: `{prefix}-E01`, `{prefix}-E02`, etc.
-- Tasks: `{prefix}-001`, `{prefix}-002`, etc. (sequential across all phases)
-
-### Step 8: Generate Human-Readable Plan
-
-Also generate `plans/{slug}/itemized-plan.md`:
+Generate `plans/{slug}/itemized-plan.md` as the **single source of truth**:
 
 ```markdown
 # Itemization Plan: {Project Name}
@@ -170,61 +156,45 @@ Also generate `plans/{slug}/itemized-plan.md`:
 
 ## Task Hierarchy
 
-### Epic 1: {Phase Name} [P0]
+## Epic: {prefix}-{xxx} - {Phase Name}
 
-| ID | Task | Model | Priority | Blocked By | Est |
-|----|------|-------|----------|------------|-----|
-| {prefix}-001 | {Task title} | haiku | P0 | - | 15m |
-| {prefix}-002 | {Task title} | sonnet | P0 | {prefix}-001 | 30m |
+Priority: {0-3}
+Labels: phase-1, {domain labels}
 
-{Repeat for each epic}
+{Description of what this epic accomplishes}
 
----
+### Task: {prefix}-{xxx}.1 - {Task Title}
 
-## Dependency Graph
+Priority: {0-3}
+Labels: phase-1, model:sonnet, complexity:medium
+Blocks: {other-task-id} (if applicable)
 
-```
-{prefix}-001 (setup)
-  ├─> {prefix}-002 (config)
-  │     └─> {prefix}-004 (integrate)
-  └─> {prefix}-003 (logger)
-```
+**Context**: {1-2 sentences on why this task exists}
 
----
+**Implementation Steps**:
+1. {Concrete step 1}
+2. {Concrete step 2}
+3. {Concrete step 3}
 
-## Model Distribution
+**Acceptance Criteria**:
+- [ ] {Specific, verifiable criterion}
+- [ ] {Specific, verifiable criterion}
 
-| Model | Tasks | Rationale |
-|-------|-------|-----------|
-| opus | {N} | {Brief explanation} |
-| sonnet | {M} | {Brief explanation} |
-| haiku | {K} | {Brief explanation} |
+**Files**: {path/to/file.ext}, {another/file.ext}
 
 ---
 
-## Validation Checkpoints
+{Repeat for each task in the epic, then repeat epic section for each phase}
 
-### Checkpoint 1: {Name} (after {prefix}-XXX)
-**What's testable:** {Description}
-**Key questions:**
-- {Question to validate}
+## Summary
 
----
+| Epic | Tasks | Priority | Description |
+|------|-------|----------|-------------|
+| {prefix}-{xxx} | {N} | P0 | {Brief description} |
 
-## Ready to Start
+**Total**: {N} epics, {M} tasks
 
-These tasks have no blockers:
-- **{prefix}-001**: {Title} [P0] (haiku) - 15m
-
----
-
-## Critical Path
-
-{prefix}-001 → {prefix}-002 → {prefix}-005 → ...
-
----
-
-**Next Step:** Run `cub bootstrap` to import tasks into beads.
+**Next Step:** Run `cub stage` to import tasks into beads.
 ```
 
 ### Step 9: Present Plan
@@ -242,19 +212,19 @@ Show the user the task hierarchy and ask:
 
 ### Step 10: Write Output
 
-Once approved, write output files to `plans/{slug}/`:
-- `itemized-plan.jsonl` (beads-compatible, for import)
-- `itemized-plan.md` (human-readable)
+Once approved, write the output file to `plans/{slug}/`:
+- `itemized-plan.md` (the single source of truth with embedded IDs)
+
+**Important:** Do NOT generate JSONL. The `cub stage` command will parse the markdown and create beads tasks.
 
 ### Step 11: Handoff
 
-After writing outputs, tell the user:
+After writing the output, tell the user:
 
 > Itemization complete!
 >
-> **Outputs saved:**
-> - `plans/{slug}/itemized-plan.jsonl` (beads-compatible)
-> - `plans/{slug}/itemized-plan.md` (human-readable)
+> **Output saved:**
+> - `plans/{slug}/itemized-plan.md`
 >
 > **Next step:** Run `cub stage` to import tasks into beads and start development.
 
