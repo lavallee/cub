@@ -4894,3 +4894,53 @@ Stage computation follows priority order:
 - Relationship creation from all marker types
 - Ledger enrichment preserving other fields
 - Edge cases: circular deps, missing data, self-references, malformed frontmatter
+
+## 2026-01-23 - Task cub-d2v.6: Integrate all parsers into sync orchestrator
+
+### What was implemented:
+- Updated SyncOrchestrator to integrate all parsers (SpecParser, PlanParser, TaskParser)
+- Removed old per-source sync methods (_sync_specs, _sync_plans, _sync_tasks)
+- Implemented 4-phase sync process:
+  1. Phase 1: Parse entities from all sources (collect before writing)
+  2. Phase 2: Resolve relationships and enrich with ledger/changelog data
+  3. Phase 3: Write entities to database
+  4. Phase 4: Write relationships to database
+- Added comprehensive progress logging at each step
+- Implemented partial failure handling (continues if one source fails)
+- Updated sync result with detailed relationship counts
+- Created comprehensive integration test suite (11 new tests)
+
+### Key architectural decisions:
+1. **Collect-then-write approach**: All entities are parsed first, then passed to RelationshipResolver before writing. This enables relationship resolution to see all entities and create relationships correctly.
+
+2. **Partial failure handling**: Each parser runs in its own try/except block. If one fails, others continue. Errors are collected and reported in SyncResult.
+
+3. **Transaction semantics**: The entire sync is a single transaction. If any errors occur, the transaction is rolled back. This ensures database consistency.
+
+4. **Four-phase sync**: Separating parsing, resolution, entity writing, and relationship writing makes the code easier to understand and maintain.
+
+5. **Removed helper methods**: The old _sync_specs, _sync_plans, _sync_tasks methods were removed. Parsing now happens inline in the main sync() method for clarity.
+
+### Testing approach:
+- Created comprehensive integration test suite covering:
+  - Full sync with multiple sources
+  - Partial failure handling
+  - Relationship resolution and enrichment
+  - Incremental sync (unchanged/changed detection)
+  - Transaction rollback on error
+  - Multiple sync rounds
+- All 32 tests passing (21 existing + 11 new)
+
+### Challenges encountered:
+1. **Type checking**: Initially reused variable name `parser` with different types (SpecParser, PlanParser, TaskParser), which caused mypy errors. Fixed by using distinct variable names (spec_parser, plan_parser, task_parser).
+
+2. **Line length**: Had to wrap a long log message across multiple lines to satisfy ruff's 100-char limit.
+
+3. **Unused imports**: Had to remove ChangelogParser import (used only indirectly through RelationshipResolver) and unused test imports.
+
+### Next steps:
+- The sync orchestrator now provides a complete picture of project state
+- Ready for dashboard API implementation (cub-d2v.7)
+- Ready for frontend development (cub-k8d.x tasks)
+
+### Time spent: ~2 hours
