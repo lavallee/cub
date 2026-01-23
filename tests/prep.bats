@@ -78,6 +78,47 @@ teardown() {
     local status
     status=$(jq -r '.status' "$TEST_DIR/.cub/sessions/$session_id/session.json")
     [[ "$status" == "created" ]]
+
+    # Verify vision_path is null by default
+    local vision_path
+    vision_path=$(jq -r '.vision_path' "$TEST_DIR/.cub/sessions/$session_id/session.json")
+    [[ "$vision_path" == "null" ]]
+}
+
+@test "pipeline: create_session stores vision_path when provided" {
+    local session_id
+    session_id=$(pipeline_new_session_id)
+
+    pipeline_create_session "$session_id" "specs/my-vision.md"
+
+    [[ -f "$TEST_DIR/.cub/sessions/$session_id/session.json" ]]
+
+    # Verify vision_path is stored
+    local vision_path
+    vision_path=$(jq -r '.vision_path' "$TEST_DIR/.cub/sessions/$session_id/session.json")
+    [[ "$vision_path" == "$TEST_DIR/specs/my-vision.md" ]]
+}
+
+@test "pipeline: get_vision_path returns stored path" {
+    local session_id
+    session_id=$(pipeline_new_session_id)
+    pipeline_create_session "$session_id" "specs/test.md"
+
+    local retrieved_path
+    retrieved_path=$(pipeline_get_vision_path "$session_id")
+
+    [[ "$retrieved_path" == "$TEST_DIR/specs/test.md" ]]
+}
+
+@test "pipeline: get_vision_path returns empty for session without vision_path" {
+    local session_id
+    session_id=$(pipeline_new_session_id)
+    pipeline_create_session "$session_id"
+
+    local retrieved_path
+    retrieved_path=$(pipeline_get_vision_path "$session_id")
+
+    [[ -z "$retrieved_path" ]]
 }
 
 @test "pipeline: session_exists returns true for existing session" {
@@ -308,7 +349,8 @@ teardown() {
     run cmd_prep --help
 
     [[ "$status" -eq 0 ]]
-    [[ "$output" =~ "Run the complete Vision-to-Tasks prep pipeline" ]]
+    [[ "$output" =~ "Run the Vision-to-Tasks prep workflow" ]]
+    [[ "$output" =~ "VISION_FILE" ]]
 }
 
 # ============================================================================
