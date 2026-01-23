@@ -45,6 +45,7 @@ from cub.core.status.models import (
     RunArtifact,
     RunPhase,
     RunStatus,
+    TaskArtifact,
 )
 from cub.core.status.writer import StatusWriter
 from cub.core.tasks.backend import TaskBackend
@@ -1369,6 +1370,32 @@ def run(
                     tokens=result.usage.total_tokens,
                 )
 
+                # Persist task artifact with token usage
+                priority_str = (
+                    current_task.priority.value
+                    if hasattr(current_task.priority, "value")
+                    else str(current_task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=current_task.id,
+                    title=current_task.title,
+                    priority=priority_str,
+                    status="completed",
+                    started_at=datetime.now(),  # TODO: Track actual start time
+                    completed_at=datetime.now(),
+                    iterations=1,  # TODO: Track actual iterations if task retries
+                    exit_code=result.exit_code,
+                    usage=result.usage,
+                    duration_seconds=duration,
+                )
+                try:
+                    status_writer.write_task_artifact(current_task.id, task_artifact)
+                    if debug:
+                        console.print("[dim]Persisted task artifact to task.json[/dim]")
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
+
                 # Close the task in the backend so it won't be picked up again
                 try:
                     task_backend.close_task(
@@ -1409,6 +1436,32 @@ def run(
                     task_id=current_task.id,
                     exit_code=result.exit_code,
                 )
+
+                # Persist task artifact with token usage even on failure
+                priority_str = (
+                    current_task.priority.value
+                    if hasattr(current_task.priority, "value")
+                    else str(current_task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=current_task.id,
+                    title=current_task.title,
+                    priority=priority_str,
+                    status="failed",
+                    started_at=datetime.now(),  # TODO: Track actual start time
+                    completed_at=datetime.now(),
+                    iterations=1,  # TODO: Track actual iterations if task retries
+                    exit_code=result.exit_code,
+                    usage=result.usage,
+                    duration_seconds=duration,
+                )
+                try:
+                    status_writer.write_task_artifact(current_task.id, task_artifact)
+                    if debug:
+                        console.print("[dim]Persisted task artifact to task.json[/dim]")
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
 
                 # Run on-error hooks (async - fire and forget for error notifications)
                 on_error_context = HookContext(
