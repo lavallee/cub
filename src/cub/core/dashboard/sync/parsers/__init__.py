@@ -15,11 +15,13 @@ Parsers follow a common pattern:
 4. Extract relationships (spec_id, plan_id, epic_id)
 """
 
+from cub.core.dashboard.sync.parsers.changelog import ChangelogParser
 from cub.core.dashboard.sync.parsers.plans import PlanParser
 from cub.core.dashboard.sync.parsers.specs import SpecParser
 from cub.core.dashboard.sync.parsers.tasks import TaskParser
 
 __all__ = [
+    "ChangelogParser",
     "PlanParser",
     "SpecParser",
     "TaskParser",
