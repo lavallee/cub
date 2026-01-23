@@ -32,9 +32,17 @@ Usage:
 import json
 import logging
 import sqlite3
+from datetime import date, datetime
 from typing import Any
 
 from cub.core.dashboard.db.models import DashboardEntity, Relationship
+
+
+def _json_serializer(obj: Any) -> str:
+    """Custom JSON serializer for objects not serializable by default."""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +169,7 @@ class EntityWriter:
                 data["content"] = entity.content
             if entity.source_checksum:
                 data["source_checksum"] = entity.source_checksum
-            data_json = json.dumps(data) if data else None
+            data_json = json.dumps(data, default=_json_serializer) if data else None
 
             # Build search text for full-text search
             search_parts = [entity.title]
@@ -336,7 +344,7 @@ class EntityWriter:
             # Serialize metadata if present
             metadata_json = None
             if relationship.metadata:
-                metadata_json = json.dumps(relationship.metadata)
+                metadata_json = json.dumps(relationship.metadata, default=_json_serializer)
 
             # Insert relationship
             self.conn.execute(

@@ -131,9 +131,18 @@ def dashboard(
         if not no_sync:
             console.print("[cyan]Syncing project data...[/cyan]")
 
+            # Detect project paths for sync sources
+            plans_root = project_root / ".cub" / "sessions"
+            ledger_path = project_root / ".cub" / "ledger"
+            changelog_path = project_root / "CHANGELOG.md"
+
             orchestrator = SyncOrchestrator(
                 db_path=db_path,
                 specs_root=specs_root,
+                plans_root=plans_root if plans_root.exists() else None,
+                tasks_backend="beads",  # Use beads task backend
+                ledger_path=ledger_path if ledger_path.exists() else None,
+                changelog_path=changelog_path if changelog_path.exists() else None,
             )
 
             result = orchestrator.sync()
@@ -245,9 +254,18 @@ def sync(
 
         console.print("[cyan]Syncing project data...[/cyan]")
 
+        # Detect project paths for sync sources
+        plans_root = project_root / ".cub" / "sessions"
+        ledger_path = project_root / ".cub" / "ledger"
+        changelog_path = project_root / "CHANGELOG.md"
+
         orchestrator = SyncOrchestrator(
             db_path=db_path,
             specs_root=specs_root,
+            plans_root=plans_root if plans_root.exists() else None,
+            tasks_backend="beads",  # Use beads task backend
+            ledger_path=ledger_path if ledger_path.exists() else None,
+            changelog_path=changelog_path if changelog_path.exists() else None,
         )
 
         result = orchestrator.sync(force_full_sync=force)
