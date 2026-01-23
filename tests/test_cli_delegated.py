@@ -33,7 +33,7 @@ class TestDelegatedCommandsHelp:
             "explain-task",
             "artifacts",
             "guardrails",
-            "doctor",
+            # "doctor" is now a native Python command (not delegated)
             "close-task",
             "verify-task",
         ],
@@ -220,7 +220,7 @@ class TestSpecificDelegatedCommands:
             ("artifacts", []),
             # ("validate", []),  # not registered
             ("guardrails", []),
-            ("doctor", []),
+            # ("doctor", []),  # now native Python command
             ("close-task", ["task-123"]),
             ("verify-task", ["task-123"]),
         ],

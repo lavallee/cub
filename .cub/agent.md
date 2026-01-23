@@ -166,12 +166,16 @@ These commands have been migrated to Python and execute directly without bash:
 - **`status`** - Show task progress and statistics
 - **`init`** - Initialize cub configuration (global or project-level)
 - **`monitor`** - Live dashboard for task execution monitoring
+- **`doctor`** - Diagnose and fix configuration issues
+- **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`)
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
 - `status.py` - Status reporting
 - `init_cmd.py` - Configuration setup
 - `monitor.py` - Live dashboard via Rich
+- `doctor.py` - Configuration diagnostics
+- `ledger.py` - Task completion ledger
 
 ### Delegated Commands (Bash-Implemented)
 
@@ -202,7 +206,6 @@ These commands are not yet ported to Python. They are registered as Typer comman
 
 **Utility & Maintenance:**
 - `guardrails` - Display and manage institutional memory
-- `doctor` - Diagnose and fix configuration issues
 - `upgrade` - Upgrade cub to newer version
 
 **Task Commands (for agent use):**
