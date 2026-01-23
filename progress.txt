@@ -3976,3 +3976,177 @@ The models are ready for use. All validation, serialization, and business logic 
 10. **Manual Testing Approach**: Created temporary test data in `.cub/ledger/` to verify all commands work end-to-end before deployment.
 
 **Outcome:** Successfully implemented all three ledger query commands. All type checks pass, no new test failures, manual testing confirms correct behavior with filters and JSON output.
+
+## 2026-01-23 - cub-m4j.6: Wire ledger creation into run loop on task close
+
+### Task Completed
+Implemented automatic ledger entry creation when tasks complete successfully in the run loop. Ledger entries are now created after each task closes, capturing execution metadata for knowledge retention.
+
+### What Was Implemented
+
+**1. LedgerWriter Class (`src/cub/core/ledger/writer.py`)**
+- `create_entry(entry)` - Writes full LedgerEntry to `.cub/ledger/by-task/{task_id}.json`
+- `_append_to_index(entry)` - Appends compact LedgerIndex to `index.jsonl` (JSONL format)
+- `update_entry(entry)` - Updates existing entry and rebuilds index
+- `_rebuild_index()` - Reconstructs index from all task files (used after updates)
+- `entry_exists(task_id)` - Checks if ledger entry already exists
+
+**2. Configuration Integration**
+- Added `LedgerConfig` class to `src/cub/core/config/models.py`
+- Single `enabled` field (default: True) controls automatic ledger creation
+- Can be disabled in `.cub.json`: `{"ledger": {"enabled": false}}`
+- Follows existing config pattern (HooksConfig, CleanupConfig, etc.)
+
+**3. Run Loop Integration (`src/cub/cli/run.py`)**
+- Initialize LedgerWriter after StatusWriter (line 1135-1137)
+- Create ledger entry after successful task close (line 1426-1459)
+- Placed between `task_backend.close_task()` and `run_hooks_async("post-task")`
+- Graceful error handling: logs warning in debug mode, doesn't fail run
+- Captures: task ID, title, completed_at, tokens, duration, harness, epic, run_log_path
+
+**4. Integration Tests (`tests/test_run_integration.py`)**
+- `test_ledger_entry_creation_on_task_close` - Verifies entry creation workflow
+- `test_ledger_entry_graceful_failure` - Tests error handling (read-only directory)
+- Both tests use LedgerReader to verify written entries
+- Tests validate both full entry file and index.jsonl
+
+### File Structure Created
+
+Ledger entries are written to:
+```
+.cub/ledger/
+├── index.jsonl              # Compact JSONL index (one line per task)
+└── by-task/
+    └── {task_id}.json       # Full ledger entry with all metadata
+```
+
+### Key Design Decisions
+
+1. **Non-Fatal Writes**: Ledger creation failures are caught and logged but don't interrupt execution. The task is already closed in the backend, so ledger is informational.
+
+2. **Config-Driven**: Added `config.ledger.enabled` check before creating entries, allowing projects to opt out if needed.
+
+3. **Placement After Task Close**: Ledger creation happens AFTER `task_backend.close_task()` succeeds, ensuring the task is marked complete even if ledger write fails.
+
+4. **Minimal Entry**: Currently captures basic metadata (tokens, duration, harness, epic). Future iterations will add git commits, file changes, and verification status.
+
+5. **Import Organization**: Used ruff auto-fix to organize imports. Used aliased import for TokenUsage to avoid conflict with harness TokenUsage.
+
+### Test Coverage
+
+All 6 tests in test_run_integration.py pass:
+- 4 existing tests for task artifacts (unchanged)
+- 2 new tests for ledger integration
+
+All 57 tests in test_ledger_models.py pass (unchanged).
+
+Type checking: mypy passes on all modified files.
+Linting: ruff passes on all modified files.
+
+### Integration Points
+
+**Current Integration:**
+- Run loop: Creates ledger entry on successful task completion
+- Config system: Honors `config.ledger.enabled` flag
+- StatusWriter: Uses run log path from status_writer.get_task_dir()
+
+**Future Integration (Not Yet Implemented):**
+- Git commits: Extract from `git log` after task completes
+- File changes: Extract from `git diff` or status_writer artifacts
+- Verification status: Run tests/typecheck and capture results
+- Cost tracking: Calculate from token usage (needs pricing table)
+- Spec linking: Find matching spec file in `specs/` directory
+
+### Files Modified
+- `src/cub/cli/run.py` - Added ledger initialization and entry creation
+- `src/cub/core/config/models.py` - Added LedgerConfig class
+- `src/cub/core/ledger/__init__.py` - Exported LedgerWriter
+- `src/cub/core/ledger/writer.py` - NEW: Ledger writer implementation
+- `tests/test_run_integration.py` - Added 2 integration tests
+
+### Gotchas & Learnings
+
+1. **Import Conflicts**: Both `cub.core.harness.models` and `cub.core.ledger.models` define `TokenUsage`. Used aliased import `TokenUsage as LedgerTokenUsage` to avoid conflict.
+
+2. **Ruff Auto-Fix**: Used `ruff check --fix` to automatically organize imports. It splits multi-line imports correctly.
+
+3. **Test Data Cleanup**: Ledger files created during test runs should not be committed. Use `git reset .cub/ledger/` before committing.
+
+4. **Error Handling Pattern**: Followed existing pattern in run.py: try/except with debug logging, status.add_event() for warning, continue execution.
+
+5. **Configuration Pattern**: New optional features use dedicated config classes with sensible defaults. `LedgerConfig` follows pattern of `HooksConfig` and `CleanupConfig`.
+
+6. **Placement Matters**: Ledger creation must happen AFTER `task_backend.close_task()` succeeds but BEFORE `run_hooks_async()` for proper sequencing.
+
+---
+
+
+## 2026-01-23 - cub-m4j.5: Implement LLM extraction for approach/decisions/lessons
+
+### Task Completed
+Implemented LLM-based insight extraction from harness execution logs for the ledger system.
+
+### What Was Implemented
+
+**New Module: `src/cub/core/ledger/extractor.py`**
+
+1. **InsightExtraction Model**:
+   - `approach: str` - High-level approach taken
+   - `decisions: list[str]` - Key technical decisions
+   - `lessons_learned: list[str]` - Insights and learnings
+   - `success: bool` - Whether extraction succeeded
+   - `error: str | None` - Error message on failure
+   - `model_used: str` - Model name (haiku or fallback)
+   - `tokens_used: int` - Token count if available
+
+2. **extract_insights() Function**:
+   - Uses Claude Haiku for cost efficiency
+   - Truncates very long logs (preserves beginning/end)
+   - Structured prompt with task context
+   - Graceful fallback on any error
+
+3. **Fallback Handling**:
+   - CLI not found → basic heuristic extraction
+   - CLI timeout → basic heuristic extraction
+   - Non-zero exit → basic heuristic extraction
+   - OS errors → basic heuristic extraction
+   - Heuristic detects patterns: file creation, tests, bug fixes, refactoring
+
+**Key Patterns Used:**
+
+1. **Claude CLI Pattern** (from punchlist/hydrator.py):
+   ```python
+   subprocess.run(
+       ["claude", "--model", "haiku", "--print", "-p", prompt],
+       capture_output=True,
+       text=True,
+       timeout=timeout,
+       check=False,
+   )
+   ```
+
+2. **Structured Prompt Extraction**:
+   - Use clear section headers (APPROACH:, DECISIONS:, LESSONS:)
+   - Regex parsing to extract each section
+   - Handle "None" as empty list indicator
+   - Parse bullet lists with various formats (-, *, •, numbered)
+
+3. **Log Truncation Strategy**:
+   - Keep first 60% and last 40% of long logs
+   - Insert truncation marker in middle
+   - Preserves task setup and final results
+
+### Learnings
+
+1. **Cost-Efficient LLM Calls**: Use Haiku model for extraction/analysis tasks that don't require complex reasoning - significantly cheaper than Sonnet/Opus.
+
+2. **Graceful Degradation**: Always provide fallback when LLM is unavailable. Better to have partial data than fail completely.
+
+3. **Prompt Design for Extraction**: 
+   - Clear section headers make regex parsing reliable
+   - Include "None" as explicit empty indicator
+   - Provide task context for better extraction quality
+
+4. **Log Processing**: When processing large logs, preserve the beginning (setup) and end (results) - middle is usually verbose execution details.
+
+5. **Test Coverage for LLM Integrations**: Mock subprocess calls to test all error paths without actual LLM costs. Cover: success, non-zero exit, timeout, FileNotFoundError, OSError.
