@@ -5643,3 +5643,59 @@ Implemented relationship navigation in the DetailPanel to enable exploration of 
 - Modern marked API requires post-processing for custom rendering
 - DOM manipulation in browser context works well for syntax highlighting
 - CSS imported directly in component for proper highlight.js styling
+
+## 2026-01-23: Task cub-p9w.6 - Final Test Coverage and CI Integration
+
+**Context:**
+Completed final testing and quality assurance for the dashboard feature. Task required reaching 60%+ test coverage, adding integration tests, and updating documentation.
+
+**Actions Taken:**
+1. Installed missing pytest-cov plugin (was missing from venv)
+2. Ran comprehensive coverage analysis across all dashboard modules
+3. Fixed flaky test in test_api_errors.py by replacing id(request) with uuid.uuid4().hex[:12] for request ID generation
+4. Created comprehensive integration test (test_dashboard_integration.py) covering:
+   - Full sync-to-API workflow
+   - Database population and validation
+   - Board API endpoint testing
+   - Entity detail API endpoint testing
+   - Empty project edge case handling
+5. Updated .cub/STABILITY.md to include all dashboard modules in Moderate tier (60%+ coverage)
+6. Ran all feedback loops: mypy (✅), pytest (✅ 290 tests), ruff (✅)
+
+**Results:**
+- Achieved 66.20% overall coverage for dashboard modules (exceeds 60% target)
+- Coverage breakdown by module:
+  * core/dashboard/db/: 93%
+  * core/dashboard/api/: 84%
+  * core/dashboard/views/: 75%
+  * core/dashboard/sync/: 60%
+- All 290 dashboard tests passing
+- Zero typecheck errors
+- Zero linting issues (after auto-fix)
+
+**Key Technical Learnings:**
+1. **Environment Setup:** The venv was created with uv, which requires using `uv pip install` instead of regular pip
+2. **Coverage Tracking:** Need to run pytest with all test files included to get accurate coverage across interdependent modules
+3. **Flaky Tests:** Using id() for request IDs is unreliable due to memory address reuse; UUID is more robust
+4. **Integration Testing:** Full end-to-end tests that exercise sync → database → API provide high confidence in the system
+5. **Model Field Names:** DashboardEntity uses `type` not `entity_type`, SyncResult uses `success` not `status` - important for API contracts
+
+**Stability Tier Assignment:**
+All dashboard modules placed in **Moderate tier** (60%+ coverage required):
+- Database layer meets threshold at 93%
+- API routes meet threshold at 84%
+- Sync orchestrator exactly at threshold at 60%
+- Views configuration exceeds threshold at 75%
+
+This tier placement is appropriate because:
+- Dashboard is primary user-facing functionality
+- Implements business logic coordinating between abstractions
+- Has external dependencies (SQLite, filesystem)
+- Changes need careful testing but some flexibility acceptable
+
+**Next Steps (if any):**
+- Consider increasing coverage for low-coverage parsers (changelog.py at 18%, tasks.py at 13%) in future work
+- Monitor sync orchestrator coverage to ensure it stays above 60% as code evolves
+- Add CI configuration to enforce coverage thresholds per tier
+
+**Commit:** 33f2767
