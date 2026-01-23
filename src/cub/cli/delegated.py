@@ -58,6 +58,16 @@ def plan(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> N
     _delegate("plan", args or [], ctx)
 
 
+def stage(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Import tasks from plan to task backend."""
+    _delegate("stage", args or [], ctx)
+
+
+def spec(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Create feature specifications through interactive process."""
+    _delegate("spec", args or [], ctx)
+
+
 def bootstrap(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Stage 4: Initialize beads from prep artifacts."""
     _delegate("bootstrap", args or [], ctx)
@@ -120,6 +130,11 @@ def import_cmd(ctx: typer.Context, args: list[str] | None = typer.Argument(None)
 def guardrails(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """Display and manage institutional memory."""
     _delegate("guardrails", args or [], ctx)
+
+
+def update(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Update project templates and skills from installed cub."""
+    _delegate("update", args or [], ctx)
 
 
 # Project Initialization

@@ -28,12 +28,14 @@ from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
-from cub.core.plan.context import PlanContext
-from cub.core.plan.models import PlanStatus
+# TODO: Restore when plan module is implemented
+# from cub.core.plan.context import PlanContext
+# from cub.core.plan.models import PlanStatus
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
-from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
+# TODO: Restore when specs module is implemented
+# from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
@@ -352,38 +354,13 @@ def _transition_staged_specs_to_implementing(
 
     Returns:
         List of moved spec paths.
+
+    Note:
+        Currently stubbed - requires plan module implementation.
     """
-    plans_dir = project_dir / "plans"
-    if not plans_dir.exists():
-        return []
-
-    moved: list[Path] = []
-
-    for plan_dir in plans_dir.iterdir():
-        if not plan_dir.is_dir():
-            continue
-
-        plan_json = plan_dir / "plan.json"
-        if not plan_json.exists():
-            continue
-
-        try:
-            ctx = PlanContext.load(plan_dir, project_dir)
-            if ctx.plan.status != PlanStatus.STAGED:
-                continue
-
-            # Try to move spec to implementing
-            new_path = move_spec_to_implementing(ctx, verbose=debug)
-            if new_path is not None:
-                moved.append(new_path)
-                if debug:
-                    console.print(f"[dim]Moved spec to implementing: {new_path}[/dim]")
-        except (FileNotFoundError, SpecLifecycleError) as e:
-            if debug:
-                console.print(f"[dim]Could not process plan {plan_dir.name}: {e}[/dim]")
-            continue
-
-    return moved
+    # TODO: Implement when plan module is ready
+    # This function needs PlanContext and PlanStatus from cub.core.plan
+    return []
 
 
 def generate_system_prompt(project_dir: Path) -> str:
