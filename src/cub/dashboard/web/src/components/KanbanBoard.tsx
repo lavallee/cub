@@ -2,8 +2,8 @@
  * KanbanBoard component - main board view displaying all columns.
  */
 
-import { useState } from 'preact/hooks';
 import { useBoard } from '../hooks/useBoard';
+import { useNavigation } from '../hooks/useNavigation';
 import { Column } from './Column';
 import { DetailPanel } from './DetailPanel';
 import type { DashboardEntity } from '../types/api';
@@ -17,7 +17,7 @@ import type { DashboardEntity } from '../types/api';
  */
 export function KanbanBoard() {
   const { data, loading, error } = useBoard();
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const navigation = useNavigation();
 
   if (loading) {
     return (
@@ -47,11 +47,7 @@ export function KanbanBoard() {
   }
 
   const handleEntityClick = (entity: DashboardEntity) => {
-    setSelectedEntityId(entity.id);
-  };
-
-  const handleClosePanel = () => {
-    setSelectedEntityId(null);
+    navigation.navigateTo(entity.id);
   };
 
   return (
@@ -89,7 +85,12 @@ export function KanbanBoard() {
       </div>
 
       {/* Detail panel */}
-      <DetailPanel entityId={selectedEntityId} onClose={handleClosePanel} />
+      <DetailPanel
+        entityId={navigation.currentEntityId}
+        onClose={navigation.clear}
+        onNavigate={navigation.navigateTo}
+        navigationPath={navigation.getPath()}
+      />
     </div>
   );
 }

@@ -188,3 +188,4 @@
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-a7f.4", "title": "Implement /api/stats endpoint", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-a7f", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.1", "title": "Implement DetailPanel sidebar component", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}

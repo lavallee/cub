@@ -9,6 +9,8 @@ import type { DashboardEntity, RelationType } from '../types/api';
 export interface DetailPanelProps {
   entityId: string | null;
   onClose: () => void;
+  onNavigate?: (entityId: string) => void;
+  navigationPath?: string[];
 }
 
 /**
@@ -20,7 +22,7 @@ export interface DetailPanelProps {
  * - Displays entity metadata, relationships, and full content
  * - Click outside or ESC key to close
  */
-export function DetailPanel({ entityId, onClose }: DetailPanelProps) {
+export function DetailPanel({ entityId, onClose, onNavigate, navigationPath = [] }: DetailPanelProps) {
   const { data, loading, error } = useEntity(entityId);
 
   // Handle ESC key to close panel
@@ -53,27 +55,60 @@ export function DetailPanel({ entityId, onClose }: DetailPanelProps) {
       {/* Sidebar panel */}
       <div class="fixed top-0 right-0 bottom-0 w-full md:w-2/3 lg:w-1/2 xl:w-1/3 bg-white shadow-2xl z-50 overflow-y-auto">
         {/* Header */}
-        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-gray-900">Entity Details</h2>
-          <button
-            onClick={onClose}
-            class="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Close panel"
-          >
-            <svg
-              class="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold text-gray-900">Entity Details</h2>
+            <button
+              onClick={onClose}
+              class="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close panel"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              <svg
+                class="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+          {/* Breadcrumb navigation */}
+          {navigationPath.length > 1 && (
+            <div class="flex items-center gap-2 text-sm text-gray-600 overflow-x-auto">
+              <button
+                onClick={onClose}
+                class="flex items-center gap-1 hover:text-gray-900 transition-colors flex-shrink-0"
+                aria-label="Back to board"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M3 12l6-6m-6 6l6 6" />
+                </svg>
+                Board
+              </button>
+              {navigationPath.slice(0, -1).map((id) => (
+                <span key={id} class="flex items-center gap-2 flex-shrink-0">
+                  <span class="text-gray-400">/</span>
+                  <button
+                    onClick={() => onNavigate?.(id)}
+                    class="hover:text-gray-900 transition-colors truncate max-w-[120px]"
+                    title={id}
+                  >
+                    {id}
+                  </button>
+                </span>
+              ))}
+              <span class="text-gray-400 flex-shrink-0">/</span>
+              <span class="font-medium text-gray-900 truncate max-w-[120px]" title={navigationPath[navigationPath.length - 1]}>
+                {navigationPath[navigationPath.length - 1]}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -253,17 +288,34 @@ export function DetailPanel({ entityId, onClose }: DetailPanelProps) {
                           </div>
                           <div class="space-y-2">
                             {entities.map((entity: DashboardEntity) => (
-                              <div
+                              <button
                                 key={entity.id}
-                                class="bg-white rounded p-2 border border-gray-200 text-sm"
+                                onClick={() => onNavigate?.(entity.id)}
+                                class="w-full bg-white rounded p-2 border border-gray-200 text-sm hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer text-left group"
+                                disabled={!onNavigate}
                               >
-                                <div class="font-medium text-gray-900">
+                                <div class="font-medium text-gray-900 group-hover:text-blue-700 flex items-center gap-1">
                                   {entity.title}
+                                  {onNavigate && (
+                                    <svg
+                                      class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M9 5l7 7-7 7"
+                                      />
+                                    </svg>
+                                  )}
                                 </div>
                                 <div class="text-gray-500 text-xs mt-0.5">
                                   {entity.type} • {entity.stage}
                                 </div>
-                              </div>
+                              </button>
                             ))}
                           </div>
                         </div>
