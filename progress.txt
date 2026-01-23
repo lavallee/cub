@@ -3702,3 +3702,38 @@ Added comprehensive tests in `tests/test_cleanup.py`:
 - Future tasks should track actual iteration count for task retries
 - Consider adding aggregate reporting across all tasks in a run
 
+
+## Task cub-mpk2.1: Add --fix flag to cub doctor command
+
+**Date:** 2026-01-22
+
+**Key Learnings:**
+
+1. **Migrating Bash to Python Commands**: Successfully migrated the `cub doctor` command from bash to Python. The pattern involves:
+   - Creating a new module in `src/cub/cli/` with Typer app
+   - Importing the module in `src/cub/cli/__init__.py`
+   - Registering with `app.add_typer()` instead of `app.command()`
+   - Removing the command from `bash_commands` set in `bash_delegate.py`
+   - Removing the delegated function from `delegated.py`
+
+2. **Exception Handling with Typer.Exit**: When using `raise typer.Exit(code)`, ensure to re-raise it in outer exception handlers with `except typer.Exit: raise`. Otherwise, the outer `except Exception` will catch and mask it.
+
+3. **Backend API Usage**: The task backend's `get_backend()` takes `project_dir: Path | None` as a keyword argument, not positional. Use `get_backend(project_dir=path)`.
+
+4. **Stale Epic Detection Pattern**: Implemented a robust pattern for finding subtasks of an epic:
+   - Match by parent field (`task.parent == epic.id`)
+   - Match by ID prefix (`task.id.startswith(f"{epic.id}.")`)
+   - Combine both approaches and deduplicate
+   - This handles both explicit parent relationships and beads naming conventions
+
+5. **Test Expectations After Migration**: When migrating a bash command to Python, update both:
+   - The `bash_commands` set in `bash_delegate.py`
+   - The test expectations in `tests/test_bash_delegate.py`
+
+6. **CLI Design Patterns**: The doctor command demonstrates good CLI design:
+   - Check operations are always safe and report-only
+   - Fix operations are opt-in via `--fix` flag
+   - Clear output with Rich formatting (✓ for OK, ! for warnings)
+   - Exit code 0 when no issues, 1 when issues found (without --fix)
+
+**Outcome:** Successfully implemented `cub doctor --fix` flag that auto-closes stale epics. All tests pass (mypy, pytest, ruff). Command is now fully Python-based and more maintainable.
