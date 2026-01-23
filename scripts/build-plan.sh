@@ -299,7 +299,7 @@ is_epic_complete() {
 
     # Check if there are any open tasks
     local open_tasks
-    open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep -c "^○" || echo "0")
+    open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
 
     if [[ "$open_tasks" == "0" ]]; then
         return 0
@@ -336,7 +336,7 @@ run_epic() {
         if uv run cub --debug run --epic "$epic" --stream --use-current-branch 2>&1 | tee -a "$log_file"; then
             # cub exited cleanly - check if epic is actually complete
             local open_tasks
-            open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep -c "^○" || echo "0")
+            open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
 
             if [[ "$open_tasks" == "0" ]]; then
                 epic_complete=true
