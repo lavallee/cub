@@ -4798,3 +4798,99 @@ Ready for cub-k8d.7: Implement basic KanbanBoard and EntityCard components
 - src/cub/core/dashboard/sync/parsers/tasks.py (new, 324 lines)
 - src/cub/core/dashboard/sync/parsers/__init__.py (updated exports)
 - tests/test_task_parser.py (new, 18 test cases, 423 lines)
+
+## cub-d2v.4 - CHANGELOG Parser Implementation (2026-01-23)
+
+**What I did:**
+- Implemented ChangelogParser class for extracting release information from CHANGELOG.md
+- Created comprehensive test suite with 19 test cases covering edge cases
+- Added support for multiple ID formats (cub-xxx, cub-xxx.n, #123, epic:cub-xxx)
+- Implemented graceful error handling for missing/empty/malformed CHANGELOGs
+- Added date parsing with robustness for formats like "2026-01-23 (PR #24)"
+
+**Key learnings:**
+1. **Real-world CHANGELOG format variations** - The actual CHANGELOG had dates with PR references like "2026-01-23 (PR #24)" which I didn't anticipate initially. Using a regex search for the date pattern made it robust.
+
+2. **Regex pattern flexibility** - Changed the release header pattern to make the date optional, which helped handle edge cases gracefully without failing entirely.
+
+3. **Case-insensitive ID matching** - Normalizing all task IDs to lowercase during extraction ensures consistent lookups regardless of how IDs are written in the CHANGELOG.
+
+4. **Test-driven debugging** - Started with one failing test, which helped me quickly identify the issue with date parsing and fix it systematically.
+
+5. **Parser pattern consistency** - Following the same structure as SpecParser and TaskParser (checksum computation, error handling, logging) made the implementation cleaner and more maintainable.
+
+**What went well:**
+- All 19 tests pass on first full run
+- Type checking and linting pass without issues
+- Successfully parses the real project CHANGELOG (37 releases, 25 task IDs)
+- Error handling is graceful (missing files, empty files, malformed content)
+
+**Challenges:**
+- Initial regex pattern was too strict for real-world date formats
+- Had to adjust test expectations when changing from warning to debug logging
+
+**Files created:**
+- src/cub/core/dashboard/sync/parsers/changelog.py (307 lines)
+- tests/test_changelog_parser.py (523 lines)
+
+**Next steps:**
+- This parser can now be integrated into the sync orchestrator
+- The is_released() method can be used to move tasks to RELEASED stage
+
+## 2026-01-23 - cub-d2v.5: Implement relationship resolver and stage computation
+
+### Task Completed
+Implemented the RelationshipResolver class and compute_stage() function for linking entities and determining correct stage placement.
+
+### What Was Implemented
+
+**RelationshipResolver Class:**
+1. `resolve(entities)` - Main entry point that processes all entities
+2. `_create_relationships()` - Creates Relationship objects from explicit markers
+3. `_enrich_with_ledger()` - Adds cost, tokens, verification_status from ledger
+4. `_is_released()` - Checks if entity is in CHANGELOG
+5. `_get_ledger_entry()` - Retrieves ledger data for entity
+
+**Relationship Types Created:**
+- SPEC_TO_PLAN: From spec_id on Plan entities
+- PLAN_TO_EPIC: From plan_id on Epic entities
+- EPIC_TO_TASK: From epic_id or parent_id on Task entities
+- TASK_TO_LEDGER: Virtual relationship for entities with ledger entries
+- TASK_TO_RELEASE: Virtual relationship for entities in CHANGELOG
+- DEPENDS_ON: From dependencies array in frontmatter
+- REFERENCES: From spec_id on Task/Epic entities
+- CONTAINS: Generic parent-child for non-epic parents
+
+**compute_stage() Function:**
+Stage computation follows priority order:
+1. NEEDS_REVIEW: 'pr' or 'review' labels (case-insensitive)
+2. RELEASED: Entity in CHANGELOG
+3. COMPLETE: Entity has ledger entry and status=closed
+4. Entity-type specific:
+   - CAPTURE: Always CAPTURES (unless released/review)
+   - SPEC: Preserves directory-based stage
+   - PLAN: Always PLANNED
+   - EPIC: open→PLANNED, in_progress→IN_PROGRESS, closed→COMPLETE
+   - TASK: open→READY (or PLANNED if blockers), in_progress→IN_PROGRESS, closed→COMPLETE
+
+### Design Decisions
+
+1. **Virtual Relationship IDs**: TASK_TO_LEDGER and TASK_TO_RELEASE create relationships to virtual entities like `ledger:cub-abc.1` and `release:cub-abc.1` to support future detail panel navigation.
+
+2. **Case-Insensitive Matching**: Entity IDs are normalized to lowercase when matching against CHANGELOG and ledger entries to handle mixed-case IDs.
+
+3. **Lazy Loading**: CHANGELOG and ledger data are loaded on first access and cached for performance.
+
+4. **Review Priority**: Review labels take highest priority because items under review shouldn't show as complete even if they have ledger entries.
+
+5. **Duplicate Prevention**: Relationships are deduplicated using a seen set to handle cases where both epic_id and parent_id point to the same entity.
+
+### Testing
+
+48 comprehensive tests covering:
+- Stage computation for all entity types and status combinations
+- Label priority (review/pr overrides)
+- Released vs Complete vs In Progress precedence
+- Relationship creation from all marker types
+- Ledger enrichment preserving other fields
+- Edge cases: circular deps, missing data, self-references, malformed frontmatter

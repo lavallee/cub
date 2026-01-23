@@ -4,26 +4,40 @@ Sync orchestrator for dashboard data aggregation.
 Coordinates parsing and writing of all data sources (specs, plans, tasks, ledger)
 into the SQLite database for the Kanban board.
 
-For the vertical slice (cub-k8d), we only sync specs. Other sources will be
-added incrementally in future tasks.
-
 Architecture:
 - SyncOrchestrator coordinates the sync process
-- Delegates parsing to specialized parsers (SpecParser, PlanParser, etc.)
-- Uses EntityWriter to write parsed entities to SQLite
-- Tracks sync state for incremental sync (future enhancement)
+- Delegates parsing to specialized parsers (SpecParser, PlanParser, TaskParser)
+- Uses RelationshipResolver to resolve relationships and enrich entities
+- Uses EntityWriter to write parsed entities and relationships to SQLite
+- Tracks sync state for incremental sync via checksums
 - Returns SyncResult with metrics and any errors
+
+Sync Flow:
+1. Phase 1: Parse entities from all sources (specs, plans, tasks)
+2. Phase 2: Resolve relationships and enrich with ledger/changelog data
+3. Phase 3: Write entities to database
+4. Phase 4: Write relationships to database
+5. Commit transaction if no errors, rollback otherwise
+
+Partial Failure Handling:
+- Each parser runs independently - if one fails, others continue
+- Errors are collected and reported in SyncResult
+- Transaction is rolled back if any errors occur
 
 Usage:
     from cub.core.dashboard.sync import SyncOrchestrator
 
     orchestrator = SyncOrchestrator(
         db_path=Path(".cub/dashboard.db"),
-        specs_root=Path("./specs")
+        specs_root=Path("./specs"),
+        plans_root=Path(".cub/sessions"),
+        tasks_backend="beads",
+        ledger_path=Path(".cub/ledger"),
+        changelog_path=Path("CHANGELOG.md")
     )
 
     result = orchestrator.sync()
-    print(f"Synced {result.entities_added} entities")
+    print(f"Synced {result.entities_added} entities, {result.relationships_added} relationships")
 """
 
 import logging
@@ -33,8 +47,10 @@ from typing import Any
 
 from cub.core.dashboard.db import get_connection, init_db
 from cub.core.dashboard.db.models import SyncResult
-from cub.core.dashboard.sync.parsers.specs import SpecParser
+from cub.core.dashboard.sync.parsers import PlanParser, SpecParser, TaskParser
+from cub.core.dashboard.sync.resolver import RelationshipResolver
 from cub.core.dashboard.sync.writer import EntityWriter
+from cub.core.tasks.backend import get_backend
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +85,7 @@ class SyncOrchestrator:
         plans_root: Path | str | None = None,
         tasks_backend: str | None = None,
         ledger_path: Path | str | None = None,
+        changelog_path: Path | str | None = None,
     ) -> None:
         """
         Initialize the SyncOrchestrator.
@@ -76,14 +93,19 @@ class SyncOrchestrator:
         Args:
             db_path: Path to SQLite database file
             specs_root: Root directory for specs (e.g., ./specs)
-            plans_root: Root directory for plans (e.g., .cub/sessions) - not yet implemented
-            tasks_backend: Task backend type ("beads" or "json") - not yet implemented
-            ledger_path: Path to ledger file - not yet implemented
+            plans_root: Root directory for plans (e.g., .cub/sessions)
+            tasks_backend: Task backend type ("beads" or "json")
+            ledger_path: Path to ledger directory (e.g., .cub/ledger)
+            changelog_path: Path to CHANGELOG.md
 
         Example:
             >>> orchestrator = SyncOrchestrator(
             ...     db_path=Path(".cub/dashboard.db"),
-            ...     specs_root=Path("./specs")
+            ...     specs_root=Path("./specs"),
+            ...     plans_root=Path(".cub/sessions"),
+            ...     tasks_backend="beads",
+            ...     ledger_path=Path(".cub/ledger"),
+            ...     changelog_path=Path("CHANGELOG.md")
             ... )
         """
         self.db_path = Path(db_path)
@@ -91,6 +113,7 @@ class SyncOrchestrator:
         self.plans_root = Path(plans_root) if plans_root else None
         self.tasks_backend = tasks_backend
         self.ledger_path = Path(ledger_path) if ledger_path else None
+        self.changelog_path = Path(changelog_path) if changelog_path else None
 
         # Initialize database if needed
         self._ensure_db_initialized()
@@ -107,98 +130,16 @@ class SyncOrchestrator:
         else:
             logger.debug(f"Using existing database: {self.db_path}")
 
-    def _sync_specs(self, writer: EntityWriter) -> dict[str, Any]:
-        """
-        Sync specs from specs_root directory.
-
-        Args:
-            writer: EntityWriter for writing to database
-
-        Returns:
-            Dict with sync metrics: {"added": int, "updated": int, "skipped": int}
-        """
-        if not self.specs_root:
-            logger.warning("Specs root not configured, skipping spec sync")
-            return {"added": 0, "updated": 0, "skipped": 0}
-
-        if not self.specs_root.exists():
-            logger.warning(f"Specs root does not exist: {self.specs_root}")
-            return {"added": 0, "updated": 0, "skipped": 0}
-
-        logger.info(f"Syncing specs from {self.specs_root}")
-
-        try:
-            # Parse all specs
-            parser = SpecParser(self.specs_root)
-            entities = parser.parse_all()
-
-            if not entities:
-                logger.info("No specs found to sync")
-                return {"added": 0, "updated": 0, "skipped": 0}
-
-            # Write entities to database
-            written, skipped = writer.write_entities(entities)
-
-            logger.info(f"Spec sync complete: {written} written, {skipped} skipped")
-
-            # For now, we can't distinguish between added and updated
-            # (would need to track this in writer or query before)
-            return {"added": written, "updated": 0, "skipped": skipped}
-
-        except Exception as e:
-            logger.error(f"Error syncing specs: {e}")
-            raise
-
-    def _sync_plans(self, writer: EntityWriter) -> dict[str, Any]:
-        """
-        Sync plans from .cub/sessions directory.
-
-        NOT YET IMPLEMENTED - placeholder for future task.
-
-        Args:
-            writer: EntityWriter for writing to database
-
-        Returns:
-            Dict with sync metrics
-        """
-        logger.debug("Plan sync not yet implemented")
-        return {"added": 0, "updated": 0, "skipped": 0}
-
-    def _sync_tasks(self, writer: EntityWriter) -> dict[str, Any]:
-        """
-        Sync tasks from task backend (beads or JSON).
-
-        NOT YET IMPLEMENTED - placeholder for future task.
-
-        Args:
-            writer: EntityWriter for writing to database
-
-        Returns:
-            Dict with sync metrics
-        """
-        logger.debug("Task sync not yet implemented")
-        return {"added": 0, "updated": 0, "skipped": 0}
-
-    def _sync_ledger(self, writer: EntityWriter) -> dict[str, Any]:
-        """
-        Sync ledger entries.
-
-        NOT YET IMPLEMENTED - placeholder for future task.
-
-        Args:
-            writer: EntityWriter for writing to database
-
-        Returns:
-            Dict with sync metrics
-        """
-        logger.debug("Ledger sync not yet implemented")
-        return {"added": 0, "updated": 0, "skipped": 0}
 
     def sync(self, *, force_full_sync: bool = False) -> SyncResult:
         """
         Run the sync process for all data sources.
 
-        This is the main entry point for syncing dashboard data.
+        This is the main entry point for syncing dashboard data. It:
+        1. Parses entities from all configured sources (specs, plans, tasks)
+        2. Resolves relationships and enriches entities (via RelationshipResolver)
+        3. Writes entities and relationships to SQLite
+        4. Reports sync results and errors
 
         Args:
             force_full_sync: If True, ignore checksums and re-sync everything
@@ -231,51 +172,97 @@ class SyncOrchestrator:
             with get_connection(self.db_path) as conn:
                 writer = EntityWriter(conn)
 
+                # Phase 1: Parse entities from all sources
+                # Collect all entities before writing to enable relationship resolution
+                all_entities = []
+
                 # Sync specs
                 if self.specs_root:
                     try:
-                        spec_result = self._sync_specs(writer)
-                        entities_added += spec_result["added"]
-                        entities_updated += spec_result["updated"]
+                        logger.info("Parsing specs...")
+                        spec_parser = SpecParser(self.specs_root)
+                        spec_entities = spec_parser.parse_all()
+                        all_entities.extend(spec_entities)
                         sources_synced.append("specs")
+                        logger.info(f"Parsed {len(spec_entities)} spec entities")
                     except Exception as e:
-                        error_msg = f"Spec sync failed: {e}"
+                        error_msg = f"Spec parsing failed: {e}"
                         logger.error(error_msg)
                         errors.append(error_msg)
+                        # Continue with other sources
 
-                # Sync plans (not yet implemented)
+                # Sync plans
                 if self.plans_root:
                     try:
-                        plan_result = self._sync_plans(writer)
-                        entities_added += plan_result["added"]
-                        entities_updated += plan_result["updated"]
+                        logger.info("Parsing plans...")
+                        plan_parser = PlanParser(self.plans_root)
+                        plan_entities = plan_parser.parse_all()
+                        all_entities.extend(plan_entities)
                         sources_synced.append("plans")
+                        logger.info(f"Parsed {len(plan_entities)} plan entities")
                     except Exception as e:
-                        error_msg = f"Plan sync failed: {e}"
+                        error_msg = f"Plan parsing failed: {e}"
                         logger.error(error_msg)
                         errors.append(error_msg)
+                        # Continue with other sources
 
-                # Sync tasks (not yet implemented)
+                # Sync tasks
                 if self.tasks_backend:
                     try:
-                        task_result = self._sync_tasks(writer)
-                        entities_added += task_result["added"]
-                        entities_updated += task_result["updated"]
+                        logger.info("Parsing tasks...")
+                        backend = get_backend()
+                        task_parser = TaskParser(backend)
+                        task_entities = task_parser.parse_all()
+                        all_entities.extend(task_entities)
                         sources_synced.append("tasks")
+                        logger.info(f"Parsed {len(task_entities)} task entities")
                     except Exception as e:
-                        error_msg = f"Task sync failed: {e}"
+                        error_msg = f"Task parsing failed: {e}"
+                        logger.error(error_msg)
+                        errors.append(error_msg)
+                        # Continue with other sources
+
+                # Phase 2: Resolve relationships and enrich entities
+                try:
+                    logger.info("Resolving relationships and enriching entities...")
+                    resolver = RelationshipResolver(
+                        changelog_path=self.changelog_path,
+                        ledger_path=self.ledger_path,
+                    )
+                    resolved_entities, relationships = resolver.resolve(all_entities)
+                    logger.info(
+                        f"Resolved {len(resolved_entities)} entities with "
+                        f"{len(relationships)} relationships"
+                    )
+                except Exception as e:
+                    error_msg = f"Relationship resolution failed: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    # Use original entities if resolution fails
+                    resolved_entities = all_entities
+                    relationships = []
+
+                # Phase 3: Write entities to database
+                if resolved_entities:
+                    try:
+                        logger.info("Writing entities to database...")
+                        written, skipped = writer.write_entities(resolved_entities)
+                        entities_added = written
+                        logger.info(f"Wrote {written} entities ({skipped} skipped)")
+                    except Exception as e:
+                        error_msg = f"Entity writing failed: {e}"
                         logger.error(error_msg)
                         errors.append(error_msg)
 
-                # Sync ledger (not yet implemented)
-                if self.ledger_path:
+                # Phase 4: Write relationships to database
+                if relationships:
                     try:
-                        ledger_result = self._sync_ledger(writer)
-                        entities_added += ledger_result["added"]
-                        entities_updated += ledger_result["updated"]
-                        sources_synced.append("ledger")
+                        logger.info("Writing relationships to database...")
+                        rel_written, rel_skipped = writer.write_relationships(relationships)
+                        relationships_added = rel_written
+                        logger.info(f"Wrote {rel_written} relationships ({rel_skipped} skipped)")
                     except Exception as e:
-                        error_msg = f"Ledger sync failed: {e}"
+                        error_msg = f"Relationship writing failed: {e}"
                         logger.error(error_msg)
                         errors.append(error_msg)
 

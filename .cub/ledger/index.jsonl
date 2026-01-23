@@ -157,3 +157,8 @@
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-k8d.8", "title": "Implement cub dashboard CLI command", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.1", "title": "Implement plan parser", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.2", "title": "Implement task parser via backend abstraction", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.3", "title": "Implement ledger parser", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.4", "title": "Implement CHANGELOG parser for release detection", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.5", "title": "Implement relationship resolver and stage computation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
