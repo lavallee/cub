@@ -196,3 +196,16 @@
 {"id": "cub-m3x.6", "title": "Add loading states, error states, and keyboard navigation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
 {"id": "cub-p9w.1", "title": "Implement view configuration loading from .cub/views/", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}
 {"id": "cub-p9w.2", "title": "Ship default view configurations", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}
+{"id": "cub-p9w.4", "title": "Implement cub dashboard views command", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}
+{"id": "cub-specific", "title": "Specific task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-success", "title": "Successful task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-p9w.5", "title": "Update documentation and CLAUDE.md", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}
+{"id": "cub-p9w.6", "title": "Final test coverage and CI integration", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}

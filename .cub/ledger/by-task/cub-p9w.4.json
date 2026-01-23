@@ -1,8 +1,8 @@
 {
-  "id": "cub-specific",
-  "title": "Specific task",
+  "id": "cub-p9w.4",
+  "title": "Implement cub dashboard views command",
   "started_at": null,
-  "completed_at": "2026-01-23T16:56:15.696333",
+  "completed_at": "2026-01-23T16:54:38.715369",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -10,7 +10,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 1,
+  "duration_seconds": 142,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -18,8 +18,8 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4427194656'>",
-  "epic_id": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260123-165215/tasks/cub-p9w.4",
+  "epic_id": "cub-p9w",
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
