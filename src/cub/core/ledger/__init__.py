@@ -33,6 +33,7 @@ Example:
     57000
 """
 
+from cub.core.ledger.extractor import InsightExtraction, extract_insights
 from cub.core.ledger.models import (
     CommitRef,
     EpicSummary,
@@ -59,4 +60,7 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Extraction
+    "InsightExtraction",
+    "extract_insights",
 ]
