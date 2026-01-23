@@ -5699,3 +5699,22 @@ This tier placement is appropriate because:
 - Add CI configuration to enforce coverage thresholds per tier
 
 **Commit:** 33f2767
+
+## 2026-01-23: Fixed Side Panel Backdrop (cub-shz7)
+
+**Issue**: The detail panel backdrop was rendering as fully black instead of semi-transparent, obscuring the main board view.
+
+**Root Cause**: The backdrop was using the older Tailwind syntax `bg-black bg-opacity-25` which wasn't rendering correctly.
+
+**Solution**: Updated to modern Tailwind opacity syntax `bg-black/30` which properly applies 30% opacity to the black background.
+
+**Technical Details**:
+- Changed backdrop from `bg-black bg-opacity-25` to `bg-black/30`
+- Added `aria-label` for better accessibility
+- Maintained proper z-index layering (backdrop at z-40, panel at z-50)
+- All tests passed, TypeScript compilation successful, linter clean
+
+**Learnings**:
+- Modern Tailwind CSS uses `/` syntax for opacity (e.g., `bg-black/30` instead of separate `bg-opacity-*` classes)
+- The separate opacity classes (`bg-opacity-*`) can have inconsistent rendering in some configurations
+- Always test UI changes by running the build to catch syntax errors early
