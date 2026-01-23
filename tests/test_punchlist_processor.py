@@ -286,9 +286,9 @@ Add --verbose flag to cub run""",
 
         # Check tasks were created with epic ID in labels (not using parent)
         # We use labels instead of --parent to avoid beads creating
-        # blocking parent-child dependencies
+        # blocking parent-child dependencies. Label format is "epic:{id}".
         task_call = mock_backend.create_task.call_args_list[1]
-        assert "cub-001" in task_call.kwargs["labels"]
+        assert "epic:cub-001" in task_call.kwargs["labels"]
         assert "parent" not in task_call.kwargs  # Should NOT use parent
 
     def test_custom_epic_title(

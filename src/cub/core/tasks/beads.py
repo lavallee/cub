@@ -251,9 +251,13 @@ class BeadsBackend:
         args = ["ready", "--json"]
 
         if parent:
-            # Use --parent to filter by parent-child relationship
-            # This finds tasks that are descendants of the given epic
-            args.extend(["--parent", parent])
+            # Use --label epic:{parent} to filter by epic association.
+            # This works for both:
+            # 1. Hierarchical children (cub-xxx.1) that have epic:cub-xxx label
+            # 2. Label-associated tasks (punchlist) that use epic:cub-xxx label
+            # Note: --parent only works for hierarchical relationships, which is
+            # too restrictive since punchlist tasks use label-based association.
+            args.extend(["--label", f"epic:{parent}"])
         if label:
             args.extend(["--label", label])
 
