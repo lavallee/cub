@@ -14,6 +14,7 @@ from cub.cli import (
     captures,
     delegated,
     doctor,
+    ledger,
     merge,
     monitor,
     organize_captures,
@@ -83,6 +84,7 @@ app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
 app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
+app.add_typer(ledger.app, name="ledger", rich_help_panel=PANEL_STATUS)
 app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
 
 

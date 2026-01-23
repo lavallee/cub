@@ -42,6 +42,7 @@ from cub.core.ledger.models import (
     TokenUsage,
     VerificationStatus,
 )
+from cub.core.ledger.reader import LedgerReader
 
 __all__ = [
     # Core models
@@ -53,4 +54,6 @@ __all__ = [
     # Supporting models
     "TokenUsage",
     "VerificationStatus",
+    # Reader
+    "LedgerReader",
 ]
