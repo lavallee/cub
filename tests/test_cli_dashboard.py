@@ -241,3 +241,138 @@ class TestDashboardIntegration:
             cub_dir = Path(".cub")
             assert cub_dir.exists()
             assert cub_dir.is_dir()
+
+
+class TestDashboardExport:
+    """Test dashboard export subcommand."""
+
+    def test_export_help(self) -> None:
+        """Test that 'cub dashboard export --help' shows export options."""
+        result = runner.invoke(app, ["dashboard", "export", "--help"])
+        assert result.exit_code == 0
+        assert "output" in result.output.lower()
+        assert "pretty" in result.output.lower()
+        assert "compact" in result.output.lower()
+
+    def test_export_no_project_root(self) -> None:
+        """Test export subcommand when not in a project directory."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(app, ["dashboard", "export"])
+            assert result.exit_code == 1
+            assert "not in a project" in result.output.lower()
+
+    def test_export_no_database(self) -> None:
+        """Test export when database doesn't exist."""
+        with runner.isolated_filesystem():
+            # Create project structure but no database
+            Path(".beads").mkdir()
+            Path(".cub").mkdir()
+            Path("specs").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "export"])
+            assert result.exit_code == 1
+            assert "database not found" in result.output.lower()
+            assert "sync" in result.output.lower()
+
+    def test_export_to_stdout(self) -> None:
+        """Test export to stdout produces valid JSON."""
+        import json
+
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path("specs").mkdir()
+
+            # First sync to create database
+            sync_result = runner.invoke(app, ["dashboard", "sync"])
+            assert sync_result.exit_code == 0
+
+            # Then export
+            result = runner.invoke(app, ["dashboard", "export"])
+            assert result.exit_code == 0
+
+            # Verify it's valid JSON
+            data = json.loads(result.output)
+            assert "view" in data
+            assert "columns" in data
+            assert "stats" in data
+            assert len(data["columns"]) == 8  # Default 8 columns
+
+    def test_export_to_file(self) -> None:
+        """Test export to file."""
+        import json
+
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path("specs").mkdir()
+
+            # First sync
+            runner.invoke(app, ["dashboard", "sync"])
+
+            # Export to file
+            result = runner.invoke(app, ["dashboard", "export", "-o", "board.json"])
+            assert result.exit_code == 0
+            assert "exported" in result.output.lower()
+
+            # Verify file contents
+            assert Path("board.json").exists()
+            data = json.loads(Path("board.json").read_text())
+            assert "view" in data
+            assert "columns" in data
+            assert "stats" in data
+
+    def test_export_compact(self) -> None:
+        """Test export with --compact option produces minified JSON."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path("specs").mkdir()
+
+            # First sync
+            runner.invoke(app, ["dashboard", "sync"])
+
+            # Export compact
+            result = runner.invoke(app, ["dashboard", "export", "--compact"])
+            assert result.exit_code == 0
+
+            # Compact JSON should have no newlines (single line)
+            lines = result.output.strip().split("\n")
+            assert len(lines) == 1  # All JSON on one line
+
+    def test_export_pretty(self) -> None:
+        """Test export with --pretty option produces indented JSON."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path("specs").mkdir()
+
+            # First sync
+            runner.invoke(app, ["dashboard", "sync"])
+
+            # Export pretty (default)
+            result = runner.invoke(app, ["dashboard", "export", "--pretty"])
+            assert result.exit_code == 0
+
+            # Pretty JSON should have multiple lines
+            lines = result.output.strip().split("\n")
+            assert len(lines) > 1  # Multiple lines with indentation
+
+    def test_export_creates_parent_dirs(self) -> None:
+        """Test export creates parent directories if needed."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path("specs").mkdir()
+
+            # First sync
+            runner.invoke(app, ["dashboard", "sync"])
+
+            # Export to nested path
+            result = runner.invoke(
+                app, ["dashboard", "export", "-o", "exports/backup/board.json"]
+            )
+            assert result.exit_code == 0
+
+            # Verify file was created with parent dirs
+            assert Path("exports/backup/board.json").exists()

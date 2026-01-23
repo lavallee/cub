@@ -22,6 +22,7 @@ app = typer.Typer(
 )
 
 console = Console()
+err_console = Console(stderr=True)
 logger = logging.getLogger(__name__)
 
 
@@ -288,6 +289,105 @@ def sync(
         if debug:
             import traceback
             console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
+def export(
+    ctx: typer.Context,
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (default: stdout)",
+    ),
+    pretty: bool = typer.Option(
+        True,
+        "--pretty/--compact",
+        help="Pretty-print JSON with indentation",
+    ),
+) -> None:
+    """
+    Export board data as JSON.
+
+    Exports the current dashboard state including all entities, columns,
+    and statistics. Useful for:
+
+    - Scripting and automation
+    - Backup and restore
+    - Integration with external tools
+    - Data analysis with jq
+
+    Examples:
+        cub dashboard export                    # Print to stdout
+        cub dashboard export -o board.json      # Save to file
+        cub dashboard export --compact          # Minified JSON
+        cub dashboard export | jq '.stats'      # Pipe to jq
+    """
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
+
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+        err_console.print("[dim]Debug mode enabled[/dim]")
+
+    try:
+        project_root, db_path, specs_root = _get_project_paths()
+
+        if debug:
+            err_console.print(f"[dim]Database: {db_path}[/dim]")
+
+        # Check if database exists
+        if not db_path.exists():
+            err_console.print("[red]Error:[/red] Dashboard database not found.")
+            err_console.print(
+                "[dim]Run 'cub dashboard sync' first to create the database.[/dim]"
+            )
+            raise typer.Exit(1)
+
+        # Import dashboard dependencies
+        try:
+            from cub.core.dashboard.db.connection import get_connection
+            from cub.core.dashboard.db.queries import get_board_data
+        except ImportError as e:
+            err_console.print(
+                "[red]Error:[/red] Dashboard dependencies not installed. "
+                f"Missing module: {e.name}"
+            )
+            raise typer.Exit(1)
+
+        # Fetch board data
+        with get_connection(db_path) as conn:
+            board = get_board_data(conn)
+
+        # Serialize to JSON
+        indent = 2 if pretty else None
+        json_output = board.model_dump_json(indent=indent, exclude_none=True)
+
+        # Output
+        if output:
+            try:
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_text(json_output)
+                err_console.print(f"[green]✓[/green] Exported to {output}")
+            except PermissionError:
+                err_console.print(
+                    f"[red]Error:[/red] Permission denied writing to {output}"
+                )
+                raise typer.Exit(1)
+            except OSError as e:
+                err_console.print(f"[red]Error:[/red] Failed to write file: {e}")
+                raise typer.Exit(1)
+        else:
+            # Print to stdout (use print, not console, to avoid Rich formatting)
+            print(json_output)
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        err_console.print(f"[red]Error:[/red] {e}")
+        if debug:
+            import traceback
+            err_console.print(traceback.format_exc())
         raise typer.Exit(1)
 
 
