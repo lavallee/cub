@@ -1,8 +1,8 @@
 {
-  "id": "cub-success",
-  "title": "Successful task",
+  "id": "cub-k8d.7",
+  "title": "Implement basic KanbanBoard and EntityCard components",
   "started_at": null,
-  "completed_at": "2026-01-23T14:03:51.863109",
+  "completed_at": "2026-01-23T14:01:20.876851",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -10,7 +10,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 1,
+  "duration_seconds": 250,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -18,8 +18,8 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4625491552'>",
-  "epic_id": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260123-131702/tasks/cub-k8d.7",
+  "epic_id": "cub-k8d",
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",

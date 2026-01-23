@@ -143,3 +143,17 @@
 {"id": "cub-specific", "title": "Specific task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-k8d.3", "title": "Implement spec parser for sync layer", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
 {"id": "cub-k8d.4", "title": "Implement basic sync orchestrator and SQLite writer", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.5", "title": "Implement FastAPI app with /api/board endpoint", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.6", "title": "Set up Vite + Preact + Tailwind frontend project", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.7", "title": "Implement basic KanbanBoard and EntityCard components", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-specific", "title": "Specific task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-success", "title": "Successful task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.8", "title": "Implement cub dashboard CLI command", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
