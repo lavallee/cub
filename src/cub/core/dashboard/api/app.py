@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from cub.core.dashboard.api.routes import artifact, board, entity, views
+from cub.core.dashboard.api.routes import artifact, board, entity, stats, views
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -64,6 +64,7 @@ app.add_middleware(
 app.include_router(artifact.router, prefix="/api", tags=["artifact"])
 app.include_router(board.router, prefix="/api", tags=["board"])
 app.include_router(entity.router, prefix="/api", tags=["entity"])
+app.include_router(stats.router, prefix="/api", tags=["stats"])
 app.include_router(views.router, prefix="/api", tags=["views"])
 
 
