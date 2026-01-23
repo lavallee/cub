@@ -40,6 +40,7 @@ from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
     IterationInfo,
+    RunArtifact,
     RunPhase,
     RunStatus,
 )
@@ -128,6 +129,7 @@ def _invoke_harness(
     task_input: TaskInput,
     stream: bool,
     debug: bool,
+    harness_log_path: Path | None = None,
 ) -> HarnessResult:
     """
     Invoke harness with unified streaming/blocking execution.
@@ -139,6 +141,7 @@ def _invoke_harness(
         task_input: Task parameters (prompt, system_prompt, model, etc.)
         stream: Whether to stream output
         debug: Enable debug logging
+        harness_log_path: Optional path to write raw harness output
 
     Returns:
         HarnessResult with output, usage, and timing
@@ -146,7 +149,7 @@ def _invoke_harness(
     start_time = time.time()
 
     if stream and harness_backend.capabilities.streaming:
-        # Stream execution
+        # Stream execution with tee-like behavior (output to console AND file)
         sys.stdout.flush()
 
         async def _stream_and_collect() -> str:
@@ -163,6 +166,14 @@ def _invoke_harness(
         sys.stdout.write("\n")
         sys.stdout.flush()
 
+        # Write collected output to harness.log if path provided
+        if harness_log_path is not None:
+            try:
+                harness_log_path.write_text(result_output, encoding="utf-8")
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to write harness.log: {e}[/dim]")
+
         return HarnessResult(
             output=result_output,
             usage=TokenUsage(),  # Usage tracking TBD for streaming
@@ -172,6 +183,14 @@ def _invoke_harness(
     else:
         # Blocking execution with async backend
         task_result = _run_async(harness_backend.run_task, task_input, debug)
+
+        # Write output to harness.log if path provided
+        if harness_log_path is not None:
+            try:
+                harness_log_path.write_text(task_result.output, encoding="utf-8")
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to write harness.log: {e}[/dim]")
 
         return HarnessResult(
             output=task_result.output,
@@ -525,6 +544,36 @@ def display_task_info(task: Task, iteration: int, max_iterations: int) -> None:
     table.add_row("Iteration", f"{iteration}/{max_iterations}")
 
     console.print(Panel(table, title="[bold]Current Task[/bold]", border_style="blue"))
+
+
+def create_run_artifact(status: RunStatus, config: dict[str, Any] | None = None) -> RunArtifact:
+    """
+    Create a RunArtifact from RunStatus for persistence to run.json.
+
+    Args:
+        status: Current RunStatus
+        config: Optional config snapshot
+
+    Returns:
+        RunArtifact with budget totals and completion info
+    """
+    # Determine completion time
+    completed_at = datetime.now() if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED] else None
+
+    # Map phase to status string
+    status_str = status.phase.value if hasattr(status.phase, "value") else str(status.phase)
+
+    return RunArtifact(
+        run_id=status.run_id,
+        session_name=status.session_name,
+        started_at=status.started_at,
+        completed_at=completed_at,
+        status=status_str,
+        config=config or {},
+        tasks_completed=status.budget.tasks_completed,
+        tasks_failed=0,  # TODO: Track failed tasks separately if needed
+        budget=status.budget,
+    )
 
 
 def display_summary(status: RunStatus) -> None:
@@ -1427,12 +1476,18 @@ def run(
         # Final status write
         status_writer.write(status)
 
+        # Persist run artifact with budget totals
+        config_dict = config.model_dump(mode="json") if isinstance(config, CubConfig) else {}
+        run_artifact = create_run_artifact(status, config_dict)
+        status_writer.write_run_artifact(run_artifact)
+
         # Display summary
         console.print()
         display_summary(status)
 
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
+            console.print(f"[dim]Run artifact: {status_writer.run_artifact_path}[/dim]")
 
         # Clean up working directory (commit artifacts, remove temp files)
         if isinstance(config, CubConfig) and config.cleanup.enabled:

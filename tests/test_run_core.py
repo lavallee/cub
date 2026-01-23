@@ -15,6 +15,7 @@ from cub.cli.run import (
     _show_ready_tasks,
     _signal_handler,
     app,
+    create_run_artifact,
     display_summary,
     display_task_info,
     generate_system_prompt,
@@ -1719,3 +1720,121 @@ class TestBranchCreation:
 
             assert result.exit_code == 1
             assert "Cannot run on 'master' branch without --main-ok" in result.output
+
+
+# ==============================================================================
+# Test create_run_artifact function
+# ==============================================================================
+
+
+class TestCreateRunArtifact:
+    """Tests for create_run_artifact helper function."""
+
+    def test_create_run_artifact_completed(self):
+        """Test create_run_artifact with completed run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.COMPLETED,
+        )
+        status.budget.tokens_used = 5000
+        status.budget.cost_usd = 0.25
+        status.budget.tasks_completed = 3
+
+        config_dict = {"test": "config"}
+        artifact = create_run_artifact(status, config_dict)
+
+        assert artifact.run_id == "test-run-001"
+        assert artifact.session_name == "test-session"
+        assert artifact.started_at == now
+        assert artifact.completed_at is not None
+        assert artifact.status == "completed"
+        assert artifact.config == config_dict
+        assert artifact.tasks_completed == 3
+        assert artifact.budget.tokens_used == 5000
+        assert artifact.budget.cost_usd == 0.25
+
+    def test_create_run_artifact_failed(self):
+        """Test create_run_artifact with failed run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-002",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.FAILED,
+        )
+        status.budget.tokens_used = 2000
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.run_id == "test-run-002"
+        assert artifact.completed_at is not None
+        assert artifact.status == "failed"
+        assert artifact.budget.tokens_used == 2000
+
+    def test_create_run_artifact_stopped(self):
+        """Test create_run_artifact with stopped run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-003",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.STOPPED,
+        )
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.completed_at is not None
+        assert artifact.status == "stopped"
+
+    def test_create_run_artifact_running(self):
+        """Test create_run_artifact with still-running run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-004",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.RUNNING,
+        )
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.completed_at is None
+        assert artifact.status == "running"
+
+    def test_create_run_artifact_with_budget_limits(self):
+        """Test create_run_artifact preserves budget limits."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-005",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.COMPLETED,
+        )
+        status.budget.tokens_used = 8000
+        status.budget.tokens_limit = 10000
+        status.budget.cost_usd = 0.50
+        status.budget.cost_limit = 1.00
+        status.budget.tasks_completed = 5
+        status.budget.tasks_limit = 10
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.budget.tokens_used == 8000
+        assert artifact.budget.tokens_limit == 10000
+        assert artifact.budget.cost_usd == 0.50
+        assert artifact.budget.cost_limit == 1.00
+        assert artifact.budget.tasks_completed == 5
+        assert artifact.budget.tasks_limit == 10

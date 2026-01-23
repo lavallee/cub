@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from cub.core.status.models import RunPhase, RunStatus
+from cub.core.status.models import BudgetStatus, RunArtifact, RunPhase, RunStatus
 from cub.core.status.writer import StatusWriter, get_latest_status, list_runs
 
 
@@ -199,6 +199,125 @@ class TestStatusWriter:
 
         with pytest.raises(TypeError, match="not JSON serializable"):
             writer._json_serializer(object())
+
+    def test_write_run_artifact_creates_file(self, temp_dir):
+        """Test write_run_artifact() creates run.json file."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            budget=BudgetStatus(tokens_used=1000, cost_usd=0.05, tasks_completed=3),
+        )
+
+        writer.write_run_artifact(artifact)
+
+        assert writer.run_artifact_path.exists()
+
+    def test_write_run_artifact_serializes_correctly(self, temp_dir):
+        """Test write_run_artifact() serializes RunArtifact to valid JSON."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            config={"test": "value"},
+            tasks_completed=5,
+            tasks_failed=1,
+            budget=BudgetStatus(
+                tokens_used=2000,
+                tokens_limit=10000,
+                cost_usd=0.10,
+                cost_limit=1.0,
+                tasks_completed=5,
+                tasks_limit=10,
+            ),
+        )
+
+        writer.write_run_artifact(artifact)
+
+        # Read and verify JSON
+        with writer.run_artifact_path.open() as f:
+            data = json.load(f)
+
+        assert data["run_id"] == "test-run-001"
+        assert data["session_name"] == "test-session"
+        assert data["status"] == "completed"
+        assert data["tasks_completed"] == 5
+        assert data["tasks_failed"] == 1
+        assert data["config"]["test"] == "value"
+        assert data["budget"]["tokens_used"] == 2000
+        assert data["budget"]["cost_usd"] == 0.10
+        assert data["budget"]["tasks_completed"] == 5
+
+    def test_write_run_artifact_is_atomic(self, temp_dir):
+        """Test write_run_artifact() uses atomic write (temp file + rename)."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test",
+            started_at=datetime.now(),
+            status="in_progress",
+        )
+
+        writer.write_run_artifact(artifact)
+
+        # Temp file should not exist after successful write
+        temp_file = writer.run_artifact_path.with_suffix(".json.tmp")
+        assert not temp_file.exists()
+
+        # Run artifact file should exist
+        assert writer.run_artifact_path.exists()
+
+    def test_read_run_artifact_existing(self, temp_dir):
+        """Test read_run_artifact() loads existing run.json."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        original_artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            budget=BudgetStatus(tokens_used=1500, cost_usd=0.08, tasks_completed=4),
+        )
+
+        writer.write_run_artifact(original_artifact)
+        loaded_artifact = writer.read_run_artifact()
+
+        assert loaded_artifact is not None
+        assert loaded_artifact.run_id == "test-run-001"
+        assert loaded_artifact.session_name == "test-session"
+        assert loaded_artifact.status == "completed"
+        assert loaded_artifact.budget is not None
+        assert loaded_artifact.budget.tokens_used == 1500
+        assert loaded_artifact.budget.tasks_completed == 4
+
+    def test_read_run_artifact_nonexistent(self, temp_dir):
+        """Test read_run_artifact() returns None when run.json doesn't exist."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        artifact = writer.read_run_artifact()
+
+        assert artifact is None
+
+    def test_read_run_artifact_invalid_json(self, temp_dir):
+        """Test read_run_artifact() returns None for invalid JSON."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        writer.run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write invalid JSON
+        writer.run_artifact_path.write_text("{ invalid json }")
+
+        artifact = writer.read_run_artifact()
+
+        assert artifact is None
 
 
 class TestGetLatestStatus:
