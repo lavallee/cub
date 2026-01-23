@@ -4651,3 +4651,60 @@ Set up the frontend project structure with Vite, Preact, TypeScript, and Tailwin
 ### Next Task
 Ready for cub-k8d.7: Implement basic KanbanBoard and EntityCard components
 
+
+## Task cub-k8d.7: Basic Kanban Board Components
+
+**Completed:** 2025-01-23
+
+### What was implemented:
+- Created `useBoard` hook for fetching board data with loading/error states
+- Created `EntityCard` component - minimal card showing title, type, and description
+- Created `Column` component - displays stage column with entity cards and count
+- Created `KanbanBoard` component - main board with horizontal scroll, header with stats
+- Updated `App.tsx` to render KanbanBoard instead of demo content
+
+### Implementation notes:
+- Used existing TypeScript types from `api.ts` and `client.ts` (created in previous tasks)
+- Components use Preact/hooks, not React
+- Tailwind CSS classes for styling (already configured in project)
+- EntityCard click handler placeholder for future detail panel (task cub-k8d.8)
+- Build and typecheck pass successfully
+
+### Architecture decisions:
+- Kept components minimal per task requirements
+- Separated concerns: hook for data fetching, components for presentation
+- Used existing API client rather than direct fetch calls
+- No state management needed yet - simple hook-based data fetching
+
+### Next steps:
+- Task cub-k8d.8: Implement detail panel for entity details
+- May need to add state management for selected entity
+
+## 2026-01-23 - Task cub-k8d.8: Implement dashboard CLI command
+
+### What was done
+- Created `src/cub/cli/dashboard.py` with main command and sync subcommand
+- Main command: syncs data (unless --no-sync), starts FastAPI server, opens browser (unless --no-browser)
+- Sync subcommand: syncs project data to SQLite database without starting server
+- Registered command in `src/cub/cli/__init__.py` under "See What a Run is Doing" panel
+- Added comprehensive test suite with 13 tests covering help, error cases, sync, and server launch
+
+### Key decisions
+- Used lazy imports for fastapi/uvicorn to avoid import errors when dependencies not installed
+- Stored db_path in fastapi_app.state for routes to access
+- Default port 8080, configurable via --port flag
+- Browser opens automatically after 1.5s delay (configurable via --no-browser)
+- Sync continues even if it fails, server starts with partial data
+- Used threading for browser opening to avoid blocking server startup
+
+### Technical details
+- Lazy imports required patching test mocks at `cub.core.dashboard.sync.SyncOrchestrator`
+- Import order matters for ruff linter (stdlib, blank line, third-party)
+- Typer callback with invoke_without_command=True allows both main command and subcommands
+- Error messages provide helpful install instructions when dependencies missing
+
+### Testing
+- All 13 tests passing
+- Mocked uvicorn.run and SyncOrchestrator for server launch tests
+- Integration tests verify database and .cub directory creation
+- Type checking and linting clean
