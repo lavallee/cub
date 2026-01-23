@@ -4376,3 +4376,82 @@ With models defined, we can now implement:
 
 The type-safe model foundation ensures consistent data structures across all layers.
 
+
+## 2026-01-23 - Spec Parser Implementation (cub-k8d.3)
+
+Implemented the spec parser for the dashboard sync layer. This is the first parser in the sync system that will eventually aggregate data from specs, plans, tasks, ledger, and changelog.
+
+### What Worked Well
+
+1. **Reused existing Spec model**: The `Spec.from_frontmatter_dict()` method already handled all the complex parsing and validation. Just needed to extract the title from markdown content first.
+
+2. **Clear separation of concerns**: Parser focuses on:
+   - Reading files and computing checksums
+   - Extracting title from markdown headings
+   - Converting Spec -> DashboardEntity with stage mapping
+   - Handling edge cases gracefully
+
+3. **Comprehensive test coverage**: 15 tests covering:
+   - Happy path with full frontmatter
+   - Edge cases (missing frontmatter, invalid YAML, empty files)
+   - Stage and priority mapping validation
+   - Checksum computation and change detection
+   - Batch operations (parse_all, parse_stage)
+
+4. **Stage mapping design**: Clean mapping from spec lifecycle stages to dashboard columns:
+   - researching -> SPECS (being researched)
+   - planned -> PLANNED (plan exists)
+   - staged -> READY (tasks created, ready to work)
+   - implementing -> IN_PROGRESS (active work)
+   - released -> RELEASED (shipped)
+
+### Implementation Details
+
+**Key design decisions:**
+
+1. **Title extraction**: Followed existing pattern from SpecWorkflow - use regex to find first `# Heading` in markdown content, fallback to filename if not found.
+
+2. **Priority mapping**: Mapped spec priorities (critical/high/medium/low) to dashboard priorities (0-3) where 0=P0/highest.
+
+3. **Label extraction**: Extract complexity and status as labels for filtering. Dependencies/blocks are stored in frontmatter but will become relationships when linked by sync orchestrator.
+
+4. **Checksum for incremental sync**: Compute MD5 hash of file content to detect changes. This enables the sync orchestrator to skip unchanged files.
+
+5. **Error handling**: Log errors but continue processing. Skip malformed files but don't fail the entire sync.
+
+**Edge cases handled:**
+
+- Missing frontmatter: Use empty metadata dict, still parse content
+- Invalid YAML: Log warning, use empty metadata
+- Empty files: Return None, log warning
+- No title heading: Use filename as title
+- Missing stage directories: Log debug, continue
+
+### Next Steps
+
+The spec parser is the foundation. Next tasks:
+
+1. **cub-k8d.4**: Implement sync orchestrator that:
+   - Calls SpecParser.parse_all()
+   - Writes entities to SQLite
+   - Tracks sync state (checksums, timestamps)
+   - Handles incremental sync (only process changed files)
+
+2. **Future parsers** will follow the same pattern:
+   - PlanParser: Parse .cub/sessions/*/plan.jsonl
+   - TaskParser: Query beads/JSON backend
+   - LedgerParser: Parse .cub/ledger/
+   - ChangelogParser: Parse CHANGELOG.md
+
+3. **Relationship extraction**: Once we have multiple entity types, the orchestrator will resolve relationships via explicit markers (spec_id, plan_id, epic_id).
+
+### Lessons Learned
+
+1. **Leverage existing models**: Don't duplicate parsing logic. The existing Spec model already validated and parsed frontmatter correctly - just needed to adapt it.
+
+2. **Test edge cases early**: Having comprehensive tests for missing frontmatter, invalid YAML, and empty files caught issues immediately and gave confidence in robustness.
+
+3. **Checksum strategy**: MD5 is fast and sufficient for change detection. Don't need cryptographic security, just need to detect when files change.
+
+4. **Logging levels matter**: Use debug for "directory not found", warning for "empty file", error for "parse failed". This makes it easy to understand what's happening during sync.
+

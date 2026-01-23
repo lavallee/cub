@@ -138,3 +138,7 @@
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.1", "title": "Create SQLite schema and database module", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.2", "title": "Create Pydantic models for dashboard entities", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}
+{"id": "cub-specific", "title": "Specific task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-k8d.3", "title": "Implement spec parser for sync layer", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k8d", "verification": "pending", "tokens": 0}

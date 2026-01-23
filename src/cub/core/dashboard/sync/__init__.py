@@ -17,8 +17,12 @@ Architecture:
 - writer: SQLite write operations
 """
 
+from cub.core.dashboard.sync.orchestrator import SyncOrchestrator
 from cub.core.dashboard.sync.parsers.specs import SpecParser
+from cub.core.dashboard.sync.writer import EntityWriter
 
 __all__ = [
+    "SyncOrchestrator",
     "SpecParser",
+    "EntityWriter",
 ]
