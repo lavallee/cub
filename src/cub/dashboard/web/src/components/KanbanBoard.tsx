@@ -7,6 +7,7 @@ import { useBoard } from '../hooks/useBoard';
 import { useNavigation } from '../hooks/useNavigation';
 import { Column } from './Column';
 import { DetailPanel } from './DetailPanel';
+import { StatsBar } from './StatsBar';
 import { ViewSwitcher } from './ViewSwitcher';
 import type { DashboardEntity } from '../types/api';
 
@@ -63,7 +64,7 @@ export function KanbanBoard() {
     <div class="h-screen flex flex-col bg-gray-100">
       {/* Board header */}
       <div class="bg-white border-b border-gray-200 px-6 py-4">
-        <div class="flex items-start justify-between">
+        <div class="flex items-start justify-between mb-4">
           <div class="flex-1">
             <h1 class="text-2xl font-bold text-gray-900">
               {data.view.name}
@@ -71,15 +72,6 @@ export function KanbanBoard() {
             {data.view.description && (
               <p class="text-sm text-gray-600 mt-1">{data.view.description}</p>
             )}
-            <div class="flex gap-4 mt-2 text-xs text-gray-500">
-              <span>Total: {data.stats.total}</span>
-              {data.stats.cost_total > 0 && (
-                <span>Cost: ${data.stats.cost_total.toFixed(2)}</span>
-              )}
-              {data.stats.tokens_total > 0 && (
-                <span>Tokens: {data.stats.tokens_total.toLocaleString()}</span>
-              )}
-            </div>
           </div>
           <div class="ml-4 flex-shrink-0">
             <ViewSwitcher
@@ -90,6 +82,9 @@ export function KanbanBoard() {
           </div>
         </div>
       </div>
+
+      {/* Stats bar */}
+      <StatsBar stats={data.stats} showCost={true} showTokens={true} />
 
       {/* Scrollable board columns */}
       <div class="flex-1 overflow-x-auto overflow-y-hidden">
