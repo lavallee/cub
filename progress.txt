@@ -3797,3 +3797,182 @@ All tests passing, mypy clean.
 
 6. **Extensibility**: The `doctor()` function structure makes it easy to add new checks by creating additional check functions following the same pattern.
 
+
+## 2026-01-23 - cub-m4j.1: Create ledger package structure and Pydantic models
+
+### Task Completed
+Created comprehensive foundation for the ledger package with well-defined Pydantic v2 models that follow established codebase patterns.
+
+### What Was Implemented
+
+**Package Structure:**
+- `src/cub/core/ledger/__init__.py` - Clean public API with all models exported
+- `src/cub/core/ledger/models.py` - Seven comprehensive Pydantic models
+- `tests/test_ledger_models.py` - 56 comprehensive tests covering all models
+
+**Models Created:**
+1. **VerificationStatus** (Enum) - Verification check statuses (pass/fail/warn/skip/pending/error)
+   - Added semantic properties: `is_successful`, `requires_attention`
+   
+2. **TokenUsage** - Token consumption tracking
+   - Fields: input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
+   - Computed property: `total_tokens`
+   - Validation: All tokens must be >= 0
+   
+3. **CommitRef** - Git commit references
+   - Fields: hash (7-40 chars), message, author, timestamp
+   - Hash validation: hex characters only, normalized to lowercase
+   - Computed property: `short_hash` (first 7 chars)
+   
+4. **LedgerEntry** - Individual task completion record (CORE MODEL)
+   - Fields: id, title, started_at, completed_at, tokens, cost_usd, duration_seconds
+   - Implementation details: approach, decisions, lessons_learned
+   - File tracking: files_changed, commits[]
+   - References: spec_file, run_log_path, epic_id
+   - Verification: verification_status, verification_notes[]
+   - Harness metadata: harness_name, harness_model
+   - Computed properties: duration_minutes, primary_commit, cost_per_token
+   
+5. **LedgerIndex** - Compact JSONL index entries
+   - Quick-lookup format for index.jsonl
+   - Factory method: `from_ledger_entry()` creates index from full entry
+   - Date validation: YYYY-MM-DD format enforced
+   
+6. **EpicSummary** - Aggregated epic metrics
+   - Task aggregation: task_ids[], tasks_total, tasks_completed
+   - Metrics: total_cost_usd, total_duration_seconds, total_tokens
+   - Temporal: started_at, completed_at
+   - Commit range: first_commit, last_commit
+   - Spec drift: spec_file, drift_notes[]
+   - Computed properties: completion_percentage, average_cost_per_task, is_complete
+   
+7. **LedgerStats** - System-wide statistics
+   - Task/epic counts
+   - Cost metrics: total, average, min, max
+   - Token metrics: total, average
+   - Time metrics: total_duration_seconds, average_duration_seconds
+   - Verification metrics: tasks_verified, tasks_failed, verification_rate
+   - File metrics: total_files_changed, unique_files_changed
+   - Computed properties: total_duration_hours, average_duration_minutes
+
+### Test Coverage
+
+**56 comprehensive tests** covering:
+- Model creation (minimal and full field sets)
+- Validation (negative values, invalid formats, empty strings, out-of-range values)
+- Computed properties (all properties tested)
+- Serialization/deserialization (JSON roundtrips)
+- Factory methods (LedgerIndex.from_ledger_entry)
+- Edge cases (zero tokens, no commits, zero tasks)
+- Enum properties (is_successful, requires_attention)
+
+All tests pass, mypy type checking clean, ruff linting clean.
+
+### Key Design Decisions
+
+1. **Followed Existing Patterns**: Studied existing models in tasks/, config/, status/, captures/ to ensure consistency
+   - Used Field() with descriptions on all fields
+   - Followed Pydantic v2 patterns (ConfigDict, field_validator, computed_field)
+   - UTC timezone handling for all datetime fields (lambda: datetime.now(timezone.utc))
+   - Factory methods for alternative constructors
+
+2. **Comprehensive Validation**:
+   - CommitRef hash validation (7-40 chars, hex only, normalized lowercase)
+   - LedgerIndex date format validation (YYYY-MM-DD)
+   - Numeric constraints (ge=0 for costs/tokens, ge=1 for iterations)
+   - String constraints (min_length=1 for titles)
+
+3. **Computed Properties for Analytics**:
+   - Added properties that derive from stored data (duration_minutes, cost_per_token)
+   - Avoided storing redundant data that can be calculated
+   - Used @property decorator for semantic queries (is_successful, is_complete)
+
+4. **Factory Pattern for Index**:
+   - LedgerIndex.from_ledger_entry() creates compact index from full entry
+   - Handles missing data gracefully (no commits → empty string)
+   - Proper date formatting (completed_at → YYYY-MM-DD string)
+
+5. **Semantic Enums**:
+   - VerificationStatus has business logic methods (is_successful, requires_attention)
+   - Follows pattern from TaskStatus, TaskPriority in existing code
+
+### Files Modified
+- Created: `src/cub/core/ledger/__init__.py`
+- Created: `src/cub/core/ledger/models.py`
+- Created: `tests/test_ledger_models.py`
+
+### Integration Points
+
+These models provide the foundation for:
+- Ledger writer (will write LedgerEntry as markdown to .cub/ledger/by-task/)
+- Index writer (will append LedgerIndex as JSONL to .cub/ledger/index.jsonl)
+- Epic aggregation (will generate EpicSummary from completed tasks)
+- Stats dashboard (will calculate LedgerStats across all entries)
+- Run tracking integration (TokenUsage already used in harness models)
+
+### Lessons Learned
+
+1. **Search Before Writing**: Used parallel subagents to search codebase patterns before implementing. This ensured consistency with existing code style and conventions.
+
+2. **Test-Driven Edge Cases**: Writing comprehensive tests revealed edge cases early:
+   - CommitRef hash validation needed to check for non-hex characters AND length
+   - LedgerIndex date validator needed to handle ValueError from strptime
+   - Cost per token calculation needed zero-division guard
+
+3. **Computed Properties vs Stored Fields**: Clear distinction between:
+   - Stored: Data that changes independently (cost_usd, tokens)
+   - Computed: Derived values (duration_minutes from duration_seconds)
+   - Ensures single source of truth, prevents data inconsistency
+
+4. **Factory Methods for Transformations**: LedgerIndex.from_ledger_entry() pattern:
+   - Keeps transformation logic co-located with the model
+   - Easier to test than separate utility functions
+   - Follows Pydantic best practices
+
+5. **Pydantic v2 Patterns Observed**:
+   - ConfigDict instead of class Config
+   - field_validator with @classmethod decorator and mode="before"
+   - computed_field with @property for derived data
+   - default_factory for mutable defaults (lists, dicts, datetime)
+   - No Path import needed (removed unused import caught by ruff)
+
+### Next Steps
+
+This package provides the data model foundation for:
+- cub-m4j.2: Ledger writer implementation (writes entries to markdown)
+- cub-m4j.3: Index management (JSONL append and query)
+- cub-m4j.4: Integration with task completion hooks
+- Later: Epic summary generation, stats calculation, drift detection
+
+The models are ready for use. All validation, serialization, and business logic is in place.
+
+---
+
+
+## Task cub-m4j.4: Implement cub ledger CLI commands (show, stats, search)
+
+**Date:** 2026-01-23
+
+**Key Learnings:**
+
+1. **JSONL Reading Pattern**: Used `collections.abc.Iterator` for streaming JSONL reads. Each line is parsed with `json.loads()` and validated with Pydantic's `model_validate()`.
+
+2. **Rich CLI Output**: Used Rich tables with `Table()` for structured data display. Color formatting with tags like `[green]`, `[red]`, `[yellow]` for status indicators.
+
+3. **Filter Composition**: Implemented multiple filter layers (date, epic, verification) by applying filters sequentially to list comprehensions. Keeps code clean and testable.
+
+4. **Graceful Degradation**: All commands check `reader.exists()` first and show helpful warnings when ledger is missing, rather than erroring out.
+
+5. **Date Handling**: Used `datetime.strptime(date_str, "%Y-%m-%d").date()` for date comparisons. Index stores dates as YYYY-MM-DD strings for simplicity.
+
+6. **Typer Multi-command Pattern**: Created sub-app with `typer.Typer()` and registered with `app.add_typer()` in main CLI. Each command is a separate function with full type hints.
+
+7. **Optional JSON Output**: All commands support `--json` flag for machine-readable output. Uses `model_dump_json()` for consistent serialization.
+
+8. **Cost Formatting**: Created helper function `_format_cost()` to consistently format USD amounts with color coding (yellow for costs).
+
+9. **Verification Status Enum**: Leveraged the existing `VerificationStatus` enum for filtering. Status colors map to semantic meaning (green=pass, red=fail/error).
+
+10. **Manual Testing Approach**: Created temporary test data in `.cub/ledger/` to verify all commands work end-to-end before deployment.
+
+**Outcome:** Successfully implemented all three ledger query commands. All type checks pass, no new test failures, manual testing confirms correct behavior with filters and JSON output.
