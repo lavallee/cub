@@ -4150,3 +4150,229 @@ Implemented LLM-based insight extraction from harness execution logs for the led
 4. **Log Processing**: When processing large logs, preserve the beginning (setup) and end (results) - middle is usually verbose execution details.
 
 5. **Test Coverage for LLM Integrations**: Mock subprocess calls to test all error paths without actual LLM costs. Cover: success, non-zero exit, timeout, FileNotFoundError, OSError.
+
+## Task: cub-k8d.1 - Create SQLite schema and database module
+
+**Completed:** 2026-01-23
+
+### What was built
+
+Created the foundational database layer for the dashboard system:
+
+1. **Schema Design** (`src/cub/core/dashboard/db/schema.py`)
+   - Entities table with 6 types: spec, plan, epic, task, ledger, release
+   - 8-stage Kanban columns: backlog, researching, planned, staged, implementing, verifying, completed, released
+   - Relationships table supporting 7 relationship types
+   - Metadata table for flexible entity data
+   - Schema versioning system for migrations
+   - CHECK constraints for data integrity
+   - Performance indexes on frequently queried fields
+
+2. **Connection Management** (`src/cub/core/dashboard/db/connection.py`)
+   - SQLite configuration with WAL mode for concurrency
+   - Foreign key enforcement
+   - Dict-based row factory for convenient access
+   - Context managers for safe transactions
+   - Query helpers: execute_query, execute_one
+   - CRUD helpers: insert_entity, insert_relationship, upsert_metadata
+
+3. **Comprehensive Tests** (`tests/test_dashboard_schema.py`)
+   - 43 tests covering all functionality
+   - Schema creation and migration testing
+   - Connection configuration verification
+   - CRUD operations validation
+   - Constraint enforcement testing
+   - Index verification
+
+### Key Decisions
+
+1. **SQLite over PostgreSQL**: Chose SQLite for simplicity and zero-setup experience. WAL mode provides sufficient concurrency for dashboard queries.
+
+2. **Dict Row Factory**: Using dict-based row access (`row["column"]`) instead of positional access for better readability and maintainability.
+
+3. **8-Stage Kanban**: Aligned with project workflow: backlog → researching → planned → staged → implementing → verifying → completed → released
+
+4. **Explicit Relationships**: Separate relationships table instead of JSON blobs enables efficient queries and foreign key enforcement.
+
+5. **Metadata Table**: Key-value metadata table provides flexibility for entity-specific data without schema changes.
+
+### Technical Notes
+
+- WAL mode enables concurrent reads while writing
+- Foreign keys enforce referential integrity with CASCADE deletes
+- Indexes on type, stage, and relationships optimize common queries
+- Schema versioning prepares for future migrations
+- All mypy strict checks pass with proper type annotations
+
+### Next Steps
+
+The database layer is ready. Next tasks:
+- cub-k8d.2: Create Pydantic models for dashboard entities
+- cub-k8d.3: Implement spec parser for sync layer
+
+## Task: cub-k8d.2 - Create Pydantic models for dashboard entities
+**Completed:** 2026-01-23
+**Status:** ✓ Closed
+
+### What Was Built
+
+Created comprehensive Pydantic v2 models providing type-safe data structures for the entire dashboard system, from database entities to API responses.
+
+**Files Created:**
+- `src/cub/core/dashboard/db/models.py` (635 lines)
+- `tests/test_dashboard_models.py` (555 lines)
+
+### Model Architecture
+
+1. **Enums** (3 types)
+   - `EntityType`: 7 entity types (capture, spec, plan, epic, task, ledger, release)
+   - `Stage`: 8 Kanban board stages (CAPTURES → SPECS → PLANNED → READY → IN_PROGRESS → NEEDS_REVIEW → COMPLETE → RELEASED)
+   - `RelationType`: 9 relationship types (contains, blocks, references, spec_to_plan, etc.)
+
+2. **Core Entity Models** (2 models)
+   - `DashboardEntity`: Unified entity with 20+ fields aggregating data from all sources
+     - Core: id, type, title, description, stage, status, priority, labels
+     - Hierarchy: parent_id, spec_id, plan_id, epic_id (explicit relationship markers)
+     - Metrics: cost_usd, tokens, duration_seconds, verification_status
+     - Source tracking: source_type, source_path, source_checksum
+     - Content: content, frontmatter
+     - Computed properties: is_complete, priority_display
+   
+   - `Relationship`: Links between entities with rel_type and optional metadata
+
+3. **View Configuration Models** (4 models)
+   - `ColumnConfig`: Defines board column (id, title, stages[], group_by)
+   - `FilterConfig`: Entity filters (include/exclude labels, types, priority ranges)
+   - `DisplayConfig`: Display settings (show_cost, card_size, etc.)
+   - `ViewConfig`: Complete view definition combining columns, filters, display
+
+4. **API Response Models** (5 models)
+   - `BoardColumn`: Column data with entities for board rendering
+   - `BoardStats`: Aggregate metrics (total, by_stage, by_type, costs, tokens)
+   - `BoardResponse`: Full board payload (view + columns + stats)
+   - `EntityDetail`: Detailed entity with relationships for detail panel
+   - `ViewSummary`: Lightweight view listing
+
+5. **Sync Orchestration Models** (2 models)
+   - `SyncState`: Tracks source checksums for incremental sync
+   - `SyncResult`: Reports sync outcomes (adds, updates, deletes, errors, duration)
+
+### Key Design Decisions
+
+1. **Stage vs Status Separation**: `stage` (computed, canonical, for board placement) vs `status` (raw, from source, for filtering). This mirrors architecture doc's stage computation logic.
+
+2. **Explicit Relationship Markers**: `spec_id`, `plan_id`, `epic_id` fields enable reliable linking without fragile heuristics. Architecture doc emphasizes this approach.
+
+3. **Flexible Metadata**: `frontmatter: dict[str, Any]` preserves source-specific data without rigid schema.
+
+4. **Type Safety**: Full mypy strict compliance with proper generic types (`dict[str, Any]`, not `dict`).
+
+5. **Validation Constraints**: 
+   - Priority: 0-4 (matching P0-P4 convention)
+   - Negative values rejected for cost, tokens, duration
+   - Required fields enforced by Pydantic
+
+6. **Computed Properties**: Read-only properties like `is_complete`, `priority_display`, `total_changes` for convenience without data duplication.
+
+### Testing Strategy
+
+**Test Coverage: 33 tests**
+
+1. **Enum Tests** (3 tests)
+   - Verify all enum values match architecture spec
+
+2. **Entity Construction Tests** (6 tests)
+   - Minimal entity (required fields only)
+   - Full entity (all fields populated)
+   - Priority validation (0-4 range, rejects invalid)
+   - Computed properties (is_complete, priority_display)
+   - Serialization (model_dump)
+
+3. **Relationship Tests** (2 tests)
+   - Minimal relationship
+   - Relationship with metadata
+
+4. **View Configuration Tests** (6 tests)
+   - ColumnConfig construction
+   - FilterConfig with all options
+   - FilterConfig defaults
+   - DisplayConfig construction
+   - DisplayConfig defaults
+   - ViewConfig with nested models
+
+5. **API Response Tests** (6 tests)
+   - BoardColumn with entities
+   - BoardStats with metrics
+   - BoardStats defaults
+   - Full BoardResponse
+   - EntityDetail with relationships
+   - ViewSummary
+
+6. **Sync Models Tests** (5 tests)
+   - SyncState tracking
+   - SyncResult with all fields
+   - SyncResult defaults
+   - Computed total_changes
+   - SyncResult with errors
+
+7. **Validation Tests** (5 tests)
+   - Required field enforcement
+   - Negative cost rejection
+   - Negative tokens rejection
+   - Negative duration rejection
+
+### Technical Decisions
+
+1. **Pydantic v2 Features Used**:
+   - `ConfigDict` for model configuration
+   - `Field` with validation (ge, le, min_length)
+   - `@property` for computed fields (no need for @computed_field in Python 3.10+)
+   - `model_dump()` for serialization
+
+2. **Type Annotations**: Full typing with generics (`dict[str, Any]`) for mypy compliance
+
+3. **Enum Base**: All enums extend `str, Enum` for JSON serialization compatibility
+
+4. **Optional Fields**: Used `| None` with `default=None` for optional fields, `default_factory=list` for collections
+
+5. **Field Aliases**: Not needed for dashboard models (unlike task models with camelCase backend)
+
+### Integration Points
+
+These models are consumed by:
+- **Sync Layer** (`cub.core.dashboard.sync.*`): Parsers create DashboardEntity instances
+- **Database Layer** (`cub.core.dashboard.db.queries`): Queries return these models
+- **API Layer** (`cub.core.dashboard.api.*`): Endpoints return BoardResponse, EntityDetail, etc.
+- **CLI Layer** (`cub.cli.dashboard`): Uses ViewConfig for view management
+
+### Validation
+
+✅ **All checks pass:**
+- `pytest tests/test_dashboard_models.py -v`: 33/33 tests pass
+- `mypy src/cub/core/dashboard/`: No errors
+- `ruff check src/cub/core/dashboard/db/models.py`: All checks pass
+- All 129 dashboard tests pass (including schema and renderer tests)
+
+### Learnings
+
+1. **Model Hierarchy**: Designing a model hierarchy that serves multiple purposes (sync, storage, API) requires balancing flexibility with type safety. We used `dict[str, Any]` for frontmatter to preserve source data while keeping strict types elsewhere.
+
+2. **Stage Computation**: Modeling `stage` as a computed field (not stored in model) aligns with architecture's stage computation logic. The model just holds the result; sync layer computes it.
+
+3. **Relationship Markers**: Explicit `spec_id`, `plan_id`, `epic_id` fields enable reliable traceability. Alternative (parsing markdown links) would be fragile.
+
+4. **Enum Usage**: Using enums for `EntityType`, `Stage`, `RelationType` catches typos at type-check time and enables IDE autocomplete.
+
+5. **Test Organization**: Grouping tests by model type (TestDashboardEntity, TestRelationship, etc.) makes tests easy to navigate and run selectively.
+
+6. **Generic Type Enforcement**: mypy requires generic types (`dict[str, Any]` not `dict`). This caught potential bugs where we'd otherwise lose type information.
+
+### Next Steps
+
+With models defined, we can now implement:
+- **cub-k8d.3**: Spec parser (reads specs/, creates DashboardEntity instances)
+- **cub-k8d.4**: Sync orchestrator (coordinates parsers, writes to SQLite)
+- **cub-k8d.5**: FastAPI endpoints (returns BoardResponse, EntityDetail)
+
+The type-safe model foundation ensures consistent data structures across all layers.
+
