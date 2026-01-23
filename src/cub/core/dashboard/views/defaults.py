@@ -5,7 +5,7 @@ This module provides the default view configurations that are always available,
 even if no custom views are defined in `.cub/views/`.
 
 The system provides three built-in views:
-- default: Full 8-column workflow (Captures → Released)
+- default: Full 9-column workflow (Captures → Released)
 - sprint: Active work focused view (Ready → In Progress → Review → Complete)
 - ideas: Idea development focused view (Captures → Specs → Planned)
 
@@ -30,7 +30,7 @@ View configuration format:
 - **columns**: List of column configurations, each with:
   - id: Column identifier
   - title: Display title
-  - stages: List of stages to include (CAPTURES, SPECS, PLANNED, READY,
+  - stages: List of stages to include (CAPTURES, SPECS, PLANNED, BLOCKED, READY,
             IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED)
 - **filters**: Entity filtering rules
   - exclude_labels: Labels to exclude from the view
@@ -59,21 +59,21 @@ from cub.core.dashboard.db.models import (
 
 def get_default_view() -> ViewConfig:
     """
-    Get the default full 8-column workflow view.
+    Get the default full 9-column workflow view.
 
     Returns:
-        ViewConfig for the default view with all 8 stages
+        ViewConfig for the default view with all 9 stages
 
     Example:
         >>> view = get_default_view()
         >>> assert view.id == "default"
-        >>> assert len(view.columns) == 8
+        >>> assert len(view.columns) == 9
         >>> assert view.is_default
     """
     return ViewConfig(
         id="default",
         name="Full Workflow",
-        description="Complete workflow from captures to released (8 columns)",
+        description="Complete workflow from captures to released (9 columns)",
         columns=[
             ColumnConfig(
                 id="captures",
@@ -89,6 +89,11 @@ def get_default_view() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
+            ),
+            ColumnConfig(
+                id="blocked",
+                title="Blocked",
+                stages=[Stage.BLOCKED],
             ),
             ColumnConfig(
                 id="ready",
@@ -276,7 +281,7 @@ def get_built_in_view_summaries() -> list[ViewSummary]:
         ViewSummary(
             id="default",
             name="Full Workflow",
-            description="Complete workflow from captures to released (8 columns)",
+            description="Complete workflow from captures to released (9 columns)",
             is_default=True,
         ),
         ViewSummary(

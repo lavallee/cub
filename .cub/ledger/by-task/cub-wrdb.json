@@ -1,8 +1,8 @@
 {
-  "id": "cub-specific",
-  "title": "Specific task",
+  "id": "cub-wrdb",
+  "title": "Fix Readiness validation errors in dashboard sync",
   "started_at": null,
-  "completed_at": "2026-01-23T18:35:53.213674",
+  "completed_at": "2026-01-23T18:43:01.110642",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -10,7 +10,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 1,
+  "duration_seconds": 663,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -18,8 +18,8 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4420111728'>",
-  "epic_id": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260123-183157/tasks/cub-wrdb",
+  "epic_id": "cub-o0f4",
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",

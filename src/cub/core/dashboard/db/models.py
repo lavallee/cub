@@ -36,7 +36,7 @@ class EntityType(str, Enum):
 
 
 class Stage(str, Enum):
-    """Lifecycle stages for the 8-column Kanban board.
+    """Lifecycle stages for the 9-column Kanban board.
 
     These stages represent the progression of work from initial capture
     through release. The architecture doc describes the stage computation
@@ -46,6 +46,7 @@ class Stage(str, Enum):
     - CAPTURES: Raw ideas and notes (capture entities)
     - SPECS: Specifications being researched (spec entities in researching/)
     - PLANNED: Plans exist but not staged (spec entities in planned/, plan entities)
+    - BLOCKED: Tasks/epics not ready due to dependencies (tasks/epics with unmet dependencies)
     - READY: Tasks ready to work (tasks with status=open, no blockers)
     - IN_PROGRESS: Active work (tasks with status=in_progress, specs in implementing/)
     - NEEDS_REVIEW: Awaiting review (tasks with 'pr' label or status=review)
@@ -56,6 +57,7 @@ class Stage(str, Enum):
     CAPTURES = "CAPTURES"
     SPECS = "SPECS"
     PLANNED = "PLANNED"
+    BLOCKED = "BLOCKED"
     READY = "READY"
     IN_PROGRESS = "IN_PROGRESS"
     NEEDS_REVIEW = "NEEDS_REVIEW"

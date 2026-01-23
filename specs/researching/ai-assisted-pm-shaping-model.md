@@ -30,15 +30,15 @@ readiness:
     - Decide which modes to implement first (MVP scope)
     - Pick visualization approach (CLI tree, web UI, mermaid diagrams)
   tools_needed:
-    - Competitive Analysis Tool (similar PM tools: Linear, Shape Up, Opportunity Solution Trees)
+    - "Competitive Analysis Tool (similar PM tools: Linear, Shape Up, Opportunity Solution Trees)"
     - Dependency Analyzer (what needs to exist first)
     - Implementation Path Generator (break into specific features)
     - Trade-off Analyzer (which modes to implement first)
-    - Idea graph visualizer (domain-specific: show relationships between captures/frames/solutions)
-    - Mode suggester (domain-specific: recommend which mode to enter based on current state)
-    - Assumption extractor (domain-specific: identify implicit assumptions in specs/ideas)
-    - Decision tracker (domain-specific: link decisions to outcomes/evidence)
-    - Integration mapper (domain-specific: identify where this connects to existing Cub features)
+    - "Idea graph visualizer (domain-specific: show relationships between captures/frames/solutions)"
+    - "Mode suggester (domain-specific: recommend which mode to enter based on current state)"
+    - "Assumption extractor (domain-specific: identify implicit assumptions in specs/ideas)"
+    - "Decision tracker (domain-specific: link decisions to outcomes/evidence)"
+    - "Integration mapper (domain-specific: identify where this connects to existing Cub features)"
 ---
 
 # AI-Assisted PM Shaping: Stages, Representation, and "What Next?" Questions

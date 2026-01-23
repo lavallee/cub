@@ -31,15 +31,15 @@ readiness:
     - Choose state persistence format (JSON vs SQLite vs files)
     - Design workflow → harness hook integration
   tools_needed:
-    - Competitive Analysis Tool (existing workflow engines: Windmill, Temporal, etc)
+    - "Competitive Analysis Tool (existing workflow engines: Windmill, Temporal, etc)"
     - Trade-off Analyzer (YAML vs Python, native vs external engine)
     - Design Pattern Matcher (workflow orchestration patterns)
     - API Design Validator (workflow DSL design)
-    - Workflow validator (domain-specific: check YAML syntax, tool availability, logic)
-    - Workflow visualizer (domain-specific: show workflow as graph/flowchart)
-    - Workflow simulator (domain-specific: dry-run with mocked tools)
-    - Autonomy scorer (domain-specific: calculate autonomy requirement for workflow)
-    - Workflow debugger (domain-specific: step through execution, inspect variables)
+    - "Workflow validator (domain-specific: check YAML syntax, tool availability, logic)"
+    - "Workflow visualizer (domain-specific: show workflow as graph/flowchart)"
+    - "Workflow simulator (domain-specific: dry-run with mocked tools)"
+    - "Autonomy scorer (domain-specific: calculate autonomy requirement for workflow)"
+    - "Workflow debugger (domain-specific: step through execution, inspect variables)"
 notes: |
   Harness abstraction spec now exists with hook system.
   Workflows can use harness.run_task() for LLM interactions.

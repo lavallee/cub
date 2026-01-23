@@ -34,10 +34,10 @@ readiness:
     - Technical Feasibility Checker (verify MCP integration approach)
     - Trade-off Analyzer (YAML vs JSON vs code, storage formats)
     - Design Pattern Matcher (registry patterns from other systems)
-    - Tool discovery scanner (domain-specific: scan system for available CLIs, MCPs, skills)
-    - Schema validator (domain-specific: validate tool definitions against registry schema)
-    - Capability matcher (domain-specific: semantic search for tools by capability)
-    - Installation verifier (domain-specific: check if tool install succeeded)
+    - "Tool discovery scanner (domain-specific: scan system for available CLIs, MCPs, skills)"
+    - "Schema validator (domain-specific: validate tool definitions against registry schema)"
+    - "Capability matcher (domain-specific: semantic search for tools by capability)"
+    - "Installation verifier (domain-specific: check if tool install succeeded)"
 notes: |
   Harness abstraction spec now exists with register_tool() API.
   Tools can be registered with harnesses that support CUSTOM_TOOLS feature.

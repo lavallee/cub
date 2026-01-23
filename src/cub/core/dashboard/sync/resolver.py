@@ -9,11 +9,12 @@ Stage Computation Logic:
 1. CAPTURES: Capture-type entities
 2. SPECS: Specs in researching stage
 3. PLANNED: Specs in planned stage, Plan entities
-4. READY: Tasks with status=open and no blockers
-5. IN_PROGRESS: Tasks/specs with status=in_progress
-6. NEEDS_REVIEW: Tasks with 'pr' or 'review' label
-7. COMPLETE: Tasks with ledger entry (closed but not released)
-8. RELEASED: Tasks/specs in CHANGELOG
+4. BLOCKED: Tasks/epics with status=open but have blocking dependencies
+5. READY: Tasks with status=open and no blockers
+6. IN_PROGRESS: Tasks/specs with status=in_progress
+7. NEEDS_REVIEW: Tasks with 'pr' or 'review' label
+8. COMPLETE: Tasks with ledger entry (closed but not released)
+9. RELEASED: Tasks/specs in CHANGELOG
 
 Relationship Types:
 - SPEC_TO_PLAN: Spec -> Plan (via plan.spec_id)
@@ -149,6 +150,48 @@ class RelationshipResolver:
         """
         entries = self._get_ledger_entries()
         return entries.get(entity_id.lower())
+
+    def _has_blockers(self, entity: DashboardEntity, entity_index: dict[str, DashboardEntity]) -> bool:
+        """
+        Check if an entity has unresolved blockers.
+
+        An entity is blocked if it has dependencies (depends_on) that are not yet completed.
+
+        Args:
+            entity: Entity to check for blockers
+            entity_index: Dict mapping entity ID to entity for dependency lookup
+
+        Returns:
+            True if entity has unresolved blockers
+        """
+        # Check if entity has depends_on in frontmatter
+        if not entity.frontmatter:
+            return False
+
+        depends_on = entity.frontmatter.get("depends_on") or entity.frontmatter.get("dependsOn")
+        if not depends_on:
+            return False
+
+        # If depends_on is a list, check if any dependencies are not completed
+        if isinstance(depends_on, list):
+            for dep_id in depends_on:
+                # Normalize dep_id if it's a dict
+                if isinstance(dep_id, dict):
+                    dep_id = dep_id.get("id") or dep_id.get("depends_on_id")
+                    if not dep_id:
+                        continue
+
+                # Check if dependency exists and is not completed
+                dep_entity = entity_index.get(dep_id)
+                if dep_entity:
+                    # If dependency is NOT closed, we're blocked
+                    if dep_entity.status != "closed":
+                        return True
+                else:
+                    # If dependency doesn't exist in our index, assume it's external and blocking
+                    return True
+
+        return False
 
     def _build_entity_index(self, entities: list[DashboardEntity]) -> dict[str, DashboardEntity]:
         """
@@ -364,11 +407,15 @@ class RelationshipResolver:
         # Process each entity
         resolved_entities: list[DashboardEntity] = []
         for entity in entities:
+            # Check if entity has blockers
+            has_blockers = self._has_blockers(entity, entity_index)
+
             # Recompute stage with all signals
             new_stage = compute_stage(
                 entity,
                 is_released=self._is_released(entity.id),
                 has_ledger=self._get_ledger_entry(entity.id) is not None,
+                has_blockers=has_blockers,
             )
 
             # Enrich with ledger data
@@ -422,10 +469,11 @@ def compute_stage(
     2. COMPLETE: Entity has ledger entry but not released
     3. NEEDS_REVIEW: Entity has 'pr' or 'review' label
     4. IN_PROGRESS: Entity status is in_progress
-    5. READY: Entity status is open with no blockers (tasks only)
-    6. PLANNED: Entity status is open (epics, plans)
-    7. SPECS: Spec entities in researching stage
-    8. CAPTURES: Capture entities
+    5. BLOCKED: Entity status is open but has blocking dependencies (tasks/epics)
+    6. READY: Entity status is open with no blockers (tasks only)
+    7. PLANNED: Entity status is open (epics, plans)
+    8. SPECS: Spec entities in researching stage
+    9. CAPTURES: Capture entities
 
     Args:
         entity: Entity to compute stage for
@@ -482,6 +530,11 @@ def compute_stage(
             return Stage.COMPLETE
         elif entity.status == "in_progress":
             return Stage.IN_PROGRESS
+        elif entity.status == "open":
+            # Open epics with blockers go to BLOCKED
+            if has_blockers:
+                return Stage.BLOCKED
+            return Stage.PLANNED
         else:
             return Stage.PLANNED
 
@@ -492,9 +545,9 @@ def compute_stage(
         elif entity.status == "in_progress":
             return Stage.IN_PROGRESS
         elif entity.status == "open":
-            # Open tasks with blockers stay in PLANNED
+            # Open tasks with blockers go to BLOCKED
             if has_blockers:
-                return Stage.PLANNED
+                return Stage.BLOCKED
             return Stage.READY
 
     # Default fallback based on existing stage

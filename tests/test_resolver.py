@@ -198,10 +198,20 @@ class TestComputeStage:
         entity = make_entity("task-1", type=EntityType.TASK, status="closed")
         assert compute_stage(entity) == Stage.COMPLETE
 
-    def test_task_with_blockers_is_planned(self) -> None:
-        """Open tasks with blockers should be in PLANNED stage."""
+    def test_task_with_blockers_is_blocked(self) -> None:
+        """Open tasks with blockers should be in BLOCKED stage."""
         entity = make_entity("task-1", type=EntityType.TASK, status="open")
-        assert compute_stage(entity, has_blockers=True) == Stage.PLANNED
+        assert compute_stage(entity, has_blockers=True) == Stage.BLOCKED
+
+    def test_epic_with_blockers_is_blocked(self) -> None:
+        """Open epics with blockers should be in BLOCKED stage."""
+        entity = make_entity("epic-1", type=EntityType.EPIC, status="open")
+        assert compute_stage(entity, has_blockers=True) == Stage.BLOCKED
+
+    def test_epic_without_blockers_is_planned(self) -> None:
+        """Open epics without blockers should be in PLANNED stage."""
+        entity = make_entity("epic-1", type=EntityType.EPIC, status="open")
+        assert compute_stage(entity, has_blockers=False) == Stage.PLANNED
 
     def test_review_label_overrides_status(self) -> None:
         """Tasks with 'review' label should be in NEEDS_REVIEW stage."""
@@ -586,6 +596,96 @@ class TestRelationshipResolver:
         assert len(contains_rels) == 1
         assert contains_rels[0].source_id == "parent-1"
         assert contains_rels[0].target_id == "child-1"
+
+    def test_resolver_detects_blockers_from_depends_on(self) -> None:
+        """Resolver should detect blockers from depends_on in frontmatter."""
+        resolver = RelationshipResolver()
+        entities = [
+            make_entity("task-1", type=EntityType.TASK, status="open"),
+            make_entity(
+                "task-2",
+                type=EntityType.TASK,
+                status="open",
+                frontmatter={"depends_on": ["task-1"]},
+            ),
+        ]
+
+        resolved, relationships = resolver.resolve(entities)
+
+        # task-2 depends on task-1, which is still open, so task-2 should be BLOCKED
+        task2 = [e for e in resolved if e.id == "task-2"][0]
+        assert task2.stage == Stage.BLOCKED
+
+    def test_resolver_task_ready_when_dependency_closed(self) -> None:
+        """Resolver should mark task as READY when dependency is closed."""
+        resolver = RelationshipResolver()
+        entities = [
+            make_entity("task-1", type=EntityType.TASK, status="closed"),
+            make_entity(
+                "task-2",
+                type=EntityType.TASK,
+                status="open",
+                frontmatter={"depends_on": ["task-1"]},
+            ),
+        ]
+
+        resolved, relationships = resolver.resolve(entities)
+
+        # task-1 is closed, so task-2 should be READY
+        task2 = [e for e in resolved if e.id == "task-2"][0]
+        assert task2.stage == Stage.READY
+
+    def test_resolver_detects_blockers_from_dependsOn_camelcase(self) -> None:
+        """Resolver should detect blockers from dependsOn (camelCase) in frontmatter."""
+        resolver = RelationshipResolver()
+        entities = [
+            make_entity("task-1", type=EntityType.TASK, status="open"),
+            make_entity(
+                "task-2",
+                type=EntityType.TASK,
+                status="open",
+                frontmatter={"dependsOn": ["task-1"]},
+            ),
+        ]
+
+        resolved, relationships = resolver.resolve(entities)
+
+        # task-2 depends on task-1, which is still open, so task-2 should be BLOCKED
+        task2 = [e for e in resolved if e.id == "task-2"][0]
+        assert task2.stage == Stage.BLOCKED
+
+    def test_resolver_epic_blocked_by_dependencies(self) -> None:
+        """Resolver should mark epics as BLOCKED when they have unmet dependencies."""
+        resolver = RelationshipResolver()
+        entities = [
+            make_entity("epic-1", type=EntityType.EPIC, status="open"),
+            make_entity(
+                "epic-2",
+                type=EntityType.EPIC,
+                status="open",
+                frontmatter={"depends_on": ["epic-1"]},
+            ),
+        ]
+
+        resolved, relationships = resolver.resolve(entities)
+
+        # epic-2 depends on epic-1, which is still open, so epic-2 should be BLOCKED
+        epic2 = [e for e in resolved if e.id == "epic-2"][0]
+        assert epic2.stage == Stage.BLOCKED
+
+    def test_resolver_no_blockers_when_no_dependencies(self) -> None:
+        """Resolver should mark tasks as READY when they have no dependencies."""
+        resolver = RelationshipResolver()
+        entities = [
+            make_entity("task-1", type=EntityType.TASK, status="open"),
+            make_entity("task-2", type=EntityType.TASK, status="open", frontmatter={}),
+        ]
+
+        resolved, relationships = resolver.resolve(entities)
+
+        # Both tasks should be READY
+        for entity in resolved:
+            assert entity.stage == Stage.READY
 
 
 # =============================================================================

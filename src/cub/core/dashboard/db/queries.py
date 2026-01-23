@@ -47,14 +47,14 @@ MODEL_STAGE_TO_DB_STAGE = {v: k for k, v in DB_STAGE_TO_MODEL_STAGE.items()}
 
 def get_default_view_config() -> ViewConfig:
     """
-    Get the default 8-column view configuration.
+    Get the default 9-column view configuration.
 
     Returns:
-        Default view config with all 8 stages as separate columns
+        Default view config with all 9 stages as separate columns
 
     Example:
         >>> view = get_default_view_config()
-        >>> assert len(view.columns) == 8
+        >>> assert len(view.columns) == 9
         >>> assert view.id == "default"
     """
     return ViewConfig(
@@ -76,6 +76,11 @@ def get_default_view_config() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
+            ),
+            ColumnConfig(
+                id="blocked",
+                title="Blocked",
+                stages=[Stage.BLOCKED],
             ),
             ColumnConfig(
                 id="ready",

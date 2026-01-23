@@ -44,7 +44,7 @@ class TestBuiltInViews:
         assert view.id == "default"
         assert view.name == "Full Workflow"
         assert view.is_default is True
-        assert len(view.columns) == 8
+        assert len(view.columns) == 9
         assert view.filters is not None
         assert view.display is not None
 

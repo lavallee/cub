@@ -5755,3 +5755,51 @@ maintaining backward compatibility.
 - src/cub/core/specs/models.py: Added normalize_string_list() helper
 - tests/test_spec_workflow.py: Added 3 new test cases
 
+
+## 2026-01-23 - Task cub-p71l: Metadata Enrichment
+
+Successfully implemented metadata enrichment for dashboard cards during the sync phase.
+
+### What Worked Well:
+1. **Pydantic Model Flexibility** - Adding optional fields to DashboardEntity was straightforward
+   with proper validation (ge/le constraints for readiness_score).
+
+2. **JSON Storage Pattern** - Storing metadata in the existing JSON data field avoided the need
+   for schema migrations. The writer already had a pattern for storing complex fields.
+
+3. **Parser Separation** - Each parser (Spec, Plan, Task) independently extracted its relevant
+   metadata, making the code modular and testable.
+
+4. **Resolver as Aggregation Point** - Computing task/epic counts during relationship resolution
+   was the right phase, as it had access to all entities and their relationships.
+
+5. **Graceful Degradation** - Using Optional[T] types and None defaults naturally handled
+   missing metadata without special error handling.
+
+### Key Design Decisions:
+1. **Normalized readiness_score** - Stored as 0.0-1.0 instead of 0-10 to match common
+   probability/percentage conventions in the frontend.
+
+2. **Description excerpt truncation** - Fixed 100 char limit with "..." suffix provides
+   consistent card sizing while preserving readability.
+
+3. **Notes counting strategy** - Count individual note items (blockers, questions, decisions)
+   rather than just presence/absence for better granularity.
+
+4. **Task count computation** - Handled both epic_id and parent_id to cover different task
+   backend implementations and plan formats.
+
+### Testing Approach:
+- Tested metadata extraction with complete data (happy path)
+- Tested graceful degradation with minimal/missing data
+- Tested long content truncation
+- Tested database round-trip persistence
+- Tested relationship-based computation (task counts)
+- All tests passed, mypy clean
+
+### Potential Improvements:
+1. Could cache task counts in database to avoid recomputation on every sync
+2. Could add more sophisticated excerpt extraction (first sentence, summary, etc.)
+3. Could make truncation length configurable per entity type
+4. Could add metadata validation (e.g., warn if description_excerpt is None for certain types)
+

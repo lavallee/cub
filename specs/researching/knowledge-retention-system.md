@@ -20,10 +20,10 @@ readiness:
     - Define ledger format
     - Design API for querying completed work
   tools_needed:
-    - Competitive Analysis Tool (how others compound knowledge: Letta, Compound Engineering)
+    - "Competitive Analysis Tool (how others compound knowledge: Letta, Compound Engineering)"
     - Design Pattern Matcher (knowledge base patterns)
     - API Design Validator (ledger format and query API)
-    - Trade-off Analyzer (storage approaches: files vs DB)
+    - "Trade-off Analyzer (storage approaches: files vs DB)"
 notes: |
   Research doc for cross-run knowledge compounding.
   Proposes Completed Work Ledger between beads and git.
