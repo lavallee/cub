@@ -23,19 +23,15 @@ class TestDelegatedCommandsHelp:
         "command",
         [
             "prep",
-            "triage",
-            "architect",
-            "plan",
             "bootstrap",
-            "sessions",
             "interview",
             "branch",
             "branches",
             "checkpoints",
             # "pr" is now a native Python command (not delegated)
+            # "plan", "stage", "triage" are now native Python commands
             "explain-task",
             "artifacts",
-            "validate",
             "guardrails",
             "doctor",
             "close-task",
@@ -70,25 +66,6 @@ class TestDelegatedCommandPassthrough:
             # Verify the command was built correctly
             call_args = mock_run.call_args
             assert call_args[0][0] == [str(bash_script), "prep"]
-
-    def test_triage_command_delegates(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that 'cub triage' delegates to bash."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["triage"])
-
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [str(bash_script), "triage"]
 
     def test_interview_with_args_delegates(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -156,13 +133,13 @@ class TestDelegatedCommandPassthrough:
         mock_result.returncode = 0
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["sessions"])
+            result = runner.invoke(app, ["branches"])
 
             assert result.exit_code == 0
             mock_run.assert_called_once()
             call_args = mock_run.call_args
             # Should have just the command, no extra args
-            assert call_args[0][0] == [str(bash_script), "sessions"]
+            assert call_args[0][0] == [str(bash_script), "branches"]
 
 
 class TestDelegatedCommandsDebugFlag:
@@ -229,11 +206,11 @@ class TestSpecificDelegatedCommands:
         "command,args",
         [
             ("prep", []),
-            ("triage", []),
-            ("architect", []),
-            ("plan", []),
             ("bootstrap", []),
-            ("sessions", []),
+            # ("triage", []),  # now native Python command
+            # ("architect", []),  # now part of 'plan' subcommands
+            # ("plan", []),  # now native Python command
+            # ("sessions", []),  # not registered
             ("interview", ["task-456"]),
             ("branch", ["cub-789"]),
             ("branches", []),
@@ -241,7 +218,7 @@ class TestSpecificDelegatedCommands:
             # ("pr", ["cub-001"]) - pr is now a native Python command
             ("explain-task", ["task-123"]),
             ("artifacts", []),
-            ("validate", []),
+            # ("validate", []),  # not registered
             ("guardrails", []),
             ("doctor", []),
             ("close-task", ["task-123"]),

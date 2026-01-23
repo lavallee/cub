@@ -406,12 +406,22 @@ readiness:
 
             # Check lifecycle order in output
             output = result.output
+
+            # Check that all stages are present in output
+            assert "researching" in output, f"'researching' not in output:\n{output}"
+            assert "planned" in output, f"'planned' not in output:\n{output}"
+            assert "released" in output, f"'released' not in output:\n{output}"
+
+            # Check lifecycle order in output
             researching_pos = output.find("researching")
             planned_pos = output.find("planned")
             released_pos = output.find("released")
 
             # Researching should come before planned, which should come before released
-            assert researching_pos < planned_pos < released_pos
+            assert researching_pos < planned_pos < released_pos, (
+                f"Wrong order: researching={researching_pos}, planned={planned_pos}, "
+                f"released={released_pos}\nOutput:\n{output}"
+            )
 
 
 class TestSpecListEdgeCases:
