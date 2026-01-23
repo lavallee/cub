@@ -17,8 +17,10 @@ Parsers follow a common pattern:
 
 from cub.core.dashboard.sync.parsers.plans import PlanParser
 from cub.core.dashboard.sync.parsers.specs import SpecParser
+from cub.core.dashboard.sync.parsers.tasks import TaskParser
 
 __all__ = [
     "PlanParser",
     "SpecParser",
+    "TaskParser",
 ]
