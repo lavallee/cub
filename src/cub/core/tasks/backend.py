@@ -183,21 +183,25 @@ class TaskBackend(Protocol):
 
     def import_tasks(self, tasks: list[Task]) -> list[Task]:
         """
-        Bulk import tasks.
+        Bulk import tasks, preserving explicit IDs.
 
         This method enables efficient bulk import of multiple tasks at once.
         Backends should implement this efficiently (e.g., single file write,
         single CLI call) rather than simply looping over create_task().
 
+        IMPORTANT: If a task has an explicit ID set, that ID MUST be preserved.
+        This is critical for staging plans where task IDs are pre-defined and
+        dependencies reference those specific IDs. Only generate new IDs for
+        tasks that don't have one set.
+
         Args:
             tasks: List of Task objects to import
 
         Returns:
-            List of imported Task objects (may have updated IDs or fields
-            assigned by the backend)
+            List of imported Task objects with their IDs preserved
 
         Raises:
-            ValueError: If import fails
+            ValueError: If import fails or duplicate IDs detected
         """
         ...
 

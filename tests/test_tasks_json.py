@@ -739,7 +739,7 @@ class TestImportTasks:
         assert len(all_tasks) == 3
 
     def test_import_tasks_with_existing_tasks(self, temp_dir):
-        """Test importing tasks when some tasks already exist."""
+        """Test importing tasks preserves explicit IDs even with existing tasks."""
         prd_data = {
             "prefix": "test",
             "tasks": [{"id": "test-001", "title": "Existing Task", "status": "open"}],
@@ -751,20 +751,39 @@ class TestImportTasks:
         backend = JsonBackend(project_dir=temp_dir)
 
         tasks_to_import = [
-            Task(id="temp-001", title="New Task 1"),
-            Task(id="temp-002", title="New Task 2"),
+            Task(id="new-001", title="New Task 1"),
+            Task(id="new-002", title="New Task 2"),
         ]
 
         imported = backend.import_tasks(tasks_to_import)
 
         assert len(imported) == 2
-        # New IDs should start after existing task
-        assert imported[0].id == "test-002"
-        assert imported[1].id == "test-003"
+        # Explicit IDs should be preserved
+        assert imported[0].id == "new-001"
+        assert imported[1].id == "new-002"
 
         # Total tasks should be 3
         all_tasks = backend.list_tasks()
         assert len(all_tasks) == 3
+
+    def test_import_tasks_rejects_duplicate_ids(self, temp_dir):
+        """Test that importing tasks with duplicate IDs raises error."""
+        prd_data = {
+            "prefix": "test",
+            "tasks": [{"id": "test-001", "title": "Existing Task", "status": "open"}],
+        }
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Try to import a task with an ID that already exists
+        tasks_to_import = [Task(id="test-001", title="Duplicate Task")]
+
+        import pytest
+        with pytest.raises(ValueError, match="already exists"):
+            backend.import_tasks(tasks_to_import)
 
     def test_import_tasks_preserves_fields(self, temp_dir):
         """Test that import preserves task fields."""
@@ -809,8 +828,8 @@ class TestImportTasks:
         assert imported == []
         assert backend.list_tasks() == []
 
-    def test_import_tasks_uses_prefix(self, temp_dir):
-        """Test that imported tasks use the file's prefix."""
+    def test_import_tasks_preserves_explicit_id(self, temp_dir):
+        """Test that imported tasks preserve their explicit IDs."""
         prd_data = {"prefix": "myapp", "tasks": []}
         (temp_dir / "prd.json").write_text(json.dumps(prd_data))
 
@@ -818,7 +837,23 @@ class TestImportTasks:
 
         backend = JsonBackend(project_dir=temp_dir)
 
-        task_to_import = Task(id="temp-001", title="Test Task")
+        # Task with explicit ID should keep it
+        task_to_import = Task(id="custom-001", title="Test Task")
+        imported = backend.import_tasks([task_to_import])
+
+        assert imported[0].id == "custom-001"
+
+    def test_import_tasks_generates_id_when_missing(self, temp_dir):
+        """Test that tasks without IDs get generated IDs using prefix."""
+        prd_data = {"prefix": "myapp", "tasks": []}
+        (temp_dir / "prd.json").write_text(json.dumps(prd_data))
+
+        from cub.core.tasks.models import Task
+
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Task without ID should get one generated
+        task_to_import = Task(id="", title="Test Task")
         imported = backend.import_tasks([task_to_import])
 
         assert imported[0].id.startswith("myapp-")

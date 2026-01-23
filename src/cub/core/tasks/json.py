@@ -558,25 +558,26 @@ class JsonBackend:
 
     def import_tasks(self, tasks: list[Task]) -> list[Task]:
         """
-        Bulk import tasks.
+        Bulk import tasks, preserving explicit IDs.
 
         This method enables efficient bulk import of multiple tasks at once
-        with a single file write for better performance.
+        with a single file write for better performance. If a task has an
+        explicit ID, it is preserved; otherwise a new ID is generated.
 
         Args:
             tasks: List of Task objects to import
 
         Returns:
-            List of imported Task objects (with IDs assigned by the backend)
+            List of imported Task objects
 
         Raises:
-            ValueError: If import fails
+            ValueError: If import fails or duplicate IDs detected
         """
         data = self._load_prd()
         prefix = data.get("prefix", "prd")
         existing_ids = {t.get("id", "") for t in data.get("tasks", [])}
 
-        # Find starting task number
+        # Find starting task number for any tasks without explicit IDs
         task_num = 1
         while f"{prefix}-{task_num:03d}" in existing_ids:
             task_num += 1
@@ -585,12 +586,21 @@ class JsonBackend:
         tasks_array = data.get("tasks", [])
 
         for task in tasks:
-            # Generate unique ID
-            task_id = f"{prefix}-{task_num:03d}"
-            existing_ids.add(task_id)
-            task_num += 1
+            # Use explicit ID if provided, otherwise generate one
+            if task.id:
+                task_id = task.id
+                if task_id in existing_ids:
+                    raise ValueError(
+                        f"Task ID '{task_id}' already exists. "
+                        "Cannot import duplicate IDs."
+                    )
+            else:
+                task_id = f"{prefix}-{task_num:03d}"
+                task_num += 1
 
-            # Create new task with generated ID, preserving all fields from source
+            existing_ids.add(task_id)
+
+            # Create new task preserving all fields from source
             new_task = Task(
                 id=task_id,
                 title=task.title,
@@ -600,6 +610,7 @@ class JsonBackend:
                 labels=task.labels if task.labels else [],
                 depends_on=task.depends_on if task.depends_on else [],
                 parent=task.parent,
+                blocks=task.blocks if task.blocks else [],
                 status=task.status,
                 assignee=task.assignee,
                 acceptance_criteria=task.acceptance_criteria if task.acceptance_criteria else [],

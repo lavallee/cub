@@ -498,40 +498,104 @@ class BeadsBackend:
 
     def import_tasks(self, tasks: list[Task]) -> list[Task]:
         """
-        Bulk import tasks.
+        Bulk import tasks using bd import with JSONL.
 
-        This method enables efficient bulk import of multiple tasks at once.
-        Each task is created via the bd CLI.
+        This method enables efficient bulk import of multiple tasks at once,
+        preserving the explicit IDs from the tasks. It uses `bd import` with
+        JSONL format rather than individual `bd create` calls.
 
         Args:
             tasks: List of Task objects to import
 
         Returns:
-            List of imported Task objects (may have updated IDs or fields
-            assigned by the backend)
+            List of imported Task objects
 
         Raises:
             ValueError: If import fails
         """
-        imported_tasks: list[Task] = []
+        import tempfile
+        from datetime import datetime, timezone
 
+        if not tasks:
+            return []
+
+        # Convert tasks to beads JSONL format
+        jsonl_lines = []
         for task in tasks:
-            try:
-                # Create task using create_task method
-                created = self.create_task(
-                    title=task.title,
-                    description=task.description,
-                    task_type=task.type.value,
-                    priority=task.priority_numeric,
-                    labels=task.labels if task.labels else None,
-                    depends_on=task.depends_on if task.depends_on else None,
-                    parent=task.parent,
-                )
-                imported_tasks.append(created)
-            except ValueError as e:
-                raise ValueError(f"Failed to import task '{task.title}': {e}") from e
+            # Build dependencies array for parent-child and blocks relationships
+            dependencies = []
+            if task.parent:
+                dependencies.append({
+                    "issue_id": task.id,
+                    "depends_on_id": task.parent,
+                    "type": "parent-child",
+                })
+            if task.blocks:
+                for blocked_id in task.blocks:
+                    dependencies.append({
+                        "issue_id": task.id,
+                        "depends_on_id": blocked_id,
+                        "type": "blocks",
+                    })
 
-        return imported_tasks
+            beads_issue = {
+                "id": task.id,
+                "title": task.title,
+                "description": task.description or "",
+                "status": "open",
+                "priority": task.priority_numeric,
+                "issue_type": task.type.value,
+                "labels": task.labels or [],
+                "dependencies": dependencies,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            jsonl_lines.append(json.dumps(beads_issue))
+
+        # Write to temp file
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
+        ) as f:
+            f.write("\n".join(jsonl_lines))
+            temp_path = f.name
+
+        try:
+            # Run bd import
+            result = subprocess.run(
+                ["bd", "import", "-i", temp_path, "--json"],
+                cwd=self.project_dir,
+                capture_output=True,
+                text=True,
+            )
+
+            if result.returncode != 0:
+                raise ValueError(
+                    f"bd import failed: {result.stderr.strip() or result.stdout.strip()}"
+                )
+
+            # Fetch the imported tasks
+            imported_tasks = []
+            for task in tasks:
+                imported = self.get_task(task.id)
+                if imported:
+                    imported_tasks.append(imported)
+                else:
+                    # Task may not exist if there was a silent failure
+                    raise ValueError(
+                        f"Task '{task.id}' was not found after import"
+                    )
+
+            return imported_tasks
+
+        finally:
+            # Clean up temp file
+            import os
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
 
     @property
     def backend_name(self) -> str:
