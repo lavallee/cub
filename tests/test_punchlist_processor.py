@@ -284,9 +284,12 @@ Add --verbose flag to cub run""",
         assert epic_call.kwargs["task_type"] == "epic"
         assert "punchlist" in epic_call.kwargs["labels"]
 
-        # Check tasks were created with parent set
+        # Check tasks were created with epic ID in labels (not using parent)
+        # We use labels instead of --parent to avoid beads creating
+        # blocking parent-child dependencies
         task_call = mock_backend.create_task.call_args_list[1]
-        assert task_call.kwargs["parent"] == "cub-001"
+        assert "cub-001" in task_call.kwargs["labels"]
+        assert "parent" not in task_call.kwargs  # Should NOT use parent
 
     def test_custom_epic_title(
         self, punchlist_file: Path, mock_backend: MagicMock

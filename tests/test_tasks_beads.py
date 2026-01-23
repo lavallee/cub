@@ -403,9 +403,9 @@ class TestGetReadyTasks:
     def test_get_ready_tasks_with_filters(self, project_dir):
         """Test getting ready tasks with parent and label filters.
 
-        The parent filter uses --label with epic: prefix since beads tasks
-        use labels like 'epic:cub-m4j' for epic association (--parent requires
-        explicit parent field which isn't always set).
+        The parent filter uses --label-any to support both label formats:
+        - Bare epic ID (e.g., "cub-xyz") used by punchlist
+        - Prefixed format (e.g., "epic:cub-xyz") used by legacy tasks
         """
         mock_result = Mock()
         mock_result.stdout = "[]"
@@ -417,9 +417,12 @@ class TestGetReadyTasks:
                 backend.get_ready_tasks(parent="epic-001", label="backend")
 
                 args = mock_run.call_args[0][0]
-                # Parent filter uses --label with epic: prefix
+                # Parent filter uses --label-any for OR logic (either format)
+                assert "--label-any" in args
+                assert "epic-001" in args  # Bare epic ID
+                assert "epic:epic-001" in args  # Prefixed format
+                # Additional label filter uses --label (AND logic)
                 assert "--label" in args
-                assert "epic:epic-001" in args
                 assert "backend" in args
 
     def test_get_ready_tasks_command_error(self, project_dir):

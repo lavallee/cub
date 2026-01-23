@@ -74,7 +74,7 @@ def _build_options(task_input: TaskInput) -> "ClaudeAgentOptions":
     # Determine permission mode based on auto_approve
     permission_mode: PermissionMode | None = None
     if task_input.auto_approve:
-        permission_mode = "acceptEdits"
+        permission_mode = "bypassPermissions"
 
     # Build options - SDK expects specific types
     options = ClaudeAgentOptions(

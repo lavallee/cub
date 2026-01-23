@@ -13,6 +13,8 @@ from cub.cli import (
     capture,
     captures,
     delegated,
+    doctor,
+    ledger,
     merge,
     monitor,
     organize_captures,
@@ -85,6 +87,7 @@ app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
 app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
+app.add_typer(ledger.app, name="ledger", rich_help_panel=PANEL_STATUS)
 app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
 
 
@@ -157,7 +160,7 @@ def version() -> None:
 app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
-app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
+app.add_typer(doctor.app, name="doctor", rich_help_panel=PANEL_INSTALL)
 
 
 # =============================================================================

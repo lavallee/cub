@@ -28,20 +28,27 @@ from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
+from cub.core.ledger.models import LedgerEntry
+from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+from cub.core.ledger.writer import LedgerWriter
+
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
 # from cub.core.plan.models import PlanStatus
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
+
 # TODO: Restore when specs module is implemented
 # from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
 from cub.core.status.models import (
     BudgetStatus,
     EventLevel,
     IterationInfo,
+    RunArtifact,
     RunPhase,
     RunStatus,
+    TaskArtifact,
 )
 from cub.core.status.writer import StatusWriter
 from cub.core.tasks.backend import TaskBackend
@@ -83,7 +90,7 @@ def _setup_harness(
     harness: str | None,
     priority_list: list[str] | None,
     debug: bool,
-) -> tuple[str, "AsyncHarnessBackend"] | None:
+) -> tuple[str, AsyncHarnessBackend] | None:
     """
     Detect and validate harness backend.
 
@@ -124,10 +131,11 @@ def _setup_harness(
 
 
 def _invoke_harness(
-    harness_backend: "AsyncHarnessBackend",
+    harness_backend: AsyncHarnessBackend,
     task_input: TaskInput,
     stream: bool,
     debug: bool,
+    harness_log_path: Path | None = None,
 ) -> HarnessResult:
     """
     Invoke harness with unified streaming/blocking execution.
@@ -139,6 +147,7 @@ def _invoke_harness(
         task_input: Task parameters (prompt, system_prompt, model, etc.)
         stream: Whether to stream output
         debug: Enable debug logging
+        harness_log_path: Optional path to write raw harness output
 
     Returns:
         HarnessResult with output, usage, and timing
@@ -146,7 +155,7 @@ def _invoke_harness(
     start_time = time.time()
 
     if stream and harness_backend.capabilities.streaming:
-        # Stream execution
+        # Stream execution with tee-like behavior (output to console AND file)
         sys.stdout.flush()
 
         async def _stream_and_collect() -> str:
@@ -163,6 +172,14 @@ def _invoke_harness(
         sys.stdout.write("\n")
         sys.stdout.flush()
 
+        # Write collected output to harness.log if path provided
+        if harness_log_path is not None:
+            try:
+                harness_log_path.write_text(result_output, encoding="utf-8")
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to write harness.log: {e}[/dim]")
+
         return HarnessResult(
             output=result_output,
             usage=TokenUsage(),  # Usage tracking TBD for streaming
@@ -172,6 +189,14 @@ def _invoke_harness(
     else:
         # Blocking execution with async backend
         task_result = _run_async(harness_backend.run_task, task_input, debug)
+
+        # Write output to harness.log if path provided
+        if harness_log_path is not None:
+            try:
+                harness_log_path.write_text(task_result.output, encoding="utf-8")
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to write harness.log: {e}[/dim]")
 
         return HarnessResult(
             output=task_result.output,
@@ -525,6 +550,36 @@ def display_task_info(task: Task, iteration: int, max_iterations: int) -> None:
     table.add_row("Iteration", f"{iteration}/{max_iterations}")
 
     console.print(Panel(table, title="[bold]Current Task[/bold]", border_style="blue"))
+
+
+def create_run_artifact(status: RunStatus, config: dict[str, Any] | None = None) -> RunArtifact:
+    """
+    Create a RunArtifact from RunStatus for persistence to run.json.
+
+    Args:
+        status: Current RunStatus
+        config: Optional config snapshot
+
+    Returns:
+        RunArtifact with budget totals and completion info
+    """
+    # Determine completion time
+    completed_at = datetime.now() if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED] else None
+
+    # Map phase to status string
+    status_str = status.phase.value if hasattr(status.phase, "value") else str(status.phase)
+
+    return RunArtifact(
+        run_id=status.run_id,
+        session_name=status.session_name,
+        started_at=status.started_at,
+        completed_at=completed_at,
+        status=status_str,
+        config=config or {},
+        tasks_completed=status.budget.tasks_completed,
+        tasks_failed=0,  # TODO: Track failed tasks separately if needed
+        budget=status.budget,
+    )
 
 
 def display_summary(status: RunStatus) -> None:
@@ -1078,6 +1133,10 @@ def run(
     if debug:
         console.print(f"[dim]Status file: {status_writer.status_path}[/dim]")
 
+    # Initialize ledger writer
+    ledger_dir = project_dir / ".cub" / "ledger"
+    ledger_writer = LedgerWriter(ledger_dir)
+
     # Update task counts
     counts = task_backend.get_task_counts()
     status.tasks_total = counts.total
@@ -1254,7 +1313,19 @@ def run(
                     auto_approve=True,  # Auto-approve for unattended execution
                 )
 
-                result = _invoke_harness(harness_backend, task_input, stream, debug)
+                # Write prompt before harness invocation (audit trail, even if harness fails)
+                try:
+                    status_writer.write_prompt(current_task.id, system_prompt, task_prompt)
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
+                # Get harness log path for this task
+                harness_log_path = status_writer.get_harness_log_path(current_task.id)
+
+                result = _invoke_harness(
+                    harness_backend, task_input, stream, debug, harness_log_path
+                )
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
                 status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
@@ -1306,6 +1377,88 @@ def run(
                     tokens=result.usage.total_tokens,
                 )
 
+                # Persist task artifact with token usage
+                priority_str = (
+                    current_task.priority.value
+                    if hasattr(current_task.priority, "value")
+                    else str(current_task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=current_task.id,
+                    title=current_task.title,
+                    priority=priority_str,
+                    status="completed",
+                    started_at=datetime.now(),  # TODO: Track actual start time
+                    completed_at=datetime.now(),
+                    iterations=1,  # TODO: Track actual iterations if task retries
+                    exit_code=result.exit_code,
+                    usage=result.usage,
+                    duration_seconds=duration,
+                )
+                try:
+                    status_writer.write_task_artifact(current_task.id, task_artifact)
+                    if debug:
+                        console.print("[dim]Persisted task artifact to task.json[/dim]")
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
+
+                # Close the task in the backend so it won't be picked up again
+                try:
+                    task_backend.close_task(
+                        current_task.id,
+                        reason="Completed by autonomous execution",
+                    )
+                    if debug:
+                        console.print(
+                            f"[dim]Closed task {current_task.id} in backend[/dim]"
+                        )
+                except Exception as e:
+                    # Log but don't fail - the work is done even if closure fails
+                    console.print(
+                        f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]"
+                    )
+                    status.add_event(
+                        f"Failed to close task in backend: {e}",
+                        EventLevel.WARNING,
+                        task_id=current_task.id,
+                    )
+
+                # Create ledger entry after successful task completion
+                if config.ledger.enabled:
+                    try:
+                        ledger_entry = LedgerEntry(
+                            id=current_task.id,
+                            title=current_task.title,
+                            completed_at=datetime.now(),
+                            tokens=LedgerTokenUsage(
+                                input_tokens=result.usage.input_tokens,
+                                output_tokens=result.usage.output_tokens,
+                                cache_read_tokens=result.usage.cache_read_tokens,
+                                cache_creation_tokens=result.usage.cache_creation_tokens,
+                            ),
+                            duration_seconds=int(duration),
+                            harness_name=harness_name,
+                            epic_id=epic,
+                            run_log_path=str(status_writer.get_task_dir(current_task.id)),
+                        )
+                        ledger_writer.create_entry(ledger_entry)
+                        if debug:
+                            console.print(
+                                f"[dim]Created ledger entry for {current_task.id}[/dim]"
+                            )
+                    except Exception as e:
+                        # Log but don't fail - ledger is informational
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to create ledger entry: {e}[/dim]"
+                            )
+                        status.add_event(
+                            f"Failed to create ledger entry: {e}",
+                            EventLevel.WARNING,
+                            task_id=current_task.id,
+                        )
+
                 # Run post-task hooks (async - fire and forget for notifications)
                 post_task_context = HookContext(
                     hook_name="post-task",
@@ -1325,6 +1478,32 @@ def run(
                     task_id=current_task.id,
                     exit_code=result.exit_code,
                 )
+
+                # Persist task artifact with token usage even on failure
+                priority_str = (
+                    current_task.priority.value
+                    if hasattr(current_task.priority, "value")
+                    else str(current_task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=current_task.id,
+                    title=current_task.title,
+                    priority=priority_str,
+                    status="failed",
+                    started_at=datetime.now(),  # TODO: Track actual start time
+                    completed_at=datetime.now(),
+                    iterations=1,  # TODO: Track actual iterations if task retries
+                    exit_code=result.exit_code,
+                    usage=result.usage,
+                    duration_seconds=duration,
+                )
+                try:
+                    status_writer.write_task_artifact(current_task.id, task_artifact)
+                    if debug:
+                        console.print("[dim]Persisted task artifact to task.json[/dim]")
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
 
                 # Run on-error hooks (async - fire and forget for error notifications)
                 on_error_context = HookContext(
@@ -1406,12 +1585,18 @@ def run(
         # Final status write
         status_writer.write(status)
 
+        # Persist run artifact with budget totals
+        config_dict = config.model_dump(mode="json") if isinstance(config, CubConfig) else {}
+        run_artifact = create_run_artifact(status, config_dict)
+        status_writer.write_run_artifact(run_artifact)
+
         # Display summary
         console.print()
         display_summary(status)
 
         if debug:
             console.print(f"[dim]Final status: {status_writer.status_path}[/dim]")
+            console.print(f"[dim]Run artifact: {status_writer.run_artifact_path}[/dim]")
 
         # Clean up working directory (commit artifacts, remove temp files)
         if isinstance(config, CubConfig) and config.cleanup.enabled:
@@ -1550,6 +1735,12 @@ def _run_direct(
     # Get model
     task_model = model or config.harness.model
 
+    # Create a session ID for direct mode
+    direct_session_id = session_name or f"direct-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+    # Initialize status writer for log capture
+    status_writer = StatusWriter(project_dir, direct_session_id)
+
     # Display task info
     console.print(
         Panel(
@@ -1571,7 +1762,17 @@ def _run_direct(
             auto_approve=True,
         )
 
-        result = _invoke_harness(harness_backend, task_input, stream, debug)
+        # Write prompt before harness invocation (audit trail, even if harness fails)
+        try:
+            status_writer.write_prompt("direct", system_prompt, task_prompt)
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
+        # Get harness log path for direct mode (use "direct" as task_id)
+        harness_log_path = status_writer.get_harness_log_path("direct")
+
+        result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1
@@ -1672,6 +1873,12 @@ def _run_gh_issue(
     # Get model
     task_model = model or config.harness.model
 
+    # Create a session ID for gh-issue mode
+    gh_session_id = session_name or f"gh-{issue_number}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+    # Initialize status writer for log capture
+    status_writer = StatusWriter(project_dir, gh_session_id)
+
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
 
@@ -1684,7 +1891,18 @@ def _run_gh_issue(
             auto_approve=True,
         )
 
-        result = _invoke_harness(harness_backend, task_input, stream, debug)
+        # Write prompt before harness invocation (audit trail, even if harness fails)
+        issue_task_id = f"issue-{issue_number}"
+        try:
+            status_writer.write_prompt(issue_task_id, system_prompt, task_prompt)
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
+        # Get harness log path for gh-issue mode (use issue number as task_id)
+        harness_log_path = status_writer.get_harness_log_path(issue_task_id)
+
+        result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1

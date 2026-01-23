@@ -237,6 +237,19 @@ class CleanupConfig(BaseModel):
     )
 
 
+class LedgerConfig(BaseModel):
+    """
+    Ledger (completed work tracking) configuration.
+
+    Controls whether ledger entries are created automatically when tasks close.
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable automatic ledger entry creation on task completion",
+    )
+
+
 class HarnessConfig(BaseModel):
     """
     AI harness configuration.
@@ -295,6 +308,9 @@ class CubConfig(BaseModel):
     )
     cleanup: CleanupConfig = Field(
         default_factory=CleanupConfig, description="Post-run cleanup settings"
+    )
+    ledger: LedgerConfig = Field(
+        default_factory=LedgerConfig, description="Ledger (completed work tracking) settings"
     )
 
     model_config = ConfigDict(

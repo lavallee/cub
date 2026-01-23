@@ -90,7 +90,7 @@ class TestIsBashCommand:
 
     def test_python_commands_return_false(self) -> None:
         """Test that ported Python commands return False."""
-        python_commands = ["run", "status", "init", "monitor", "version"]
+        python_commands = ["run", "status", "init", "monitor", "version", "doctor"]
         for cmd in python_commands:
             assert is_bash_command(cmd) is False
 
@@ -103,7 +103,6 @@ class TestIsBashCommand:
             "plan",
             "bootstrap",
             "interview",
-            "doctor",
         ]
         for cmd in bash_commands:
             assert is_bash_command(cmd) is True

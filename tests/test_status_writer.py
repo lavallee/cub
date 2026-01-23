@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from cub.core.status.models import RunPhase, RunStatus
+from cub.core.status.models import BudgetStatus, RunArtifact, RunPhase, RunStatus
 from cub.core.status.writer import StatusWriter, get_latest_status, list_runs
 
 
@@ -199,6 +199,239 @@ class TestStatusWriter:
 
         with pytest.raises(TypeError, match="not JSON serializable"):
             writer._json_serializer(object())
+
+    def test_write_run_artifact_creates_file(self, temp_dir):
+        """Test write_run_artifact() creates run.json file."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            budget=BudgetStatus(tokens_used=1000, cost_usd=0.05, tasks_completed=3),
+        )
+
+        writer.write_run_artifact(artifact)
+
+        assert writer.run_artifact_path.exists()
+
+    def test_write_run_artifact_serializes_correctly(self, temp_dir):
+        """Test write_run_artifact() serializes RunArtifact to valid JSON."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            config={"test": "value"},
+            tasks_completed=5,
+            tasks_failed=1,
+            budget=BudgetStatus(
+                tokens_used=2000,
+                tokens_limit=10000,
+                cost_usd=0.10,
+                cost_limit=1.0,
+                tasks_completed=5,
+                tasks_limit=10,
+            ),
+        )
+
+        writer.write_run_artifact(artifact)
+
+        # Read and verify JSON
+        with writer.run_artifact_path.open() as f:
+            data = json.load(f)
+
+        assert data["run_id"] == "test-run-001"
+        assert data["session_name"] == "test-session"
+        assert data["status"] == "completed"
+        assert data["tasks_completed"] == 5
+        assert data["tasks_failed"] == 1
+        assert data["config"]["test"] == "value"
+        assert data["budget"]["tokens_used"] == 2000
+        assert data["budget"]["cost_usd"] == 0.10
+        assert data["budget"]["tasks_completed"] == 5
+
+    def test_write_run_artifact_is_atomic(self, temp_dir):
+        """Test write_run_artifact() uses atomic write (temp file + rename)."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test",
+            started_at=datetime.now(),
+            status="in_progress",
+        )
+
+        writer.write_run_artifact(artifact)
+
+        # Temp file should not exist after successful write
+        temp_file = writer.run_artifact_path.with_suffix(".json.tmp")
+        assert not temp_file.exists()
+
+        # Run artifact file should exist
+        assert writer.run_artifact_path.exists()
+
+    def test_read_run_artifact_existing(self, temp_dir):
+        """Test read_run_artifact() loads existing run.json."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        now = datetime.now()
+        original_artifact = RunArtifact(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            completed_at=now,
+            status="completed",
+            budget=BudgetStatus(tokens_used=1500, cost_usd=0.08, tasks_completed=4),
+        )
+
+        writer.write_run_artifact(original_artifact)
+        loaded_artifact = writer.read_run_artifact()
+
+        assert loaded_artifact is not None
+        assert loaded_artifact.run_id == "test-run-001"
+        assert loaded_artifact.session_name == "test-session"
+        assert loaded_artifact.status == "completed"
+        assert loaded_artifact.budget is not None
+        assert loaded_artifact.budget.tokens_used == 1500
+        assert loaded_artifact.budget.tasks_completed == 4
+
+    def test_read_run_artifact_nonexistent(self, temp_dir):
+        """Test read_run_artifact() returns None when run.json doesn't exist."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        artifact = writer.read_run_artifact()
+
+        assert artifact is None
+
+    def test_read_run_artifact_invalid_json(self, temp_dir):
+        """Test read_run_artifact() returns None for invalid JSON."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        writer.run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write invalid JSON
+        writer.run_artifact_path.write_text("{ invalid json }")
+
+        artifact = writer.read_run_artifact()
+
+        assert artifact is None
+
+    def test_get_prompt_path(self, temp_dir):
+        """Test get_prompt_path() returns correct path."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        prompt_path = writer.get_prompt_path("cub-123")
+
+        assert prompt_path == temp_dir / ".cub" / "runs" / "test-run-001" / "tasks" / "cub-123" / "prompt.md"
+
+    def test_write_prompt_creates_file(self, temp_dir):
+        """Test write_prompt() creates prompt.md file."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = "You are a helpful assistant."
+        task_prompt = "## CURRENT TASK\nTask ID: cub-123"
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        assert prompt_path.exists()
+
+    def test_write_prompt_includes_sections(self, temp_dir):
+        """Test write_prompt() writes both system and task prompts with sections."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = "System prompt content"
+        task_prompt = "Task prompt content"
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        content = prompt_path.read_text()
+
+        # Check for header
+        assert "# Rendered Prompt" in content
+
+        # Check for system prompt section
+        assert "## System Prompt" in content
+        assert system_prompt in content
+
+        # Check for task prompt section
+        assert "## Task Prompt" in content
+        assert task_prompt in content
+
+    def test_write_prompt_with_multiline_content(self, temp_dir):
+        """Test write_prompt() handles multiline prompt content."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = """Line 1
+Line 2
+Line 3"""
+        task_prompt = """Task Line 1
+Task Line 2
+Task Line 3"""
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        content = prompt_path.read_text()
+
+        # Verify all lines are preserved
+        assert "Line 1" in content
+        assert "Line 2" in content
+        assert "Line 3" in content
+        assert "Task Line 1" in content
+        assert "Task Line 2" in content
+        assert "Task Line 3" in content
+
+    def test_write_prompt_creates_task_directory(self, temp_dir):
+        """Test write_prompt() creates task directory if it doesn't exist."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        task_dir = writer.get_task_dir("cub-123")
+
+        # Ensure directory exists before write
+        assert not task_dir.exists() or task_dir.is_dir()
+
+        writer.write_prompt("cub-123", "System", "Task")
+
+        # Verify directory was created
+        assert task_dir.exists()
+        assert task_dir.is_dir()
+
+    def test_write_prompt_overwrites_existing(self, temp_dir):
+        """Test write_prompt() overwrites existing prompt.md."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        # Write first version
+        writer.write_prompt("cub-123", "First system", "First task")
+        first_content = writer.get_prompt_path("cub-123").read_text()
+
+        # Write second version
+        writer.write_prompt("cub-123", "Second system", "Second task")
+        second_content = writer.get_prompt_path("cub-123").read_text()
+
+        # Verify it was overwritten
+        assert "Second system" in second_content
+        assert "Second task" in second_content
+        assert "First system" not in second_content
+        assert "First task" not in second_content
+
+    def test_write_prompt_different_task_ids(self, temp_dir):
+        """Test write_prompt() creates separate files for different task_ids."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        writer.write_prompt("cub-123", "System 1", "Task 1")
+        writer.write_prompt("cub-456", "System 2", "Task 2")
+
+        content1 = writer.get_prompt_path("cub-123").read_text()
+        content2 = writer.get_prompt_path("cub-456").read_text()
+
+        # Verify separate files
+        assert "System 1" in content1
+        assert "Task 1" in content1
+        assert "System 2" not in content1
+
+        assert "System 2" in content2
+        assert "Task 2" in content2
+        assert "System 1" not in content2
 
 
 class TestGetLatestStatus:

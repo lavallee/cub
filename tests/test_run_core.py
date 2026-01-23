@@ -15,6 +15,7 @@ from cub.cli.run import (
     _show_ready_tasks,
     _signal_handler,
     app,
+    create_run_artifact,
     display_summary,
     display_task_info,
     generate_system_prompt,
@@ -70,6 +71,7 @@ def mock_task_backend():
 def mock_harness_backend():
     """Provide a mock async harness backend."""
     from unittest.mock import AsyncMock
+
     from cub.core.harness.models import HarnessResult, TaskResult, TokenUsage
 
     backend = MagicMock()
@@ -1719,3 +1721,194 @@ class TestBranchCreation:
 
             assert result.exit_code == 1
             assert "Cannot run on 'master' branch without --main-ok" in result.output
+
+
+# ==============================================================================
+# Test create_run_artifact function
+# ==============================================================================
+
+
+class TestCreateRunArtifact:
+    """Tests for create_run_artifact helper function."""
+
+    def test_create_run_artifact_completed(self):
+        """Test create_run_artifact with completed run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-001",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.COMPLETED,
+        )
+        status.budget.tokens_used = 5000
+        status.budget.cost_usd = 0.25
+        status.budget.tasks_completed = 3
+
+        config_dict = {"test": "config"}
+        artifact = create_run_artifact(status, config_dict)
+
+        assert artifact.run_id == "test-run-001"
+        assert artifact.session_name == "test-session"
+        assert artifact.started_at == now
+        assert artifact.completed_at is not None
+        assert artifact.status == "completed"
+        assert artifact.config == config_dict
+        assert artifact.tasks_completed == 3
+        assert artifact.budget.tokens_used == 5000
+        assert artifact.budget.cost_usd == 0.25
+
+    def test_create_run_artifact_failed(self):
+        """Test create_run_artifact with failed run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-002",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.FAILED,
+        )
+        status.budget.tokens_used = 2000
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.run_id == "test-run-002"
+        assert artifact.completed_at is not None
+        assert artifact.status == "failed"
+        assert artifact.budget.tokens_used == 2000
+
+    def test_create_run_artifact_stopped(self):
+        """Test create_run_artifact with stopped run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-003",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.STOPPED,
+        )
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.completed_at is not None
+        assert artifact.status == "stopped"
+
+    def test_create_run_artifact_running(self):
+        """Test create_run_artifact with still-running run."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-004",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.RUNNING,
+        )
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.completed_at is None
+        assert artifact.status == "running"
+
+    def test_create_run_artifact_with_budget_limits(self):
+        """Test create_run_artifact preserves budget limits."""
+        from datetime import datetime
+
+        now = datetime.now()
+        status = RunStatus(
+            run_id="test-run-005",
+            session_name="test-session",
+            started_at=now,
+            phase=RunPhase.COMPLETED,
+        )
+        status.budget.tokens_used = 8000
+        status.budget.tokens_limit = 10000
+        status.budget.cost_usd = 0.50
+        status.budget.cost_limit = 1.00
+        status.budget.tasks_completed = 5
+        status.budget.tasks_limit = 10
+
+        artifact = create_run_artifact(status)
+
+        assert artifact.budget.tokens_used == 8000
+        assert artifact.budget.tokens_limit == 10000
+        assert artifact.budget.cost_usd == 0.50
+        assert artifact.budget.cost_limit == 1.00
+        assert artifact.budget.tasks_completed == 5
+        assert artifact.budget.tasks_limit == 10
+
+
+# ==============================================================================
+# Test Harness Log Capture
+# ==============================================================================
+
+
+class TestHarnessLogCapture:
+    """Test that harness output is captured to harness.log."""
+
+    @pytest.fixture
+    def mock_deps_with_log(self, tmp_path, mock_config, mock_task_backend, mock_harness_backend):
+        """Set up mocks for harness log capture tests."""
+        with (
+            patch("cub.cli.run.load_config") as mock_load_config,
+            patch("cub.cli.run.detect_async_harness") as mock_detect,
+            patch("cub.cli.run.get_async_backend") as mock_get_harness,
+            patch("cub.cli.run.get_task_backend") as mock_get_task,
+            patch("cub.cli.run.run_hooks") as mock_run_hooks,
+            patch("cub.cli.run.run_hooks_async"),
+            patch("cub.cli.run.wait_async_hooks"),
+            patch("cub.core.branches.store.BranchStore") as mock_branch_store,
+            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+        ):
+            mock_load_config.return_value = mock_config
+            mock_detect.return_value = "claude"
+            mock_get_harness.return_value = mock_harness_backend
+            mock_get_task.return_value = mock_task_backend
+            mock_run_hooks.return_value = True
+
+            # Set up branch mocks
+            mock_branch_store.get_current_branch.return_value = "feature/test-branch"
+            mock_create_branch.return_value = True
+
+            mock_task_backend.get_task_counts.return_value = MagicMock(
+                total=1, open=1, in_progress=0, closed=0, remaining=1
+            )
+
+            yield {
+                "config": mock_config,
+                "harness_backend": mock_harness_backend,
+                "task_backend": mock_task_backend,
+                "project_dir": tmp_path,
+            }
+
+    def test_harness_log_created_on_task_execution(self, runner, mock_deps_with_log, mock_task):
+        """Test that harness.log is created when a task runs."""
+        deps = mock_deps_with_log
+        project_dir = deps["project_dir"]
+
+        # Set up task backend to return one task
+        deps["task_backend"].get_task.return_value = mock_task
+        deps["task_backend"].get_ready_tasks.return_value = [mock_task]
+
+        # Run with --once and --task
+        with patch("cub.cli.run.Path.cwd", return_value=project_dir):
+            runner.invoke(
+                app,
+                ["--once", "--task", mock_task.id],
+                obj={"debug": False},
+            )
+
+        # Find the actual run directory (it has a timestamp)
+        runs_dir = project_dir / ".cub" / "runs"
+        if runs_dir.exists():
+            run_dirs = list(runs_dir.iterdir())
+            if run_dirs:
+                actual_log = run_dirs[0] / "tasks" / mock_task.id / "harness.log"
+                assert actual_log.exists(), f"harness.log should exist at {actual_log}"
+
+                # Verify it contains the harness output
+                log_content = actual_log.read_text()
+                assert "Task completed successfully" in log_content
