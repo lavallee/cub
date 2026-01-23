@@ -12,6 +12,39 @@ The system provides three built-in views:
 These views serve as both:
 1. Fallback configurations when custom views are not available
 2. Examples for users creating their own custom views
+
+Creating Custom Views
+---------------------
+
+To create a custom view:
+
+1. Run `cub dashboard init` to copy example YAML files to `.cub/views/`
+2. Edit the YAML files in `.cub/views/` to customize columns, filters, and display
+3. Views are automatically loaded - just refresh the dashboard
+
+View configuration format:
+
+- **id**: Unique identifier for the view (used in URLs and API)
+- **name**: Display name shown in the view switcher UI
+- **description**: Brief description of the view's purpose
+- **columns**: List of column configurations, each with:
+  - id: Column identifier
+  - title: Display title
+  - stages: List of stages to include (CAPTURES, SPECS, PLANNED, READY,
+            IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED)
+- **filters**: Entity filtering rules
+  - exclude_labels: Labels to exclude from the view
+  - include_labels: If set, only include entities with these labels
+  - exclude_types: Entity types to exclude
+  - include_types: If set, only include these entity types
+  - min_priority / max_priority: Priority range (0=P0 highest, 4=P4 lowest)
+- **display**: Display settings for entity cards
+  - show_cost: Show cost in USD
+  - show_tokens: Show token usage
+  - show_duration: Show duration
+- **is_default**: Whether this view is the default (only one should be true)
+
+See example files in `src/cub/dashboard/examples/` for templates.
 """
 
 from cub.core.dashboard.db.models import (

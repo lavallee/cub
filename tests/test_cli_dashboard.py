@@ -376,3 +376,99 @@ class TestDashboardExport:
 
             # Verify file was created with parent dirs
             assert Path("exports/backup/board.json").exists()
+
+
+class TestDashboardInit:
+    """Test dashboard init subcommand."""
+
+    def test_init_help(self) -> None:
+        """Test that 'cub dashboard init --help' shows init options."""
+        result = runner.invoke(app, ["dashboard", "init", "--help"])
+        assert result.exit_code == 0
+        assert "force" in result.output.lower()
+        assert "example" in result.output.lower() or "view" in result.output.lower()
+
+    def test_init_no_project_root(self) -> None:
+        """Test init subcommand when not in a project directory."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(app, ["dashboard", "init"])
+            assert result.exit_code == 1
+            assert "not in a project" in result.output.lower()
+
+    def test_init_copies_files(self) -> None:
+        """Test init copies example view files."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "init"])
+            assert result.exit_code == 0
+            assert "copied" in result.output.lower()
+
+            # Verify files were created
+            views_dir = Path(".cub/views")
+            assert views_dir.exists()
+            assert (views_dir / "default-view.yaml").exists()
+            assert (views_dir / "sprint-view.yaml").exists()
+            assert (views_dir / "ideas-view.yaml").exists()
+
+    def test_init_skips_existing_files(self) -> None:
+        """Test init skips existing files without --force."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+
+            # Run init twice
+            runner.invoke(app, ["dashboard", "init"])
+            result = runner.invoke(app, ["dashboard", "init"])
+
+            assert result.exit_code == 0
+            assert "skipped" in result.output.lower()
+            assert "force" in result.output.lower()
+
+    def test_init_force_overwrites(self) -> None:
+        """Test init with --force overwrites existing files."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+
+            # Run init twice with --force
+            runner.invoke(app, ["dashboard", "init"])
+            result = runner.invoke(app, ["dashboard", "init", "--force"])
+
+            assert result.exit_code == 0
+            assert "copied" in result.output.lower()
+            assert "skipped" not in result.output.lower()
+
+    def test_init_creates_views_directory(self) -> None:
+        """Test init creates .cub/views/ directory if it doesn't exist."""
+        with runner.isolated_filesystem():
+            # Create project structure (no .cub directory)
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "init"])
+            assert result.exit_code == 0
+
+            # Verify directory was created
+            assert Path(".cub/views").exists()
+            assert Path(".cub/views").is_dir()
+
+    def test_init_view_files_are_valid_yaml(self) -> None:
+        """Test that copied view files are valid YAML."""
+        import yaml
+
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+
+            runner.invoke(app, ["dashboard", "init"])
+
+            # Load and validate each file
+            views_dir = Path(".cub/views")
+            for filename in ["default-view.yaml", "sprint-view.yaml", "ideas-view.yaml"]:
+                filepath = views_dir / filename
+                content = yaml.safe_load(filepath.read_text())
+                assert "id" in content
+                assert "name" in content
+                assert "columns" in content
+                assert isinstance(content["columns"], list)

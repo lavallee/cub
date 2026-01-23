@@ -1,0 +1,51 @@
+# Sprint View: Active Work Focused
+#
+# This view shows only the columns relevant to current sprint work,
+# hiding early-stage planning and post-release columns.
+#
+# Copy this file to .cub/views/ and modify to create custom views.
+
+# Unique identifier for this view
+id: sprint
+
+# Display name shown in the view switcher
+name: Sprint View
+
+# Description shown in the view list
+description: Active work focused view (Ready -> In Progress -> Review -> Complete)
+
+# Column definitions - focused on active work stages
+columns:
+  - id: ready
+    title: Ready
+    stages:
+      - READY
+
+  - id: in_progress
+    title: In Progress
+    stages:
+      - IN_PROGRESS
+
+  - id: needs_review
+    title: Needs Review
+    stages:
+      - NEEDS_REVIEW
+
+  - id: complete
+    title: Complete
+    stages:
+      - COMPLETE
+
+# Filter configuration
+filters:
+  exclude_labels:
+    - archived
+
+# Display configuration - show duration for sprint tracking
+display:
+  show_cost: true
+  show_tokens: false
+  show_duration: true
+
+# Not the default view
+is_default: false

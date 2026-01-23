@@ -5,6 +5,7 @@ Launch the project kanban dashboard web interface.
 """
 
 import logging
+import shutil
 import threading
 import time
 import webbrowser
@@ -388,6 +389,121 @@ def export(
         if debug:
             import traceback
             err_console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+# Example files to copy during init
+EXAMPLE_VIEW_FILES = [
+    "default-view.yaml",
+    "sprint-view.yaml",
+    "ideas-view.yaml",
+]
+
+
+def _get_examples_dir() -> Path:
+    """Get the path to the examples directory bundled with the package."""
+    # The examples are in src/cub/dashboard/examples/ relative to this file
+    # This file is at src/cub/cli/dashboard.py
+    # So we need to go up to src/cub, then into dashboard/examples
+    return Path(__file__).parent.parent / "dashboard" / "examples"
+
+
+@app.command()
+def init(
+    ctx: typer.Context,
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing view files",
+    ),
+) -> None:
+    """
+    Initialize dashboard with example view configurations.
+
+    Copies example YAML files to .cub/views/ so you can customize them.
+    Run this to get started with custom view configurations.
+
+    Examples:
+        cub dashboard init              # Copy example views
+        cub dashboard init --force      # Overwrite existing files
+    """
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
+
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+        console.print("[dim]Debug mode enabled[/dim]")
+
+    try:
+        project_root, db_path, specs_root = _get_project_paths()
+
+        # Create .cub/views/ directory if it doesn't exist
+        views_dir = project_root / ".cub" / "views"
+        views_dir.mkdir(parents=True, exist_ok=True)
+
+        if debug:
+            console.print(f"[dim]Views directory: {views_dir}[/dim]")
+
+        # Get examples directory
+        examples_dir = _get_examples_dir()
+        if not examples_dir.exists():
+            console.print(
+                "[red]Error:[/red] Examples directory not found. "
+                "This may indicate a broken installation."
+            )
+            raise typer.Exit(1)
+
+        if debug:
+            console.print(f"[dim]Examples directory: {examples_dir}[/dim]")
+
+        # Copy each example file
+        copied = []
+        skipped = []
+
+        for filename in EXAMPLE_VIEW_FILES:
+            source = examples_dir / filename
+            target = views_dir / filename
+
+            if not source.exists():
+                console.print(f"[yellow]Warning:[/yellow] Example file not found: {filename}")
+                continue
+
+            if target.exists() and not force:
+                skipped.append(filename)
+                continue
+
+            shutil.copy(source, target)
+            copied.append(filename)
+
+        # Print summary
+        if copied:
+            console.print(f"\n[green]✓[/green] Copied {len(copied)} view configuration(s):")
+            for filename in copied:
+                console.print(f"  • {views_dir / filename}")
+
+        if skipped:
+            console.print(f"\n[yellow]Skipped {len(skipped)} existing file(s):[/yellow]")
+            for filename in skipped:
+                console.print(f"  • {filename}")
+            console.print("[dim]Use --force to overwrite[/dim]")
+
+        if not copied and not skipped:
+            console.print("[yellow]No example files found to copy[/yellow]")
+            raise typer.Exit(1)
+
+        # Print helpful message
+        console.print("\n[bold]Next steps:[/bold]")
+        console.print("  1. Edit the YAML files in .cub/views/ to customize your views")
+        console.print("  2. Run 'cub dashboard' to see your custom views")
+        console.print("  3. Views are loaded automatically - just refresh to see changes")
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        if debug:
+            import traceback
+            console.print(traceback.format_exc())
         raise typer.Exit(1)
 
 
