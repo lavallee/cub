@@ -162,3 +162,4 @@
 {"id": "cub-d2v.3", "title": "Implement ledger parser", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
 {"id": "cub-d2v.4", "title": "Implement CHANGELOG parser for release detection", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
 {"id": "cub-d2v.5", "title": "Implement relationship resolver and stage computation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-d2v.6", "title": "Integrate all parsers into sync orchestrator", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
