@@ -16,9 +16,10 @@ export interface UseBoardResult {
 /**
  * Fetches board data from the API with loading and error states.
  *
+ * @param viewId - Optional specific view ID to fetch. If not provided, fetches the default board.
  * @returns Board data, loading state, error state, and refetch function
  */
-export function useBoard(): UseBoardResult {
+export function useBoard(viewId?: string): UseBoardResult {
   const [data, setData] = useState<BoardResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
@@ -28,7 +29,9 @@ export function useBoard(): UseBoardResult {
     setError(null);
 
     try {
-      const response = await apiClient.getBoard();
+      const response = viewId
+        ? await apiClient.getView(viewId)
+        : await apiClient.getBoard();
       setData(response);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch board data'));
@@ -39,7 +42,7 @@ export function useBoard(): UseBoardResult {
 
   useEffect(() => {
     fetchBoard();
-  }, []);
+  }, [viewId]);
 
   return {
     data,
