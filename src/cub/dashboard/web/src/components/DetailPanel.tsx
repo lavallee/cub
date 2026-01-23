@@ -51,12 +51,13 @@ export function DetailPanel({ entityId, onClose, onNavigate, navigationPath = []
     <>
       {/* Backdrop overlay */}
       <div
-        class="fixed inset-0 bg-black bg-opacity-25 z-40 transition-opacity"
+        class="fixed inset-0 bg-black/30 z-40 transition-opacity"
         onClick={onClose}
+        aria-label="Close panel backdrop"
       />
 
       {/* Sidebar panel */}
-      <div class="fixed top-0 right-0 bottom-0 w-full md:w-2/3 lg:w-1/2 xl:w-1/3 bg-white shadow-2xl z-50 overflow-y-auto">
+      <div class="fixed top-0 right-0 bottom-0 w-full md:w-2/3 lg:w-1/2 xl:w-1/3 bg-white shadow-2xl z-50 overflow-y-auto transform transition-transform">
         {/* Header */}
         <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
           <div class="flex items-center justify-between mb-2">
