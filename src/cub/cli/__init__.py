@@ -16,6 +16,7 @@ from cub.cli import (
     merge,
     monitor,
     organize_captures,
+    plan,
     pr,
     punchlist,
     run,
@@ -100,9 +101,7 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 # Plan from Specs
 # =============================================================================
 
-# TODO: plan and stage commands need Python implementation completed
-# For now, these delegate to bash:
-app.command(name="plan", rich_help_panel=PANEL_PLAN)(delegated.plan)
+app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PLAN)
 app.command(name="stage", rich_help_panel=PANEL_PLAN)(delegated.stage)
 
 

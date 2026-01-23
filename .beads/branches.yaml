@@ -10,3 +10,10 @@ bindings:
   created_at: '2026-01-23T01:21:14Z'
   pr_number: null
   merged: false
+- epic_id: cub-r7k
+  branch_name: feature/token-persistence
+  base_branch: origin/main
+  status: active
+  created_at: '2026-01-23T01:23:07Z'
+  pr_number: null
+  merged: false

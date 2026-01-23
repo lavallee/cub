@@ -135,28 +135,9 @@ class TestPrepArgumentPassing:
                 "myproj-20260120-123456",
             ]
 
-    def test_plan_with_session_argument(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that 'cub plan session-id' passes the session ID."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["plan", "myproj-20260120-123456"])
-
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [
-                str(bash_script),
-                "plan",
-                "myproj-20260120-123456",
-            ]
+    # NOTE: test_plan_with_session_argument removed - plan command is now
+    # Python-native with subcommands (orient, architect, itemize, run, list)
+    # instead of bash delegation.
 
     def test_bootstrap_with_session_argument(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
