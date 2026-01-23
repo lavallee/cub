@@ -18,6 +18,8 @@ dependencies = [
     "python-frontmatter>=1.0.0",
     "anyio>=4.0.0",
     "claude-agent-sdk>=0.1.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
 ]
 
 [project.optional-dependencies]
