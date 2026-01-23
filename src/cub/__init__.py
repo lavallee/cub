@@ -4,7 +4,7 @@ Cub - AI Coding Assistant Loop
 A CLI tool that wraps AI coding assistants for autonomous task execution.
 """
 
-__version__ = "0.26.4"
+__version__ = "0.27.1"
 
 # Re-export core models for convenience
 from cub.core.config.models import CubConfig

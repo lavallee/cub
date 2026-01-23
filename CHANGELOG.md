@@ -6,6 +6,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.27.1] - 2026-01-23
+
+### Breaking Changes
+
+- Feature/test (#54)
+
+### Added
+
+- Add cub punchlist command and unified task CLI
+- Add complexity/model label support for harness selection
+- **run**: Integrate branch binding through task backend abstraction
+- **run**: Add branch protection and auto-branch creation
+- **cli**: Add cub update, rename upgrade to system-upgrade
+- **pr**: Add --dangerously-skip-permissions to Claude invocation
+- **spec**: Add interactive spec creation command
+- **stage**: Add pre-flight checks and prompt/agent.md generation
+- **plan**: Add --non-interactive mode, vision auto-discovery, and list command
+- **itemize**: Add plan labels and descriptive titles for task visibility
+
+### Changed
+
+- Feature/token-persistence (#56)
+- Reapply "Merge origin/main: get working plan/specs/stage modules"
+- Revert "Merge origin/main: get working plan/specs/stage modules"
+- Beads issues
+- Beads upgrade
+- Ignore beads jsonl (tracked on beads-sync)
+- Added planning for toolsmith v1
+- Bugs/v0.27.0-bug-roundup (#55)
+- Punchlist
+- Cleaning up after epic
+- Add progress notes for cub-3wxc.3
+- **doctor**: Update session files
+- System udpated punchlist
+- Added first punchlist
+- Add new-branch.sh script for worktree-friendly branch creation
+- Feature/test (#54)
+- Updates to cut-release to make it more resilient
+- Update webpage for v0.27.0
+- Updated knowledge spec
+- Update documentation for PR review feedback
+- Update docs for plan flow, rename investigate to triage
+- **spec-to-issues**: Use native plan + stage pipeline
+- Remove legacy prep pipeline commands in favor of cub plan
+- Add learnings from cub-p2p.4 itemize stage implementation
+- Add progress entry for cub-p1f.4 SpecWorkflow implementation
+- Interim
+- Added full prep plan redesign plan
+- Some updates to prep/plan redesign
+- Spec for redesigning the prep/plan phase
+- Previously, `cub prep specs/researching/new-idea.md` would not properly pass the vision document through all stages of the prep pipeline. The vision file argument was only used in the triage stage and was lost when continuing to subsequent stages (architect, plan, bootstrap).
+- Attempt to make AnyIO work properly
+
+### Fixed
+
+- Restore plan/spec/stage modules deleted by accidental bd sync
+- Remove broken plan/spec modules, delegate to bash
+- **prep**: Restore vision document session persistence from orphaned commit
+- **beads**: Use epic: label prefix for epic filtering in get_ready_tasks
+- Handle bd show returning list instead of dict for epic title
+- Add missing get_task_backend mocks in branch creation tests
+- Correct mock paths in tests for BranchStore
+- Python 3.10 datetime parsing and broken docs link
+- **test**: Configure pytest-asyncio for async test support
+- Handle non-JSON output from bd update/close/comment commands
+- **harness**: Use bypassPermissions in Claude SDK harness
+- **beads**: Use label filter for epic filtering in get_ready_tasks
+
+---
+
 ## [0.26.4] - 2026-01-18
 
 ### Added
