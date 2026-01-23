@@ -194,3 +194,5 @@
 {"id": "cub-m3x.4", "title": "Implement StatsBar component", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
 {"id": "cub-m3x.5", "title": "Implement ArtifactViewer with markdown rendering", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
 {"id": "cub-m3x.6", "title": "Add loading states, error states, and keyboard navigation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-p9w.1", "title": "Implement view configuration loading from .cub/views/", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}
+{"id": "cub-p9w.2", "title": "Ship default view configurations", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-p9w", "verification": "pending", "tokens": 0}

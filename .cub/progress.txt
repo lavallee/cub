@@ -6209,3 +6209,56 @@ The prompt for lesson extraction:
 ### Files changed:
 - `src/cub/cli/pr.py` - Restructured error handling
 - `tests/test_cli_pr.py` - New test file with 17 tests
+
+## 2026-01-23 - Task cub-p9w.1: View Configuration Loading
+
+Successfully implemented view configuration loading system for the dashboard.
+
+### What was built:
+1. **View loader module** (`src/cub/core/dashboard/views/`)
+   - YAML file loading with Pydantic validation
+   - Caching with mtime-based invalidation
+   - Graceful error handling for invalid configurations
+   
+2. **Built-in default views**:
+   - `default`: Full 8-column workflow (Captures → Released)
+   - `sprint`: Active work view (Ready → In Progress → Review → Complete)
+   - `ideas`: Idea development view (Captures → Specs → Planned)
+   
+3. **Custom view support**:
+   - Load from `.cub/views/*.yaml` or `*.yml`
+   - Can override built-in views by ID
+   - Supports all ViewConfig fields (columns, filters, display settings)
+
+### Technical decisions:
+- Used PyYAML for parsing (already in dependencies)
+- Pydantic validation ensures type safety
+- Simple caching strategy (clear on directory mtime change)
+- Loader logs warnings but doesn't fail on invalid files
+- Custom views merge with (and can override) built-in views
+
+### Testing approach:
+- 28 comprehensive tests covering:
+  - Built-in view correctness
+  - YAML loading (valid/invalid cases)
+  - Caching behavior
+  - Custom view override
+  - Unicode support
+  - Integration with API
+  
+### Integration points:
+- `/api/views`: Now uses `list_views()` from loader
+- `/api/board`: Uses `get_view_config("default")` with fallback
+- Both endpoints support custom views transparently
+
+### What's next:
+- Task cub-p9w.2: Ship default view configurations as example YAML files
+- Frontend integration to consume view configurations
+
+### Learnings:
+1. **Fallback strategy**: Always provide sensible defaults even when custom configs fail
+2. **Cache invalidation**: Directory mtime is simple but effective for config files
+3. **Error boundaries**: Invalid custom views should warn but not break the system
+4. **Type safety**: Pydantic validation catches config errors early
+5. **Testing custom loaders**: Use monkeypatch + tmp_path for clean test isolation
+
