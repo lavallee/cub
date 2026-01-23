@@ -184,6 +184,12 @@ def row_to_entity(row: dict[str, Any]) -> DashboardEntity:
         source_checksum=data.get("source_checksum"),
         content=data.get("content"),
         frontmatter=data.get("frontmatter"),
+        # Card metadata
+        readiness_score=data.get("readiness_score"),
+        task_count=data.get("task_count"),
+        epic_count=data.get("epic_count"),
+        notes_count=data.get("notes_count"),
+        description_excerpt=data.get("description_excerpt"),
     )
 
 

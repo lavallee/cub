@@ -179,6 +179,24 @@ class PlanParser:
             return labels
         return []
 
+    def _create_description_excerpt(self, task: dict[str, Any]) -> str | None:
+        """
+        Create a brief description excerpt for card display.
+
+        Args:
+            task: Task dictionary from plan.jsonl
+
+        Returns:
+            Brief excerpt (max 100 chars) or None
+        """
+        description = task.get("description")
+        if description and isinstance(description, str):
+            excerpt: str = description.strip()
+            if len(excerpt) > 100:
+                return str(excerpt[:97] + "...")
+            return str(excerpt)
+        return None
+
     def _task_to_entity(
         self,
         task: dict[str, Any],
@@ -242,6 +260,9 @@ class PlanParser:
         # Get spec_id if task references a spec (not common, but possible)
         spec_id = task.get("spec_id")
 
+        # Extract card metadata
+        description_excerpt = self._create_description_excerpt(task)
+
         return DashboardEntity(
             id=task_id,
             type=EntityType.PLAN,
@@ -267,6 +288,8 @@ class PlanParser:
             source_checksum=checksum,
             content=description,
             frontmatter=task,  # Store full task dict as frontmatter
+            # Card metadata (epic_count computed during resolution)
+            description_excerpt=description_excerpt,
         )
 
     def parse_session(self, session_dir: Path) -> list[DashboardEntity]:

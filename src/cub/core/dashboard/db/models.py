@@ -157,6 +157,23 @@ class DashboardEntity(BaseModel):
         default=None, description="Parsed frontmatter (for specs/captures)"
     )
 
+    # Card metadata (extracted during sync for display)
+    readiness_score: float | None = Field(
+        default=None, ge=0.0, le=1.0, description="Spec readiness assessment (0.0-1.0)"
+    )
+    task_count: int | None = Field(
+        default=None, ge=0, description="Number of child tasks (for epics/plans)"
+    )
+    epic_count: int | None = Field(
+        default=None, ge=0, description="Number of epics (for plans)"
+    )
+    notes_count: int | None = Field(
+        default=None, ge=0, description="Number of notes/comments (for specs)"
+    )
+    description_excerpt: str | None = Field(
+        default=None, description="Brief description excerpt for cards (max 100 chars)"
+    )
+
     model_config = ConfigDict(
         populate_by_name=True,
     )

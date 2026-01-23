@@ -169,6 +169,19 @@ class EntityWriter:
                 data["content"] = entity.content
             if entity.source_checksum:
                 data["source_checksum"] = entity.source_checksum
+
+            # Add card metadata fields
+            if entity.readiness_score is not None:
+                data["readiness_score"] = entity.readiness_score
+            if entity.task_count is not None:
+                data["task_count"] = entity.task_count
+            if entity.epic_count is not None:
+                data["epic_count"] = entity.epic_count
+            if entity.notes_count is not None:
+                data["notes_count"] = entity.notes_count
+            if entity.description_excerpt is not None:
+                data["description_excerpt"] = entity.description_excerpt
+
             data_json = json.dumps(data, default=_json_serializer) if data else None
 
             # Build search text for full-text search

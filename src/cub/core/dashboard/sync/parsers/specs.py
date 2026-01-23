@@ -134,6 +134,64 @@ class SpecParser:
 
         return labels
 
+    def _extract_readiness_score(self, spec: Spec) -> float | None:
+        """
+        Extract readiness score from spec as a normalized 0.0-1.0 value.
+
+        Args:
+            spec: Spec object
+
+        Returns:
+            Readiness score normalized to 0.0-1.0, or None if not available
+        """
+        if spec.readiness and spec.readiness.score is not None:
+            # Normalize from 0-10 scale to 0.0-1.0
+            return spec.readiness.score / 10.0
+        return None
+
+    def _count_notes(self, spec: Spec) -> int:
+        """
+        Count the number of notes/comments in the spec.
+
+        Currently counts:
+        - Blockers in readiness
+        - Questions in readiness
+        - Decisions needed in readiness
+        - Notes field presence
+
+        Args:
+            spec: Spec object
+
+        Returns:
+            Count of note items
+        """
+        count = 0
+        if spec.readiness:
+            count += len(spec.readiness.blockers)
+            count += len(spec.readiness.questions)
+            count += len(spec.readiness.decisions_needed)
+        if spec.notes:
+            count += 1  # Count the notes field itself as one item
+        return count
+
+    def _create_description_excerpt(self, spec: Spec) -> str | None:
+        """
+        Create a brief description excerpt for card display.
+
+        Args:
+            spec: Spec object
+
+        Returns:
+            Brief excerpt (max 100 chars) or None
+        """
+        # Try notes field first
+        if spec.notes:
+            excerpt = spec.notes.strip()
+            if len(excerpt) > 100:
+                return excerpt[:97] + "..."
+            return excerpt
+        return None
+
     def _spec_to_entity(self, spec: Spec, checksum: str) -> DashboardEntity:
         """
         Convert a Spec object to a DashboardEntity.
@@ -157,6 +215,11 @@ class SpecParser:
 
         # Read full content for detail view
         content = spec.path.read_text() if spec.path.exists() else None
+
+        # Extract card metadata
+        readiness_score = self._extract_readiness_score(spec)
+        notes_count = self._count_notes(spec)
+        description_excerpt = self._create_description_excerpt(spec)
 
         return DashboardEntity(
             id=spec.name,
@@ -183,6 +246,10 @@ class SpecParser:
             source_checksum=checksum,
             content=content,
             frontmatter=spec.to_frontmatter_dict(),
+            # Card metadata
+            readiness_score=readiness_score,
+            notes_count=notes_count,
+            description_excerpt=description_excerpt,
         )
 
     def parse_file(self, file_path: Path, stage: SpecStage) -> DashboardEntity | None:

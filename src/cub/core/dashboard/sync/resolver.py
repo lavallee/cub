@@ -285,6 +285,58 @@ class RelationshipResolver:
             }
         )
 
+    def _compute_task_counts(
+        self, entities: list[DashboardEntity], entity_index: dict[str, DashboardEntity]
+    ) -> dict[str, int]:
+        """
+        Compute task counts for epics and plans.
+
+        Args:
+            entities: List of all entities
+            entity_index: Dict mapping entity ID to entity
+
+        Returns:
+            Dict mapping entity ID to task count
+        """
+        task_counts: dict[str, int] = {}
+
+        for entity in entities:
+            # Count tasks for epics
+            if entity.type == EntityType.EPIC:
+                count = sum(
+                    1
+                    for e in entities
+                    if e.type == EntityType.TASK
+                    and (e.epic_id == entity.id or e.parent_id == entity.id)
+                )
+                task_counts[entity.id] = count
+
+            # Count tasks for plans (via epics or direct)
+            elif entity.type == EntityType.PLAN:
+                # Count epics linked to this plan
+                epic_count = sum(
+                    1 for e in entities if e.type == EntityType.EPIC and e.plan_id == entity.id
+                )
+                task_counts[f"{entity.id}:epics"] = epic_count
+
+                # Count total tasks (direct or via epics)
+                task_count = 0
+                for e in entities:
+                    if e.type == EntityType.TASK:
+                        # Task directly linked to plan
+                        if e.plan_id == entity.id:
+                            task_count += 1
+                        # Task linked via epic
+                        elif e.epic_id or e.parent_id:
+                            parent_id = e.epic_id or e.parent_id
+                            if parent_id:
+                                parent = entity_index.get(parent_id)
+                                if parent and parent.plan_id == entity.id:
+                                    task_count += 1
+                task_counts[entity.id] = task_count
+
+        return task_counts
+
     def resolve(
         self, entities: list[DashboardEntity]
     ) -> tuple[list[DashboardEntity], list[Relationship]]:
@@ -294,7 +346,8 @@ class RelationshipResolver:
         This is the main entry point for the resolver. It:
         1. Recomputes stages based on all signals (ledger, CHANGELOG)
         2. Enriches entities with ledger data
-        3. Creates relationship objects based on explicit markers
+        3. Computes task counts for epics and plans
+        4. Creates relationship objects based on explicit markers
 
         Args:
             entities: List of parsed entities from all sources
@@ -302,6 +355,12 @@ class RelationshipResolver:
         Returns:
             Tuple of (resolved_entities, relationships)
         """
+        # Build initial index for task counting
+        entity_index = self._build_entity_index(entities)
+
+        # Compute task counts for epics and plans
+        task_counts = self._compute_task_counts(entities, entity_index)
+
         # Process each entity
         resolved_entities: list[DashboardEntity] = []
         for entity in entities:
@@ -318,6 +377,21 @@ class RelationshipResolver:
             # Update stage if changed
             if new_stage != enriched.stage:
                 enriched = enriched.model_copy(update={"stage": new_stage})
+
+            # Add task/epic counts
+            updates: dict[str, Any] = {}
+            if entity.type in (EntityType.EPIC, EntityType.TASK):
+                if entity.id in task_counts:
+                    updates["task_count"] = task_counts[entity.id]
+            elif entity.type == EntityType.PLAN:
+                if entity.id in task_counts:
+                    updates["task_count"] = task_counts[entity.id]
+                epic_key = f"{entity.id}:epics"
+                if epic_key in task_counts:
+                    updates["epic_count"] = task_counts[epic_key]
+
+            if updates:
+                enriched = enriched.model_copy(update=updates)
 
             resolved_entities.append(enriched)
 

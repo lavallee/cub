@@ -121,6 +121,23 @@ class TaskParser:
         # Default fallback
         return Stage.READY
 
+    def _create_description_excerpt(self, task: Task) -> str | None:
+        """
+        Create a brief description excerpt for card display.
+
+        Args:
+            task: Task object
+
+        Returns:
+            Brief excerpt (max 100 chars) or None
+        """
+        if task.description:
+            excerpt = task.description.strip()
+            if len(excerpt) > 100:
+                return excerpt[:97] + "..."
+            return excerpt
+        return None
+
     def _task_to_entity(self, task: Task, checksum: str) -> DashboardEntity:
         """
         Convert a Task object to a DashboardEntity.
@@ -143,6 +160,9 @@ class TaskParser:
 
         # Build source path string (backend-specific)
         source_path = f"{self.backend.backend_name}:{task.id}"
+
+        # Extract card metadata
+        description_excerpt = self._create_description_excerpt(task)
 
         return DashboardEntity(
             id=task.id,
@@ -169,6 +189,8 @@ class TaskParser:
             source_checksum=checksum,
             content=task.description,
             frontmatter=task.model_dump(exclude_none=True, by_alias=True),
+            # Card metadata (task_count computed during resolution)
+            description_excerpt=description_excerpt,
         )
 
     def parse_all(self) -> list[DashboardEntity]:
