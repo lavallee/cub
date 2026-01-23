@@ -284,6 +284,30 @@ EOF
     log_success "Changes committed"
 }
 
+# Check if an epic is already complete (closed or no open tasks)
+# Returns 0 (true) if complete, 1 (false) if work remains
+is_epic_complete() {
+    local epic="$1"
+
+    # Check if epic itself is closed
+    local epic_status
+    epic_status=$(bd show "$epic" 2>/dev/null | grep -E "^Status:" | awk '{print $2}' || echo "unknown")
+
+    if [[ "$epic_status" == "closed" ]]; then
+        return 0
+    fi
+
+    # Check if there are any open tasks
+    local open_tasks
+    open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep -c "^○" || echo "0")
+
+    if [[ "$open_tasks" == "0" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 # Run cub for a single epic
 run_epic() {
     local epic="$1"
@@ -383,6 +407,13 @@ main() {
                 log_info "Skipping ${epic} (before start epic)"
                 continue
             fi
+        fi
+
+        # Check if epic is already complete (closed or no open tasks)
+        if is_epic_complete "$epic"; then
+            log_success "Skipping ${epic} (already complete - closed or no open tasks)"
+            ((processed++))
+            continue
         fi
 
         echo ""
