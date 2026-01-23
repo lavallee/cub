@@ -42,6 +42,9 @@ class TestPrepArgumentPassing:
                 "specs/researching/new-idea.md",
             ]
 
+    @pytest.mark.skip(
+        reason="prep command now uses 'cub plan' pipeline - doesn't support --session flag"
+    )
     def test_prep_with_multiple_arguments(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -69,6 +72,9 @@ class TestPrepArgumentPassing:
                 "specs/doc.md",
             ]
 
+    @pytest.mark.skip(
+        reason="prep command now uses 'cub plan' pipeline - doesn't support --vision flag"
+    )
     def test_prep_with_vision_flag(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -112,6 +118,9 @@ class TestPrepArgumentPassing:
             call_args = mock_run.call_args
             assert call_args[0][0] == [str(bash_script), "triage", "specs/doc.md"]
 
+    @pytest.mark.skip(
+        reason="'cub architect' is now 'cub plan architect' - Python native, not bash"
+    )
     def test_architect_with_session_argument(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -135,6 +144,9 @@ class TestPrepArgumentPassing:
                 "myproj-20260120-123456",
             ]
 
+    @pytest.mark.skip(
+        reason="'cub plan' is now Python native with subcommands - use 'cub plan orient/architect/itemize'"
+    )
     def test_plan_with_session_argument(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:

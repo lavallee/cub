@@ -37,9 +37,8 @@ def _delegate(command: str, args: list[str], ctx: typer.Context | None = None) -
 
 # Vision-to-Tasks Prep Pipeline (v0.14)
 
-
 def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Run full prep pipeline (triage→architect→plan→bootstrap)."""
+    """[DEPRECATED] Run full prep pipeline. Use 'cub plan' instead."""
     _delegate("prep", args or [], ctx)
 
 

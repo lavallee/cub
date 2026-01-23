@@ -16,13 +16,17 @@ from cub.cli import (
     merge,
     monitor,
     organize_captures,
+    plan,
     pr,
     punchlist,
     run,
     sandbox,
+    spec,
+    stage,
     status,
     task,
     uninstall,
+    update,
     upgrade,
     worktree,
 )
@@ -100,10 +104,8 @@ app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_ta
 # Plan from Specs
 # =============================================================================
 
-# TODO: plan and stage commands need Python implementation completed
-# For now, these delegate to bash:
-app.command(name="plan", rich_help_panel=PANEL_PLAN)(delegated.plan)
-app.command(name="stage", rich_help_panel=PANEL_PLAN)(delegated.stage)
+app.add_typer(plan.app, name="plan", rich_help_panel=PANEL_PLAN)
+app.add_typer(stage.app, name="stage", rich_help_panel=PANEL_PLAN)
 
 
 # =============================================================================
@@ -132,7 +134,7 @@ app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 
 app.command(name="capture", rich_help_panel=PANEL_ROADMAP)(capture.capture)
 app.add_typer(captures.app, name="captures", rich_help_panel=PANEL_ROADMAP)
-app.command(name="spec", rich_help_panel=PANEL_ROADMAP)(delegated.spec)
+app.command(name="spec", rich_help_panel=PANEL_ROADMAP)(spec.spec)
 app.command(name="triage", rich_help_panel=PANEL_ROADMAP)(delegated.triage)
 app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
@@ -152,7 +154,7 @@ def version() -> None:
     raise typer.Exit(0)
 
 
-app.command(name="update", rich_help_panel=PANEL_INSTALL)(delegated.update)
+app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)

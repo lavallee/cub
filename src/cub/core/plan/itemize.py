@@ -690,11 +690,21 @@ class ItemizeStage:
 
         # Write itemized-plan.md
         output_path = self.ctx.itemized_plan_path
-        output_path.write_text(itemized_plan_content)
+        try:
+            output_path.write_text(itemized_plan_content, encoding="utf-8")
+        except OSError as e:
+            raise ItemizeStageError(
+                f"Cannot write itemized plan file {output_path}: {e}"
+            ) from e
 
         # Mark stage as complete
         self.ctx.plan.complete_stage(PlanStage.ITEMIZE)
-        self.ctx.save_plan()
+        try:
+            self.ctx.save_plan()
+        except (OSError, ValueError) as e:
+            raise ItemizeStageError(
+                f"Cannot save plan after itemize stage: {e}"
+            ) from e
 
         completed_at = datetime.now(timezone.utc)
 

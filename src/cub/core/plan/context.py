@@ -189,7 +189,7 @@ class PlanContext(BaseModel):
             Spec file content as a string.
 
         Raises:
-            SpecNotFoundError: If no spec is associated or file doesn't exist.
+            SpecNotFoundError: If no spec is associated or file doesn't exist or cannot be read.
         """
         if self.spec_path is None:
             raise SpecNotFoundError("No spec associated with this plan")
@@ -197,31 +197,55 @@ class PlanContext(BaseModel):
         if not self.spec_path.exists():
             raise SpecNotFoundError(f"Spec file not found: {self.spec_path}")
 
-        return self.spec_path.read_text()
+        try:
+            content = self.spec_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as e:
+            raise SpecNotFoundError(
+                f"Spec file has invalid UTF-8 encoding: {self.spec_path}: {e}"
+            ) from e
+        except OSError as e:
+            raise SpecNotFoundError(
+                f"Cannot read spec file: {self.spec_path}: {e}"
+            ) from e
+
+        if not content.strip():
+            raise SpecNotFoundError(f"Spec file is empty: {self.spec_path}")
+
+        return content
 
     def read_system_plan(self) -> str | None:
         """
         Read the SYSTEM-PLAN.md constitutional memory if it exists.
 
         Returns:
-            Content of SYSTEM-PLAN.md, or None if file doesn't exist.
+            Content of SYSTEM-PLAN.md, or None if file doesn't exist or cannot be read.
         """
         path = self.get_system_plan_path()
-        if path.exists():
-            return path.read_text()
-        return None
+        if not path.exists():
+            return None
+
+        try:
+            return path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            # Silently fail for non-critical file reads
+            return None
 
     def read_agent_instructions(self) -> str | None:
         """
         Read the CLAUDE.md / AGENT.md instructions if they exist.
 
         Returns:
-            Content of agent instructions, or None if file doesn't exist.
+            Content of agent instructions, or None if file doesn't exist or cannot be read.
         """
         path = self.get_agent_instructions_path()
-        if path.exists():
-            return path.read_text()
-        return None
+        if not path.exists():
+            return None
+
+        try:
+            return path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            # Silently fail for non-critical file reads
+            return None
 
     def ensure_plan_dir(self) -> Path:
         """
@@ -229,8 +253,14 @@ class PlanContext(BaseModel):
 
         Returns:
             Path to the plan directory.
+
+        Raises:
+            OSError: If directory cannot be created.
         """
-        self.plan_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.plan_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise OSError(f"Cannot create plan directory {self.plan_dir}: {e}") from e
         return self.plan_dir
 
     def save_plan(self) -> Path:
