@@ -1,5 +1,70 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-m3x.3: Implement ViewSwitcher dropdown
+
+### Task Completed
+Implemented a dropdown component for switching between different board view configurations (Full Workflow, Sprint, Ideas, etc.).
+
+### What Was Implemented
+
+**New ViewSwitcher Component** (`src/cub/dashboard/web/src/components/ViewSwitcher.tsx`):
+- Dropdown button positioned in top-right of header
+- Fetches available views from `/api/views` endpoint on mount
+- Displays view names with descriptions and current selection indicator
+- Features:
+  - Click-outside detection to close dropdown
+  - ESC key support for accessibility
+  - Loading states during API calls
+  - Error handling with user-friendly messaging
+  - Disabled state during board transitions
+  - Checkmark icon for currently selected view
+  - Scrollable list for many views (max-height 72)
+
+**Updated useBoard Hook** (`src/cub/dashboard/web/src/hooks/useBoard.ts`):
+- Added optional `viewId` parameter to fetch specific view boards
+- Handles both default board (`/api/board`) and view-specific boards (`/api/views/{viewId}`)
+- Re-fetches data when viewId changes
+
+**Updated KanbanBoard Component** (`src/cub/dashboard/web/src/components/KanbanBoard.tsx`):
+- Added ViewSwitcher to header (top-right, next to title)
+- Manages selected view state
+- Clears entity detail panel when view changes to reset navigation context
+- Header layout uses flexbox for title/description on left, dropdown on right
+
+### Technical Details
+
+**Styling:**
+- Tailwind CSS with responsive design
+- Dropdown button: gray border, white background, hover effect
+- Options: blue highlight for selected, gray hover for others
+- Z-index 50 for dropdown overlay
+- Smooth transitions and SVG chevron rotation
+
+**Type Safety:**
+- Full TypeScript support with ViewSwitcherProps interface
+- Uses ViewSummary type from API types
+- Proper typing for state, refs, and event handlers
+
+**API Integration:**
+- Uses existing apiClient.getViews() for fetching available views
+- Uses existing apiClient.getView(viewId) for view-specific boards
+- Proper error handling with ApiClientError
+
+**Build & Testing:**
+- TypeScript compilation: ✓ No errors
+- Vite build: ✓ Successful (9.96 kB gzipped)
+- All 17 modules transformed
+
+### Learnings & Notes
+
+1. **Hook Dependencies**: The useBoard hook now tracks viewId as a dependency, ensuring re-fetch occurs when user switches views
+2. **State Management**: Kept selectedViewId in KanbanBoard component state for simplicity rather than context
+3. **Navigation Reset**: Clearing navigation history when switching views prevents stale entity selections
+4. **Dropdown UX**: Combined click-outside and ESC key listeners for better user experience
+5. **Fallback Display**: Shows first view as default if none selected, gracefully handles empty states
+
+---
+
 ## 2026-01-22 - cub-r7k.6: Capture prompt.md for rendered prompt audit trail
 
 ### Task Completed
