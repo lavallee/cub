@@ -152,16 +152,8 @@ class SpecParser:
         title = spec.title if spec.title else spec.name
 
         # Convert dates to datetime
-        created_at = (
-            datetime.combine(spec.created, datetime.min.time())
-            if spec.created
-            else None
-        )
-        updated_at = (
-            datetime.combine(spec.updated, datetime.min.time())
-            if spec.updated
-            else None
-        )
+        created_at = datetime.combine(spec.created, datetime.min.time()) if spec.created else None
+        updated_at = datetime.combine(spec.updated, datetime.min.time()) if spec.updated else None
 
         # Read full content for detail view
         content = spec.path.read_text() if spec.path.exists() else None
@@ -223,9 +215,7 @@ class SpecParser:
             try:
                 post = frontmatter.load(file_path)
             except yaml.YAMLError as e:
-                logger.warning(
-                    f"Invalid YAML frontmatter in {file_path}: {e}. Using defaults."
-                )
+                logger.warning(f"Invalid YAML frontmatter in {file_path}: {e}. Using defaults.")
                 # Create minimal post with empty metadata
                 post = frontmatter.Post(content=file_path.read_text(), metadata={})
 

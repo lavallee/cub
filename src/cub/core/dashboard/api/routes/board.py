@@ -11,8 +11,14 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from cub.core.dashboard.db.connection import get_connection
-from cub.core.dashboard.db.models import BoardResponse, BoardStats
-from cub.core.dashboard.db.queries import compute_board_stats, get_all_entities, get_board_data
+from cub.core.dashboard.db.models import BoardColumn, BoardResponse, BoardStats
+from cub.core.dashboard.db.queries import (
+    compute_board_stats,
+    get_all_entities,
+    get_board_data,
+    get_default_view_config,
+)
+from cub.core.dashboard.views import get_view_config
 
 router = APIRouter()
 
@@ -77,14 +83,11 @@ async def get_board() -> BoardResponse:
     if not db_path.exists():
         # Return empty board if database doesn't exist yet
         # This allows the frontend to render before first sync
-        from cub.core.dashboard.views import get_view_config
-        from cub.core.dashboard.db.models import BoardColumn
 
         # Load default view from view loader (supports custom views)
         view = get_view_config("default")
         if not view:
             # Fallback to built-in default if loading fails
-            from cub.core.dashboard.db.queries import get_default_view_config
             view = get_default_view_config()
 
         empty_columns = [

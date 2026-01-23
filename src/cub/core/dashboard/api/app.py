@@ -44,6 +44,7 @@ class ErrorResponse(BaseModel):
     detail: str | None = None
     request_id: str | None = None
 
+
 # Create FastAPI app
 app = FastAPI(
     title="Cub Dashboard API",

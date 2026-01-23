@@ -26,6 +26,7 @@ Relationship Types:
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from cub.core.dashboard.db.models import (
     DashboardEntity,
@@ -191,7 +192,7 @@ class RelationshipResolver:
             source_id: str,
             target_id: str,
             rel_type: RelationType,
-            metadata: dict | None = None,
+            metadata: dict[str, Any] | None = None,
         ) -> None:
             """Add relationship if not already seen."""
             key = (source_id, target_id, rel_type.value)

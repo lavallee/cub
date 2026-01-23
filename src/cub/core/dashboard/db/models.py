@@ -274,12 +274,8 @@ class DisplayConfig(BaseModel):
     show_cost: bool = Field(default=True, description="Show cost metrics on cards")
     show_tokens: bool = Field(default=False, description="Show token usage on cards")
     show_duration: bool = Field(default=False, description="Show duration on cards")
-    card_size: str = Field(
-        default="compact", description="Card size (compact/normal/detailed)"
-    )
-    group_collapsed: bool = Field(
-        default=False, description="Collapse groups by default"
-    )
+    card_size: str = Field(default="compact", description="Card size (compact/normal/detailed)")
+    group_collapsed: bool = Field(default=False, description="Collapse groups by default")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -369,17 +365,13 @@ class BoardStats(BaseModel):
     """
 
     total: int = Field(default=0, ge=0, description="Total entity count")
-    by_stage: dict[Stage, int] = Field(
-        default_factory=dict, description="Entity counts by stage"
-    )
+    by_stage: dict[Stage, int] = Field(default_factory=dict, description="Entity counts by stage")
     by_type: dict[EntityType, int] = Field(
         default_factory=dict, description="Entity counts by type"
     )
     cost_total: float = Field(default=0.0, ge=0.0, description="Total cost in USD")
     tokens_total: int = Field(default=0, ge=0, description="Total token usage")
-    duration_total_seconds: int = Field(
-        default=0, ge=0, description="Total duration in seconds"
-    )
+    duration_total_seconds: int = Field(default=0, ge=0, description="Total duration in seconds")
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -512,9 +504,7 @@ class SyncResult(BaseModel):
     errors: list[str] = Field(default_factory=list, description="Error messages")
     warnings: list[str] = Field(default_factory=list, description="Warning messages")
     duration_seconds: float = Field(default=0.0, ge=0.0, description="Sync duration")
-    sources_synced: list[str] = Field(
-        default_factory=list, description="List of sources processed"
-    )
+    sources_synced: list[str] = Field(default_factory=list, description="List of sources processed")
 
     model_config = ConfigDict(
         populate_by_name=True,

@@ -315,15 +315,11 @@ class PlanParser:
         if plan_file.exists():
             checksums.append(self._compute_checksum(plan_file))
 
-        combined_checksum = hashlib.md5(
-            "|".join(checksums).encode()
-        ).hexdigest()
+        combined_checksum = hashlib.md5("|".join(checksums).encode()).hexdigest()
 
         # Convert tasks to entities
         for task in tasks:
-            entity = self._task_to_entity(
-                task, session_metadata, session_dir, combined_checksum
-            )
+            entity = self._task_to_entity(task, session_metadata, session_dir, combined_checksum)
             if entity:
                 entities.append(entity)
 

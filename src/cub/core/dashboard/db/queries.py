@@ -302,17 +302,13 @@ def apply_filters(
     # Exclude labels
     if filters.exclude_labels:
         filtered = [
-            e
-            for e in filtered
-            if not any(label in filters.exclude_labels for label in e.labels)
+            e for e in filtered if not any(label in filters.exclude_labels for label in e.labels)
         ]
 
     # Include labels
     if filters.include_labels:
         filtered = [
-            e
-            for e in filtered
-            if any(label in filters.include_labels for label in e.labels)
+            e for e in filtered if any(label in filters.include_labels for label in e.labels)
         ]
 
     # Exclude types
@@ -326,16 +322,12 @@ def apply_filters(
     # Priority filters
     if filters.min_priority is not None:
         filtered = [
-            e
-            for e in filtered
-            if e.priority is not None and e.priority >= filters.min_priority
+            e for e in filtered if e.priority is not None and e.priority >= filters.min_priority
         ]
 
     if filters.max_priority is not None:
         filtered = [
-            e
-            for e in filtered
-            if e.priority is not None and e.priority <= filters.max_priority
+            e for e in filtered if e.priority is not None and e.priority <= filters.max_priority
         ]
 
     return filtered

@@ -58,13 +58,13 @@ STAGES = [
 
 # Relationship types
 RELATIONSHIP_TYPES = [
-    "spec_to_plan",      # spec -> plan
-    "plan_to_epic",      # plan -> epic
-    "epic_to_task",      # epic -> task
-    "task_to_ledger",    # task -> ledger entry
-    "task_to_release",   # task -> release
-    "depends_on",        # task -> task (dependency)
-    "blocks",            # task -> task (blocking)
+    "spec_to_plan",  # spec -> plan
+    "plan_to_epic",  # plan -> epic
+    "epic_to_task",  # epic -> task
+    "task_to_ledger",  # task -> ledger entry
+    "task_to_release",  # task -> release
+    "depends_on",  # task -> task (dependency)
+    "blocks",  # task -> task (blocking)
 ]
 
 
@@ -261,8 +261,7 @@ def validate_entity_type(entity_type: str) -> None:
     """
     if entity_type not in ENTITY_TYPES:
         raise ValueError(
-            f"Invalid entity type: {entity_type}. "
-            f"Must be one of: {', '.join(ENTITY_TYPES)}"
+            f"Invalid entity type: {entity_type}. Must be one of: {', '.join(ENTITY_TYPES)}"
         )
 
 
@@ -284,10 +283,7 @@ def validate_stage(stage: str) -> None:
         ValueError: Invalid stage: invalid. Must be one of: backlog, ...
     """
     if stage not in STAGES:
-        raise ValueError(
-            f"Invalid stage: {stage}. "
-            f"Must be one of: {', '.join(STAGES)}"
-        )
+        raise ValueError(f"Invalid stage: {stage}. Must be one of: {', '.join(STAGES)}")
 
 
 def validate_relationship_type(rel_type: str) -> None:

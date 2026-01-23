@@ -130,7 +130,6 @@ class SyncOrchestrator:
         else:
             logger.debug(f"Using existing database: {self.db_path}")
 
-
     def sync(self, *, force_full_sync: bool = False) -> SyncResult:
         """
         Run the sync process for all data sources.
@@ -327,9 +326,7 @@ class SyncOrchestrator:
                 total = row["count"] if isinstance(row, dict) else row[0]
 
                 # Get counts by type
-                cursor = conn.execute(
-                    "SELECT type, COUNT(*) as count FROM entities GROUP BY type"
-                )
+                cursor = conn.execute("SELECT type, COUNT(*) as count FROM entities GROUP BY type")
                 by_type = {}
                 for row in cursor.fetchall():
                     if isinstance(row, dict):

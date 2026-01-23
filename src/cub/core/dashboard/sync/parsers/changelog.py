@@ -79,17 +79,13 @@ class ChangelogParser:
 
     # Regex patterns for ID extraction
     # Matches: cub-xxx, cub-xxx.n, epic:cub-xxx
-    TASK_ID_PATTERN = re.compile(
-        r"\b(?:epic:)?(cub-[a-z0-9]+(?:\.\d+)?)\b", re.IGNORECASE
-    )
+    TASK_ID_PATTERN = re.compile(r"\b(?:epic:)?(cub-[a-z0-9]+(?:\.\d+)?)\b", re.IGNORECASE)
 
     # Matches: #123, (#123)
     GITHUB_ISSUE_PATTERN = re.compile(r"#(\d+)")
 
     # Matches: ## [0.27.1] - 2026-01-23 (with optional date)
-    RELEASE_HEADER_PATTERN = re.compile(
-        r"^##\s+\[([^\]]+)\](?:\s*-\s*(.+))?", re.MULTILINE
-    )
+    RELEASE_HEADER_PATTERN = re.compile(r"^##\s+\[([^\]]+)\](?:\s*-\s*(.+))?", re.MULTILINE)
 
     def __init__(self, changelog_path: Path) -> None:
         """
