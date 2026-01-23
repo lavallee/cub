@@ -376,12 +376,36 @@ class Spec(BaseModel):
         readiness = Readiness()
         readiness_raw = data.get("readiness", {})
         if isinstance(readiness_raw, dict):
+            # Helper to normalize list items to strings
+            def normalize_string_list(items: list[object]) -> list[str]:
+                """Convert list items to strings, handling both str and dict formats."""
+                result = []
+                for item in items:
+                    if isinstance(item, str):
+                        result.append(item)
+                    elif isinstance(item, dict):
+                        # Convert dict to string representation
+                        # Support common formats like {name: X, description: Y}
+                        name = item.get("name", "")
+                        desc = item.get("description", "")
+                        if name and desc:
+                            result.append(f"{name} ({desc})")
+                        elif name:
+                            result.append(name)
+                        else:
+                            # Fallback to string representation
+                            result.append(str(item))
+                    else:
+                        # Convert other types to string
+                        result.append(str(item))
+                return result
+
             readiness = Readiness(
                 score=int(readiness_raw.get("score", 0)),
-                blockers=list(readiness_raw.get("blockers", [])),
-                questions=list(readiness_raw.get("questions", [])),
-                decisions_needed=list(readiness_raw.get("decisions_needed", [])),
-                tools_needed=list(readiness_raw.get("tools_needed", [])),
+                blockers=normalize_string_list(readiness_raw.get("blockers", [])),
+                questions=normalize_string_list(readiness_raw.get("questions", [])),
+                decisions_needed=normalize_string_list(readiness_raw.get("decisions_needed", [])),
+                tools_needed=normalize_string_list(readiness_raw.get("tools_needed", [])),
             )
 
         # Parse notes

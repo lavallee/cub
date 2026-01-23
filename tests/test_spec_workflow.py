@@ -108,6 +108,108 @@ class TestReadiness:
             Readiness(score=11)
 
 
+class TestReadinessFlexibleParsing:
+    """Tests for flexible YAML parsing in Readiness fields."""
+
+    def test_from_frontmatter_dict_string_format(self) -> None:
+        """Test that string format works (current behavior)."""
+        data = {
+            "priority": "high",
+            "complexity": "medium",
+            "readiness": {
+                "score": 7,
+                "tools_needed": [
+                    "API Design Validator (design registry format)",
+                    "Technical Feasibility Checker (verify approach)",
+                ],
+            },
+        }
+
+        spec = Spec.from_frontmatter_dict(
+            data=data,
+            name="test-spec",
+            path=Path("test.md"),
+            stage=Stage.RESEARCHING,
+        )
+
+        assert len(spec.readiness.tools_needed) == 2
+        assert spec.readiness.tools_needed[0] == "API Design Validator (design registry format)"
+        assert spec.readiness.tools_needed[1] == "Technical Feasibility Checker (verify approach)"
+
+    def test_from_frontmatter_dict_dict_format(self) -> None:
+        """Test that dict format is converted to string."""
+        data = {
+            "priority": "high",
+            "complexity": "medium",
+            "readiness": {
+                "score": 7,
+                "tools_needed": [
+                    "Simple string tool",
+                    {"name": "Complex Tool", "description": "does complex things"},
+                    {"name": "Tool with only name"},
+                ],
+            },
+        }
+
+        spec = Spec.from_frontmatter_dict(
+            data=data,
+            name="test-spec",
+            path=Path("test.md"),
+            stage=Stage.RESEARCHING,
+        )
+
+        assert len(spec.readiness.tools_needed) == 3
+        assert spec.readiness.tools_needed[0] == "Simple string tool"
+        assert spec.readiness.tools_needed[1] == "Complex Tool (does complex things)"
+        assert spec.readiness.tools_needed[2] == "Tool with only name"
+
+    def test_from_frontmatter_all_fields_handle_dicts(self) -> None:
+        """Test that all readiness list fields handle dict format."""
+        data = {
+            "priority": "high",
+            "complexity": "medium",
+            "readiness": {
+                "score": 5,
+                "blockers": [
+                    "Simple blocker",
+                    {"name": "Complex blocker", "description": "needs resolution"},
+                ],
+                "questions": [
+                    "Simple question?",
+                    {"name": "Complex question", "description": "needs answer"},
+                ],
+                "decisions_needed": [
+                    "Simple decision",
+                    {"name": "Complex decision", "description": "needs choice"},
+                ],
+                "tools_needed": [
+                    "Simple tool",
+                    {"name": "Complex tool", "description": "needs building"},
+                ],
+            },
+        }
+
+        spec = Spec.from_frontmatter_dict(
+            data=data,
+            name="test-spec",
+            path=Path("test.md"),
+            stage=Stage.RESEARCHING,
+        )
+
+        # All fields should handle both formats
+        assert len(spec.readiness.blockers) == 2
+        assert spec.readiness.blockers[1] == "Complex blocker (needs resolution)"
+
+        assert len(spec.readiness.questions) == 2
+        assert spec.readiness.questions[1] == "Complex question (needs answer)"
+
+        assert len(spec.readiness.decisions_needed) == 2
+        assert spec.readiness.decisions_needed[1] == "Complex decision (needs choice)"
+
+        assert len(spec.readiness.tools_needed) == 2
+        assert spec.readiness.tools_needed[1] == "Complex tool (needs building)"
+
+
 # =============================================================================
 # Spec Model Tests
 # =============================================================================
