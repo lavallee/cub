@@ -1305,6 +1305,13 @@ def run(
                     auto_approve=True,  # Auto-approve for unattended execution
                 )
 
+                # Write prompt before harness invocation (audit trail, even if harness fails)
+                try:
+                    status_writer.write_prompt(current_task.id, system_prompt, task_prompt)
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
                 # Get harness log path for this task
                 harness_log_path = status_writer.get_harness_log_path(current_task.id)
 
@@ -1660,6 +1667,13 @@ def _run_direct(
             auto_approve=True,
         )
 
+        # Write prompt before harness invocation (audit trail, even if harness fails)
+        try:
+            status_writer.write_prompt("direct", system_prompt, task_prompt)
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
         # Get harness log path for direct mode (use "direct" as task_id)
         harness_log_path = status_writer.get_harness_log_path("direct")
 
@@ -1782,8 +1796,16 @@ def _run_gh_issue(
             auto_approve=True,
         )
 
+        # Write prompt before harness invocation (audit trail, even if harness fails)
+        issue_task_id = f"issue-{issue_number}"
+        try:
+            status_writer.write_prompt(issue_task_id, system_prompt, task_prompt)
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
+
         # Get harness log path for gh-issue mode (use issue number as task_id)
-        harness_log_path = status_writer.get_harness_log_path(f"issue-{issue_number}")
+        harness_log_path = status_writer.get_harness_log_path(issue_task_id)
 
         result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
     except Exception as e:

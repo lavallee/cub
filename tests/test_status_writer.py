@@ -319,6 +319,120 @@ class TestStatusWriter:
 
         assert artifact is None
 
+    def test_get_prompt_path(self, temp_dir):
+        """Test get_prompt_path() returns correct path."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        prompt_path = writer.get_prompt_path("cub-123")
+
+        assert prompt_path == temp_dir / ".cub" / "runs" / "test-run-001" / "tasks" / "cub-123" / "prompt.md"
+
+    def test_write_prompt_creates_file(self, temp_dir):
+        """Test write_prompt() creates prompt.md file."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = "You are a helpful assistant."
+        task_prompt = "## CURRENT TASK\nTask ID: cub-123"
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        assert prompt_path.exists()
+
+    def test_write_prompt_includes_sections(self, temp_dir):
+        """Test write_prompt() writes both system and task prompts with sections."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = "System prompt content"
+        task_prompt = "Task prompt content"
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        content = prompt_path.read_text()
+
+        # Check for header
+        assert "# Rendered Prompt" in content
+
+        # Check for system prompt section
+        assert "## System Prompt" in content
+        assert system_prompt in content
+
+        # Check for task prompt section
+        assert "## Task Prompt" in content
+        assert task_prompt in content
+
+    def test_write_prompt_with_multiline_content(self, temp_dir):
+        """Test write_prompt() handles multiline prompt content."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        system_prompt = """Line 1
+Line 2
+Line 3"""
+        task_prompt = """Task Line 1
+Task Line 2
+Task Line 3"""
+
+        writer.write_prompt("cub-123", system_prompt, task_prompt)
+
+        prompt_path = writer.get_prompt_path("cub-123")
+        content = prompt_path.read_text()
+
+        # Verify all lines are preserved
+        assert "Line 1" in content
+        assert "Line 2" in content
+        assert "Line 3" in content
+        assert "Task Line 1" in content
+        assert "Task Line 2" in content
+        assert "Task Line 3" in content
+
+    def test_write_prompt_creates_task_directory(self, temp_dir):
+        """Test write_prompt() creates task directory if it doesn't exist."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+        task_dir = writer.get_task_dir("cub-123")
+
+        # Ensure directory exists before write
+        assert not task_dir.exists() or task_dir.is_dir()
+
+        writer.write_prompt("cub-123", "System", "Task")
+
+        # Verify directory was created
+        assert task_dir.exists()
+        assert task_dir.is_dir()
+
+    def test_write_prompt_overwrites_existing(self, temp_dir):
+        """Test write_prompt() overwrites existing prompt.md."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        # Write first version
+        writer.write_prompt("cub-123", "First system", "First task")
+        first_content = writer.get_prompt_path("cub-123").read_text()
+
+        # Write second version
+        writer.write_prompt("cub-123", "Second system", "Second task")
+        second_content = writer.get_prompt_path("cub-123").read_text()
+
+        # Verify it was overwritten
+        assert "Second system" in second_content
+        assert "Second task" in second_content
+        assert "First system" not in second_content
+        assert "First task" not in second_content
+
+    def test_write_prompt_different_task_ids(self, temp_dir):
+        """Test write_prompt() creates separate files for different task_ids."""
+        writer = StatusWriter(temp_dir, "test-run-001")
+
+        writer.write_prompt("cub-123", "System 1", "Task 1")
+        writer.write_prompt("cub-456", "System 2", "Task 2")
+
+        content1 = writer.get_prompt_path("cub-123").read_text()
+        content2 = writer.get_prompt_path("cub-456").read_text()
+
+        # Verify separate files
+        assert "System 1" in content1
+        assert "Task 1" in content1
+        assert "System 2" not in content1
+
+        assert "System 2" in content2
+        assert "Task 2" in content2
+        assert "System 1" not in content2
+
 
 class TestGetLatestStatus:
     """Tests for get_latest_status function."""

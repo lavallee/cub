@@ -158,6 +158,52 @@ class StatusWriter:
         """
         return self.get_task_dir(task_id) / "harness.log"
 
+    def get_prompt_path(self, task_id: str) -> Path:
+        """
+        Get the path to prompt.md for a specific task.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            Path to prompt.md file
+        """
+        return self.get_task_dir(task_id) / "prompt.md"
+
+    def write_prompt(
+        self, task_id: str, system_prompt: str, task_prompt: str
+    ) -> None:
+        """
+        Write the rendered prompt to prompt.md.
+
+        Writes both system prompt and task prompt with clear sections
+        for audit trail and debugging.
+
+        Args:
+            task_id: Task identifier
+            system_prompt: System prompt content
+            task_prompt: Task prompt content
+
+        Raises:
+            Exception: If writing fails
+        """
+        prompt_path = self.get_prompt_path(task_id)
+
+        # Format the prompt with clear sections
+        content = f"""# Rendered Prompt
+
+## System Prompt
+
+{system_prompt}
+
+## Task Prompt
+
+{task_prompt}
+"""
+
+        # Write to file
+        prompt_path.write_text(content, encoding="utf-8")
+
     def _json_serializer(self, obj: Any) -> Any:
         """Custom JSON serializer for datetime and enum objects."""
         if isinstance(obj, datetime):

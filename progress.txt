@@ -1,5 +1,95 @@
 # Cub Project Progress
 
+## 2026-01-22 - cub-r7k.6: Capture prompt.md for rendered prompt audit trail
+
+### Task Completed
+Implemented prompt.md capture to save both system prompt and task prompt alongside harness.log for debugging and audit trail purposes.
+
+### What Was Implemented
+
+**New StatusWriter Methods:**
+1. `get_prompt_path(task_id)` - Returns path to `.cub/runs/{session}/tasks/{task_id}/prompt.md`
+2. `write_prompt(task_id, system_prompt, task_prompt)` - Writes rendered prompt with clear markdown sections
+
+**Prompt Capture in Three Execution Modes:**
+1. **Main Loop** - Writes prompt BEFORE harness invocation (line 1308-1313 in run.py)
+   - Captures prompt even if harness fails
+   - Uses task ID as directory name
+   - Non-fatal: warns on write failure, doesn't block execution
+
+2. **Direct Mode** - Writes prompt for ad-hoc tasks (line 1670-1675 in run.py)
+   - Uses "direct" as task ID for consistency
+   - Same pre-invocation timing
+
+3. **GitHub Issue Mode** - Writes prompt for issue-based tasks (line 1799-1805 in run.py)
+   - Uses "issue-{number}" as task ID for consistency
+   - Same pre-invocation timing
+
+**Prompt Format:**
+```markdown
+# Rendered Prompt
+
+## System Prompt
+
+{system_prompt}
+
+## Task Prompt
+
+{task_prompt}
+```
+
+### File Structure
+
+Prompts are stored at:
+- `.cub/runs/{session}/tasks/{task_id}/prompt.md` - Main loop tasks
+- `.cub/runs/{session}/tasks/direct/prompt.md` - Direct mode
+- `.cub/runs/{session}/tasks/issue-{number}/prompt.md` - GitHub issue mode
+
+Alongside:
+- `.cub/runs/{session}/tasks/{task_id}/harness.log` - Harness output
+- `.cub/runs/{session}/status.json` - Run status
+
+### Test Coverage
+
+Added 7 comprehensive tests to `test_status_writer.py`:
+1. `test_get_prompt_path` - Verifies correct path generation
+2. `test_write_prompt_creates_file` - File creation
+3. `test_write_prompt_includes_sections` - Markdown sections present
+4. `test_write_prompt_with_multiline_content` - Multiline preservation
+5. `test_write_prompt_creates_task_directory` - Auto-create parent directories
+6. `test_write_prompt_overwrites_existing` - Overwrite behavior
+7. `test_write_prompt_different_task_ids` - Separation of task artifacts
+
+All 136 tests in `test_status_writer.py`, `test_run_core.py`, and `test_run_direct.py` pass.
+Type checking (mypy) passes with no issues.
+
+### Key Design Decisions
+
+1. **Pre-Invocation Timing**: Prompts are written BEFORE harness invocation so they're captured even if the harness fails. This is critical for debugging failed runs.
+
+2. **Non-Fatal Writes**: Write failures are caught and logged (in debug mode) but don't interrupt execution. The harness invocation is the critical operation.
+
+3. **Clear Sections**: Two-section format (System Prompt, Task Prompt) makes it easy to visually separate the two components when auditing prompt quality.
+
+4. **Consistent Naming**: Task IDs are used consistently with harness.log directory naming, making it easy to correlate artifacts.
+
+5. **UTF-8 Encoding**: All writes use explicit UTF-8 encoding for consistency with other file operations.
+
+### Files Modified
+- `src/cub/core/status/writer.py` - Added `get_prompt_path()` and `write_prompt()` methods
+- `src/cub/cli/run.py` - Added prompt writing calls in 3 locations (main loop, direct, gh-issue)
+- `tests/test_status_writer.py` - Added 7 new tests for prompt functionality
+
+### Integration Points
+
+The prompt capture integrates seamlessly with existing artifacts:
+- Follows same directory structure as harness.log
+- Uses StatusWriter for consistency with status.json/run.json
+- Non-blocking error handling (like harness.log)
+- No changes to task execution flow
+
+---
+
 ## 2026-01-21 - cub-3wxc.9: Handle branch switch failure in cub merge
 
 ### Task Completed
@@ -3516,3 +3606,32 @@ Added comprehensive tests in `tests/test_cleanup.py`:
 - CleanupService tests with real git operations
 - Pattern matching edge cases
 - Integration tests with CubConfig
+
+## Task cub-r7k.5: Capture harness.log for raw output audit trail
+
+**Date:** 2026-01-22
+
+**Implementation:**
+- The infrastructure for harness log capture was already in place:
+  - `StatusWriter.get_harness_log_path()` method already existed
+  - `_invoke_harness()` already accepted a `harness_log_path` parameter
+  - The function already handled writing to the log in both streaming and non-streaming modes
+- The main change was to pass the `harness_log_path` parameter in three places:
+  1. Main run loop (line 1309): `status_writer.get_harness_log_path(current_task.id)`
+  2. Direct mode (line 1660): Created StatusWriter and used task_id "direct"
+  3. GitHub issue mode (line 1782): Created StatusWriter and used task_id "issue-{number}"
+
+**Key insights:**
+- Always search the codebase thoroughly before implementing - the harness log path functionality was already 90% complete
+- The StatusWriter class provides a clean abstraction for managing task-specific artifacts
+- The _invoke_harness() function was already designed to handle log capture, just needed to be wired up
+- Direct mode and gh-issue mode needed StatusWriter instances created to enable log capture
+
+**Testing:**
+- Added TestHarnessLogCapture class with test that verifies harness.log is created and contains output
+- All existing tests continue to pass, confirming backward compatibility
+
+**File locations:**
+- Logs are written to: `.cub/runs/{session}/tasks/{task-id}/harness.log`
+- Direct mode: `.cub/runs/{session}/tasks/direct/harness.log`
+- GitHub issue mode: `.cub/runs/{session}/tasks/issue-{number}/harness.log`
