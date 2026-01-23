@@ -163,3 +163,16 @@
 {"id": "cub-d2v.4", "title": "Implement CHANGELOG parser for release detection", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
 {"id": "cub-d2v.5", "title": "Implement relationship resolver and stage computation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
 {"id": "cub-d2v.6", "title": "Integrate all parsers into sync orchestrator", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-d2v", "verification": "pending", "tokens": 0}
+{"id": "cub-a7f.1", "title": "Implement /api/entity/{id} endpoint", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-a7f", "verification": "pending", "tokens": 0}
+{"id": "cub-a7f.2", "title": "Implement /api/artifact endpoint with path validation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-a7f", "verification": "pending", "tokens": 0}
+{"id": "cub-specific", "title": "Specific task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-success", "title": "Successful task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
+{"id": "cub-a7f.3", "title": "Implement /api/views endpoint", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-a7f", "verification": "pending", "tokens": 0}

@@ -4944,3 +4944,201 @@ Stage computation follows priority order:
 - Ready for frontend development (cub-k8d.x tasks)
 
 ### Time spent: ~2 hours
+
+## 2026-01-23 - Implemented /api/entity/{id} endpoint (cub-a7f.1)
+
+**What was implemented:**
+- Created entity detail endpoint at GET /api/entity/{id}
+- Added get_entity_detail() query function to organize relationships by type
+- Registered route in FastAPI app with proper error handling
+- Comprehensive test suite with 12 tests covering all relationship types
+
+**Key design decisions:**
+1. **Direct relationships only** - We only return direct relationships, not transitive ones
+   - Example: task -> epic -> plan -> spec only shows epic for task, not plan/spec
+   - This keeps API responses simple and predictable
+   - Frontend can traverse via multiple API calls if needed
+
+2. **Relationship organization** - Organized by semantic meaning:
+   - parent/children (CONTAINS relationship - but not in current schema)
+   - epic/tasks (EPIC_TO_TASK relationship)
+   - spec/plans/epics (SPEC_TO_PLAN, PLAN_TO_EPIC)
+   - blocks/blocked_by/depends_on (dependency relationships)
+   - ledger/releases (completion tracking)
+
+3. **Error handling** - Proper HTTP status codes:
+   - 404 when entity not found or DB doesn't exist
+   - 500 for database errors
+   - Clear error messages with entity ID for debugging
+
+4. **Schema constraints discovered:**
+   - Database schema doesn't include CONTAINS relationship type from models
+   - Only supports: spec_to_plan, plan_to_epic, epic_to_task, task_to_ledger, 
+     task_to_release, depends_on, blocks
+   - Tests adapted to use valid relationship types
+
+**Testing insights:**
+- Bidirectional relationships work correctly (epic->task, task->epic)
+- Multiple relationship types on single entity handled properly
+- Content field properly extracted from entity data JSON
+- All 170 dashboard tests pass (no regressions)
+
+**What's next:**
+- Frontend DetailPanel component can now consume this endpoint
+- May need to add transitive relationship traversal if UI requires it
+- Consider adding bulk entity fetch endpoint if performance becomes issue
+
+## 2026-01-23 - cub-a7f.2: Implement /api/artifact endpoint with path validation
+
+### Task Completed
+Implemented GET /api/artifact endpoint for serving raw file content from project files like specs and plans. Security was the primary focus.
+
+### What Was Implemented
+
+**New Route:** `src/cub/core/dashboard/api/routes/artifact.py`
+- GET /api/artifact?path=<file_path> - Fetch raw file content
+- Returns { path, content, size } on success
+- 400 for invalid/unsafe paths, 404 for missing files
+
+**Security Measures:**
+1. **Directory traversal prevention** - Uses Path.resolve() + relative_to() check
+   - All paths resolved to absolute paths
+   - Verified resolved path is within project_root.resolve()
+   - Blocks ../, encoded variants, and mixed slash techniques
+
+2. **Null byte injection** - Explicit check for \x00 in path
+   - Prevents C-string truncation attacks
+
+3. **Symlink handling** - resolve() follows symlinks
+   - Symlinks within project allowed
+   - Symlinks pointing outside project rejected after resolution
+
+4. **File type validation**
+   - Rejects directories (must be regular file)
+   - Rejects binary files (UTF-8 decode required)
+
+5. **OS error handling** - Catches OSError for edge cases like path too long
+
+**Test Coverage:** 28 security-focused tests covering:
+- Basic functionality (relative/absolute paths, nested files)
+- Directory traversal (7 different attack vectors)
+- Null byte injection (2 tests)
+- Symlink handling (within and outside project)
+- File types (directories, binary files rejected)
+- Edge cases (unicode, spaces, long paths, hidden files)
+
+### Key Learnings
+
+1. **Path.resolve().relative_to() is the secure pattern:**
+   ```python
+   resolved = Path(user_input).resolve()
+   resolved.relative_to(project_root.resolve())  # Raises ValueError if outside
+   ```
+   This handles .., symlinks, and path normalization in one step.
+
+2. **Check for null bytes BEFORE calling Path() methods:**
+   - Null bytes can cause issues with underlying C libraries
+   - String-level check prevents potential bypasses
+
+3. **Path.exists() can raise OSError:**
+   - Very long paths cause "File name too long" errors
+   - Need try/except around file system operations
+
+4. **Test both success and failure paths for security code:**
+   - Wrote tests for: valid paths work, invalid paths fail correctly
+   - Security tests prove attacks are actually blocked
+
+5. **Symlinks require special consideration:**
+   - A symlink in project dir pointing to /etc/passwd is dangerous
+   - resolve() follows symlinks, so the final check catches this
+
+
+## Task: cub-a7f.3 - Implement /api/views endpoint
+
+**Status:** ✅ COMPLETE
+
+**Date:** 2026-01-23
+
+**Implementation Details:**
+
+Created the GET /api/views endpoint to list available view configurations for the Kanban board view switcher UI. This is a lightweight endpoint that returns ViewSummary objects (simplified versions of full ViewConfig).
+
+**Files Created:**
+1. `src/cub/core/dashboard/api/routes/views.py` - Views router with:
+   - `GET /api/views` endpoint
+   - `get_default_views()` helper returning 3 built-in views
+   - `load_custom_views()` placeholder for future custom view support
+   - Error handling and sorting for consistent UI ordering
+
+2. `tests/test_api_views.py` - 23 comprehensive tests covering:
+   - Basic endpoint functionality
+   - Response schema validation
+   - View summary structure requirements
+   - Default views availability (default, sprint, ideas)
+   - Integration scenarios for UI switcher
+   - Error handling (404, 405)
+   - Edge cases (unicode, long descriptions, response times)
+
+**Files Modified:**
+1. `src/cub/core/dashboard/api/app.py` - Registered views router
+
+**Test Results:**
+- All 23 new tests pass ✅
+- All 51 existing API tests still pass ✅
+- No linting issues (ruff clean) ✅
+- Response time < 100ms (no I/O) ✅
+
+**Architecture Decisions:**
+
+1. **ViewSummary vs ViewConfig:** Endpoint returns lightweight ViewSummary instead of full ViewConfig
+   - Rationale: UI only needs id, name, description, is_default for switcher dropdown
+   - Future: /api/views/{id} endpoint can return full ViewConfig with column/filter details
+
+2. **Three default views hardcoded:**
+   - default: Full 8-column workflow (is_default=true)
+   - sprint: Active work focus
+   - ideas: Idea development focus
+   - Rationale: Provides sensible defaults; custom views placeholder ready
+
+3. **Error handling via HTTPException:**
+   - Catches exceptions and returns 500 with detail message
+   - Consistent with other API routes (board, entity, artifact)
+   - Gracefully handles custom view loading failures
+
+4. **Sorted response:** Views sorted by name for deterministic ordering
+   - UI can display consistent dropdown without additional sorting
+   - Tests verify sort order remains stable across requests
+
+**Key Implementation Patterns Learned:**
+
+1. **FastAPI router structure:** Import from routes submodule, include in app
+   - Views router follows same pattern as board/entity/artifact routes
+   - Tag-based organization for OpenAPI documentation
+
+2. **Response model typing:** Used Pydantic ViewSummary for type safety
+   - FastAPI automatically validates and serializes response
+   - Tests can instantiate models from response JSON
+
+3. **Minimal error handling for views:** 
+   - No database dependency (unlike board/entity endpoints)
+   - Custom view loading wrapped in try/except to gracefully fallback
+   - HTTP 500 returned for unexpected errors during view enumeration
+
+4. **Test organization:**
+   - Grouped by concern (endpoint, schema, integration, error handling)
+   - Each test verifies one behavior (single responsibility)
+   - Response schema tests validate Pydantic model compatibility
+
+**Potential Enhancements (Future):**
+
+1. Load views from `.cub/views/` YAML/JSON files (placeholder exists)
+2. Add POST /api/views to create custom views
+3. Add GET /api/views/{id} for detailed view configuration
+4. Persist user's selected view preference to local storage
+5. Support view sharing via serialization
+
+**Dependencies Blocked By This Task:**
+- cub-m3x.3: ViewSwitcher UI dropdown (can now consume /api/views)
+
+**Blocking Dependencies:**
+- cub-a7f: Kanban 3 API Completeness (parent epic)

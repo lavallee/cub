@@ -2,7 +2,7 @@
   "id": "cub-success",
   "title": "Successful task",
   "started_at": null,
-  "completed_at": "2026-01-23T14:03:51.863109",
+  "completed_at": "2026-01-23T15:49:42.741355",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -18,7 +18,7 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4625491552'>",
+  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4473685392'>",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
