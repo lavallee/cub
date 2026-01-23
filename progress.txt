@@ -3635,3 +3635,70 @@ Added comprehensive tests in `tests/test_cleanup.py`:
 - Logs are written to: `.cub/runs/{session}/tasks/{task-id}/harness.log`
 - Direct mode: `.cub/runs/{session}/tasks/direct/harness.log`
 - GitHub issue mode: `.cub/runs/{session}/tasks/issue-{number}/harness.log`
+
+## Task: cub-r7k.7 - Update cub status to display cost from persisted data
+
+### What was done:
+- Extended StatusWriter with methods to read/write TaskArtifact data to/from task.json files
+- Added list_task_artifacts() method to enumerate all task artifacts in a run directory
+- Completely rewrote the status.py CLI command to support cost display from persisted data
+- Added Budget & Cost Summary table showing total cost, tokens, and task count
+- Added --verbose mode for per-task cost breakdown (sorted by highest cost first)
+- Enhanced --session flag to load and display specific historical run data
+- Properly handles both active runs (using in-memory status.json) and completed runs (using persisted artifacts)
+- Added TaskCost TypedDict for proper type checking of cost data dictionaries
+
+### Key learnings:
+1. The status command now properly displays cost data from both:
+   - run.json for aggregate run-level costs (BudgetStatus)
+   - task.json files for per-task cost breakdown (TokenUsage in TaskArtifact)
+2. Used TypedDict for dictionary type hints to satisfy mypy's strict checking
+3. The command gracefully handles missing data (no cost if artifacts don't exist)
+4. Cost data can be viewed in JSON format with --json flag for programmatic access
+5. The --verbose flag shows detailed per-task breakdown, useful for identifying expensive tasks
+
+### Technical details:
+- TaskArtifact model already existed with usage: TokenUsage field
+- StatusWriter needed new methods to read/write task artifacts
+- Status command loads data in order of preference: specific session → latest run → defaults
+- When both in-memory (status.json) and persisted (run.json) data exist, uses the higher values
+
+### Files modified:
+- src/cub/core/status/writer.py: Added TaskArtifact read/write/list methods
+- src/cub/cli/status.py: Complete rewrite to support cost display and --session flag
+- Fixed all type checking, linting, and test issues
+
+
+## Session: 2026-01-22 - Token Usage Persistence (cub-r7k.3)
+
+### Task: Persist TokenUsage to task.json in run loop
+
+**Implementation:**
+- Added TokenUsage persistence to task.json after harness invocation in cli/run.py
+- Extracts usage data from HarnessResult and creates TaskArtifact
+- Persists on both success and failure paths to capture token metrics
+- Added TaskArtifact to imports in run.py
+
+**Key Findings:**
+- TaskArtifact model already had `usage: TokenUsage | None` field from previous task
+- StatusWriter already had write_task_artifact() method ready to use
+- HarnessResult.usage provides all token details (input, output, cache, cost)
+- Need to handle priority.value extraction carefully for compatibility
+- Important to persist on failure path too for complete budget tracking
+
+**Testing:**
+- Created integration tests in test_run_integration.py
+- Tests verify TaskArtifact creation, persistence, and JSON serialization
+- Verified all token fields are captured (input, output, cache read/creation, cost)
+- Tests check both success and failure scenarios
+
+**Code Quality:**
+- Type checking: passes (mypy)
+- Linting: minor pre-existing line length issues remain
+- All integration tests pass (4/4)
+
+**Next Steps:**
+- Future tasks should track actual start time (currently using datetime.now())
+- Future tasks should track actual iteration count for task retries
+- Consider adding aggregate reporting across all tasks in a run
+
