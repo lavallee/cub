@@ -294,9 +294,13 @@ def _get_epic_title(epic_id: str) -> str | None:
         )
         if result.returncode == 0:
             data = json.loads(result.stdout)
-            title = data.get("title")
-            if isinstance(title, str):
-                return title
+            # bd show returns a list with one element
+            if isinstance(data, list) and len(data) > 0:
+                data = data[0]
+            if isinstance(data, dict):
+                title = data.get("title")
+                if isinstance(title, str):
+                    return title
         return None
     except (OSError, FileNotFoundError, json.JSONDecodeError):
         return None
