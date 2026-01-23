@@ -128,6 +128,82 @@ def _run_claude_for_ci(prompt: str) -> ClaudeCIOutcome:
         )
 
 
+def _pr_needs_work(pr_number: int) -> tuple[bool, str]:
+    """
+    Check if a PR has unresolved work (failing CI, pending reviews, etc.).
+
+    Returns:
+        Tuple of (needs_work: bool, reason: str)
+    """
+    import json
+
+    try:
+        # Get PR status including checks and review decision
+        result = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "view",
+                str(pr_number),
+                "--json",
+                "reviewDecision,statusCheckRollup,state",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            return False, "Could not check PR status"
+
+        data = json.loads(result.stdout)
+
+        # Check if PR is already merged or closed
+        state = data.get("state", "").upper()
+        if state == "MERGED":
+            return False, "PR is already merged"
+        if state == "CLOSED":
+            return False, "PR is closed"
+
+        reasons: list[str] = []
+
+        # Check CI status
+        checks = data.get("statusCheckRollup", []) or []
+        failing_checks = []
+        pending_checks = []
+        for check in checks:
+            conclusion = check.get("conclusion", "").upper()
+            status = check.get("status", "").upper()
+            name = check.get("name", "unknown")
+
+            if conclusion in ("FAILURE", "CANCELLED", "TIMED_OUT"):
+                failing_checks.append(name)
+            elif status in ("QUEUED", "IN_PROGRESS", "PENDING") or (
+                status == "COMPLETED" and not conclusion
+            ):
+                pending_checks.append(name)
+
+        if failing_checks:
+            reasons.append(f"failing CI: {', '.join(failing_checks[:3])}")
+        if pending_checks:
+            reasons.append(f"pending CI: {', '.join(pending_checks[:3])}")
+
+        # Check review decision
+        review_decision = data.get("reviewDecision", "").upper()
+        if review_decision == "CHANGES_REQUESTED":
+            reasons.append("changes requested")
+        elif review_decision == "REVIEW_REQUIRED":
+            reasons.append("review required")
+
+        if reasons:
+            return True, "; ".join(reasons)
+
+        return False, "all checks passing, no changes requested"
+
+    except (json.JSONDecodeError, OSError, FileNotFoundError):
+        return False, "Could not check PR status"
+
+
 @app.callback(invoke_without_command=True)
 def pr_command(
     ctx: typer.Context,
@@ -263,11 +339,17 @@ def pr_command(
             console.print(f"View PR: {result.url}")
             return
 
-        # If PR already existed, also done
+        # If PR already existed, check if there's unresolved work
         if not result.created:
+            needs_work, reason = _pr_needs_work(result.number)
+            if not needs_work:
+                console.print()
+                console.print(f"[green]PR #{result.number}:[/green] {reason}")
+                console.print(f"View PR: {result.url}")
+                return
+            # There's work to do - continue to Claude CI handling
             console.print()
-            console.print(f"View PR: {result.url}")
-            return
+            console.print(f"[yellow]PR #{result.number} needs attention:[/yellow] {reason}")
 
         # Always show the PR URL first (graceful degradation - PR exists even if CI fails)
         console.print()
