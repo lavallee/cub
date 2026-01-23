@@ -28,12 +28,14 @@ from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
+
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
 # from cub.core.plan.models import PlanStatus
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
+
 # TODO: Restore when specs module is implemented
 # from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
 from cub.core.status.models import (
@@ -84,7 +86,7 @@ def _setup_harness(
     harness: str | None,
     priority_list: list[str] | None,
     debug: bool,
-) -> tuple[str, "AsyncHarnessBackend"] | None:
+) -> tuple[str, AsyncHarnessBackend] | None:
     """
     Detect and validate harness backend.
 
@@ -125,7 +127,7 @@ def _setup_harness(
 
 
 def _invoke_harness(
-    harness_backend: "AsyncHarnessBackend",
+    harness_backend: AsyncHarnessBackend,
     task_input: TaskInput,
     stream: bool,
     debug: bool,
@@ -1303,7 +1305,12 @@ def run(
                     auto_approve=True,  # Auto-approve for unattended execution
                 )
 
-                result = _invoke_harness(harness_backend, task_input, stream, debug)
+                # Get harness log path for this task
+                harness_log_path = status_writer.get_harness_log_path(current_task.id)
+
+                result = _invoke_harness(
+                    harness_backend, task_input, stream, debug, harness_log_path
+                )
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
                 status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
@@ -1626,6 +1633,12 @@ def _run_direct(
     # Get model
     task_model = model or config.harness.model
 
+    # Create a session ID for direct mode
+    direct_session_id = session_name or f"direct-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+    # Initialize status writer for log capture
+    status_writer = StatusWriter(project_dir, direct_session_id)
+
     # Display task info
     console.print(
         Panel(
@@ -1647,7 +1660,10 @@ def _run_direct(
             auto_approve=True,
         )
 
-        result = _invoke_harness(harness_backend, task_input, stream, debug)
+        # Get harness log path for direct mode (use "direct" as task_id)
+        harness_log_path = status_writer.get_harness_log_path("direct")
+
+        result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1
@@ -1748,6 +1764,12 @@ def _run_gh_issue(
     # Get model
     task_model = model or config.harness.model
 
+    # Create a session ID for gh-issue mode
+    gh_session_id = session_name or f"gh-{issue_number}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+    # Initialize status writer for log capture
+    status_writer = StatusWriter(project_dir, gh_session_id)
+
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
 
@@ -1760,7 +1782,10 @@ def _run_gh_issue(
             auto_approve=True,
         )
 
-        result = _invoke_harness(harness_backend, task_input, stream, debug)
+        # Get harness log path for gh-issue mode (use issue number as task_id)
+        harness_log_path = status_writer.get_harness_log_path(f"issue-{issue_number}")
+
+        result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
         return 1
