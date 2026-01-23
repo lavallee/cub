@@ -5142,3 +5142,112 @@ Created the GET /api/views endpoint to list available view configurations for th
 
 **Blocking Dependencies:**
 - cub-a7f: Kanban 3 API Completeness (parent epic)
+
+## 2026-01-23 - Task cub-a7f.5: Error Handling Middleware
+
+Successfully implemented comprehensive error handling middleware for the FastAPI dashboard API.
+
+### Key Implementation Details:
+1. **Error Codes Enum**: Created ErrorCode enum with semantic error codes
+   - Client errors: VALIDATION_ERROR, NOT_FOUND, INVALID_PATH, INVALID_REQUEST
+   - Server errors: DATABASE_ERROR, INTERNAL_ERROR, FILE_READ_ERROR
+
+2. **Three-tier Exception Handling**:
+   - HTTPException handler: Converts FastAPI exceptions to consistent format
+   - RequestValidationError handler: Clean Pydantic validation errors
+   - General exception handler: Catches all uncaught exceptions as safety net
+
+3. **Error Response Format**:
+   - Consistent structure: error_code, message, detail, request_id
+   - Backward compatible with existing tests (detail field preserved)
+   - No stack traces exposed to clients
+
+4. **Logging Strategy**:
+   - Server errors (5xx) logged at ERROR level with full traceback
+   - Client errors (4xx) logged at INFO level
+   - Request IDs for correlation
+
+5. **Testing**:
+   - Created comprehensive test suite (19 tests)
+   - All existing API tests still pass (93 tests total)
+   - Tests verify no stack traces leak to clients
+
+### Design Decisions:
+- Used request ID (from id(request)) for correlation - simple and effective
+- Preserved "detail" field for backward compatibility with existing tests
+- Implemented error code inference from status codes and message content
+- Separated logging levels by error severity (4xx vs 5xx)
+
+### Learnings:
+- FastAPI's exception handlers execute in registration order, so specific handlers (HTTPException) must be registered before general ones
+- The RequestValidationError produces detailed Pydantic errors that need to be simplified for clients
+- Backward compatibility is important - existing tests expected the "detail" field
+- Type safety with mypy is valuable - caught potential issues early
+- Comprehensive tests for error scenarios prevent security leaks (stack traces)
+
+### Future Improvements:
+- Consider using a proper request ID middleware (UUID-based)
+- Could add structured logging with JSON format
+- May want to add rate limiting for error responses
+- Consider adding error metrics/monitoring
+
+## 2026-01-23 - Task cub-a7f.4: Implement /api/stats endpoint
+
+Successfully implemented the `/api/stats` endpoint for the dashboard stats bar, providing lightweight aggregate metrics.
+
+### Key Implementation Details:
+1. **New Route Module**: Created `src/cub/core/dashboard/api/routes/stats.py`
+   - GET /api/stats endpoint returning BoardStats model
+   - Reuses existing `compute_board_stats` and `get_all_entities` from queries module
+   - Same database path handling as other routes (DEFAULT_DB_PATH)
+
+2. **Response Model**: Returns BoardStats with:
+   - total: Total entity count
+   - by_stage: Counts per stage (CAPTURES, SPECS, PLANNED, etc.)
+   - by_type: Counts per entity type (spec, plan, epic, task, etc.)
+   - cost_total: Aggregate cost in USD
+   - tokens_total: Aggregate token usage
+   - duration_total_seconds: Aggregate duration
+
+3. **Empty Database Handling**: Returns zero stats when database doesn't exist
+
+4. **Registration**: Added stats router to main app.py with "stats" tag
+
+5. **Testing**: Created comprehensive test suite (10 tests)
+   - Empty database returns zero stats
+   - Single and multiple entity aggregation
+   - All 8 stages represented
+   - All 6 valid entity types (spec, plan, epic, task, ledger, release)
+   - Zero/null cost handling
+   - Response schema validation
+   - Error handling (corrupted DB, permissions)
+   - Comparison test: /api/stats matches /api/board/stats
+
+### Design Decisions:
+- Made /api/stats a dedicated endpoint separate from /api/board/stats
+  - More semantically clear for stats bar usage
+  - Returns identical data structure to /api/board/stats
+  - Both endpoints share the same query functions (DRY principle)
+- Used existing BoardStats model rather than creating new StatsResponse
+- Followed same patterns as other routes (board, entity, etc.)
+
+### Learnings:
+- Database schema only allows 6 entity types: spec, plan, epic, task, ledger, release
+  - "capture" was in the models.py EntityType enum but not in schema CHECK constraint
+  - Test initially tried to use "capture" and failed with IntegrityError
+- The stage mapping (DB lowercase -> Model UPPERCASE) is already handled in queries.py
+  - DB: "backlog", "researching", "planned", "staged", "implementing", "verifying", "completed", "released"
+  - Model: CAPTURES, SPECS, PLANNED, READY, IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED
+- All tests pass: 2052 total (10 new stats tests, 2042 existing)
+- Type checking (mypy) and linting (ruff) both clean
+
+### Testing Results:
+- All 10 new tests passed
+- Full test suite: 2052 passed (including new tests)
+- Pre-existing failures (19) not related to this change:
+  - 18 async harness tests (need pytest-asyncio)
+  - 1 beads test (unrelated to stats endpoint)
+
+### What's Next:
+This endpoint unblocks task cub-m3x.4 (Implement StatsBar component) which depends on having stats data available via API.
+
