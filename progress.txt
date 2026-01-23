@@ -3737,3 +3737,63 @@ Added comprehensive tests in `tests/test_cleanup.py`:
    - Exit code 0 when no issues, 1 when issues found (without --fix)
 
 **Outcome:** Successfully implemented `cub doctor --fix` flag that auto-closes stale epics. All tests pass (mypy, pytest, ruff). Command is now fully Python-based and more maintainable.
+
+## 2026-01-22 - cub-ca6w: Add --fix flag to cub doctor command
+
+### Task Completed
+Task was already fully implemented in commit 1431316 (task(cub-mpk2.1)). Verified that all acceptance criteria are met with comprehensive test coverage.
+
+### What Was Implemented
+
+**Doctor Command Features:**
+1. `check_stale_epics()` - Detects epics where all subtasks are complete
+2. `--fix` flag support - Auto-closes stale epics when enabled
+3. Comprehensive user feedback with confirmation messages
+4. Graceful error handling for backend failures
+
+**Stale Epic Detection Logic:**
+- Finds epics with TaskType.EPIC and non-CLOSED status
+- Discovers subtasks via two methods:
+  1. Parent field matching (`task.parent == epic.id`)
+  2. ID prefix matching (`task.id.startswith(f"{epic.id}.")`)
+- Deduplicates subtasks found by both methods
+- Skips epics with no subtasks (parent containers)
+- Identifies stale epics: open_count == 0 AND in_progress_count == 0 AND closed_count > 0
+
+**Auto-fix Behavior:**
+- Without `--fix`: Reports issues, exits with code 1 if issues found
+- With `--fix`: Calls `backend.close_task(epic_id, reason="Auto-closed: all subtasks complete")`
+- Provides per-epic confirmation: "✓ Closed: epic-001"
+- Summary message: "✓ Auto-closed N stale epic(s)"
+- Handles close failures gracefully with clear error messages
+
+### Test Coverage
+
+10 comprehensive tests covering:
+1. Basic run with no issues
+2. Stale epic detection (without fix)
+3. Ignoring epics with open subtasks
+4. Auto-closing stale epics with --fix flag
+5. Multiple stale epics handling
+6. Close failure handling
+7. Empty epics (no subtasks)
+8. Prefix-based subtask discovery
+9. Backend unavailability
+10. Verbose flag support
+
+All tests passing, mypy clean.
+
+### Key Learnings
+
+1. **Dual Subtask Discovery**: Using both parent field AND prefix matching ensures compatibility with different task creation methods (explicit parent vs. beads ID convention).
+
+2. **Graceful Degradation**: Backend loading failures are handled gracefully with warnings, allowing other checks to continue.
+
+3. **User Experience**: Clear status symbols (✓, ✗, !, ℹ) and color coding make output scannable. Summary message with "--fix" hint guides users.
+
+4. **Exit Codes**: Proper use of `typer.Exit()` with code 1 when issues found, 0 when clean or fixed. Re-raises `typer.Exit` to avoid catching it.
+
+5. **Test Mocking Strategy**: Tests use `MagicMock` for backend with `list_tasks.return_value` and `close_task.side_effect` for both success and failure scenarios.
+
+6. **Extensibility**: The `doctor()` function structure makes it easy to add new checks by creating additional check functions following the same pattern.
+
