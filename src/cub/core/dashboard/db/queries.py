@@ -20,6 +20,7 @@ from cub.core.dashboard.db.models import (
     ColumnConfig,
     DashboardEntity,
     DisplayConfig,
+    EntityDetail,
     EntityType,
     FilterConfig,
     Relationship,
@@ -549,3 +550,141 @@ def get_relationships(
         )
 
     return relationships
+
+
+def get_entity_detail(
+    conn: sqlite3.Connection,
+    entity_id: str,
+) -> EntityDetail | None:
+    """
+    Fetch detailed entity data with relationships.
+
+    Returns the entity along with all related entities organized by
+    relationship type. This powers the detail panel view in the UI.
+
+    Args:
+        conn: SQLite connection
+        entity_id: Entity ID to fetch
+
+    Returns:
+        EntityDetail with entity, relationships, and content, or None if not found
+
+    Example:
+        >>> import sqlite3
+        >>> from cub.core.dashboard.db.connection import configure_connection
+        >>> from cub.core.dashboard.db.schema import create_schema
+        >>> conn = sqlite3.connect(":memory:")
+        >>> configure_connection(conn)
+        >>> create_schema(conn)
+        >>> detail = get_entity_detail(conn, "task-1")
+        >>> assert detail is None  # No data yet
+    """
+    # Fetch the entity
+    entity = get_entity_by_id(conn, entity_id)
+    if not entity:
+        return None
+
+    # Fetch all relationships for this entity
+    relationships = get_relationships(conn, entity_id)
+
+    # Organize relationships by type
+    related_entities: dict[str, list[DashboardEntity] | DashboardEntity | None] = {
+        "parent": None,
+        "children": [],
+        "blocks": [],
+        "blocked_by": [],
+        "depends_on": [],
+        "spec": None,
+        "plan": None,
+        "epic": None,
+        "tasks": [],
+        "ledger": None,
+        "releases": [],
+    }
+
+    # Process each relationship and fetch related entities
+    for rel in relationships:
+        # Determine the related entity ID based on direction
+        if rel.source_id == entity_id:
+            # Outgoing relationship
+            related_id = rel.target_id
+            is_outgoing = True
+        else:
+            # Incoming relationship
+            related_id = rel.source_id
+            is_outgoing = False
+
+        # Fetch the related entity
+        related_entity = get_entity_by_id(conn, related_id)
+        if not related_entity:
+            continue
+
+        # Organize by relationship type
+        if rel.rel_type == RelationType.CONTAINS:
+            if is_outgoing:
+                # This entity contains another (children)
+                related_entities["children"].append(related_entity)  # type: ignore
+            else:
+                # This entity is contained by another (parent)
+                related_entities["parent"] = related_entity
+
+        elif rel.rel_type == RelationType.BLOCKS:
+            if is_outgoing:
+                # This entity blocks another
+                related_entities["blocks"].append(related_entity)  # type: ignore
+            else:
+                # This entity is blocked by another
+                related_entities["blocked_by"].append(related_entity)  # type: ignore
+
+        elif rel.rel_type == RelationType.DEPENDS_ON:
+            if is_outgoing:
+                # This entity depends on another
+                related_entities["depends_on"].append(related_entity)  # type: ignore
+            # Note: Reverse of DEPENDS_ON is not stored separately
+
+        elif rel.rel_type == RelationType.SPEC_TO_PLAN:
+            if is_outgoing:
+                # This spec created a plan
+                if "plans" not in related_entities:
+                    related_entities["plans"] = []
+                related_entities["plans"].append(related_entity)  # type: ignore
+            else:
+                # This plan was created from a spec
+                related_entities["spec"] = related_entity
+
+        elif rel.rel_type == RelationType.PLAN_TO_EPIC:
+            if is_outgoing:
+                # This plan created an epic
+                if "epics" not in related_entities:
+                    related_entities["epics"] = []
+                related_entities["epics"].append(related_entity)  # type: ignore
+            else:
+                # This epic was created from a plan
+                related_entities["plan"] = related_entity
+
+        elif rel.rel_type == RelationType.EPIC_TO_TASK:
+            if is_outgoing:
+                # This epic contains tasks
+                related_entities["tasks"].append(related_entity)  # type: ignore
+            else:
+                # This task belongs to an epic
+                related_entities["epic"] = related_entity
+
+        elif rel.rel_type == RelationType.TASK_TO_LEDGER:
+            if is_outgoing:
+                # This task has a ledger entry
+                related_entities["ledger"] = related_entity
+
+        elif rel.rel_type == RelationType.TASK_TO_RELEASE:
+            if is_outgoing:
+                # This task is in a release
+                related_entities["releases"].append(related_entity)  # type: ignore
+
+    # Extract content from entity
+    content = entity.content
+
+    return EntityDetail(
+        entity=entity,
+        relationships=related_entities,
+        content=content,
+    )
