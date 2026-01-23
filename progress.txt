@@ -4708,3 +4708,93 @@ Ready for cub-k8d.7: Implement basic KanbanBoard and EntityCard components
 - Mocked uvicorn.run and SyncOrchestrator for server launch tests
 - Integration tests verify database and .cub directory creation
 - Type checking and linting clean
+
+## 2026-01-23 - Task cub-d2v.1: Implement Plan Parser
+
+### What was done
+- Implemented PlanParser class for parsing .cub/sessions/*/plan.jsonl and session.json
+- Created comprehensive test suite with 18 test cases covering all edge cases
+- All feedback loops passed (mypy strict, ruff, pytest)
+
+### Key design decisions
+1. **Epic-only entities**: Only epic tasks from plan.jsonl become DashboardEntity objects. Regular tasks are filtered out and handled by the task parser once they're in the task backend (beads/JSON).
+
+2. **Graceful degradation**: Parser handles missing/incomplete sessions robustly:
+   - Missing session.json: Uses directory name as fallback plan_id
+   - Missing plan.jsonl: Returns empty list
+   - Invalid JSON lines: Logs warning and continues parsing valid lines
+   - Missing task IDs: Logs warning and skips task
+
+3. **Combined checksum**: Computes MD5 hash of both session.json and plan.jsonl contents for incremental sync detection. This ensures any change to either file triggers a re-sync.
+
+4. **Relationship markers**: Extracts explicit relationship markers (spec_id, plan_id, epic_id) from both session metadata and task definitions to enable relationship resolution in later stages.
+
+5. **Stage mapping**: All plan entities map to Stage.PLANNED (the planning-complete-but-not-ready-to-work stage).
+
+### Challenges overcome
+- Timezone-aware datetime handling from ISO 8601 strings (used fromisoformat with Z -> +00:00 replacement)
+- Type safety with dict[str, Any] annotations for mypy strict mode
+- Test file naming conflict (old test_plan_parser.py for itemized-plan.md existed)
+
+### Lessons learned
+1. **Parse with defaults**: When parsing external data, always provide sensible defaults for missing fields rather than failing hard. This makes the parser more resilient.
+
+2. **Debug logs for context**: Use logger.debug() for missing-but-expected files (like session.json in incomplete sessions) and logger.warning() for actual data issues (invalid JSON).
+
+3. **Test edge cases early**: Writing comprehensive tests for all edge cases (missing files, invalid JSON, empty files) caught issues early and gave confidence in robustness.
+
+4. **Follow existing patterns**: Mirroring the SpecParser structure (same method names, same error handling patterns) made the code consistent and easier to understand.
+
+### Next steps
+- Implement relationship resolver (task cub-d2v.5) to link spec → plan → task entities
+- Implement task parser for beads/JSON backend
+- Implement stage computation based on task status and relationships
+
+### Files modified
+- src/cub/core/dashboard/sync/parsers/plans.py (new, 355 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated exports)
+- tests/test_dashboard_plan_parser.py (new, 18 test cases)
+## 2026-01-23 - Task cub-d2v.2: Implement Task Parser via Backend Abstraction
+
+### What was done
+- Implemented TaskParser class that uses TaskBackend protocol for querying tasks
+- Created comprehensive test suite with MockTaskBackend (18 test cases)
+- All feedback loops passed (mypy strict, ruff, pytest)
+
+### Key design decisions
+1. **Backend abstraction**: TaskParser takes a TaskBackend instance (beads or JSON) rather than parsing files directly. This follows the existing architecture and makes the parser backend-agnostic.
+
+2. **Stage computation logic**:
+   - Epics: open->PLANNED, in_progress->IN_PROGRESS, closed->COMPLETE
+   - Tasks: open->READY, in_progress->IN_PROGRESS, closed->COMPLETE
+   - Tasks with 'pr' or 'review' labels -> NEEDS_REVIEW (highest priority)
+   - RELEASED stage determined by changelog parser (not by task status)
+
+3. **Entity type mapping**: Tasks with type=EPIC become EntityType.EPIC, all others become EntityType.TASK. This enables different display and grouping behavior on the board.
+
+4. **Checksum computation**: Hash of serialized task JSON (model_dump_json) for change detection. Since tasks come from backend rather than files, we hash the data itself.
+
+5. **Multiple query methods**: Implemented parse_all(), parse_by_status(), parse_by_epic(), and parse_epics_only() to support different sync scenarios and filtering needs.
+
+### Challenges overcome
+- Handling both beads and JSON backends through protocol: Implemented MockTaskBackend that mirrors the TaskBackend protocol for testing without filesystem dependencies.
+- Type annotations for test methods: Added `-> None` annotations to all test methods to satisfy mypy strict mode.
+
+### Lessons learned
+1. **Protocol-based design pays off**: Using the TaskBackend protocol makes the parser testable and flexible. We can mock the backend cleanly without touching real files or running external commands.
+
+2. **Review labels need priority**: Checking for 'pr'/'review' labels before status checks ensures tasks in review go to the correct column regardless of their status field.
+
+3. **Mock backends are powerful**: Creating a MockTaskBackend that implements filtering logic makes tests realistic and comprehensive without needing fixture files or database setup.
+
+4. **Consistent checksum approach**: Using model_dump_json for checksums is more reliable than hashing individual fields - it captures all task data in a deterministic format.
+
+### Next steps
+- Implement ledger parser (task cub-d2v.3) to extract cost/token/duration metrics
+- Implement changelog parser (task cub-d2v.4) to identify RELEASED entities
+- Implement relationship resolver (task cub-d2v.5) to link entities
+
+### Files modified
+- src/cub/core/dashboard/sync/parsers/tasks.py (new, 324 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated exports)
+- tests/test_task_parser.py (new, 18 test cases, 423 lines)
