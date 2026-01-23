@@ -187,11 +187,7 @@ def init(
 
 
 # Utility & Maintenance
-
-
-def doctor(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Diagnose and fix configuration issues."""
-    _delegate("doctor", args or [], ctx)
+# (doctor command migrated to Python - see cub.cli.doctor)
 
 
 # Task Commands (for agent use)

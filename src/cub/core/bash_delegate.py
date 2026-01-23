@@ -109,7 +109,6 @@ def is_bash_command(command: str) -> bool:
         "artifacts",
         "close-task",
         "verify-task",
-        "doctor",
     }
 
     return command in bash_commands

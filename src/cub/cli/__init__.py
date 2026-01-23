@@ -13,6 +13,7 @@ from cub.cli import (
     capture,
     captures,
     delegated,
+    doctor,
     merge,
     monitor,
     organize_captures,
@@ -154,7 +155,7 @@ def version() -> None:
 app.command(name="update", rich_help_panel=PANEL_INSTALL)(delegated.update)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
-app.command(name="doctor", rich_help_panel=PANEL_INSTALL)(delegated.doctor)
+app.add_typer(doctor.app, name="doctor", rich_help_panel=PANEL_INSTALL)
 
 
 # =============================================================================
