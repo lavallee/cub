@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .models import RunArtifact, RunStatus
+from .models import RunArtifact, RunStatus, TaskArtifact
 
 
 class StatusWriter:
@@ -203,6 +203,90 @@ class StatusWriter:
 
         # Write to file
         prompt_path.write_text(content, encoding="utf-8")
+
+    def write_task_artifact(self, task_id: str, artifact: TaskArtifact) -> None:
+        """
+        Write task artifact to task.json.
+
+        Uses atomic write (temp file + rename) to prevent corruption.
+        This is typically called after task completion to persist
+        task execution metadata including cost data.
+
+        Args:
+            task_id: Task identifier
+            artifact: TaskArtifact to serialize
+        """
+        task_dir = self.get_task_dir(task_id)
+        task_artifact_path = task_dir / "task.json"
+
+        # Serialize to JSON
+        data = artifact.model_dump(mode="json")
+
+        # Write atomically
+        temp_path = task_artifact_path.with_suffix(".json.tmp")
+        try:
+            with temp_path.open("w") as f:
+                json.dump(data, f, indent=2, default=self._json_serializer)
+            temp_path.rename(task_artifact_path)
+        except Exception:
+            # Clean up temp file on failure
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
+
+    def read_task_artifact(self, task_id: str) -> TaskArtifact | None:
+        """
+        Read task artifact from task.json.
+
+        Args:
+            task_id: Task identifier
+
+        Returns:
+            TaskArtifact if file exists and is valid, None otherwise
+        """
+        task_dir = self.get_task_dir(task_id)
+        task_artifact_path = task_dir / "task.json"
+
+        if not task_artifact_path.exists():
+            return None
+
+        try:
+            with task_artifact_path.open() as f:
+                data = json.load(f)
+            return TaskArtifact(**data)
+        except (json.JSONDecodeError, Exception):
+            return None
+
+    def list_task_artifacts(self) -> list[TaskArtifact]:
+        """
+        List all task artifacts for this run.
+
+        Returns:
+            List of TaskArtifact objects for all tasks with task.json files
+        """
+        artifacts = []
+        tasks_dir = self.run_dir / "tasks"
+
+        if not tasks_dir.exists():
+            return []
+
+        for task_dir in tasks_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+
+            task_json_path = task_dir / "task.json"
+            if not task_json_path.exists():
+                continue
+
+            try:
+                with task_json_path.open() as f:
+                    data = json.load(f)
+                artifact = TaskArtifact(**data)
+                artifacts.append(artifact)
+            except (json.JSONDecodeError, Exception):
+                continue
+
+        return artifacts
 
     def _json_serializer(self, obj: Any) -> Any:
         """Custom JSON serializer for datetime and enum objects."""
