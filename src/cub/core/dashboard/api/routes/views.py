@@ -19,70 +19,9 @@ for different workflows and perspectives.
 from fastapi import APIRouter, HTTPException
 
 from cub.core.dashboard.db.models import ViewSummary
+from cub.core.dashboard.views import list_views
 
 router = APIRouter()
-
-
-def get_default_views() -> list[ViewSummary]:
-    """
-    Get the list of default views.
-
-    The system provides three built-in views:
-    - default: Full 8-column workflow
-    - sprint: Active work (ready, in progress, review, complete)
-    - ideas: Idea development (captures, specs, planned)
-
-    Returns:
-        List of ViewSummary objects for default views
-
-    Example:
-        >>> views = get_default_views()
-        >>> assert len(views) >= 1
-        >>> assert any(v.is_default for v in views)
-    """
-    return [
-        ViewSummary(
-            id="default",
-            name="Full Workflow",
-            description="Complete workflow from captures to released (8 columns)",
-            is_default=True,
-        ),
-        ViewSummary(
-            id="sprint",
-            name="Sprint View",
-            description="Active work focused view (Ready → In Progress → Review → Complete)",
-            is_default=False,
-        ),
-        ViewSummary(
-            id="ideas",
-            name="Ideas View",
-            description="Idea development focused view (Captures → Specs → Planned)",
-            is_default=False,
-        ),
-    ]
-
-
-def load_custom_views() -> list[ViewSummary]:
-    """
-    Load custom view configurations from .cub/views/.
-
-    Users can create custom YAML/JSON view files in .cub/views/
-    to define their own view configurations for different workflows.
-
-    Returns:
-        List of custom ViewSummary objects (empty if directory doesn't exist)
-
-    Note:
-        This is a placeholder for future implementation.
-        Currently returns empty list.
-
-    Example:
-        >>> custom = load_custom_views()
-        >>> assert isinstance(custom, list)
-    """
-    # TODO: Implement loading custom views from .cub/views/
-    # For now, return empty list
-    return []
 
 
 @router.get("/views", response_model=list[ViewSummary])
@@ -137,20 +76,8 @@ async def get_views() -> list[ViewSummary]:
         ```
     """
     try:
-        # Get default views
-        views = get_default_views()
-
-        # Try to load custom views
-        try:
-            custom_views = load_custom_views()
-            views.extend(custom_views)
-        except Exception:
-            # If custom view loading fails, just use defaults
-            pass
-
-        # Sort by name for consistent ordering
-        views.sort(key=lambda v: v.name)
-
+        # Load all views (built-in + custom from .cub/views/)
+        views = list_views()
         return views
     except Exception as e:
         raise HTTPException(
