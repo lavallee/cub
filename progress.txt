@@ -1,5 +1,55 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-p9w.3: Implement cub dashboard export command
+
+### Task Completed
+Implemented `cub dashboard export` command to export board state as JSON for scripting, backup, or external tools.
+
+### What Was Implemented
+
+**New Export Subcommand** (`src/cub/cli/dashboard.py`):
+- Added `export()` function with `@app.command()` decorator
+- Options:
+  - `--output/-o`: Output file path (default: stdout)
+  - `--pretty/--compact`: Pretty-print with indentation (default) or minified JSON
+- Features:
+  - Validates database exists before attempting export
+  - Creates parent directories for output file if needed
+  - Errors go to stderr using `err_console` so stdout stays clean for piping
+  - Helpful error messages suggesting `cub dashboard sync` when database not found
+
+**Tests** (`tests/test_cli_dashboard.py`):
+- Added `TestDashboardExport` class with 8 tests:
+  - `test_export_help`: Verifies help text shows options
+  - `test_export_no_project_root`: Error when not in project
+  - `test_export_no_database`: Error with sync suggestion
+  - `test_export_to_stdout`: Valid JSON output
+  - `test_export_to_file`: File creation and contents
+  - `test_export_compact`: Single-line JSON
+  - `test_export_pretty`: Multi-line indented JSON
+  - `test_export_creates_parent_dirs`: Nested path support
+
+### Technical Details
+
+**Console Output Handling:**
+- Used `Console(stderr=True)` for error messages to preserve stdout for JSON
+- Used `print()` instead of `console.print()` for stdout to avoid Rich formatting
+
+**Pydantic JSON Serialization:**
+- Used `board.model_dump_json(indent=indent, exclude_none=True)` for clean output
+- `exclude_none=True` reduces file size by omitting null fields
+
+**Error Handling:**
+- Check for database existence before opening connection
+- Catch `PermissionError` and `OSError` for file write failures
+- Re-raise `typer.Exit` to prevent generic exception handler from catching it
+
+### Learnings
+- Rich Console requires `stderr=True` parameter for stderr output, not `file=sys.stderr`
+- Typer tests use `runner.isolated_filesystem()` for clean test environments
+- Pydantic's `model_dump_json()` accepts `indent` parameter directly (not via `mode='json'`)
+- When adding CLI tests, ensure database is created with sync before testing data-dependent features
+
 ## 2026-01-23 - cub-m3x.6: Add loading states, error states, and keyboard navigation
 
 ### Task Completed
