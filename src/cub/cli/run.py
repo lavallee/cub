@@ -28,6 +28,9 @@ from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
+from cub.core.ledger.models import LedgerEntry
+from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+from cub.core.ledger.writer import LedgerWriter
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -1130,6 +1133,10 @@ def run(
     if debug:
         console.print(f"[dim]Status file: {status_writer.status_path}[/dim]")
 
+    # Initialize ledger writer
+    ledger_dir = project_dir / ".cub" / "ledger"
+    ledger_writer = LedgerWriter(ledger_dir)
+
     # Update task counts
     counts = task_backend.get_task_counts()
     status.tasks_total = counts.total
@@ -1416,6 +1423,41 @@ def run(
                         EventLevel.WARNING,
                         task_id=current_task.id,
                     )
+
+                # Create ledger entry after successful task completion
+                if config.ledger.enabled:
+                    try:
+                        ledger_entry = LedgerEntry(
+                            id=current_task.id,
+                            title=current_task.title,
+                            completed_at=datetime.now(),
+                            tokens=LedgerTokenUsage(
+                                input_tokens=result.usage.input_tokens,
+                                output_tokens=result.usage.output_tokens,
+                                cache_read_tokens=result.usage.cache_read_tokens,
+                                cache_creation_tokens=result.usage.cache_creation_tokens,
+                            ),
+                            duration_seconds=int(duration),
+                            harness_name=harness_name,
+                            epic_id=epic,
+                            run_log_path=str(status_writer.get_task_dir(current_task.id)),
+                        )
+                        ledger_writer.create_entry(ledger_entry)
+                        if debug:
+                            console.print(
+                                f"[dim]Created ledger entry for {current_task.id}[/dim]"
+                            )
+                    except Exception as e:
+                        # Log but don't fail - ledger is informational
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to create ledger entry: {e}[/dim]"
+                            )
+                        status.add_event(
+                            f"Failed to create ledger entry: {e}",
+                            EventLevel.WARNING,
+                            task_id=current_task.id,
+                        )
 
                 # Run post-task hooks (async - fire and forget for notifications)
                 post_task_context = HookContext(

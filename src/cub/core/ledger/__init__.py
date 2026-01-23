@@ -43,6 +43,7 @@ from cub.core.ledger.models import (
     VerificationStatus,
 )
 from cub.core.ledger.reader import LedgerReader
+from cub.core.ledger.writer import LedgerWriter
 
 __all__ = [
     # Core models
@@ -56,4 +57,6 @@ __all__ = [
     "VerificationStatus",
     # Reader
     "LedgerReader",
+    # Writer
+    "LedgerWriter",
 ]

@@ -257,3 +257,111 @@ def test_task_artifact_persistence_to_json(temp_project_dir):
     assert json_data["usage"]["cache_creation_tokens"] == 200
     assert json_data["usage"]["cost_usd"] == 0.055
     assert json_data["usage"]["estimated"] is False
+
+
+def test_ledger_entry_creation_on_task_close(temp_project_dir, mock_task):
+    """Test that ledger entry is created when task completes successfully."""
+    from cub.core.ledger.models import LedgerEntry
+    from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+    from cub.core.ledger.writer import LedgerWriter
+
+    # Create ledger writer
+    ledger_dir = temp_project_dir / ".cub" / "ledger"
+    ledger_writer = LedgerWriter(ledger_dir)
+
+    # Simulate a successful harness result
+    result = HarnessResult(
+        output="Task completed successfully",
+        usage=TokenUsage(
+            input_tokens=1000,
+            output_tokens=500,
+            cache_read_tokens=200,
+            cache_creation_tokens=100,
+            cost_usd=0.0275,
+            estimated=False,
+        ),
+        duration_seconds=2.5,
+        exit_code=0,
+    )
+
+    # Create a ledger entry (simulating what run.py does after task close)
+    ledger_entry = LedgerEntry(
+        id=mock_task.id,
+        title=mock_task.title,
+        completed_at=datetime.now(),
+        tokens=LedgerTokenUsage(
+            input_tokens=result.usage.input_tokens,
+            output_tokens=result.usage.output_tokens,
+            cache_read_tokens=result.usage.cache_read_tokens,
+            cache_creation_tokens=result.usage.cache_creation_tokens,
+        ),
+        duration_seconds=int(result.duration_seconds),
+        harness_name="claude",
+        epic_id="test-epic",
+        run_log_path=".cub/runs/test-run-001/tasks/test-task-001",
+    )
+
+    # Write ledger entry
+    ledger_writer.create_entry(ledger_entry)
+
+    # Verify ledger entry was written
+    ledger_file = ledger_dir / "by-task" / f"{mock_task.id}.json"
+    assert ledger_file.exists(), "Ledger entry file should exist"
+
+    # Verify index was updated
+    index_file = ledger_dir / "index.jsonl"
+    assert index_file.exists(), "Ledger index should exist"
+
+    # Read and verify the ledger entry
+    from cub.core.ledger.reader import LedgerReader
+
+    reader = LedgerReader(ledger_dir)
+    entry = reader.get_task(mock_task.id)
+    assert entry is not None, "Should be able to read ledger entry"
+    assert entry.id == mock_task.id
+    assert entry.title == mock_task.title
+    assert entry.tokens.input_tokens == 1000
+    assert entry.tokens.output_tokens == 500
+    assert entry.tokens.cache_read_tokens == 200
+    assert entry.tokens.cache_creation_tokens == 100
+    assert entry.tokens.total_tokens == 1800
+    assert entry.duration_seconds == 2
+    assert entry.harness_name == "claude"
+    assert entry.epic_id == "test-epic"
+
+
+def test_ledger_entry_graceful_failure(temp_project_dir, mock_task):
+    """Test that ledger entry creation failure doesn't crash the run."""
+    from cub.core.ledger.models import LedgerEntry
+    from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+    from cub.core.ledger.writer import LedgerWriter
+
+    # Create ledger writer with invalid directory (to simulate failure)
+    ledger_dir = temp_project_dir / "invalid" / "very" / "deep" / "path"
+    ledger_writer = LedgerWriter(ledger_dir)
+
+    # Make the parent directory read-only to force an error
+    import os
+
+    parent = temp_project_dir / "invalid"
+    parent.mkdir()
+    os.chmod(parent, 0o444)
+
+    try:
+        # Attempt to create a ledger entry
+        ledger_entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            completed_at=datetime.now(),
+            tokens=LedgerTokenUsage(input_tokens=100, output_tokens=50),
+            duration_seconds=1,
+            harness_name="claude",
+        )
+
+        # This should raise an exception, but in run.py it's caught gracefully
+        with pytest.raises(Exception):
+            ledger_writer.create_entry(ledger_entry)
+
+    finally:
+        # Restore permissions for cleanup
+        os.chmod(parent, 0o755)
