@@ -256,8 +256,11 @@ def _parse_epic_section(section: str, epic_id: str, epic_title: str) -> ParsedEp
     priority_match = _PRIORITY_RE.search(section)
     if priority_match:
         try:
-            epic.priority = int(priority_match.group(1))
-        except ValueError:
+            priority_val = int(priority_match.group(1))
+            # Validate priority is reasonable (0-9)
+            if 0 <= priority_val <= 9:
+                epic.priority = priority_val
+        except (ValueError, OverflowError):
             pass
 
     # Extract labels
@@ -297,8 +300,11 @@ def _parse_task_section(
     priority_match = _PRIORITY_RE.search(section)
     if priority_match:
         try:
-            task.priority = int(priority_match.group(1))
-        except ValueError:
+            priority_val = int(priority_match.group(1))
+            # Validate priority is reasonable (0-9)
+            if 0 <= priority_val <= 9:
+                task.priority = priority_val
+        except (ValueError, OverflowError):
             pass
 
     # Extract labels
@@ -417,8 +423,15 @@ def parse_itemized_plan(path: Path) -> ParsedPlan:
 
     try:
         content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise PlanFormatError(
+            f"Plan file has invalid UTF-8 encoding at {path}: {e}"
+        ) from e
     except OSError as e:
         raise PlanFileNotFoundError(f"Cannot read plan file: {e}") from e
+
+    if not content.strip():
+        raise PlanFormatError(f"Plan file is empty: {path}")
 
     return parse_itemized_plan_content(content)
 

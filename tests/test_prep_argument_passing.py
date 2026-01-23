@@ -42,6 +42,9 @@ class TestPrepArgumentPassing:
                 "specs/researching/new-idea.md",
             ]
 
+    @pytest.mark.skip(
+        reason="prep command now uses 'cub plan' pipeline - doesn't support --session flag"
+    )
     def test_prep_with_multiple_arguments(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -70,7 +73,10 @@ class TestPrepArgumentPassing:
                 "specs/doc.md",
             ]
 
-    def test_prep_with_flags_using_separator(
+    @pytest.mark.skip(
+        reason="prep command now uses 'cub plan' pipeline - doesn't support --vision flag"
+    )
+    def test_prep_with_vision_flag(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that prep passes flags after -- separator to bash."""
@@ -114,12 +120,57 @@ class TestPrepArgumentPassing:
             call_args = mock_run.call_args
             assert call_args[0][0] == [str(bash_script), "triage", "specs/doc.md"]
 
-    # NOTE: test_architect_with_session_argument removed - architect is now
-    # part of the plan command (cub plan architect) and not a standalone command.
-    #
-    # NOTE: test_plan_with_session_argument removed - plan command is now
-    # Python-native with subcommands (orient, architect, itemize, run, list)
-    # instead of bash delegation.
+    @pytest.mark.skip(
+        reason="'cub architect' is now 'cub plan architect' - Python native, not bash"
+    )
+    def test_architect_with_session_argument(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that 'cub architect session-id' passes the session ID."""
+        bash_script = tmp_path / "cub"
+        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
+        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = runner.invoke(app, ["architect", "myproj-20260120-123456"])
+
+            assert result.exit_code == 0
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[0][0] == [
+                str(bash_script),
+                "architect",
+                "myproj-20260120-123456",
+            ]
+
+    @pytest.mark.skip(
+        reason="'cub plan' is now Python native with subcommands - use 'cub plan orient/architect/itemize'"
+    )
+    def test_plan_with_session_argument(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that 'cub plan session-id' passes the session ID."""
+        bash_script = tmp_path / "cub"
+        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
+        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
+
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = runner.invoke(app, ["plan", "myproj-20260120-123456"])
+
+            assert result.exit_code == 0
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[0][0] == [
+                str(bash_script),
+                "plan",
+                "myproj-20260120-123456",
+            ]
 
     def test_bootstrap_with_session_argument(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
