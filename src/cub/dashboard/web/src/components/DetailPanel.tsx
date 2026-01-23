@@ -5,6 +5,7 @@
 import { useEffect } from 'preact/hooks';
 import { useEntity } from '../hooks/useEntity';
 import type { DashboardEntity, RelationType } from '../types/api';
+import { ArtifactViewer } from './ArtifactViewer';
 
 export interface DetailPanelProps {
   entityId: string | null;
@@ -325,8 +326,18 @@ export function DetailPanel({ entityId, onClose, onNavigate, navigationPath = []
                 </section>
               )}
 
-              {/* Content */}
-              {data.content && (
+              {/* Content - Use ArtifactViewer for entities with source_path */}
+              {data.entity.source_path && (
+                <section class="mb-6">
+                  <ArtifactViewer
+                    sourcePath={data.entity.source_path}
+                    entityType={data.entity.type}
+                  />
+                </section>
+              )}
+
+              {/* Fallback: Show inline content if no source_path */}
+              {!data.entity.source_path && data.content && (
                 <section class="mb-6">
                   <h4 class="font-semibold text-gray-900 mb-3">Content</h4>
                   <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
