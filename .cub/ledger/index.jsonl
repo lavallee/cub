@@ -189,3 +189,8 @@
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0}
 {"id": "cub-a7f.4", "title": "Implement /api/stats endpoint", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-a7f", "verification": "pending", "tokens": 0}
 {"id": "cub-m3x.1", "title": "Implement DetailPanel sidebar component", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.2", "title": "Implement relationship navigation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.3", "title": "Implement ViewSwitcher dropdown", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.4", "title": "Implement StatsBar component", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.5", "title": "Implement ArtifactViewer with markdown rendering", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
+{"id": "cub-m3x.6", "title": "Add loading states, error states, and keyboard navigation", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-m3x", "verification": "pending", "tokens": 0}
