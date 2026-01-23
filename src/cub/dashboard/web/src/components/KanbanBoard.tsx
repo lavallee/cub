@@ -2,17 +2,22 @@
  * KanbanBoard component - main board view displaying all columns.
  */
 
+import { useState } from 'preact/hooks';
 import { useBoard } from '../hooks/useBoard';
 import { Column } from './Column';
+import { DetailPanel } from './DetailPanel';
+import type { DashboardEntity } from '../types/api';
 
 /**
  * Main kanban board component.
  *
  * Fetches board data and renders columns with horizontal scroll.
  * Shows loading and error states.
+ * Manages detail panel state for viewing entity details.
  */
 export function KanbanBoard() {
   const { data, loading, error } = useBoard();
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -41,9 +46,12 @@ export function KanbanBoard() {
     );
   }
 
-  const handleEntityClick = (entity: any) => {
-    // TODO: Open detail panel (task cub-k8d.8)
-    console.log('Entity clicked:', entity);
+  const handleEntityClick = (entity: DashboardEntity) => {
+    setSelectedEntityId(entity.id);
+  };
+
+  const handleClosePanel = () => {
+    setSelectedEntityId(null);
   };
 
   return (
@@ -79,6 +87,9 @@ export function KanbanBoard() {
           ))}
         </div>
       </div>
+
+      {/* Detail panel */}
+      <DetailPanel entityId={selectedEntityId} onClose={handleClosePanel} />
     </div>
   );
 }
