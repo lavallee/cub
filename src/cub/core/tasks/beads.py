@@ -519,6 +519,16 @@ class BeadsBackend:
         if not tasks:
             return []
 
+        # Build reverse mapping: for each task, what blocks it (what it depends on)
+        # If task A blocks [B, C], then B and C depend on A
+        blocked_by: dict[str, list[str]] = {}
+        for task in tasks:
+            if task.blocks:
+                for blocked_id in task.blocks:
+                    if blocked_id not in blocked_by:
+                        blocked_by[blocked_id] = []
+                    blocked_by[blocked_id].append(task.id)
+
         # Convert tasks to beads JSONL format
         jsonl_lines = []
         for task in tasks:
@@ -530,11 +540,12 @@ class BeadsBackend:
                     "depends_on_id": task.parent,
                     "type": "parent-child",
                 })
-            if task.blocks:
-                for blocked_id in task.blocks:
+            # Add blocks dependencies: this task is blocked by (depends on) these tasks
+            if task.id in blocked_by:
+                for blocker_id in blocked_by[task.id]:
                     dependencies.append({
                         "issue_id": task.id,
-                        "depends_on_id": blocked_id,
+                        "depends_on_id": blocker_id,
                         "type": "blocks",
                     })
 
