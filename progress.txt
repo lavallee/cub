@@ -5718,3 +5718,40 @@ This tier placement is appropriate because:
 - Modern Tailwind CSS uses `/` syntax for opacity (e.g., `bg-black/30` instead of separate `bg-opacity-*` classes)
 - The separate opacity classes (`bg-opacity-*`) can have inconsistent rendering in some configurations
 - Always test UI changes by running the build to catch syntax errors early
+
+## 2026-01-23 - Task cub-wrdb: Fix Readiness validation errors in dashboard sync
+
+**Context:**
+The Readiness model in specs expected `list[str]` for all fields, but YAML allows
+structured dict formats. If users wrote:
+```yaml
+tools_needed:
+  - name: Tool Name
+    description: Tool description
+```
+The parser would fail with Pydantic validation errors.
+
+**Solution:**
+Added flexible parsing with `normalize_string_list()` helper that:
+- Preserves string items unchanged
+- Converts dicts to formatted strings: "name (description)"
+- Handles edge cases (name-only, description-only, other types)
+- Applied to all Readiness list fields (blockers, questions, decisions_needed, tools_needed)
+
+**Key Learning:**
+When parsing YAML frontmatter, be defensive about input formats. Users may write
+structured data in various ways, and the parser should handle it gracefully rather
+than failing. Using a normalization function makes the code more robust while
+maintaining backward compatibility.
+
+**Testing Approach:**
+- Created comprehensive test suite (TestReadinessFlexibleParsing)
+- Tested string format (existing behavior)
+- Tested dict format (new behavior)
+- Tested all fields handle both formats
+- Verified dashboard sync still works end-to-end
+
+**Files Modified:**
+- src/cub/core/specs/models.py: Added normalize_string_list() helper
+- tests/test_spec_workflow.py: Added 3 new test cases
+
