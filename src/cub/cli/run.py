@@ -1306,6 +1306,27 @@ def run(
                     tokens=result.usage.total_tokens,
                 )
 
+                # Close the task in the backend so it won't be picked up again
+                try:
+                    task_backend.close_task(
+                        current_task.id,
+                        reason="Completed by autonomous execution",
+                    )
+                    if debug:
+                        console.print(
+                            f"[dim]Closed task {current_task.id} in backend[/dim]"
+                        )
+                except Exception as e:
+                    # Log but don't fail - the work is done even if closure fails
+                    console.print(
+                        f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]"
+                    )
+                    status.add_event(
+                        f"Failed to close task in backend: {e}",
+                        EventLevel.WARNING,
+                        task_id=current_task.id,
+                    )
+
                 # Run post-task hooks (async - fire and forget for notifications)
                 post_task_context = HookContext(
                     hook_name="post-task",
