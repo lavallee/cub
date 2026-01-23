@@ -6,6 +6,8 @@ import { useEffect } from 'preact/hooks';
 import { useEntity } from '../hooks/useEntity';
 import type { DashboardEntity, RelationType } from '../types/api';
 import { ArtifactViewer } from './ArtifactViewer';
+import { DetailPanelSkeleton } from './LoadingSkeleton';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export interface DetailPanelProps {
   entityId: string | null;
@@ -24,7 +26,7 @@ export interface DetailPanelProps {
  * - Click outside or ESC key to close
  */
 export function DetailPanel({ entityId, onClose, onNavigate, navigationPath = [] }: DetailPanelProps) {
-  const { data, loading, error } = useEntity(entityId);
+  const { data, loading, error, refetch } = useEntity(entityId);
 
   // Handle ESC key to close panel
   useEffect(() => {
@@ -114,17 +116,14 @@ export function DetailPanel({ entityId, onClose, onNavigate, navigationPath = []
 
         {/* Content */}
         <div class="px-6 py-4">
-          {loading && (
-            <div class="flex items-center justify-center py-12">
-              <div class="text-gray-500">Loading entity details...</div>
-            </div>
-          )}
+          {loading && <DetailPanelSkeleton />}
 
           {error && (
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p class="text-red-800 font-semibold">Error loading entity</p>
-              <p class="text-red-600 text-sm mt-1">{error.message}</p>
-            </div>
+            <ErrorDisplay
+              title="Error loading entity"
+              error={error}
+              onRetry={refetch}
+            />
           )}
 
           {data && (

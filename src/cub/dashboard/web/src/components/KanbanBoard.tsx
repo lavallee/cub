@@ -5,10 +5,13 @@
 import { useState } from 'preact/hooks';
 import { useBoard } from '../hooks/useBoard';
 import { useNavigation } from '../hooks/useNavigation';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { Column } from './Column';
 import { DetailPanel } from './DetailPanel';
 import { StatsBar } from './StatsBar';
 import { ViewSwitcher } from './ViewSwitcher';
+import { BoardSkeleton } from './LoadingSkeleton';
+import { FullScreenError } from './ErrorDisplay';
 import type { DashboardEntity } from '../types/api';
 
 /**
@@ -21,32 +24,43 @@ import type { DashboardEntity } from '../types/api';
  */
 export function KanbanBoard() {
   const [selectedViewId, setSelectedViewId] = useState<string | undefined>();
-  const { data, loading, error } = useBoard(selectedViewId);
+  const { data, loading, error, refetch } = useBoard(selectedViewId);
   const navigation = useNavigation();
 
   if (loading) {
-    return (
-      <div class="flex items-center justify-center h-screen">
-        <div class="text-gray-500">Loading board...</div>
-      </div>
-    );
+    return <BoardSkeleton />;
   }
 
   if (error) {
     return (
-      <div class="flex items-center justify-center h-screen">
-        <div class="text-red-500">
-          <p class="font-semibold">Error loading board</p>
-          <p class="text-sm mt-1">{error.message}</p>
-        </div>
-      </div>
+      <FullScreenError
+        title="Error loading board"
+        error={error}
+        onRetry={refetch}
+      />
     );
   }
 
   if (!data) {
     return (
-      <div class="flex items-center justify-center h-screen">
-        <div class="text-gray-500">No board data available</div>
+      <div class="flex items-center justify-center h-screen bg-gray-100">
+        <div class="text-center">
+          <svg
+            class="w-16 h-16 mx-auto text-gray-400 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <p class="text-gray-500 text-lg font-medium">No board data available</p>
+          <p class="text-gray-400 text-sm mt-2">Try refreshing the page</p>
+        </div>
       </div>
     );
   }
@@ -59,6 +73,38 @@ export function KanbanBoard() {
     setSelectedViewId(viewId);
     navigation.clear();
   };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        key: 'Escape',
+        handler: () => {
+          if (navigation.currentEntityId) {
+            navigation.clear();
+          }
+        },
+        description: 'Close detail panel',
+      },
+      {
+        key: 'r',
+        handler: () => {
+          refetch();
+        },
+        description: 'Refresh board',
+      },
+      {
+        key: 'ArrowLeft',
+        handler: () => {
+          if (navigation.canGoBack) {
+            navigation.goBack();
+          }
+        },
+        description: 'Go back in navigation',
+      },
+    ],
+    enabled: !loading && !error,
+  });
 
   return (
     <div class="h-screen flex flex-col bg-gray-100">
