@@ -5251,3 +5251,98 @@ Successfully implemented the `/api/stats` endpoint for the dashboard stats bar, 
 ### What's Next:
 This endpoint unblocks task cub-m3x.4 (Implement StatsBar component) which depends on having stats data available via API.
 
+
+## 2026-01-23: DetailPanel Sidebar Implementation (cub-m3x.1)
+
+Successfully implemented the DetailPanel sidebar component with full entity detail display:
+
+### Components Created:
+1. **DetailPanel.tsx** (~320 lines):
+   - Comprehensive sidebar panel that slides in from the right
+   - Displays entity metadata, relationships, content, and frontmatter
+   - Includes loading/error states
+   - ESC key and backdrop click to close
+   - Responsive layout (full width on mobile, 1/3 on desktop)
+   - Well-organized sections: metadata, relationships, content, frontmatter
+
+2. **useEntity.ts**:
+   - Custom hook for fetching entity details from API
+   - Pattern mirrors useBoard.ts
+   - Handles null entityId gracefully (skips fetch)
+   - Returns loading, error, and data states with refetch function
+
+### Updates:
+- **KanbanBoard.tsx**: Added state management for selected entity ID, wired click handlers
+
+### Technical Details:
+- Used Preact's useEffect for proper event listener cleanup
+- Implemented relationships display with grouping by relationship type
+- Added helper functions for formatting (duration, relationship types)
+- Comprehensive metadata display including metrics (cost, tokens, duration)
+- Professional Tailwind styling matching existing components
+
+### Lessons Learned:
+- Event listeners in Preact need proper useEffect cleanup to avoid memory leaks
+- DetailPanel receives entityId (string | null) rather than full entity to force fresh data fetch
+- Relationships from API can be single entity or array, handled with normalization
+- z-index layering: backdrop (z-40), panel (z-50) for proper overlay behavior
+
+Build passes cleanly with no TypeScript errors.
+
+
+## 2026-01-23 - cub-m3x.2: Implement relationship navigation
+
+### Task Completed
+Implemented relationship navigation in the DetailPanel to enable exploration of the entity graph through clickable relationship links.
+
+### What Was Implemented
+
+**useNavigation Hook (`src/cub/dashboard/web/src/hooks/useNavigation.ts`):**
+- History-based navigation with stack management
+- `navigateTo(entityId)` - Navigate to an entity, adding current to history
+- `goBack()` - Pop history and return to previous entity
+- `clear()` - Close panel and reset navigation
+- `getPath()` - Get full navigation path for breadcrumbs
+- `canGoBack` - Boolean indicating if back navigation is available
+
+**DetailPanel Updates:**
+1. Added `onNavigate` callback prop for handling entity clicks
+2. Added `navigationPath` prop for breadcrumb display
+3. Implemented breadcrumb navigation in header:
+   - Shows "Board" link to close panel
+   - Shows intermediate navigation steps as clickable links
+   - Highlights current entity
+   - Auto-truncates long IDs with tooltips
+4. Made relationship entity cards clickable:
+   - Hover effects (blue border, blue background)
+   - Right arrow icon appears on hover
+   - Visual feedback (text color change)
+   - Disabled state when navigation not available
+
+**KanbanBoard Integration:**
+- Replaced `useState` with `useNavigation` hook
+- Passed navigation callbacks to DetailPanel
+- Provides full navigation path for breadcrumbs
+
+### Design Decisions
+
+**Navigation Pattern:**
+- Used stack-based history (like browser history)
+- Each navigation adds current entity to history
+- Back button pops from history stack
+- Clear closes panel and resets all state
+
+**UI/UX:**
+- Breadcrumbs only show when path length > 1
+- Relationship cards styled as interactive buttons
+- Hover states provide clear affordance
+- Arrow icon reinforces clickability
+- Truncated IDs prevent layout overflow
+
+### Key Learnings
+
+1. **Preact hooks compatibility**: Standard React patterns work seamlessly with Preact
+2. **Navigation UX**: Breadcrumbs are essential for deep entity exploration
+3. **TypeScript optional props**: Using `?.` operator for optional callbacks enables graceful degradation
+4. **Build process**: `npm run build` runs both TypeScript checking and Vite build
+
