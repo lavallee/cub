@@ -7,7 +7,7 @@ Creates the FastAPI app instance and registers routes.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cub.core.dashboard.api.routes import artifact, board, entity
+from cub.core.dashboard.api.routes import artifact, board, entity, views
 
 # Create FastAPI app
 app = FastAPI(
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(artifact.router, prefix="/api", tags=["artifact"])
 app.include_router(board.router, prefix="/api", tags=["board"])
 app.include_router(entity.router, prefix="/api", tags=["entity"])
+app.include_router(views.router, prefix="/api", tags=["views"])
 
 
 @app.get("/")
