@@ -409,6 +409,105 @@ def _get_examples_dir() -> Path:
 
 
 @app.command()
+def views(
+    ctx: typer.Context,
+) -> None:
+    """
+    List available dashboard views.
+
+    Displays all available views (both built-in and custom) without starting
+    the server. Each view represents a different way to organize and visualize
+    your project entities on the kanban board.
+
+    Built-in views:
+    - default: Full 8-column workflow (Captures → Released)
+    - sprint: Active work focused (Ready → In Progress → Review → Complete)
+    - ideas: Idea development focused (Captures → Specs → Planned)
+
+    Custom views can be created by:
+    1. Running 'cub dashboard init' to copy example view configurations
+    2. Editing the YAML files in .cub/views/
+    3. Views are automatically loaded - just refresh to see changes
+
+    Examples:
+        cub dashboard views              # List all available views
+    """
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
+
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+        console.print("[dim]Debug mode enabled[/dim]")
+
+    try:
+        # Import dashboard views dependencies
+        try:
+            from cub.core.dashboard.views import list_views
+        except ImportError as e:
+            console.print(
+                "[red]Error:[/red] Dashboard dependencies not installed. "
+                f"Missing module: {e.name}"
+            )
+            console.print(
+                "[dim]Install with: pip install pyyaml[/dim]"
+            )
+            raise typer.Exit(1)
+
+        # Get all available views
+        view_summaries = list_views(use_cache=False)
+
+        if not view_summaries:
+            console.print("[yellow]No views found[/yellow]")
+            raise typer.Exit(1)
+
+        # Display views in a formatted list
+        console.print("\n[bold cyan]Available Dashboard Views[/bold cyan]\n")
+
+        for view in view_summaries:
+            # Highlight default view
+            prefix = "[green]●[/green]" if view.is_default else "○"
+            default_indicator = " [dim](default)[/dim]" if view.is_default else ""
+
+            console.print(f"{prefix} [bold]{view.name}[/bold]{default_indicator}")
+            console.print(f"  [dim]ID:[/dim] {view.id}")
+            if view.description:
+                console.print(f"  [dim]{view.description}[/dim]")
+            console.print()
+
+        # Show summary
+        console.print(f"[bold]Summary:[/bold] {len(view_summaries)} view(s) available")
+
+        # Check if .cub/views directory exists
+        project_root = None
+        try:
+            from cub.utils.project import find_project_root
+            project_root = find_project_root()
+        except Exception:
+            pass
+
+        if project_root:
+            views_dir = project_root / ".cub" / "views"
+            if views_dir.exists():
+                custom_files = list(views_dir.glob("*.yaml")) + list(views_dir.glob("*.yml"))
+                if custom_files:
+                    console.print(
+                        f"[dim]Custom views stored in:[/dim] {views_dir}"
+                    )
+
+        console.print(
+            "\n[dim]Use 'cub dashboard init' to create custom view configurations.[/dim]"
+        )
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        if debug:
+            import traceback
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+
+@app.command()
 def init(
     ctx: typer.Context,
     force: bool = typer.Option(

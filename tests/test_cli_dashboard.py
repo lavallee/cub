@@ -378,6 +378,121 @@ class TestDashboardExport:
             assert Path("exports/backup/board.json").exists()
 
 
+class TestDashboardViews:
+    """Test dashboard views subcommand."""
+
+    def test_views_help(self) -> None:
+        """Test that 'cub dashboard views --help' shows views options."""
+        result = runner.invoke(app, ["dashboard", "views", "--help"])
+        assert result.exit_code == 0
+        assert "list" in result.output.lower() or "available" in result.output.lower()
+
+    def test_views_no_project_root(self) -> None:
+        """Test views subcommand when not in a project directory."""
+        with runner.isolated_filesystem():
+            result = runner.invoke(app, ["dashboard", "views"])
+            # Views command should work without a project directory since it loads built-in views
+            assert result.exit_code == 0
+
+    def test_views_lists_built_in_views(self) -> None:
+        """Test that views command lists built-in views."""
+        with runner.isolated_filesystem():
+            # Create minimal project structure
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            assert "available" in result.output.lower()
+            assert "default" in result.output.lower()
+            assert "sprint" in result.output.lower()
+            assert "ideas" in result.output.lower()
+
+    def test_views_shows_view_ids(self) -> None:
+        """Test that views command shows view IDs."""
+        with runner.isolated_filesystem():
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # IDs should be in output
+            assert "id:" in result.output.lower()
+
+    def test_views_marks_default_view(self) -> None:
+        """Test that views command marks the default view."""
+        with runner.isolated_filesystem():
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # Should mention default somewhere
+            assert "default" in result.output.lower()
+
+    def test_views_shows_descriptions(self) -> None:
+        """Test that views command shows view descriptions."""
+        with runner.isolated_filesystem():
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # Views should have descriptions
+            assert "workflow" in result.output.lower() or "active" in result.output.lower()
+
+    def test_views_with_custom_views(self) -> None:
+        """Test that views command lists both built-in and custom views."""
+        with runner.isolated_filesystem():
+            # Create project structure
+            Path(".beads").mkdir()
+            Path(".cub/views").mkdir(parents=True)
+
+            # Create a custom view file
+            custom_view = """---
+id: custom
+name: Custom View
+description: A custom view for testing
+is_default: false
+columns:
+  - id: test
+    title: Test
+    stages:
+      - READY
+filters:
+  exclude_labels: []
+display:
+  show_cost: false
+  show_tokens: false
+  show_duration: false
+"""
+            Path(".cub/views/custom-view.yaml").write_text(custom_view)
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # Should show custom view along with built-in views
+            assert "custom" in result.output.lower()
+            assert "default" in result.output.lower()
+
+    def test_views_summary_count(self) -> None:
+        """Test that views command shows summary with view count."""
+        with runner.isolated_filesystem():
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # Should show summary
+            assert "summary" in result.output.lower()
+            # Should mention views (plural)
+            assert "available" in result.output.lower()
+
+    def test_views_suggests_init(self) -> None:
+        """Test that views command suggests using 'cub dashboard init'."""
+        with runner.isolated_filesystem():
+            Path(".beads").mkdir()
+
+            result = runner.invoke(app, ["dashboard", "views"])
+            assert result.exit_code == 0
+            # Should mention init command
+            assert "init" in result.output.lower()
+
+
 class TestDashboardInit:
     """Test dashboard init subcommand."""
 
