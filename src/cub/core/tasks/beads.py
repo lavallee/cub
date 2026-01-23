@@ -251,11 +251,9 @@ class BeadsBackend:
         args = ["ready", "--json"]
 
         if parent:
-            # Support both label formats for epic association:
-            # - Punchlist tasks use the epic ID directly (e.g., "cub-xyz")
-            # - Legacy tasks may use "epic:<epic-id>" format
-            # Use --label-any for OR logic to match either format
-            args.extend(["--label-any", parent, "--label-any", f"epic:{parent}"])
+            # Use --parent to filter by parent-child relationship
+            # This finds tasks that are descendants of the given epic
+            args.extend(["--parent", parent])
         if label:
             args.extend(["--label", label])
 
