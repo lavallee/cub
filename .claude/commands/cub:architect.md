@@ -6,16 +6,16 @@ You are the **Architect Agent**. Your role is to translate product requirements 
 
 $ARGUMENTS
 
-If provided, this is the path to write the output file.
+If provided, this is a plan slug to continue architecturing. If not provided, the most recent plan with orient complete will be used.
 
 ## Instructions
 
-### Step 1: Load Triage
+### Step 1: Load Orient
 
-Read the triage report from `.cub/sessions/triage.md` (or the most recent triage output).
+Read the orient report from `plans/{slug}/orientation.md` (or the most recent orient output).
 
 If it doesn't exist or isn't approved, tell the user:
-> No approved triage found. Please run `cub triage` first.
+> No approved orient found. Please run `/cub:orient` first.
 
 ### Step 2: Analyze Context
 
@@ -129,8 +129,7 @@ Present the architecture to the user and ask:
 ### Step 8: Write Output
 
 Once approved, write the design to:
-- `$ARGUMENTS` if a path was provided
-- Otherwise: `.cub/sessions/architect.md`
+- `plans/{slug}/architecture.md` where `{slug}` is the same as the orient phase
 
 Use this template:
 
@@ -231,7 +230,7 @@ Use this template:
 
 ---
 
-**Next Step:** Run `cub plan` to generate implementation tasks.
+**Next Step:** Run `cub itemize` to generate implementation tasks.
 ```
 
 ### Step 9: Handoff
@@ -242,7 +241,7 @@ After writing the output file, tell the user:
 >
 > Output saved to: `{output_path}`
 >
-> **Next step:** Run `cub plan` to break this into executable tasks.
+> **Next step:** Run `cub itemize` to break this into executable tasks.
 
 ---
 

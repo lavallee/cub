@@ -557,3 +557,190 @@ class TestGetTaskCounts:
 
                 assert counts.total == 0
                 assert counts.open == 0
+
+
+# ==============================================================================
+# Try Close Epic Tests
+# ==============================================================================
+
+
+class TestTryCloseEpic:
+    """Test auto-closing epics when all tasks complete."""
+
+    def test_close_epic_all_tasks_closed(self, project_dir):
+        """Test that epic is closed when all its tasks are closed."""
+        # Epic data for get_task
+        epic_data = {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"}
+        epic_json = json.dumps(epic_data)
+
+        # Tasks for list_tasks by parent
+        parent_tasks_json = json.dumps(
+            [
+                {"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"},
+                {"id": "task-002", "title": "Task 2", "parent": "epic-001", "status": "closed"},
+            ]
+        )
+
+        # Tasks for list_tasks by label (empty in this case)
+        label_tasks_json = json.dumps([])
+
+        # Closed epic for verification
+        closed_epic_json = json.dumps(
+            {"id": "epic-001", "title": "Epic", "type": "epic", "status": "closed"}
+        )
+
+        mock_results = [
+            Mock(stdout=epic_json, returncode=0),  # get_task for epic
+            Mock(stdout=parent_tasks_json, returncode=0),  # list_tasks by parent
+            Mock(stdout=label_tasks_json, returncode=0),  # list_tasks by label
+            Mock(stdout="", returncode=0),  # close_task
+            Mock(stdout=closed_epic_json, returncode=0),  # get_task after close
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is True
+                assert "auto-closed" in message
+                assert "2 tasks completed" in message
+
+    def test_epic_stays_open_with_open_tasks(self, project_dir):
+        """Test that epic stays open when some tasks are still open."""
+        epic_data = {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"}
+        epic_json = json.dumps(epic_data)
+        tasks_json = json.dumps(
+            [
+                {"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"},
+                {"id": "task-002", "title": "Task 2", "parent": "epic-001", "status": "open"},
+            ]
+        )
+        empty_tasks_json = json.dumps([])
+
+        mock_results = [
+            Mock(stdout=epic_json, returncode=0),  # get_task for epic
+            Mock(stdout=tasks_json, returncode=0),  # list_tasks by parent
+            Mock(stdout=empty_tasks_json, returncode=0),  # list_tasks by label
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is False
+                assert "1 open" in message
+
+    def test_epic_stays_open_with_in_progress_tasks(self, project_dir):
+        """Test that epic stays open when some tasks are in progress."""
+        epic_data = {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"}
+        epic_json = json.dumps(epic_data)
+        tasks_json = json.dumps(
+            [
+                {"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"},
+                {
+                    "id": "task-002",
+                    "title": "Task 2",
+                    "parent": "epic-001",
+                    "status": "in_progress",
+                },
+            ]
+        )
+        empty_tasks_json = json.dumps([])
+
+        mock_results = [
+            Mock(stdout=epic_json, returncode=0),  # get_task for epic
+            Mock(stdout=tasks_json, returncode=0),  # list_tasks by parent
+            Mock(stdout=empty_tasks_json, returncode=0),  # list_tasks by label
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is False
+                assert "1 in-progress" in message
+
+    def test_epic_not_found(self, project_dir):
+        """Test handling of non-existent epic."""
+        error = subprocess.CalledProcessError(1, ["bd", "show"], stderr="Not found")
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=error):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("nonexistent")
+
+                assert closed is False
+                assert "not found" in message
+
+    def test_epic_already_closed(self, project_dir):
+        """Test handling of already closed epic."""
+        epic_json = json.dumps(
+            {"id": "epic-001", "title": "Epic", "type": "epic", "status": "closed"}
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=epic_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is False
+                assert "already closed" in message
+
+    def test_epic_no_tasks(self, project_dir):
+        """Test handling of epic with no tasks."""
+        epic_data = {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"}
+        epic_json = json.dumps(epic_data)
+        empty_tasks_json = json.dumps([])
+
+        mock_results = [
+            Mock(stdout=epic_json, returncode=0),  # get_task for epic
+            Mock(stdout=empty_tasks_json, returncode=0),  # list_tasks by parent
+            Mock(stdout=empty_tasks_json, returncode=0),  # list_tasks by label
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is False
+                assert "No tasks found" in message
+
+    def test_close_epic_with_tasks_by_label(self, project_dir):
+        """Test that tasks with epic ID as label are included."""
+        epic_data = {"id": "epic-001", "title": "Epic", "type": "epic", "status": "open"}
+        epic_json = json.dumps(epic_data)
+        empty_parent_tasks = json.dumps([])
+        label_tasks_json = json.dumps(
+            [
+                {"id": "task-001", "title": "Task 1", "labels": ["epic-001"], "status": "closed"},
+                {
+                    "id": "task-002",
+                    "title": "Task 2",
+                    "labels": ["epic-001", "urgent"],
+                    "status": "closed",
+                },
+            ]
+        )
+        closed_epic_json = json.dumps(
+            {"id": "epic-001", "title": "Epic", "type": "epic", "status": "closed"}
+        )
+
+        mock_results = [
+            Mock(stdout=epic_json, returncode=0),  # get_task for epic
+            Mock(stdout=empty_parent_tasks, returncode=0),  # list_tasks by parent
+            Mock(stdout=label_tasks_json, returncode=0),  # list_tasks by label
+            Mock(stdout="", returncode=0),  # close_task
+            Mock(stdout=closed_epic_json, returncode=0),  # get_task after close
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                closed, message = backend.try_close_epic("epic-001")
+
+                assert closed is True
+                assert "auto-closed" in message

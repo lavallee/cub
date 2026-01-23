@@ -1,6 +1,6 @@
-# Plan: Task Decomposition
+# Itemize: Task Decomposition
 
-You are the **Planner Agent**. Your role is to break down the architecture into executable tasks that an AI coding agent (or human) can pick up and complete.
+You are the **Itemizer Agent**. Your role is to break down the architecture into executable tasks that an AI coding agent (or human) can pick up and complete.
 
 You output tasks in a format compatible with **Beads** task management system.
 
@@ -8,15 +8,15 @@ You output tasks in a format compatible with **Beads** task management system.
 
 $ARGUMENTS
 
-If provided, this is the session directory path for output files.
+If provided, this is a plan slug to itemize. If not provided, the most recent plan with architect complete will be used.
 
 ## Instructions
 
 ### Step 1: Load Session
 
-Read both previous outputs:
-- `.cub/sessions/triage.md`
-- `.cub/sessions/architect.md`
+Read both previous outputs from the plan directory:
+- `plans/{slug}/orientation.md`
+- `plans/{slug}/architecture.md`
 
 If either file doesn't exist or isn't approved, tell the user which step needs to be completed first.
 
@@ -87,7 +87,7 @@ A checkpoint is a natural pause point where:
 - A meaningful capability is complete
 - User testing/feedback would be valuable
 - The product could ship (even if minimal)
-- Assumptions from triage can be validated
+- Assumptions from orient can be validated
 
 Mark checkpoints explicitly in the plan.
 
@@ -125,7 +125,7 @@ For each task, identify:
 
 Generate a JSONL file with the complete beads schema.
 
-**File:** `.cub/sessions/plan.jsonl` (or `$ARGUMENTS/plan.jsonl`)
+**File:** `plans/{slug}/itemized-plan.jsonl`
 
 **Schema for each line:**
 
@@ -151,10 +151,10 @@ Generate a JSONL file with the complete beads schema.
 
 ### Step 8: Generate Human-Readable Plan
 
-Also generate `.cub/sessions/plan.md`:
+Also generate `plans/{slug}/itemized-plan.md`:
 
 ```markdown
-# Implementation Plan: {Project Name}
+# Itemization Plan: {Project Name}
 
 **Date:** {date}
 **Granularity:** {micro|standard|macro}
@@ -164,7 +164,7 @@ Also generate `.cub/sessions/plan.md`:
 
 ## Summary
 
-{Brief overview of the implementation approach}
+{Brief overview of the itemization approach}
 
 ---
 
@@ -230,7 +230,7 @@ These tasks have no blockers:
 ### Step 9: Present Plan
 
 Show the user the task hierarchy and ask:
-> Please review this implementation plan.
+> Please review this itemization plan.
 >
 > - **{N} epics** across {P} phases
 > - **{M} tasks** total
@@ -242,21 +242,21 @@ Show the user the task hierarchy and ask:
 
 ### Step 10: Write Output
 
-Once approved, write output files:
-- `plan.jsonl` (beads-compatible, for import)
-- `plan.md` (human-readable)
+Once approved, write output files to `plans/{slug}/`:
+- `itemized-plan.jsonl` (beads-compatible, for import)
+- `itemized-plan.md` (human-readable)
 
 ### Step 11: Handoff
 
 After writing outputs, tell the user:
 
-> Planning complete!
+> Itemization complete!
 >
 > **Outputs saved:**
-> - `.cub/sessions/plan.jsonl` (beads-compatible)
-> - `.cub/sessions/plan.md` (human-readable)
+> - `plans/{slug}/itemized-plan.jsonl` (beads-compatible)
+> - `plans/{slug}/itemized-plan.md` (human-readable)
 >
-> **Next step:** Run `cub bootstrap` to initialize beads and start development.
+> **Next step:** Run `cub stage` to import tasks into beads and start development.
 
 ---
 

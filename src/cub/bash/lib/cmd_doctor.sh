@@ -32,12 +32,14 @@ CHECKS:
     * cruft (.bak, .tmp, .DS_Store, etc.) - safe to clean
     * config files - needs carefully review
   - Task state: tasks stuck in "in_progress"
+  - Stale epics: epics where all subtasks are complete but epic is still open
   - Recommendations: build commands, hooks, optional files, project improvements
 
 FIX ACTIONS:
   --fix will:
   - Commit session files with "chore: commit session files"
   - Suggest adding cruft patterns to .gitignore
+  - Auto-close stale epics with "Auto-closed: all subtasks complete"
   - Report source/config files that need manual review
 
 EXAMPLES:
@@ -743,6 +745,185 @@ _doctor_check_tasks() {
     return $issues
 }
 
+# Store stale epics found during check (for fix phase)
+_DOCTOR_STALE_EPICS=""
+
+_doctor_check_stale_epics() {
+    local verbose="${1:-false}"
+    local issues=0
+    echo ""
+    echo "Stale Epics:"
+
+    local backend
+    backend=$(get_backend "${PROJECT_DIR}")
+
+    # Get all tasks to find epics and analyze their subtasks
+    local all_tasks
+    if [[ "$backend" == "beads" ]]; then
+        all_tasks=$(bd list --json 2>/dev/null) || all_tasks="[]"
+    else
+        local prd="${PROJECT_DIR}/prd.json"
+        if [[ -f "$prd" ]]; then
+            all_tasks=$(jq '.tasks // []' "$prd" 2>/dev/null) || all_tasks="[]"
+        else
+            all_tasks="[]"
+        fi
+    fi
+
+    # Find epics (tasks with type == "epic") that are not closed
+    local open_epics
+    open_epics=$(echo "$all_tasks" | jq '[.[] | select((.issue_type // .type) == "epic" and (.status == "closed" | not))]' 2>/dev/null) || open_epics="[]"
+
+    local epic_count
+    epic_count=$(echo "$open_epics" | jq 'length')
+
+    if [[ "$epic_count" -eq 0 || "$epic_count" == "null" ]]; then
+        _doctor_ok "No open epics to check"
+        return 0
+    fi
+
+    # Check each epic for stale subtasks
+    local stale_epics=()
+    local stale_epic_details=()
+
+    while IFS= read -r epic_line; do
+        local epic_id epic_title
+        epic_id=$(echo "$epic_line" | jq -r '.id')
+        epic_title=$(echo "$epic_line" | jq -r '.title // "untitled"')
+
+        # Find subtasks: tasks with parent == epic_id OR label containing epic_id
+        # OR tasks with ID prefix matching epic_id (beads convention: epic-id.1, epic-id.2, etc.)
+        local subtasks
+        if [[ "$backend" == "beads" ]]; then
+            # For beads, use --parent flag with --all to include closed tasks
+            subtasks=$(bd list --parent "$epic_id" --all --json 2>/dev/null) || subtasks="[]"
+            # Also check for label-based association (fallback)
+            local label_tasks
+            label_tasks=$(bd list --label "$epic_id" --all --json 2>/dev/null) || label_tasks="[]"
+            # Merge and deduplicate (by keeping subtasks if label_tasks is not empty and subtasks is)
+            if [[ "$subtasks" == "[]" && "$label_tasks" != "[]" ]]; then
+                subtasks="$label_tasks"
+            elif [[ "$subtasks" != "[]" && "$label_tasks" != "[]" ]]; then
+                # Merge using jq, deduplicating by id
+                subtasks=$(echo "$subtasks" "$label_tasks" | jq -s 'add | unique_by(.id)')
+            fi
+        else
+            # For JSON backend, search all tasks
+            subtasks=$(echo "$all_tasks" | jq --arg epic_id "$epic_id" '[
+                .[] | select(
+                    (.id == $epic_id | not) and (
+                        .parent == $epic_id or
+                        ((.labels // []) | any(. == $epic_id)) or
+                        (.id | startswith($epic_id + "."))
+                    )
+                )
+            ]')
+        fi
+
+        local subtask_count
+        subtask_count=$(echo "$subtasks" | jq 'length')
+
+        # Skip epics with no subtasks (they may be parent containers)
+        if [[ "$subtask_count" -eq 0 || "$subtask_count" == "null" ]]; then
+            continue
+        fi
+
+        # Count subtask statuses
+        local open_count in_progress_count closed_count
+        open_count=$(echo "$subtasks" | jq '[.[] | select(.status == "open")] | length')
+        in_progress_count=$(echo "$subtasks" | jq '[.[] | select(.status == "in_progress")] | length')
+        closed_count=$(echo "$subtasks" | jq '[.[] | select(.status == "closed")] | length')
+
+        # Check if all subtasks are closed
+        if [[ "$open_count" -eq 0 && "$in_progress_count" -eq 0 && "$closed_count" -gt 0 ]]; then
+            stale_epics+=("$epic_id")
+            stale_epic_details+=("$epic_id ($epic_title) - $closed_count subtasks complete")
+        fi
+    done < <(echo "$open_epics" | jq -c '.[]')
+
+    local stale_count=${#stale_epics[@]}
+
+    if [[ $stale_count -eq 0 ]]; then
+        _doctor_ok "No stale epics found"
+    else
+        _doctor_warn "Found ${stale_count} stale epic(s) with all subtasks complete"
+        ((issues++))
+        echo ""
+        echo "  Stale epics (can be auto-closed with --fix):"
+        for detail in "${stale_epic_details[@]}"; do
+            echo "    $detail"
+        done
+
+        # Store for fix phase (space-separated IDs)
+        _DOCTOR_STALE_EPICS="${stale_epics[*]}"
+        export _DOCTOR_STALE_EPICS
+    fi
+
+    return $issues
+}
+
+_doctor_fix_stale_epics() {
+    local dry_run="${1:-false}"
+    local issues=0
+
+    if [[ -z "${_DOCTOR_STALE_EPICS:-}" ]]; then
+        return 0
+    fi
+
+    local backend
+    backend=$(get_backend "${PROJECT_DIR}")
+
+    # Convert space-separated string to array
+    read -r -a epic_ids <<< "$_DOCTOR_STALE_EPICS"
+    local epic_count=${#epic_ids[@]}
+
+    echo ""
+    echo "  Auto-closing stale epics:"
+
+    local closed_count=0
+    local failed_count=0
+
+    for epic_id in "${epic_ids[@]}"; do
+        if [[ "$dry_run" == "true" ]]; then
+            echo "    Would close: $epic_id"
+            ((closed_count++))
+        else
+            local close_result
+            local close_exit
+            if [[ "$backend" == "beads" ]]; then
+                close_result=$(bd close "$epic_id" -r "Auto-closed: all subtasks complete" 2>&1)
+                close_exit=$?
+            else
+                # For JSON backend, use the Python CLI
+                close_result=$(cub task close "$epic_id" --reason "Auto-closed: all subtasks complete" 2>&1)
+                close_exit=$?
+            fi
+
+            if [[ $close_exit -eq 0 ]]; then
+                echo -e "    ${GREEN}Closed:${NC} $epic_id"
+                ((closed_count++))
+            else
+                echo -e "    ${RED}Failed:${NC} $epic_id - $close_result"
+                ((failed_count++))
+                ((issues++))
+            fi
+        fi
+    done
+
+    if [[ "$dry_run" == "true" ]]; then
+        _doctor_info "Would auto-close ${closed_count} stale epic(s)"
+    else
+        if [[ $closed_count -gt 0 ]]; then
+            _doctor_ok "Auto-closed ${closed_count} stale epic(s)"
+        fi
+        if [[ $failed_count -gt 0 ]]; then
+            _doctor_warn "Failed to close ${failed_count} epic(s)"
+        fi
+    fi
+
+    return $issues
+}
+
 _doctor_fix() {
     local dry_run="${1:-false}"
     local issues=0
@@ -802,6 +983,9 @@ _doctor_fix() {
         _doctor_warn "Manual review needed for ${source_count} source, ${config_count} config, ${unknown_count} unknown files"
         ((issues++))
     fi
+
+    # Auto-close stale epics
+    _doctor_fix_stale_epics "$dry_run" || issues=$((issues + $?))
 
     return $issues
 }
@@ -922,6 +1106,7 @@ cmd_doctor() {
     _doctor_check_project || total_issues=$((total_issues + $?))
     _doctor_check_git "$verbose" || total_issues=$((total_issues + $?))
     _doctor_check_tasks || total_issues=$((total_issues + $?))
+    _doctor_check_stale_epics "$verbose" || total_issues=$((total_issues + $?))
     _doctor_check_recommendations "$verbose" || total_issues=$((total_issues + $?))
 
     # Run fixes if requested
