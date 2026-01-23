@@ -45,7 +45,7 @@ class TestPrepArgumentPassing:
     def test_prep_with_multiple_arguments(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that prep can handle multiple arguments."""
+        """Test that prep can handle multiple positional arguments."""
         bash_script = tmp_path / "cub"
         bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
         monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
@@ -54,8 +54,10 @@ class TestPrepArgumentPassing:
         mock_result.returncode = 0
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
+            # Use positional arguments - flags like --session need to be passed
+            # after -- to avoid Typer intercepting them
             result = runner.invoke(
-                app, ["prep", "--session", "myproj-123", "specs/doc.md"]
+                app, ["prep", "myproj-123", "specs/doc.md"]
             )
 
             assert result.exit_code == 0
@@ -64,15 +66,14 @@ class TestPrepArgumentPassing:
             assert call_args[0][0] == [
                 str(bash_script),
                 "prep",
-                "--session",
                 "myproj-123",
                 "specs/doc.md",
             ]
 
-    def test_prep_with_vision_flag(
+    def test_prep_with_flags_using_separator(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Test that prep accepts --vision flag."""
+        """Test that prep passes flags after -- separator to bash."""
         bash_script = tmp_path / "cub"
         bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
         monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
@@ -81,7 +82,8 @@ class TestPrepArgumentPassing:
         mock_result.returncode = 0
 
         with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["prep", "--vision", "specs/doc.md"])
+            # Use -- to pass flags through to bash without Typer intercepting them
+            result = runner.invoke(app, ["prep", "--", "--vision", "specs/doc.md"])
 
             assert result.exit_code == 0
             mock_run.assert_called_once()
@@ -112,29 +114,9 @@ class TestPrepArgumentPassing:
             call_args = mock_run.call_args
             assert call_args[0][0] == [str(bash_script), "triage", "specs/doc.md"]
 
-    def test_architect_with_session_argument(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Test that 'cub architect session-id' passes the session ID."""
-        bash_script = tmp_path / "cub"
-        bash_script.write_text("#!/usr/bin/env bash\nexit 0\n")
-        monkeypatch.setenv("CUB_BASH_PATH", str(bash_script))
-
-        mock_result = Mock()
-        mock_result.returncode = 0
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
-            result = runner.invoke(app, ["architect", "myproj-20260120-123456"])
-
-            assert result.exit_code == 0
-            mock_run.assert_called_once()
-            call_args = mock_run.call_args
-            assert call_args[0][0] == [
-                str(bash_script),
-                "architect",
-                "myproj-20260120-123456",
-            ]
-
+    # NOTE: test_architect_with_session_argument removed - architect is now
+    # part of the plan command (cub plan architect) and not a standalone command.
+    #
     # NOTE: test_plan_with_session_argument removed - plan command is now
     # Python-native with subcommands (orient, architect, itemize, run, list)
     # instead of bash delegation.

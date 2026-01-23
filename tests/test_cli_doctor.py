@@ -4,6 +4,7 @@ Tests for the doctor CLI command.
 Tests the `cub doctor` command for diagnostics and auto-fixing issues.
 """
 
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -17,7 +18,9 @@ runner = CliRunner()
 
 
 @pytest.fixture
-def mock_project_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def mock_project_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Generator[Path, None, None]:
     """Set up a mock project directory."""
     project_dir = tmp_path / "project"
     project_dir.mkdir()
@@ -37,7 +40,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 0
@@ -71,7 +77,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = [epic, subtask1, subtask2]
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             # Should detect the stale epic but not fix it without --fix flag
@@ -107,7 +116,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = [epic, subtask1, subtask2]
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 0
@@ -136,7 +148,10 @@ class TestDoctorCommand:
             id="epic-003", title="Stale Epic", type=TaskType.EPIC, status=TaskStatus.CLOSED
         )
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor", "--fix"])
 
             assert result.exit_code == 0
@@ -171,7 +186,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = [epic1, epic2, subtask1, subtask2]
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 1
@@ -194,7 +212,10 @@ class TestDoctorCommand:
         mock_backend.list_tasks.return_value = [epic, subtask]
         mock_backend.close_task.side_effect = Exception("Permission denied")
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor", "--fix"])
 
             assert "Failed to close epic-999" in result.output
@@ -209,7 +230,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = [epic]
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 0
@@ -230,7 +254,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = [epic, subtask1, subtask2]
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             # Should detect stale epic based on prefix matching
@@ -240,7 +267,10 @@ class TestDoctorCommand:
 
     def test_doctor_backend_not_available(self, mock_project_dir: Path) -> None:
         """Test that doctor handles backend loading errors gracefully."""
-        with patch("cub.cli.doctor.get_backend", side_effect=Exception("Backend not found")):
+        with (
+            patch("cub.cli.doctor.get_backend", side_effect=Exception("Backend not found")),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor"])
 
             # Should complete but warn about backend issue
@@ -253,7 +283,10 @@ class TestDoctorCommand:
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
 
-        with patch("cub.cli.doctor.get_backend", return_value=mock_backend):
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
             result = runner.invoke(app, ["doctor", "--verbose"])
 
             assert result.exit_code == 0
