@@ -20,8 +20,9 @@ class TestPlanCommandStructure:
     def test_plan_requires_subcommand(self) -> None:
         """Test that 'cub plan' without subcommand shows help."""
         result = runner.invoke(app, ["plan"])
-        # no_args_is_help=True shows help and returns exit code 0
-        assert result.exit_code == 0
+        # no_args_is_help=True shows help - exit code varies by typer version
+        # (0 in some versions, 2 in others when treating missing subcommand as usage error)
+        assert result.exit_code in (0, 2)
         assert "orient" in result.output
         assert "architect" in result.output
         assert "itemize" in result.output
