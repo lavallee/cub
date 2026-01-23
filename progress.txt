@@ -4520,3 +4520,134 @@ Created the sync orchestrator and SQLite writer for the dashboard vertical slice
 ✓ Task cub-k8d.4 closed successfully
 ✓ Committed with proper co-authorship
 
+
+## Task cub-k8d.5: Implement FastAPI app with /api/board endpoint
+
+**Date:** 2026-01-23
+
+**What was implemented:**
+- Created FastAPI application with two endpoints:
+  - GET /api/board - Returns full Kanban board data with entities grouped by stage
+  - GET /api/board/stats - Returns lightweight statistics for dashboard summary
+- Implemented database query layer (db/queries.py) to:
+  - Fetch entities from SQLite and convert to Pydantic models
+  - Apply view configuration filters
+  - Compute aggregate statistics
+  - Handle empty database gracefully
+- Added comprehensive test suite with 11 tests covering all scenarios
+
+**Key technical decisions:**
+1. **Stage name mapping**: Database uses lowercase names (implementing, staged) while Pydantic models use uppercase (IN_PROGRESS, READY). Created bidirectional mapping dictionaries to convert between them.
+
+2. **Empty database handling**: API returns empty but valid board structure when database doesn't exist yet, allowing frontend to render before first sync.
+
+3. **Default view configuration**: Hardcoded default 8-column view in queries.py for initial implementation. Future: load from .cub/views/ directory.
+
+4. **Error handling**: Catch all database errors and return 500 with descriptive error messages to aid debugging.
+
+**Challenges encountered:**
+1. **Stage name mismatch**: Initial tests failed because schema.py uses lowercase stage names but models.py uses uppercase. Fixed by adding DB_STAGE_TO_MODEL_STAGE mapping in queries.py.
+
+2. **Null source_path**: Database rows can have NULL file_path, but DashboardEntity requires non-null source_path. Fixed with `row.get("file_path") or ""` to default to empty string.
+
+3. **Test environment**: Had to create temporary venv to run tests properly as main venv was missing dependencies.
+
+**Testing:**
+- All 11 tests pass
+- mypy type checking passes with --strict
+- ruff linting passes with auto-fixes applied
+- Coverage includes:
+  - Empty database scenarios
+  - Multiple entities across different stages
+  - Statistics aggregation
+  - Error handling for corrupted database
+  - Filter behavior
+
+**Next steps:**
+- Frontend implementation (cub-k8d.6, cub-k8d.7)
+- View configuration loading from .cub/views/
+- Additional API endpoints (/api/entity/{id}, /api/views, POST /api/sync)
+- WebSocket support for real-time updates
+
+## 2026-01-23 - cub-k8d.6: Set up Vite + Preact + Tailwind frontend project
+
+### Task Completed
+Set up the frontend project structure with Vite, Preact, TypeScript, and Tailwind CSS v4 for the Dashboard Kanban board.
+
+### What Was Implemented
+
+**Project Initialization:**
+1. Created `src/cub/dashboard/web/` directory structure
+2. Initialized Vite with Preact TypeScript template
+3. Installed Tailwind CSS v4 with @tailwindcss/postcss plugin
+4. Configured PostCSS for Tailwind processing
+
+**TypeScript Type System:**
+1. Created `src/types/api.ts` - TypeScript types matching Python Pydantic models
+   - Converted Python enums to const objects with union types (compatible with erasableSyntaxOnly)
+   - Mirrored all models: DashboardEntity, BoardResponse, BoardColumn, BoardStats, ViewConfig, etc.
+   - ISO 8601 string format for datetime fields
+   - Proper nullable types (T | null)
+
+2. Created `src/api/client.ts` - Typed API client
+   - Generic `fetchApi<T>()` wrapper with error handling
+   - Custom `ApiClientError` class for API errors
+   - Typed methods for all endpoints: getBoard(), getBoardStats(), getEntity(), etc.
+   - Configurable API_BASE_URL via VITE_API_BASE_URL env var
+
+**Build Configuration:**
+1. Modified `vite.config.ts` to output to `../static/` directory
+2. Configured Tailwind with content paths for JSX/TSX files
+3. Updated `index.css` with Tailwind directives (@tailwind base/components/utilities)
+4. Created `.env.example` for API configuration
+
+**Key Learnings:**
+
+1. **Tailwind CSS v4 Breaking Change:**
+   - v4 requires `@tailwindcss/postcss` instead of `tailwindcss` PostCSS plugin
+   - Must update postcss.config.js to use '@tailwindcss/postcss'
+   - Install: `npm install @tailwindcss/postcss`
+
+2. **TypeScript erasableSyntaxOnly Mode:**
+   - Vite's default Preact template uses erasableSyntaxOnly: true
+   - Regular enums not allowed (error TS1294)
+   - Solution: Use const objects with union types
+     ```typescript
+     export const Stage = { READY: 'READY', ... } as const;
+     export type Stage = typeof Stage[keyof typeof Stage];
+     ```
+   - Class properties must be declared explicitly (no parameter properties)
+
+3. **Build Output Configuration:**
+   - Vite's `build.outDir` can be relative (e.g., '../static/')
+   - `emptyOutDir: true` clears output directory before build
+   - Allows FastAPI to serve static files from predictable location
+
+4. **Project Structure Best Practices:**
+   - Separate api/, types/, components/ directories for clarity
+   - Types mirror backend models 1:1 for consistency
+   - API client encapsulates all fetch logic in one place
+   - README documents setup, structure, and next steps
+
+### Verification
+
+✓ Dev server starts successfully (npm run dev)
+✓ Production build completes (npm run build)
+✓ TypeScript compilation passes (tsc -b)
+✓ Output directory created at ../static/
+✓ No TypeScript errors
+
+### Files Created
+- src/cub/dashboard/web/ (entire directory)
+  - src/api/client.ts
+  - src/types/api.ts
+  - vite.config.ts
+  - tailwind.config.js
+  - postcss.config.js
+  - README.md
+  - .env.example
+- src/cub/dashboard/static/ (build output)
+
+### Next Task
+Ready for cub-k8d.7: Implement basic KanbanBoard and EntityCard components
+
