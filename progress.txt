@@ -4455,3 +4455,68 @@ The spec parser is the foundation. Next tasks:
 
 4. **Logging levels matter**: Use debug for "directory not found", warning for "empty file", error for "parse failed". This makes it easy to understand what's happening during sync.
 
+
+## Task cub-k8d.4: Implement basic sync orchestrator and SQLite writer
+
+### Implementation Summary
+Created the sync orchestrator and SQLite writer for the dashboard vertical slice. The orchestrator coordinates parsing specs and writing them to SQLite, with proper transaction handling and incremental sync support.
+
+### Key Components
+
+1. **EntityWriter** (`src/cub/core/dashboard/sync/writer.py`)
+   - Writes DashboardEntity and Relationship objects to SQLite
+   - Upsert semantics based on checksum comparison
+   - Stage mapping: Pydantic enums (PLANNED, IN_PROGRESS) → schema values (planned, implementing)
+   - JSON serialization for complex fields stored in `data` column
+   - Proper relationship duplicate detection
+
+2. **SyncOrchestrator** (`src/cub/core/dashboard/sync/orchestrator.py`)
+   - Coordinates parsing from SpecParser and writing via EntityWriter
+   - Transaction-safe: commits on success, rolls back on error
+   - Returns SyncResult with detailed metrics
+   - Placeholders for future data sources (plans, tasks, ledger)
+
+### Technical Decisions
+
+1. **Stage Mapping**: Schema uses lowercase snake_case (planned, implementing) but Pydantic models use uppercase (PLANNED, IN_PROGRESS). Added STAGE_MAPPING dict in EntityWriter to convert.
+
+2. **Checksum Storage**: Schema doesn't have a `source_checksum` column, so we store it in the `data` JSON field along with frontmatter/content. This enables incremental sync without schema changes.
+
+3. **Relationship Duplicate Detection**: Changed from `INSERT OR IGNORE` (which doesn't update rowcount) to explicit existence check before INSERT for reliable duplicate detection.
+
+4. **Type Safety**: Used explicit type annotations for JSON deserialization to satisfy mypy strict mode.
+
+### Testing Approach
+- 21 comprehensive tests covering all CRUD operations
+- Tests for incremental sync (checksum-based)
+- Error handling and transaction rollback tests
+- Integration test for full pipeline
+- All 112 dashboard tests pass
+
+### Challenges & Solutions
+
+1. **Challenge**: Schema stage names didn't match Pydantic enum values
+   - **Solution**: Created STAGE_MAPPING dict to translate between them
+   
+2. **Challenge**: No source_checksum column in schema
+   - **Solution**: Store checksum in data JSON field, extract during comparison
+   
+3. **Challenge**: Relationship duplicate detection not working with INSERT OR IGNORE
+   - **Solution**: Check existence before insert for reliable return value
+
+### Next Steps
+- Task cub-k8d.5: Implement FastAPI app with /api/board endpoint
+- The sync layer is ready to be consumed by the API
+
+### Files Created
+- `src/cub/core/dashboard/sync/writer.py` (455 lines)
+- `src/cub/core/dashboard/sync/orchestrator.py` (372 lines)
+- `tests/test_sync_orchestrator.py` (727 lines)
+
+### Verification
+✓ All tests pass (21 new, 112 total dashboard tests)
+✓ mypy passes (no type errors)
+✓ ruff passes (no lint errors)
+✓ Task cub-k8d.4 closed successfully
+✓ Committed with proper co-authorship
+
