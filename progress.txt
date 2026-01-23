@@ -1,5 +1,80 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-m3x.6: Add loading states, error states, and keyboard navigation
+
+### Task Completed
+Implemented comprehensive UI polish for the dashboard with loading indicators, error handling, and keyboard shortcuts.
+
+### What Was Implemented
+
+**Loading States:**
+- Created `LoadingSkeleton` component module with multiple skeleton components:
+  - `SkeletonBox` - Generic shimmer animation box
+  - `EntityCardSkeleton` - Placeholder for entity cards
+  - `ColumnSkeleton` - Placeholder for kanban columns
+  - `BoardSkeleton` - Full board loading state with header, stats bar, and 5 columns
+  - `DetailPanelSkeleton` - Placeholder for detail panel content
+- Custom shimmer animation using CSS keyframes in `index.css`
+- Integrated loading skeletons into `KanbanBoard` and `DetailPanel` components
+
+**Error Handling:**
+- Created `ErrorBoundary` class component to catch React errors and prevent app crashes
+  - Wrapped entire app in `main.tsx`
+  - Default error fallback UI with "Try Again" and "Reload Page" buttons
+  - Expandable technical details section
+  - Support for custom fallback components
+- Created `ErrorDisplay` component module with three variants:
+  - `ErrorDisplay` - Standard error display with optional retry
+  - `InlineError` - Compact error for small spaces
+  - `FullScreenError` - Critical failures with retry functionality
+- Integrated error displays in `KanbanBoard` (with refetch) and `DetailPanel` (with refetch)
+- All error displays show consistent styling with red color scheme and error icons
+
+**Keyboard Navigation:**
+- Created `useKeyboardShortcuts` hook for flexible keyboard shortcut management
+  - Supports modifier keys (ctrl, meta, shift, alt)
+  - Each shortcut has optional description for future help UI
+  - Can be enabled/disabled dynamically
+- Added keyboard shortcuts to `KanbanBoard`:
+  - ESC: Close detail panel when open
+  - `r`: Refresh board data
+  - ArrowLeft: Navigate back in detail panel history
+  - Shortcuts disabled during loading/error states
+
+**Empty States:**
+- Enhanced `Column` component empty state:
+  - Replaced simple text with icon + text layout
+  - Added archive box SVG icon in gray
+  - Better visual hierarchy and spacing
+
+### Technical Details
+
+**Component Architecture:**
+- All new components use TypeScript with proper prop types
+- Reusable skeleton components follow DRY principle
+- Error boundary uses Preact class component lifecycle methods
+- Hooks use useCallback and proper dependency management
+
+**Styling:**
+- Shimmer animation: 2s infinite linear gradient
+- Consistent gray color scheme for loading states (gray-200/gray-300)
+- Red color scheme for errors (red-50, red-200, red-600, red-800)
+- All SVG icons use consistent stroke width and styling
+- Responsive layouts maintained throughout
+
+**User Experience:**
+- Loading skeletons provide visual continuity during data fetches
+- Error messages are clear and actionable with retry options
+- Keyboard shortcuts work only when appropriate (not during loading/errors)
+- Empty states are friendly and informative
+
+### Learnings
+- Preact requires type-only imports for types when using `verbatimModuleSyntax`
+- CSS keyframe animations can create smooth shimmer effects for loading states
+- Error boundaries in Preact use class components with lifecycle methods
+- Keyboard event handlers should check for conflicts and provide escape hatches
+- Consistent visual language (colors, icons, spacing) across states improves UX
+
 ## 2026-01-23 - cub-m3x.3: Implement ViewSwitcher dropdown
 
 ### Task Completed
@@ -5411,3 +5486,110 @@ Implemented relationship navigation in the DetailPanel to enable exploration of 
 3. **TypeScript optional props**: Using `?.` operator for optional callbacks enables graceful degradation
 4. **Build process**: `npm run build` runs both TypeScript checking and Vite build
 
+
+## Task cub-m3x.4: Implement StatsBar Component (COMPLETED)
+
+**Date:** 2026-01-23
+
+**Learnings & Implementation Details:**
+
+1. **Component Architecture**
+   - Created `StatsBar.tsx` as a dedicated, reusable component
+   - Accepts `BoardStats` from the board API response
+   - Props control visibility of metrics (showCost, showTokens, showDuration)
+
+2. **Information Density Design**
+   - Total count displayed prominently (large bold text)
+   - Stage breakdown uses color-coded pills for quick visual scanning
+   - Only shows non-zero stage counts to reduce clutter
+   - Metrics (cost, tokens) displayed in subtle gray boxes
+
+3. **Visual Design Elements**
+   - Each stage has distinct color (blue for SPECS, purple for PLANNED, orange for IN_PROGRESS, etc.)
+   - Used Tailwind utilities for responsive flexbox layout with flex-wrap
+   - Gray-scale metrics boxes don't distract from main stats
+   - Consistent styling with existing EntityCard and other components
+
+4. **Utility Function**
+   - `formatDuration()` converts seconds to human-readable format (e.g., "2h 30m", "45m")
+   - Handles edge cases (< 1 minute, exact hours)
+
+5. **Integration Points**
+   - Removed inline stats from KanbanBoard header
+   - Now uses dedicated StatsBar component below the header
+   - Cleaner header focuses on title, description, and view switcher
+
+6. **TypeScript & Build**
+   - All type definitions properly imported from API types
+   - Removed unused variable (typeLabels) to pass TypeScript strict mode
+   - Build passes: `tsc -b && vite build` ✓
+
+**Files Modified:**
+- `src/cub/dashboard/web/src/components/StatsBar.tsx` (new)
+- `src/cub/dashboard/web/src/components/KanbanBoard.tsx` (refactored header)
+
+**Testing:**
+- TypeScript type checking: PASS
+- Build (tsc + vite): PASS
+- Visual design: Information-dense without clutter ✓
+
+
+
+## Task cub-m3x.5: Implement ArtifactViewer with Markdown Rendering (COMPLETED)
+
+**Date:** 2026-01-23
+
+**Learnings & Implementation Details:**
+
+1. **Markdown Library Selection & Configuration**
+   - Used `marked` (v17.0.1) for markdown parsing - modern, actively maintained
+   - Added `highlight.js` (v11.11.1) for syntax highlighting in code blocks
+   - Newer versions of marked removed `highlight` option from setOptions
+   - Solution: Post-process rendered HTML to apply highlight.js manually
+
+2. **Syntax Highlighting Implementation**
+   - Parse markdown with marked.parse()
+   - Create temporary DOM element to manipulate rendered HTML
+   - Query for all `pre code` blocks and apply highlight.js
+   - Detect language from `language-*` class added by marked
+   - Fall back to auto-detection if no language specified
+   - Add `hljs` class for proper styling
+
+3. **Component Architecture**
+   - Fetches artifact content from `/api/artifact?path=...` endpoint
+   - Determines rendering strategy based on entity type and file extension
+   - Renders markdown for specs, plans, and .md files
+   - Falls back to plain text pre-formatted display for other content
+   - Loading and error states handled gracefully
+
+4. **DetailPanel Integration**
+   - Updated to use ArtifactViewer for entities with `source_path`
+   - Falls back to inline content display for entities without source files
+   - Maintains backwards compatibility with existing content display
+
+5. **User Experience Features**
+   - "View Source" button opens raw file in new tab
+   - Clean visual design with proper spacing and borders
+   - Prose styling for markdown (headings, links, code, etc.)
+   - GitHub-style syntax highlighting theme
+
+6. **TypeScript & Build**
+   - Added `@types/marked` for proper type definitions
+   - All type checking passes
+   - Build bundle increased to ~1MB (expected with highlight.js)
+   - Warning about chunk size is acceptable for this use case
+
+**Files Modified:**
+- `src/cub/dashboard/web/src/components/ArtifactViewer.tsx` (new)
+- `src/cub/dashboard/web/src/components/DetailPanel.tsx` (integrated viewer)
+- `src/cub/dashboard/web/package.json` (dependencies)
+
+**Testing:**
+- TypeScript type checking: PASS ✓
+- Build (tsc + vite): PASS ✓
+- Dependencies installed successfully
+
+**Technical Notes:**
+- Modern marked API requires post-processing for custom rendering
+- DOM manipulation in browser context works well for syntax highlighting
+- CSS imported directly in component for proper highlight.js styling
