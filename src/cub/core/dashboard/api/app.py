@@ -6,6 +6,7 @@ Creates the FastAPI app instance and registers routes.
 
 import logging
 import traceback
+import uuid
 from enum import Enum
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -119,7 +120,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             request.method,
             request.url.path,
             exc.detail,
-            extra={"request_id": id(request)},
+            extra={"request_id": uuid.uuid4().hex[:12]},
         )
     else:
         logger.info(
@@ -128,7 +129,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             request.method,
             request.url.path,
             exc.detail,
-            extra={"request_id": id(request)},
+            extra={"request_id": uuid.uuid4().hex[:12]},
         )
 
     # For backward compatibility, include detail in the response
@@ -140,7 +141,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             "error_code": error_code,
             "message": detail_msg,
             "detail": detail_msg,  # Keep for backward compatibility
-            "request_id": str(id(request)),
+            "request_id": str(uuid.uuid4().hex[:12]),
         },
     )
 
@@ -161,7 +162,7 @@ async def validation_exception_handler(
         request.method,
         request.url.path,
         exc.errors(),
-        extra={"request_id": id(request)},
+        extra={"request_id": uuid.uuid4().hex[:12]},
     )
 
     # Extract first error for user-friendly message
@@ -175,7 +176,7 @@ async def validation_exception_handler(
             "error_code": ErrorCode.VALIDATION_ERROR,
             "message": "Request validation failed",
             "detail": f"{field}: {error_msg}" if field else error_msg,
-            "request_id": str(id(request)),
+            "request_id": str(uuid.uuid4().hex[:12]),
         },
     )
 
@@ -195,7 +196,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         request.url.path,
         str(exc),
         traceback.format_exc(),
-        extra={"request_id": id(request)},
+        extra={"request_id": uuid.uuid4().hex[:12]},
     )
 
     # Determine error code and status based on exception type
@@ -218,6 +219,6 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
             "error_code": error_code,
             "message": error_message,
             "detail": str(exc),
-            "request_id": str(id(request)),
+            "request_id": str(uuid.uuid4().hex[:12]),
         },
     )

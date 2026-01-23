@@ -50,6 +50,10 @@ Primary implementations and main execution paths. These modules coordinate betwe
 | `utils/hooks.py` | Hook execution system | 81% | Above threshold |
 | `core/github/client.py` | GitHub API client | 51% | **Needs improvement** |
 | `core/pr/service.py` | PR creation service | 39% | **Needs improvement** |
+| `core/dashboard/db/` | Dashboard database layer | 93% | Above threshold |
+| `core/dashboard/api/` | Dashboard FastAPI routes | 84% | Above threshold |
+| `core/dashboard/sync/` | Dashboard sync orchestrator | 60% | At threshold |
+| `core/dashboard/views/` | Dashboard view configuration | 75% | Above threshold |
 
 ### Experimental (40%+ Coverage Required)
 
@@ -174,5 +178,5 @@ When reviewing changes:
 
 ---
 
-*Last updated: 2026-01-18*
-*Overall codebase coverage: 54% (779 pytest tests)*
+*Last updated: 2026-01-23*
+*Overall codebase coverage: 54% (287 dashboard tests, 779+ total pytest tests)*
