@@ -79,3 +79,5 @@
 {"id": "cub-k3p.2", "title": "Implement MCP Official source adapter", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k3p", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-k3p.3", "title": "Implement Smithery.ai source adapter", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k3p", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-k3p.4", "title": "Implement Glama.ai source adapter", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k3p", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-k3p.5", "title": "Implement SkillsMP source adapter", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k3p", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-k3p.6", "title": "Implement ClawdHub source adapter", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-k3p", "verification": "pending", "tokens": 0, "workflow_stage": null}
