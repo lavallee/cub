@@ -30,6 +30,7 @@ from cub.cli import (
     status,
     task,
     toolsmith,
+    workbench,
     uninstall,
     update,
     upgrade,
@@ -154,6 +155,7 @@ app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
 )
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
 app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_ROADMAP)
+app.add_typer(workbench.app, name="workbench", rich_help_panel=PANEL_ROADMAP)
 
 
 # =============================================================================
