@@ -12,7 +12,7 @@ Consolidate cub's tracking systems into a unified model centered on the ledger a
 
 ---
 
-## Epic: cub-r4n - Run Session Infrastructure
+## Epic: cub-r4n - unified-tracking-model #1: Run Session Infrastructure
 
 Priority: 0
 Labels: phase-1, checkpoint
@@ -139,7 +139,7 @@ Labels: phase-1, model:haiku, complexity:low, test
 
 ---
 
-## Epic: cub-l7e - Ledger Entry Lifecycle
+## Epic: cub-l7e - unified-tracking-model #2: Ledger Entry Lifecycle
 
 Priority: 0
 Labels: phase-2, checkpoint
@@ -266,7 +266,7 @@ Labels: phase-2, model:haiku, complexity:low, test
 
 ---
 
-## Epic: cub-e2p - Epic Aggregation
+## Epic: cub-e2p - unified-tracking-model #3: Epic Aggregation
 
 Priority: 1
 Labels: phase-3, checkpoint
@@ -340,7 +340,7 @@ Labels: phase-3, model:haiku, complexity:low, test
 
 ---
 
-## Epic: cub-c5i - CLI Commands
+## Epic: cub-c5i - unified-tracking-model #4: CLI Commands
 
 Priority: 1
 Labels: phase-4, checkpoint
@@ -461,7 +461,7 @@ Labels: phase-4, model:haiku, complexity:low, test
 
 ---
 
-## Epic: cub-d8b - Dashboard Integration
+## Epic: cub-d8b - unified-tracking-model #5: Dashboard Integration
 
 Priority: 1
 Labels: phase-5, checkpoint
@@ -536,7 +536,7 @@ Labels: phase-5, model:haiku, complexity:low, test
 
 ---
 
-## Epic: cub-x3s - Index & Bidirectional Sync
+## Epic: cub-x3s - unified-tracking-model #6: Index & Bidirectional Sync
 
 Priority: 2
 Labels: phase-6, checkpoint
@@ -637,12 +637,12 @@ Labels: phase-6, model:haiku, complexity:low, test
 
 | Epic | Tasks | Priority | Description |
 |------|-------|----------|-------------|
-| cub-r4n | 5 | P0 | Run Session Infrastructure |
-| cub-l7e | 5 | P0 | Ledger Entry Lifecycle |
-| cub-e2p | 3 | P1 | Epic Aggregation |
-| cub-c5i | 5 | P1 | CLI Commands |
-| cub-d8b | 3 | P1 | Dashboard Integration |
-| cub-x3s | 4 | P2 | Index & Bidirectional Sync |
+| cub-r4n | 5 | P0 | unified-tracking-model #1: Run Session Infrastructure |
+| cub-l7e | 5 | P0 | unified-tracking-model #2: Ledger Entry Lifecycle |
+| cub-e2p | 3 | P1 | unified-tracking-model #3: Epic Aggregation |
+| cub-c5i | 5 | P1 | unified-tracking-model #4: CLI Commands |
+| cub-d8b | 3 | P1 | unified-tracking-model #5: Dashboard Integration |
+| cub-x3s | 4 | P2 | unified-tracking-model #6: Index & Bidirectional Sync |
 
 **Total**: 6 epics, 25 tasks
 
