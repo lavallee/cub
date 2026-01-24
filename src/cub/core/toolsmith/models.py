@@ -176,14 +176,22 @@ class Tool(BaseModel):
             raise ValueError(
                 f"Invalid source: '{source}' (alphanumeric, hyphens, underscores allowed)"
             )
-        # Slug can contain alphanumeric, hyphens, underscores, and forward slashes
+        # Slug can contain common identifier characters.
+        # We accept:
+        # - alphanumeric
+        # - hyphens/underscores
+        # - forward slashes (namespace/tool)
+        # - '@' (scoped namespaces, e.g. @org/tool)
+        # - '.' (common in repo/tool ids)
         if not slug:
             raise ValueError("Slug cannot be empty")
-        valid_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/")
+        valid_chars = set(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_/@."
+        )
         if not all(c in valid_chars for c in slug):
             msg = (
-                f"Invalid slug: '{slug}' (alphanumeric, hyphens, "
-                "underscores, forward slashes allowed)"
+                f"Invalid slug: '{slug}' (alphanumeric, hyphens, underscores, "
+                "forward slashes, '@', '.' allowed)"
             )
             raise ValueError(msg)
         return v

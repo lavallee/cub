@@ -169,9 +169,7 @@ class TestToolIDValidation:
     def test_id_invalid_characters(self) -> None:
         """ID with invalid characters raises ValueError."""
         invalid_ids = [
-            "npm:@eslint",  # @ at start
             "npm:eslint!",  # ! special char
-            "npm:eslint@org",  # @ in middle
             "npm:eslint#config",  # # special char
         ]
         for invalid_id in invalid_ids:

@@ -100,10 +100,21 @@ class GlamaSource:
             NetworkError: If API request fails
             ParseError: If response parsing fails
         """
-        all_tools = []
-        cursor = None
+        all_tools: list[Tool] = []
+        cursor: str | None = None
+        prev_cursor: str | None = None
+
+        # Safety guard: prevent infinite pagination loops if the API returns
+        # a repeated cursor or inconsistent pageInfo.
+        max_pages = 500
+        pages = 0
 
         while True:
+            pages += 1
+            if pages > max_pages:
+                # Return what we have rather than hanging forever.
+                break
+
             try:
                 servers, page_info = self._fetch_page(cursor=cursor)
                 all_tools.extend(servers)
@@ -112,9 +123,16 @@ class GlamaSource:
                 if not page_info.get("hasNextPage", False):
                     break
 
-                cursor = page_info.get("endCursor")
-                if not cursor:
+                next_cursor = page_info.get("endCursor")
+                if not next_cursor:
                     break
+
+                # Guard against a stuck cursor (would loop forever)
+                if next_cursor == cursor or next_cursor == prev_cursor:
+                    break
+
+                prev_cursor = cursor
+                cursor = next_cursor
 
             except (NetworkError, ParseError):
                 # If we already have some results, return them
