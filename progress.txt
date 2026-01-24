@@ -6816,3 +6816,51 @@ except ToolsmithError as e:
 - All 111 tests pass
 - All ruff lint checks pass
 
+
+## 2026-01-24: Retry Logic Implementation (cub-q2w.3)
+
+Successfully implemented retry logic with exponential backoff for HTTP requests in toolsmith.
+
+### Key Decisions
+- Created dedicated `src/cub/core/toolsmith/http.py` module for reusable retry utilities
+- Used decorator pattern (`@with_retry`) for clean, composable retry logic
+- Implemented exponential backoff with jitter to prevent thundering herd
+- Set sensible defaults: 3 retries, 1s base delay, 2x multiplier, 30s timeout
+
+### Error Classification Strategy
+- Retryable: 5xx server errors, timeouts, connection errors, network errors, generic httpx.HTTPError
+- Non-retryable: 4xx client errors (404, 401, 400, etc.)
+- Order matters: Check HTTPStatusError (4xx vs 5xx) before generic RequestError/HTTPError
+
+### Implementation Pattern  
+- Added private `_make_request()` methods to source adapters with `@with_retry` decorator
+- Kept existing error handling in place - retry logic complements, doesn't replace
+- Retry logic logs at INFO level for visibility without being too noisy
+
+### Testing Approach
+- Comprehensive unit tests (30 tests) covering config, error classification, retry behavior
+- Mock-based testing with careful attention to Mock object attributes (e.g., __name__)
+- Verified exponential backoff timing with minimal delays and no jitter
+- All tests pass mypy --strict and ruff linting
+
+### Learnings
+1. **httpx exception hierarchy**: HTTPStatusError and RequestError both inherit from HTTPError
+   - Must check HTTPStatusError first to properly handle 4xx vs 5xx
+   - Generic HTTPError catch-all is useful for unexpected transient failures
+
+2. **Decorator + logging**: Use `getattr(func, "__name__", repr(func))` to handle Mock objects in tests
+
+3. **Jitter implementation**: Random variance of ±20% prevents simultaneous retries across systems
+
+4. **Test execution time**: Default retry settings (1s, 2s, 4s) cause slow tests when errors are mocked
+   - This is expected and validates retry logic is working
+   - Integration tests now take longer (34s vs instant) when errors occur
+
+5. **Timeout strategy**: Increased from 10s to 30s across all sources for more reliable operation
+   - Transient slow responses should succeed rather than fail and retry
+
+### Future Considerations
+- Could add circuit breaker pattern for repeated failures to same endpoint
+- May want to make retry config tunable via environment variables or config file
+- Consider exponential backoff cap to prevent extremely long delays
+
