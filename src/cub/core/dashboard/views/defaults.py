@@ -108,14 +108,14 @@ def get_default_view() -> ViewConfig:
                 stages=[Stage.IN_PROGRESS],
             ),
             ColumnConfig(
+                id="complete",
+                title="Closed",
+                stages=[Stage.COMPLETE],
+            ),
+            ColumnConfig(
                 id="needs_review",
                 title="Needs Review",
                 stages=[Stage.NEEDS_REVIEW],
-            ),
-            ColumnConfig(
-                id="complete",
-                title="Complete",
-                stages=[Stage.COMPLETE],
             ),
             ColumnConfig(
                 id="released",
@@ -157,7 +157,7 @@ def get_sprint_view() -> ViewConfig:
     return ViewConfig(
         id="sprint",
         name="Sprint View",
-        description="Active work focused view (Ready → In Progress → Review → Complete)",
+        description="Active work focused view (Ready → In Progress → Closed → Review)",
         columns=[
             ColumnConfig(
                 id="ready",
@@ -171,14 +171,14 @@ def get_sprint_view() -> ViewConfig:
                 stages=[Stage.IN_PROGRESS],
             ),
             ColumnConfig(
+                id="complete",
+                title="Closed",
+                stages=[Stage.COMPLETE],
+            ),
+            ColumnConfig(
                 id="needs_review",
                 title="Needs Review",
                 stages=[Stage.NEEDS_REVIEW],
-            ),
-            ColumnConfig(
-                id="complete",
-                title="Complete",
-                stages=[Stage.COMPLETE],
             ),
         ],
         filters=FilterConfig(
@@ -291,7 +291,7 @@ def get_built_in_view_summaries() -> list[ViewSummary]:
         ViewSummary(
             id="sprint",
             name="Sprint View",
-            description="Active work focused view (Ready → In Progress → Review → Complete)",
+            description="Active work focused view (Ready → In Progress → Closed → Review)",
             is_default=False,
         ),
         ViewSummary(

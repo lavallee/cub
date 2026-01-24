@@ -96,14 +96,14 @@ def get_default_view_config() -> ViewConfig:
                 stages=[Stage.IN_PROGRESS],
             ),
             ColumnConfig(
+                id="complete",
+                title="Closed",
+                stages=[Stage.COMPLETE],
+            ),
+            ColumnConfig(
                 id="needs_review",
                 title="Needs Review",
                 stages=[Stage.NEEDS_REVIEW],
-            ),
-            ColumnConfig(
-                id="complete",
-                title="Complete",
-                stages=[Stage.COMPLETE],
             ),
             ColumnConfig(
                 id="released",

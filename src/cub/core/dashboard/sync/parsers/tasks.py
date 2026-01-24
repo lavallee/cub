@@ -240,18 +240,30 @@ class TaskParser:
         Parse all tasks and epics from the task backend.
 
         Queries the backend for all tasks and converts them to
-        DashboardEntity objects.
+        DashboardEntity objects. Fetches tasks of all statuses
+        (open, in_progress, closed) to ensure complete coverage.
 
         Returns:
             List of DashboardEntity objects, sorted by ID
         """
         entities: list[DashboardEntity] = []
+        seen_ids: set[str] = set()
 
         try:
-            # Get all tasks from backend (no status filter to get everything)
-            tasks = self.backend.list_tasks()
+            # Fetch tasks for all statuses since bd list defaults to open only
+            all_tasks: list[Task] = []
+            for status in [TaskStatus.OPEN, TaskStatus.IN_PROGRESS, TaskStatus.CLOSED]:
+                try:
+                    status_tasks = self.backend.list_tasks(status=status)
+                    all_tasks.extend(status_tasks)
+                except Exception as e:
+                    logger.warning(f"Error fetching {status.value} tasks: {e}")
 
-            for task in tasks:
+            for task in all_tasks:
+                # Skip duplicates (shouldn't happen, but be safe)
+                if task.id in seen_ids:
+                    continue
+                seen_ids.add(task.id)
                 try:
                     checksum = self._compute_checksum(task)
                     entity = self._task_to_entity(task, checksum)
