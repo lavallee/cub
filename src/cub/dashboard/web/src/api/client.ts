@@ -82,10 +82,11 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 export const apiClient = {
   /**
    * Get full board data for Kanban visualization
-   * GET /api/board
+   * GET /api/board?view_id=xxx
    */
-  getBoard: async (): Promise<BoardResponse> => {
-    return fetchApi<BoardResponse>('/api/board');
+  getBoard: async (viewId?: string): Promise<BoardResponse> => {
+    const params = viewId ? `?view_id=${encodeURIComponent(viewId)}` : '';
+    return fetchApi<BoardResponse>(`/api/board${params}`);
   },
 
   /**
@@ -113,11 +114,12 @@ export const apiClient = {
   },
 
   /**
-   * Get specific view configuration
-   * GET /api/views/{view_id}
+   * Get board data for a specific view
+   * GET /api/board?view_id=xxx
+   * @deprecated Use getBoard(viewId) instead
    */
   getView: async (viewId: string): Promise<BoardResponse> => {
-    return fetchApi<BoardResponse>(`/api/views/${encodeURIComponent(viewId)}`);
+    return fetchApi<BoardResponse>(`/api/board?view_id=${encodeURIComponent(viewId)}`);
   },
 
   /**

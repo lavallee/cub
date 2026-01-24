@@ -4,14 +4,74 @@ Artifact API routes for the dashboard.
 Provides endpoints for fetching raw file content:
 - GET /api/artifact - Fetch content of specs, plans, and other project files
 
+Supports multiple source types:
+- File paths: Direct file access with security validation
+- Beads tasks: Fetches task details via `bd show <id>`
+
 Security is critical: validates paths to prevent directory traversal attacks.
 """
 
+import shutil
+import subprocess
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter()
+
+
+def fetch_beads_task(task_id: str) -> str:
+    """
+    Fetch task content from beads backend using `bd show`.
+
+    Args:
+        task_id: The beads task ID (e.g., "cub-abc")
+
+    Returns:
+        Human-readable task content from `bd show`
+
+    Raises:
+        HTTPException: 404 if task not found, 500 if bd command fails
+    """
+    # Check if bd is available
+    if not shutil.which("bd"):
+        raise HTTPException(
+            status_code=500,
+            detail="beads CLI (bd) is not installed",
+        )
+
+    try:
+        result = subprocess.run(
+            ["bd", "show", task_id],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or "Task not found"
+            if "not found" in error_msg.lower() or result.returncode == 1:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Task not found: {task_id}",
+                )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch task: {error_msg}",
+            )
+
+        return result.stdout
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(
+            status_code=500,
+            detail="Timeout fetching task from beads",
+        )
+    except OSError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to run bd command: {e}",
+        )
 
 
 def get_project_root() -> Path:
@@ -120,17 +180,17 @@ def validate_artifact_path(path: str, project_root: Path) -> Path:
 
 @router.get("/artifact")
 async def get_artifact(
-    path: str = Query(..., description="Path to the artifact file (relative or absolute)"),
+    path: str = Query(..., description="Path to the artifact file or backend:id format"),
 ) -> dict[str, str | int]:
     """
     Get raw file content for an artifact.
 
-    Returns the content of project files like specs, plans, and other
-    documentation. The path is validated to prevent directory traversal
-    attacks - only files within the project directory can be accessed.
+    Supports multiple source types:
+    - File paths: specs/my-feature.md (relative or absolute)
+    - Beads tasks: beads:cub-abc (fetches via bd show)
 
     Args:
-        path: Path to the file (relative to project root or absolute)
+        path: Path to the file or backend:id format
 
     Returns:
         Dict with path and content
@@ -138,8 +198,9 @@ async def get_artifact(
     Raises:
         HTTPException: 400 for invalid/unsafe paths, 404 for missing files
 
-    Example request:
+    Example requests:
         GET /api/artifact?path=specs/my-feature.md
+        GET /api/artifact?path=beads:cub-abc
 
     Example response:
         {
@@ -153,6 +214,22 @@ async def get_artifact(
         - Directory traversal attempts (../) are blocked
         - Null bytes and other injection attempts are blocked
     """
+    # Handle beads backend format: beads:<task_id>
+    if path.startswith("beads:"):
+        task_id = path[6:]  # Remove "beads:" prefix
+        if not task_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Task ID is required after 'beads:'",
+            )
+        content = fetch_beads_task(task_id)
+        return {
+            "path": path,
+            "content": content,
+            "size": len(content),
+        }
+
+    # Handle file-based artifacts
     project_root = get_project_root()
 
     # Validate path (raises HTTPException on failure)

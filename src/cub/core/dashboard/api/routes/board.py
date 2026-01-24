@@ -8,7 +8,7 @@ Provides endpoints for fetching Kanban board data:
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from cub.core.dashboard.db.connection import get_connection
 from cub.core.dashboard.db.models import BoardColumn, BoardResponse, BoardStats
@@ -41,17 +41,27 @@ def get_db_path() -> Path:
 
 
 @router.get("/board", response_model=BoardResponse)
-async def get_board() -> BoardResponse:
+async def get_board(
+    view_id: str | None = Query(
+        default=None,
+        description="View ID to use (defaults to 'default')",
+    ),
+) -> BoardResponse:
     """
     Get full board data for Kanban visualization.
 
     Returns all entities grouped by stage/column with statistics.
     This is the primary endpoint the frontend polls to render the board.
 
+    Args:
+        view_id: Optional view ID to use (e.g., 'sprint', 'ideas').
+                 Defaults to 'default' if not specified.
+
     Returns:
         BoardResponse with view config, columns, and stats
 
     Raises:
+        HTTPException: 404 if view_id not found
         HTTPException: 500 if database error occurs
 
     Example response:
@@ -78,18 +88,23 @@ async def get_board() -> BoardResponse:
           }
         }
     """
+    # Load view configuration
+    effective_view_id = view_id or "default"
+    view = get_view_config(effective_view_id)
+    if not view:
+        if view_id:  # Only 404 if explicitly requested
+            raise HTTPException(
+                status_code=404,
+                detail=f"View not found: {view_id}",
+            )
+        # Fallback to built-in default
+        view = get_default_view_config()
+
     db_path = get_db_path()
 
     if not db_path.exists():
         # Return empty board if database doesn't exist yet
         # This allows the frontend to render before first sync
-
-        # Load default view from view loader (supports custom views)
-        view = get_view_config("default")
-        if not view:
-            # Fallback to built-in default if loading fails
-            view = get_default_view_config()
-
         empty_columns = [
             BoardColumn(
                 id=col.id,
@@ -109,7 +124,7 @@ async def get_board() -> BoardResponse:
 
     try:
         with get_connection(db_path) as conn:
-            board = get_board_data(conn)
+            board = get_board_data(conn, view=view)
             return board
     except Exception as e:
         raise HTTPException(
