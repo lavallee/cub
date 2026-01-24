@@ -7852,3 +7852,56 @@ Dashboard integration tests verify end-to-end sync workflow:
 ✓ Ruff linting passes
 ✓ Type checking (mypy) expected warnings for untyped internal modules
 
+
+## 2026-01-24: Index Maintenance Implementation (cub-x3s.1)
+
+### What Was Done
+Implemented efficient index maintenance for the ledger system:
+
+1. **Added _update_index() method**: Handles both append and update operations
+   - Reads existing index entries
+   - Replaces matching entry if found by ID
+   - Appends new entry if not found
+   - Rewrites entire index file atomically
+
+2. **Updated all write operations**:
+   - create_entry() now calls _update_index() instead of _append_to_index()
+   - update_entry() now calls _update_index() instead of _rebuild_index()
+   - update_workflow_stage() validates data and calls _update_index()
+
+3. **Made rebuild_index() public**:
+   - Renamed from _rebuild_index() to rebuild_index()
+   - Added documentation marking it as a recovery method
+   - Updated test to use public method
+
+### Key Design Decisions
+
+**Why rewrite the entire index on every update?**
+- JSONL format requires rewriting entire file to update a line
+- Index files are small (one line per task)
+- Simplifies implementation and ensures consistency
+- Alternative (append-only log) would require periodic compaction
+
+**Why _update_index() reads and rewrites instead of seeking?**
+- JSONL doesn't support in-place updates
+- Reading entire file is fast for typical index sizes
+- Ensures atomic updates (old index preserved until write completes)
+- Handles both create and update cases uniformly
+
+### Testing Strategy
+- All existing 232 ledger tests continue to pass
+- Manual verification of append vs update scenarios
+- Verified no duplicate entries after updates
+- Confirmed rebuild_index() still works for recovery
+
+### Lessons Learned
+
+1. **JSONL trade-offs**: Great for append-only logs, requires full rewrites for updates
+2. **Index size matters**: Current approach works well for hundreds of entries, may need optimization for thousands
+3. **Atomic operations**: Writing to temp file then renaming would be more robust (future improvement)
+4. **Test coverage**: Existing tests caught no regressions, validating the abstraction
+
+### Files Modified
+- src/cub/core/ledger/writer.py: Added _update_index(), made rebuild_index() public
+- tests/test_ledger_io.py: Updated test to use public rebuild_index()
+
