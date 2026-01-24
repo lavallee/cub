@@ -71,3 +71,4 @@
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-001", "title": "Task", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-f7m.1", "title": "Create Tool, ToolType, and Catalog Pydantic models", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-f7m", "verification": "pending", "tokens": 0, "workflow_stage": null}
