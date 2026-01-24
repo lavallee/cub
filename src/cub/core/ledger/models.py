@@ -108,6 +108,238 @@ class CommitRef(BaseModel):
         return self.hash[:7]
 
 
+class Lineage(BaseModel):
+    """Lineage tracking for a task - links to spec, plan, and epic.
+
+    Captures the genealogy of where a task came from to enable
+    traceability between requirements and implementation.
+    """
+
+    spec_file: str | None = Field(default=None, description="Path to spec markdown file")
+    plan_file: str | None = Field(default=None, description="Path to plan.jsonl file")
+    epic_id: str | None = Field(default=None, description="Parent epic ID")
+
+
+class TaskSnapshot(BaseModel):
+    """Snapshot of task state at ledger entry creation.
+
+    Captures the task state as it existed when work began,
+    enabling drift detection if the task definition changes.
+    """
+
+    title: str = Field(..., min_length=1, description="Task title")
+    description: str = Field(default="", description="Task description")
+    type: str = Field(default="task", description="Task type (task, bug, epic, etc.)")
+    priority: int = Field(default=0, description="Task priority level")
+    labels: list[str] = Field(default_factory=list, description="Task labels/tags")
+    created_at: datetime | None = Field(default=None, description="Task creation time")
+    captured_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When snapshot was captured (UTC)",
+    )
+
+
+class TaskChanged(BaseModel):
+    """Record of task definition drift detection.
+
+    Captures when a task's definition changes during implementation,
+    which may indicate scope creep or requirement clarification.
+    """
+
+    detected_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When drift was detected (UTC)",
+    )
+    fields_changed: list[str] = Field(
+        default_factory=list, description="Names of fields that changed"
+    )
+    original_description: str = Field(default="", description="Original task description")
+    final_description: str = Field(default="", description="Final task description")
+    notes: str | None = Field(default=None, description="Additional notes about the change")
+
+
+class Attempt(BaseModel):
+    """Record of a single execution attempt on a task.
+
+    Captures all details about one harness execution, including
+    model used, cost, duration, and outcome.
+    """
+
+    attempt_number: int = Field(..., ge=1, description="Attempt sequence number (1-based)")
+    run_id: str = Field(..., description="Run session ID this attempt belongs to")
+    started_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Attempt start time (UTC)",
+    )
+    completed_at: datetime | None = Field(default=None, description="Attempt completion time (UTC)")
+    harness: str = Field(default="", description="Harness used (e.g., 'claude', 'codex')")
+    model: str = Field(default="", description="Model used (e.g., 'sonnet', 'haiku')")
+    success: bool = Field(default=False, description="Whether attempt succeeded")
+    error_category: str | None = Field(
+        default=None, description="Category of error if failed (e.g., 'timeout', 'api_error')"
+    )
+    error_summary: str | None = Field(default=None, description="Brief error description if failed")
+    tokens: TokenUsage = Field(
+        default_factory=TokenUsage, description="Token usage for this attempt"
+    )
+    cost_usd: float = Field(default=0.0, ge=0.0, description="Cost for this attempt in USD")
+    duration_seconds: int = Field(default=0, ge=0, description="Attempt duration in seconds")
+
+    @property
+    def duration_minutes(self) -> float:
+        """Get duration in minutes."""
+        return self.duration_seconds / 60.0
+
+
+class Outcome(BaseModel):
+    """Final outcome of task completion.
+
+    Aggregates results across all attempts and captures
+    the final state when the task is closed.
+    """
+
+    success: bool = Field(default=False, description="Whether task completed successfully")
+    partial: bool = Field(
+        default=False, description="Whether task was partially completed (incomplete success)"
+    )
+    completed_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Task completion time (UTC)",
+    )
+    total_cost_usd: float = Field(default=0.0, ge=0.0, description="Total cost across all attempts")
+    total_attempts: int = Field(default=0, ge=0, description="Total number of attempts")
+    total_duration_seconds: int = Field(
+        default=0, ge=0, description="Total duration across all attempts"
+    )
+    final_model: str = Field(default="", description="Model used in final successful attempt")
+    escalated: bool = Field(
+        default=False, description="Whether task was escalated to a more capable model"
+    )
+    escalation_path: list[str] = Field(
+        default_factory=list,
+        description="Sequence of models if escalated (e.g., ['haiku', 'sonnet'])",
+    )
+    files_changed: list[str] = Field(
+        default_factory=list, description="Files modified during task execution"
+    )
+    commits: list[CommitRef] = Field(
+        default_factory=list, description="Git commits made during task execution"
+    )
+    approach: str | None = Field(default=None, description="Approach taken (markdown)")
+    decisions: list[str] = Field(
+        default_factory=list, description="Key decisions made during implementation"
+    )
+    lessons_learned: list[str] = Field(
+        default_factory=list, description="Lessons learned during implementation"
+    )
+
+    @property
+    def total_duration_minutes(self) -> float:
+        """Get total duration in minutes."""
+        return self.total_duration_seconds / 60.0
+
+
+class DriftRecord(BaseModel):
+    """Record of drift between specification and implementation.
+
+    Tracks what was added beyond the spec, what was omitted
+    from the spec, and the severity of drift.
+    """
+
+    additions: list[str] = Field(
+        default_factory=list, description="Features/changes added beyond original spec"
+    )
+    omissions: list[str] = Field(
+        default_factory=list, description="Features/changes omitted from original spec"
+    )
+    severity: str = Field(
+        default="none",
+        description="Drift severity: 'none', 'minor', 'significant'",
+    )
+
+    @field_validator("severity")
+    @classmethod
+    def validate_severity(cls, v: str) -> str:
+        """Validate severity is one of allowed values."""
+        allowed = {"none", "minor", "significant"}
+        if v not in allowed:
+            raise ValueError(f"Severity must be one of {allowed}, got '{v}'")
+        return v
+
+
+class Verification(BaseModel):
+    """Verification and quality gate status.
+
+    Tracks results of automated checks (tests, typecheck, lint)
+    run on completed work.
+    """
+
+    status: str = Field(
+        default="pending",
+        description="Overall verification status: 'pending', 'pass', 'fail'",
+    )
+    checked_at: datetime | None = Field(
+        default=None, description="When verification checks were run (UTC)"
+    )
+    tests_passed: bool | None = Field(default=None, description="Whether tests passed")
+    typecheck_passed: bool | None = Field(default=None, description="Whether typecheck passed")
+    lint_passed: bool | None = Field(default=None, description="Whether lint passed")
+    notes: list[str] = Field(default_factory=list, description="Verification notes and details")
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        """Validate status is one of allowed values."""
+        allowed = {"pending", "pass", "fail"}
+        if v not in allowed:
+            raise ValueError(f"Status must be one of {allowed}, got '{v}'")
+        return v
+
+
+class StateTransition(BaseModel):
+    """Record of a workflow stage transition.
+
+    Captures state changes with attribution and reason,
+    building an audit trail of task progression.
+    """
+
+    stage: str = Field(..., description="Workflow stage transitioned to")
+    at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When transition occurred (UTC)",
+    )
+    by: str = Field(
+        default="cub-run",
+        description="Who/what caused transition (e.g., 'cub-run', 'dashboard:user', 'cli')",
+    )
+    reason: str | None = Field(default=None, description="Reason for transition")
+
+
+class WorkflowState(BaseModel):
+    """Current workflow state for a task or epic.
+
+    Tracks the current post-completion stage and when it was set.
+    """
+
+    stage: str = Field(
+        default="dev_complete",
+        description="Current stage: 'dev_complete', 'needs_review', 'validated', 'released'",
+    )
+    stage_updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When stage was last updated (UTC)",
+    )
+
+    @field_validator("stage")
+    @classmethod
+    def validate_stage(cls, v: str) -> str:
+        """Validate stage is one of allowed values."""
+        allowed = {"dev_complete", "needs_review", "validated", "released"}
+        if v not in allowed:
+            raise ValueError(f"Stage must be one of {allowed}, got '{v}'")
+        return v
+
+
 class LedgerEntry(BaseModel):
     """Individual task completion record for the ledger.
 
@@ -129,9 +361,57 @@ class LedgerEntry(BaseModel):
         45.0
     """
 
+    # Schema version for backward compatibility
+    version: int = Field(default=1, description="Schema version number")
+
     # Core identification
     id: str = Field(..., description="Task ID (e.g., 'beads-abc123')")
     title: str = Field(..., min_length=1, description="Task title")
+
+    # Lineage tracking - NEW
+    lineage: Lineage = Field(
+        default_factory=Lineage, description="Links to spec, plan, and epic"
+    )
+
+    # Task snapshot - NEW
+    task: TaskSnapshot | None = Field(
+        default=None, description="Snapshot of task state at capture time"
+    )
+
+    # Task change detection - NEW
+    task_changed: TaskChanged | None = Field(
+        default=None, description="Record of task definition drift (if detected)"
+    )
+
+    # Attempt tracking - NEW
+    attempts: list[Attempt] = Field(
+        default_factory=list, description="All execution attempts on this task"
+    )
+
+    # Final outcome - NEW
+    outcome: Outcome | None = Field(
+        default=None, description="Final completion outcome (set on task close)"
+    )
+
+    # Drift tracking - NEW
+    drift: DriftRecord = Field(
+        default_factory=DriftRecord, description="Spec vs implementation drift"
+    )
+
+    # Verification tracking - NEW (replaces old verification_status/notes)
+    verification: Verification = Field(
+        default_factory=Verification, description="Quality gate status"
+    )
+
+    # Workflow state - NEW (replaces old workflow_stage/workflow_stage_updated_at)
+    workflow: WorkflowState = Field(
+        default_factory=WorkflowState, description="Current workflow state"
+    )
+
+    # State history - NEW
+    state_history: list[StateTransition] = Field(
+        default_factory=list, description="Workflow stage transition history"
+    )
 
     # Temporal tracking
     started_at: datetime | None = Field(
@@ -142,13 +422,13 @@ class LedgerEntry(BaseModel):
         description="When task was completed (UTC)",
     )
 
-    # Cost and resource tracking
+    # Cost and resource tracking (DEPRECATED - use outcome.* for new entries)
     tokens: TokenUsage = Field(default_factory=TokenUsage, description="Token usage for this task")
     cost_usd: float = Field(default=0.0, ge=0.0, description="Estimated cost in USD")
     duration_seconds: int = Field(default=0, ge=0, description="Task duration in seconds")
     iterations: int = Field(default=1, ge=1, description="Number of harness iterations (runs)")
 
-    # Implementation details
+    # Implementation details (DEPRECATED - use outcome.* for new entries)
     approach: str = Field(default="", description="Approach taken (markdown)")
     decisions: list[str] = Field(
         default_factory=list, description="Key decisions made during implementation"
@@ -157,7 +437,7 @@ class LedgerEntry(BaseModel):
         default_factory=list, description="Lessons learned during implementation"
     )
 
-    # File and commit tracking
+    # File and commit tracking (DEPRECATED - use outcome.* for new entries)
     files_changed: list[str] = Field(
         default_factory=list, description="List of files modified or created"
     )
@@ -165,7 +445,7 @@ class LedgerEntry(BaseModel):
         default_factory=list, description="Git commits associated with this task"
     )
 
-    # References and context
+    # References and context (DEPRECATED - use lineage.* for new entries)
     spec_file: str | None = Field(
         default=None, description="Reference to specification file (e.g., 'specs/planned/auth.md')"
     )
@@ -174,10 +454,13 @@ class LedgerEntry(BaseModel):
         description="Path to run log directory (e.g., '.cub/runs/session-123/tasks/beads-abc')",
     )
     epic_id: str | None = Field(
-        default=None, description="Parent epic ID if this task is part of an epic"
+        default=None,
+        description=(
+            "Parent epic ID if this task is part of an epic (DEPRECATED - use lineage.epic_id)"
+        ),
     )
 
-    # Verification tracking
+    # Verification tracking (DEPRECATED - use verification.* for new entries)
     verification_status: VerificationStatus = Field(
         default=VerificationStatus.PENDING, description="Overall verification status"
     )
@@ -185,11 +468,11 @@ class LedgerEntry(BaseModel):
         default_factory=list, description="Verification check results and notes"
     )
 
-    # Harness metadata
+    # Harness metadata (DEPRECATED - use attempts[].harness and attempts[].model for new entries)
     harness_name: str = Field(default="", description="Harness used (e.g., 'claude', 'codex')")
     harness_model: str = Field(default="", description="Model used (e.g., 'sonnet', 'haiku')")
 
-    # Workflow stage tracking (post-completion)
+    # Workflow stage tracking (DEPRECATED - use workflow.* for new entries)
     workflow_stage: WorkflowStage | None = Field(
         default=None,
         description="Post-completion workflow stage (needs_review/validated/released)",
