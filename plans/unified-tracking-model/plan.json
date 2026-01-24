@@ -1,0 +1,13 @@
+{
+  "slug": "unified-tracking-model",
+  "project": "cub",
+  "status": "in_progress",
+  "spec_file": "unified-tracking-model.md",
+  "stages": {
+    "orient": "in_progress",
+    "architect": "pending",
+    "itemize": "pending"
+  },
+  "created": "2026-01-24T20:22:29.987909+00:00",
+  "updated": "2026-01-24T20:22:29.988173+00:00"
+}
