@@ -6488,3 +6488,64 @@ Sources consulted during research:
 - [SkillsMP Marketplace Guide](https://smartscope.blog/en/blog/skillsmp-marketplace-guide/)
 - [GitHub - anthropics/skills](https://github.com/anthropics/skills)
 
+
+## 2026-01-24: Implemented ClawdHub Source Adapter (cub-k3p.6)
+
+### What Was Done
+- Created ClawdHubSource adapter for Anthropic's official skills repository
+- Implemented GitHub API integration to list skill directories
+- Built YAML frontmatter parser for SKILL.md files
+- Implemented search_live() with case-insensitive filtering
+- Created comprehensive test suite (21 tests) with fixtures
+- All acceptance criteria met:
+  - Source registered as "clawdhub"
+  - fetch_tools() returns Tool objects with correct metadata
+  - Tool IDs follow format: clawdhub:{skill-slug}
+  - search_live() searches by name, description, and ID
+  - Network errors handled gracefully
+  - Tests verify parsing logic with fixtures
+  - mypy strict mode passes
+
+### Key Design Decisions
+- ClawdHub refers to anthropics/skills GitHub repository (not a separate service)
+- Used GitHub Contents API for listing directories
+- Fetched individual SKILL.md files via raw.githubusercontent.com
+- Simple YAML frontmatter parser (key: value pairs)
+- Tag extraction from hyphenated/underscored skill slugs
+- Graceful degradation on network errors (returns empty list)
+
+### Technical Implementation
+- Pattern matching for YAML frontmatter: `^---\s*\n(.*?)\n---`
+- Directory filtering: only process items with `type == "dir"`
+- Fallback descriptions when frontmatter missing
+- Comprehensive mocking strategy in tests for API/file responses
+
+### Learnings
+- GitHub API structure for repository contents
+- YAML frontmatter parsing without heavy dependencies
+- Importance of test fixtures for external API responses
+- Mock setup patterns for chained HTTP requests
+- Value of testing edge cases (no frontmatter, network errors, non-directories)
+
+### Test Coverage
+- Source registration and name property
+- Successful tool fetching with multiple skills
+- Network error handling
+- Directory filtering (skips files)
+- Frontmatter parsing (basic, extra fields, missing, comments)
+- Tag extraction (simple, hyphenated, underscored, mixed)
+- Skill metadata fetching
+- Live search (by name, description, case-insensitive, no matches)
+- Required fields validation
+
+### Files Created
+- src/cub/core/toolsmith/sources/clawdhub.py (268 lines)
+- tests/test_toolsmith/test_sources/test_clawdhub.py (536 lines)
+- tests/test_toolsmith/fixtures/clawdhub_api_response.json
+- tests/test_toolsmith/fixtures/clawdhub_pdf_skill.md
+- tests/test_toolsmith/fixtures/clawdhub_docx_skill.md
+- tests/test_toolsmith/fixtures/clawdhub_webapp_testing_skill.md
+
+### Duration
+~2 hours (as estimated)
+
