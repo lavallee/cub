@@ -104,37 +104,48 @@ async def update_workflow_stage(
             f"Valid stages: COMPLETE, NEEDS_REVIEW, VALIDATED, RELEASED",
         )
 
-    ledger_dir = Path.cwd() / ".cub" / "ledger"
-
-    if not ledger_dir.exists():
+    # Update database stage directly for immediate UI feedback
+    # This works for all entities, even those without ledger entries (e.g., epics)
+    db_path = get_db_path()
+    if not db_path.exists():
         return {"success": False}
 
     try:
-        writer = LedgerWriter(ledger_dir)
-
-        if workflow_stage is None:
-            # Clear workflow stage by reading entry and removing the field
-            entry = writer.get_entry(entity_id)
-            if entry is None:
-                return {"success": False}
-            entry.workflow_stage = None
-            entry.workflow_stage_updated_at = None
-            writer.update_entry(entry)
-        else:
-            success = writer.update_workflow_stage(entity_id, workflow_stage)
-            if not success:
+        db_stage = WORKFLOW_TO_DB_STAGE.get(stage_name, "completed")
+        with get_connection(db_path) as conn:
+            # Check if entity exists
+            cursor = conn.execute(
+                "SELECT id FROM entities WHERE id = ?",
+                (entity_id,),
+            )
+            if cursor.fetchone() is None:
                 return {"success": False}
 
-        # Also update the database stage directly for immediate UI feedback
-        db_path = get_db_path()
-        if db_path.exists():
-            db_stage = WORKFLOW_TO_DB_STAGE.get(stage_name, "completed")
-            with get_connection(db_path) as conn:
-                conn.execute(
-                    "UPDATE entities SET stage = ? WHERE id = ?",
-                    (db_stage, entity_id),
-                )
-                conn.commit()
+            # Update the stage
+            conn.execute(
+                "UPDATE entities SET stage = ? WHERE id = ?",
+                (db_stage, entity_id),
+            )
+            conn.commit()
+
+        # Also try to update ledger if entry exists (for persistence across syncs)
+        ledger_dir = Path.cwd() / ".cub" / "ledger"
+        if ledger_dir.exists():
+            try:
+                writer = LedgerWriter(ledger_dir)
+                if workflow_stage is None:
+                    # Clear workflow stage
+                    entry = writer.get_entry(entity_id)
+                    if entry is not None:
+                        entry.workflow_stage = None
+                        entry.workflow_stage_updated_at = None
+                        writer.update_entry(entry)
+                else:
+                    # Set workflow stage (will fail silently if no ledger entry)
+                    writer.update_workflow_stage(entity_id, workflow_stage)
+            except Exception:
+                # Ledger update is optional - database update is what matters for UI
+                pass
 
         return {"success": True}
     except Exception as e:

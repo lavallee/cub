@@ -24,6 +24,6 @@
   "verification_notes": [],
   "harness_name": "claude",
   "harness_model": "",
-  "workflow_stage": "released",
-  "workflow_stage_updated_at": "2026-01-24T03:20:06.799379+00:00"
+  "workflow_stage": "needs_review",
+  "workflow_stage_updated_at": "2026-01-24T03:29:42.107537+00:00"
 }
