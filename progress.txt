@@ -7734,3 +7734,38 @@ Successfully created comprehensive test suite for all ledger CLI commands coveri
 ✓ Linting passes (ruff clean)
 ✓ No mypy errors on test file (untyped library stubs expected)
 ✓ Code follows project conventions
+
+## Task: cub-d8b.1 - Create LedgerParser (2026-01-24)
+
+**Implementation:**
+- Created LedgerParser following the same pattern as TaskParser
+- Reads from index.jsonl for fast enumeration, loads full JSON for details
+- Maps workflow stages (dev_complete, needs_review, validated, released) to dashboard stages
+- Extracts metrics from outcome (preferred) with fallback to legacy fields
+- Handles epic_id from lineage with fallback to legacy field
+- Sorts entries by completion date (newest first) with proper datetime handling
+
+**Key Decisions:**
+- Used EntityType.LEDGER for all ledger entries (not TASK)
+- Preferred outcome.* fields over legacy fields for cost/tokens/duration
+- Used lineage.* fields for epic_id, spec_id, plan_id
+- Added description_excerpt truncation at 100 chars
+- MD5 checksum for change detection
+
+**Testing:**
+- 17 comprehensive tests covering all stage mappings
+- Tests for epic filtering, stage filtering, sorting
+- Tests for legacy field fallbacks
+- Tests for missing files and error handling
+- All tests pass ✓
+
+**Patterns Learned:**
+- Parser structure: _read_index(), _load_full_entry(), _compute_stage(), _to_dashboard_entity()
+- Checksum computation using model_dump_json with exclude_none
+- Stage computation as separate method for testability
+- Graceful handling of missing files with warning logs
+
+**Files Modified:**
+- src/cub/core/dashboard/sync/parsers/ledger.py (new, 310 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated)
+- tests/test_ledger_parser.py (new, 600+ lines)

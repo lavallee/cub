@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "cub-d8b",
+  "title": "cub-d8b",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-d8b",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-24T22:31:12.355687Z",
+    "captured_at": "2026-01-24T22:31:12.355687Z"
+  },
+  "task_ids": [
+    "cub-d8b.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 260,
+    "avg_duration_seconds": 260,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:31:12.359960Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-24T22:26:51.797844Z",
+  "completed_at": "2026-01-24T22:31:12.348120Z",
+  "updated_at": "2026-01-24T22:31:12.359964Z",
+  "first_commit": null,
+  "last_commit": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
