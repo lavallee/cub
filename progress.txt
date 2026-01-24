@@ -7608,3 +7608,129 @@ Successfully implemented the ledger export command with JSON and CSV format supp
 - Verified filtering by epic and date
 - Confirmed proper field flattening in CSV format
 
+
+## Task: cub-c5i.4 - Add ledger gc stub command [COMPLETED]
+Date: 2026-01-24
+Duration: ~15 minutes
+Status: ✓ Completed
+
+### Implementation Details:
+- Added `cub ledger gc` command to src/cub/cli/ledger.py
+- Scans all task directories under .cub/ledger/by-task for attempt files
+- Calculates which files would be deleted based on --keep-latest parameter
+- Displays rich formatted output with:
+  - Table showing per-task breakdown
+  - Total files that would be deleted
+  - Estimated space freed (in MB)
+  - Note that this is a dry-run
+  
+### Key Features:
+- --keep-latest N (default 5): Number of latest attempts to keep per task
+- --dry-run (always true for now): Placeholder for future actual deletion
+- Short option -k for --keep-latest
+- Handles edge cases:
+  - No ledger exists
+  - No task directories
+  - No attempt files in tasks
+  - Tasks with <= keep_latest files (no action needed)
+  
+### Testing:
+- All existing tests pass (16 tests in test_cli_ledger.py)
+- Manual testing confirms:
+  - gc command displays correct output with default keep-latest=5
+  - Displays summary when files would be deleted (keep-latest=1)
+  - Shows "No files to delete" message when appropriate
+  - Help text displays correctly
+  - -k short option works
+
+### Type Safety & Linting:
+- Fixed type annotations for dictionary unpacking from task_summary
+- No mypy errors
+- All ruff checks pass
+
+### Commit:
+- Commit hash: c0fd1b1
+- Message: "task(cub-c5i.4): Add ledger gc stub command"
+- Staged: src/cub/cli/ledger.py
+
+### Lessons Learned:
+1. Task summary list should use type annotations when unpacking dict items
+   to avoid mypy errors with dictionary access
+2. Rich Table API requires proper type annotations for add_row() arguments
+3. The dry-run mode was implemented as a feature flag ready for future
+   actual deletion functionality
+4. The command fits well into the existing ledger CLI structure and reuses
+   existing helpers like _get_ledger_reader()
+
+
+## Task cub-c5i.5: Add tests for CLI commands [COMPLETED 2026-01-24]
+
+### Summary
+Successfully created comprehensive test suite for all ledger CLI commands covering new unified-tracking-model features.
+
+### Tests Added (52 total)
+
+1. **Formatting Helpers Tests (19 tests)**
+   - _format_cost (3 tests): zero, positive, small amounts
+   - _format_verification (7 tests): pass, fail, warn, skip, pending, error, unknown
+   - _format_workflow_stage (5 tests): dev_complete, needs_review, validated, released, none
+   - _format_duration (4 tests): zero, seconds only, minutes+seconds, hours+minutes+seconds
+
+2. **Show Command with New Fields (7 tests)**
+   - Display lineage information (epic_id, spec_file, plan_file)
+   - Display workflow stage information
+   - Display outcome (success status, costs, duration, attempts, final model)
+   - Display attempts summary table
+   - Show specific attempt details with --attempt flag
+   - Handle invalid attempt numbers with proper error
+   - JSON output format validation
+
+3. **Update Stage Command (7 tests)**
+   - Update workflow stage to: needs_review, validated, released
+   - Update with reason annotation
+   - Invalid stage validation
+   - Task not found error handling
+   - Missing ledger error handling
+
+4. **Export Command (8 tests)**
+   - JSON export to stdout
+   - JSON export to file
+   - CSV export to file
+   - CSV export to stdout
+   - Invalid format validation
+   - Missing ledger error handling
+   - Epic filtering (--epic)
+   - Date filtering (--since)
+
+5. **Garbage Collection Command (5 tests)**
+   - Dry-run summary display
+   - No files to delete scenario
+   - Custom --keep-latest parameter
+   - Missing ledger handling
+   - Multiple tasks with varying attempt counts
+
+### Key Implementation Details
+
+- Used `CliRunner` from Typer for CLI invocation in tests
+- Created realistic test data with `LedgerEntry`, `Attempt`, `Outcome`, and `Workflow` models
+- Used mocking for project root to test with temporary directories
+- Comprehensive error handling and edge case testing
+- All tests pass with 100% success rate (52/52)
+- Full linting compliance (no ruff issues)
+- Follows pytest conventions and patterns used in existing tests
+
+### Files Modified
+- `tests/test_cli_ledger.py`: Extended from 25 to 747 lines with comprehensive test coverage
+
+### Learnings
+1. Ledger model uses `WorkflowState` not `Workflow` as the field name
+2. Commands check ledger existence before task existence
+3. Need to create `by-task` directory structure for update command tests
+4. Attempt files need proper naming convention (NNN-prompt.md, NNN-harness.log)
+5. Rich formatting codes need exact matching in output assertions
+
+### QA Results
+✓ All 52 tests pass
+✓ Linting passes (ruff clean)
+✓ No mypy errors on test file (untyped library stubs expected)
+✓ Code follows project conventions
