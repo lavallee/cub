@@ -34,6 +34,7 @@ Example:
 """
 
 from cub.core.ledger.extractor import InsightExtraction, extract_insights
+from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import (
     Attempt,
     CommitRef,
@@ -79,6 +80,8 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Integration
+    "LedgerIntegration",
     # Extraction
     "InsightExtraction",
     "extract_insights",

@@ -7145,3 +7145,110 @@ Created comprehensive test suite for RunSessionManager with 24 tests covering al
 - Manually tested new models with full instantiation and serialization
 - Confirmed backward compatibility by checking old fields remain accessible
 - Tested field validators reject invalid values correctly
+
+## 2026-01-24 - Task cub-l7e.2: Implement prompt and log file writing
+
+**Completed:** Added `write_prompt_file()` and `write_harness_log()` methods to LedgerWriter.
+
+**Key Implementation Details:**
+- Prompt files use YAML frontmatter to store execution context metadata
+- Used PyYAML's `yaml.dump()` with `default_flow_style=False` for readable output
+- Zero-padded 3-digit attempt numbers (001, 002, etc.) for proper sorting
+- Directory structure auto-created: `.cub/ledger/by-task/{task-id}/attempts/`
+- Both methods return the Path to the written file for convenience
+
+**Technical Decisions:**
+- Made `started_at` optional with default to `datetime.now(timezone.utc)`
+- Used keyword-only arguments (after `*,`) for metadata parameters to enforce clarity
+- Separated prompt content from log content (different methods for different concerns)
+
+**Testing Approach:**
+- 8 comprehensive tests covering basic usage, multiple attempts, zero-padding, and directory creation
+- Verified YAML frontmatter format and content presence
+- Tested both methods independently and together
+
+**Challenges:**
+- Pre-existing mypy warning about yaml stubs (types-PyYAML) - not related to this task
+- Pre-existing E501 line length violations in edge case tests - not related to this task
+
+**Lessons Learned:**
+- YAML frontmatter format is simple: `---\nYAML\n---\n\ncontent`
+- Zero-padding with f-strings: `f"{num:03d}"` is cleaner than `.zfill(3)`
+- Creating parent directories: `mkdir(parents=True, exist_ok=True)` is idempotent
+- Type hints: Using `datetime | None = None` enables optional parameters with clear defaults
+
+
+---
+
+## 2026-01-24 - cub-l7e.3: Create LedgerIntegration layer
+
+### Task Completed
+Implemented LedgerIntegration class that coordinates all ledger writes during task execution, providing a clean interface for the run loop.
+
+### What Was Implemented
+
+**LedgerIntegration Class** (`src/cub/core/ledger/integration.py`):
+- `on_task_start()`: Creates initial ledger entry with task snapshot for drift detection
+  - Captures task state (title, description, priority, labels, type) at execution start
+  - Sets up lineage tracking (epic_id, spec_file, plan_file)
+  - Initializes workflow state and state history
+- `on_attempt_start()`: Writes prompt file with YAML frontmatter
+  - Delegates to LedgerWriter.write_prompt_file()
+  - Creates audit trail of what was sent to harness
+- `on_attempt_end()`: Writes harness log and appends attempt record
+  - Records success/failure, tokens, cost, duration
+  - Updates active entry with aggregated metrics
+  - Supports error categorization (timeout, api_error, etc.)
+- `on_task_close()`: Finalizes ledger entry with outcome
+  - Aggregates totals from all attempts
+  - Detects model escalation (haiku -> sonnet -> opus)
+  - Performs drift detection via `_detect_task_changed()`
+  - Updates workflow state and state history
+
+**Drift Detection** (`_detect_task_changed()`):
+- Compares current task state with snapshot captured at start
+- Detects changes in: title, description, priority, labels, type
+- Generates human-readable notes about what changed
+- Returns `TaskChanged` record or None if no drift
+
+**Active Entry Caching**:
+- Maintains `_active_entries` dict for in-progress tasks
+- Avoids repeated disk reads during execution
+- Cleaned up on task close
+
+### Technical Details
+
+**Pattern: Event-Driven Coordinator**
+- LedgerIntegration doesn't replace LedgerWriter, it coordinates it
+- Each lifecycle method (`on_*`) maps to a run loop event
+- This separation keeps LedgerWriter focused on file I/O
+
+**Escalation Detection Algorithm**:
+```python
+models_used = [a.model for a in entry.attempts if a.model]
+unique_models = list(dict.fromkeys(models_used))  # Preserve order
+escalated = len(unique_models) > 1
+escalation_path = unique_models if escalated else []
+```
+
+**Task Snapshot Strategy**:
+- Snapshot captured at `on_task_start()` time
+- Stored in `_task_snapshots` dict keyed by task_id
+- Used only at `on_task_close()` for drift comparison
+- Cleaned up after comparison
+
+### Tests
+30 comprehensive tests covering:
+- Initialization and state management
+- Task start with various options (epic, spec, plan)
+- Attempt start/end with token tracking
+- Task close with verification and escalation
+- Drift detection for all field types
+- Full workflow scenarios (single success, escalation, drift)
+
+### Learnings
+- Caching active entries prevents repeated disk reads during execution
+- Drift detection needs snapshot at start + current state at close
+- Model escalation = unique models > 1 (haiku -> haiku -> sonnet counts as escalation)
+- Legacy fields maintained for backward compatibility
+- TYPE_CHECKING import for forward references avoids circular imports
