@@ -18,3 +18,6 @@ __pycache__/
 build/
 *.egg-info/
 .beads/issues.jsonl
+
+# node modules
+src/cub/dashboard/web/node_modules/
