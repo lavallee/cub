@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
+from cub.core.toolsmith.exceptions import NetworkError
 from cub.core.toolsmith.models import ToolType
 from cub.core.toolsmith.sources.base import get_source
 from cub.core.toolsmith.sources.smithery import SmitherySource
@@ -66,18 +67,17 @@ class TestSmitherySource:
         assert all(tool.tool_type == ToolType.MCP_SERVER for tool in tools)
         assert all(tool.id.startswith("smithery:") for tool in tools)
 
+    @patch("time.sleep")
     @patch("httpx.get")
     def test_fetch_tools_network_error(
-        self, mock_get: Mock, smithery_source: SmitherySource
+        self, mock_get: Mock, mock_sleep: Mock, smithery_source: SmitherySource
     ) -> None:
         """Test graceful handling of network errors."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        tools = smithery_source.fetch_tools()
-
-        # Should return empty list on error
-        assert tools == []
+        with pytest.raises(NetworkError, match="HTTP error"):
+            smithery_source.fetch_tools()
 
     @patch("httpx.get")
     def test_fetch_tools_pagination(self, mock_get: Mock, smithery_source: SmitherySource) -> None:
@@ -219,18 +219,17 @@ class TestSmitherySource:
         # Should return tools
         assert len(results) > 0
 
+    @patch("time.sleep")
     @patch("httpx.get")
     def test_search_live_network_error(
-        self, mock_get: Mock, smithery_source: SmitherySource
+        self, mock_get: Mock, mock_sleep: Mock, smithery_source: SmitherySource
     ) -> None:
         """Test that search handles network errors gracefully."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        results = smithery_source.search_live("test")
-
-        # Should return empty list on error
-        assert results == []
+        with pytest.raises(NetworkError, match="HTTP error"):
+            smithery_source.search_live("test")
 
     @patch("httpx.get")
     def test_api_authentication_header(

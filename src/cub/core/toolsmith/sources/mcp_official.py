@@ -98,6 +98,12 @@ class MCPOfficialSource:
                 f"Network error while fetching MCP official README: {e}",
                 url=self.README_URL,
             ) from e
+        except httpx.HTTPError as e:
+            raise NetworkError(
+                "mcp-official",
+                f"HTTP error while fetching data: {e}",
+                url=self.README_URL,
+            ) from e
 
         try:
             return self._parse_readme(readme_content)

@@ -107,6 +107,13 @@ class ClawdHubSource:
                 f"Network error while fetching from GitHub API: {e}",
                 url=url,
             ) from e
+        except httpx.HTTPError as e:
+            # Catch generic HTTP errors (base class) after retries exhausted
+            raise NetworkError(
+                "clawdhub",
+                f"HTTP error while fetching from GitHub API: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
         try:
@@ -227,7 +234,7 @@ class ClawdHubSource:
         try:
             response = self._fetch_skill_file(skill_md_url)
             content = response.text
-        except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError):
+        except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError, httpx.HTTPError):
             # Skill doesn't have SKILL.md or fetch failed - skip it
             return None
 

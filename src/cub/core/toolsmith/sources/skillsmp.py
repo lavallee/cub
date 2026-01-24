@@ -235,6 +235,12 @@ class SkillsMPSource:
                 f"Network error while fetching from SkillsMP API: {e}",
                 url=url,
             ) from e
+        except httpx.HTTPError as e:
+            raise NetworkError(
+                "skillsmp",
+                f"HTTP error while fetching data: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
         try:

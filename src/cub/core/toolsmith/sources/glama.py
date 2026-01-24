@@ -231,6 +231,13 @@ class GlamaSource:
                 f"Network error while fetching from Glama API: {e}",
                 url=url,
             ) from e
+        except httpx.HTTPError as e:
+            # Catch generic HTTP errors (base class) after retries exhausted
+            raise NetworkError(
+                "glama",
+                f"HTTP error while fetching from Glama API: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
         try:

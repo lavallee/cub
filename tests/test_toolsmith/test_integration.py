@@ -366,7 +366,7 @@ class TestCLICommands:
 
             # Should report errors and exit with error code
             assert result.exit_code == 1, "Should exit with error code on failure"
-            assert "Errors" in result.stdout
+            assert "Warnings" in result.stdout  # CLI displays errors as "Warnings"
 
     @patch("httpx.get")
     def test_search_command_success(

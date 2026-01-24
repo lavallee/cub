@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
+from cub.core.toolsmith.exceptions import NetworkError
 from cub.core.toolsmith.models import ToolType
 from cub.core.toolsmith.sources.base import get_source
 from cub.core.toolsmith.sources.clawdhub import ClawdHubSource
@@ -122,22 +123,27 @@ class TestClawdHubSource:
         assert docx_tool.id == "clawdhub:docx"
         assert "Word documents" in docx_tool.description
 
+    @patch("time.sleep")  # Mock sleep to make retries instant
     @patch("httpx.get")
     def test_fetch_tools_network_error(
-        self, mock_get: Mock, clawdhub_source: ClawdHubSource
+        self, mock_get: Mock, mock_sleep: Mock, clawdhub_source: ClawdHubSource
     ) -> None:
         """Test graceful handling of network errors."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        tools = clawdhub_source.fetch_tools()
+        # Should raise NetworkError after retries are exhausted
+        with pytest.raises(NetworkError, match="HTTP error while fetching from GitHub API"):
+            clawdhub_source.fetch_tools()
 
-        # Should return empty list on error
-        assert tools == []
-
+    @patch("time.sleep")  # Mock sleep to make retries instant
     @patch("httpx.get")
     def test_fetch_tools_skips_non_directories(
-        self, mock_get: Mock, clawdhub_source: ClawdHubSource, api_response_data: list[dict]
+        self,
+        mock_get: Mock,
+        mock_sleep: Mock,
+        clawdhub_source: ClawdHubSource,
+        api_response_data: list[dict],
     ) -> None:
         """Test that non-directory items are skipped."""
         # Mock API response and individual skill fetches
@@ -265,9 +271,10 @@ Content
         assert tool.tags == ["pdf"]
         assert tool.last_seen is not None
 
+    @patch("time.sleep")  # Mock sleep to make retries instant
     @patch("httpx.get")
     def test_fetch_skill_metadata_network_error(
-        self, mock_get: Mock, clawdhub_source: ClawdHubSource
+        self, mock_get: Mock, mock_sleep: Mock, clawdhub_source: ClawdHubSource
     ) -> None:
         """Test handling of network error when fetching skill metadata."""
         # Mock network error

@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
+from cub.core.toolsmith.exceptions import NetworkError
 from cub.core.toolsmith.models import ToolType
 from cub.core.toolsmith.sources.base import get_source
 from cub.core.toolsmith.sources.mcp_official import MCPOfficialSource
@@ -52,7 +53,7 @@ class TestMCPOfficialSource:
 
         # Verify HTTP call
         mock_get.assert_called_once_with(
-            MCPOfficialSource.README_URL, timeout=10.0, follow_redirects=True
+            MCPOfficialSource.README_URL, timeout=30.0, follow_redirects=True
         )
 
         # Verify tools were parsed
@@ -61,16 +62,17 @@ class TestMCPOfficialSource:
         assert all(tool.tool_type == ToolType.MCP_SERVER for tool in tools)
         assert all(tool.id.startswith("mcp-official:") for tool in tools)
 
+    @patch("time.sleep")
     @patch("httpx.get")
-    def test_fetch_tools_network_error(self, mock_get: Mock, mcp_source: MCPOfficialSource) -> None:
+    def test_fetch_tools_network_error(
+        self, mock_get: Mock, mock_sleep: Mock, mcp_source: MCPOfficialSource
+    ) -> None:
         """Test graceful handling of network errors."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        tools = mcp_source.fetch_tools()
-
-        # Should return empty list on error
-        assert tools == []
+        with pytest.raises(NetworkError, match="HTTP error"):
+            mcp_source.fetch_tools()
 
     def test_parse_readme_reference_servers(
         self, mcp_source: MCPOfficialSource, sample_readme_content: str

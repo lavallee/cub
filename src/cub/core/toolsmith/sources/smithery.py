@@ -227,6 +227,12 @@ class SmitherySource:
                 f"Network error while fetching from Smithery API: {e}",
                 url=url,
             ) from e
+        except httpx.HTTPError as e:
+            raise NetworkError(
+                "smithery",
+                f"HTTP error while fetching data: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
         try:

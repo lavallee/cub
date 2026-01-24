@@ -6864,3 +6864,123 @@ Successfully implemented retry logic with exponential backoff for HTTP requests 
 - May want to make retry config tunable via environment variables or config file
 - Consider exponential backoff cap to prevent extremely long delays
 
+
+## 2026-01-24 - cub-q2w.5: Write user documentation
+
+### Task Completed
+Created comprehensive user-facing documentation for Toolsmith covering usage guide, command reference, configuration, troubleshooting, and common use cases.
+
+### Key Deliverables
+
+**1. Documentation Structure**
+- Created dedicated `docs/toolsmith.md` (664 lines, ~15KB)
+- Added Toolsmith section to main README.md
+- Quick start examples for new users
+- Complete CLI command reference with all options explained
+
+**2. Command Reference Documentation**
+Each command (`sync`, `search`, `stats`) includes:
+- Full usage syntax with all options
+- Multiple realistic examples
+- Expected output for each command
+- When to use each command
+- Best practices for usage
+
+**3. Troubleshooting Guide**
+Comprehensive section covering 6+ common error scenarios:
+- Empty catalog (no tools found) - diagnosis and fix
+- Network failures and timeouts - retry strategies
+- Search returning too many results - filtering strategies
+- Tool not found scenarios - live search fallback
+- Database corruption - recovery procedures
+- Sync performance issues - optimization tips
+
+Each troubleshooting entry includes:
+- Clear problem statement
+- Root cause explanation
+- Step-by-step solutions
+- Expected outcomes
+
+**4. Configuration & Setup**
+- Catalog location and override options
+- Environment variables explained
+- Configured sources documented
+- File locations reference
+- Default settings guide
+
+**5. Use Cases & Examples**
+- Finding tools for specific tasks
+- Discovering tools from specific providers
+- Updating and maintaining catalog
+- Researching available tools
+- Realistic search workflows
+
+**6. Quick Reference**
+- Command cheat sheet
+- File locations
+- Environment setup
+- Version checking
+
+### Technical Quality
+- All 141 Toolsmith tests pass
+- Code passes ruff linting
+- mypy type checking: no issues
+- Documentation follows Markdown best practices
+- Examples use realistic command output
+
+### Key Learnings
+
+**1. User Documentation Scope**
+Creating comprehensive user docs requires thinking through:
+- New user onboarding (quick start, installation)
+- Command reference (every option, every flag)
+- Real-world examples (not just happy path)
+- Troubleshooting (actual error messages users encounter)
+- Advanced features (for power users)
+
+**2. Effective Troubleshooting Guides**
+Good troubleshooting documentation should:
+- Start with clear problem statement
+- Explain root cause (why it happened)
+- Provide diagnostic steps (how to identify)
+- Offer multiple solutions (when appropriate)
+- Include recovery procedures (worst case)
+- Show expected output (what success looks like)
+
+**3. Documentation Discoverability**
+- Linked from main README (quick reference section)
+- Added to `.cub` navigation
+- Clear file structure (docs/ directory)
+- Cross-referenced in related docs
+- Integrated help system ready
+
+### What Worked Well
+1. Systematic approach: Quick start → Commands → Config → Troubleshooting
+2. Real output examples - users can recognize their own errors
+3. Multiple solutions for common issues
+4. Progressive depth (quick start → detailed reference → advanced)
+5. Clear section organization with table of contents
+
+### Future Improvements
+- Add interactive troubleshooting quiz
+- Create video tutorials for common workflows
+- Build searchable documentation index
+- Add performance benchmarks
+- Document tool evaluation scoring rubric
+- Create integration guides for specific tools
+
+### Related Files
+- `docs/toolsmith.md` - Main user documentation
+- `README.md` - Added Toolsmith section
+- `src/cub/cli/toolsmith.py` - CLI implementation
+- `tests/test_toolsmith*.py` - All tests passing
+
+### Commit
+```
+task(cub-q2w.5): Write user documentation
+- Created comprehensive docs/toolsmith.md
+- Added README.md section with quick links
+- All tests pass (141 toolsmith tests)
+- Code passes linting and type checking
+```
+

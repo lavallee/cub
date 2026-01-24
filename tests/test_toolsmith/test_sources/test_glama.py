@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
+from cub.core.toolsmith.exceptions import NetworkError
 from cub.core.toolsmith.models import ToolType
 from cub.core.toolsmith.sources.base import get_source
 from cub.core.toolsmith.sources.glama import GlamaSource
@@ -65,16 +66,18 @@ class TestGlamaSource:
         assert all(tool.tool_type == ToolType.MCP_SERVER for tool in tools)
         assert all(tool.id.startswith("glama:") for tool in tools)
 
+    @patch("time.sleep")  # Mock sleep to make retries instant
     @patch("httpx.get")
-    def test_fetch_tools_network_error(self, mock_get: Mock, glama_source: GlamaSource) -> None:
+    def test_fetch_tools_network_error(
+        self, mock_get: Mock, mock_sleep: Mock, glama_source: GlamaSource
+    ) -> None:
         """Test graceful handling of network errors."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        tools = glama_source.fetch_tools()
-
-        # Should return empty list on error
-        assert tools == []
+        # Should raise NetworkError after retries are exhausted
+        with pytest.raises(NetworkError, match="HTTP error while fetching from Glama API"):
+            glama_source.fetch_tools()
 
     @patch("httpx.get")
     def test_fetch_tools_pagination(self, mock_get: Mock, glama_source: GlamaSource) -> None:
@@ -230,16 +233,18 @@ class TestGlamaSource:
         # Should return tools
         assert len(results) > 0
 
+    @patch("time.sleep")  # Mock sleep to make retries instant
     @patch("httpx.get")
-    def test_search_live_network_error(self, mock_get: Mock, glama_source: GlamaSource) -> None:
+    def test_search_live_network_error(
+        self, mock_get: Mock, mock_sleep: Mock, glama_source: GlamaSource
+    ) -> None:
         """Test that search handles network errors gracefully."""
         # Mock network error
         mock_get.side_effect = httpx.HTTPError("Network error")
 
-        results = glama_source.search_live("test")
-
-        # Should return empty list on error
-        assert results == []
+        # Should raise NetworkError after retries are exhausted
+        with pytest.raises(NetworkError, match="HTTP error while fetching from Glama API"):
+            glama_source.search_live("test")
 
     @patch("httpx.get")
     def test_api_authentication_header(
