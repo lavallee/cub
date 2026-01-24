@@ -32,6 +32,69 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
+class SyncResult(BaseModel):
+    """
+    Result of a catalog sync operation.
+
+    Reports how many tools were added or updated during a sync,
+    and captures any errors that occurred during the process.
+
+    Attributes:
+        tools_added: Number of new tools added to the catalog
+        tools_updated: Number of existing tools updated
+        errors: List of error messages from failed sources
+    """
+
+    tools_added: int = Field(default=0, description="Number of new tools added")
+    tools_updated: int = Field(default=0, description="Number of existing tools updated")
+    errors: list[str] = Field(
+        default_factory=list,
+        description="List of error messages from failed sources",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class CatalogStats(BaseModel):
+    """
+    Statistics about the tool catalog.
+
+    Provides summary information about the catalog contents,
+    including totals, breakdowns by source and type, and sync timestamps.
+
+    Attributes:
+        total_tools: Total number of tools in the catalog
+        by_source: Dictionary mapping source names to tool counts
+        by_type: Dictionary mapping tool types to tool counts
+        last_sync: Timestamp of last catalog sync (ISO 8601)
+        sources_synced: List of sources that have been synced
+    """
+
+    total_tools: int = Field(default=0, description="Total number of tools in catalog")
+    by_source: dict[str, int] = Field(
+        default_factory=dict,
+        description="Tool counts by source name",
+    )
+    by_type: dict[str, int] = Field(
+        default_factory=dict,
+        description="Tool counts by tool type",
+    )
+    last_sync: datetime | None = Field(
+        default=None,
+        description="Timestamp of last catalog sync (ISO 8601)",
+    )
+    sources_synced: list[str] = Field(
+        default_factory=list,
+        description="List of sources that have been synced",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
 class ToolType(str, Enum):
     """Tool type enumeration."""
 
