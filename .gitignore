@@ -7,6 +7,7 @@
 .cub/logs/
 .cub/runs/
 .cub/config.json            # Auto-generated project config (project_id)
+.cub/toolsmith/             # Toolsmith local catalog/cache + adoptions + runs (project-scoped)
 
 # Beads viewer local config and caches
 .bv/
@@ -14,6 +15,8 @@
 
 # Cub
 *.cub.tmp
+.env
+.env.*
 __pycache__/
 build/
 *.egg-info/

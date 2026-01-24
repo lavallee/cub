@@ -1,0 +1,85 @@
+{
+  "skills": [
+    {
+      "id": "skill-123",
+      "slug": "api-documentation-generator",
+      "name": "API Documentation Generator",
+      "description": "Automatically generates comprehensive API documentation from OpenAPI specifications and code comments.",
+      "url": "https://skillsmp.com/skills/api-documentation-generator",
+      "repository": {
+        "url": "https://github.com/example/api-docs-skill",
+        "path": "skills/api-documentation/SKILL.md"
+      },
+      "category": "documentation",
+      "tags": ["api", "docs", "openapi"],
+      "author": "example-user",
+      "stars": 15,
+      "createdAt": "2025-01-15T10:30:00Z"
+    },
+    {
+      "id": "skill-456",
+      "slug": "test-automation",
+      "name": "Test Automation Helper",
+      "description": "Assists with writing and maintaining automated tests for various frameworks including Jest, Pytest, and JUnit.",
+      "url": "https://skillsmp.com/skills/test-automation",
+      "repository": {
+        "url": "https://github.com/example/test-automation-skill",
+        "path": "SKILL.md"
+      },
+      "category": "testing",
+      "tags": ["testing", "automation", "jest", "pytest"],
+      "author": "test-guru",
+      "stars": 42,
+      "createdAt": "2024-12-01T14:20:00Z"
+    },
+    {
+      "id": "skill-789",
+      "slug": "database-schema-designer",
+      "name": "Database Schema Designer",
+      "description": "Helps design and optimize database schemas with ERD generation and migration scripts.",
+      "url": "https://skillsmp.com/skills/database-schema-designer",
+      "repository": {
+        "url": "https://github.com/example/db-schema-skill"
+      },
+      "category": "database",
+      "tags": ["database", "schema", "sql", "migration"],
+      "author": "db-expert",
+      "stars": 28,
+      "createdAt": "2025-01-20T08:45:00Z"
+    },
+    {
+      "id": "skill-101",
+      "slug": "code-review-assistant",
+      "name": "Code Review Assistant",
+      "description": "Provides intelligent code review suggestions focusing on best practices, security, and performance.",
+      "url": "https://skillsmp.com/skills/code-review-assistant",
+      "repository": {
+        "url": "https://github.com/example/code-review-skill",
+        "path": "skills/SKILL.md"
+      },
+      "category": "code-quality",
+      "tags": ["code-review", "quality", "security", "performance"],
+      "author": "quality-champion",
+      "stars": 67,
+      "createdAt": "2024-11-10T16:00:00Z"
+    },
+    {
+      "id": "skill-202",
+      "slug": "docker-optimizer",
+      "name": "Docker Optimizer",
+      "description": "Optimizes Docker images and containerization strategies for better performance and smaller image sizes.",
+      "url": "https://skillsmp.com/skills/docker-optimizer",
+      "category": "devops",
+      "tags": ["docker", "containers", "optimization"],
+      "author": "devops-ninja",
+      "stars": 35,
+      "createdAt": "2025-01-05T12:15:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 5,
+    "hasNext": false
+  }
+}

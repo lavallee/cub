@@ -17,7 +17,7 @@ cub update [OPTIONS]
 
 The `cub update` command updates the `.cub/` directory files and `.claude/commands/` skills in your project to match the versions bundled with your cub installation.
 
-This is different from `cub system-upgrade`, which upgrades cub itself. Use `cub update` after upgrading cub to get the latest templates and skills in your project.
+This is different from `cub upgrade`, which upgrades cub itself. Use `cub update` after upgrading cub to get the latest templates and skills in your project.
 
 By default, only files that haven't been locally modified are updated. Modified files are skipped to preserve your customizations.
 
@@ -126,7 +126,7 @@ A typical upgrade workflow:
 
 ```bash
 # 1. Upgrade cub itself
-cub system-upgrade
+cub upgrade
 
 # 2. Update project templates/skills
 cub update --dry-run  # Preview changes
@@ -148,7 +148,7 @@ To preserve modifications while getting updates:
 
 ## Related Commands
 
-- [`cub system-upgrade`](system-upgrade.md) - Upgrade cub installation
+- [`cub upgrade`](upgrade.md) - Upgrade cub installation
 - [`cub init`](init.md) - Initialize cub in a project
 - [`cub doctor`](doctor.md) - Diagnose configuration issues
 

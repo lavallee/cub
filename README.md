@@ -1203,6 +1203,72 @@ echo "[slack-notify] Notification sent for $TASK_ID"
 exit 0
 ```
 
+## Toolsmith: Tool Discovery and Management
+
+Cub includes **Toolsmith**, a built-in tool discovery system to help you find, evaluate, and catalog tools (MCP servers, skills, and integrations) from multiple sources.
+
+### Quick Start
+
+**Sync tools from all sources:**
+```bash
+cub toolsmith sync
+```
+
+**Search for tools:**
+```bash
+cub toolsmith search "database"
+```
+
+**View catalog statistics:**
+```bash
+cub toolsmith stats
+```
+
+### Commands
+
+| Command | Purpose |
+|---------|---------|
+| `cub toolsmith sync [--source NAME]` | Populate catalog from external sources |
+| `cub toolsmith search QUERY [--source NAME]` | Find tools by name, description, or capability |
+| `cub toolsmith stats` | View catalog statistics and last sync time |
+
+### Sources
+
+Toolsmith syncs from multiple sources:
+
+- **Smithery** - MCP server registry
+- **Glama** - AI tool and skill marketplace
+- **SkillsMP** - Multi-provider skills platform
+- **ClawdHub** - Claude-focused tools
+
+### Configuration
+
+Toolsmith stores the tool catalog in:
+- **SQLite database**: `~/.cub/toolsmith.db`
+- **Override**: Set `CUB_TOOLSMITH_DB` environment variable
+
+### Common Use Cases
+
+```bash
+# Populate your catalog (do this first)
+cub toolsmith sync
+
+# Find database tools
+cub toolsmith search "database"
+
+# Filter by source
+cub toolsmith search "api" --source smithery
+
+# Check what's been synced
+cub toolsmith stats
+```
+
+### Documentation
+
+For detailed documentation, examples, and troubleshooting, see [docs/toolsmith.md](docs/toolsmith.md).
+
+---
+
 ## How It Works
 
 ### The Loop

@@ -1,5 +1,140 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-k3p.1: Define ToolSource protocol and source registry
+
+### Task Completed
+Implemented pluggable tool source abstraction layer following TaskBackend pattern.
+
+### Key Learnings
+
+**1. Protocol-Based Registry Pattern**
+- Use `@runtime_checkable` decorator on Protocol for isinstance() checks at runtime
+- Mirror the TaskBackend pattern for consistency across codebase
+- Registry uses module-level dict `_sources: dict[str, type[ToolSource]]`
+- Sources are instantiated on demand via `source_class()`, not at import time
+- This lazy instantiation pattern avoids circular imports and initialization costs
+
+**2. Decorator for Registration**
+- Decorator returns a function that takes the class, registers it, and returns it
+- Prevents duplicate registrations by checking `if name in _sources` and raising ValueError
+- Error message includes list of available sources for helpful debugging
+- Pattern: `@register_source('name')` followed by class definition
+
+**3. Registry Functions Architecture**
+- `get_source(name)` - Returns fresh instance each call for independent state
+- `list_sources()` - Returns sorted list for consistent ordering
+- `get_all_sources()` - Returns all instances for aggregate operations
+- Use descriptive error messages: "not registered. Available sources: ..."
+- Handles empty registry gracefully: "Available sources: none registered"
+
+**4. Protocol Methods vs Properties**
+- Properties (like `name`) return identifiers/metadata
+- Methods (like `fetch_tools()`, `search_live()`) perform operations
+- Protocol enforces contract but doesn't require base class inheritance
+- isinstance() checks work because Protocol is @runtime_checkable
+
+**5. Test Organization for Protocols**
+- TestSourceRegistry: Registration and retrieval (7 tests)
+- TestToolSourceProtocol: Protocol implementation and contract (4 tests)
+- TestSourceBehavior: Real behavior and return types (3 tests)
+- TestEdgeCases: Error handling and boundary conditions (4 tests)
+- Total: 18 tests providing comprehensive coverage with mypy strict mode
+
+**6. Module Organization**
+- `base.py` contains protocol, registry, and all functions
+- `__init__.py` imports and re-exports public API
+- `_sources` dict exposed for testing via module import
+- Example usage in module docstring for developer guidance
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/base.py` (177 lines)
+  - ToolSource Protocol with 3 required members
+  - Registry dict and decorator
+  - 4 registry management functions
+
+- `src/cub/core/toolsmith/sources/__init__.py` (50 lines)
+  - Public API with __all__
+  - Example usage docstring
+
+- `tests/test_toolsmith_sources.py` (497 lines)
+  - 18 comprehensive tests
+  - Full coverage of protocol, registry, and edge cases
+
+### Quality Metrics
+
+- Tests: 18/18 passing (plus 73 existing toolsmith tests = 91 total)
+- Type Checking: mypy --strict passes with "no issues found"
+- Linting: ruff passes with no errors
+- Acceptance Criteria: 8/8 met ✓
+
+---
+
+## 2026-01-23 - cub-f7m.1: Create Tool, ToolType, and Catalog Pydantic models
+
+### Task Completed
+Implemented core Pydantic models for Toolsmith tool catalog system.
+
+### Key Learnings
+
+**1. Slug Validation Pattern**
+- ID format `{source}:{slug}` is flexible - allow alphanumeric, hyphens, underscores, AND forward slashes
+- Forward slashes enable GitHub-style identifiers (e.g., `github:owner/repo`)
+- Implementation: Use set of valid characters with `all(c in valid_chars for c in slug)` pattern
+
+**2. Timestamp Normalization Strategy**
+- Always convert naive datetimes to UTC using `dt.replace(tzinfo=timezone.utc)`
+- Accept multiple formats: datetime objects, ISO 8601 strings, naive strings
+- Follow Cub convention: ensure all timestamps are timezone-aware for consistency
+
+**3. Semantic Version Validation**
+- Use regex pattern: `^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$`
+- Supports prerelease tags (alpha, beta, rc) via the optional `-prerelease` suffix
+- Simple, focused validation - don't over-engineer
+
+**4. Field Validator Mode Parameter**
+- `mode="before"` validators run before Pydantic type coercion
+- Useful for normalizing input types (string → datetime, single string → list)
+- Pydantic v2 uses `@field_validator()` decorator with `mode` parameter
+
+**5. Test Coverage Strategy**
+- Separate test classes for each concern: basics, validation, serialization, edge cases
+- Test both valid and invalid inputs thoroughly
+- Verify error messages contain expected keywords for debugging
+- Use assertion on lowercase error strings for case-insensitive matching
+
+**6. Pydantic v2 Patterns**
+- Use `ConfigDict` with `populate_by_name=True` for flexibility
+- `model_dump()` and `model_validate()` for dict conversions
+- `model_dump_json()` and `model_validate_json()` for JSON roundtrips
+- Line length: break long strings carefully, prefer variable assignments for complex messages
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/toolsmith/__init__.py` - Package initialization with docstring
+- `src/cub/core/toolsmith/models.py` - All three models with validators (270+ lines)
+- `tests/test_toolsmith_models.py` - 43 comprehensive tests covering all scenarios
+
+**Models Implemented:**
+- `ToolType` enum: MCP_SERVER, SKILL
+- `Tool`: 9 fields with ID/source/slug/timestamp validation
+- `Catalog`: Version control, tool collection, sync tracking
+
+**Quality Metrics:**
+- ✅ mypy strict mode: 0 errors
+- ✅ ruff lint: 0 errors after formatting
+- ✅ pytest: 43/43 tests passing
+- ✅ All acceptance criteria verified
+
+### Blockers Unblocked
+This task unblocks:
+- cub-f7m.2: Implement ToolsmithStore (depends on models)
+- cub-k3p.1: Define ToolSource protocol (will use Tool model)
+
+---
+
 ## 2026-01-23 - cub-p9w.3: Implement cub dashboard export command
 
 ### Task Completed
@@ -6068,4 +6203,829 @@ The frontend was using `response.text()` to parse the API response, which conver
 **Next steps:**
 - Consider adding metrics for parse failures to monitor data quality
 - Could add a "parse warnings" count to SyncResult for visibility
+
+
+## Task cub-f7m.2: Implement ToolsmithStore with load/save/search
+
+**Completed:** 2026-01-24
+
+**What worked well:**
+- Following CaptureStore patterns made implementation straightforward
+- Pydantic's `model_dump(mode='json')` handles datetime serialization cleanly
+- Atomic write pattern (tempfile + rename) prevents corruption
+- Comprehensive test coverage (30 tests) caught datetime serialization issue early
+- Search implementation (split terms, all must match) is simple but effective
+
+**Key implementation details:**
+- Use `model_dump(mode='json')` not `model_dump()` for JSON serialization to convert datetimes
+- Atomic write pattern: write to temp file in same dir, then rename (atomic on POSIX)
+- Search matches if ALL query terms appear in name OR description (case-insensitive)
+- Return empty Catalog (not error) when file missing - more ergonomic API
+- Use pathlib throughout for cross-platform compatibility
+
+**Testing insights:**
+- Integration tests (save/load roundtrip, incremental updates) validate real-world workflows
+- Test both missing file and missing directory cases
+- Test atomic writes don't leave temp files behind
+- Verify timestamp preservation through serialization roundtrip
+
+**Tools used:**
+- pytest (30 tests, all passing)
+- mypy --strict (type safety)
+- ruff (linting, auto-fix)
+
+
+
+## Task cub-f7m.3: Create CLI skeleton and register with main app
+
+**Completed:** 2026-01-24
+
+**What we accomplished:**
+- Created `src/cub/cli/toolsmith.py` with three command stubs (sync, search, stats)
+- Registered Toolsmith in the "Manage Your Roadmap" panel of the main CLI
+- All commands properly display help text and placeholder output
+- Passes mypy --strict typecheck
+
+**Key learnings about Cub CLI patterns:**
+
+1. **CLI Module Structure**
+   - Each feature gets its own module in `src/cub/cli/`
+   - Module creates a `typer.Typer` app with `name` and `help` parameters
+   - Commands are added via `@app.command()` decorator
+   - Main `__init__.py` imports the module and registers the app via `app.add_typer()`
+
+2. **Help Panel Organization**
+   - Define panel name constants at top of `__init__.py` (e.g., `PANEL_ROADMAP`)
+   - Each command/subcommand uses `rich_help_panel=PANEL_NAME` for grouping
+   - Panels are displayed alphabetically in help output
+   - Related commands grouped in same panel for discoverability
+
+3. **Modern Typer Patterns**
+   - Use `Annotated[type, typer.Option(...)]` or `typer.Argument(...)` for modern syntax
+   - Short and long option names: `-s` and `--source` both work
+   - Optional parameters use `Optional[type]` with default `None`
+   - Rich formatting with `console.print("[yellow]text[/yellow]")` for styled output
+
+4. **Stub Command Implementation**
+   - Include docstring with description and examples
+   - Print placeholder using `console.print("[yellow]Not implemented yet[/yellow]")`
+   - Properly document all options in their help text
+   - Type hints are essential - mypy --strict catches inconsistencies
+
+5. **Testing CLI Commands**
+   - Test `--help` for each command to verify output formatting
+   - Verify registration in main CLI via `cub toolsmith --help`
+   - Use `python -m cub <command>` to test without installing
+   - Check that commands appear in correct help panel
+
+**Files modified:**
+- Created: `src/cub/cli/toolsmith.py` (72 lines)
+- Modified: `src/cub/cli/__init__.py` (added import and registration)
+
+**Testing verification:**
+- ✓ `cub toolsmith --help` shows all commands
+- ✓ `cub toolsmith sync --help` shows --source option
+- ✓ `cub toolsmith search --help` shows query argument and options
+- ✓ `cub toolsmith stats --help` displays properly
+- ✓ toolsmith appears in "Manage Your Roadmap" panel
+- ✓ mypy --strict passes with no errors
+
+**Next phase:**
+Ready for Phase 3 implementation of actual tool discovery, search, and catalog management logic.
+
+## 2026-01-24: MCP Official Source Adapter (cub-k3p.2)
+
+### Implementation Summary
+Implemented the first tool source adapter for the official MCP servers repository. The adapter fetches and parses the README from github.com/modelcontextprotocol/servers to extract MCP server metadata.
+
+### Key Technical Decisions
+1. **README Parsing**: Used regex patterns to parse markdown list entries with format `- **[Name](url)** - description`
+2. **Emoji Handling**: Extended regex to handle emoji variation selectors (\uFE00-\uFE0F) for proper section name extraction
+3. **Error Handling**: Gracefully handle network errors by returning empty list (could also raise, left as design choice)
+4. **Tool ID Format**: Slugified server names to create IDs like `mcp-official:sequential-thinking`
+5. **Source Registration**: Added import in sources/__init__.py to auto-register on module import
+
+### Challenges & Solutions
+- **Emoji parsing**: Initial regex didn't handle variation selectors (like ️ in 🎖️), expanded pattern to include \uFE00-\uFE0F range
+- **List item validation**: Had to add explicit check for "- " prefix to avoid matching bold links outside of list items
+- **Package management**: Had to use `uv` since pip wasn't available in venv - project uses uv for package management
+
+### Testing Strategy
+- Created comprehensive test suite with 17 tests
+- Used fixture file with sample README content for offline testing
+- Tested live endpoint integration separately
+- Covered edge cases: special characters in names, emoji in headers, invalid entries
+
+### Metrics
+- **Lines of Code**: ~220 (source) + ~340 (tests)
+- **Tools Discovered**: 1,378 MCP servers from official repo
+- **Test Coverage**: 17/17 passing
+- **Type Safety**: mypy strict mode passes
+- **Lint**: ruff passes with 100 char line limit
+
+### Next Steps
+This adapter serves as a reference implementation for future sources (smithery.ai, custom sources). The parsing pattern can be adapted for other markdown-based catalogs.
+
+
+## Task cub-k3p.3: Implement Smithery.ai source adapter
+
+**Status:** ✅ Complete
+
+**Implementation:**
+- Created `SmitherySource` adapter for the Smithery.ai MCP marketplace
+- Uses Smithery Registry API at https://registry.smithery.ai/servers
+- Supports pagination, search, and optional authentication via SMITHERY_API_TOKEN
+- Tool ID format: `smithery:{qualified-name}` (e.g., `smithery:weather/openweather`)
+- Install hints generated for deployed servers: `smithery install {qualified-name}`
+- Handles network errors gracefully by returning empty lists
+
+**Key Learnings:**
+1. **API Discovery:** Found official API documentation via web search instead of relying on web scraping
+2. **Qualified Names:** Smithery uses qualified names with slashes (author/server-name) which required proper ID validation
+3. **Pagination Pattern:** Implemented similar pagination pattern as MCP Official source
+4. **Optional Auth:** API works without authentication but supports bearer tokens for higher rate limits
+5. **Type Safety:** Used `dict[str, Any]` for API response types to satisfy mypy strict mode
+
+**Testing:**
+- 17 comprehensive tests covering all functionality
+- Mock API responses with realistic data
+- Test coverage: pagination, authentication, error handling, edge cases
+- All tests passing with mypy --strict and ruff linting
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/smithery.py` - Source adapter implementation
+- `tests/test_toolsmith/test_sources/test_smithery.py` - Test suite
+- `tests/test_toolsmith/fixtures/smithery_response.json` - Mock API fixture
+
+**Files Modified:**
+- `src/cub/core/toolsmith/sources/__init__.py` - Registered new source
+
+**Acceptance Criteria:** ✅ All met
+- [x] `SmitherySource` is registered as "smithery"
+- [x] `fetch_tools()` returns list of Tool objects
+- [x] Each Tool has: id, name, source="smithery", source_url, tool_type=MCP_SERVER
+- [x] Description and install_hint populated when available
+- [x] `search_live()` searches tools by query
+- [x] Handles network errors gracefully
+- [x] Test with fixture verifies parsing
+- [x] mypy passes with strict mode
+
+**Resources:**
+- Smithery Registry API: https://smithery.ai/docs/use/registry
+- API Response Format: https://smithery.ai/docs/concepts/registry_get_server
+
+## Task cub-k3p.4: Implement Glama.ai source adapter
+
+**Status:** ✅ Complete
+
+**Implementation:**
+- Created `GlamaSource` adapter for Glama.ai MCP directory (17,155+ servers)
+- Uses Glama public API at https://glama.ai/api/mcp/v1/servers
+- Supports cursor-based pagination (not page numbers like Smithery)
+- Tool ID format: `glama:{server-id}` (e.g., `glama:wl91nncvbq`)
+- Install hints include repository URLs when available
+- Handles network errors gracefully by returning empty lists
+
+**Key Learnings:**
+1. **API Discovery:** Found API by inspecting individual server pages, which revealed the `/api/mcp/v1/servers/{namespace}/{slug}` endpoint
+2. **Cursor Pagination:** Glama uses cursor-based pagination (`endCursor`/`startCursor`) rather than page numbers
+3. **Server IDs:** Unlike Smithery's qualified names, Glama uses unique server IDs (e.g., `wl91nncvbq`)
+4. **Attributes as Tags:** Glama's "attributes" field (e.g., `hosting:remote-capable`) maps well to tags
+5. **Optional Auth:** Like Smithery, API works without authentication but supports GLAMA_API_TOKEN env var
+
+**Testing:**
+- 18 comprehensive tests covering all functionality
+- Mock API responses with realistic data from live API
+- Test coverage: cursor pagination, search, authentication, error handling, edge cases
+- All tests passing with mypy --strict and ruff linting
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/glama.py` - Source adapter implementation
+- `tests/test_toolsmith/test_sources/test_glama.py` - Test suite
+- `tests/test_toolsmith/fixtures/glama_response.json` - Mock API fixture
+
+**Files Modified:**
+- `src/cub/core/toolsmith/sources/__init__.py` - Registered new source
+
+**Acceptance Criteria:** ✅ All met
+- [x] `GlamaSource` is registered as "glama"
+- [x] `fetch_tools()` returns list of Tool objects
+- [x] Each Tool has: id, name, source="glama", source_url, tool_type=MCP_SERVER
+- [x] `search_live()` searches tools by query
+- [x] Handles network errors gracefully
+- [x] Test with fixture verifies parsing
+- [x] mypy passes with strict mode
+
+**Resources:**
+- Glama MCP Directory: https://glama.ai/mcp/servers
+- API Endpoint: https://glama.ai/api/mcp/v1/servers
+
+
+## 2026-01-24 - cub-k3p.5: Implement SkillsMP source adapter
+
+### Task Completed
+Implemented the first SKILL type source adapter for skillsmp.com, a Claude skills marketplace.
+
+### Key Learnings
+
+**1. Researching API-Protected Sites**
+- SkillsMP.com is protected by Cloudflare, blocking direct curl/WebFetch access
+- Web search is invaluable for finding API documentation and structure
+- Searched for "skillsmp.com API endpoint skills list JSON 2026" to find docs
+- Found API endpoints: /api/v1/skills/search and /api/v1/skills/ai-search
+- Even when can't access the site, search results reveal API structure
+
+**2. API Design Patterns from Web Search**
+- SkillsMP follows standard REST patterns: keyword search + AI semantic search
+- Uses Bearer token authentication (optional but recommended for rate limits)
+- Pagination with hasNext boolean (simpler than cursor-based)
+- Response format: {skills: [...], pagination: {page, limit, total, hasNext}}
+
+**3. SKILL vs MCP_SERVER Tool Type**
+- First implementation of ToolType.SKILL (previous sources were MCP_SERVER)
+- Skills install differently: `claude skill add {repo-url}` vs server install commands
+- Tool ID format remains consistent: `skillsmp:{slug}`
+- Skills have categories and tags more prominently than servers
+
+**4. Fixture Design for Skills API**
+- Created realistic fixture with 5 diverse skills (docs, testing, DB, review, devops)
+- Skills have: id, slug, name, description, url, repository, category, tags, author, stars
+- Repository object contains url and optional path to SKILL.md
+- createdAt timestamps in ISO 8601 format for datetime parsing tests
+- Some fields optional (like repository) to test graceful degradation
+
+**5. Test Coverage for New Source Type**
+- 20 comprehensive tests covering all aspects
+- Verified ToolType.SKILL is set correctly (critical for first SKILL source)
+- Tested category/tags merging into tool tags
+- Tested author attribution in tags (author:username pattern)
+- Tested both repository-based and URL-based install hints
+- All tests pass, mypy strict mode passes, ruff linter passes
+
+**6. Error Handling Best Practices**
+- Gracefully handle network errors by returning empty list
+- Parse timestamps with fallback to current time on errors
+- Handle missing optional fields (repository, category, tags, author)
+- Default URL generation when missing: skillsmp.com/skills/{slug}
+
+### Implementation Summary
+
+Created complete source adapter with:
+- SkillsMPSource class in src/cub/core/toolsmith/sources/skillsmp.py
+- Registered in __init__.py alongside glama, mcp-official, smithery
+- Comprehensive tests in tests/test_toolsmith/test_sources/test_skillsmp.py
+- Realistic fixture in tests/test_toolsmith/fixtures/skillsmp_response.json
+- All acceptance criteria met: registered as "skillsmp", returns SKILL tools, handles errors
+- Tool metadata: id, name, source, source_url, tool_type=SKILL, description, install_hint, tags
+- Pagination support, authentication support, search_live implementation
+
+### Resources Used
+
+Sources consulted during research:
+- [Agent Skills Marketplace - SkillsMP](https://skillsmp.com/)
+- [About SkillsMP](https://skillsmp.com/about)
+- [API Documentation - SkillsMP](https://skillsmp.com/docs/api)
+- [SkillsMP Marketplace Guide](https://smartscope.blog/en/blog/skillsmp-marketplace-guide/)
+- [GitHub - anthropics/skills](https://github.com/anthropics/skills)
+
+
+## 2026-01-24: Implemented ClawdHub Source Adapter (cub-k3p.6)
+
+### What Was Done
+- Created ClawdHubSource adapter for Anthropic's official skills repository
+- Implemented GitHub API integration to list skill directories
+- Built YAML frontmatter parser for SKILL.md files
+- Implemented search_live() with case-insensitive filtering
+- Created comprehensive test suite (21 tests) with fixtures
+- All acceptance criteria met:
+  - Source registered as "clawdhub"
+  - fetch_tools() returns Tool objects with correct metadata
+  - Tool IDs follow format: clawdhub:{skill-slug}
+  - search_live() searches by name, description, and ID
+  - Network errors handled gracefully
+  - Tests verify parsing logic with fixtures
+  - mypy strict mode passes
+
+### Key Design Decisions
+- ClawdHub refers to anthropics/skills GitHub repository (not a separate service)
+- Used GitHub Contents API for listing directories
+- Fetched individual SKILL.md files via raw.githubusercontent.com
+- Simple YAML frontmatter parser (key: value pairs)
+- Tag extraction from hyphenated/underscored skill slugs
+- Graceful degradation on network errors (returns empty list)
+
+### Technical Implementation
+- Pattern matching for YAML frontmatter: `^---\s*\n(.*?)\n---`
+- Directory filtering: only process items with `type == "dir"`
+- Fallback descriptions when frontmatter missing
+- Comprehensive mocking strategy in tests for API/file responses
+
+### Learnings
+- GitHub API structure for repository contents
+- YAML frontmatter parsing without heavy dependencies
+- Importance of test fixtures for external API responses
+- Mock setup patterns for chained HTTP requests
+- Value of testing edge cases (no frontmatter, network errors, non-directories)
+
+### Test Coverage
+- Source registration and name property
+- Successful tool fetching with multiple skills
+- Network error handling
+- Directory filtering (skips files)
+- Frontmatter parsing (basic, extra fields, missing, comments)
+- Tag extraction (simple, hyphenated, underscored, mixed)
+- Skill metadata fetching
+- Live search (by name, description, case-insensitive, no matches)
+- Required fields validation
+
+### Files Created
+- src/cub/core/toolsmith/sources/clawdhub.py (268 lines)
+- tests/test_toolsmith/test_sources/test_clawdhub.py (536 lines)
+- tests/test_toolsmith/fixtures/clawdhub_api_response.json
+- tests/test_toolsmith/fixtures/clawdhub_pdf_skill.md
+- tests/test_toolsmith/fixtures/clawdhub_docx_skill.md
+- tests/test_toolsmith/fixtures/clawdhub_webapp_testing_skill.md
+
+### Duration
+~2 hours (as estimated)
+
+
+## 2026-01-24 - Task cub-v9s.1: Implement ToolsmithService sync logic
+
+### What was implemented
+- Created `ToolsmithService` class that orchestrates catalog sync operations
+- Added `SyncResult` model to track tools_added, tools_updated, and errors
+- Added `CatalogStats` model for catalog statistics (total_tools, by_source, by_type, etc.)
+- Implemented `sync()` method with:
+  - Support for syncing all sources or specific sources by name
+  - Update-or-insert merge logic using tool ID as unique key
+  - Automatic last_seen timestamp updates
+  - Graceful error handling (continues with other sources on failure)
+  - sources_synced tracking that preserves history across syncs
+- Implemented `stats()` method for catalog statistics
+- Created comprehensive test suite with 11 test cases covering all edge cases
+- Updated __init__.py to export new models and service
+
+### Design decisions
+- Used tool ID as the unique key for merge logic (not name or other fields)
+- Errors are collected but don't stop the sync process (fail-fast would prevent partial syncs)
+- sources_synced is a union of all previously synced sources (preserves history)
+- last_seen timestamp is updated on every sync to track when tools were last verified
+- Service takes sources as a parameter (dependency injection) for testability
+- SyncResult reports both successes (tools_added, tools_updated) and failures (errors)
+
+### Testing approach
+- Created MockSource class for testing without real API calls
+- Tested all sync scenarios: all sources, specific sources, updates, errors
+- Verified timestamp handling and sources_synced merging
+- Tested stats generation with various catalog states
+- All 102 toolsmith tests pass
+
+### Lessons learned
+- The pattern of storing sources as a Sequence[ToolSource] enables easy testing with mocks
+- Collecting errors in a list allows the sync to continue and report all issues at once
+- Using update-or-insert (upsert) pattern simplifies the merge logic
+- Tracking both added and updated counts helps users understand sync impact
+- Type checking with strict mode caught several edge cases early
+
+## 2026-01-24: Implemented search with live fallback (cub-v9s.2)
+
+### What we built
+- Added `search(query, live_fallback=True)` method to ToolsmithService
+- Smart search that tries local catalog first, then falls back to live sources
+- Deduplication by tool ID when merging results from multiple sources
+- Graceful error handling for source failures
+- Full offline mode support via `live_fallback=False`
+
+### Key design decisions
+1. **Local-first approach**: Always check local catalog before hitting live sources
+   - Better performance (no network calls if local results exist)
+   - Works offline by default for synced tools
+   - Predictable behavior (local results are deterministic)
+
+2. **Opt-out fallback**: `live_fallback=True` by default
+   - Users get best experience (finds tools even if not synced)
+   - Can disable for strict offline mode
+   - Follows principle of least surprise
+
+3. **Deduplication by ID**: Use dict keyed by tool.id
+   - Prevents duplicate tools from multiple sources
+   - First-wins strategy (simple and predictable)
+   - Could enhance later to prefer local over live
+
+4. **Silent error handling**: Don't raise on source failures during search
+   - Search is user-facing, not critical infrastructure
+   - Better to return partial results than fail completely
+   - Follows existing pattern from sync() method
+
+### Testing approach
+- 9 comprehensive test cases covering all scenarios
+- Enhanced MockSource to support search_live with filtering
+- Tested both happy paths and error conditions
+- All tests pass, mypy strict mode passes, linter clean
+
+### What worked well
+- Building on existing patterns (store.search, source.search_live)
+- Clear separation of concerns (local vs live search)
+- Simple, readable implementation (~30 LOC)
+
+### What to improve
+- Could add logging for source errors (currently silent)
+- Could optionally cache live results in catalog
+- Could prefer local tools over live when deduplicating
+
+### Time estimate: 1.5h actual time spent
+- Reading and understanding codebase: 15 min
+- Implementation: 20 min
+- Writing comprehensive tests: 30 min
+- Documentation and cleanup: 15 min
+- Running feedback loops: 10 min
+
+
+## Task cub-v9s.3: Wire CLI commands to service
+
+**Completed:** Successfully wired all CLI commands to ToolsmithService.
+
+**Implementation:**
+- Created `_get_service()` helper to instantiate service with default store and all sources
+- Implemented `sync` command:
+  - Uses Rich Progress spinner during sync operation
+  - Displays timing, tools added/updated counts
+  - Shows errors with user-friendly formatting
+  - Supports --source filtering
+- Implemented `search` command:
+  - Uses service.search() with live_fallback
+  - Displays results in Rich Table format
+  - Supports --source filtering for results
+  - Shows "no results" message when appropriate
+- Implemented `stats` command:
+  - Displays total tools and last sync timestamp
+  - Shows tools by source and type in separate Rich Tables
+  - Lists synced sources
+  - Provides helpful message when catalog is empty
+
+**Key Decisions:**
+- Used Rich Progress with SpinnerColumn for sync operation feedback
+- Used Rich Table for search results and stats display
+- Added timing information to sync output
+- Error handling exits with code 1 when errors occur
+- All output follows existing Cub CLI patterns (ledger.py)
+
+**Quality Checks:**
+- ✓ mypy --strict passes
+- ✓ ruff linting passes (fixed line length issues)
+- ✓ All existing toolsmith tests pass (111/111)
+- ✓ Manual testing of all three commands successful
+
+**Notes:**
+- The --live flag currently still uses live_fallback=True (searches local first)
+- To make --live skip local search entirely would require service API changes
+- Source filtering in search happens client-side after service returns results
+- Could be optimized in future to filter at service layer
+
+## 2026-01-24 - Task cub-v9s.4: Integration Tests for Toolsmith
+
+**What I Did:**
+Fixed existing integration tests that were incomplete and had critical bugs preventing them from running.
+
+**Key Challenges:**
+1. **Infinite Loop Bug**: Glama fixture had `hasNextPage: true`, causing endless pagination
+2. **Mock Factory Gaps**: GitHub API calls weren't properly mocked - needed separate handling for:
+   - api.github.com (JSON directory listing)
+   - raw.githubusercontent.com (text/markdown content)
+3. **Error Handling Tests**: Initially tested httpx.get failures, but sources handle those gracefully
+   - Solution: Mock source.fetch_tools() to raise exceptions instead
+
+**Solution Approach:**
+1. Fixed Glama pagination fixture (hasNextPage: false)
+2. Enhanced mock factory with specific GitHub URL patterns
+3. Redesigned error tests to properly test service-level exception handling
+4. All 17 integration tests now pass in <1s
+
+**Learnings:**
+- When sources handle errors gracefully (return empty lists), service-level tests need to mock the source methods directly
+- Pagination bugs in fixtures can cause infinite loops - always verify test data
+- Multi-call sources (like ClawdHub) need careful mock factory design to handle different URL patterns
+- Integration tests should use comprehensive fixtures that match real API responses
+
+**Outcome:**
+✅ All acceptance criteria met
+✅ 17 integration tests passing
+✅ Full workflow coverage: sync, search, CLI, error handling
+✅ Clean lint and type checking
+
+## 2026-01-24 - Task cub-q2w.2: Error Handling for Toolsmith
+
+### What We Built
+Implemented comprehensive error handling throughout the Toolsmith component:
+
+1. **Custom Exception Hierarchy**
+   - `ToolsmithError` base class with message and context kwargs
+   - `SourceError` for source-specific failures with source name
+   - `NetworkError` for HTTP/network issues with URL, status, timeout
+   - `ParseError` for JSON/validation failures with field info
+   - All exceptions preserve original via `__cause__`
+
+2. **Source Adapter Updates**
+   - Wrapped all httpx exceptions (TimeoutException, HTTPStatusError, RequestError)
+   - Added context to every error (URL, status code, timeout values)
+   - Graceful degradation: partial results on pagination failure
+   - clawdhub: return None for missing files instead of raising
+
+3. **Service Layer Improvements**
+   - Added logging (info for operations, error/warning for failures)
+   - Separate handling for SourceError vs unexpected exceptions
+   - Continue with other sources when one fails
+   - Detailed error messages in SyncResult.errors
+
+4. **CLI Enhancements**
+   - `--debug` flag on all commands (sync, search, stats)
+   - setup_logging() configures logging level and format
+   - handle_error() displays user-friendly messages with context
+   - Shows "Run with --debug" hint when not in debug mode
+   - Warnings instead of errors for partial sync success
+
+### Key Learnings
+
+1. **Exception Design Patterns**
+   - Store context as kwargs, not in message string
+   - Use `from e` to preserve stack trace via __cause__
+   - Inheritance hierarchy: general → specific (ToolsmithError → SourceError → NetworkError)
+   - Override `__str__()` to format user-friendly messages
+
+2. **Error Handling Strategy**
+   - Catch specific exceptions, not generic Exception
+   - Re-raise if no progress made, return partial results otherwise
+   - Log at appropriate levels: debug, info, warning, error
+   - Provide actionable context (what failed, why, where)
+
+3. **User Experience**
+   - User-friendly messages: "Request timed out" not "TimeoutException"
+   - Show context without overwhelming: URL, status code, not full traceback
+   - Graceful degradation: partial success is better than total failure
+   - Debug mode for power users who need full details
+
+4. **Testing Strategy**
+   - Mock httpx responses in tests
+   - Test both success and failure paths
+   - Verify exceptions have correct context
+   - Check that __cause__ chain is preserved
+
+### Patterns to Reuse
+
+```python
+# Exception definition with context
+class NetworkError(SourceError):
+    def __init__(self, source: str, message: str, **context: object) -> None:
+        super().__init__(source, message, **context)
+
+# Wrapping httpx exceptions
+try:
+    response = httpx.get(url, timeout=10.0)
+    response.raise_for_status()
+except httpx.TimeoutException as e:
+    raise NetworkError(
+        "source-name",
+        "Request timed out",
+        url=url,
+        timeout=10.0,
+    ) from e
+
+# Graceful degradation in pagination
+try:
+    page_data = fetch_page(page)
+    all_results.extend(page_data)
+except (NetworkError, ParseError):
+    if all_results:
+        break  # Return what we have
+    raise  # Re-raise if nothing collected
+
+# CLI error handling
+try:
+    result = service.sync()
+except ToolsmithError as e:
+    # Display user-friendly error with context
+    handle_error(e, "sync")
+    raise typer.Exit(1)
+```
+
+### Stats
+- 10 files changed
+- 869 insertions, 240 deletions
+- All mypy checks pass (strict mode)
+- All 111 tests pass
+- All ruff lint checks pass
+
+
+## 2026-01-24: Retry Logic Implementation (cub-q2w.3)
+
+Successfully implemented retry logic with exponential backoff for HTTP requests in toolsmith.
+
+### Key Decisions
+- Created dedicated `src/cub/core/toolsmith/http.py` module for reusable retry utilities
+- Used decorator pattern (`@with_retry`) for clean, composable retry logic
+- Implemented exponential backoff with jitter to prevent thundering herd
+- Set sensible defaults: 3 retries, 1s base delay, 2x multiplier, 30s timeout
+
+### Error Classification Strategy
+- Retryable: 5xx server errors, timeouts, connection errors, network errors, generic httpx.HTTPError
+- Non-retryable: 4xx client errors (404, 401, 400, etc.)
+- Order matters: Check HTTPStatusError (4xx vs 5xx) before generic RequestError/HTTPError
+
+### Implementation Pattern  
+- Added private `_make_request()` methods to source adapters with `@with_retry` decorator
+- Kept existing error handling in place - retry logic complements, doesn't replace
+- Retry logic logs at INFO level for visibility without being too noisy
+
+### Testing Approach
+- Comprehensive unit tests (30 tests) covering config, error classification, retry behavior
+- Mock-based testing with careful attention to Mock object attributes (e.g., __name__)
+- Verified exponential backoff timing with minimal delays and no jitter
+- All tests pass mypy --strict and ruff linting
+
+### Learnings
+1. **httpx exception hierarchy**: HTTPStatusError and RequestError both inherit from HTTPError
+   - Must check HTTPStatusError first to properly handle 4xx vs 5xx
+   - Generic HTTPError catch-all is useful for unexpected transient failures
+
+2. **Decorator + logging**: Use `getattr(func, "__name__", repr(func))` to handle Mock objects in tests
+
+3. **Jitter implementation**: Random variance of ±20% prevents simultaneous retries across systems
+
+4. **Test execution time**: Default retry settings (1s, 2s, 4s) cause slow tests when errors are mocked
+   - This is expected and validates retry logic is working
+   - Integration tests now take longer (34s vs instant) when errors occur
+
+5. **Timeout strategy**: Increased from 10s to 30s across all sources for more reliable operation
+   - Transient slow responses should succeed rather than fail and retry
+
+### Future Considerations
+- Could add circuit breaker pattern for repeated failures to same endpoint
+- May want to make retry config tunable via environment variables or config file
+- Consider exponential backoff cap to prevent extremely long delays
+
+
+## 2026-01-24 - cub-q2w.5: Write user documentation
+
+### Task Completed
+Created comprehensive user-facing documentation for Toolsmith covering usage guide, command reference, configuration, troubleshooting, and common use cases.
+
+### Key Deliverables
+
+**1. Documentation Structure**
+- Created dedicated `docs/toolsmith.md` (664 lines, ~15KB)
+- Added Toolsmith section to main README.md
+- Quick start examples for new users
+- Complete CLI command reference with all options explained
+
+**2. Command Reference Documentation**
+Each command (`sync`, `search`, `stats`) includes:
+- Full usage syntax with all options
+- Multiple realistic examples
+- Expected output for each command
+- When to use each command
+- Best practices for usage
+
+**3. Troubleshooting Guide**
+Comprehensive section covering 6+ common error scenarios:
+- Empty catalog (no tools found) - diagnosis and fix
+- Network failures and timeouts - retry strategies
+- Search returning too many results - filtering strategies
+- Tool not found scenarios - live search fallback
+- Database corruption - recovery procedures
+- Sync performance issues - optimization tips
+
+Each troubleshooting entry includes:
+- Clear problem statement
+- Root cause explanation
+- Step-by-step solutions
+- Expected outcomes
+
+**4. Configuration & Setup**
+- Catalog location and override options
+- Environment variables explained
+- Configured sources documented
+- File locations reference
+- Default settings guide
+
+**5. Use Cases & Examples**
+- Finding tools for specific tasks
+- Discovering tools from specific providers
+- Updating and maintaining catalog
+- Researching available tools
+- Realistic search workflows
+
+**6. Quick Reference**
+- Command cheat sheet
+- File locations
+- Environment setup
+- Version checking
+
+### Technical Quality
+- All 141 Toolsmith tests pass
+- Code passes ruff linting
+- mypy type checking: no issues
+- Documentation follows Markdown best practices
+- Examples use realistic command output
+
+### Key Learnings
+
+**1. User Documentation Scope**
+Creating comprehensive user docs requires thinking through:
+- New user onboarding (quick start, installation)
+- Command reference (every option, every flag)
+- Real-world examples (not just happy path)
+- Troubleshooting (actual error messages users encounter)
+- Advanced features (for power users)
+
+**2. Effective Troubleshooting Guides**
+Good troubleshooting documentation should:
+- Start with clear problem statement
+- Explain root cause (why it happened)
+- Provide diagnostic steps (how to identify)
+- Offer multiple solutions (when appropriate)
+- Include recovery procedures (worst case)
+- Show expected output (what success looks like)
+
+**3. Documentation Discoverability**
+- Linked from main README (quick reference section)
+- Added to `.cub` navigation
+- Clear file structure (docs/ directory)
+- Cross-referenced in related docs
+- Integrated help system ready
+
+### What Worked Well
+1. Systematic approach: Quick start → Commands → Config → Troubleshooting
+2. Real output examples - users can recognize their own errors
+3. Multiple solutions for common issues
+4. Progressive depth (quick start → detailed reference → advanced)
+5. Clear section organization with table of contents
+
+### Future Improvements
+- Add interactive troubleshooting quiz
+- Create video tutorials for common workflows
+- Build searchable documentation index
+- Add performance benchmarks
+- Document tool evaluation scoring rubric
+- Create integration guides for specific tools
+
+### Related Files
+- `docs/toolsmith.md` - Main user documentation
+- `README.md` - Added Toolsmith section
+- `src/cub/cli/toolsmith.py` - CLI implementation
+- `tests/test_toolsmith*.py` - All tests passing
+
+### Commit
+```
+task(cub-q2w.5): Write user documentation
+- Created comprehensive docs/toolsmith.md
+- Added README.md section with quick links
+- All tests pass (141 toolsmith tests)
+- Code passes linting and type checking
+```
+
+
+## 2026-01-24: Test Coverage Task (cub-q2w.6)
+
+Successfully achieved 80%+ test coverage on all core Toolsmith modules, improving overall coverage from 82% to 91%.
+
+### Key Learnings
+
+1. **Retry Decorator and Test Mocking**: The @with_retry decorator caused tests to fail because:
+   - It retries network errors 3 times before re-raising the exception
+   - Tests were directly calling source methods without mocking time.sleep
+   - Solution: Mock time.sleep to make retries instant and update tests to expect the correct exception types (NetworkError instead of empty lists)
+
+2. **Exception Hierarchy in httpx**: The sources were catching specific httpx exception types (TimeoutException, HTTPStatusError, RequestError) but NOT the base httpx.HTTPError. The retry decorator can raise the generic HTTPError after retries are exhausted. Solution: Add httpx.HTTPError to the exception handlers.
+
+3. **Test-Driven Coverage**: Creating dedicated test files for each module (test_models.py, test_http.py, test_base.py) was more effective than trying to increase coverage through integration tests. This also improved code quality by testing edge cases and error paths.
+
+4. **Pydantic Validation Testing**: Testing Pydantic model validators requires using pytest.raises(ValidationError) and matching against the error message. The validators are in @field_validator decorated methods and test all edge cases (empty strings, invalid types, boundary conditions).
+
+5. **RetryConfig Edge Cases**: Testing retry logic required:
+   - Mocking time.sleep to avoid delays
+   - Testing both retryable (5xx, timeout) and non-retryable (4xx) errors
+   - Verifying exponential backoff with and without jitter
+   - Ensuring negative delay values are clamped to 0
+
+### Coverage Improvements
+
+| Module | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| models.py | 68% | 93% | +25% |
+| http.py | 68% | 94% | +26% |
+| base.py | 74% | 91% | +17% |
+| exceptions.py | 57% | 87% | +30% |
+| service.py | 92% | 92% | 0% (already good) |
+| store.py | 91% | 91% | 0% (already good) |
+| **Overall** | **82%** | **91%** | **+9%** |
+
+### Test Suite Stats
+
+- Total tests: 166 (added 56 new tests)
+- New test files: 3 (test_models.py, test_http.py, test_base.py)
+- Fixed failing tests: 12 (network error handling)
+- All tests pass ✅
+- Typecheck passes ✅  
+- Lint passes ✅
 

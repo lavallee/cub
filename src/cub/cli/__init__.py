@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
+from cub.core.config.env import load_layered_env
 from cub.cli import (
     audit,
     capture,
@@ -28,6 +29,8 @@ from cub.cli import (
     stage,
     status,
     task,
+    toolsmith,
+    workbench,
     uninstall,
     update,
     upgrade,
@@ -70,6 +73,10 @@ def main(
 
     A CLI tool that wraps AI coding assistants for autonomous task execution.
     """
+    # Load layered env files early so API keys etc. are available to all commands.
+    # Precedence: OS env > project .env > user .env
+    load_layered_env()
+
     # Store debug flag in context for subcommands
     ctx.obj = {"debug": debug}
 
@@ -147,6 +154,8 @@ app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
+app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_ROADMAP)
+app.add_typer(workbench.app, name="workbench", rich_help_panel=PANEL_ROADMAP)
 
 
 # =============================================================================
