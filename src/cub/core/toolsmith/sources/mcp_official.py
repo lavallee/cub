@@ -23,6 +23,7 @@ import httpx
 from pydantic import ValidationError
 
 from cub.core.toolsmith.exceptions import NetworkError, ParseError
+from cub.core.toolsmith.http import with_retry
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -75,15 +76,14 @@ class MCPOfficialSource:
             ParseError: If README parsing fails
         """
         try:
-            response = httpx.get(self.README_URL, timeout=10.0, follow_redirects=True)
-            response.raise_for_status()
+            response = self._fetch_readme()
             readme_content = response.text
         except httpx.TimeoutException as e:
             raise NetworkError(
                 "mcp-official",
                 "Request timed out while fetching MCP official README",
                 url=self.README_URL,
-                timeout=10.0,
+                timeout=30.0,
             ) from e
         except httpx.HTTPStatusError as e:
             raise NetworkError(
@@ -107,6 +107,26 @@ class MCPOfficialSource:
                 f"Failed to parse README content: {e}",
                 url=self.README_URL,
             ) from e
+
+    @with_retry(max_retries=3, base_delay=1.0, multiplier=2.0)
+    def _fetch_readme(self) -> httpx.Response:
+        """
+        Fetch README.md from GitHub with retry logic.
+
+        Retries on transient errors (5xx, timeout, connection errors).
+        Does not retry on 4xx errors (client errors).
+
+        Returns:
+            HTTP response object
+
+        Raises:
+            httpx.HTTPStatusError: On HTTP errors
+            httpx.TimeoutException: On timeout
+            httpx.RequestError: On network errors
+        """
+        response = httpx.get(self.README_URL, timeout=30.0, follow_redirects=True)
+        response.raise_for_status()
+        return response
 
     def search_live(self, query: str) -> list[Tool]:
         """

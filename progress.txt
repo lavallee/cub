@@ -6713,3 +6713,106 @@ Fixed existing integration tests that were incomplete and had critical bugs prev
 ✅ 17 integration tests passing
 ✅ Full workflow coverage: sync, search, CLI, error handling
 ✅ Clean lint and type checking
+
+## 2026-01-24 - Task cub-q2w.2: Error Handling for Toolsmith
+
+### What We Built
+Implemented comprehensive error handling throughout the Toolsmith component:
+
+1. **Custom Exception Hierarchy**
+   - `ToolsmithError` base class with message and context kwargs
+   - `SourceError` for source-specific failures with source name
+   - `NetworkError` for HTTP/network issues with URL, status, timeout
+   - `ParseError` for JSON/validation failures with field info
+   - All exceptions preserve original via `__cause__`
+
+2. **Source Adapter Updates**
+   - Wrapped all httpx exceptions (TimeoutException, HTTPStatusError, RequestError)
+   - Added context to every error (URL, status code, timeout values)
+   - Graceful degradation: partial results on pagination failure
+   - clawdhub: return None for missing files instead of raising
+
+3. **Service Layer Improvements**
+   - Added logging (info for operations, error/warning for failures)
+   - Separate handling for SourceError vs unexpected exceptions
+   - Continue with other sources when one fails
+   - Detailed error messages in SyncResult.errors
+
+4. **CLI Enhancements**
+   - `--debug` flag on all commands (sync, search, stats)
+   - setup_logging() configures logging level and format
+   - handle_error() displays user-friendly messages with context
+   - Shows "Run with --debug" hint when not in debug mode
+   - Warnings instead of errors for partial sync success
+
+### Key Learnings
+
+1. **Exception Design Patterns**
+   - Store context as kwargs, not in message string
+   - Use `from e` to preserve stack trace via __cause__
+   - Inheritance hierarchy: general → specific (ToolsmithError → SourceError → NetworkError)
+   - Override `__str__()` to format user-friendly messages
+
+2. **Error Handling Strategy**
+   - Catch specific exceptions, not generic Exception
+   - Re-raise if no progress made, return partial results otherwise
+   - Log at appropriate levels: debug, info, warning, error
+   - Provide actionable context (what failed, why, where)
+
+3. **User Experience**
+   - User-friendly messages: "Request timed out" not "TimeoutException"
+   - Show context without overwhelming: URL, status code, not full traceback
+   - Graceful degradation: partial success is better than total failure
+   - Debug mode for power users who need full details
+
+4. **Testing Strategy**
+   - Mock httpx responses in tests
+   - Test both success and failure paths
+   - Verify exceptions have correct context
+   - Check that __cause__ chain is preserved
+
+### Patterns to Reuse
+
+```python
+# Exception definition with context
+class NetworkError(SourceError):
+    def __init__(self, source: str, message: str, **context: object) -> None:
+        super().__init__(source, message, **context)
+
+# Wrapping httpx exceptions
+try:
+    response = httpx.get(url, timeout=10.0)
+    response.raise_for_status()
+except httpx.TimeoutException as e:
+    raise NetworkError(
+        "source-name",
+        "Request timed out",
+        url=url,
+        timeout=10.0,
+    ) from e
+
+# Graceful degradation in pagination
+try:
+    page_data = fetch_page(page)
+    all_results.extend(page_data)
+except (NetworkError, ParseError):
+    if all_results:
+        break  # Return what we have
+    raise  # Re-raise if nothing collected
+
+# CLI error handling
+try:
+    result = service.sync()
+except ToolsmithError as e:
+    # Display user-friendly error with context
+    handle_error(e, "sync")
+    raise typer.Exit(1)
+```
+
+### Stats
+- 10 files changed
+- 869 insertions, 240 deletions
+- All mypy checks pass (strict mode)
+- All 111 tests pass
+- All ruff lint checks pass
+

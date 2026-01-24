@@ -23,6 +23,7 @@ import httpx
 from pydantic import ValidationError
 
 from cub.core.toolsmith.exceptions import NetworkError, ParseError
+from cub.core.toolsmith.http import with_retry
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -146,6 +147,35 @@ class SkillsMPSource:
         tools, _ = self._fetch_page(query=query, page=1, limit=50)
         return tools
 
+    @with_retry(max_retries=3, base_delay=1.0, multiplier=2.0)
+    def _make_request(
+        self, url: str, params: dict[str, str], headers: dict[str, str]
+    ) -> httpx.Response:
+        """
+        Make HTTP GET request with retry logic.
+
+        Retries on transient errors (5xx, timeout, connection errors).
+        Does not retry on 4xx errors (client errors).
+
+        Args:
+            url: URL to request
+            params: Query parameters
+            headers: Request headers
+
+        Returns:
+            HTTP response object
+
+        Raises:
+            httpx.HTTPStatusError: On HTTP errors
+            httpx.TimeoutException: On timeout
+            httpx.RequestError: On network errors
+        """
+        response = httpx.get(
+            url, params=params, headers=headers, timeout=30.0, follow_redirects=True
+        )
+        response.raise_for_status()
+        return response
+
     def _fetch_page(
         self, query: str = "", page: int = 1, limit: int = 50
     ) -> tuple[list[Tool], dict[str, Any]]:
@@ -180,14 +210,11 @@ class SkillsMPSource:
         if api_token:
             headers["Authorization"] = f"Bearer {api_token}"
 
-        # Make API request
+        # Make API request with retry logic
         # Use /search endpoint for keyword search
         url = f"{self.API_BASE_URL}/skills/search"
         try:
-            response = httpx.get(
-                url, params=params, headers=headers, timeout=30.0, follow_redirects=True
-            )
-            response.raise_for_status()
+            response = self._make_request(url, params, headers)
         except httpx.TimeoutException as e:
             raise NetworkError(
                 "skillsmp",

@@ -23,6 +23,7 @@ import httpx
 from pydantic import ValidationError
 
 from cub.core.toolsmith.exceptions import NetworkError, ParseError
+from cub.core.toolsmith.http import with_retry
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -85,14 +86,13 @@ class ClawdHubSource:
         """
         url = self.API_URL
         try:
-            response = httpx.get(url, timeout=10.0, follow_redirects=True)
-            response.raise_for_status()
+            response = self._fetch_directory_listing()
         except httpx.TimeoutException as e:
             raise NetworkError(
                 "clawdhub",
                 "Request timed out while fetching skills from GitHub API",
                 url=url,
-                timeout=10.0,
+                timeout=30.0,
             ) from e
         except httpx.HTTPStatusError as e:
             raise NetworkError(
@@ -165,6 +165,49 @@ class ClawdHubSource:
             or query_lower in tool.id.lower()
         ]
 
+    @with_retry(max_retries=3, base_delay=1.0, multiplier=2.0)
+    def _fetch_directory_listing(self) -> httpx.Response:
+        """
+        Fetch directory listing from GitHub API with retry logic.
+
+        Retries on transient errors (5xx, timeout, connection errors).
+        Does not retry on 4xx errors (client errors).
+
+        Returns:
+            HTTP response object
+
+        Raises:
+            httpx.HTTPStatusError: On HTTP errors
+            httpx.TimeoutException: On timeout
+            httpx.RequestError: On network errors
+        """
+        response = httpx.get(self.API_URL, timeout=30.0, follow_redirects=True)
+        response.raise_for_status()
+        return response
+
+    @with_retry(max_retries=3, base_delay=1.0, multiplier=2.0)
+    def _fetch_skill_file(self, url: str) -> httpx.Response:
+        """
+        Fetch SKILL.md file from GitHub with retry logic.
+
+        Retries on transient errors (5xx, timeout, connection errors).
+        Does not retry on 4xx errors (client errors).
+
+        Args:
+            url: URL to SKILL.md file
+
+        Returns:
+            HTTP response object
+
+        Raises:
+            httpx.HTTPStatusError: On HTTP errors
+            httpx.TimeoutException: On timeout
+            httpx.RequestError: On network errors
+        """
+        response = httpx.get(url, timeout=30.0, follow_redirects=True)
+        response.raise_for_status()
+        return response
+
     def _fetch_skill_metadata(self, skill_slug: str, html_url: str) -> Tool | None:
         """
         Fetch metadata for a single skill by reading its SKILL.md file.
@@ -182,8 +225,7 @@ class ClawdHubSource:
         skill_md_url = f"{self.RAW_BASE_URL}/{skill_slug}/SKILL.md"
 
         try:
-            response = httpx.get(skill_md_url, timeout=10.0, follow_redirects=True)
-            response.raise_for_status()
+            response = self._fetch_skill_file(skill_md_url)
             content = response.text
         except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError):
             # Skill doesn't have SKILL.md or fetch failed - skip it
