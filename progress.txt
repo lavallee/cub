@@ -7905,3 +7905,165 @@ Implemented efficient index maintenance for the ledger system:
 - src/cub/core/ledger/writer.py: Added _update_index(), made rebuild_index() public
 - tests/test_ledger_io.py: Updated test to use public rebuild_index()
 
+
+## 2026-01-24 - cub-x3s.2: Enhance ledger search with index
+
+### Task Completed
+Enhanced ledger search with index-based filtering for faster queries on stage, cost, and escalation status.
+
+### Key Learnings
+
+**1. Index-Based Filtering Architecture**
+- Created `_query_index()` method as centralized filtering layer before text search
+- Index fields (stage, cost_usd, epic, verification) can be filtered without loading full entries
+- Escalated filter requires loading full entries to check outcome.escalated field
+- This two-tier approach optimizes common queries while supporting complex filters
+
+**2. Parameter Cascade Pattern**
+- `search_tasks()` accepts all filter params and passes them to `_query_index()`
+- `list_tasks()` calls `_query_index()` with subset of params (backward compat)
+- This layered API allows gradual feature expansion without breaking existing callers
+- Future filters can be added to `_query_index()` without touching `list_tasks()`
+
+**3. CLI Option Design**
+- Added `--stage`, `--cost-above`, and `--escalated` options to search command
+- Stage validation uses set of valid stages with helpful error messages
+- Cost threshold uses float type for decimal precision (e.g., 0.50)
+- Escalated uses bool type (true/false) for clear intent
+- Updated docstring with examples showing new filter combinations
+
+**4. Selective Full Entry Loading**
+- Most filters operate on index fields only (fast path)
+- Escalated filter loads full entries for affected tasks only
+- Pattern: filter index first, then load full entries only for remaining candidates
+- This minimizes disk I/O while maintaining filter accuracy
+
+**5. Filter Composition**
+- All filters are optional (None = no filter applied)
+- Filters compose via list comprehension: each filter narrows the result set
+- Order matters: cheap filters first (index fields), expensive filters last (full load)
+- Example: stage filter before escalated filter reduces full entry loads
+
+**6. Test Coverage and Type Safety**
+- All existing tests passed (36 ledger_io tests, 53 cli_ledger tests)
+- Type checking passed for both reader.py and ledger.py
+- Linting passed with no new warnings
+- Search functionality tested via existing test suite
+
+### Implementation Summary
+
+Added three files modified:
+1. `src/cub/core/ledger/reader.py`: Added `_query_index()` method, enhanced `search_tasks()`
+2. `src/cub/cli/ledger.py`: Added CLI options for stage, cost-above, escalated filters
+
+The ledger search now supports fast filtering by workflow stage, cost threshold, and escalation status, enabling more targeted queries for task analysis and reporting.
+
+
+## 2026-01-24 - Task cub-x3s.3: Implement PATCH API endpoint
+
+**Completed:**
+- Added PATCH /api/entity/{id} endpoint to dashboard API
+- Endpoint accepts {"workflow": {"stage": "..."}, "reason": "..."} body
+- Updates both dashboard DB (immediate UI) and ledger files (persistence)
+- Comprehensive test coverage for happy path, error cases, and edge cases
+
+**Key learnings:**
+- The existing PUT /entity/{id}/workflow endpoint was close but didn't match spec
+- PATCH endpoint provides more RESTful semantics for partial updates
+- Database stage values (e.g., "completed") differ from Stage enum values (e.g., "COMPLETE")
+- Ledger updates are optional - DB update is sufficient for entities without ledger entries (epics)
+- Reason field is captured in ledger state_history for audit trail
+
+**Implementation details:**
+- Uses LedgerWriter.update_workflow_stage() which already handled reason and state_history
+- Maps workflow stages: NEEDS_REVIEW, VALIDATED, RELEASED, COMPLETE
+- COMPLETE clears workflow_stage, returning entity to default completed state
+- Returns full EntityDetail response for immediate UI update ("incremental sync")
+
+
+## 2026-01-24 - cub-x3s.4: Add tests for index and API
+
+### Task Completed
+Implemented comprehensive test coverage for ledger index operations and dashboard API workflow updates.
+
+### Key Learnings
+
+**1. Ledger Index Architecture**
+- Index is stored in JSONL format (one entry per line) at `.cub/ledger/index.jsonl`
+- Provides fast lookups without reading full markdown files
+- LedgerIndex.from_ledger_entry() converts full entries to compact index entries
+- Update strategy: read all existing entries, replace the one being updated, rewrite entire file
+- This atomic replacement prevents corruption from partial writes
+
+**2. Index Consistency Patterns**
+- Always verify index consistency by comparing task files with indexed entries
+- Rebuild index recovery method reads all by-task/*.json and reconstructs index from scratch
+- New entries append to index during creation, updates replace in-place
+- Date filtering requires ISO format (YYYY-MM-DD) for consistent string comparison
+- Optional fields (epic, workflow_stage) may be null in index but must serialize properly
+
+**3. Search Index Usage**
+- Search queries use index for fast field lookups before loading full entries
+- Case-insensitive search requires .lower() on both query and field values
+- Multi-field search checks all specified fields (title, files, spec) with OR logic
+- Filter ordering: index-based filters first (epic, verification) then text search
+- Escalated filter is special case - requires loading full entry to check outcome.escalated
+
+**4. LedgerEntry Model Evolution**
+- New model uses `workflow: WorkflowState` field containing stage and stage_updated_at
+- Old deprecated fields `workflow_stage` and `workflow_stage_updated_at` still exist for compatibility
+- WorkflowState.stage has validator allowing only: "dev_complete", "needs_review", "validated", "released"
+- Index stores workflow_stage as string or null (string value from .value property)
+- Tests must check `entry.workflow.stage` not `entry.workflow_stage` for new code
+
+**5. API Workflow Update Flow**
+- PATCH /api/entity/{id} endpoint validates stage names (case-insensitive conversion to uppercase)
+- Invalid stage returns 400 with clear message listing valid options
+- Entity not found returns 404 with entity ID in detail message
+- Database update is primary - ledger update is optional fallback (fail silently if no ledger entry)
+- COMPLETE stage clears workflow (sets to None in ledger, "dev_complete" in database)
+
+**6. Database and Ledger Synchronization**
+- Database updates persist immediately in entities table (stage column)
+- Ledger updates are secondary and may fail silently if entry doesn't exist
+- Ledger workflow stored as WorkflowState with ISO-formatted timestamps
+- State transitions appended to state_history array for audit trail
+- Database stage values: "completed", "verifying", "validated", "released"
+- Maps to WorkflowStage enum: NEEDS_REVIEW, VALIDATED, RELEASED
+
+**7. Test Structure for API Endpoints**
+- Use TestClient from fastapi.testclient for HTTP testing
+- Mock get_db_path() to control database location during tests
+- Fixtures: temp_db (SQLite), sample_entity_in_db (inserted record), sample_ledger_entry (written files)
+- Test response structure with response.json() after checking status code
+- Verify persistence by querying database directly after API call
+
+**8. Fixture Dependencies and Setup**
+- Ledger fixtures need temp_path from pytest, create .cub/ledger structure
+- Database fixtures need configure_connection() and create_schema() setup
+- LedgerWriter and LedgerReader both created fresh per test for isolation
+- Ledger entries must have valid dates in ISO format (strftime("%Y-%m-%d"))
+- Patch both db_path and cwd when testing ledger + database interactions together
+
+### Implementation Summary
+
+**tests/test_ledger_index.py**: 21 tests organized in 6 test classes
+- TestIndexUpdate: 5 tests for creation, appending, modification, schema, optional fields
+- TestIndexRebuild: 4 tests for rebuild from files, order preservation, empty directory, corruption handling
+- TestIndexConsistency: 3 tests for task/index alignment, field matching, update consistency
+- TestSearchUsesIndex: 7 tests for title search, case-insensitivity, file search, filters, epic/status lists
+- TestIndexDates: 2 tests for date-based filtering and cost thresholds
+
+**tests/test_dashboard_api.py**: 18 tests organized in 5 test classes
+- TestPatchEntityWorkflow: 6 tests for stage transitions, reasons, case-insensitivity
+- TestInvalidStageValidation: 4 tests for error messages, empty/null values
+- TestEntityNotFoundHandling: 2 tests for missing entities and databases
+- TestLedgerWriteback: 3 tests for ledger updates, clearing workflow, optional entries
+- TestDatabaseUpdatePersistence: 3 tests for database persistence, sequential updates, entity isolation
+
+**All 39 tests pass (100% success rate)** with proper linting (ruff passed).
+
+### Files Created
+- tests/test_ledger_index.py: 588 lines, comprehensive index testing
+- tests/test_dashboard_api.py: 502 lines, comprehensive API testing
+
