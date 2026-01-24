@@ -42,12 +42,12 @@ class TestRootEndpoints:
     """Tests for root and health check endpoints."""
 
     def test_root_endpoint(self):
-        """Test GET / returns status."""
+        """Test GET / serves the frontend HTML."""
         response = client.get("/")
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "ok"
-        assert "message" in data
+        # Root endpoint now serves HTML for the SPA
+        assert "text/html" in response.headers.get("content-type", "")
+        assert "<!doctype html>" in response.text.lower()
 
     def test_health_endpoint(self):
         """Test GET /health returns healthy status."""

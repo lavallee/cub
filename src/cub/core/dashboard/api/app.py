@@ -8,11 +8,13 @@ import logging
 import traceback
 import uuid
 from enum import Enum
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from cub.core.dashboard.api.routes import artifact, board, entity, stats, views
@@ -70,16 +72,43 @@ app.include_router(stats.router, prefix="/api", tags=["stats"])
 app.include_router(views.router, prefix="/api", tags=["views"])
 
 
-@app.get("/")
-async def root() -> dict[str, str]:
-    """Root endpoint - API health check."""
-    return {"status": "ok", "message": "Cub Dashboard API"}
-
-
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Mount static files for the frontend
+# The static directory is at src/cub/dashboard/static/ relative to the project root
+static_dir = Path(__file__).parent.parent.parent.parent / "dashboard" / "static"
+if static_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str) -> FileResponse:
+        """
+        Serve the SPA for all non-API routes.
+
+        This handles client-side routing by serving index.html for all paths
+        that aren't API endpoints or static assets. The frontend router will
+        then handle the routing.
+        """
+        # Don't intercept API routes (they're already registered above)
+        if full_path.startswith("api/"):
+            # Let other handlers deal with it
+            raise HTTPException(status_code=404, detail="Not found")
+
+        # Serve index.html for SPA routing (including root path)
+        index_path = static_dir / "index.html"
+        if index_path.exists():
+            return FileResponse(index_path)
+
+        raise HTTPException(status_code=404, detail="Frontend not found")
+else:
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        """Root endpoint - API health check (static files not available)."""
+        return {"status": "ok", "message": "Cub Dashboard API (frontend not built)"}
 
 
 # Exception handlers for consistent error responses

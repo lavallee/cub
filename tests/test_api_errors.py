@@ -292,14 +292,14 @@ class TestHealthEndpoints:
     """Tests that health endpoints still work correctly."""
 
     def test_root_endpoint_success(self):
-        """Test that root endpoint returns success without error format."""
+        """Test that root endpoint serves the frontend HTML."""
         response = client.get("/")
 
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "ok"
+        # Root endpoint now serves HTML for the SPA
+        assert "text/html" in response.headers.get("content-type", "")
         # Should not have error structure
-        assert "error_code" not in data
+        assert "<!doctype html>" in response.text.lower()
 
     def test_health_endpoint_success(self):
         """Test that health endpoint returns success without error format."""
