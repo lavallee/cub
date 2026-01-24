@@ -78,7 +78,7 @@ class TestClaudeLegacyBackend:
                     "cache_read_input_tokens": 50,
                     "cache_creation_input_tokens": 10,
                 },
-                "cost_usd": 0.005,
+                "total_cost_usd": 0.005,
             }
         )
         mock_result.stderr = ""

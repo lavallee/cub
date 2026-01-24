@@ -173,7 +173,7 @@ class ClaudeLegacyBackend:
                         output_tokens=usage_data.get("output_tokens", 0),
                         cache_read_tokens=usage_data.get("cache_read_input_tokens", 0),
                         cache_creation_tokens=usage_data.get("cache_creation_input_tokens", 0),
-                        cost_usd=output_json.get("cost_usd"),
+                        cost_usd=output_json.get("total_cost_usd"),
                         estimated=False,
                     )
 
@@ -321,7 +321,8 @@ class ClaudeLegacyBackend:
 
                     elif event_type == "result":
                         # Extract cost from result event
-                        cost = event.get("cost_usd")
+                        # Claude outputs total_cost_usd, not cost_usd
+                        cost = event.get("total_cost_usd")
                         if cost is not None:
                             final_cost = cost
 
