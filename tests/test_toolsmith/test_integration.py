@@ -8,8 +8,8 @@ Tests complete workflows including:
 - Error handling with partial source failures
 """
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 from unittest.mock import Mock, patch
 
 import httpx
@@ -81,7 +81,9 @@ class TestFullSyncWorkflow:
 
         # Verify tool fields
         for tool in smithery_tools:
-            assert tool.id.startswith("smithery:"), f"Tool ID should start with 'smithery:', got: {tool.id}"
+            assert tool.id.startswith("smithery:"), (
+                f"Tool ID should start with 'smithery:', got: {tool.id}"
+            )
             assert tool.name, "Tool should have name"
             assert tool.source == "smithery", "Tool should have correct source"
             assert tool.source_url, "Tool should have source URL"
@@ -112,7 +114,9 @@ class TestFullSyncWorkflow:
 
         # Should update existing tools, not add new ones
         assert result2.tools_added == 0, "Second sync should not add new tools"
-        assert result2.tools_updated == tools_added_first, "Should update all previously added tools"
+        assert result2.tools_updated == tools_added_first, (
+            "Should update all previously added tools"
+        )
 
 
 class TestSearchWorkflow:
@@ -138,7 +142,9 @@ class TestSearchWorkflow:
 
         # Should find the tool locally
         assert len(results) > 0, "Should find tools matching 'fetch'"
-        assert any("fetch" in tool.name.lower() for tool in results), "Results should include fetch tool"
+        assert any("fetch" in tool.name.lower() for tool in results), (
+            "Results should include fetch tool"
+        )
 
     @patch("httpx.get")
     def test_search_live_fallback_when_no_local_results(
@@ -190,34 +196,39 @@ class TestErrorHandling:
         temp_store: ToolsmithStore,
         mock_http_response_factory: Callable[[str], Mock],
     ) -> None:
-        """Test that sync continues with other sources when one fails."""
-        call_count = 0
+        """Test that sync continues with other sources when one raises an exception."""
+        # Mock httpx.get to work normally
+        mock_get.side_effect = mock_http_response_factory
 
-        def failing_mock(url: str, **kwargs) -> Mock:
-            """First call fails, subsequent calls succeed."""
-            nonlocal call_count
-            call_count += 1
+        # Get all sources
+        sources = get_all_sources()
 
-            if call_count == 1:
-                # First source fails
-                raise httpx.HTTPError("Network error")
+        # Patch the first source's fetch_tools to raise an exception
+        original_fetch = sources[0].fetch_tools
 
-            # Subsequent sources succeed
-            return mock_http_response_factory(url, **kwargs)
+        def failing_fetch() -> list:
+            raise Exception("Simulated source failure")
 
-        mock_get.side_effect = failing_mock
+        sources[0].fetch_tools = failing_fetch
 
         # Create service and sync
-        sources = get_all_sources()
         service = ToolsmithService(temp_store, sources)
         result = service.sync()
 
-        # Should have some errors but still sync other sources
+        # Should have error from the failing source
         assert len(result.errors) > 0, "Should report errors from failed sources"
+        assert "Simulated source failure" in result.errors[0]
+
+        # Should still have synced from other sources
+        assert result.tools_added > 0, "Should sync tools from working sources"
 
         # Verify partial sync succeeded
         catalog = temp_store.load_catalog()
         assert isinstance(catalog.tools, list), "Catalog should be valid"
+        assert len(catalog.tools) > 0, "Should have tools from working sources"
+
+        # Restore original method
+        sources[0].fetch_tools = original_fetch
 
     @patch("httpx.get")
     def test_sync_partial_success_adds_available_tools(
@@ -227,34 +238,38 @@ class TestErrorHandling:
         mock_http_response_factory: Callable[[str], Mock],
     ) -> None:
         """Test that partial sync adds tools from working sources."""
-        call_count = 0
+        # Mock httpx.get to work normally
+        mock_get.side_effect = mock_http_response_factory
 
-        def partial_success_mock(url: str, **kwargs) -> Mock:
-            """First call succeeds, others fail."""
-            nonlocal call_count
-            call_count += 1
+        # Get all sources
+        sources = get_all_sources()
 
-            if call_count == 1:
-                # First source succeeds
-                return mock_http_response_factory(url, **kwargs)
+        # Make all sources except the first one fail
+        original_methods = []
+        for i, source in enumerate(sources):
+            if i > 0:  # Skip first source
+                original_methods.append((i, source.fetch_tools))
 
-            # Other sources fail
-            raise httpx.HTTPError("Network error")
+                def failing_fetch() -> list:
+                    raise Exception("Simulated source failure")
 
-        mock_get.side_effect = partial_success_mock
+                source.fetch_tools = failing_fetch
 
         # Sync
-        sources = get_all_sources()
         service = ToolsmithService(temp_store, sources)
         result = service.sync()
 
-        # Should have added tools from working source
+        # Should have added tools from working source (first one)
         assert result.tools_added > 0, "Should add tools from working sources"
         assert len(result.errors) > 0, "Should report errors from failed sources"
 
         # Verify catalog has tools
         catalog = temp_store.load_catalog()
         assert len(catalog.tools) > 0, "Should have tools from successful source"
+
+        # Restore original methods
+        for idx, original_method in original_methods:
+            sources[idx].fetch_tools = original_method
 
     @patch("httpx.get")
     def test_search_handles_source_errors_gracefully(
@@ -325,16 +340,22 @@ class TestCLICommands:
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
             assert "Sync complete" in result.stdout
 
-    @patch("httpx.get")
+    @patch("cub.core.toolsmith.service.ToolsmithService.sync")
     def test_sync_command_reports_errors(
         self,
-        mock_get: Mock,
+        mock_sync: Mock,
         cli_runner: CliRunner,
         tmp_path: Path,
     ) -> None:
         """Test that sync command reports errors properly."""
-        # Make all requests fail
-        mock_get.side_effect = httpx.HTTPError("Network error")
+        # Mock sync to return errors
+        from cub.core.toolsmith.models import SyncResult
+
+        mock_sync.return_value = SyncResult(
+            tools_added=0,
+            tools_updated=0,
+            errors=["Source 'smithery' failed: Network error", "Source 'glama' failed: Timeout"],
+        )
 
         # Mock store location
         with patch("cub.cli.toolsmith.ToolsmithStore.default") as mock_default:
@@ -445,7 +466,9 @@ class TestCLICommands:
 
             # Should succeed and show empty state
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
-            assert "Total tools: 0" in result.stdout or "No sources have been synced" in result.stdout
+            assert (
+                "Total tools: 0" in result.stdout or "No sources have been synced" in result.stdout
+            )
 
 
 class TestEndToEndWorkflow:

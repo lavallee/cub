@@ -9,8 +9,8 @@ Provides common fixtures used across toolsmith test modules including:
 """
 
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 from unittest.mock import Mock
 
 import pytest
@@ -145,8 +145,32 @@ def mock_http_response_factory(
         mock_resp = Mock()
         mock_resp.raise_for_status = Mock()
 
+        # Handle GitHub API calls for ClawdHub
+        if "api.github.com/repos/anthropics/skills" in url:
+            # Return directory listing for ClawdHub
+            mock_resp.json.return_value = clawdhub_response
+            return mock_resp
+
+        # Handle raw GitHub content (skill markdown files)
+        if "raw.githubusercontent.com/anthropics/skills" in url:
+            # Determine which skill markdown to return based on URL
+            if "pdf" in url:
+                fixture_path = Path(__file__).parent / "fixtures" / "clawdhub_pdf_skill.md"
+            elif "docx" in url:
+                fixture_path = Path(__file__).parent / "fixtures" / "clawdhub_docx_skill.md"
+            elif "webapp-testing" in url:
+                fixture_path = (
+                    Path(__file__).parent / "fixtures" / "clawdhub_webapp_testing_skill.md"
+                )
+            else:
+                # Default skill markdown
+                fixture_path = Path(__file__).parent / "fixtures" / "clawdhub_pdf_skill.md"
+
+            mock_resp.text = fixture_path.read_text()
+            return mock_resp
+
         # MCP Official uses text response (README from GitHub)
-        if "github" in url or "raw.githubusercontent.com" in url:
+        if "github.com/modelcontextprotocol" in url or "raw.githubusercontent.com" in url:
             mock_resp.text = mcp_official_readme
             return mock_resp
 
@@ -155,7 +179,6 @@ def mock_http_response_factory(
             "smithery.ai": smithery_response,
             "glama.ai": glama_response,
             "skillsmp.com": skillsmp_response,
-            "clawdhub.ai": clawdhub_response,
         }
 
         # Find matching domain and return response
