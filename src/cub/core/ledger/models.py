@@ -643,6 +643,196 @@ class EpicSummary(BaseModel):
         return self.tasks_total > 0 and self.tasks_completed == self.tasks_total
 
 
+class EpicSnapshot(BaseModel):
+    """Snapshot of epic state at ledger entry creation.
+
+    Captures the epic state as it existed when work began,
+    enabling drift detection if the epic definition changes.
+    """
+
+    title: str = Field(..., min_length=1, description="Epic title")
+    description: str = Field(default="", description="Epic description")
+    status: str = Field(default="open", description="Epic status")
+    priority: int = Field(default=0, description="Epic priority level")
+    labels: list[str] = Field(default_factory=list, description="Epic labels/tags")
+    created_at: datetime | None = Field(default=None, description="Epic creation time")
+    captured_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When snapshot was captured (UTC)",
+    )
+
+
+class EpicAggregates(BaseModel):
+    """Computed aggregates from child task ledger entries.
+
+    Provides project-level visibility into completion, cost, and quality metrics
+    derived from all tasks within an epic.
+    """
+
+    # Task completion metrics
+    total_tasks: int = Field(default=0, ge=0, description="Total number of tasks in epic")
+    tasks_completed: int = Field(default=0, ge=0, description="Number of completed tasks")
+    tasks_successful: int = Field(
+        default=0, ge=0, description="Number of successfully completed tasks"
+    )
+    tasks_failed: int = Field(default=0, ge=0, description="Number of failed tasks")
+
+    # Cost metrics
+    total_cost_usd: float = Field(default=0.0, ge=0.0, description="Total cost across all tasks")
+    avg_cost_per_task: float = Field(default=0.0, ge=0.0, description="Average cost per task")
+    min_cost_usd: float = Field(default=0.0, ge=0.0, description="Minimum task cost")
+    max_cost_usd: float = Field(default=0.0, ge=0.0, description="Maximum task cost")
+
+    # Escalation metrics
+    total_escalations: int = Field(default=0, ge=0, description="Number of tasks that escalated")
+    escalation_rate: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Percentage of tasks that escalated (0.0-1.0)"
+    )
+
+    # Attempt metrics
+    total_attempts: int = Field(default=0, ge=0, description="Total attempts across all tasks")
+    avg_attempts_per_task: float = Field(
+        default=0.0, ge=0.0, description="Average attempts per task"
+    )
+
+    # Token metrics
+    total_tokens: int = Field(default=0, ge=0, description="Total tokens consumed")
+    avg_tokens_per_task: int = Field(default=0, ge=0, description="Average tokens per task")
+
+    # Duration metrics
+    total_duration_seconds: int = Field(
+        default=0, ge=0, description="Total duration across all tasks"
+    )
+    avg_duration_seconds: int = Field(default=0, ge=0, description="Average duration per task")
+
+    # Model usage tracking
+    models_used: list[str] = Field(
+        default_factory=list, description="Unique models used across tasks"
+    )
+    most_common_model: str = Field(default="", description="Most frequently used model")
+
+    @property
+    def completion_rate(self) -> float:
+        """Calculate task completion rate (0.0-1.0)."""
+        if self.total_tasks == 0:
+            return 0.0
+        return self.tasks_completed / self.total_tasks
+
+    @property
+    def success_rate(self) -> float:
+        """Calculate task success rate (0.0-1.0)."""
+        if self.tasks_completed == 0:
+            return 0.0
+        return self.tasks_successful / self.tasks_completed
+
+    @property
+    def total_duration_hours(self) -> float:
+        """Get total duration in hours."""
+        return self.total_duration_seconds / 3600.0
+
+    @property
+    def avg_duration_minutes(self) -> float:
+        """Get average duration in minutes."""
+        return self.avg_duration_seconds / 60.0
+
+
+class EpicEntry(BaseModel):
+    """Epic-level ledger entry with child task aggregation.
+
+    Provides project-level visibility into development progress, costs,
+    and patterns across all tasks within an epic. Written to
+    .cub/ledger/by-epic/{epic-id}.md.
+
+    Example:
+        >>> entry = EpicEntry(
+        ...     id="cub-e2p",
+        ...     title="Unified Tracking Model",
+        ...     epic=EpicSnapshot(title="Unified Tracking Model"),
+        ...     aggregates=EpicAggregates(total_tasks=5, tasks_completed=3),
+        ...     lineage=Lineage(spec_file="specs/planned/unified-tracking.md")
+        ... )
+    """
+
+    # Schema version for backward compatibility
+    version: int = Field(default=1, description="Schema version number")
+
+    # Core identification
+    id: str = Field(..., description="Epic ID (e.g., 'cub-e2p')")
+    title: str = Field(..., min_length=1, description="Epic title")
+
+    # Lineage tracking
+    lineage: Lineage = Field(
+        default_factory=Lineage, description="Links to spec, plan, and parent epic"
+    )
+
+    # Epic snapshot
+    epic: EpicSnapshot | None = Field(
+        default=None, description="Snapshot of epic state at capture time"
+    )
+
+    # Child task tracking
+    task_ids: list[str] = Field(
+        default_factory=list, description="List of task IDs in this epic"
+    )
+
+    # Aggregated metrics from child tasks
+    aggregates: EpicAggregates = Field(
+        default_factory=EpicAggregates, description="Computed aggregates from child tasks"
+    )
+
+    # Workflow state
+    workflow: WorkflowState = Field(
+        default_factory=WorkflowState, description="Current workflow state"
+    )
+
+    # State history
+    state_history: list[StateTransition] = Field(
+        default_factory=list, description="Workflow stage transition history"
+    )
+
+    # Temporal tracking
+    started_at: datetime | None = Field(
+        default=None, description="When first task in epic started (UTC)"
+    )
+    completed_at: datetime | None = Field(
+        default=None, description="When last task in epic completed (UTC)"
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When epic entry was last updated (UTC)",
+    )
+
+    # Commit range
+    first_commit: CommitRef | None = Field(
+        default=None, description="First commit in epic"
+    )
+    last_commit: CommitRef | None = Field(
+        default=None, description="Most recent commit in epic"
+    )
+
+    # Drift tracking
+    drift: DriftRecord = Field(
+        default_factory=DriftRecord, description="Spec vs implementation drift"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both snake_case and camelCase
+    )
+
+    @property
+    def is_complete(self) -> bool:
+        """Check if all tasks in epic are complete."""
+        return (
+            self.aggregates.total_tasks > 0
+            and self.aggregates.tasks_completed == self.aggregates.total_tasks
+        )
+
+    @property
+    def completion_percentage(self) -> float:
+        """Calculate completion percentage (0-100)."""
+        return self.aggregates.completion_rate * 100
+
+
 class LedgerStats(BaseModel):
     """Aggregate statistics across the entire ledger.
 
@@ -708,3 +898,95 @@ class LedgerStats(BaseModel):
     def average_duration_minutes(self) -> float:
         """Get average duration in minutes."""
         return self.average_duration_seconds / 60.0
+
+
+def compute_aggregates(task_entries: list[LedgerEntry]) -> EpicAggregates:
+    """Compute epic aggregates from child task ledger entries.
+
+    Args:
+        task_entries: List of completed task ledger entries
+
+    Returns:
+        Computed aggregates for the epic
+
+    Example:
+        >>> tasks = [
+        ...     LedgerEntry(id="task-1", title="Task 1", cost_usd=0.10, ...),
+        ...     LedgerEntry(id="task-2", title="Task 2", cost_usd=0.15, ...)
+        ... ]
+        >>> agg = compute_aggregates(tasks)
+        >>> agg.total_cost_usd
+        0.25
+    """
+    if not task_entries:
+        return EpicAggregates()
+
+    total_tasks = len(task_entries)
+    tasks_completed = sum(1 for t in task_entries if t.outcome and t.outcome.success)
+    tasks_failed = total_tasks - tasks_completed
+
+    # Cost metrics
+    costs = [t.outcome.total_cost_usd if t.outcome else t.cost_usd for t in task_entries]
+    total_cost = sum(costs)
+    avg_cost = total_cost / total_tasks if total_tasks > 0 else 0.0
+    min_cost = min(costs) if costs else 0.0
+    max_cost = max(costs) if costs else 0.0
+
+    # Escalation metrics
+    escalations = sum(1 for t in task_entries if t.outcome and t.outcome.escalated)
+    escalation_rate = escalations / total_tasks if total_tasks > 0 else 0.0
+
+    # Attempt metrics
+    total_attempts = sum(
+        t.outcome.total_attempts if t.outcome else t.iterations for t in task_entries
+    )
+    avg_attempts = total_attempts / total_tasks if total_tasks > 0 else 0.0
+
+    # Token metrics
+    total_tokens = sum(t.tokens.total_tokens for t in task_entries)
+    avg_tokens = total_tokens // total_tasks if total_tasks > 0 else 0
+
+    # Duration metrics
+    total_duration = sum(
+        t.outcome.total_duration_seconds if t.outcome else t.duration_seconds
+        for t in task_entries
+    )
+    avg_duration = total_duration // total_tasks if total_tasks > 0 else 0
+
+    # Model usage tracking
+    models_used_set: set[str] = set()
+    model_counts: dict[str, int] = {}
+
+    for task in task_entries:
+        if task.outcome and task.outcome.final_model:
+            model = task.outcome.final_model
+            models_used_set.add(model)
+            model_counts[model] = model_counts.get(model, 0) + 1
+        elif task.harness_model:
+            model = task.harness_model
+            models_used_set.add(model)
+            model_counts[model] = model_counts.get(model, 0) + 1
+
+    models_used = sorted(list(models_used_set))
+    most_common_model = max(model_counts.items(), key=lambda x: x[1])[0] if model_counts else ""
+
+    return EpicAggregates(
+        total_tasks=total_tasks,
+        tasks_completed=tasks_completed,
+        tasks_successful=tasks_completed,  # Assuming completed = successful for now
+        tasks_failed=tasks_failed,
+        total_cost_usd=total_cost,
+        avg_cost_per_task=avg_cost,
+        min_cost_usd=min_cost,
+        max_cost_usd=max_cost,
+        total_escalations=escalations,
+        escalation_rate=escalation_rate,
+        total_attempts=total_attempts,
+        avg_attempts_per_task=avg_attempts,
+        total_tokens=total_tokens,
+        avg_tokens_per_task=avg_tokens,
+        total_duration_seconds=total_duration,
+        avg_duration_seconds=avg_duration,
+        models_used=models_used,
+        most_common_model=most_common_model,
+    )
