@@ -10,8 +10,11 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.live import Live
+from rich.panel import Panel
 from rich.table import Table
 
+from cub.core.session.manager import RunSessionManager
+from cub.core.session.models import RunSession
 from cub.core.status.writer import list_runs
 from cub.dashboard.renderer import DashboardRenderer
 from cub.dashboard.status import StatusWatcher
@@ -65,6 +68,10 @@ def monitor(
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
+    cub_dir = project_dir / ".cub"
+
+    # Initialize session manager
+    session_manager = RunSessionManager(cub_dir)
 
     # Handle --list option
     if list_sessions:
@@ -73,20 +80,16 @@ def monitor(
 
     # Auto-detect session ID if not provided
     if not session_id:
-        runs = list_runs(project_dir)
-        if not runs:
+        # Try to get active session via symlink
+        active_session = session_manager.get_active_session()
+
+        if not active_session:
             console.print(
-                "[red]Error: No running sessions found[/red]\nStart a session with:\n  cub run"
+                "[red]Error: No active session found[/red]\nStart a session with:\n  cub run"
             )
             raise typer.Exit(1)
 
-        # Get the most recent session (first in the list as they're sorted by mtime)
-        session_id = runs[0]["run_id"]
-        if session_id is None:
-            console.print(
-                "[red]Error: Found session with missing run_id. Status file may be corrupted.[/red]"
-            )
-            raise typer.Exit(1)
+        session_id = active_session.run_id
         if debug:
             console.print(f"[dim]Auto-detected session: {session_id}[/dim]")
 
@@ -117,6 +120,14 @@ def monitor(
                 raise typer.Exit(1)
             time.sleep(0.5)
 
+    # Display session info header
+    try:
+        session = session_manager._read_session_file(session_id)
+        _display_session_info(session, console)
+    except Exception as e:
+        if debug:
+            console.print(f"[dim]Could not read session info: {e}[/dim]")
+
     # Initialize dashboard components
     renderer = DashboardRenderer(console=console)
     watcher = StatusWatcher(
@@ -144,8 +155,11 @@ def monitor(
             refresh_per_second=1 / refresh,
             screen=False,
         ) as live:
+            last_session_check = time.time()
+            session_check_interval = 5.0  # Check session file every 5 seconds
+
             while True:
-                # Poll for updates
+                # Poll for status updates
                 new_status = watcher.poll()
 
                 if new_status is not None:
@@ -158,6 +172,21 @@ def monitor(
                         # Give a moment for final update to be visible
                         time.sleep(2)
                         break
+
+                # Periodically refresh session data (for budget/task updates)
+                current_time = time.time()
+                if current_time - last_session_check >= session_check_interval:
+                    try:
+                        session = session_manager._read_session_file(session_id)
+                        # Session data is read but not displayed in live view
+                        # (could be used to detect orphaned status or budget exceeded)
+                        if session.is_orphaned:
+                            console.print("\n[red]Session was orphaned[/red]")
+                            break
+                        last_session_check = current_time
+                    except Exception:
+                        # Ignore errors reading session file during monitoring
+                        pass
 
                 # Sleep for poll interval
                 time.sleep(refresh)
@@ -179,6 +208,51 @@ def monitor(
         console.print(f"[dim]Final phase: {status.phase.value}[/dim]")
 
     raise typer.Exit(0)
+
+
+def _display_session_info(session: RunSession, console: Console) -> None:
+    """
+    Display session information header.
+
+    Args:
+        session: RunSession to display
+        console: Rich console for output
+    """
+
+    # Build session info table
+    info_table = Table.grid(padding=(0, 2))
+    info_table.add_column(style="bold cyan")
+    info_table.add_column()
+
+    info_table.add_row("Run ID:", session.run_id)
+    info_table.add_row("Harness:", session.harness)
+    info_table.add_row("Status:", f"[yellow]{session.status.value}[/yellow]")
+    info_table.add_row("Tasks Completed:", str(session.tasks_completed))
+    info_table.add_row("Tasks Failed:", str(session.tasks_failed))
+
+    # Budget info
+    budget = session.budget
+    if budget.tokens_limit > 0:
+        tokens_pct = (budget.tokens_used / budget.tokens_limit) * 100
+        info_table.add_row(
+            "Token Budget:",
+            f"{budget.tokens_used:,} / {budget.tokens_limit:,} ({tokens_pct:.1f}%)",
+        )
+    else:
+        info_table.add_row("Tokens Used:", f"{budget.tokens_used:,}")
+
+    if budget.cost_limit > 0:
+        cost_pct = (budget.cost_usd / budget.cost_limit) * 100
+        info_table.add_row(
+            "Cost Budget:", f"${budget.cost_usd:.4f} / ${budget.cost_limit:.2f} ({cost_pct:.1f}%)"
+        )
+    else:
+        info_table.add_row("Cost:", f"${budget.cost_usd:.4f}")
+
+    # Display in a panel
+    panel = Panel(info_table, title="[bold]Session Info[/bold]", border_style="cyan")
+    console.print(panel)
+    console.print()
 
 
 def _show_running_sessions(project_dir: Path, debug: bool = False) -> None:
