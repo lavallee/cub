@@ -305,7 +305,7 @@ is_epic_complete() {
 
     # Check if there are any open tasks
     local open_tasks
-    open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
+    open_tasks=$(bd list --label "epic:$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
 
     if [[ "$open_tasks" == "0" ]]; then
         return 0
@@ -318,7 +318,8 @@ is_epic_complete() {
 run_epic() {
     local epic="$1"
     local title
-    title=$(grep "^## Epic: ${epic}" "$ITEMIZED_PLAN" | sed "s/## Epic: ${epic} - //" || echo "Unknown")
+    # Handle both formats: "## Epic: cub-xxx - title" and "## Epic cub-xxx: title"
+    title=$(grep -E "^## Epic:? ?${epic}" "$ITEMIZED_PLAN" | sed -E "s/## Epic:? ?${epic}[: -]+ ?//" || echo "Unknown")
     local log_file="${LOG_DIR}/${epic}.log"
 
     log_step "═══════════════════════════════════════════════════════════"
@@ -342,7 +343,7 @@ run_epic() {
         if uv run cub --debug run --epic "$epic" --stream --use-current-branch 2>&1 | tee -a "$log_file"; then
             # cub exited cleanly - check if epic is actually complete
             local open_tasks
-            open_tasks=$(bd list --parent "$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
+            open_tasks=$(bd list --label "epic:$epic" --status open 2>/dev/null | grep "^○" | wc -l | tr -d ' ')
 
             if [[ "$open_tasks" == "0" ]]; then
                 epic_complete=true
@@ -375,7 +376,7 @@ run_epic() {
 
         # Show remaining tasks
         log_error "Remaining open tasks:"
-        bd list --parent "$epic" --status open 2>/dev/null || true
+        bd list --label "epic:$epic" --status open 2>/dev/null || true
 
         return 1
     fi
