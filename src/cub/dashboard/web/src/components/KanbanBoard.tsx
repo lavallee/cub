@@ -26,7 +26,7 @@ import { apiClient } from '../api/client';
  */
 export function KanbanBoard() {
   const [selectedViewId, setSelectedViewId] = useState<string | undefined>();
-  const { data, loading, error, refetch } = useBoard(selectedViewId);
+  const { data, loading, error, refetch, moveEntity } = useBoard(selectedViewId);
   const navigation = useNavigation();
 
   if (loading) {
@@ -76,13 +76,38 @@ export function KanbanBoard() {
     navigation.clear();
   };
 
-  // Handle drag-and-drop for workflow stage updates
-  const handleDrop = async (entityId: string, targetStage: Stage) => {
+  // Handle drag-and-drop for workflow stage updates with optimistic UI
+  const handleDrop = async (entityId: string, sourceStage: Stage, targetStage: Stage) => {
+    // Skip if dropped on the same column (when we have source info)
+    if (sourceStage && sourceStage === targetStage) return;
+
+    // Optimistically update UI if we have source stage info
+    const canOptimisticUpdate = sourceStage && sourceStage !== targetStage;
+    if (canOptimisticUpdate) {
+      moveEntity(entityId, sourceStage, targetStage);
+    }
+
+    // Update server
     try {
-      await apiClient.updateWorkflowStage(entityId, targetStage);
-      refetch(); // Refresh the board to show updated position
+      const result = await apiClient.updateWorkflowStage(entityId, targetStage);
+      if (!result.success) {
+        console.error('Server rejected workflow stage update');
+        if (canOptimisticUpdate) {
+          // Revert on failure
+          moveEntity(entityId, targetStage, sourceStage);
+        } else {
+          // No optimistic update was done, refetch to show current state
+          refetch();
+        }
+      }
     } catch (error) {
       console.error('Failed to update workflow stage:', error);
+      if (canOptimisticUpdate) {
+        // Revert on error
+        moveEntity(entityId, targetStage, sourceStage);
+      } else {
+        refetch();
+      }
     }
   };
 

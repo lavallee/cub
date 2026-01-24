@@ -10,7 +10,7 @@ export interface ColumnProps {
   column: BoardColumn;
   onEntityClick?: (entity: DashboardEntity) => void;
   isWorkflowColumn?: boolean;
-  onDrop?: (entityId: string, targetStage: Stage) => void;
+  onDrop?: (entityId: string, sourceStage: Stage, targetStage: Stage) => void;
 }
 
 interface EntityGroupProps {
@@ -80,9 +80,25 @@ export function Column({ column, onEntityClick, isWorkflowColumn, onDrop }: Colu
     e.preventDefault();
     setIsDragOver(false);
 
+    // Try to get structured drag data first, fall back to plain text
+    const jsonData = e.dataTransfer?.getData('application/json');
+    if (jsonData) {
+      try {
+        const { id, stage } = JSON.parse(jsonData);
+        if (id && stage && stage !== column.stage) {
+          onDrop(id, stage, column.stage);
+        }
+        return;
+      } catch {
+        // Fall through to plain text
+      }
+    }
+
+    // Fallback: plain text - pass empty string as source stage to skip optimistic update
     const entityId = e.dataTransfer?.getData('text/plain');
     if (entityId) {
-      onDrop(entityId, column.stage);
+      // Using '' as source signals no optimistic update available
+      onDrop(entityId, '' as Stage, column.stage);
     }
   };
 

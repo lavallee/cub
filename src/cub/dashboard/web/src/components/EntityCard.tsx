@@ -29,7 +29,10 @@ export function EntityCard({ entity, onClick, isDraggable }: EntityCardProps) {
   const handleDragStart = (e: DragEvent) => {
     if (!isDraggable) return;
     setIsDragging(true);
-    e.dataTransfer?.setData('text/plain', entity.id);
+    // Store both entity ID and source stage for optimistic updates
+    const dragData = JSON.stringify({ id: entity.id, stage: entity.stage });
+    e.dataTransfer?.setData('application/json', dragData);
+    e.dataTransfer?.setData('text/plain', entity.id); // Fallback
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
     }

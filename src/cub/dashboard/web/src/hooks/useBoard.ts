@@ -4,13 +4,15 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { apiClient } from '../api/client';
-import type { BoardResponse } from '../types/api';
+import type { BoardResponse, Stage } from '../types/api';
 
 export interface UseBoardResult {
   data: BoardResponse | null;
   loading: boolean;
   error: Error | null;
   refetch: () => void;
+  /** Optimistically move an entity to a new stage in local state */
+  moveEntity: (entityId: string, fromStage: Stage, toStage: Stage) => void;
 }
 
 /**
@@ -44,10 +46,59 @@ export function useBoard(viewId?: string): UseBoardResult {
     fetchBoard();
   }, [viewId]);
 
+  /**
+   * Optimistically move an entity from one column to another in local state.
+   * This provides immediate UI feedback without waiting for API response.
+   */
+  const moveEntity = (entityId: string, fromStage: Stage, toStage: Stage) => {
+    if (!data) return;
+
+    setData(prevData => {
+      if (!prevData) return prevData;
+
+      // Find the entity in the source column
+      const sourceColumn = prevData.columns.find(col => col.stage === fromStage);
+      const targetColumn = prevData.columns.find(col => col.stage === toStage);
+
+      if (!sourceColumn || !targetColumn) return prevData;
+
+      const entityIndex = sourceColumn.entities.findIndex(e => e.id === entityId);
+      if (entityIndex === -1) return prevData;
+
+      // Get the entity and update its stage
+      const movedEntity = { ...sourceColumn.entities[entityIndex], stage: toStage as Stage };
+
+      // Create new columns array with updated entities
+      const newColumns = prevData.columns.map(col => {
+        if (col.stage === fromStage) {
+          return {
+            ...col,
+            entities: col.entities.filter(e => e.id !== entityId),
+            count: col.count - 1,
+          };
+        }
+        if (col.stage === toStage) {
+          return {
+            ...col,
+            entities: [movedEntity, ...col.entities],
+            count: col.count + 1,
+          };
+        }
+        return col;
+      });
+
+      return {
+        ...prevData,
+        columns: newColumns,
+      };
+    });
+  };
+
   return {
     data,
     loading,
     error,
     refetch: fetchBoard,
+    moveEntity,
   };
 }
