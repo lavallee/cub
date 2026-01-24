@@ -182,6 +182,18 @@ class EntityWriter:
             if entity.description_excerpt is not None:
                 data["description_excerpt"] = entity.description_excerpt
 
+            # Add hierarchy references (also stored in metadata table for indexing)
+            if entity.parent_id:
+                data["parent_id"] = entity.parent_id
+            if entity.spec_id:
+                data["spec_id"] = entity.spec_id
+            if entity.plan_id:
+                data["plan_id"] = entity.plan_id
+            if entity.epic_id:
+                data["epic_id"] = entity.epic_id
+            if entity.labels:
+                data["labels"] = entity.labels
+
             data_json = json.dumps(data, default=_json_serializer) if data else None
 
             # Build search text for full-text search
