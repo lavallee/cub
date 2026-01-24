@@ -1,0 +1,49 @@
+I'll help you register the LedgerParser and update the resolver. Let me start by marking this task as in progress and then examining the relevant files.Let me find these files in the correct location:Now let me read the correct files:Now let me check if the LedgerParser exists:Great! Let me read the LedgerParser to understand its interface:Perfect! Now I have all the information I need. Let me implement the required changes:
+
+1. **Update orchestrator.py**: Import LedgerParser and add to parser list
+2. **Update models.py**: Add TASK_TO_LEDGER to RelationshipType (already exists!), add LEDGER to EntityType (already exists!)
+3. **Update resolver.py**: Add ledger relationship resolution (already exists!)
+
+Looking at the code, I can see that:
+- `EntityType.LEDGER` already exists in models.py (line 34)
+- `RelationType.TASK_TO_LEDGER` already exists in models.py (line 83)
+- The resolver already handles ledger relationships (lines 280-285)
+
+So I only need to update the orchestrator to register the LedgerParser. Let me do that:Now let me add the ledger parsing logic to the sync method:Perfect! Now let me verify that the changes are correct and run the feedback loops. First, let me check if there are any tests for the orchestrator:Now let me run typecheck, tests, and lint:Excellent! Now let me run the ledger parser tests to make sure everything is working:Perfect! All tests pass. Now let me run lint to ensure code quality:The resolver.py file already has a line length issue that existed before my changes. Let me run lint only on the orchestrator file that I modified:Great! The orchestrator.py file passes all lint checks. Now let me verify the implementation is complete by reviewing what I've done:Perfect! Let me now close the task and commit the changes:Now let me append learnings to progress.txt:Perfect! Let me verify the progress.txt was updated:Excellent! Task completed successfully. Let me provide a summary:
+
+## Summary
+
+I've successfully completed task **cub-d8b.2: Register parser and update resolver**. Here's what was done:
+
+### Changes Made
+
+1. **Updated `orchestrator.py`**:
+   - Added `LedgerParser` import from the parsers module
+   - Added a new ledger parsing phase after task parsing
+   - Follows the same error handling pattern as other parsers (graceful failure)
+   - Logs parsing progress and entity counts
+
+2. **No changes needed for `models.py`**:
+   - `EntityType.LEDGER` already existed (line 34)
+   - `RelationType.TASK_TO_LEDGER` already existed (line 83)
+
+3. **No changes needed for `resolver.py`**:
+   - Ledger relationship resolution was already implemented (lines 280-285)
+   - Ledger data enrichment was already implemented (lines 307-329)
+
+### Testing Results
+
+✅ **All tests passed:**
+- 21 orchestrator tests passed
+- 242 ledger-related tests passed
+- Typecheck clean
+- Lint clean (orchestrator.py)
+
+### Commit
+
+Created commit with message:
+```
+task(cub-d8b.2): Register parser and update resolver
+```
+
+The LedgerParser is now fully integrated into the dashboard sync pipeline, allowing ledger data to flow into the Kanban board.
