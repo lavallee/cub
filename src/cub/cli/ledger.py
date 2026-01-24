@@ -666,6 +666,21 @@ def search(
         "--verification",
         help="Filter by verification status (pass, fail, warn, skip, pending, error)",
     ),
+    stage: str | None = typer.Option(
+        None,
+        "--stage",
+        help="Filter by workflow stage (dev_complete, needs_review, validated, released)",
+    ),
+    cost_above: float | None = typer.Option(
+        None,
+        "--cost-above",
+        help="Filter to tasks with cost above this threshold (USD)",
+    ),
+    escalated: bool | None = typer.Option(
+        None,
+        "--escalated",
+        help="Filter to tasks that were escalated (true) or not escalated (false)",
+    ),
     json_output: bool = typer.Option(
         False,
         "--json",
@@ -676,13 +691,17 @@ def search(
     Search for tasks in the ledger.
 
     Searches task titles, files changed, and spec files for the query string.
-    Returns matching tasks with basic information.
+    Returns matching tasks with basic information. Supports filtering by
+    workflow stage, cost threshold, and escalation status.
 
     Examples:
         cub ledger search "auth"
         cub ledger search "api" --field files
         cub ledger search "bug" --since 2026-01-01
         cub ledger search "login" --epic cub-vd6 --json
+        cub ledger search "feature" --stage needs_review
+        cub ledger search "complex" --cost-above 0.50
+        cub ledger search "hard" --escalated true
     """
     reader = _get_ledger_reader()
 
@@ -703,16 +722,27 @@ def search(
             console.print("Valid values: pass, fail, warn, skip, pending, error")
             raise typer.Exit(1)
 
-    # Search tasks
-    results = reader.search_tasks(query, fields=fields)
+    # Validate stage
+    if stage:
+        valid_stages = {"dev_complete", "needs_review", "validated", "released"}
+        if stage not in valid_stages:
+            console.print(
+                f"[red]Error:[/red] Invalid stage '{stage}'. "
+                f"Must be one of: {', '.join(sorted(valid_stages))}"
+            )
+            raise typer.Exit(1)
 
-    # Apply additional filters
-    if since:
-        results = [r for r in results if r.completed >= since]
-    if epic:
-        results = [r for r in results if r.epic == epic]
-    if verification_status:
-        results = [r for r in results if r.verification == verification_status.value]
+    # Search tasks with all filters applied via index
+    results = reader.search_tasks(
+        query,
+        fields=fields,
+        since=since,
+        epic=epic,
+        verification=verification_status,
+        stage=stage,
+        cost_above=cost_above,
+        escalated=escalated,
+    )
 
     if not results:
         console.print(f"No tasks found matching '{query}'")
