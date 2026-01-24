@@ -63,8 +63,8 @@ class LedgerWriter:
         with task_file.open("w", encoding="utf-8") as f:
             json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
 
-        # Append to index
-        self._append_to_index(entry)
+        # Update index (append)
+        self._update_index(entry)
 
     def _append_to_index(self, entry: LedgerEntry) -> None:
         """Append entry to index.jsonl.
@@ -79,10 +79,52 @@ class LedgerWriter:
             json.dump(index_entry.model_dump(mode="json"), f, default=str)
             f.write("\n")
 
+    def _update_index(self, entry: LedgerEntry) -> None:
+        """Update index.jsonl with entry (append or update).
+
+        If the entry already exists in the index, update it in place.
+        Otherwise, append it. This method handles both create and update
+        operations efficiently.
+
+        Args:
+            entry: LedgerEntry to index
+        """
+        index_entry = LedgerIndex.from_ledger_entry(entry)
+
+        # Read existing index entries
+        existing_entries = []
+        entry_found = False
+
+        if self.index_file.exists():
+            with self.index_file.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    data = json.loads(line)
+                    existing_index = LedgerIndex.model_validate(data)
+
+                    # If this is the entry we're updating, replace it
+                    if existing_index.id == entry.id:
+                        existing_entries.append(index_entry)
+                        entry_found = True
+                    else:
+                        existing_entries.append(existing_index)
+
+        # If entry wasn't found in existing entries, append it
+        if not entry_found:
+            existing_entries.append(index_entry)
+
+        # Rewrite the entire index
+        with self.index_file.open("w", encoding="utf-8") as f:
+            for idx_entry in existing_entries:
+                json.dump(idx_entry.model_dump(mode="json"), f, default=str)
+                f.write("\n")
+
     def update_entry(self, entry: LedgerEntry) -> None:
         """Update an existing ledger entry.
 
-        Updates the full entry file and rebuilds the index.
+        Updates the full entry file and updates the index.
 
         Args:
             entry: Updated LedgerEntry
@@ -98,13 +140,19 @@ class LedgerWriter:
         with task_file.open("w", encoding="utf-8") as f:
             json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
 
-        # Rebuild index (simple approach - could be optimized)
-        self._rebuild_index()
+        # Update index
+        self._update_index(entry)
 
-    def _rebuild_index(self) -> None:
+    def rebuild_index(self) -> None:
         """Rebuild index.jsonl from all task files.
 
-        This is called after updates to ensure index consistency.
+        This is a recovery method that reconstructs the entire index
+        from scratch by reading all task files in by-task/. Use this
+        if the index becomes corrupted or out of sync.
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> writer.rebuild_index()
         """
         if not self.by_task_dir.exists():
             return
@@ -206,8 +254,9 @@ class LedgerWriter:
         with task_file.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
 
-        # Rebuild index to reflect the change
-        self._rebuild_index()
+        # Validate and update index
+        entry = LedgerEntry.model_validate(data)
+        self._update_index(entry)
 
         return True
 

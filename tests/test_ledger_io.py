@@ -163,10 +163,10 @@ class TestLedgerWriter:
             writer.update_entry(sample_entry)
 
     def test_rebuild_index_empty_by_task_dir(self, ledger_dir: Path) -> None:
-        """Test _rebuild_index with no by-task directory."""
+        """Test rebuild_index with no by-task directory."""
         writer = LedgerWriter(ledger_dir)
         # Should not raise even when by_task_dir doesn't exist
-        writer._rebuild_index()
+        writer.rebuild_index()
 
     def test_update_entry_rebuilds_index(
         self,
