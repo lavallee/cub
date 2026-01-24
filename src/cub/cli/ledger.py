@@ -13,6 +13,7 @@ from rich.table import Table
 
 from cub.core.ledger.models import VerificationStatus
 from cub.core.ledger.reader import LedgerReader
+from cub.core.ledger.writer import LedgerWriter
 from cub.utils.project import get_project_root
 
 if TYPE_CHECKING:
@@ -32,6 +33,13 @@ def _get_ledger_reader() -> LedgerReader:
     project_root = get_project_root()
     ledger_dir = project_root / ".cub" / "ledger"
     return LedgerReader(ledger_dir)
+
+
+def _get_ledger_writer() -> LedgerWriter:
+    """Get ledger writer for current project."""
+    project_root = get_project_root()
+    ledger_dir = project_root / ".cub" / "ledger"
+    return LedgerWriter(ledger_dir)
 
 
 def _format_cost(cost: float) -> str:
@@ -457,6 +465,77 @@ def show(
     # Run log
     if entry.run_log_path:
         console.print(f"Run log: {entry.run_log_path}")
+
+
+@app.command()
+def update(
+    task_id: str = typer.Argument(..., help="Task ID to update"),
+    stage: str = typer.Option(
+        ...,
+        "--stage",
+        "-s",
+        help="New workflow stage: dev_complete, needs_review, validated, or released",
+    ),
+    reason: str | None = typer.Option(
+        None,
+        "--reason",
+        "-r",
+        help="Reason for the stage transition",
+    ),
+) -> None:
+    """
+    Update workflow stage for a completed task.
+
+    Transitions a task through post-completion stages and records the change
+    in the task's state history. Use this to mark tasks as reviewed, validated,
+    or released after development is complete.
+
+    Examples:
+        cub ledger update cub-abc --stage needs_review
+        cub ledger update cub-abc --stage validated --reason "Tests passed"
+        cub ledger update cub-abc -s released -r "Deployed to production"
+    """
+    writer = _get_ledger_writer()
+
+    # Validate that ledger exists
+    if not writer.by_task_dir.exists():
+        console.print(
+            "[yellow]Warning:[/yellow] No ledger found. "
+            "Tasks have not been completed yet."
+        )
+        raise typer.Exit(1)
+
+    # Validate that task exists
+    if not writer.entry_exists(task_id):
+        console.print(f"[red]Error:[/red] Task '{task_id}' not found in ledger")
+        raise typer.Exit(1)
+
+    # Validate stage
+    valid_stages = {"dev_complete", "needs_review", "validated", "released"}
+    if stage not in valid_stages:
+        console.print(
+            f"[red]Error:[/red] Invalid stage '{stage}'. "
+            f"Must be one of: {', '.join(sorted(valid_stages))}"
+        )
+        raise typer.Exit(1)
+
+    # Update the workflow stage
+    try:
+        success = writer.update_workflow_stage(task_id, stage, reason=reason, by="cli")
+        if not success:
+            console.print(f"[red]Error:[/red] Failed to update task '{task_id}'")
+            raise typer.Exit(1)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    # Display confirmation
+    console.print()
+    console.print(f"[green]✓[/green] Updated workflow stage for {task_id}")
+    console.print(f"  Stage: {_format_workflow_stage(stage)}")
+    if reason:
+        console.print(f"  Reason: {reason}")
+    console.print()
 
 
 @app.command()

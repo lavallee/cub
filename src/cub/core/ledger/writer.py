@@ -15,7 +15,6 @@ from cub.core.ledger.models import (
     EpicEntry,
     LedgerEntry,
     LedgerIndex,
-    WorkflowStage,
     compute_aggregates,
 )
 
@@ -137,25 +136,41 @@ class LedgerWriter:
         task_file = self.by_task_dir / f"{task_id}.json"
         return task_file.exists()
 
-    def update_workflow_stage(self, task_id: str, stage: WorkflowStage) -> bool:
+    def update_workflow_stage(
+        self, task_id: str, stage: str, *, reason: str | None = None, by: str = "cli"
+    ) -> bool:
         """Update workflow stage for an existing ledger entry.
 
-        Updates just the workflow_stage and workflow_stage_updated_at fields
-        without modifying other entry data. This is used by `cub workflow set`
-        to progress tasks through post-completion stages.
+        Updates the workflow state and appends a state transition to history.
+        This is used by `cub ledger update` to progress tasks through
+        post-completion stages.
 
         Args:
             task_id: Task ID to update
-            stage: New workflow stage (needs_review, validated, or released)
+            stage: New workflow stage (dev_complete, needs_review, validated, or released)
+            reason: Optional reason for the stage transition
+            by: Who/what triggered the update (e.g., 'cli', 'dashboard:user')
 
         Returns:
             True if updated successfully, False if entry doesn't exist
 
+        Raises:
+            ValueError: If stage is not valid
+
         Example:
             >>> writer = LedgerWriter(Path(".cub/ledger"))
-            >>> writer.update_workflow_stage("cub-m4j.6", WorkflowStage.VALIDATED)
+            >>> writer.update_workflow_stage(
+            ...     "cub-m4j.6", "validated", reason="Tests passed", by="cli"
+            ... )
             True
         """
+        # Validate stage
+        valid_stages = {"dev_complete", "needs_review", "validated", "released"}
+        if stage not in valid_stages:
+            raise ValueError(
+                f"Invalid stage '{stage}'. Must be one of: {', '.join(valid_stages)}"
+            )
+
         task_file = self.by_task_dir / f"{task_id}.json"
         if not task_file.exists():
             return False
@@ -164,9 +179,28 @@ class LedgerWriter:
         with task_file.open(encoding="utf-8") as f:
             data = json.load(f)
 
-        # Update workflow stage fields
-        data["workflow_stage"] = stage.value
-        data["workflow_stage_updated_at"] = datetime.now(timezone.utc).isoformat()
+        # Get current workflow state or create it
+        if "workflow" not in data:
+            data["workflow"] = {
+                "stage": "dev_complete",
+                "stage_updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+        # Update workflow state
+        data["workflow"]["stage"] = stage
+        data["workflow"]["stage_updated_at"] = datetime.now(timezone.utc).isoformat()
+
+        # Append state transition to history
+        if "state_history" not in data:
+            data["state_history"] = []
+
+        transition = {
+            "stage": stage,
+            "at": datetime.now(timezone.utc).isoformat(),
+            "by": by,
+            "reason": reason,
+        }
+        data["state_history"].append(transition)
 
         # Write updated entry
         with task_file.open("w", encoding="utf-8") as f:
