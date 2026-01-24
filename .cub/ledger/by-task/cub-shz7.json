@@ -1,0 +1,27 @@
+{
+  "id": "cub-shz7",
+  "title": "Fix card side panel blocking main board view",
+  "started_at": null,
+  "completed_at": "2026-01-23T18:22:16.226738",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 138,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260123-181957/tasks/cub-shz7",
+  "epic_id": "cub-o0f4",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": ""
+}

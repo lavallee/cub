@@ -235,7 +235,7 @@ class TestListTasks:
 
                 # Verify correct bd command
                 args = mock_run.call_args[0][0]
-                assert args == ["bd", "list", "--json"]
+                assert args == ["bd", "list", "--json", "--limit", "1000"]
 
     def test_list_tasks_by_status(self, project_dir):
         """Test filtering tasks by status."""
@@ -398,14 +398,14 @@ class TestGetReadyTasks:
 
                 # Verify correct command
                 args = mock_run.call_args[0][0]
-                assert args == ["bd", "ready", "--json"]
+                assert args == ["bd", "ready", "--json", "--limit", "1000"]
 
     def test_get_ready_tasks_with_filters(self, project_dir):
         """Test getting ready tasks with parent and label filters.
 
-        The parent filter uses --label-any to support both label formats:
-        - Bare epic ID (e.g., "cub-xyz") used by punchlist
-        - Prefixed format (e.g., "epic:cub-xyz") used by legacy tasks
+        The parent filter uses --label epic:{parent} to find tasks associated
+        with an epic. This works for both hierarchical children (cub-xxx.1)
+        and label-associated tasks (punchlist tasks).
         """
         mock_result = Mock()
         mock_result.stdout = "[]"
@@ -417,12 +417,10 @@ class TestGetReadyTasks:
                 backend.get_ready_tasks(parent="epic-001", label="backend")
 
                 args = mock_run.call_args[0][0]
-                # Parent filter uses --label-any for OR logic (either format)
-                assert "--label-any" in args
-                assert "epic-001" in args  # Bare epic ID
-                assert "epic:epic-001" in args  # Prefixed format
-                # Additional label filter uses --label (AND logic)
+                # Parent filter uses --label with epic: prefix
                 assert "--label" in args
+                assert "epic:epic-001" in args  # Prefixed format
+                # Additional label filter also uses --label (AND logic)
                 assert "backend" in args
 
     def test_get_ready_tasks_command_error(self, project_dir):

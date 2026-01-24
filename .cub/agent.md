@@ -517,3 +517,191 @@ cub init --global         # Set up global config
 7. **Import Cleanup**: After refactoring detection logic, `shutil` was no longer needed in `backend.py`. Always check for unused imports after major changes.
 
 **Outcome:** Successfully migrated ClaudeBackend (→ ClaudeLegacyBackend) and CodexBackend to async interface. All tests passing, mypy clean, ready for SDK-based harnesses to take priority.
+
+## Dashboard Feature (v0.24)
+
+**Date:** 2026-01-23
+
+The dashboard provides a unified Kanban view of project state by aggregating data from multiple sources and visualizing progress across 8 workflow columns.
+
+### Architecture
+
+The dashboard consists of four layers:
+
+1. **Database Layer** (`cub.core.dashboard.db`)
+   - SQLite schema for entities, relationships, and sync state
+   - Connection management and query helpers
+   - Incremental sync via checksums to detect source changes
+
+2. **Sync Layer** (`cub.core.dashboard.sync`)
+   - Parsers for each data source (SpecParser, PlanParser, TaskParser, ChangelogParser)
+   - RelationshipResolver to map explicit markers (spec_id, plan_id, epic_id)
+   - SyncOrchestrator coordinates parsing and writing
+   - EntityWriter handles database transactions
+
+3. **API Layer** (`cub.core.dashboard.api`)
+   - FastAPI server with CORS support
+   - Routes: `/api/board`, `/api/entity/{id}`, `/api/views`, `/api/sync`, `/api/stats`
+   - Structured error responses with error codes
+   - JSON serialization of entities and relationships
+
+4. **View System** (`cub.core.dashboard.views`)
+   - View configurations stored in `.cub/views/*.yaml`
+   - Fallback to built-in defaults if custom views not found
+   - Customizable columns, grouping, filters, and display settings
+
+### Data Flow
+
+1. **Sync Phase** - Parse entities from multiple sources
+   - Specs from `specs/**/*.md` using frontmatter markers
+   - Plans from `.cub/sessions/*/plan.jsonl`
+   - Tasks from beads or JSON backend
+   - Ledger entries from `.cub/ledger/`
+   - Release info from `CHANGELOG.md`
+
+2. **Resolution Phase** - Resolve relationships and enrich entities
+   - Map specs → plans via `spec_id` markers
+   - Map plans → epics via `plan_id` markers
+   - Map epics → tasks via explicit task IDs
+   - Attach ledger entries and release info
+
+3. **Stage Computation** - Place entities in Kanban columns
+   - **CAPTURES**: Raw capture entities
+   - **SPECS**: Spec entities in researching/ (ongoing research)
+   - **PLANNED**: Spec entities in planned/ and plan entities
+   - **READY**: Open tasks with no blockers
+   - **IN_PROGRESS**: In-progress tasks and implementing/ specs
+   - **NEEDS_REVIEW**: Tasks with 'pr' label or review status
+   - **COMPLETE**: Completed tasks and completed/ specs
+   - **RELEASED**: Tasks in CHANGELOG and released/ specs
+
+4. **API Phase** - Serve entities to web UI
+   - `/api/board` returns full board with all entities grouped by stage
+   - `/api/entity/{id}` returns detailed entity with relationships
+   - `/api/views` returns available view configurations
+   - `/api/sync` can trigger manual sync operation
+
+### Key Concepts
+
+**Explicit Relationship Markers**
+Entities link to related work via frontmatter markers in markdown files:
+- `spec_id`: Links specs to plans that implement them
+- `plan_id`: Links plans to epics they're part of
+- `epic_id`: Links tasks to the epic they're in
+
+Example spec frontmatter:
+```yaml
+---
+id: spec-auth-flow
+title: Authentication Flow
+status: researching
+spec_id: cub-abc
+---
+```
+
+**Entity Types**
+- **Capture**: Raw ideas/notes
+- **Spec**: Detailed requirements documentation
+- **Plan**: Implementation strategy and task breakdown
+- **Epic**: Group of related tasks
+- **Task**: Individual work item (from beads or JSON)
+- **Ledger**: Task completion record
+- **Release**: Released version in CHANGELOG
+
+**Stage Computation Logic**
+The system maps entity types and status fields to Kanban stages using the Stage enum. See `cub.core.dashboard.db.models.Stage` for the complete stage definitions and mapping logic.
+
+### Usage
+
+```python
+from cub.core.dashboard.sync import SyncOrchestrator
+from cub.core.dashboard.db import get_connection
+
+# Initialize and sync
+orchestrator = SyncOrchestrator(
+    db_path=Path(".cub/dashboard.db"),
+    specs_root=Path("./specs"),
+    plans_root=Path(".cub/sessions"),
+    tasks_backend="beads",
+    ledger_path=Path(".cub/ledger"),
+    changelog_path=Path("CHANGELOG.md")
+)
+
+result = orchestrator.sync()
+print(f"Synced {result.entities_added} entities")
+
+# Query the database
+with get_connection(Path(".cub/dashboard.db")) as conn:
+    cursor = conn.execute(
+        "SELECT id, title, stage FROM entities WHERE type = ?",
+        ("task",)
+    )
+    for row in cursor:
+        print(f"{row[0]}: {row[1]} ({row[2]})")
+```
+
+### Running the Server
+
+```bash
+# Start the FastAPI server
+uvicorn cub.core.dashboard.api.app:app --reload --port 8000
+
+# Server will be available at http://localhost:8000
+# API docs available at http://localhost:8000/docs
+# ReDoc at http://localhost:8000/redoc
+```
+
+### Customizing Views
+
+Create custom views in `.cub/views/my-view.yaml`:
+
+```yaml
+id: my-view
+name: My Custom View
+description: Custom workflow view
+is_default: false
+
+columns:
+  - id: ready
+    title: Ready to Start
+    stages: [READY]
+  - id: active
+    title: Active Work
+    stages: [IN_PROGRESS]
+    group_by: epic_id
+
+filters:
+  exclude_labels: [archived, wontfix]
+  include_types: [task, epic]
+
+display:
+  show_cost: true
+  show_tokens: false
+  card_size: compact
+```
+
+The view system automatically validates YAML against the ViewConfig Pydantic model and merges custom views with built-in defaults.
+
+### Module Docstrings
+
+All dashboard modules include comprehensive docstrings describing:
+- **Purpose**: What the module does
+- **Key Classes/Functions**: Primary public API
+- **Architecture**: How it fits in the larger system
+- **Usage Examples**: How to use the module
+- **Dependencies**: What it imports from
+
+See:
+- `cub.core.dashboard` - Top-level overview
+- `cub.core.dashboard.db` - Database layer
+- `cub.core.dashboard.sync` - Sync layer
+- `cub.core.dashboard.api` - API layer
+- `cub.core.dashboard.views` - View configuration system
+
+### Future Enhancements
+
+The dashboard is designed for extensibility:
+- Additional parsers can be added to `sync/parsers/`
+- New API endpoints can be added to `api/routes/`
+- View configurations can be customized per project
+- Stage computation logic can be extended for custom workflows

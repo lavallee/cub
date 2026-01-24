@@ -21,7 +21,7 @@ readiness:
   tools_needed:
     - Dependency Analyzer (needs workflow engine + capture)
     - Design Pattern Matcher (workflow patterns for progressive refinement)
-    - Trade-off Analyzer (automation level: manual, assisted, automatic)
+    - "Trade-off Analyzer (automation level: manual, assisted, automatic)"
 notes: |
   Depends on workflow engine and capture feature.
   Progressive refinement from idea to task.

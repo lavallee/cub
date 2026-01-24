@@ -118,6 +118,7 @@ def process_punchlist(
     # Note: We use labels instead of parent to associate tasks with the epic.
     # Using --parent in beads creates a hierarchical ID (epic.1, epic.2) AND adds
     # a dependency from child to parent, which blocks tasks until the epic closes.
+    # We use "epic:{id}" label format for consistency with plan-based task creation.
     tasks: list[Task] = []
     for h in hydrated:
         task = backend.create_task(
@@ -125,7 +126,7 @@ def process_punchlist(
             description=h.description,
             task_type="task",
             priority=2,
-            labels=["punchlist", epic.id],
+            labels=["punchlist", f"epic:{epic.id}"],
         )
         tasks.append(task)
 

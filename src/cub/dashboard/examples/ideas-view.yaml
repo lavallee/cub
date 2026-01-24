@@ -1,0 +1,46 @@
+# Ideas View: Idea Development Focused
+#
+# This view shows only the early-stage columns for developing and
+# planning ideas, hiding implementation and release columns.
+#
+# Copy this file to .cub/views/ and modify to create custom views.
+
+# Unique identifier for this view
+id: ideas
+
+# Display name shown in the view switcher
+name: Ideas View
+
+# Description shown in the view list
+description: Idea development focused view (Captures -> Specs -> Planned)
+
+# Column definitions - focused on idea development stages
+columns:
+  - id: captures
+    title: Captures
+    stages:
+      - CAPTURES
+
+  - id: specs
+    title: Specs
+    stages:
+      - SPECS
+
+  - id: planned
+    title: Planned
+    stages:
+      - PLANNED
+
+# Filter configuration
+filters:
+  exclude_labels:
+    - archived
+
+# Display configuration - hide cost/tokens for idea development
+display:
+  show_cost: false
+  show_tokens: false
+  show_duration: false
+
+# Not the default view
+is_default: false

@@ -1,5 +1,195 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-p9w.3: Implement cub dashboard export command
+
+### Task Completed
+Implemented `cub dashboard export` command to export board state as JSON for scripting, backup, or external tools.
+
+### What Was Implemented
+
+**New Export Subcommand** (`src/cub/cli/dashboard.py`):
+- Added `export()` function with `@app.command()` decorator
+- Options:
+  - `--output/-o`: Output file path (default: stdout)
+  - `--pretty/--compact`: Pretty-print with indentation (default) or minified JSON
+- Features:
+  - Validates database exists before attempting export
+  - Creates parent directories for output file if needed
+  - Errors go to stderr using `err_console` so stdout stays clean for piping
+  - Helpful error messages suggesting `cub dashboard sync` when database not found
+
+**Tests** (`tests/test_cli_dashboard.py`):
+- Added `TestDashboardExport` class with 8 tests:
+  - `test_export_help`: Verifies help text shows options
+  - `test_export_no_project_root`: Error when not in project
+  - `test_export_no_database`: Error with sync suggestion
+  - `test_export_to_stdout`: Valid JSON output
+  - `test_export_to_file`: File creation and contents
+  - `test_export_compact`: Single-line JSON
+  - `test_export_pretty`: Multi-line indented JSON
+  - `test_export_creates_parent_dirs`: Nested path support
+
+### Technical Details
+
+**Console Output Handling:**
+- Used `Console(stderr=True)` for error messages to preserve stdout for JSON
+- Used `print()` instead of `console.print()` for stdout to avoid Rich formatting
+
+**Pydantic JSON Serialization:**
+- Used `board.model_dump_json(indent=indent, exclude_none=True)` for clean output
+- `exclude_none=True` reduces file size by omitting null fields
+
+**Error Handling:**
+- Check for database existence before opening connection
+- Catch `PermissionError` and `OSError` for file write failures
+- Re-raise `typer.Exit` to prevent generic exception handler from catching it
+
+### Learnings
+- Rich Console requires `stderr=True` parameter for stderr output, not `file=sys.stderr`
+- Typer tests use `runner.isolated_filesystem()` for clean test environments
+- Pydantic's `model_dump_json()` accepts `indent` parameter directly (not via `mode='json'`)
+- When adding CLI tests, ensure database is created with sync before testing data-dependent features
+
+## 2026-01-23 - cub-m3x.6: Add loading states, error states, and keyboard navigation
+
+### Task Completed
+Implemented comprehensive UI polish for the dashboard with loading indicators, error handling, and keyboard shortcuts.
+
+### What Was Implemented
+
+**Loading States:**
+- Created `LoadingSkeleton` component module with multiple skeleton components:
+  - `SkeletonBox` - Generic shimmer animation box
+  - `EntityCardSkeleton` - Placeholder for entity cards
+  - `ColumnSkeleton` - Placeholder for kanban columns
+  - `BoardSkeleton` - Full board loading state with header, stats bar, and 5 columns
+  - `DetailPanelSkeleton` - Placeholder for detail panel content
+- Custom shimmer animation using CSS keyframes in `index.css`
+- Integrated loading skeletons into `KanbanBoard` and `DetailPanel` components
+
+**Error Handling:**
+- Created `ErrorBoundary` class component to catch React errors and prevent app crashes
+  - Wrapped entire app in `main.tsx`
+  - Default error fallback UI with "Try Again" and "Reload Page" buttons
+  - Expandable technical details section
+  - Support for custom fallback components
+- Created `ErrorDisplay` component module with three variants:
+  - `ErrorDisplay` - Standard error display with optional retry
+  - `InlineError` - Compact error for small spaces
+  - `FullScreenError` - Critical failures with retry functionality
+- Integrated error displays in `KanbanBoard` (with refetch) and `DetailPanel` (with refetch)
+- All error displays show consistent styling with red color scheme and error icons
+
+**Keyboard Navigation:**
+- Created `useKeyboardShortcuts` hook for flexible keyboard shortcut management
+  - Supports modifier keys (ctrl, meta, shift, alt)
+  - Each shortcut has optional description for future help UI
+  - Can be enabled/disabled dynamically
+- Added keyboard shortcuts to `KanbanBoard`:
+  - ESC: Close detail panel when open
+  - `r`: Refresh board data
+  - ArrowLeft: Navigate back in detail panel history
+  - Shortcuts disabled during loading/error states
+
+**Empty States:**
+- Enhanced `Column` component empty state:
+  - Replaced simple text with icon + text layout
+  - Added archive box SVG icon in gray
+  - Better visual hierarchy and spacing
+
+### Technical Details
+
+**Component Architecture:**
+- All new components use TypeScript with proper prop types
+- Reusable skeleton components follow DRY principle
+- Error boundary uses Preact class component lifecycle methods
+- Hooks use useCallback and proper dependency management
+
+**Styling:**
+- Shimmer animation: 2s infinite linear gradient
+- Consistent gray color scheme for loading states (gray-200/gray-300)
+- Red color scheme for errors (red-50, red-200, red-600, red-800)
+- All SVG icons use consistent stroke width and styling
+- Responsive layouts maintained throughout
+
+**User Experience:**
+- Loading skeletons provide visual continuity during data fetches
+- Error messages are clear and actionable with retry options
+- Keyboard shortcuts work only when appropriate (not during loading/errors)
+- Empty states are friendly and informative
+
+### Learnings
+- Preact requires type-only imports for types when using `verbatimModuleSyntax`
+- CSS keyframe animations can create smooth shimmer effects for loading states
+- Error boundaries in Preact use class components with lifecycle methods
+- Keyboard event handlers should check for conflicts and provide escape hatches
+- Consistent visual language (colors, icons, spacing) across states improves UX
+
+## 2026-01-23 - cub-m3x.3: Implement ViewSwitcher dropdown
+
+### Task Completed
+Implemented a dropdown component for switching between different board view configurations (Full Workflow, Sprint, Ideas, etc.).
+
+### What Was Implemented
+
+**New ViewSwitcher Component** (`src/cub/dashboard/web/src/components/ViewSwitcher.tsx`):
+- Dropdown button positioned in top-right of header
+- Fetches available views from `/api/views` endpoint on mount
+- Displays view names with descriptions and current selection indicator
+- Features:
+  - Click-outside detection to close dropdown
+  - ESC key support for accessibility
+  - Loading states during API calls
+  - Error handling with user-friendly messaging
+  - Disabled state during board transitions
+  - Checkmark icon for currently selected view
+  - Scrollable list for many views (max-height 72)
+
+**Updated useBoard Hook** (`src/cub/dashboard/web/src/hooks/useBoard.ts`):
+- Added optional `viewId` parameter to fetch specific view boards
+- Handles both default board (`/api/board`) and view-specific boards (`/api/views/{viewId}`)
+- Re-fetches data when viewId changes
+
+**Updated KanbanBoard Component** (`src/cub/dashboard/web/src/components/KanbanBoard.tsx`):
+- Added ViewSwitcher to header (top-right, next to title)
+- Manages selected view state
+- Clears entity detail panel when view changes to reset navigation context
+- Header layout uses flexbox for title/description on left, dropdown on right
+
+### Technical Details
+
+**Styling:**
+- Tailwind CSS with responsive design
+- Dropdown button: gray border, white background, hover effect
+- Options: blue highlight for selected, gray hover for others
+- Z-index 50 for dropdown overlay
+- Smooth transitions and SVG chevron rotation
+
+**Type Safety:**
+- Full TypeScript support with ViewSwitcherProps interface
+- Uses ViewSummary type from API types
+- Proper typing for state, refs, and event handlers
+
+**API Integration:**
+- Uses existing apiClient.getViews() for fetching available views
+- Uses existing apiClient.getView(viewId) for view-specific boards
+- Proper error handling with ApiClientError
+
+**Build & Testing:**
+- TypeScript compilation: ✓ No errors
+- Vite build: ✓ Successful (9.96 kB gzipped)
+- All 17 modules transformed
+
+### Learnings & Notes
+
+1. **Hook Dependencies**: The useBoard hook now tracks viewId as a dependency, ensuring re-fetch occurs when user switches views
+2. **State Management**: Kept selectedViewId in KanbanBoard component state for simplicity rather than context
+3. **Navigation Reset**: Clearing navigation history when switching views prevents stale entity selections
+4. **Dropdown UX**: Combined click-outside and ESC key listeners for better user experience
+5. **Fallback Display**: Shows first view as default if none selected, gracefully handles empty states
+
+---
+
 ## 2026-01-22 - cub-r7k.6: Capture prompt.md for rendered prompt audit trail
 
 ### Task Completed
@@ -4150,3 +4340,1732 @@ Implemented LLM-based insight extraction from harness execution logs for the led
 4. **Log Processing**: When processing large logs, preserve the beginning (setup) and end (results) - middle is usually verbose execution details.
 
 5. **Test Coverage for LLM Integrations**: Mock subprocess calls to test all error paths without actual LLM costs. Cover: success, non-zero exit, timeout, FileNotFoundError, OSError.
+
+## Task: cub-k8d.1 - Create SQLite schema and database module
+
+**Completed:** 2026-01-23
+
+### What was built
+
+Created the foundational database layer for the dashboard system:
+
+1. **Schema Design** (`src/cub/core/dashboard/db/schema.py`)
+   - Entities table with 6 types: spec, plan, epic, task, ledger, release
+   - 8-stage Kanban columns: backlog, researching, planned, staged, implementing, verifying, completed, released
+   - Relationships table supporting 7 relationship types
+   - Metadata table for flexible entity data
+   - Schema versioning system for migrations
+   - CHECK constraints for data integrity
+   - Performance indexes on frequently queried fields
+
+2. **Connection Management** (`src/cub/core/dashboard/db/connection.py`)
+   - SQLite configuration with WAL mode for concurrency
+   - Foreign key enforcement
+   - Dict-based row factory for convenient access
+   - Context managers for safe transactions
+   - Query helpers: execute_query, execute_one
+   - CRUD helpers: insert_entity, insert_relationship, upsert_metadata
+
+3. **Comprehensive Tests** (`tests/test_dashboard_schema.py`)
+   - 43 tests covering all functionality
+   - Schema creation and migration testing
+   - Connection configuration verification
+   - CRUD operations validation
+   - Constraint enforcement testing
+   - Index verification
+
+### Key Decisions
+
+1. **SQLite over PostgreSQL**: Chose SQLite for simplicity and zero-setup experience. WAL mode provides sufficient concurrency for dashboard queries.
+
+2. **Dict Row Factory**: Using dict-based row access (`row["column"]`) instead of positional access for better readability and maintainability.
+
+3. **8-Stage Kanban**: Aligned with project workflow: backlog → researching → planned → staged → implementing → verifying → completed → released
+
+4. **Explicit Relationships**: Separate relationships table instead of JSON blobs enables efficient queries and foreign key enforcement.
+
+5. **Metadata Table**: Key-value metadata table provides flexibility for entity-specific data without schema changes.
+
+### Technical Notes
+
+- WAL mode enables concurrent reads while writing
+- Foreign keys enforce referential integrity with CASCADE deletes
+- Indexes on type, stage, and relationships optimize common queries
+- Schema versioning prepares for future migrations
+- All mypy strict checks pass with proper type annotations
+
+### Next Steps
+
+The database layer is ready. Next tasks:
+- cub-k8d.2: Create Pydantic models for dashboard entities
+- cub-k8d.3: Implement spec parser for sync layer
+
+## Task: cub-k8d.2 - Create Pydantic models for dashboard entities
+**Completed:** 2026-01-23
+**Status:** ✓ Closed
+
+### What Was Built
+
+Created comprehensive Pydantic v2 models providing type-safe data structures for the entire dashboard system, from database entities to API responses.
+
+**Files Created:**
+- `src/cub/core/dashboard/db/models.py` (635 lines)
+- `tests/test_dashboard_models.py` (555 lines)
+
+### Model Architecture
+
+1. **Enums** (3 types)
+   - `EntityType`: 7 entity types (capture, spec, plan, epic, task, ledger, release)
+   - `Stage`: 8 Kanban board stages (CAPTURES → SPECS → PLANNED → READY → IN_PROGRESS → NEEDS_REVIEW → COMPLETE → RELEASED)
+   - `RelationType`: 9 relationship types (contains, blocks, references, spec_to_plan, etc.)
+
+2. **Core Entity Models** (2 models)
+   - `DashboardEntity`: Unified entity with 20+ fields aggregating data from all sources
+     - Core: id, type, title, description, stage, status, priority, labels
+     - Hierarchy: parent_id, spec_id, plan_id, epic_id (explicit relationship markers)
+     - Metrics: cost_usd, tokens, duration_seconds, verification_status
+     - Source tracking: source_type, source_path, source_checksum
+     - Content: content, frontmatter
+     - Computed properties: is_complete, priority_display
+   
+   - `Relationship`: Links between entities with rel_type and optional metadata
+
+3. **View Configuration Models** (4 models)
+   - `ColumnConfig`: Defines board column (id, title, stages[], group_by)
+   - `FilterConfig`: Entity filters (include/exclude labels, types, priority ranges)
+   - `DisplayConfig`: Display settings (show_cost, card_size, etc.)
+   - `ViewConfig`: Complete view definition combining columns, filters, display
+
+4. **API Response Models** (5 models)
+   - `BoardColumn`: Column data with entities for board rendering
+   - `BoardStats`: Aggregate metrics (total, by_stage, by_type, costs, tokens)
+   - `BoardResponse`: Full board payload (view + columns + stats)
+   - `EntityDetail`: Detailed entity with relationships for detail panel
+   - `ViewSummary`: Lightweight view listing
+
+5. **Sync Orchestration Models** (2 models)
+   - `SyncState`: Tracks source checksums for incremental sync
+   - `SyncResult`: Reports sync outcomes (adds, updates, deletes, errors, duration)
+
+### Key Design Decisions
+
+1. **Stage vs Status Separation**: `stage` (computed, canonical, for board placement) vs `status` (raw, from source, for filtering). This mirrors architecture doc's stage computation logic.
+
+2. **Explicit Relationship Markers**: `spec_id`, `plan_id`, `epic_id` fields enable reliable linking without fragile heuristics. Architecture doc emphasizes this approach.
+
+3. **Flexible Metadata**: `frontmatter: dict[str, Any]` preserves source-specific data without rigid schema.
+
+4. **Type Safety**: Full mypy strict compliance with proper generic types (`dict[str, Any]`, not `dict`).
+
+5. **Validation Constraints**: 
+   - Priority: 0-4 (matching P0-P4 convention)
+   - Negative values rejected for cost, tokens, duration
+   - Required fields enforced by Pydantic
+
+6. **Computed Properties**: Read-only properties like `is_complete`, `priority_display`, `total_changes` for convenience without data duplication.
+
+### Testing Strategy
+
+**Test Coverage: 33 tests**
+
+1. **Enum Tests** (3 tests)
+   - Verify all enum values match architecture spec
+
+2. **Entity Construction Tests** (6 tests)
+   - Minimal entity (required fields only)
+   - Full entity (all fields populated)
+   - Priority validation (0-4 range, rejects invalid)
+   - Computed properties (is_complete, priority_display)
+   - Serialization (model_dump)
+
+3. **Relationship Tests** (2 tests)
+   - Minimal relationship
+   - Relationship with metadata
+
+4. **View Configuration Tests** (6 tests)
+   - ColumnConfig construction
+   - FilterConfig with all options
+   - FilterConfig defaults
+   - DisplayConfig construction
+   - DisplayConfig defaults
+   - ViewConfig with nested models
+
+5. **API Response Tests** (6 tests)
+   - BoardColumn with entities
+   - BoardStats with metrics
+   - BoardStats defaults
+   - Full BoardResponse
+   - EntityDetail with relationships
+   - ViewSummary
+
+6. **Sync Models Tests** (5 tests)
+   - SyncState tracking
+   - SyncResult with all fields
+   - SyncResult defaults
+   - Computed total_changes
+   - SyncResult with errors
+
+7. **Validation Tests** (5 tests)
+   - Required field enforcement
+   - Negative cost rejection
+   - Negative tokens rejection
+   - Negative duration rejection
+
+### Technical Decisions
+
+1. **Pydantic v2 Features Used**:
+   - `ConfigDict` for model configuration
+   - `Field` with validation (ge, le, min_length)
+   - `@property` for computed fields (no need for @computed_field in Python 3.10+)
+   - `model_dump()` for serialization
+
+2. **Type Annotations**: Full typing with generics (`dict[str, Any]`) for mypy compliance
+
+3. **Enum Base**: All enums extend `str, Enum` for JSON serialization compatibility
+
+4. **Optional Fields**: Used `| None` with `default=None` for optional fields, `default_factory=list` for collections
+
+5. **Field Aliases**: Not needed for dashboard models (unlike task models with camelCase backend)
+
+### Integration Points
+
+These models are consumed by:
+- **Sync Layer** (`cub.core.dashboard.sync.*`): Parsers create DashboardEntity instances
+- **Database Layer** (`cub.core.dashboard.db.queries`): Queries return these models
+- **API Layer** (`cub.core.dashboard.api.*`): Endpoints return BoardResponse, EntityDetail, etc.
+- **CLI Layer** (`cub.cli.dashboard`): Uses ViewConfig for view management
+
+### Validation
+
+✅ **All checks pass:**
+- `pytest tests/test_dashboard_models.py -v`: 33/33 tests pass
+- `mypy src/cub/core/dashboard/`: No errors
+- `ruff check src/cub/core/dashboard/db/models.py`: All checks pass
+- All 129 dashboard tests pass (including schema and renderer tests)
+
+### Learnings
+
+1. **Model Hierarchy**: Designing a model hierarchy that serves multiple purposes (sync, storage, API) requires balancing flexibility with type safety. We used `dict[str, Any]` for frontmatter to preserve source data while keeping strict types elsewhere.
+
+2. **Stage Computation**: Modeling `stage` as a computed field (not stored in model) aligns with architecture's stage computation logic. The model just holds the result; sync layer computes it.
+
+3. **Relationship Markers**: Explicit `spec_id`, `plan_id`, `epic_id` fields enable reliable traceability. Alternative (parsing markdown links) would be fragile.
+
+4. **Enum Usage**: Using enums for `EntityType`, `Stage`, `RelationType` catches typos at type-check time and enables IDE autocomplete.
+
+5. **Test Organization**: Grouping tests by model type (TestDashboardEntity, TestRelationship, etc.) makes tests easy to navigate and run selectively.
+
+6. **Generic Type Enforcement**: mypy requires generic types (`dict[str, Any]` not `dict`). This caught potential bugs where we'd otherwise lose type information.
+
+### Next Steps
+
+With models defined, we can now implement:
+- **cub-k8d.3**: Spec parser (reads specs/, creates DashboardEntity instances)
+- **cub-k8d.4**: Sync orchestrator (coordinates parsers, writes to SQLite)
+- **cub-k8d.5**: FastAPI endpoints (returns BoardResponse, EntityDetail)
+
+The type-safe model foundation ensures consistent data structures across all layers.
+
+
+## 2026-01-23 - Spec Parser Implementation (cub-k8d.3)
+
+Implemented the spec parser for the dashboard sync layer. This is the first parser in the sync system that will eventually aggregate data from specs, plans, tasks, ledger, and changelog.
+
+### What Worked Well
+
+1. **Reused existing Spec model**: The `Spec.from_frontmatter_dict()` method already handled all the complex parsing and validation. Just needed to extract the title from markdown content first.
+
+2. **Clear separation of concerns**: Parser focuses on:
+   - Reading files and computing checksums
+   - Extracting title from markdown headings
+   - Converting Spec -> DashboardEntity with stage mapping
+   - Handling edge cases gracefully
+
+3. **Comprehensive test coverage**: 15 tests covering:
+   - Happy path with full frontmatter
+   - Edge cases (missing frontmatter, invalid YAML, empty files)
+   - Stage and priority mapping validation
+   - Checksum computation and change detection
+   - Batch operations (parse_all, parse_stage)
+
+4. **Stage mapping design**: Clean mapping from spec lifecycle stages to dashboard columns:
+   - researching -> SPECS (being researched)
+   - planned -> PLANNED (plan exists)
+   - staged -> READY (tasks created, ready to work)
+   - implementing -> IN_PROGRESS (active work)
+   - released -> RELEASED (shipped)
+
+### Implementation Details
+
+**Key design decisions:**
+
+1. **Title extraction**: Followed existing pattern from SpecWorkflow - use regex to find first `# Heading` in markdown content, fallback to filename if not found.
+
+2. **Priority mapping**: Mapped spec priorities (critical/high/medium/low) to dashboard priorities (0-3) where 0=P0/highest.
+
+3. **Label extraction**: Extract complexity and status as labels for filtering. Dependencies/blocks are stored in frontmatter but will become relationships when linked by sync orchestrator.
+
+4. **Checksum for incremental sync**: Compute MD5 hash of file content to detect changes. This enables the sync orchestrator to skip unchanged files.
+
+5. **Error handling**: Log errors but continue processing. Skip malformed files but don't fail the entire sync.
+
+**Edge cases handled:**
+
+- Missing frontmatter: Use empty metadata dict, still parse content
+- Invalid YAML: Log warning, use empty metadata
+- Empty files: Return None, log warning
+- No title heading: Use filename as title
+- Missing stage directories: Log debug, continue
+
+### Next Steps
+
+The spec parser is the foundation. Next tasks:
+
+1. **cub-k8d.4**: Implement sync orchestrator that:
+   - Calls SpecParser.parse_all()
+   - Writes entities to SQLite
+   - Tracks sync state (checksums, timestamps)
+   - Handles incremental sync (only process changed files)
+
+2. **Future parsers** will follow the same pattern:
+   - PlanParser: Parse .cub/sessions/*/plan.jsonl
+   - TaskParser: Query beads/JSON backend
+   - LedgerParser: Parse .cub/ledger/
+   - ChangelogParser: Parse CHANGELOG.md
+
+3. **Relationship extraction**: Once we have multiple entity types, the orchestrator will resolve relationships via explicit markers (spec_id, plan_id, epic_id).
+
+### Lessons Learned
+
+1. **Leverage existing models**: Don't duplicate parsing logic. The existing Spec model already validated and parsed frontmatter correctly - just needed to adapt it.
+
+2. **Test edge cases early**: Having comprehensive tests for missing frontmatter, invalid YAML, and empty files caught issues immediately and gave confidence in robustness.
+
+3. **Checksum strategy**: MD5 is fast and sufficient for change detection. Don't need cryptographic security, just need to detect when files change.
+
+4. **Logging levels matter**: Use debug for "directory not found", warning for "empty file", error for "parse failed". This makes it easy to understand what's happening during sync.
+
+
+## Task cub-k8d.4: Implement basic sync orchestrator and SQLite writer
+
+### Implementation Summary
+Created the sync orchestrator and SQLite writer for the dashboard vertical slice. The orchestrator coordinates parsing specs and writing them to SQLite, with proper transaction handling and incremental sync support.
+
+### Key Components
+
+1. **EntityWriter** (`src/cub/core/dashboard/sync/writer.py`)
+   - Writes DashboardEntity and Relationship objects to SQLite
+   - Upsert semantics based on checksum comparison
+   - Stage mapping: Pydantic enums (PLANNED, IN_PROGRESS) → schema values (planned, implementing)
+   - JSON serialization for complex fields stored in `data` column
+   - Proper relationship duplicate detection
+
+2. **SyncOrchestrator** (`src/cub/core/dashboard/sync/orchestrator.py`)
+   - Coordinates parsing from SpecParser and writing via EntityWriter
+   - Transaction-safe: commits on success, rolls back on error
+   - Returns SyncResult with detailed metrics
+   - Placeholders for future data sources (plans, tasks, ledger)
+
+### Technical Decisions
+
+1. **Stage Mapping**: Schema uses lowercase snake_case (planned, implementing) but Pydantic models use uppercase (PLANNED, IN_PROGRESS). Added STAGE_MAPPING dict in EntityWriter to convert.
+
+2. **Checksum Storage**: Schema doesn't have a `source_checksum` column, so we store it in the `data` JSON field along with frontmatter/content. This enables incremental sync without schema changes.
+
+3. **Relationship Duplicate Detection**: Changed from `INSERT OR IGNORE` (which doesn't update rowcount) to explicit existence check before INSERT for reliable duplicate detection.
+
+4. **Type Safety**: Used explicit type annotations for JSON deserialization to satisfy mypy strict mode.
+
+### Testing Approach
+- 21 comprehensive tests covering all CRUD operations
+- Tests for incremental sync (checksum-based)
+- Error handling and transaction rollback tests
+- Integration test for full pipeline
+- All 112 dashboard tests pass
+
+### Challenges & Solutions
+
+1. **Challenge**: Schema stage names didn't match Pydantic enum values
+   - **Solution**: Created STAGE_MAPPING dict to translate between them
+   
+2. **Challenge**: No source_checksum column in schema
+   - **Solution**: Store checksum in data JSON field, extract during comparison
+   
+3. **Challenge**: Relationship duplicate detection not working with INSERT OR IGNORE
+   - **Solution**: Check existence before insert for reliable return value
+
+### Next Steps
+- Task cub-k8d.5: Implement FastAPI app with /api/board endpoint
+- The sync layer is ready to be consumed by the API
+
+### Files Created
+- `src/cub/core/dashboard/sync/writer.py` (455 lines)
+- `src/cub/core/dashboard/sync/orchestrator.py` (372 lines)
+- `tests/test_sync_orchestrator.py` (727 lines)
+
+### Verification
+✓ All tests pass (21 new, 112 total dashboard tests)
+✓ mypy passes (no type errors)
+✓ ruff passes (no lint errors)
+✓ Task cub-k8d.4 closed successfully
+✓ Committed with proper co-authorship
+
+
+## Task cub-k8d.5: Implement FastAPI app with /api/board endpoint
+
+**Date:** 2026-01-23
+
+**What was implemented:**
+- Created FastAPI application with two endpoints:
+  - GET /api/board - Returns full Kanban board data with entities grouped by stage
+  - GET /api/board/stats - Returns lightweight statistics for dashboard summary
+- Implemented database query layer (db/queries.py) to:
+  - Fetch entities from SQLite and convert to Pydantic models
+  - Apply view configuration filters
+  - Compute aggregate statistics
+  - Handle empty database gracefully
+- Added comprehensive test suite with 11 tests covering all scenarios
+
+**Key technical decisions:**
+1. **Stage name mapping**: Database uses lowercase names (implementing, staged) while Pydantic models use uppercase (IN_PROGRESS, READY). Created bidirectional mapping dictionaries to convert between them.
+
+2. **Empty database handling**: API returns empty but valid board structure when database doesn't exist yet, allowing frontend to render before first sync.
+
+3. **Default view configuration**: Hardcoded default 8-column view in queries.py for initial implementation. Future: load from .cub/views/ directory.
+
+4. **Error handling**: Catch all database errors and return 500 with descriptive error messages to aid debugging.
+
+**Challenges encountered:**
+1. **Stage name mismatch**: Initial tests failed because schema.py uses lowercase stage names but models.py uses uppercase. Fixed by adding DB_STAGE_TO_MODEL_STAGE mapping in queries.py.
+
+2. **Null source_path**: Database rows can have NULL file_path, but DashboardEntity requires non-null source_path. Fixed with `row.get("file_path") or ""` to default to empty string.
+
+3. **Test environment**: Had to create temporary venv to run tests properly as main venv was missing dependencies.
+
+**Testing:**
+- All 11 tests pass
+- mypy type checking passes with --strict
+- ruff linting passes with auto-fixes applied
+- Coverage includes:
+  - Empty database scenarios
+  - Multiple entities across different stages
+  - Statistics aggregation
+  - Error handling for corrupted database
+  - Filter behavior
+
+**Next steps:**
+- Frontend implementation (cub-k8d.6, cub-k8d.7)
+- View configuration loading from .cub/views/
+- Additional API endpoints (/api/entity/{id}, /api/views, POST /api/sync)
+- WebSocket support for real-time updates
+
+## 2026-01-23 - cub-k8d.6: Set up Vite + Preact + Tailwind frontend project
+
+### Task Completed
+Set up the frontend project structure with Vite, Preact, TypeScript, and Tailwind CSS v4 for the Dashboard Kanban board.
+
+### What Was Implemented
+
+**Project Initialization:**
+1. Created `src/cub/dashboard/web/` directory structure
+2. Initialized Vite with Preact TypeScript template
+3. Installed Tailwind CSS v4 with @tailwindcss/postcss plugin
+4. Configured PostCSS for Tailwind processing
+
+**TypeScript Type System:**
+1. Created `src/types/api.ts` - TypeScript types matching Python Pydantic models
+   - Converted Python enums to const objects with union types (compatible with erasableSyntaxOnly)
+   - Mirrored all models: DashboardEntity, BoardResponse, BoardColumn, BoardStats, ViewConfig, etc.
+   - ISO 8601 string format for datetime fields
+   - Proper nullable types (T | null)
+
+2. Created `src/api/client.ts` - Typed API client
+   - Generic `fetchApi<T>()` wrapper with error handling
+   - Custom `ApiClientError` class for API errors
+   - Typed methods for all endpoints: getBoard(), getBoardStats(), getEntity(), etc.
+   - Configurable API_BASE_URL via VITE_API_BASE_URL env var
+
+**Build Configuration:**
+1. Modified `vite.config.ts` to output to `../static/` directory
+2. Configured Tailwind with content paths for JSX/TSX files
+3. Updated `index.css` with Tailwind directives (@tailwind base/components/utilities)
+4. Created `.env.example` for API configuration
+
+**Key Learnings:**
+
+1. **Tailwind CSS v4 Breaking Change:**
+   - v4 requires `@tailwindcss/postcss` instead of `tailwindcss` PostCSS plugin
+   - Must update postcss.config.js to use '@tailwindcss/postcss'
+   - Install: `npm install @tailwindcss/postcss`
+
+2. **TypeScript erasableSyntaxOnly Mode:**
+   - Vite's default Preact template uses erasableSyntaxOnly: true
+   - Regular enums not allowed (error TS1294)
+   - Solution: Use const objects with union types
+     ```typescript
+     export const Stage = { READY: 'READY', ... } as const;
+     export type Stage = typeof Stage[keyof typeof Stage];
+     ```
+   - Class properties must be declared explicitly (no parameter properties)
+
+3. **Build Output Configuration:**
+   - Vite's `build.outDir` can be relative (e.g., '../static/')
+   - `emptyOutDir: true` clears output directory before build
+   - Allows FastAPI to serve static files from predictable location
+
+4. **Project Structure Best Practices:**
+   - Separate api/, types/, components/ directories for clarity
+   - Types mirror backend models 1:1 for consistency
+   - API client encapsulates all fetch logic in one place
+   - README documents setup, structure, and next steps
+
+### Verification
+
+✓ Dev server starts successfully (npm run dev)
+✓ Production build completes (npm run build)
+✓ TypeScript compilation passes (tsc -b)
+✓ Output directory created at ../static/
+✓ No TypeScript errors
+
+### Files Created
+- src/cub/dashboard/web/ (entire directory)
+  - src/api/client.ts
+  - src/types/api.ts
+  - vite.config.ts
+  - tailwind.config.js
+  - postcss.config.js
+  - README.md
+  - .env.example
+- src/cub/dashboard/static/ (build output)
+
+### Next Task
+Ready for cub-k8d.7: Implement basic KanbanBoard and EntityCard components
+
+
+## Task cub-k8d.7: Basic Kanban Board Components
+
+**Completed:** 2025-01-23
+
+### What was implemented:
+- Created `useBoard` hook for fetching board data with loading/error states
+- Created `EntityCard` component - minimal card showing title, type, and description
+- Created `Column` component - displays stage column with entity cards and count
+- Created `KanbanBoard` component - main board with horizontal scroll, header with stats
+- Updated `App.tsx` to render KanbanBoard instead of demo content
+
+### Implementation notes:
+- Used existing TypeScript types from `api.ts` and `client.ts` (created in previous tasks)
+- Components use Preact/hooks, not React
+- Tailwind CSS classes for styling (already configured in project)
+- EntityCard click handler placeholder for future detail panel (task cub-k8d.8)
+- Build and typecheck pass successfully
+
+### Architecture decisions:
+- Kept components minimal per task requirements
+- Separated concerns: hook for data fetching, components for presentation
+- Used existing API client rather than direct fetch calls
+- No state management needed yet - simple hook-based data fetching
+
+### Next steps:
+- Task cub-k8d.8: Implement detail panel for entity details
+- May need to add state management for selected entity
+
+## 2026-01-23 - Task cub-k8d.8: Implement dashboard CLI command
+
+### What was done
+- Created `src/cub/cli/dashboard.py` with main command and sync subcommand
+- Main command: syncs data (unless --no-sync), starts FastAPI server, opens browser (unless --no-browser)
+- Sync subcommand: syncs project data to SQLite database without starting server
+- Registered command in `src/cub/cli/__init__.py` under "See What a Run is Doing" panel
+- Added comprehensive test suite with 13 tests covering help, error cases, sync, and server launch
+
+### Key decisions
+- Used lazy imports for fastapi/uvicorn to avoid import errors when dependencies not installed
+- Stored db_path in fastapi_app.state for routes to access
+- Default port 8080, configurable via --port flag
+- Browser opens automatically after 1.5s delay (configurable via --no-browser)
+- Sync continues even if it fails, server starts with partial data
+- Used threading for browser opening to avoid blocking server startup
+
+### Technical details
+- Lazy imports required patching test mocks at `cub.core.dashboard.sync.SyncOrchestrator`
+- Import order matters for ruff linter (stdlib, blank line, third-party)
+- Typer callback with invoke_without_command=True allows both main command and subcommands
+- Error messages provide helpful install instructions when dependencies missing
+
+### Testing
+- All 13 tests passing
+- Mocked uvicorn.run and SyncOrchestrator for server launch tests
+- Integration tests verify database and .cub directory creation
+- Type checking and linting clean
+
+## 2026-01-23 - Task cub-d2v.1: Implement Plan Parser
+
+### What was done
+- Implemented PlanParser class for parsing .cub/sessions/*/plan.jsonl and session.json
+- Created comprehensive test suite with 18 test cases covering all edge cases
+- All feedback loops passed (mypy strict, ruff, pytest)
+
+### Key design decisions
+1. **Epic-only entities**: Only epic tasks from plan.jsonl become DashboardEntity objects. Regular tasks are filtered out and handled by the task parser once they're in the task backend (beads/JSON).
+
+2. **Graceful degradation**: Parser handles missing/incomplete sessions robustly:
+   - Missing session.json: Uses directory name as fallback plan_id
+   - Missing plan.jsonl: Returns empty list
+   - Invalid JSON lines: Logs warning and continues parsing valid lines
+   - Missing task IDs: Logs warning and skips task
+
+3. **Combined checksum**: Computes MD5 hash of both session.json and plan.jsonl contents for incremental sync detection. This ensures any change to either file triggers a re-sync.
+
+4. **Relationship markers**: Extracts explicit relationship markers (spec_id, plan_id, epic_id) from both session metadata and task definitions to enable relationship resolution in later stages.
+
+5. **Stage mapping**: All plan entities map to Stage.PLANNED (the planning-complete-but-not-ready-to-work stage).
+
+### Challenges overcome
+- Timezone-aware datetime handling from ISO 8601 strings (used fromisoformat with Z -> +00:00 replacement)
+- Type safety with dict[str, Any] annotations for mypy strict mode
+- Test file naming conflict (old test_plan_parser.py for itemized-plan.md existed)
+
+### Lessons learned
+1. **Parse with defaults**: When parsing external data, always provide sensible defaults for missing fields rather than failing hard. This makes the parser more resilient.
+
+2. **Debug logs for context**: Use logger.debug() for missing-but-expected files (like session.json in incomplete sessions) and logger.warning() for actual data issues (invalid JSON).
+
+3. **Test edge cases early**: Writing comprehensive tests for all edge cases (missing files, invalid JSON, empty files) caught issues early and gave confidence in robustness.
+
+4. **Follow existing patterns**: Mirroring the SpecParser structure (same method names, same error handling patterns) made the code consistent and easier to understand.
+
+### Next steps
+- Implement relationship resolver (task cub-d2v.5) to link spec → plan → task entities
+- Implement task parser for beads/JSON backend
+- Implement stage computation based on task status and relationships
+
+### Files modified
+- src/cub/core/dashboard/sync/parsers/plans.py (new, 355 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated exports)
+- tests/test_dashboard_plan_parser.py (new, 18 test cases)
+## 2026-01-23 - Task cub-d2v.2: Implement Task Parser via Backend Abstraction
+
+### What was done
+- Implemented TaskParser class that uses TaskBackend protocol for querying tasks
+- Created comprehensive test suite with MockTaskBackend (18 test cases)
+- All feedback loops passed (mypy strict, ruff, pytest)
+
+### Key design decisions
+1. **Backend abstraction**: TaskParser takes a TaskBackend instance (beads or JSON) rather than parsing files directly. This follows the existing architecture and makes the parser backend-agnostic.
+
+2. **Stage computation logic**:
+   - Epics: open->PLANNED, in_progress->IN_PROGRESS, closed->COMPLETE
+   - Tasks: open->READY, in_progress->IN_PROGRESS, closed->COMPLETE
+   - Tasks with 'pr' or 'review' labels -> NEEDS_REVIEW (highest priority)
+   - RELEASED stage determined by changelog parser (not by task status)
+
+3. **Entity type mapping**: Tasks with type=EPIC become EntityType.EPIC, all others become EntityType.TASK. This enables different display and grouping behavior on the board.
+
+4. **Checksum computation**: Hash of serialized task JSON (model_dump_json) for change detection. Since tasks come from backend rather than files, we hash the data itself.
+
+5. **Multiple query methods**: Implemented parse_all(), parse_by_status(), parse_by_epic(), and parse_epics_only() to support different sync scenarios and filtering needs.
+
+### Challenges overcome
+- Handling both beads and JSON backends through protocol: Implemented MockTaskBackend that mirrors the TaskBackend protocol for testing without filesystem dependencies.
+- Type annotations for test methods: Added `-> None` annotations to all test methods to satisfy mypy strict mode.
+
+### Lessons learned
+1. **Protocol-based design pays off**: Using the TaskBackend protocol makes the parser testable and flexible. We can mock the backend cleanly without touching real files or running external commands.
+
+2. **Review labels need priority**: Checking for 'pr'/'review' labels before status checks ensures tasks in review go to the correct column regardless of their status field.
+
+3. **Mock backends are powerful**: Creating a MockTaskBackend that implements filtering logic makes tests realistic and comprehensive without needing fixture files or database setup.
+
+4. **Consistent checksum approach**: Using model_dump_json for checksums is more reliable than hashing individual fields - it captures all task data in a deterministic format.
+
+### Next steps
+- Implement ledger parser (task cub-d2v.3) to extract cost/token/duration metrics
+- Implement changelog parser (task cub-d2v.4) to identify RELEASED entities
+- Implement relationship resolver (task cub-d2v.5) to link entities
+
+### Files modified
+- src/cub/core/dashboard/sync/parsers/tasks.py (new, 324 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated exports)
+- tests/test_task_parser.py (new, 18 test cases, 423 lines)
+
+## cub-d2v.4 - CHANGELOG Parser Implementation (2026-01-23)
+
+**What I did:**
+- Implemented ChangelogParser class for extracting release information from CHANGELOG.md
+- Created comprehensive test suite with 19 test cases covering edge cases
+- Added support for multiple ID formats (cub-xxx, cub-xxx.n, #123, epic:cub-xxx)
+- Implemented graceful error handling for missing/empty/malformed CHANGELOGs
+- Added date parsing with robustness for formats like "2026-01-23 (PR #24)"
+
+**Key learnings:**
+1. **Real-world CHANGELOG format variations** - The actual CHANGELOG had dates with PR references like "2026-01-23 (PR #24)" which I didn't anticipate initially. Using a regex search for the date pattern made it robust.
+
+2. **Regex pattern flexibility** - Changed the release header pattern to make the date optional, which helped handle edge cases gracefully without failing entirely.
+
+3. **Case-insensitive ID matching** - Normalizing all task IDs to lowercase during extraction ensures consistent lookups regardless of how IDs are written in the CHANGELOG.
+
+4. **Test-driven debugging** - Started with one failing test, which helped me quickly identify the issue with date parsing and fix it systematically.
+
+5. **Parser pattern consistency** - Following the same structure as SpecParser and TaskParser (checksum computation, error handling, logging) made the implementation cleaner and more maintainable.
+
+**What went well:**
+- All 19 tests pass on first full run
+- Type checking and linting pass without issues
+- Successfully parses the real project CHANGELOG (37 releases, 25 task IDs)
+- Error handling is graceful (missing files, empty files, malformed content)
+
+**Challenges:**
+- Initial regex pattern was too strict for real-world date formats
+- Had to adjust test expectations when changing from warning to debug logging
+
+**Files created:**
+- src/cub/core/dashboard/sync/parsers/changelog.py (307 lines)
+- tests/test_changelog_parser.py (523 lines)
+
+**Next steps:**
+- This parser can now be integrated into the sync orchestrator
+- The is_released() method can be used to move tasks to RELEASED stage
+
+## 2026-01-23 - cub-d2v.5: Implement relationship resolver and stage computation
+
+### Task Completed
+Implemented the RelationshipResolver class and compute_stage() function for linking entities and determining correct stage placement.
+
+### What Was Implemented
+
+**RelationshipResolver Class:**
+1. `resolve(entities)` - Main entry point that processes all entities
+2. `_create_relationships()` - Creates Relationship objects from explicit markers
+3. `_enrich_with_ledger()` - Adds cost, tokens, verification_status from ledger
+4. `_is_released()` - Checks if entity is in CHANGELOG
+5. `_get_ledger_entry()` - Retrieves ledger data for entity
+
+**Relationship Types Created:**
+- SPEC_TO_PLAN: From spec_id on Plan entities
+- PLAN_TO_EPIC: From plan_id on Epic entities
+- EPIC_TO_TASK: From epic_id or parent_id on Task entities
+- TASK_TO_LEDGER: Virtual relationship for entities with ledger entries
+- TASK_TO_RELEASE: Virtual relationship for entities in CHANGELOG
+- DEPENDS_ON: From dependencies array in frontmatter
+- REFERENCES: From spec_id on Task/Epic entities
+- CONTAINS: Generic parent-child for non-epic parents
+
+**compute_stage() Function:**
+Stage computation follows priority order:
+1. NEEDS_REVIEW: 'pr' or 'review' labels (case-insensitive)
+2. RELEASED: Entity in CHANGELOG
+3. COMPLETE: Entity has ledger entry and status=closed
+4. Entity-type specific:
+   - CAPTURE: Always CAPTURES (unless released/review)
+   - SPEC: Preserves directory-based stage
+   - PLAN: Always PLANNED
+   - EPIC: open→PLANNED, in_progress→IN_PROGRESS, closed→COMPLETE
+   - TASK: open→READY (or PLANNED if blockers), in_progress→IN_PROGRESS, closed→COMPLETE
+
+### Design Decisions
+
+1. **Virtual Relationship IDs**: TASK_TO_LEDGER and TASK_TO_RELEASE create relationships to virtual entities like `ledger:cub-abc.1` and `release:cub-abc.1` to support future detail panel navigation.
+
+2. **Case-Insensitive Matching**: Entity IDs are normalized to lowercase when matching against CHANGELOG and ledger entries to handle mixed-case IDs.
+
+3. **Lazy Loading**: CHANGELOG and ledger data are loaded on first access and cached for performance.
+
+4. **Review Priority**: Review labels take highest priority because items under review shouldn't show as complete even if they have ledger entries.
+
+5. **Duplicate Prevention**: Relationships are deduplicated using a seen set to handle cases where both epic_id and parent_id point to the same entity.
+
+### Testing
+
+48 comprehensive tests covering:
+- Stage computation for all entity types and status combinations
+- Label priority (review/pr overrides)
+- Released vs Complete vs In Progress precedence
+- Relationship creation from all marker types
+- Ledger enrichment preserving other fields
+- Edge cases: circular deps, missing data, self-references, malformed frontmatter
+
+## 2026-01-23 - Task cub-d2v.6: Integrate all parsers into sync orchestrator
+
+### What was implemented:
+- Updated SyncOrchestrator to integrate all parsers (SpecParser, PlanParser, TaskParser)
+- Removed old per-source sync methods (_sync_specs, _sync_plans, _sync_tasks)
+- Implemented 4-phase sync process:
+  1. Phase 1: Parse entities from all sources (collect before writing)
+  2. Phase 2: Resolve relationships and enrich with ledger/changelog data
+  3. Phase 3: Write entities to database
+  4. Phase 4: Write relationships to database
+- Added comprehensive progress logging at each step
+- Implemented partial failure handling (continues if one source fails)
+- Updated sync result with detailed relationship counts
+- Created comprehensive integration test suite (11 new tests)
+
+### Key architectural decisions:
+1. **Collect-then-write approach**: All entities are parsed first, then passed to RelationshipResolver before writing. This enables relationship resolution to see all entities and create relationships correctly.
+
+2. **Partial failure handling**: Each parser runs in its own try/except block. If one fails, others continue. Errors are collected and reported in SyncResult.
+
+3. **Transaction semantics**: The entire sync is a single transaction. If any errors occur, the transaction is rolled back. This ensures database consistency.
+
+4. **Four-phase sync**: Separating parsing, resolution, entity writing, and relationship writing makes the code easier to understand and maintain.
+
+5. **Removed helper methods**: The old _sync_specs, _sync_plans, _sync_tasks methods were removed. Parsing now happens inline in the main sync() method for clarity.
+
+### Testing approach:
+- Created comprehensive integration test suite covering:
+  - Full sync with multiple sources
+  - Partial failure handling
+  - Relationship resolution and enrichment
+  - Incremental sync (unchanged/changed detection)
+  - Transaction rollback on error
+  - Multiple sync rounds
+- All 32 tests passing (21 existing + 11 new)
+
+### Challenges encountered:
+1. **Type checking**: Initially reused variable name `parser` with different types (SpecParser, PlanParser, TaskParser), which caused mypy errors. Fixed by using distinct variable names (spec_parser, plan_parser, task_parser).
+
+2. **Line length**: Had to wrap a long log message across multiple lines to satisfy ruff's 100-char limit.
+
+3. **Unused imports**: Had to remove ChangelogParser import (used only indirectly through RelationshipResolver) and unused test imports.
+
+### Next steps:
+- The sync orchestrator now provides a complete picture of project state
+- Ready for dashboard API implementation (cub-d2v.7)
+- Ready for frontend development (cub-k8d.x tasks)
+
+### Time spent: ~2 hours
+
+## 2026-01-23 - Implemented /api/entity/{id} endpoint (cub-a7f.1)
+
+**What was implemented:**
+- Created entity detail endpoint at GET /api/entity/{id}
+- Added get_entity_detail() query function to organize relationships by type
+- Registered route in FastAPI app with proper error handling
+- Comprehensive test suite with 12 tests covering all relationship types
+
+**Key design decisions:**
+1. **Direct relationships only** - We only return direct relationships, not transitive ones
+   - Example: task -> epic -> plan -> spec only shows epic for task, not plan/spec
+   - This keeps API responses simple and predictable
+   - Frontend can traverse via multiple API calls if needed
+
+2. **Relationship organization** - Organized by semantic meaning:
+   - parent/children (CONTAINS relationship - but not in current schema)
+   - epic/tasks (EPIC_TO_TASK relationship)
+   - spec/plans/epics (SPEC_TO_PLAN, PLAN_TO_EPIC)
+   - blocks/blocked_by/depends_on (dependency relationships)
+   - ledger/releases (completion tracking)
+
+3. **Error handling** - Proper HTTP status codes:
+   - 404 when entity not found or DB doesn't exist
+   - 500 for database errors
+   - Clear error messages with entity ID for debugging
+
+4. **Schema constraints discovered:**
+   - Database schema doesn't include CONTAINS relationship type from models
+   - Only supports: spec_to_plan, plan_to_epic, epic_to_task, task_to_ledger, 
+     task_to_release, depends_on, blocks
+   - Tests adapted to use valid relationship types
+
+**Testing insights:**
+- Bidirectional relationships work correctly (epic->task, task->epic)
+- Multiple relationship types on single entity handled properly
+- Content field properly extracted from entity data JSON
+- All 170 dashboard tests pass (no regressions)
+
+**What's next:**
+- Frontend DetailPanel component can now consume this endpoint
+- May need to add transitive relationship traversal if UI requires it
+- Consider adding bulk entity fetch endpoint if performance becomes issue
+
+## 2026-01-23 - cub-a7f.2: Implement /api/artifact endpoint with path validation
+
+### Task Completed
+Implemented GET /api/artifact endpoint for serving raw file content from project files like specs and plans. Security was the primary focus.
+
+### What Was Implemented
+
+**New Route:** `src/cub/core/dashboard/api/routes/artifact.py`
+- GET /api/artifact?path=<file_path> - Fetch raw file content
+- Returns { path, content, size } on success
+- 400 for invalid/unsafe paths, 404 for missing files
+
+**Security Measures:**
+1. **Directory traversal prevention** - Uses Path.resolve() + relative_to() check
+   - All paths resolved to absolute paths
+   - Verified resolved path is within project_root.resolve()
+   - Blocks ../, encoded variants, and mixed slash techniques
+
+2. **Null byte injection** - Explicit check for \x00 in path
+   - Prevents C-string truncation attacks
+
+3. **Symlink handling** - resolve() follows symlinks
+   - Symlinks within project allowed
+   - Symlinks pointing outside project rejected after resolution
+
+4. **File type validation**
+   - Rejects directories (must be regular file)
+   - Rejects binary files (UTF-8 decode required)
+
+5. **OS error handling** - Catches OSError for edge cases like path too long
+
+**Test Coverage:** 28 security-focused tests covering:
+- Basic functionality (relative/absolute paths, nested files)
+- Directory traversal (7 different attack vectors)
+- Null byte injection (2 tests)
+- Symlink handling (within and outside project)
+- File types (directories, binary files rejected)
+- Edge cases (unicode, spaces, long paths, hidden files)
+
+### Key Learnings
+
+1. **Path.resolve().relative_to() is the secure pattern:**
+   ```python
+   resolved = Path(user_input).resolve()
+   resolved.relative_to(project_root.resolve())  # Raises ValueError if outside
+   ```
+   This handles .., symlinks, and path normalization in one step.
+
+2. **Check for null bytes BEFORE calling Path() methods:**
+   - Null bytes can cause issues with underlying C libraries
+   - String-level check prevents potential bypasses
+
+3. **Path.exists() can raise OSError:**
+   - Very long paths cause "File name too long" errors
+   - Need try/except around file system operations
+
+4. **Test both success and failure paths for security code:**
+   - Wrote tests for: valid paths work, invalid paths fail correctly
+   - Security tests prove attacks are actually blocked
+
+5. **Symlinks require special consideration:**
+   - A symlink in project dir pointing to /etc/passwd is dangerous
+   - resolve() follows symlinks, so the final check catches this
+
+
+## Task: cub-a7f.3 - Implement /api/views endpoint
+
+**Status:** ✅ COMPLETE
+
+**Date:** 2026-01-23
+
+**Implementation Details:**
+
+Created the GET /api/views endpoint to list available view configurations for the Kanban board view switcher UI. This is a lightweight endpoint that returns ViewSummary objects (simplified versions of full ViewConfig).
+
+**Files Created:**
+1. `src/cub/core/dashboard/api/routes/views.py` - Views router with:
+   - `GET /api/views` endpoint
+   - `get_default_views()` helper returning 3 built-in views
+   - `load_custom_views()` placeholder for future custom view support
+   - Error handling and sorting for consistent UI ordering
+
+2. `tests/test_api_views.py` - 23 comprehensive tests covering:
+   - Basic endpoint functionality
+   - Response schema validation
+   - View summary structure requirements
+   - Default views availability (default, sprint, ideas)
+   - Integration scenarios for UI switcher
+   - Error handling (404, 405)
+   - Edge cases (unicode, long descriptions, response times)
+
+**Files Modified:**
+1. `src/cub/core/dashboard/api/app.py` - Registered views router
+
+**Test Results:**
+- All 23 new tests pass ✅
+- All 51 existing API tests still pass ✅
+- No linting issues (ruff clean) ✅
+- Response time < 100ms (no I/O) ✅
+
+**Architecture Decisions:**
+
+1. **ViewSummary vs ViewConfig:** Endpoint returns lightweight ViewSummary instead of full ViewConfig
+   - Rationale: UI only needs id, name, description, is_default for switcher dropdown
+   - Future: /api/views/{id} endpoint can return full ViewConfig with column/filter details
+
+2. **Three default views hardcoded:**
+   - default: Full 8-column workflow (is_default=true)
+   - sprint: Active work focus
+   - ideas: Idea development focus
+   - Rationale: Provides sensible defaults; custom views placeholder ready
+
+3. **Error handling via HTTPException:**
+   - Catches exceptions and returns 500 with detail message
+   - Consistent with other API routes (board, entity, artifact)
+   - Gracefully handles custom view loading failures
+
+4. **Sorted response:** Views sorted by name for deterministic ordering
+   - UI can display consistent dropdown without additional sorting
+   - Tests verify sort order remains stable across requests
+
+**Key Implementation Patterns Learned:**
+
+1. **FastAPI router structure:** Import from routes submodule, include in app
+   - Views router follows same pattern as board/entity/artifact routes
+   - Tag-based organization for OpenAPI documentation
+
+2. **Response model typing:** Used Pydantic ViewSummary for type safety
+   - FastAPI automatically validates and serializes response
+   - Tests can instantiate models from response JSON
+
+3. **Minimal error handling for views:** 
+   - No database dependency (unlike board/entity endpoints)
+   - Custom view loading wrapped in try/except to gracefully fallback
+   - HTTP 500 returned for unexpected errors during view enumeration
+
+4. **Test organization:**
+   - Grouped by concern (endpoint, schema, integration, error handling)
+   - Each test verifies one behavior (single responsibility)
+   - Response schema tests validate Pydantic model compatibility
+
+**Potential Enhancements (Future):**
+
+1. Load views from `.cub/views/` YAML/JSON files (placeholder exists)
+2. Add POST /api/views to create custom views
+3. Add GET /api/views/{id} for detailed view configuration
+4. Persist user's selected view preference to local storage
+5. Support view sharing via serialization
+
+**Dependencies Blocked By This Task:**
+- cub-m3x.3: ViewSwitcher UI dropdown (can now consume /api/views)
+
+**Blocking Dependencies:**
+- cub-a7f: Kanban 3 API Completeness (parent epic)
+
+## 2026-01-23 - Task cub-a7f.5: Error Handling Middleware
+
+Successfully implemented comprehensive error handling middleware for the FastAPI dashboard API.
+
+### Key Implementation Details:
+1. **Error Codes Enum**: Created ErrorCode enum with semantic error codes
+   - Client errors: VALIDATION_ERROR, NOT_FOUND, INVALID_PATH, INVALID_REQUEST
+   - Server errors: DATABASE_ERROR, INTERNAL_ERROR, FILE_READ_ERROR
+
+2. **Three-tier Exception Handling**:
+   - HTTPException handler: Converts FastAPI exceptions to consistent format
+   - RequestValidationError handler: Clean Pydantic validation errors
+   - General exception handler: Catches all uncaught exceptions as safety net
+
+3. **Error Response Format**:
+   - Consistent structure: error_code, message, detail, request_id
+   - Backward compatible with existing tests (detail field preserved)
+   - No stack traces exposed to clients
+
+4. **Logging Strategy**:
+   - Server errors (5xx) logged at ERROR level with full traceback
+   - Client errors (4xx) logged at INFO level
+   - Request IDs for correlation
+
+5. **Testing**:
+   - Created comprehensive test suite (19 tests)
+   - All existing API tests still pass (93 tests total)
+   - Tests verify no stack traces leak to clients
+
+### Design Decisions:
+- Used request ID (from id(request)) for correlation - simple and effective
+- Preserved "detail" field for backward compatibility with existing tests
+- Implemented error code inference from status codes and message content
+- Separated logging levels by error severity (4xx vs 5xx)
+
+### Learnings:
+- FastAPI's exception handlers execute in registration order, so specific handlers (HTTPException) must be registered before general ones
+- The RequestValidationError produces detailed Pydantic errors that need to be simplified for clients
+- Backward compatibility is important - existing tests expected the "detail" field
+- Type safety with mypy is valuable - caught potential issues early
+- Comprehensive tests for error scenarios prevent security leaks (stack traces)
+
+### Future Improvements:
+- Consider using a proper request ID middleware (UUID-based)
+- Could add structured logging with JSON format
+- May want to add rate limiting for error responses
+- Consider adding error metrics/monitoring
+
+## 2026-01-23 - Task cub-a7f.4: Implement /api/stats endpoint
+
+Successfully implemented the `/api/stats` endpoint for the dashboard stats bar, providing lightweight aggregate metrics.
+
+### Key Implementation Details:
+1. **New Route Module**: Created `src/cub/core/dashboard/api/routes/stats.py`
+   - GET /api/stats endpoint returning BoardStats model
+   - Reuses existing `compute_board_stats` and `get_all_entities` from queries module
+   - Same database path handling as other routes (DEFAULT_DB_PATH)
+
+2. **Response Model**: Returns BoardStats with:
+   - total: Total entity count
+   - by_stage: Counts per stage (CAPTURES, SPECS, PLANNED, etc.)
+   - by_type: Counts per entity type (spec, plan, epic, task, etc.)
+   - cost_total: Aggregate cost in USD
+   - tokens_total: Aggregate token usage
+   - duration_total_seconds: Aggregate duration
+
+3. **Empty Database Handling**: Returns zero stats when database doesn't exist
+
+4. **Registration**: Added stats router to main app.py with "stats" tag
+
+5. **Testing**: Created comprehensive test suite (10 tests)
+   - Empty database returns zero stats
+   - Single and multiple entity aggregation
+   - All 8 stages represented
+   - All 6 valid entity types (spec, plan, epic, task, ledger, release)
+   - Zero/null cost handling
+   - Response schema validation
+   - Error handling (corrupted DB, permissions)
+   - Comparison test: /api/stats matches /api/board/stats
+
+### Design Decisions:
+- Made /api/stats a dedicated endpoint separate from /api/board/stats
+  - More semantically clear for stats bar usage
+  - Returns identical data structure to /api/board/stats
+  - Both endpoints share the same query functions (DRY principle)
+- Used existing BoardStats model rather than creating new StatsResponse
+- Followed same patterns as other routes (board, entity, etc.)
+
+### Learnings:
+- Database schema only allows 6 entity types: spec, plan, epic, task, ledger, release
+  - "capture" was in the models.py EntityType enum but not in schema CHECK constraint
+  - Test initially tried to use "capture" and failed with IntegrityError
+- The stage mapping (DB lowercase -> Model UPPERCASE) is already handled in queries.py
+  - DB: "backlog", "researching", "planned", "staged", "implementing", "verifying", "completed", "released"
+  - Model: CAPTURES, SPECS, PLANNED, READY, IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED
+- All tests pass: 2052 total (10 new stats tests, 2042 existing)
+- Type checking (mypy) and linting (ruff) both clean
+
+### Testing Results:
+- All 10 new tests passed
+- Full test suite: 2052 passed (including new tests)
+- Pre-existing failures (19) not related to this change:
+  - 18 async harness tests (need pytest-asyncio)
+  - 1 beads test (unrelated to stats endpoint)
+
+### What's Next:
+This endpoint unblocks task cub-m3x.4 (Implement StatsBar component) which depends on having stats data available via API.
+
+
+## 2026-01-23: DetailPanel Sidebar Implementation (cub-m3x.1)
+
+Successfully implemented the DetailPanel sidebar component with full entity detail display:
+
+### Components Created:
+1. **DetailPanel.tsx** (~320 lines):
+   - Comprehensive sidebar panel that slides in from the right
+   - Displays entity metadata, relationships, content, and frontmatter
+   - Includes loading/error states
+   - ESC key and backdrop click to close
+   - Responsive layout (full width on mobile, 1/3 on desktop)
+   - Well-organized sections: metadata, relationships, content, frontmatter
+
+2. **useEntity.ts**:
+   - Custom hook for fetching entity details from API
+   - Pattern mirrors useBoard.ts
+   - Handles null entityId gracefully (skips fetch)
+   - Returns loading, error, and data states with refetch function
+
+### Updates:
+- **KanbanBoard.tsx**: Added state management for selected entity ID, wired click handlers
+
+### Technical Details:
+- Used Preact's useEffect for proper event listener cleanup
+- Implemented relationships display with grouping by relationship type
+- Added helper functions for formatting (duration, relationship types)
+- Comprehensive metadata display including metrics (cost, tokens, duration)
+- Professional Tailwind styling matching existing components
+
+### Lessons Learned:
+- Event listeners in Preact need proper useEffect cleanup to avoid memory leaks
+- DetailPanel receives entityId (string | null) rather than full entity to force fresh data fetch
+- Relationships from API can be single entity or array, handled with normalization
+- z-index layering: backdrop (z-40), panel (z-50) for proper overlay behavior
+
+Build passes cleanly with no TypeScript errors.
+
+
+## 2026-01-23 - cub-m3x.2: Implement relationship navigation
+
+### Task Completed
+Implemented relationship navigation in the DetailPanel to enable exploration of the entity graph through clickable relationship links.
+
+### What Was Implemented
+
+**useNavigation Hook (`src/cub/dashboard/web/src/hooks/useNavigation.ts`):**
+- History-based navigation with stack management
+- `navigateTo(entityId)` - Navigate to an entity, adding current to history
+- `goBack()` - Pop history and return to previous entity
+- `clear()` - Close panel and reset navigation
+- `getPath()` - Get full navigation path for breadcrumbs
+- `canGoBack` - Boolean indicating if back navigation is available
+
+**DetailPanel Updates:**
+1. Added `onNavigate` callback prop for handling entity clicks
+2. Added `navigationPath` prop for breadcrumb display
+3. Implemented breadcrumb navigation in header:
+   - Shows "Board" link to close panel
+   - Shows intermediate navigation steps as clickable links
+   - Highlights current entity
+   - Auto-truncates long IDs with tooltips
+4. Made relationship entity cards clickable:
+   - Hover effects (blue border, blue background)
+   - Right arrow icon appears on hover
+   - Visual feedback (text color change)
+   - Disabled state when navigation not available
+
+**KanbanBoard Integration:**
+- Replaced `useState` with `useNavigation` hook
+- Passed navigation callbacks to DetailPanel
+- Provides full navigation path for breadcrumbs
+
+### Design Decisions
+
+**Navigation Pattern:**
+- Used stack-based history (like browser history)
+- Each navigation adds current entity to history
+- Back button pops from history stack
+- Clear closes panel and resets all state
+
+**UI/UX:**
+- Breadcrumbs only show when path length > 1
+- Relationship cards styled as interactive buttons
+- Hover states provide clear affordance
+- Arrow icon reinforces clickability
+- Truncated IDs prevent layout overflow
+
+### Key Learnings
+
+1. **Preact hooks compatibility**: Standard React patterns work seamlessly with Preact
+2. **Navigation UX**: Breadcrumbs are essential for deep entity exploration
+3. **TypeScript optional props**: Using `?.` operator for optional callbacks enables graceful degradation
+4. **Build process**: `npm run build` runs both TypeScript checking and Vite build
+
+
+## Task cub-m3x.4: Implement StatsBar Component (COMPLETED)
+
+**Date:** 2026-01-23
+
+**Learnings & Implementation Details:**
+
+1. **Component Architecture**
+   - Created `StatsBar.tsx` as a dedicated, reusable component
+   - Accepts `BoardStats` from the board API response
+   - Props control visibility of metrics (showCost, showTokens, showDuration)
+
+2. **Information Density Design**
+   - Total count displayed prominently (large bold text)
+   - Stage breakdown uses color-coded pills for quick visual scanning
+   - Only shows non-zero stage counts to reduce clutter
+   - Metrics (cost, tokens) displayed in subtle gray boxes
+
+3. **Visual Design Elements**
+   - Each stage has distinct color (blue for SPECS, purple for PLANNED, orange for IN_PROGRESS, etc.)
+   - Used Tailwind utilities for responsive flexbox layout with flex-wrap
+   - Gray-scale metrics boxes don't distract from main stats
+   - Consistent styling with existing EntityCard and other components
+
+4. **Utility Function**
+   - `formatDuration()` converts seconds to human-readable format (e.g., "2h 30m", "45m")
+   - Handles edge cases (< 1 minute, exact hours)
+
+5. **Integration Points**
+   - Removed inline stats from KanbanBoard header
+   - Now uses dedicated StatsBar component below the header
+   - Cleaner header focuses on title, description, and view switcher
+
+6. **TypeScript & Build**
+   - All type definitions properly imported from API types
+   - Removed unused variable (typeLabels) to pass TypeScript strict mode
+   - Build passes: `tsc -b && vite build` ✓
+
+**Files Modified:**
+- `src/cub/dashboard/web/src/components/StatsBar.tsx` (new)
+- `src/cub/dashboard/web/src/components/KanbanBoard.tsx` (refactored header)
+
+**Testing:**
+- TypeScript type checking: PASS
+- Build (tsc + vite): PASS
+- Visual design: Information-dense without clutter ✓
+
+
+
+## Task cub-m3x.5: Implement ArtifactViewer with Markdown Rendering (COMPLETED)
+
+**Date:** 2026-01-23
+
+**Learnings & Implementation Details:**
+
+1. **Markdown Library Selection & Configuration**
+   - Used `marked` (v17.0.1) for markdown parsing - modern, actively maintained
+   - Added `highlight.js` (v11.11.1) for syntax highlighting in code blocks
+   - Newer versions of marked removed `highlight` option from setOptions
+   - Solution: Post-process rendered HTML to apply highlight.js manually
+
+2. **Syntax Highlighting Implementation**
+   - Parse markdown with marked.parse()
+   - Create temporary DOM element to manipulate rendered HTML
+   - Query for all `pre code` blocks and apply highlight.js
+   - Detect language from `language-*` class added by marked
+   - Fall back to auto-detection if no language specified
+   - Add `hljs` class for proper styling
+
+3. **Component Architecture**
+   - Fetches artifact content from `/api/artifact?path=...` endpoint
+   - Determines rendering strategy based on entity type and file extension
+   - Renders markdown for specs, plans, and .md files
+   - Falls back to plain text pre-formatted display for other content
+   - Loading and error states handled gracefully
+
+4. **DetailPanel Integration**
+   - Updated to use ArtifactViewer for entities with `source_path`
+   - Falls back to inline content display for entities without source files
+   - Maintains backwards compatibility with existing content display
+
+5. **User Experience Features**
+   - "View Source" button opens raw file in new tab
+   - Clean visual design with proper spacing and borders
+   - Prose styling for markdown (headings, links, code, etc.)
+   - GitHub-style syntax highlighting theme
+
+6. **TypeScript & Build**
+   - Added `@types/marked` for proper type definitions
+   - All type checking passes
+   - Build bundle increased to ~1MB (expected with highlight.js)
+   - Warning about chunk size is acceptable for this use case
+
+**Files Modified:**
+- `src/cub/dashboard/web/src/components/ArtifactViewer.tsx` (new)
+- `src/cub/dashboard/web/src/components/DetailPanel.tsx` (integrated viewer)
+- `src/cub/dashboard/web/package.json` (dependencies)
+
+**Testing:**
+- TypeScript type checking: PASS ✓
+- Build (tsc + vite): PASS ✓
+- Dependencies installed successfully
+
+**Technical Notes:**
+- Modern marked API requires post-processing for custom rendering
+- DOM manipulation in browser context works well for syntax highlighting
+- CSS imported directly in component for proper highlight.js styling
+
+## 2026-01-23: Task cub-p9w.6 - Final Test Coverage and CI Integration
+
+**Context:**
+Completed final testing and quality assurance for the dashboard feature. Task required reaching 60%+ test coverage, adding integration tests, and updating documentation.
+
+**Actions Taken:**
+1. Installed missing pytest-cov plugin (was missing from venv)
+2. Ran comprehensive coverage analysis across all dashboard modules
+3. Fixed flaky test in test_api_errors.py by replacing id(request) with uuid.uuid4().hex[:12] for request ID generation
+4. Created comprehensive integration test (test_dashboard_integration.py) covering:
+   - Full sync-to-API workflow
+   - Database population and validation
+   - Board API endpoint testing
+   - Entity detail API endpoint testing
+   - Empty project edge case handling
+5. Updated .cub/STABILITY.md to include all dashboard modules in Moderate tier (60%+ coverage)
+6. Ran all feedback loops: mypy (✅), pytest (✅ 290 tests), ruff (✅)
+
+**Results:**
+- Achieved 66.20% overall coverage for dashboard modules (exceeds 60% target)
+- Coverage breakdown by module:
+  * core/dashboard/db/: 93%
+  * core/dashboard/api/: 84%
+  * core/dashboard/views/: 75%
+  * core/dashboard/sync/: 60%
+- All 290 dashboard tests passing
+- Zero typecheck errors
+- Zero linting issues (after auto-fix)
+
+**Key Technical Learnings:**
+1. **Environment Setup:** The venv was created with uv, which requires using `uv pip install` instead of regular pip
+2. **Coverage Tracking:** Need to run pytest with all test files included to get accurate coverage across interdependent modules
+3. **Flaky Tests:** Using id() for request IDs is unreliable due to memory address reuse; UUID is more robust
+4. **Integration Testing:** Full end-to-end tests that exercise sync → database → API provide high confidence in the system
+5. **Model Field Names:** DashboardEntity uses `type` not `entity_type`, SyncResult uses `success` not `status` - important for API contracts
+
+**Stability Tier Assignment:**
+All dashboard modules placed in **Moderate tier** (60%+ coverage required):
+- Database layer meets threshold at 93%
+- API routes meet threshold at 84%
+- Sync orchestrator exactly at threshold at 60%
+- Views configuration exceeds threshold at 75%
+
+This tier placement is appropriate because:
+- Dashboard is primary user-facing functionality
+- Implements business logic coordinating between abstractions
+- Has external dependencies (SQLite, filesystem)
+- Changes need careful testing but some flexibility acceptable
+
+**Next Steps (if any):**
+- Consider increasing coverage for low-coverage parsers (changelog.py at 18%, tasks.py at 13%) in future work
+- Monitor sync orchestrator coverage to ensure it stays above 60% as code evolves
+- Add CI configuration to enforce coverage thresholds per tier
+
+**Commit:** 33f2767
+
+## 2026-01-23: Fixed Side Panel Backdrop (cub-shz7)
+
+**Issue**: The detail panel backdrop was rendering as fully black instead of semi-transparent, obscuring the main board view.
+
+**Root Cause**: The backdrop was using the older Tailwind syntax `bg-black bg-opacity-25` which wasn't rendering correctly.
+
+**Solution**: Updated to modern Tailwind opacity syntax `bg-black/30` which properly applies 30% opacity to the black background.
+
+**Technical Details**:
+- Changed backdrop from `bg-black bg-opacity-25` to `bg-black/30`
+- Added `aria-label` for better accessibility
+- Maintained proper z-index layering (backdrop at z-40, panel at z-50)
+- All tests passed, TypeScript compilation successful, linter clean
+
+**Learnings**:
+- Modern Tailwind CSS uses `/` syntax for opacity (e.g., `bg-black/30` instead of separate `bg-opacity-*` classes)
+- The separate opacity classes (`bg-opacity-*`) can have inconsistent rendering in some configurations
+- Always test UI changes by running the build to catch syntax errors early
+
+## 2026-01-23 - Task cub-wrdb: Fix Readiness validation errors in dashboard sync
+
+**Context:**
+The Readiness model in specs expected `list[str]` for all fields, but YAML allows
+structured dict formats. If users wrote:
+```yaml
+tools_needed:
+  - name: Tool Name
+    description: Tool description
+```
+The parser would fail with Pydantic validation errors.
+
+**Solution:**
+Added flexible parsing with `normalize_string_list()` helper that:
+- Preserves string items unchanged
+- Converts dicts to formatted strings: "name (description)"
+- Handles edge cases (name-only, description-only, other types)
+- Applied to all Readiness list fields (blockers, questions, decisions_needed, tools_needed)
+
+**Key Learning:**
+When parsing YAML frontmatter, be defensive about input formats. Users may write
+structured data in various ways, and the parser should handle it gracefully rather
+than failing. Using a normalization function makes the code more robust while
+maintaining backward compatibility.
+
+**Testing Approach:**
+- Created comprehensive test suite (TestReadinessFlexibleParsing)
+- Tested string format (existing behavior)
+- Tested dict format (new behavior)
+- Tested all fields handle both formats
+- Verified dashboard sync still works end-to-end
+
+**Files Modified:**
+- src/cub/core/specs/models.py: Added normalize_string_list() helper
+- tests/test_spec_workflow.py: Added 3 new test cases
+
+
+## 2026-01-23 - Task cub-p71l: Metadata Enrichment
+
+Successfully implemented metadata enrichment for dashboard cards during the sync phase.
+
+### What Worked Well:
+1. **Pydantic Model Flexibility** - Adding optional fields to DashboardEntity was straightforward
+   with proper validation (ge/le constraints for readiness_score).
+
+2. **JSON Storage Pattern** - Storing metadata in the existing JSON data field avoided the need
+   for schema migrations. The writer already had a pattern for storing complex fields.
+
+3. **Parser Separation** - Each parser (Spec, Plan, Task) independently extracted its relevant
+   metadata, making the code modular and testable.
+
+4. **Resolver as Aggregation Point** - Computing task/epic counts during relationship resolution
+   was the right phase, as it had access to all entities and their relationships.
+
+5. **Graceful Degradation** - Using Optional[T] types and None defaults naturally handled
+   missing metadata without special error handling.
+
+### Key Design Decisions:
+1. **Normalized readiness_score** - Stored as 0.0-1.0 instead of 0-10 to match common
+   probability/percentage conventions in the frontend.
+
+2. **Description excerpt truncation** - Fixed 100 char limit with "..." suffix provides
+   consistent card sizing while preserving readability.
+
+3. **Notes counting strategy** - Count individual note items (blockers, questions, decisions)
+   rather than just presence/absence for better granularity.
+
+4. **Task count computation** - Handled both epic_id and parent_id to cover different task
+   backend implementations and plan formats.
+
+### Testing Approach:
+- Tested metadata extraction with complete data (happy path)
+- Tested graceful degradation with minimal/missing data
+- Tested long content truncation
+- Tested database round-trip persistence
+- Tested relationship-based computation (task counts)
+- All tests passed, mypy clean
+
+### Potential Improvements:
+1. Could cache task counts in database to avoid recomputation on every sync
+2. Could add more sophisticated excerpt extraction (first sentence, summary, etc.)
+3. Could make truncation length configurable per entity type
+4. Could add metadata validation (e.g., warn if description_excerpt is None for certain types)
+
+
+## Task: cub-0qf0 - Group PLANNED specs with their corresponding plans
+
+**Completed:** 2026-01-23
+
+### Implementation Summary
+
+Successfully implemented hierarchical grouping for the PLANNED column in the Kanban dashboard. Specs now serve as group headers with their corresponding plans nested beneath them, providing clearer visualization of spec→plan relationships.
+
+### Key Technical Decisions
+
+1. **Dual-mode Column Display:**
+   - Columns can now operate in either flat or grouped mode
+   - Flat mode: entities displayed as simple list
+   - Grouped mode: entities organized by relationship field (spec_id, epic_id, etc.)
+   - Mode determined by presence of `group_by` in column config
+
+2. **EntityGroup Model:**
+   - Created new `EntityGroup` model to represent a collection of related entities
+   - Includes `group_key` (the relationship ID), `group_entity` (the parent), and `entities` (children)
+   - Supports null group keys for legacy entities without relationships
+
+3. **Frontend Visualization:**
+   - Group headers display the parent entity (spec or epic)
+   - Child entities shown with visual indentation and connecting border
+   - Gracefully handles missing group entities
+
+### Challenges Encountered
+
+1. **Test Adjustment for Column Count:**
+   - Default view now has 9 columns (not 8) due to BLOCKED stage
+   - Had to update multiple test assertions
+
+2. **Integration Test Complexity:**
+   - Needed to check both flat `entities` array and nested `groups` array
+   - Updated test helper to search both locations for entities
+
+3. **Type Safety:**
+   - Ensured TypeScript types matched Python Pydantic models exactly
+   - Added proper nullable/optional types for grouped vs flat columns
+
+### Architecture Insights
+
+- **Grouping logic lives in queries.py:** `group_entities_by_field()` function
+  - Queries database to fetch parent entities
+  - Sorts groups to put entities with parents first
+  - Handles null group keys (legacy entities)
+
+- **View configuration drives grouping:** 
+  - `group_by: spec_id` in YAML enables grouping for a column
+  - Other columns remain flat unless explicitly configured
+  - Makes feature fully configurable without code changes
+
+- **Frontend remains flexible:**
+  - Single `Column` component handles both modes
+  - `EntityGroupComponent` handles nested display
+  - Empty state works for both flat and grouped modes
+
+### Testing Strategy
+
+- Added `TestGroupingBehavior` test class with 2 new tests
+- Test grouping with specs and plans in PLANNED column
+- Test ungrouped columns remain flat
+- Updated integration test to handle both display modes
+- All 161 dashboard tests pass
+
+### Next Steps / Future Enhancements
+
+1. **Collapsed Groups:**
+   - Add UI toggle to collapse/expand groups
+   - Store collapsed state in user preferences
+   - Implement `group_collapsed` display config option
+
+2. **Group-by Other Fields:**
+   - Test grouping by `epic_id` for READY/IN_PROGRESS columns
+   - Consider grouping by `parent_id` for hierarchical tasks
+   - Allow multiple grouping fields (nested groups)
+
+3. **Group-level Actions:**
+   - Bulk actions on entire groups (e.g., "mark all as complete")
+   - Move entire groups between columns
+   - Filter/search within groups
+
+4. **Performance Optimization:**
+   - Consider caching parent entity lookups
+   - Lazy-load group entities on expand
+   - Implement virtual scrolling for large groups
+
+### Files Modified
+
+- `src/cub/core/dashboard/db/models.py` - Added EntityGroup model, updated BoardColumn
+- `src/cub/core/dashboard/db/queries.py` - Implemented grouping logic
+- `src/cub/core/dashboard/views/defaults.py` - Enabled grouping for PLANNED column
+- `src/cub/dashboard/web/src/types/api.ts` - Added TypeScript types
+- `src/cub/dashboard/web/src/components/Column.tsx` - Implemented grouped rendering
+- `tests/test_api_board.py` - Added grouping tests
+- `tests/test_dashboard_integration.py` - Updated to handle grouped columns
+
+### Metrics
+
+- Lines changed: ~370 additions, ~20 deletions
+- New tests: 2
+- Test coverage: 161 tests passing
+- Type checking: Clean (mypy, TypeScript)
+- Linting: Clean (ruff)
+
+
+## 2026-01-23: Renamed dashboard column from SPECS to RESEARCHING (cub-4fma)
+
+Successfully renamed the dashboard column header from "SPECS" to "RESEARCHING" to better reflect the workflow stage rather than the entity type. This involved:
+
+1. **Core changes:**
+   - Updated Stage enum in models.py: SPECS → RESEARCHING
+   - Changed all column titles in view defaults from "Specs" to "Researching"
+   - Updated stage mappings in queries.py, writer.py, and parsers/specs.py
+
+2. **Documentation updates:**
+   - Updated all docstrings and comments to reference RESEARCHING instead of SPECS
+   - Updated view descriptions and configuration examples
+
+3. **Test updates:**
+   - Updated 6 test files to use Stage.RESEARCHING
+   - Fixed line length linting issue in test_resolver.py by reformatting
+
+4. **Validation:**
+   - All 152 tests pass
+   - Type checking passes with mypy
+   - No new lint errors introduced
+
+The change maintains backward compatibility in the API by keeping the internal database column ID as "specs" while updating the display title to "Researching".
+
+
+## 2026-01-23 - Fixed view switcher API port mismatch (cub-4eyt)
+
+**Problem**: View switcher showed "API request failed: Not Found" error.
+
+**Root cause**: Two issues:
+1. Frontend API client defaulted to `http://localhost:8000` but backend runs on port 8080
+2. FastAPI app wasn't configured to serve the built static files
+
+**Solution**:
+1. Updated frontend API client default port to 8080 to match backend default
+2. Added static file serving to FastAPI:
+   - Mounted `/assets` directory with StaticFiles
+   - Added catch-all SPA route to serve index.html
+   - Ensured /health endpoint is registered before catch-all
+3. Rebuilt frontend with updated configuration
+4. Updated tests to expect HTML from root endpoint
+
+**Key learnings**:
+- FastAPI route order matters - specific routes must be registered before catch-all routes
+- When serving SPAs from FastAPI, need both assets mount and index.html route
+- Default configuration values should match between frontend and backend
+- Test client can be used to verify API behavior before restarting servers
+
+**Files changed**:
+- src/cub/dashboard/web/src/api/client.ts (API port default)
+- src/cub/dashboard/web/.env.example (env example port)
+- src/cub/core/dashboard/api/app.py (static file serving)
+- tests/test_api_board.py, tests/test_api_errors.py (test updates)
+
+## 2026-01-23 - cub-12be: Fix artifact content HTML rendering
+
+### Task Completed
+Fixed artifact content rendering issue where HTML markup was displayed as raw text instead of being rendered as DOM elements in the dashboard UI.
+
+### What Was Implemented
+
+**Root Cause:**
+The frontend was using `response.text()` to parse the API response, which converted the entire JSON object to a string. This caused the HTML content to be displayed as escaped text rather than rendered HTML.
+
+**Fix** (`src/cub/dashboard/web/src/components/ArtifactViewer.tsx`):
+- Changed from `response.text()` to `response.json()` on line 59
+- Extract content from JSON object: `data.content` instead of raw text
+- API returns: `{"path": "...", "content": "...", "size": ...}`
+- Frontend now correctly parses the JSON and extracts the `content` field
+
+**Security Considerations:**
+- No XSS vulnerabilities introduced
+- Content is already sanitized by `marked.parse()` before rendering
+- Uses `dangerouslySetInnerHTML` safely with markdown-parsed content
+- API validates paths to prevent directory traversal (validated by 28 security tests)
+
+### Verification
+
+**All Tests Pass:**
+- 28/28 artifact API tests pass (including security tests)
+- TypeScript compilation successful with no errors
+- Ruff linter: all checks passed
+- Mypy type checker: no issues found
+
+**Build Success:**
+- Frontend builds successfully with Vite
+- No TypeScript errors
+- Only minor chunk size warning (unrelated to this fix)
+
+### Learnings
+
+**API Response Handling:**
+- Always check API response format before parsing
+- `response.text()` returns the entire response as a string (even for JSON)
+- `response.json()` parses JSON and returns the object
+- When API returns JSON, must use `.json()` method to access structured data
+
+**Debugging Frontend Issues:**
+- Check network tab in browser devtools to see actual API responses
+- Verify API contract matches frontend expectations
+- Read API endpoint code to understand response format
+- Look at existing tests to understand expected behavior
+
+**TypeScript Frontend Development:**
+- Build process (`npm run build`) includes TypeScript compilation
+- TypeScript errors will fail the build
+- Vite handles both transpilation and bundling
+- Use build output to verify no type errors
+
+## Task: cub-hj6j - Format frontmatter gracefully in dashboard entities
+
+**Date:** 2026-01-23
+
+**Objective:** Enhance dashboard parsers to handle frontmatter edge cases gracefully without crashing or producing unhelpful errors.
+
+**Key accomplishments:**
+1. Enhanced SpecParser with comprehensive error handling for:
+   - Invalid YAML frontmatter (logs warning, uses defaults)
+   - Missing/null frontmatter (creates entity with defaults)
+   - Non-dict frontmatter (converts to empty dict)
+   - Invalid UTF-8 encoding (skips file with warning)
+   - Empty frontmatter fields (uses safe defaults)
+
+2. Enhanced PlanParser with comprehensive error handling for:
+   - Invalid JSON in session.json and plan.jsonl
+   - Null/empty/non-dict content (graceful fallbacks)
+   - Partial file failures (continues with valid entries)
+   - Type validation and coercion (non-string IDs, timestamps)
+   - Missing required fields (clear error messages)
+
+3. Verified SyncOrchestrator already continues with partial results when individual parsers fail
+
+4. Added 21 comprehensive tests covering all edge cases
+
+**Technical insights:**
+- The `frontmatter` library is quite robust and parses YAML lists/null gracefully
+- Adding explicit type checks after parsing prevents downstream errors
+- Using different log levels (debug/warning/error) helps distinguish severity
+- Graceful degradation (e.g., using directory name when session.json invalid) is better than failing entirely
+- Clear error messages with context (file path, line number) are essential
+
+**Design decisions:**
+- Prefer logging warnings and continuing over failing fast
+- Use directory/file names as fallback IDs when metadata is invalid
+- Convert types (e.g., numeric IDs to strings) rather than rejecting
+- Skip individual malformed lines in JSONL files, continue with valid ones
+- Return None from parsers only when file is truly unusable (empty, missing, etc.)
+
+**Testing approach:**
+- Created test cases for each acceptance criterion
+- Tested null, empty, and non-dict variations
+- Verified log messages appear at correct levels
+- Tested mixed valid/invalid content to ensure partial success
+- All 173 dashboard tests pass
+
+**Next steps:**
+- Consider adding metrics for parse failures to monitor data quality
+- Could add a "parse warnings" count to SyncResult for visibility
+

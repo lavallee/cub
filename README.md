@@ -113,6 +113,105 @@ Building outside any single harness means the core loop—task selection, succes
 - **Structured Logging**: JSONL logs with timestamps, durations, git SHAs
 - **Dual Task Backend**: Use [beads](https://github.com/steveyegge/beads) CLI or simple JSON file
 - **Streaming Output**: Watch agent activity in real-time
+- **Dashboard**: Unified Kanban board visualization of project state across 8 columns
+
+## Dashboard
+
+Cub includes an integrated dashboard that provides a unified Kanban view of your entire project state—from initial ideas through release.
+
+### 8-Column Kanban Workflow
+
+The dashboard visualizes work across 8 stages:
+
+1. **CAPTURES** — Raw ideas and notes
+2. **SPECS** — Specifications being researched
+3. **PLANNED** — Specs in planning or existing plans
+4. **READY** — Tasks ready to work (no blockers)
+5. **IN_PROGRESS** — Active development and implementing specs
+6. **NEEDS_REVIEW** — Awaiting code review or approval
+7. **COMPLETE** — Done but not released
+8. **RELEASED** — Shipped to production/users
+
+### Data Aggregation
+
+The dashboard automatically aggregates data from multiple sources:
+
+- **Specs** — From `specs/**/*.md` with frontmatter
+- **Plans** — From `.cub/sessions/*/plan.jsonl`
+- **Tasks** — From your beads or JSON backend
+- **Ledger** — Completion records from `.cub/ledger/`
+- **Changelog** — Released versions from `CHANGELOG.md`
+
+### Running the Dashboard
+
+```bash
+# Start the dashboard API server
+uvicorn cub.core.dashboard.api.app:app --reload --port 8000
+
+# Open in your browser
+open http://localhost:8000
+
+# View API documentation
+open http://localhost:8000/docs
+```
+
+### Customizing Views
+
+Create custom Kanban views in `.cub/views/my-view.yaml`:
+
+```yaml
+id: my-view
+name: My Workflow View
+description: Customized view for my team
+
+columns:
+  - id: ready
+    title: Ready to Start
+    stages: [READY]
+  - id: active
+    title: In Progress
+    stages: [IN_PROGRESS]
+    group_by: epic_id  # Group by epic
+
+filters:
+  exclude_labels: [archived]
+  include_types: [task, epic]
+
+display:
+  show_cost: true
+  show_tokens: false
+  card_size: compact
+```
+
+For details, see [.cub/views/README.md](.cub/views/README.md).
+
+### Linking Entities
+
+Use explicit relationship markers in frontmatter to link specs, plans, and tasks:
+
+**Spec to Plan:**
+```yaml
+---
+id: spec-auth
+title: Authentication Flow
+spec_id: cub-vd6  # Links to plan cub-vd6
+---
+```
+
+**Plan to Epic:**
+```yaml
+---
+id: plan-auth-flow
+title: Auth Implementation Plan
+plan_id: cub-vd6  # Links to epic cub-vd6
+---
+```
+
+**Task to Epic:**
+Created automatically by bootstrap, or add `epic_id` label:
+```bash
+bd label add cub-abc epic:cub-vd6
+```
 
 ## Prerequisites
 

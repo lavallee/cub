@@ -24,7 +24,7 @@ readiness:
     - Establish quality/security review process
     - Decide on ClawdHub integration vs separate registry
   tools_needed:
-    - Competitive Analysis Tool (how others do tool marketplaces: npm, PyPI, Homebrew, ClawdHub)
+    - "Competitive Analysis Tool (how others do tool marketplaces: npm, PyPI, Homebrew, ClawdHub)"
     - Design Pattern Matcher (marketplace patterns, package management)
     - API Design Validator (registry API, package manifest format)
 notes: |

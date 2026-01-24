@@ -22,7 +22,7 @@ readiness:
   questions:
     - Should we maintain a suggested tag vocabulary per project?
     - Any concern about captures/ growing unboundedly? Periodic archive prompts?
-    - Search implementation: simple grep or build an index?
+    - "Search implementation: simple grep or build an index?"
     - Should URL capture fetch and summarize content automatically?
   decisions_needed:
     - Choose search backend (grep vs fzf vs dedicated index)
@@ -30,9 +30,9 @@ readiness:
   tools_needed:
     - API Design Validator (design CLI interface and capture format)
     - Implementation Path Generator (break into tasks)
-    - Tag suggester (domain-specific: analyze content and suggest relevant tags)
-    - Capture search indexer (domain-specific: for faster search across many captures)
-    - Similarity detector (domain-specific: find related/duplicate captures)
+    - "Tag suggester (domain-specific: analyze content and suggest relevant tags)"
+    - "Capture search indexer (domain-specific: for faster search across many captures)"
+    - "Similarity detector (domain-specific: find related/duplicate captures)"
 ---
 
 # Feature Spec: Capture

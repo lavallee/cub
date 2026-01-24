@@ -6209,3 +6209,132 @@ The prompt for lesson extraction:
 ### Files changed:
 - `src/cub/cli/pr.py` - Restructured error handling
 - `tests/test_cli_pr.py` - New test file with 17 tests
+
+## 2026-01-23 - Task cub-p9w.1: View Configuration Loading
+
+Successfully implemented view configuration loading system for the dashboard.
+
+### What was built:
+1. **View loader module** (`src/cub/core/dashboard/views/`)
+   - YAML file loading with Pydantic validation
+   - Caching with mtime-based invalidation
+   - Graceful error handling for invalid configurations
+   
+2. **Built-in default views**:
+   - `default`: Full 8-column workflow (Captures → Released)
+   - `sprint`: Active work view (Ready → In Progress → Review → Complete)
+   - `ideas`: Idea development view (Captures → Specs → Planned)
+   
+3. **Custom view support**:
+   - Load from `.cub/views/*.yaml` or `*.yml`
+   - Can override built-in views by ID
+   - Supports all ViewConfig fields (columns, filters, display settings)
+
+### Technical decisions:
+- Used PyYAML for parsing (already in dependencies)
+- Pydantic validation ensures type safety
+- Simple caching strategy (clear on directory mtime change)
+- Loader logs warnings but doesn't fail on invalid files
+- Custom views merge with (and can override) built-in views
+
+### Testing approach:
+- 28 comprehensive tests covering:
+  - Built-in view correctness
+  - YAML loading (valid/invalid cases)
+  - Caching behavior
+  - Custom view override
+  - Unicode support
+  - Integration with API
+  
+### Integration points:
+- `/api/views`: Now uses `list_views()` from loader
+- `/api/board`: Uses `get_view_config("default")` with fallback
+- Both endpoints support custom views transparently
+
+### What's next:
+- Task cub-p9w.2: Ship default view configurations as example YAML files
+- Frontend integration to consume view configurations
+
+### Learnings:
+1. **Fallback strategy**: Always provide sensible defaults even when custom configs fail
+2. **Cache invalidation**: Directory mtime is simple but effective for config files
+3. **Error boundaries**: Invalid custom views should warn but not break the system
+4. **Type safety**: Pydantic validation catches config errors early
+5. **Testing custom loaders**: Use monkeypatch + tmp_path for clean test isolation
+
+
+## 2026-01-23 - Task cub-qxvz: Add BLOCKED stage for tasks not yet ready
+
+**Task completed successfully**
+
+### What was implemented:
+1. Added new BLOCKED stage to the Stage enum (9 total stages now)
+2. Implemented blocker detection logic in RelationshipResolver._has_blockers()
+3. Updated stage computation to assign BLOCKED stage to tasks/epics with unmet dependencies
+4. Updated all default view configurations to include BLOCKED column
+5. Added comprehensive tests for BLOCKED stage behavior
+
+### Key decisions:
+- **Blocker detection logic**: A task/epic is blocked if it has `depends_on` or `dependsOn` in frontmatter AND any dependency's status is not "closed"
+- **Stage position**: BLOCKED is positioned between PLANNED and READY in the workflow
+- **Backward compatibility**: Existing tests updated to expect 9 columns instead of 8
+
+### Implementation details:
+- The `_has_blockers()` method checks frontmatter for dependencies and validates each dependency's status
+- Both `depends_on` and `dependsOn` (camelCase) are supported for compatibility
+- If a dependency doesn't exist in the entity index, it's assumed to be external and blocking
+- The blocker check happens during resolve() before stage computation
+
+### Tests added:
+- test_task_with_blockers_is_blocked
+- test_epic_with_blockers_is_blocked
+- test_epic_without_blockers_is_planned
+- test_resolver_detects_blockers_from_depends_on
+- test_resolver_task_ready_when_dependency_closed
+- test_resolver_detects_blockers_from_dependsOn_camelcase
+- test_resolver_epic_blocked_by_dependencies
+- test_resolver_no_blockers_when_no_dependencies
+
+### Learnings:
+1. **Stage computation priority**: The stage computation in compute_stage() follows a clear priority order where BLOCKED is checked after IN_PROGRESS but before READY
+2. **Frontmatter flexibility**: Supporting both snake_case and camelCase field names improves compatibility with different task backends
+3. **Test coverage importance**: Adding comprehensive tests revealed an initial bug in the blocker logic where the status check was inverted
+4. **Integration points**: The BLOCKED stage required updates in multiple places: models, resolver, views, queries, and tests
+
+### Potential improvements for future:
+- Could add a "blocked_by" field to show which specific dependencies are blocking
+- Could support more sophisticated dependency resolution (e.g., "any of" vs "all of")
+- Could add visual indicators in the UI showing which tasks are blocking others
+
+## 2026-01-23 - Task cub-dmxf: Group ready tasks by epic in dashboard
+
+### Implementation Summary:
+Enhanced the dashboard to group ready tasks by their associated epic. Tasks can be associated with epics through multiple mechanisms:
+1. Parent relationship (task.parent field)
+2. Label with epic ID format (e.g., 'epic:cub-abc')
+3. Explicit epic_id field (future compatibility)
+
+### Changes Made:
+- **TaskParser**: Added `_extract_epic_id()` helper method that checks parent field first, then epic: labels, with priority ordering
+- **View Configuration**: Added `group_by='epic_id'` to ready column in both default and sprint views
+- **Database Queries**: Verified existing `group_entities_by_field()` function handles epic grouping correctly
+- Tasks without epic association automatically appear in "No Epic" group (handled by existing grouping logic)
+
+### Learnings:
+1. **Multi-mechanism detection**: Supporting multiple ways to associate tasks with epics (parent field, labels) provides flexibility for different workflow patterns
+2. **Reusable grouping infrastructure**: The existing `group_by` column configuration and `group_entities_by_field()` function made this feature trivial to implement - just needed to extract epic_id correctly
+3. **Label conventions**: The `epic:cub-abc` label format is a clean way to establish relationships without requiring database foreign keys
+4. **Priority ordering**: When multiple detection mechanisms exist, clear priority ordering (parent > label > explicit field) prevents ambiguity
+
+### Testing Notes:
+- All existing tests pass (76 tests in dashboard models/schema)
+- Task parser tests (18 tests) pass with new epic extraction logic
+- Typecheck and lint clean
+- The epic grouping uses the same code path as spec grouping in the planned column, which has been working well
+
+### Potential Improvements:
+- Could add visual hierarchy in UI to show epic → task relationships more clearly
+- Could support filtering by epic in the dashboard view
+- Could show epic progress (X/Y tasks complete) in group headers
+- Could add validation to ensure epic: labels reference valid epic IDs
+

@@ -1,0 +1,27 @@
+{
+  "id": "cub-a7f.3",
+  "title": "Implement /api/views endpoint",
+  "started_at": null,
+  "completed_at": "2026-01-23T15:57:27.496793",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 563,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260123-153920/tasks/cub-a7f.3",
+  "epic_id": "cub-a7f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": ""
+}

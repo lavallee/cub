@@ -183,7 +183,7 @@ class BeadsBackend:
         Returns:
             List of tasks matching the filter criteria
         """
-        args = ["list", "--json"]
+        args = ["list", "--json", "--limit", "1000"]
 
         if status:
             args.extend(["--status", status.value])
@@ -248,12 +248,16 @@ class BeadsBackend:
         Returns:
             List of ready tasks sorted by priority
         """
-        args = ["ready", "--json"]
+        args = ["ready", "--json", "--limit", "1000"]
 
         if parent:
-            # Use --parent to filter by parent-child relationship
-            # This finds tasks that are descendants of the given epic
-            args.extend(["--parent", parent])
+            # Use --label epic:{parent} to filter by epic association.
+            # This works for both:
+            # 1. Hierarchical children (cub-xxx.1) that have epic:cub-xxx label
+            # 2. Label-associated tasks (punchlist) that use epic:cub-xxx label
+            # Note: --parent only works for hierarchical relationships, which is
+            # too restrictive since punchlist tasks use label-based association.
+            args.extend(["--label", f"epic:{parent}"])
         if label:
             args.extend(["--label", label])
 
@@ -441,7 +445,7 @@ class BeadsBackend:
             TaskCounts object with total, open, in_progress, closed counts
         """
         try:
-            result = self._run_bd(["list", "--json"])
+            result = self._run_bd(["list", "--json", "--limit", "1000"])
 
             # Handle both list and single-item responses
             if not isinstance(result, list):
