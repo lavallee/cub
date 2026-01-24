@@ -183,7 +183,7 @@ class BeadsBackend:
         Returns:
             List of tasks matching the filter criteria
         """
-        args = ["list", "--json"]
+        args = ["list", "--json", "--limit", "1000"]
 
         if status:
             args.extend(["--status", status.value])
@@ -248,7 +248,7 @@ class BeadsBackend:
         Returns:
             List of ready tasks sorted by priority
         """
-        args = ["ready", "--json"]
+        args = ["ready", "--json", "--limit", "1000"]
 
         if parent:
             # Use --label epic:{parent} to filter by epic association.
@@ -445,7 +445,7 @@ class BeadsBackend:
             TaskCounts object with total, open, in_progress, closed counts
         """
         try:
-            result = self._run_bd(["list", "--json"])
+            result = self._run_bd(["list", "--json", "--limit", "1000"])
 
             # Handle both list and single-item responses
             if not isinstance(result, list):
