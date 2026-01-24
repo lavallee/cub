@@ -7769,3 +7769,86 @@ Successfully created comprehensive test suite for all ledger CLI commands coveri
 - src/cub/core/dashboard/sync/parsers/ledger.py (new, 310 lines)
 - src/cub/core/dashboard/sync/parsers/__init__.py (updated)
 - tests/test_ledger_parser.py (new, 600+ lines)
+
+## Task cub-d8b.2: Register parser and update resolver
+
+**Completed:** 2026-01-24
+
+**Summary:**
+Integrated the LedgerParser into the SyncOrchestrator to enable ledger data in the dashboard sync pipeline.
+
+**Key learnings:**
+1. The LedgerParser was already fully implemented with proper interface (parse() method)
+2. EntityType.LEDGER and RelationType.TASK_TO_LEDGER were already defined in models.py
+3. Relationship resolution for ledger entries was already implemented in resolver.py
+4. Only needed to register the parser in orchestrator.py following the same pattern as other parsers
+5. Graceful error handling allows sync to continue even if ledger parsing fails
+6. The ledger sync phase fits naturally after task parsing in the pipeline
+
+**Testing:**
+- All orchestrator tests passed (21 tests)
+- All ledger-related tests passed (242 tests)
+- Typecheck clean
+- Lint clean
+
+**Implementation notes:**
+- Added LedgerParser import to orchestrator.py
+- Added ledger parsing phase between task parsing and relationship resolution
+- Follows same error handling pattern as other parsers (log error, continue)
+- Logs parsing progress for visibility
+
+## 2026-01-24 - cub-d8b.3: Add tests for dashboard sync
+
+### Task Completed
+Verified and completed comprehensive test suite for LedgerParser and dashboard sync integration.
+
+### Test Coverage
+The `tests/test_ledger_parser.py` file contains 17 tests covering:
+
+**1. Parser Operations (3 tests)**
+- `test_parse_empty_ledger`: Handles empty directory gracefully
+- `test_parse_nonexistent_ledger`: Handles missing ledger directory
+- `test_parse_single_entry`: Correctly parses single entry with full metadata
+
+**2. Stage Computation (4 tests)**
+- Maps workflow stages to dashboard stages:
+  - `dev_complete` → `Stage.COMPLETE`
+  - `needs_review` → `Stage.NEEDS_REVIEW`
+  - `validated` → `Stage.VALIDATED`
+  - `released` → `Stage.RELEASED`
+
+**3. Entity Metadata Extraction (3 tests)**
+- Extracts cost, tokens, duration from outcome
+- Handles epic_id from lineage with fallback to legacy field
+- Extracts spec_id and plan_id from lineage paths
+
+**4. Core Features (5 tests)**
+- Checksum computation using MD5 for change detection
+- Parsing multiple entries with correct sorting (newest first)
+- Filtering by epic with `parse_by_epic(epic_id)`
+- Filtering by stage with `parse_by_stage(stage)`
+- Missing full entry file handling (graceful skip)
+
+**5. Backward Compatibility (2 tests)**
+- Legacy epic_id field fallback when lineage.epic_id is None
+- Description excerpt truncation at 100 chars with "..." suffix
+
+### Key Design Insights
+- Parser reads from `index.jsonl` for fast enumeration
+- Loads full JSON from `by-task/{id}.json` for detailed metrics
+- Stage computation is crucial for dashboard filtering and display
+- Checksum enables change detection for incremental syncs
+- Graceful degradation: missing files are logged and skipped
+
+### Integration Testing
+Dashboard integration tests verify end-to-end sync workflow:
+- `test_full_sync_to_api_flow`: Complete sync pipeline
+- `test_sync_and_query_entity_endpoint`: Entity retrieval after sync
+- Both pass successfully with proper stage mapping
+
+### Feedback Loops Completed
+✓ All 17 parser tests pass (0.16s)
+✓ Integration tests pass (0.38s combined)
+✓ Ruff linting passes
+✓ Type checking (mypy) expected warnings for untyped internal modules
+
