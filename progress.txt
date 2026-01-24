@@ -7520,3 +7520,43 @@ Added comprehensive epic-level tracking models to support project-level visibili
 - Cub-e2p feature now has complete test coverage for epic aggregation
 - Ready for dashboard integration to display epic metrics
 - Can now safely refactor epic aggregation implementation with test safety net
+
+## 2026-01-24 - Task cub-c5i.1: Extended ledger show command
+
+Successfully extended the `cub ledger show` command to display new unified tracking fields.
+
+### What was implemented:
+1. Added three new flags:
+   - `--attempt N`: Shows detailed information for specific attempt number
+   - `--changes`: Shows full file and commit lists (not truncated)
+   - `--history`: Shows workflow stage transition history table
+
+2. Updated default display with new sections:
+   - Lineage section (epic, spec, plan)
+   - Workflow stage with color coding and timestamp
+   - Outcome summary (status, cost, duration, attempts, escalation)
+   - Attempts summary table (first 10 attempts with model/duration/cost/status)
+   - Task change detection warning
+   - Spec drift section (additions/omissions)
+
+3. Added formatting helpers:
+   - `_format_duration()`: Human-readable duration (e.g., "1h 23m 45s")
+   - `_format_workflow_stage()`: Color-coded stage display
+   - `_show_attempt_detail()`: Detailed single attempt view
+
+4. Maintained backward compatibility:
+   - Falls back to legacy fields if new fields not present
+   - Prefers outcome.* over legacy fields when available
+
+### Key learnings:
+- Rich tables with `box=None` and custom padding look clean in terminal
+- Forward-compatible field preference pattern (try new, fallback to old) works well
+- Using TYPE_CHECKING import prevents circular dependencies
+- Breaking long ternary expressions into multi-line improves readability
+
+### Verification:
+- All 189 ledger-related tests pass
+- Typecheck clean (mypy)
+- Linter clean (ruff)
+- Handles both new and legacy ledger entry formats
+
