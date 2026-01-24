@@ -6133,3 +6133,91 @@ The frontend was using `response.text()` to parse the API response, which conver
 - Consider adding metrics for parse failures to monitor data quality
 - Could add a "parse warnings" count to SyncResult for visibility
 
+
+## Task cub-f7m.2: Implement ToolsmithStore with load/save/search
+
+**Completed:** 2026-01-24
+
+**What worked well:**
+- Following CaptureStore patterns made implementation straightforward
+- Pydantic's `model_dump(mode='json')` handles datetime serialization cleanly
+- Atomic write pattern (tempfile + rename) prevents corruption
+- Comprehensive test coverage (30 tests) caught datetime serialization issue early
+- Search implementation (split terms, all must match) is simple but effective
+
+**Key implementation details:**
+- Use `model_dump(mode='json')` not `model_dump()` for JSON serialization to convert datetimes
+- Atomic write pattern: write to temp file in same dir, then rename (atomic on POSIX)
+- Search matches if ALL query terms appear in name OR description (case-insensitive)
+- Return empty Catalog (not error) when file missing - more ergonomic API
+- Use pathlib throughout for cross-platform compatibility
+
+**Testing insights:**
+- Integration tests (save/load roundtrip, incremental updates) validate real-world workflows
+- Test both missing file and missing directory cases
+- Test atomic writes don't leave temp files behind
+- Verify timestamp preservation through serialization roundtrip
+
+**Tools used:**
+- pytest (30 tests, all passing)
+- mypy --strict (type safety)
+- ruff (linting, auto-fix)
+
+
+
+## Task cub-f7m.3: Create CLI skeleton and register with main app
+
+**Completed:** 2026-01-24
+
+**What we accomplished:**
+- Created `src/cub/cli/toolsmith.py` with three command stubs (sync, search, stats)
+- Registered Toolsmith in the "Manage Your Roadmap" panel of the main CLI
+- All commands properly display help text and placeholder output
+- Passes mypy --strict typecheck
+
+**Key learnings about Cub CLI patterns:**
+
+1. **CLI Module Structure**
+   - Each feature gets its own module in `src/cub/cli/`
+   - Module creates a `typer.Typer` app with `name` and `help` parameters
+   - Commands are added via `@app.command()` decorator
+   - Main `__init__.py` imports the module and registers the app via `app.add_typer()`
+
+2. **Help Panel Organization**
+   - Define panel name constants at top of `__init__.py` (e.g., `PANEL_ROADMAP`)
+   - Each command/subcommand uses `rich_help_panel=PANEL_NAME` for grouping
+   - Panels are displayed alphabetically in help output
+   - Related commands grouped in same panel for discoverability
+
+3. **Modern Typer Patterns**
+   - Use `Annotated[type, typer.Option(...)]` or `typer.Argument(...)` for modern syntax
+   - Short and long option names: `-s` and `--source` both work
+   - Optional parameters use `Optional[type]` with default `None`
+   - Rich formatting with `console.print("[yellow]text[/yellow]")` for styled output
+
+4. **Stub Command Implementation**
+   - Include docstring with description and examples
+   - Print placeholder using `console.print("[yellow]Not implemented yet[/yellow]")`
+   - Properly document all options in their help text
+   - Type hints are essential - mypy --strict catches inconsistencies
+
+5. **Testing CLI Commands**
+   - Test `--help` for each command to verify output formatting
+   - Verify registration in main CLI via `cub toolsmith --help`
+   - Use `python -m cub <command>` to test without installing
+   - Check that commands appear in correct help panel
+
+**Files modified:**
+- Created: `src/cub/cli/toolsmith.py` (72 lines)
+- Modified: `src/cub/cli/__init__.py` (added import and registration)
+
+**Testing verification:**
+- ✓ `cub toolsmith --help` shows all commands
+- ✓ `cub toolsmith sync --help` shows --source option
+- ✓ `cub toolsmith search --help` shows query argument and options
+- ✓ `cub toolsmith stats --help` displays properly
+- ✓ toolsmith appears in "Manage Your Roadmap" panel
+- ✓ mypy --strict passes with no errors
+
+**Next phase:**
+Ready for Phase 3 implementation of actual tool discovery, search, and catalog management logic.
