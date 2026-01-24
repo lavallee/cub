@@ -148,8 +148,11 @@ else
 fi
 
 # Extract epics from itemized plan
+# Handles both formats:
+#   "## Epic: cub-xxx - title"  (old format)
+#   "## Epic cub-xxx: title"    (new format)
 extract_epics() {
-    grep -E "^## Epic:" "$ITEMIZED_PLAN" | sed 's/## Epic: //' | cut -d' ' -f1
+    grep -E "^## Epic[: ]" "$ITEMIZED_PLAN" | sed -E 's/## Epic:? ?//' | cut -d' ' -f1 | cut -d':' -f1
 }
 
 EPICS=$(extract_epics)
