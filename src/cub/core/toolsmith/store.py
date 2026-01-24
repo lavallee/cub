@@ -44,7 +44,7 @@ class ToolsmithStore:
         store.save_catalog(catalog)
     """
 
-    def __init__(self, toolsmith_dir: Path):
+    def __init__(self, toolsmith_dir: Path) -> None:
         """
         Initialize store with a toolsmith directory.
 

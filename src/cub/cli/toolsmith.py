@@ -19,8 +19,8 @@ from rich.table import Table
 from rich.text import Text
 
 from cub.core.toolsmith.adoption import AdoptionStore
-from cub.core.toolsmith.execution import ToolExecutionError, run_tool
 from cub.core.toolsmith.exceptions import ToolsmithError
+from cub.core.toolsmith.execution import ToolExecutionError, run_tool
 from cub.core.toolsmith.service import ToolsmithService
 from cub.core.toolsmith.sources import get_all_sources
 from cub.core.toolsmith.store import ToolsmithStore
@@ -275,7 +275,7 @@ def search(
         # Note: --live forces live_fallback=True, otherwise defaults to True
         # If we want --live to ONLY search live (skip local), we'd need to modify
         # the service API. For now, --live forces live_fallback behavior.
-        results = service.search(query, live_fallback=True if live else True)
+        results = service.search(query, live_fallback=live)
 
         # Filter by source if specified
         if source:
@@ -340,7 +340,9 @@ def search(
 
 @app.command()
 def adopt(
-    tool_id: Annotated[str, typer.Argument(..., help="Tool ID to adopt (see 'cub toolsmith search')")],
+    tool_id: Annotated[
+        str, typer.Argument(..., help="Tool ID to adopt (see 'cub toolsmith search')")
+    ],
     note: Annotated[
         str | None,
         typer.Option("--note", help="Optional note about why/how we are adopting this tool"),

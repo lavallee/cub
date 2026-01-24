@@ -68,7 +68,7 @@ class ToolsmithService:
         stats = service.stats()
     """
 
-    def __init__(self, store: ToolsmithStore, sources: Sequence[ToolSource]):
+    def __init__(self, store: ToolsmithStore, sources: Sequence[ToolSource]) -> None:
         """
         Initialize the service with a store and sources.
 

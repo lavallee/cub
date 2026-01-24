@@ -16,6 +16,7 @@ dependencies = [
     "GitPython>=3.1.0",
     "requests>=2.31.0",
     "python-frontmatter>=1.0.0",
+    "python-dotenv>=1.0.0",
     "anyio>=4.0.0",
     "claude-agent-sdk>=0.1.0",
     "fastapi>=0.104.0",
@@ -74,6 +75,11 @@ disable_error_code = ["prop-decorator"]
 [[tool.mypy.overrides]]
 module = ["claude_agent_sdk", "claude_agent_sdk.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["frontmatter"]
+ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

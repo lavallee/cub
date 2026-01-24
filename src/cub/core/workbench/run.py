@@ -12,6 +12,7 @@ This is intentionally narrow to support experimentation.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -112,7 +113,7 @@ def run_next_move(*, session_path: Path) -> RunNextResult:
         links.append({"kind": "tool_run", "tool_id": tool_id, "path": str(p)})
 
     meta["links"] = links
-    next_move["last_run"] = __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+    next_move["last_run"] = datetime.now(timezone.utc).isoformat()
     next_move["run_results"] = results
     meta["next_move"] = next_move
 

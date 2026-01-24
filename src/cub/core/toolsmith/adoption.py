@@ -9,6 +9,7 @@ any required configuration (API keys, notes) so future workflows can act.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,22 +30,19 @@ class AdoptionStore:
     Stored alongside the project tool catalog under .cub/toolsmith/.
     """
 
-    def __init__(self, toolsmith_dir: Path):
+    def __init__(self, toolsmith_dir: Path) -> None:
         self.toolsmith_dir = Path(toolsmith_dir)
         self.adopted_file = self.toolsmith_dir / "adopted.json"
 
     def list_all(self) -> list[AdoptedTool]:
         if not self.adopted_file.exists():
             return []
-        return [
-            AdoptedTool.model_validate(item)
-            for item in __import__("json").load(open(self.adopted_file, encoding="utf-8"))
-        ]
+        with open(self.adopted_file, encoding="utf-8") as f:
+            data = json.load(f)
+        return [AdoptedTool.model_validate(item) for item in data]
 
     def save(self, adopted: list[AdoptedTool]) -> None:
         self.toolsmith_dir.mkdir(parents=True, exist_ok=True)
-        import json
-
         json_str = json.dumps([a.model_dump(mode="json") for a in adopted], indent=2)
         self.adopted_file.write_text(json_str, encoding="utf-8")
 
@@ -64,6 +62,6 @@ class AdoptionStore:
         return record
 
     @classmethod
-    def default(cls) -> "AdoptionStore":
+    def default(cls) -> AdoptionStore:
         toolsmith_dir = Path.cwd() / ".cub" / "toolsmith"
         return cls(toolsmith_dir)
