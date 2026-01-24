@@ -38,6 +38,23 @@ class VerificationStatus(str, Enum):
         return self in (VerificationStatus.FAIL, VerificationStatus.ERROR)
 
 
+class WorkflowStage(str, Enum):
+    """Post-completion workflow stages for tasks and epics.
+
+    These stages represent the progression of closed work through review
+    and release processes. They are manually set via `cub workflow set`.
+
+    Progression:
+    - NEEDS_REVIEW: Work is done but awaiting review
+    - VALIDATED: Work has been reviewed and approved
+    - RELEASED: Work has been shipped/released
+    """
+
+    NEEDS_REVIEW = "needs_review"
+    VALIDATED = "validated"
+    RELEASED = "released"
+
+
 class TokenUsage(BaseModel):
     """Token usage metrics for a task execution.
 
@@ -172,6 +189,15 @@ class LedgerEntry(BaseModel):
     harness_name: str = Field(default="", description="Harness used (e.g., 'claude', 'codex')")
     harness_model: str = Field(default="", description="Model used (e.g., 'sonnet', 'haiku')")
 
+    # Workflow stage tracking (post-completion)
+    workflow_stage: WorkflowStage | None = Field(
+        default=None,
+        description="Post-completion workflow stage (needs_review/validated/released)",
+    )
+    workflow_stage_updated_at: datetime | None = Field(
+        default=None, description="When workflow stage was last updated (UTC)"
+    )
+
     model_config = ConfigDict(
         populate_by_name=True,  # Allow both snake_case and camelCase
     )
@@ -223,6 +249,9 @@ class LedgerIndex(BaseModel):
         default="pending", description="Verification status (pass/fail/warn/skip/pending/error)"
     )
     tokens: int = Field(default=0, ge=0, description="Total tokens consumed")
+    workflow_stage: str | None = Field(
+        default=None, description="Post-completion workflow stage (needs_review/validated/released)"
+    )
 
     @field_validator("completed")
     @classmethod
@@ -255,6 +284,7 @@ class LedgerIndex(BaseModel):
             epic=entry.epic_id,
             verification=entry.verification_status.value,
             tokens=entry.tokens.total_tokens,
+            workflow_stage=entry.workflow_stage.value if entry.workflow_stage else None,
         )
 
 

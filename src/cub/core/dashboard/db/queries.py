@@ -17,9 +17,7 @@ from cub.core.dashboard.db.models import (
     BoardColumn,
     BoardResponse,
     BoardStats,
-    ColumnConfig,
     DashboardEntity,
-    DisplayConfig,
     EntityDetail,
     EntityGroup,
     EntityType,
@@ -38,6 +36,7 @@ DB_STAGE_TO_MODEL_STAGE = {
     "staged": Stage.READY,
     "implementing": Stage.IN_PROGRESS,
     "verifying": Stage.NEEDS_REVIEW,
+    "validated": Stage.VALIDATED,
     "completed": Stage.COMPLETE,
     "released": Stage.RELEASED,
 }
@@ -48,78 +47,22 @@ MODEL_STAGE_TO_DB_STAGE = {v: k for k, v in DB_STAGE_TO_MODEL_STAGE.items()}
 
 def get_default_view_config() -> ViewConfig:
     """
-    Get the default 9-column view configuration.
+    Get the default 10-column view configuration.
+
+    This delegates to the canonical view definition in the views module
+    to ensure consistency across the codebase.
 
     Returns:
-        Default view config with all 9 stages as separate columns
+        Default view config with all 10 stages as separate columns
 
     Example:
         >>> view = get_default_view_config()
-        >>> assert len(view.columns) == 9
+        >>> assert len(view.columns) == 10
         >>> assert view.id == "default"
     """
-    return ViewConfig(
-        id="default",
-        name="Full Workflow",
-        description="Complete workflow from captures to released",
-        columns=[
-            ColumnConfig(
-                id="captures",
-                title="Captures",
-                stages=[Stage.CAPTURES],
-            ),
-            ColumnConfig(
-                id="specs",
-                title="Researching",
-                stages=[Stage.RESEARCHING],
-            ),
-            ColumnConfig(
-                id="planned",
-                title="Planned",
-                stages=[Stage.PLANNED],
-            ),
-            ColumnConfig(
-                id="blocked",
-                title="Blocked",
-                stages=[Stage.BLOCKED],
-            ),
-            ColumnConfig(
-                id="ready",
-                title="Ready",
-                stages=[Stage.READY],
-                group_by="epic_id",
-            ),
-            ColumnConfig(
-                id="in_progress",
-                title="In Progress",
-                stages=[Stage.IN_PROGRESS],
-            ),
-            ColumnConfig(
-                id="complete",
-                title="Closed",
-                stages=[Stage.COMPLETE],
-            ),
-            ColumnConfig(
-                id="needs_review",
-                title="Needs Review",
-                stages=[Stage.NEEDS_REVIEW],
-            ),
-            ColumnConfig(
-                id="released",
-                title="Released",
-                stages=[Stage.RELEASED],
-            ),
-        ],
-        filters=FilterConfig(
-            exclude_labels=["archived"],
-        ),
-        display=DisplayConfig(
-            show_cost=True,
-            show_tokens=False,
-            show_duration=False,
-        ),
-        is_default=True,
-    )
+    from cub.core.dashboard.views.defaults import get_default_view
+
+    return get_default_view()
 
 
 def row_to_entity(row: dict[str, Any]) -> DashboardEntity:
@@ -484,7 +427,7 @@ def get_board_data(
         >>> configure_connection(conn)
         >>> create_schema(conn)
         >>> board = get_board_data(conn)
-        >>> assert len(board.columns) == 9
+        >>> assert len(board.columns) == 10
         >>> assert board.view.id == "default"
     """
     # Use default view if not specified

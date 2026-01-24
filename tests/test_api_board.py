@@ -78,10 +78,10 @@ class TestBoardEndpoint:
         # Check view config
         assert data["view"]["id"] == "default"
         assert data["view"]["name"] == "Full Workflow"
-        assert len(data["view"]["columns"]) == 9
+        assert len(data["view"]["columns"]) == 10
 
         # Check columns are empty
-        assert len(data["columns"]) == 9
+        assert len(data["columns"]) == 10
         for column in data["columns"]:
             assert column["count"] == 0
             assert column["entities"] == []

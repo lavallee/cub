@@ -18,13 +18,14 @@ Entity Types:
 - ledger: Completed work ledger entries
 - release: CHANGELOG.md releases
 
-Stages (8 columns for Kanban board):
+Stages (9 columns for Kanban board):
 - backlog: Not yet started
 - researching: Active research/exploration
 - planned: Plan exists, not staged
 - staged: Tasks created, ready to build
 - implementing: Active implementation
 - verifying: Testing/verification
+- validated: Reviewed and validated
 - completed: Done but not released
 - released: Shipped and available
 """
@@ -32,7 +33,7 @@ Stages (8 columns for Kanban board):
 import sqlite3
 
 # Schema version for migrations
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Entity types
 ENTITY_TYPES = [
@@ -44,7 +45,7 @@ ENTITY_TYPES = [
     "release",
 ]
 
-# Valid stages for the Kanban board (8 columns)
+# Valid stages for the Kanban board (9 columns)
 STAGES = [
     "backlog",
     "researching",
@@ -52,6 +53,7 @@ STAGES = [
     "staged",
     "implementing",
     "verifying",
+    "validated",
     "completed",
     "released",
 ]
@@ -83,7 +85,8 @@ CREATE TABLE IF NOT EXISTS entities (
     type TEXT NOT NULL CHECK(type IN ('spec', 'plan', 'epic', 'task', 'ledger', 'release')),
     title TEXT NOT NULL,
     stage TEXT NOT NULL CHECK(stage IN ('backlog', 'researching', 'planned', 'staged',
-                                        'implementing', 'verifying', 'completed', 'released')),
+                                        'implementing', 'verifying', 'validated',
+                                        'completed', 'released')),
     status TEXT,
     priority TEXT,
 

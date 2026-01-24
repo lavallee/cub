@@ -85,7 +85,7 @@ def dashboard(
     3. Opens the dashboard in your default browser
 
     The dashboard provides a visual kanban board showing all project
-    entities across 8 lifecycle stages from "researching" to "released".
+    entities across 10 lifecycle stages from "captures" to "released".
 
     Examples:
         cub dashboard                  # Launch on default port 8080
@@ -438,8 +438,8 @@ def views(
     your project entities on the kanban board.
 
     Built-in views:
-    - default: Full 8-column workflow (Captures → Released)
-    - sprint: Active work focused (Ready → In Progress → Review → Complete)
+    - default: Full 10-column workflow (Captures → Released)
+    - sprint: Active work focused (Ready → In Progress → Review → Validated → Closed)
     - ideas: Idea development focused (Captures → Specs → Planned)
 
     Custom views can be created by:

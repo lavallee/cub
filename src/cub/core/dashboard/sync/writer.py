@@ -67,9 +67,11 @@ class EntityWriter:
         "CAPTURES": "backlog",  # Captures are in backlog
         "RESEARCHING": "researching",  # Specs being researched
         "PLANNED": "planned",  # Planned
+        "BLOCKED": "staged",  # Blocked tasks are in staged (with blocker flag)
         "READY": "staged",  # Ready = staged in schema
         "IN_PROGRESS": "implementing",  # In progress = implementing
         "NEEDS_REVIEW": "verifying",  # Review = verifying
+        "VALIDATED": "validated",  # Validated = validated in schema
         "COMPLETE": "completed",  # Complete
         "RELEASED": "released",  # Released
     }

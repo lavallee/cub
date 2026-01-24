@@ -296,7 +296,7 @@ class TestDashboardExport:
             assert "view" in data
             assert "columns" in data
             assert "stats" in data
-            assert len(data["columns"]) == 8  # Default 8 columns
+            assert len(data["columns"]) == 10  # Default 10 columns
 
     def test_export_to_file(self) -> None:
         """Test export to file."""

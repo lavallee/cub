@@ -36,7 +36,7 @@ class EntityType(str, Enum):
 
 
 class Stage(str, Enum):
-    """Lifecycle stages for the 9-column Kanban board.
+    """Lifecycle stages for the 10-column Kanban board.
 
     These stages represent the progression of work from initial capture
     through release. The architecture doc describes the stage computation
@@ -49,9 +49,10 @@ class Stage(str, Enum):
     - BLOCKED: Tasks/epics not ready due to dependencies (tasks/epics with unmet dependencies)
     - READY: Tasks ready to work (tasks with status=open, no blockers)
     - IN_PROGRESS: Active work (tasks with status=in_progress, specs in implementing/)
-    - NEEDS_REVIEW: Awaiting review (tasks with 'pr' label or status=review)
+    - NEEDS_REVIEW: Awaiting review (tasks with 'pr' label or workflow_stage=needs_review)
+    - VALIDATED: Reviewed and validated (tasks with workflow_stage=validated)
     - COMPLETE: Done but not released (tasks with ledger entry, specs in completed/)
-    - RELEASED: Shipped (tasks in CHANGELOG, specs in released/)
+    - RELEASED: Shipped (tasks in CHANGELOG, workflow_stage=released, specs in released/)
     """
 
     CAPTURES = "CAPTURES"
@@ -61,6 +62,7 @@ class Stage(str, Enum):
     READY = "READY"
     IN_PROGRESS = "IN_PROGRESS"
     NEEDS_REVIEW = "NEEDS_REVIEW"
+    VALIDATED = "VALIDATED"
     COMPLETE = "COMPLETE"
     RELEASED = "RELEASED"
 

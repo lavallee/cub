@@ -44,7 +44,7 @@ class TestBuiltInViews:
         assert view.id == "default"
         assert view.name == "Full Workflow"
         assert view.is_default is True
-        assert len(view.columns) == 9
+        assert len(view.columns) == 10
         assert view.filters is not None
         assert view.display is not None
 
@@ -55,12 +55,13 @@ class TestBuiltInViews:
         assert view.id == "sprint"
         assert view.name == "Sprint View"
         assert view.is_default is False
-        assert len(view.columns) == 4
-        # Should have Ready, In Progress, Needs Review, Complete
+        assert len(view.columns) == 5
+        # Should have Ready, In Progress, Needs Review, Validated, Complete
         column_stages = [col.stages[0] for col in view.columns]
         assert Stage.READY in column_stages
         assert Stage.IN_PROGRESS in column_stages
         assert Stage.NEEDS_REVIEW in column_stages
+        assert Stage.VALIDATED in column_stages
         assert Stage.COMPLETE in column_stages
 
     def test_get_ideas_view(self):

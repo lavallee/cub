@@ -5,8 +5,8 @@ This module provides the default view configurations that are always available,
 even if no custom views are defined in `.cub/views/`.
 
 The system provides three built-in views:
-- default: Full 9-column workflow (Captures → Released)
-- sprint: Active work focused view (Ready → In Progress → Review → Complete)
+- default: Full 10-column workflow (Captures → Released)
+- sprint: Active work focused view (Ready → In Progress → Review → Validated → Closed)
 - ideas: Idea development focused view (Captures → Researching → Planned)
 
 These views serve as both:
@@ -31,7 +31,7 @@ View configuration format:
   - id: Column identifier
   - title: Display title
   - stages: List of stages to include (CAPTURES, RESEARCHING, PLANNED, BLOCKED, READY,
-            IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED)
+            IN_PROGRESS, NEEDS_REVIEW, VALIDATED, COMPLETE, RELEASED)
 - **filters**: Entity filtering rules
   - exclude_labels: Labels to exclude from the view
   - include_labels: If set, only include entities with these labels
@@ -59,21 +59,21 @@ from cub.core.dashboard.db.models import (
 
 def get_default_view() -> ViewConfig:
     """
-    Get the default full 9-column workflow view.
+    Get the default full 10-column workflow view.
 
     Returns:
-        ViewConfig for the default view with all 9 stages
+        ViewConfig for the default view with all 10 stages
 
     Example:
         >>> view = get_default_view()
         >>> assert view.id == "default"
-        >>> assert len(view.columns) == 9
+        >>> assert len(view.columns) == 10
         >>> assert view.is_default
     """
     return ViewConfig(
         id="default",
         name="Full Workflow",
-        description="Complete workflow from captures to released (9 columns)",
+        description="Complete workflow from captures to released (10 columns)",
         columns=[
             ColumnConfig(
                 id="captures",
@@ -107,14 +107,19 @@ def get_default_view() -> ViewConfig:
                 stages=[Stage.IN_PROGRESS],
             ),
             ColumnConfig(
-                id="complete",
-                title="Closed",
-                stages=[Stage.COMPLETE],
-            ),
-            ColumnConfig(
                 id="needs_review",
                 title="Needs Review",
                 stages=[Stage.NEEDS_REVIEW],
+            ),
+            ColumnConfig(
+                id="validated",
+                title="Validated",
+                stages=[Stage.VALIDATED],
+            ),
+            ColumnConfig(
+                id="complete",
+                title="Closed",
+                stages=[Stage.COMPLETE],
             ),
             ColumnConfig(
                 id="released",
@@ -141,7 +146,8 @@ def get_sprint_view() -> ViewConfig:
     Shows only the columns relevant to current sprint work:
     - Ready: Tasks ready to work on
     - In Progress: Tasks being actively worked
-    - Needs Review: Tasks in review
+    - Needs Review: Tasks awaiting review
+    - Validated: Tasks reviewed and approved
     - Complete: Tasks done this sprint
 
     Returns:
@@ -150,13 +156,13 @@ def get_sprint_view() -> ViewConfig:
     Example:
         >>> view = get_sprint_view()
         >>> assert view.id == "sprint"
-        >>> assert len(view.columns) == 4
+        >>> assert len(view.columns) == 5
         >>> assert not view.is_default
     """
     return ViewConfig(
         id="sprint",
         name="Sprint View",
-        description="Active work focused view (Ready → In Progress → Closed → Review)",
+        description="Active work focused view (Ready → In Progress → Review → Validated → Closed)",
         columns=[
             ColumnConfig(
                 id="ready",
@@ -170,14 +176,19 @@ def get_sprint_view() -> ViewConfig:
                 stages=[Stage.IN_PROGRESS],
             ),
             ColumnConfig(
-                id="complete",
-                title="Closed",
-                stages=[Stage.COMPLETE],
-            ),
-            ColumnConfig(
                 id="needs_review",
                 title="Needs Review",
                 stages=[Stage.NEEDS_REVIEW],
+            ),
+            ColumnConfig(
+                id="validated",
+                title="Validated",
+                stages=[Stage.VALIDATED],
+            ),
+            ColumnConfig(
+                id="complete",
+                title="Closed",
+                stages=[Stage.COMPLETE],
             ),
         ],
         filters=FilterConfig(
@@ -283,13 +294,13 @@ def get_built_in_view_summaries() -> list[ViewSummary]:
         ViewSummary(
             id="default",
             name="Full Workflow",
-            description="Complete workflow from captures to released (9 columns)",
+            description="Complete workflow from captures to released (10 columns)",
             is_default=True,
         ),
         ViewSummary(
             id="sprint",
             name="Sprint View",
-            description="Active work focused view (Ready → In Progress → Closed → Review)",
+            description="Active work (Ready → In Progress → Review → Validated → Closed)",
             is_default=False,
         ),
         ViewSummary(

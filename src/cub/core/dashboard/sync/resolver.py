@@ -37,7 +37,7 @@ from cub.core.dashboard.db.models import (
     Stage,
 )
 from cub.core.dashboard.sync.parsers.changelog import ChangelogParser
-from cub.core.ledger.models import LedgerIndex
+from cub.core.ledger.models import LedgerIndex, WorkflowStage
 from cub.core.ledger.reader import LedgerReader
 
 logger = logging.getLogger(__name__)
@@ -410,12 +410,22 @@ class RelationshipResolver:
             # Check if entity has blockers
             has_blockers = self._has_blockers(entity, entity_index)
 
+            # Get ledger entry for workflow stage
+            ledger_entry = self._get_ledger_entry(entity.id)
+            workflow_stage: WorkflowStage | None = None
+            if ledger_entry and ledger_entry.workflow_stage:
+                try:
+                    workflow_stage = WorkflowStage(ledger_entry.workflow_stage)
+                except ValueError:
+                    pass  # Invalid workflow stage, ignore
+
             # Recompute stage with all signals
             new_stage = compute_stage(
                 entity,
                 is_released=self._is_released(entity.id),
-                has_ledger=self._get_ledger_entry(entity.id) is not None,
+                has_ledger=ledger_entry is not None,
                 has_blockers=has_blockers,
+                workflow_stage=workflow_stage,
             )
 
             # Enrich with ledger data
@@ -460,26 +470,31 @@ def compute_stage(
     is_released: bool = False,
     has_ledger: bool = False,
     has_blockers: bool = False,
+    workflow_stage: WorkflowStage | None = None,
 ) -> Stage:
     """
     Compute the dashboard stage for an entity based on multiple signals.
 
     Stage computation follows this priority order:
-    1. RELEASED: Entity is in CHANGELOG (highest priority for closed items)
-    2. COMPLETE: Entity has ledger entry but not released
-    3. NEEDS_REVIEW: Entity has 'pr' or 'review' label
-    4. IN_PROGRESS: Entity status is in_progress
-    5. BLOCKED: Entity status is open but has blocking dependencies (tasks/epics)
-    6. READY: Entity status is open with no blockers (tasks only)
-    7. PLANNED: Entity status is open (epics, plans)
-    8. RESEARCHING: Spec entities in researching stage
-    9. CAPTURES: Capture entities
+    1. workflow_stage=released: Task has been explicitly marked as released
+    2. RELEASED: Entity is in CHANGELOG (highest priority for closed items)
+    3. workflow_stage=validated: Task has been reviewed and approved
+    4. workflow_stage=needs_review: Task is awaiting review
+    5. COMPLETE: Entity has ledger entry but no workflow stage
+    6. NEEDS_REVIEW: Entity has 'pr' or 'review' label
+    7. IN_PROGRESS: Entity status is in_progress
+    8. BLOCKED: Entity status is open but has blocking dependencies (tasks/epics)
+    9. READY: Entity status is open with no blockers (tasks only)
+    10. PLANNED: Entity status is open (epics, plans)
+    11. RESEARCHING: Spec entities in researching stage
+    12. CAPTURES: Capture entities
 
     Args:
         entity: Entity to compute stage for
         is_released: Whether entity is in CHANGELOG
         has_ledger: Whether entity has a ledger entry
         has_blockers: Whether entity has unresolved blockers
+        workflow_stage: Explicit workflow stage from ledger (overrides default)
 
     Returns:
         Computed Stage enum value
@@ -498,13 +513,24 @@ def compute_stage(
         Stage.RELEASED
         >>> compute_stage(entity, has_ledger=True)
         Stage.COMPLETE
+        >>> compute_stage(entity, has_ledger=True, workflow_stage=WorkflowStage.VALIDATED)
+        Stage.VALIDATED
     """
-    # Check for review labels first (can apply to any status)
+    # Workflow stage from ledger takes highest priority for closed items
+    if workflow_stage is not None:
+        if workflow_stage == WorkflowStage.RELEASED:
+            return Stage.RELEASED
+        elif workflow_stage == WorkflowStage.VALIDATED:
+            return Stage.VALIDATED
+        elif workflow_stage == WorkflowStage.NEEDS_REVIEW:
+            return Stage.NEEDS_REVIEW
+
+    # Check for review labels (can apply to any status)
     labels_lower = [label.lower() for label in entity.labels]
     if "pr" in labels_lower or "review" in labels_lower:
         return Stage.NEEDS_REVIEW
 
-    # Released takes priority for closed items
+    # Released takes priority for closed items (CHANGELOG)
     if is_released:
         return Stage.RELEASED
 
