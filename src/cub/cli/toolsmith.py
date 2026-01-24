@@ -19,6 +19,7 @@ from rich.table import Table
 from rich.text import Text
 
 from cub.core.toolsmith.adoption import AdoptionStore
+from cub.core.toolsmith.execution import ToolExecutionError, run_tool
 from cub.core.toolsmith.exceptions import ToolsmithError
 from cub.core.toolsmith.service import ToolsmithService
 from cub.core.toolsmith.sources import get_all_sources
@@ -368,6 +369,48 @@ def adopt(
         console.print()
     except Exception as e:
         handle_error(e, "adopt")
+        raise typer.Exit(1)
+
+
+@app.command()
+def run(
+    tool_id: Annotated[str, typer.Argument(..., help="Tool ID to run")],
+    query: Annotated[
+        str,
+        typer.Option("--query", "-q", help="Query/prompt for the tool (tool-specific)"),
+    ] = "",
+    count: Annotated[
+        int,
+        typer.Option("--count", "-n", help="Result count (tool-specific)"),
+    ] = 5,
+) -> None:
+    """Run an adopted tool (experimental).
+
+    Currently supports:
+    - mcp-official:brave-search (requires BRAVE_API_KEY)
+
+    Writes run artifacts under .cub/toolsmith/runs/.
+    """
+    try:
+        result = run_tool(tool_id, params={"query": query, "count": count})
+        console.print()
+        console.print(
+            Panel(
+                Text.from_markup(
+                    f"[bold green]Ran[/bold green] [cyan]{result.tool_id}[/cyan]\n"
+                    f"[dim]{result.summary}[/dim]\n\n"
+                    f"[dim]artifact:[/dim] {str(result.artifact_path)}"
+                ),
+                border_style="green",
+                expand=False,
+            )
+        )
+        console.print()
+    except ToolExecutionError as e:
+        handle_error(e, "run")
+        raise typer.Exit(1)
+    except Exception as e:
+        handle_error(e, "run")
         raise typer.Exit(1)
 
 
