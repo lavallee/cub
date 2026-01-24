@@ -6587,3 +6587,98 @@ Sources consulted during research:
 - Using update-or-insert (upsert) pattern simplifies the merge logic
 - Tracking both added and updated counts helps users understand sync impact
 - Type checking with strict mode caught several edge cases early
+
+## 2026-01-24: Implemented search with live fallback (cub-v9s.2)
+
+### What we built
+- Added `search(query, live_fallback=True)` method to ToolsmithService
+- Smart search that tries local catalog first, then falls back to live sources
+- Deduplication by tool ID when merging results from multiple sources
+- Graceful error handling for source failures
+- Full offline mode support via `live_fallback=False`
+
+### Key design decisions
+1. **Local-first approach**: Always check local catalog before hitting live sources
+   - Better performance (no network calls if local results exist)
+   - Works offline by default for synced tools
+   - Predictable behavior (local results are deterministic)
+
+2. **Opt-out fallback**: `live_fallback=True` by default
+   - Users get best experience (finds tools even if not synced)
+   - Can disable for strict offline mode
+   - Follows principle of least surprise
+
+3. **Deduplication by ID**: Use dict keyed by tool.id
+   - Prevents duplicate tools from multiple sources
+   - First-wins strategy (simple and predictable)
+   - Could enhance later to prefer local over live
+
+4. **Silent error handling**: Don't raise on source failures during search
+   - Search is user-facing, not critical infrastructure
+   - Better to return partial results than fail completely
+   - Follows existing pattern from sync() method
+
+### Testing approach
+- 9 comprehensive test cases covering all scenarios
+- Enhanced MockSource to support search_live with filtering
+- Tested both happy paths and error conditions
+- All tests pass, mypy strict mode passes, linter clean
+
+### What worked well
+- Building on existing patterns (store.search, source.search_live)
+- Clear separation of concerns (local vs live search)
+- Simple, readable implementation (~30 LOC)
+
+### What to improve
+- Could add logging for source errors (currently silent)
+- Could optionally cache live results in catalog
+- Could prefer local tools over live when deduplicating
+
+### Time estimate: 1.5h actual time spent
+- Reading and understanding codebase: 15 min
+- Implementation: 20 min
+- Writing comprehensive tests: 30 min
+- Documentation and cleanup: 15 min
+- Running feedback loops: 10 min
+
+
+## Task cub-v9s.3: Wire CLI commands to service
+
+**Completed:** Successfully wired all CLI commands to ToolsmithService.
+
+**Implementation:**
+- Created `_get_service()` helper to instantiate service with default store and all sources
+- Implemented `sync` command:
+  - Uses Rich Progress spinner during sync operation
+  - Displays timing, tools added/updated counts
+  - Shows errors with user-friendly formatting
+  - Supports --source filtering
+- Implemented `search` command:
+  - Uses service.search() with live_fallback
+  - Displays results in Rich Table format
+  - Supports --source filtering for results
+  - Shows "no results" message when appropriate
+- Implemented `stats` command:
+  - Displays total tools and last sync timestamp
+  - Shows tools by source and type in separate Rich Tables
+  - Lists synced sources
+  - Provides helpful message when catalog is empty
+
+**Key Decisions:**
+- Used Rich Progress with SpinnerColumn for sync operation feedback
+- Used Rich Table for search results and stats display
+- Added timing information to sync output
+- Error handling exits with code 1 when errors occur
+- All output follows existing Cub CLI patterns (ledger.py)
+
+**Quality Checks:**
+- ✓ mypy --strict passes
+- ✓ ruff linting passes (fixed line length issues)
+- ✓ All existing toolsmith tests pass (111/111)
+- ✓ Manual testing of all three commands successful
+
+**Notes:**
+- The --live flag currently still uses live_fallback=True (searches local first)
+- To make --live skip local search entirely would require service API changes
+- Source filtering in search happens client-side after service returns results
+- Could be optimized in future to filter at service layer
