@@ -1437,8 +1437,10 @@ def run(
                                 cache_read_tokens=result.usage.cache_read_tokens,
                                 cache_creation_tokens=result.usage.cache_creation_tokens,
                             ),
+                            cost_usd=result.usage.cost_usd or 0.0,
                             duration_seconds=int(duration),
                             harness_name=harness_name,
+                            harness_model=task_model or "",
                             epic_id=epic,
                             run_log_path=str(status_writer.get_task_dir(current_task.id)),
                         )
