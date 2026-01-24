@@ -7281,3 +7281,127 @@ escalation_path = unique_models if escalated else []
 
 **Next Steps:**
 - Task cub-l7e.5: Implement `cub ledger show` command for inspection
+
+## 2026-01-24 - cub-l7e.5: Add tests for ledger entry lifecycle
+
+### Task Completed
+Created comprehensive test suite for LedgerIntegration layer verifying full task lifecycle tracking including task start, attempts, and task close with drift detection.
+
+### Key Learnings
+
+**1. Comprehensive Test Structure (30 tests in 8 classes)**
+- **TestLedgerIntegrationInit** (1 test): Verify initialization of internal state
+- **TestOnTaskStart** (6 tests): Task lifecycle start with various parameters
+  - Basic entry creation with task snapshot
+  - Epic ID and spec/plan file tracking
+  - Disk persistence and caching
+  - Duplicate detection (error handling)
+- **TestOnAttemptStart** (2 tests): Prompt file writing with frontmatter
+  - Single and multiple attempt files with proper naming (001-prompt.md, 002-prompt.md)
+  - YAML frontmatter with run_id, harness, model metadata
+- **TestOnAttemptEnd** (4 tests): Harness log writing and attempt tracking
+  - Token usage aggregation (input_tokens, output_tokens, cache tokens)
+  - Cost and duration tracking per attempt
+  - Active entry updates with cost/token/duration aggregation
+  - Error recording (category, summary)
+- **TestOnTaskClose** (5 tests): Task finalization and outcome recording
+  - Basic outcome creation with aggregated metrics
+  - Verification status (pass/fail with test/typecheck/lint flags)
+  - Model escalation detection (haiku -> sonnet -> opus)
+  - Cache cleanup on close
+  - Graceful handling of nonexistent tasks
+- **TestDetectTaskChanged** (6 tests): Drift detection during execution
+  - No changes when task unmodified
+  - Detection of: title, description, labels, priority changes
+  - Handles missing snapshots gracefully
+- **TestHelperMethods** (3 tests): Cache and query operations
+  - has_active_entry() for entry existence checks
+  - get_attempt_count() from cache and disk
+- **TestFullWorkflow** (3 tests): End-to-end scenarios
+  - Single successful attempt workflow
+  - Multiple attempts with model escalation
+  - Task drift detection during execution
+
+**2. Fixtures for Test Isolation**
+- `ledger_dir`: Temporary ledger directory (tmp_path / ".cub" / "ledger")
+- `writer`: LedgerWriter instance for file I/O
+- `integration`: LedgerIntegration instance under test
+- `sample_task`: Standard Task with P0 priority, multiple labels
+  - Created with: id, title, description, status, priority, type, labels, parent, created_at
+  - Timezone-aware: datetime(2026, 1, 24, 10, 0, tzinfo=timezone.utc)
+
+**3. Test Data Patterns**
+- **Run IDs**: Format "cub-20260124-163241" (timestamp-based)
+- **Task IDs**: Format "cub-abc.1", "cub-xyz", "cub-disk"
+- **Model escalation paths**: ["haiku", "sonnet", "opus"] tracks progression
+- **Cost tracking**: Realistic values (0.02, 0.05, 0.10, 0.50 USD)
+- **Token metrics**: input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
+- **Files changed**: Realistic paths (["src/feature.py"], ["src/bug.py"])
+
+**4. State Management During Lifecycle**
+- `_active_entries`: In-memory cache keyed by task_id
+- `_task_snapshots`: Original task state for drift detection
+- Both cleared on `on_task_close()` to prevent memory leaks
+- Can read from disk if entry not in cache (resilience)
+
+**5. Drift Detection Implementation Details**
+- Snapshot captured at task start with: title, description, type, priority, labels, created_at
+- Comparison at close detects: title, description, priority, labels, type changes
+- TaskChanged record includes:
+  - detected_at: timestamp
+  - fields_changed: list of changed field names
+  - original_description / final_description: full text for description changes
+  - notes: human-readable summary of all changes
+
+**6. Escalation Detection Algorithm**
+```python
+models_used = [a.model for a in entry.attempts if a.model]
+unique_models = list(dict.fromkeys(models_used))  # Preserve order, deduplicate
+escalated = len(unique_models) > 1
+escalation_path = unique_models if escalated else []
+```
+- Preserves order of escalation (haiku first, then sonnet, then opus)
+- Only set escalated=True if multiple unique models used
+- Empty path if no escalation
+
+**7. Error Handling Patterns**
+- `on_task_start()` raises ValueError if task already active (duplicate detection)
+- `on_task_close()` returns None for nonexistent tasks (graceful)
+- Error categories: "timeout", "api_error" (enumerations)
+- All state updates survive process restart via disk persistence
+
+**8. File Structure Created**
+```
+.cub/ledger/
+└── by-task/
+    └── {task_id}/
+        ├── entry.json (LedgerEntry)
+        └── attempts/
+            ├── 001-prompt.md (with frontmatter)
+            ├── 001-harness.log
+            ├── 002-prompt.md
+            ├── 002-harness.log
+            └── ...
+```
+
+### Test Coverage Verification
+- All 30 tests passing
+- No warnings from pytest
+- Linting: ruff clean (via `ruff check --fix`)
+- Type checking: mypy import warnings only (not critical)
+
+### Implementation Quality
+- Tests verify P0.2 (Task ledger creation on start)
+- Tests verify P0.4 (Attempt tracking with cost/tokens)
+- Tests verify P0.5 (Task finalization with outcome/drift)
+- Tests verify P0.6 partial (ledger show not tested here, see test_cli_ledger.py)
+- Integration with LedgerWriter verified via file existence checks
+- Disk persistence verified via writer.get_entry() reads
+
+### Architectural Insights
+- LedgerIntegration acts as orchestrator, not storage layer
+- Separation of concerns: Integration coordinates, Writer persists
+- Caching strategy balances performance (memory) vs durability (disk)
+- Drift detection happens only at close, not during execution
+- All metrics are aggregated from attempts array (single source of truth)
+
