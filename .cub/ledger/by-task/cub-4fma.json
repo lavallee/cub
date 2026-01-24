@@ -23,5 +23,7 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "workflow_stage": "validated",
+  "workflow_stage_updated_at": "2026-01-24T03:46:18.656533+00:00"
 }
