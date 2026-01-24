@@ -7114,3 +7114,34 @@ Created comprehensive test suite for RunSessionManager with 24 tests covering al
 - Pattern: start_session → operations → detect_orphans/end_session
 - Fixtures handle directory cleanup automatically via tmp_path
 
+
+## 2026-01-24 - Task cub-l7e.1: Extend LedgerEntry model with new fields
+
+### What was done:
+- Extended LedgerEntry Pydantic model with 9 new supporting models
+- Added Lineage, TaskSnapshot, TaskChanged, Attempt, Outcome, DriftRecord, Verification, WorkflowState, StateTransition models
+- Added version field (default=1) for schema versioning
+- Maintained backward compatibility by keeping all old fields as deprecated
+- Updated exports in __init__.py for all new models
+- All tests pass (125 tests), lint and type checks pass
+
+### Key insights:
+- Pydantic v2 models with Field() and default_factory work seamlessly for complex nested structures
+- Backward compatibility is achieved by keeping old fields alongside new structured fields
+- Using optional fields (| None) and factory defaults ensures old code continues to work
+- Field validators with allowed sets provide good runtime validation
+- The architecture spec's data model maps cleanly to Pydantic models
+- All new fields have sensible defaults making them truly optional
+
+### Technical notes:
+- Used @field_validator for custom validation (severity, status, stage fields)
+- Used @property decorators for computed values (duration_minutes, etc.)
+- All datetime fields use timezone.utc via lambda: datetime.now(timezone.utc)
+- TokenUsage is embedded in Attempt, matching the architecture spec
+- Old fields marked as DEPRECATED in descriptions to guide future migration
+
+### Testing approach:
+- Verified all existing tests still pass (56 in test_ledger_models.py)
+- Manually tested new models with full instantiation and serialization
+- Confirmed backward compatibility by checking old fields remain accessible
+- Tested field validators reject invalid values correctly
