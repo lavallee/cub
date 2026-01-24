@@ -21,7 +21,7 @@ The plan prioritizes vertical integration: after Phase 1 and the first source ad
 
 ## Task Hierarchy
 
-### Epic cub-f7m: Foundation [P0]
+## Epic cub-f7m: Foundation [P0]
 
 | ID | Task | Model | Priority | Blocked By | Est |
 |----|------|-------|----------|------------|-----|
@@ -34,7 +34,7 @@ The plan prioritizes vertical integration: after Phase 1 and the first source ad
 
 ---
 
-### Epic cub-k3p: Sources [P1]
+## Epic cub-k3p: Sources [P1]
 
 | ID | Task | Model | Priority | Blocked By | Est |
 |----|------|-------|----------|------------|-----|
@@ -49,7 +49,7 @@ The plan prioritizes vertical integration: after Phase 1 and the first source ad
 
 ---
 
-### Epic cub-v9s: Service Layer [P1]
+## Epic cub-v9s: Service Layer [P1]
 
 | ID | Task | Model | Priority | Blocked By | Est |
 |----|------|-------|----------|------------|-----|
@@ -62,7 +62,7 @@ The plan prioritizes vertical integration: after Phase 1 and the first source ad
 
 ---
 
-### Epic cub-q2w: Polish [P2]
+## Epic cub-q2w: Polish [P2]
 
 | ID | Task | Model | Priority | Blocked By | Est |
 |----|------|-------|----------|------------|-----|
