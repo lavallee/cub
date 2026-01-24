@@ -2,7 +2,7 @@
   "id": "cub-001",
   "title": "Task",
   "started_at": null,
-  "completed_at": "2026-01-23T18:35:53.448120",
+  "completed_at": "2026-01-23T21:11:00.711988",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -18,10 +18,12 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4421728784'>",
+  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4478162256'>",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
 }

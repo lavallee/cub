@@ -439,7 +439,7 @@ def views(
 
     Built-in views:
     - default: Full 10-column workflow (Captures → Released)
-    - sprint: Active work focused (Ready → In Progress → Review → Validated → Closed)
+    - sprint: Active work focused (Ready → In Progress → Dev Complete → Review → Validated)
     - ideas: Idea development focused (Captures → Specs → Planned)
 
     Custom views can be created by:

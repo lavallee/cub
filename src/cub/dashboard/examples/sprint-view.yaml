@@ -12,7 +12,7 @@ id: sprint
 name: Sprint View
 
 # Description shown in the view list
-description: Active work focused view (Ready -> In Progress -> Review -> Validated -> Closed)
+description: Active work (Ready -> In Progress -> Dev Complete -> Review -> Validated)
 
 # Column definitions - focused on active work stages
 columns:
@@ -27,6 +27,11 @@ columns:
     stages:
       - IN_PROGRESS
 
+  - id: dev_complete
+    title: Dev Complete
+    stages:
+      - COMPLETE
+
   - id: needs_review
     title: Needs Review
     stages:
@@ -36,11 +41,6 @@ columns:
     title: Validated
     stages:
       - VALIDATED
-
-  - id: complete
-    title: Closed
-    stages:
-      - COMPLETE
 
 # Filter configuration
 filters:

@@ -47,6 +47,11 @@ columns:
     stages:
       - IN_PROGRESS
 
+  - id: dev_complete
+    title: Dev Complete
+    stages:
+      - COMPLETE
+
   - id: needs_review
     title: Needs Review
     stages:
@@ -56,11 +61,6 @@ columns:
     title: Validated
     stages:
       - VALIDATED
-
-  - id: complete
-    title: Closed
-    stages:
-      - COMPLETE
 
   - id: released
     title: Released

@@ -56,7 +56,7 @@ class TestBuiltInViews:
         assert view.name == "Sprint View"
         assert view.is_default is False
         assert len(view.columns) == 5
-        # Should have Ready, In Progress, Needs Review, Validated, Complete
+        # Should have Ready, In Progress, Dev Complete, Needs Review, Validated
         column_stages = [col.stages[0] for col in view.columns]
         assert Stage.READY in column_stages
         assert Stage.IN_PROGRESS in column_stages
