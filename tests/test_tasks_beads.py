@@ -235,7 +235,7 @@ class TestListTasks:
 
                 # Verify correct bd command
                 args = mock_run.call_args[0][0]
-                assert args == ["bd", "list", "--json"]
+                assert args == ["bd", "list", "--json", "--limit", "1000"]
 
     def test_list_tasks_by_status(self, project_dir):
         """Test filtering tasks by status."""
@@ -398,7 +398,7 @@ class TestGetReadyTasks:
 
                 # Verify correct command
                 args = mock_run.call_args[0][0]
-                assert args == ["bd", "ready", "--json"]
+                assert args == ["bd", "ready", "--json", "--limit", "1000"]
 
     def test_get_ready_tasks_with_filters(self, project_dir):
         """Test getting ready tasks with parent and label filters.

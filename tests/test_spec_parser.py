@@ -88,7 +88,8 @@ This is a test specification for the spec parser.
         assert entity.source_type == "file"
         assert entity.source_path == str(spec_file)
         assert entity.source_checksum is not None
-        assert entity.spec_id == "test-feature"
+        # Note: Specs don't set spec_id to themselves - spec_id is for linking plans TO specs
+        assert entity.spec_id is None
         assert entity.content is not None
         assert "Test Feature" in entity.content
 

@@ -11,7 +11,7 @@ from unittest.mock import Mock
 import pytest
 
 from cub.core.dashboard.db.models import EntityType, Stage
-from cub.core.dashboard.sync.parsers.tasks import TaskParser, TaskParserError
+from cub.core.dashboard.sync.parsers.tasks import TaskParser
 from cub.core.tasks.models import Task, TaskPriority, TaskStatus, TaskType
 
 
@@ -377,8 +377,11 @@ class TestTaskParser:
 
         parser = TaskParser(backend=error_backend)
 
-        with pytest.raises(TaskParserError, match="Failed to parse tasks"):
-            parser.parse_all()
+        # The parser now catches errors for individual status fetches and continues,
+        # logging warnings but returning whatever tasks it could fetch.
+        # When all fetches fail, it returns an empty list rather than raising.
+        result = parser.parse_all()
+        assert result == []
 
     def test_empty_backend(self) -> None:
         """Test parsing with empty backend."""
