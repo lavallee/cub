@@ -101,22 +101,27 @@ class EntityWriter:
         )
         return cursor.fetchone() is not None
 
-    def _entity_changed(self, entity_id: str, checksum: str) -> bool:
+    def _entity_changed(
+        self, entity_id: str, checksum: str, new_stage: str | None = None
+    ) -> bool:
         """
-        Check if an entity's content has changed based on checksum.
+        Check if an entity's content or stage has changed.
 
         Since source_checksum is stored in the data JSON field, we extract
-        and compare it to detect changes.
+        and compare it to detect changes. We also check if the computed
+        stage differs from the stored stage (e.g., when workflow_stage
+        is updated in the ledger).
 
         Args:
             entity_id: Entity ID to check
             checksum: New checksum to compare
+            new_stage: New computed stage to compare (optional)
 
         Returns:
-            True if entity doesn't exist or checksum differs, False otherwise
+            True if entity doesn't exist, checksum differs, or stage differs
         """
         cursor = self.conn.execute(
-            "SELECT data FROM entities WHERE id = ?",
+            "SELECT data, stage FROM entities WHERE id = ?",
             (entity_id,),
         )
         row = cursor.fetchone()
@@ -124,8 +129,16 @@ class EntityWriter:
         if row is None:
             return True  # Entity doesn't exist
 
-        # Extract data JSON
+        # Extract data JSON and stage
         data_json = row["data"] if isinstance(row, dict) else row[0]
+        existing_stage = row["stage"] if isinstance(row, dict) else row[1]
+
+        # Check stage change (workflow stage updates)
+        if new_stage and existing_stage and existing_stage.lower() != new_stage.lower():
+            logger.debug(
+                f"Stage changed for {entity_id}: {existing_stage} -> {new_stage}"
+            )
+            return True
 
         if not data_json:
             return True  # No data, consider changed
@@ -156,8 +169,13 @@ class EntityWriter:
             >>> writer.write_entity(entity)
             True  # Entity was written
         """
-        # Check if update needed (based on checksum)
-        if not self._entity_changed(entity.id, entity.source_checksum or ""):
+        # Map Stage enum to database stage name
+        stage_name = self.STAGE_MAPPING.get(entity.stage.value, entity.stage.value.lower())
+
+        # Check if update needed (based on checksum and stage)
+        if not self._entity_changed(
+            entity.id, entity.source_checksum or "", new_stage=stage_name
+        ):
             logger.debug(f"Skipping unchanged entity: {entity.id}")
             return False
 

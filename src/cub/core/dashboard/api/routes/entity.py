@@ -17,6 +17,14 @@ from cub.core.dashboard.db.queries import get_entity_detail
 from cub.core.ledger.models import WorkflowStage
 from cub.core.ledger.writer import LedgerWriter
 
+# Map workflow stages to database stage names
+WORKFLOW_TO_DB_STAGE: dict[str, str] = {
+    "COMPLETE": "completed",
+    "NEEDS_REVIEW": "verifying",
+    "VALIDATED": "validated",
+    "RELEASED": "released",
+}
+
 router = APIRouter()
 
 
@@ -41,6 +49,99 @@ def get_db_path() -> Path:
     """
     # TODO: Make this configurable via environment variable
     return DEFAULT_DB_PATH
+
+
+# Map from dashboard Stage to ledger WorkflowStage
+STAGE_TO_WORKFLOW: dict[str, WorkflowStage] = {
+    "NEEDS_REVIEW": WorkflowStage.NEEDS_REVIEW,
+    "VALIDATED": WorkflowStage.VALIDATED,
+    "RELEASED": WorkflowStage.RELEASED,
+}
+
+
+# NOTE: This route must be defined BEFORE /entity/{entity_id} to avoid
+# FastAPI matching "workflow" as the entity_id parameter
+@router.put("/entity/{entity_id}/workflow")
+async def update_workflow_stage(
+    entity_id: str, update: WorkflowStageUpdate
+) -> dict[str, bool]:
+    """
+    Update the workflow stage for an entity.
+
+    This endpoint is used by the drag-and-drop UI to update an entity's
+    workflow stage when it's moved between the post-completion columns
+    (Dev Complete, Needs Review, Validated, Released).
+
+    The workflow stage is stored in the ledger and persists across
+    dashboard syncs.
+
+    Args:
+        entity_id: Entity ID to update
+        update: WorkflowStageUpdate with new stage
+
+    Returns:
+        {"success": True} if updated, {"success": False} if entity not found
+
+    Raises:
+        HTTPException: 400 if invalid stage, 500 if update fails
+
+    Note:
+        Moving to COMPLETE (Dev Complete) clears the workflow stage,
+        returning the entity to its default completed state.
+    """
+    # Validate stage
+    stage_name = update.stage.upper()
+
+    # COMPLETE means clear the workflow stage (return to default completed state)
+    if stage_name == "COMPLETE":
+        workflow_stage = None
+    elif stage_name in STAGE_TO_WORKFLOW:
+        workflow_stage = STAGE_TO_WORKFLOW[stage_name]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid workflow stage: {update.stage}. "
+            f"Valid stages: COMPLETE, NEEDS_REVIEW, VALIDATED, RELEASED",
+        )
+
+    ledger_dir = Path.cwd() / ".cub" / "ledger"
+
+    if not ledger_dir.exists():
+        return {"success": False}
+
+    try:
+        writer = LedgerWriter(ledger_dir)
+
+        if workflow_stage is None:
+            # Clear workflow stage by reading entry and removing the field
+            entry = writer.get_entry(entity_id)
+            if entry is None:
+                return {"success": False}
+            entry.workflow_stage = None
+            entry.workflow_stage_updated_at = None
+            writer.update_entry(entry)
+        else:
+            success = writer.update_workflow_stage(entity_id, workflow_stage)
+            if not success:
+                return {"success": False}
+
+        # Also update the database stage directly for immediate UI feedback
+        db_path = get_db_path()
+        if db_path.exists():
+            db_stage = WORKFLOW_TO_DB_STAGE.get(stage_name, "completed")
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    "UPDATE entities SET stage = ? WHERE id = ?",
+                    (db_stage, entity_id),
+                )
+                conn.commit()
+
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update workflow stage: {str(e)}",
+        ) from e
 
 
 @router.get("/entity/{entity_id}", response_model=EntityDetail)
@@ -119,82 +220,4 @@ async def get_entity(entity_id: str) -> EntityDetail:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch entity details: {str(e)}",
-        ) from e
-
-
-# Map from dashboard Stage to ledger WorkflowStage
-STAGE_TO_WORKFLOW: dict[str, WorkflowStage] = {
-    "NEEDS_REVIEW": WorkflowStage.NEEDS_REVIEW,
-    "VALIDATED": WorkflowStage.VALIDATED,
-    "RELEASED": WorkflowStage.RELEASED,
-}
-
-
-@router.put("/entity/{entity_id}/workflow")
-async def update_workflow_stage(
-    entity_id: str, update: WorkflowStageUpdate
-) -> dict[str, bool]:
-    """
-    Update the workflow stage for an entity.
-
-    This endpoint is used by the drag-and-drop UI to update an entity's
-    workflow stage when it's moved between the post-completion columns
-    (Dev Complete, Needs Review, Validated, Released).
-
-    The workflow stage is stored in the ledger and persists across
-    dashboard syncs.
-
-    Args:
-        entity_id: Entity ID to update
-        update: WorkflowStageUpdate with new stage
-
-    Returns:
-        {"success": True} if updated, {"success": False} if entity not found
-
-    Raises:
-        HTTPException: 400 if invalid stage, 500 if update fails
-
-    Note:
-        Moving to COMPLETE (Dev Complete) clears the workflow stage,
-        returning the entity to its default completed state.
-    """
-    # Validate stage
-    stage_name = update.stage.upper()
-
-    # COMPLETE means clear the workflow stage (return to default completed state)
-    if stage_name == "COMPLETE":
-        workflow_stage = None
-    elif stage_name in STAGE_TO_WORKFLOW:
-        workflow_stage = STAGE_TO_WORKFLOW[stage_name]
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid workflow stage: {update.stage}. "
-            f"Valid stages: COMPLETE, NEEDS_REVIEW, VALIDATED, RELEASED",
-        )
-
-    ledger_dir = Path.cwd() / ".cub" / "ledger"
-
-    if not ledger_dir.exists():
-        return {"success": False}
-
-    try:
-        writer = LedgerWriter(ledger_dir)
-
-        if workflow_stage is None:
-            # Clear workflow stage by reading entry and removing the field
-            entry = writer.get_entry(entity_id)
-            if entry is None:
-                return {"success": False}
-            entry.workflow_stage = None
-            entry.workflow_stage_updated_at = None
-            writer.update_entry(entry)
-            return {"success": True}
-        else:
-            success = writer.update_workflow_stage(entity_id, workflow_stage)
-            return {"success": success}
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update workflow stage: {str(e)}",
         ) from e
