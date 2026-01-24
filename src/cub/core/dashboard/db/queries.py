@@ -504,6 +504,19 @@ def get_board_data(
         # Get entities for this column's stages
         col_entities = [e for e in filtered_entities if e.stage in col_config.stages]
 
+        # Sort entities based on column type
+        if Stage.COMPLETE in col_config.stages:
+            # Sort closed tasks by completed_at descending (most recent first)
+            col_entities.sort(
+                key=lambda e: e.completed_at or datetime.min,
+                reverse=True,
+            )
+        elif Stage.READY in col_config.stages:
+            # Sort ready tasks by priority (P0 first)
+            col_entities.sort(
+                key=lambda e: e.priority if e.priority is not None else 999,
+            )
+
         # Check if grouping is configured for this column
         if col_config.group_by:
             # Group entities by the specified field
