@@ -403,25 +403,41 @@ class TestGetReadyTasks:
     def test_get_ready_tasks_with_filters(self, project_dir):
         """Test getting ready tasks with parent and label filters.
 
-        The parent filter uses --label epic:{parent} to find tasks associated
-        with an epic. This works for both hierarchical children (cub-xxx.1)
-        and label-associated tasks (punchlist tasks).
+        Epic association strategy (see .cub/EPIC_TASK_ASSOCIATION.md):
+        - The parent field is the canonical source for epic-task relationships
+        - The epic:{parent} label is a compatibility layer
+        - We filter by parent in Python (not via beads CLI) to support both
         """
+        # Return tasks with both parent and epic: label scenarios
         mock_result = Mock()
-        mock_result.stdout = "[]"
+        mock_result.stdout = json.dumps([
+            # Task with parent field matching
+            {"id": "task-1", "title": "Task 1", "parent": "epic-001", "labels": ["backend"]},
+            # Task with epic: label matching (fallback)
+            {"id": "task-2", "title": "Task 2", "parent": None, "labels": ["backend", "epic:epic-001"]},
+            # Task with neither (should be filtered out)
+            {"id": "task-3", "title": "Task 3", "parent": "epic-002", "labels": ["backend"]},
+        ])
         mock_result.returncode = 0
 
         with patch("shutil.which", return_value="/usr/local/bin/bd"):
             with patch("subprocess.run", return_value=mock_result) as mock_run:
                 backend = BeadsBackend(project_dir=project_dir)
-                backend.get_ready_tasks(parent="epic-001", label="backend")
+                tasks = backend.get_ready_tasks(parent="epic-001", label="backend")
 
                 args = mock_run.call_args[0][0]
-                # Parent filter uses --label with epic: prefix
+                # Label filter is passed to beads CLI
                 assert "--label" in args
-                assert "epic:epic-001" in args  # Prefixed format
-                # Additional label filter also uses --label (AND logic)
                 assert "backend" in args
+                # Parent filter is done in Python, NOT passed to beads
+                assert "epic:epic-001" not in args
+
+                # Verify Python-side filtering works
+                assert len(tasks) == 2
+                task_ids = {t.id for t in tasks}
+                assert "task-1" in task_ids  # parent field match
+                assert "task-2" in task_ids  # epic: label match
+                assert "task-3" not in task_ids  # different parent
 
     def test_get_ready_tasks_command_error(self, project_dir):
         """Test that command error returns empty list."""

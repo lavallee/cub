@@ -241,6 +241,11 @@ class BeadsBackend:
 
         Tasks are returned sorted by priority (P0 first).
 
+        Epic Association Strategy (see .cub/EPIC_TASK_ASSOCIATION.md):
+        - The `parent` field is the canonical source for epic-task relationships
+        - The `epic:{parent}` label is a compatibility layer
+        - We filter by both to handle legacy data and ensure consistency
+
         Args:
             parent: Filter by parent epic/task ID
             label: Filter by label
@@ -250,14 +255,7 @@ class BeadsBackend:
         """
         args = ["ready", "--json", "--limit", "1000"]
 
-        if parent:
-            # Use --label epic:{parent} to filter by epic association.
-            # This works for both:
-            # 1. Hierarchical children (cub-xxx.1) that have epic:cub-xxx label
-            # 2. Label-associated tasks (punchlist) that use epic:cub-xxx label
-            # Note: --parent only works for hierarchical relationships, which is
-            # too restrictive since punchlist tasks use label-based association.
-            args.extend(["--label", f"epic:{parent}"])
+        # Add label filter if specified (but NOT parent - we filter that in Python)
         if label:
             args.extend(["--label", label])
 
@@ -271,6 +269,22 @@ class BeadsBackend:
                 raw_tasks = result
 
             tasks = [self._transform_beads_task(t) for t in raw_tasks]
+
+            # Filter by parent if specified
+            # Check both parent field AND epic: label for backwards compatibility
+            # The parent field is canonical; epic: label is a fallback
+            if parent:
+                filtered_tasks = []
+                for task in tasks:
+                    # Primary check: parent field matches
+                    if task.parent == parent:
+                        filtered_tasks.append(task)
+                        continue
+                    # Fallback check: epic:{parent} label exists
+                    if task.has_label(f"epic:{parent}"):
+                        filtered_tasks.append(task)
+                        continue
+                tasks = filtered_tasks
 
             # Sort by priority (P0 = 0 is highest priority)
             return sorted(tasks, key=lambda t: t.priority_numeric)
@@ -506,6 +520,11 @@ class BeadsBackend:
         preserving the explicit IDs from the tasks. It uses `bd import` with
         JSONL format rather than individual `bd create` calls.
 
+        Epic Association Strategy (see .cub/EPIC_TASK_ASSOCIATION.md):
+        - The `parent` field creates a `parent-child` dependency in beads
+        - An `epic:{parent}` label is also added for compatibility
+        - Both mechanisms ensure tasks can be found by their epic
+
         Args:
             tasks: List of Task objects to import
 
@@ -551,6 +570,15 @@ class BeadsBackend:
                         "type": "blocks",
                     })
 
+            # Build labels list, ensuring epic:{parent} label is included
+            # This provides compatibility with code that filters by label
+            # The parent field is canonical; the label is a compatibility layer
+            labels = list(task.labels or [])
+            if task.parent:
+                epic_label = f"epic:{task.parent}"
+                if epic_label not in labels:
+                    labels.append(epic_label)
+
             beads_issue = {
                 "id": task.id,
                 "title": task.title,
@@ -558,7 +586,7 @@ class BeadsBackend:
                 "status": "open",
                 "priority": task.priority_numeric,
                 "issue_type": task.type.value,
-                "labels": task.labels or [],
+                "labels": labels,
                 "dependencies": dependencies,
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
@@ -681,6 +709,10 @@ class BeadsBackend:
         Checks all tasks belonging to the epic and closes the epic if
         all tasks have status CLOSED.
 
+        Epic Association Strategy (see .cub/EPIC_TASK_ASSOCIATION.md):
+        - Uses `parent` field as the canonical source for epic-task relationships
+        - Checks `epic:` label as fallback for backwards compatibility
+
         Args:
             epic_id: The epic ID to potentially close
 
@@ -695,10 +727,11 @@ class BeadsBackend:
         if epic.status == TaskStatus.CLOSED:
             return False, f"Epic '{epic_id}' is already closed"
 
-        # Get all tasks that belong to this epic (using parent filter)
-        # Also check for tasks labeled with the epic ID
+        # Get all tasks that belong to this epic
+        # Primary: tasks with parent=epic_id
+        # Fallback: tasks with epic:{epic_id} label (for backwards compatibility)
         tasks_by_parent = self.list_tasks(parent=epic_id)
-        tasks_by_label = self.list_tasks(label=epic_id)
+        tasks_by_label = self.list_tasks(label=f"epic:{epic_id}")
 
         # Combine and deduplicate
         seen_ids: set[str] = set()

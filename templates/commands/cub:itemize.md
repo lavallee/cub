@@ -142,12 +142,16 @@ Use this format:
 
 ---
 
-## Epic: {epic-id} - {Epic Title}
+## Epic: {epic-id} - {plan-slug} #{sequence}: {Phase Name}
 
 Priority: {0-3}
 Labels: {comma-separated labels}
 
 {Epic description - what this phase accomplishes}
+
+> **Note on Epic Titles:** Epic titles should follow the format `{plan-slug} #{sequence}: {phase-name}`
+> (e.g., `auth-flow #1: Foundation`). This ensures epics are distinguishable across multiple plans
+> and shows sequence even if work doesn't have to be strictly sequential.
 
 ### Task: {epic-id}.{n} - {Task Title}
 

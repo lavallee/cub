@@ -1041,16 +1041,24 @@ class TestPlanLabels:
     def test_epic_titles_include_plan_slug(
         self, plan_with_architect: tuple[Path, PlanContext]
     ) -> None:
-        """Test that epic titles include the plan slug for self-documentation."""
+        """Test that epic titles include the plan slug for self-documentation.
+
+        Epic title format: "{plan_slug} #{sequence}: {phase_name}"
+        Example: "auth-flow #1: Foundation"
+
+        This ensures epics are distinguishable across multiple plans and
+        shows sequence even if work doesn't have to be strictly sequential.
+        """
         _, ctx = plan_with_architect
         stage = ItemizeStage(ctx)
         result = stage.run()
 
         for epic in result.epics:
-            assert epic.title.startswith("my-feature:"), (
+            assert epic.title.startswith("my-feature "), (
                 f"Epic title '{epic.title}' should start with plan slug"
             )
-            # Title should be in format "plan-slug: Phase Name"
+            # Title should be in format "plan-slug #N: Phase Name"
+            assert " #" in epic.title
             assert ": " in epic.title
 
     def test_tasks_have_complexity_and_model_labels(

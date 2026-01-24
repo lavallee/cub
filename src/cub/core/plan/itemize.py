@@ -388,9 +388,11 @@ class ItemizeStage:
             plan_label = f"plan:{self.ctx.plan.slug}"
             spec_ref = self.ctx.plan.spec_file or "N/A"
 
+            # Epic title format: "{plan_slug} #1: {phase_name}"
+            # The sequence number helps distinguish epics across multiple plans
             epic = Epic(
                 id=epic_id,
-                title=f"{self.ctx.plan.slug}: Foundation",
+                title=f"{self.ctx.plan.slug} #1: Foundation",
                 priority=0,
                 labels=[plan_label, "phase-1", "foundation"],
                 description=(
@@ -454,9 +456,13 @@ class ItemizeStage:
                 f"Spec: {spec_ref}"
             )
 
+            # Epic title format: "{plan_slug} #{sequence}: {phase_name}"
+            # The sequence number helps distinguish epics across multiple plans
+            # and shows order even if work doesn't have to be strictly sequential
+            epic_sequence = phase_idx + 1
             epic = Epic(
                 id=epic_id,
-                title=f"{self.ctx.plan.slug}: {phase_name}",
+                title=f"{self.ctx.plan.slug} #{epic_sequence}: {phase_name}",
                 priority=priority,
                 labels=labels,
                 description=epic_description,

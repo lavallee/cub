@@ -431,6 +431,7 @@ All `cub` commands are pre-approved:
 - **mypy strict mode**: All code must pass `mypy --strict`. Use explicit types, no `Any`.
 - **Relative imports**: Use absolute imports from `cub.core`, not relative imports between packages.
 - **Task management**: This project uses `bd` (beads) as the primary backend. JSON backend is legacy. Use `bd close <id> -r "reason"` for task closure.
+- **Epic-task association**: The `parent` field is the canonical source for epic-task relationships. The `epic:{parent}` label is a compatibility layer. **DO NOT flip this** - see `.cub/EPIC_TASK_ASSOCIATION.md` for the rationale.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
 - **Rich for terminal output**: Use Rich tables, progress bars, and console for all user-facing output.

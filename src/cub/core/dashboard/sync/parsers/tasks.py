@@ -142,9 +142,13 @@ class TaskParser:
         """
         Extract epic ID from task using multiple detection mechanisms.
 
-        Epic associations are detected via:
-        1. Parent relationship (task.parent field)
-        2. Label with epic ID format (e.g., 'epic:cub-abc')
+        Epic Association Strategy (see .cub/EPIC_TASK_ASSOCIATION.md):
+        - The `parent` field is the canonical source for epic-task relationships
+        - The `epic:{parent}` label is a compatibility layer for backwards compat
+
+        Detection order:
+        1. Parent relationship (task.parent field) - CANONICAL
+        2. Label with epic ID format (e.g., 'epic:cub-abc') - FALLBACK
         3. Explicit epic_id field (future compatibility)
 
         Priority order: parent > label > None
