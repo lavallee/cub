@@ -38,6 +38,9 @@ from cub.core.toolsmith.sources.base import (
     register_source,
 )
 
+# Import source implementations to register them
+from cub.core.toolsmith.sources import mcp_official as _mcp_official  # noqa: F401
+
 # Expose the registry for testing purposes
 _sources = _base._sources
 
