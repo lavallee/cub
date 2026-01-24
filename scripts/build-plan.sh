@@ -180,7 +180,10 @@ fi
 echo ""
 log_info "Epics to process:"
 for epic in $EPICS; do
-    title=$(grep "^## Epic: ${epic}" "$ITEMIZED_PLAN" | sed "s/## Epic: ${epic} - //")
+    # Handle both formats:
+    #   "## Epic: cub-xxx - title"  (old format)
+    #   "## Epic cub-xxx: title"    (new format)
+    title=$(grep -E "^## Epic:? ?${epic}" "$ITEMIZED_PLAN" | sed -E "s/## Epic:? ?${epic}[: -]+ ?//")
     echo "  - ${epic}: ${title}"
 done
 echo ""
