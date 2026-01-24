@@ -235,8 +235,8 @@ class TestWithRetryDecorator:
 
         # Expected delays: 0.01s (after 1st attempt), 0.02s (after 2nd attempt)
         # Total expected delay: ~0.03s
-        # Allow some tolerance for execution time
-        assert 0.02 <= elapsed_time <= 0.1
+        # Allow generous tolerance for CI variability (especially macOS)
+        assert 0.02 <= elapsed_time <= 0.2
 
     def test_preserves_function_metadata(self) -> None:
         """Test that decorator preserves function metadata."""

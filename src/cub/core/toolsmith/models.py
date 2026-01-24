@@ -243,7 +243,10 @@ class Tool(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                dt = datetime.fromisoformat(v)
+                # Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+                # datetime.fromisoformat() didn't support 'Z' until Python 3.11
+                normalized = v.replace("Z", "+00:00") if v.endswith("Z") else v
+                dt = datetime.fromisoformat(normalized)
                 # Ensure timezone-aware (treat naive as UTC)
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
@@ -341,7 +344,10 @@ class Catalog(BaseModel):
             return v
         if isinstance(v, str):
             try:
-                dt = datetime.fromisoformat(v)
+                # Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+                # datetime.fromisoformat() didn't support 'Z' until Python 3.11
+                normalized = v.replace("Z", "+00:00") if v.endswith("Z") else v
+                dt = datetime.fromisoformat(normalized)
                 # Ensure timezone-aware (treat naive as UTC)
                 if dt.tzinfo is None:
                     dt = dt.replace(tzinfo=timezone.utc)
