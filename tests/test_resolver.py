@@ -156,7 +156,13 @@ class TestComputeStage:
 
     def test_spec_entity_preserves_existing_stage(self) -> None:
         """Spec entities should preserve their directory-based stage."""
-        for stage in [Stage.SPECS, Stage.PLANNED, Stage.READY, Stage.IN_PROGRESS, Stage.RELEASED]:
+        for stage in [
+            Stage.RESEARCHING,
+            Stage.PLANNED,
+            Stage.READY,
+            Stage.IN_PROGRESS,
+            Stage.RELEASED,
+        ]:
             entity = make_entity("spec-1", type=EntityType.SPEC, stage=stage)
             assert compute_stage(entity) == stage
 

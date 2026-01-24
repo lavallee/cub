@@ -44,7 +44,7 @@ class Stage(str, Enum):
 
     Columns:
     - CAPTURES: Raw ideas and notes (capture entities)
-    - SPECS: Specifications being researched (spec entities in researching/)
+    - RESEARCHING: Specifications being researched (spec entities in researching/)
     - PLANNED: Plans exist but not staged (spec entities in planned/, plan entities)
     - BLOCKED: Tasks/epics not ready due to dependencies (tasks/epics with unmet dependencies)
     - READY: Tasks ready to work (tasks with status=open, no blockers)
@@ -55,7 +55,7 @@ class Stage(str, Enum):
     """
 
     CAPTURES = "CAPTURES"
-    SPECS = "SPECS"
+    RESEARCHING = "RESEARCHING"
     PLANNED = "PLANNED"
     BLOCKED = "BLOCKED"
     READY = "READY"
@@ -319,7 +319,7 @@ class ViewConfig(BaseModel):
         ...     description="Complete workflow from captures to released",
         ...     columns=[
         ...         ColumnConfig(id="captures", title="Captures", stages=[Stage.CAPTURES]),
-        ...         ColumnConfig(id="specs", title="Specs", stages=[Stage.SPECS]),
+        ...         ColumnConfig(id="specs", title="Researching", stages=[Stage.RESEARCHING]),
         ...         # ... more columns
         ...     ],
         ...     filters=FilterConfig(exclude_labels=["archived"]),

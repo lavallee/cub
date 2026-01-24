@@ -50,7 +50,7 @@ class TestEnums:
     def test_stage_values(self):
         """Test Stage enum values for 8-column board."""
         assert Stage.CAPTURES == "CAPTURES"
-        assert Stage.SPECS == "SPECS"
+        assert Stage.RESEARCHING == "RESEARCHING"
         assert Stage.PLANNED == "PLANNED"
         assert Stage.READY == "READY"
         assert Stage.IN_PROGRESS == "IN_PROGRESS"
@@ -363,7 +363,7 @@ class TestViewConfiguration:
                 ColumnConfig(
                     id="captures", title="Captures", stages=[Stage.CAPTURES]
                 ),
-                ColumnConfig(id="specs", title="Specs", stages=[Stage.SPECS]),
+                ColumnConfig(id="specs", title="Researching", stages=[Stage.RESEARCHING]),
             ],
             filters=FilterConfig(exclude_labels=["archived"]),
             display=DisplayConfig(show_cost=True),

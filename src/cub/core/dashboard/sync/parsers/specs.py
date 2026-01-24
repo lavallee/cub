@@ -10,7 +10,7 @@ for the Kanban board. Handles:
 - Handling edge cases (missing frontmatter, invalid YAML, empty files)
 
 Stage mapping:
-- specs/researching/ -> Stage.SPECS
+- specs/researching/ -> Stage.RESEARCHING
 - specs/planned/ -> Stage.PLANNED
 - specs/staged/ -> Stage.READY (tasks staged, ready to work)
 - specs/implementing/ -> Stage.IN_PROGRESS
@@ -56,7 +56,7 @@ class SpecParser:
 
     # Map spec stage to dashboard stage
     STAGE_MAPPING: dict[SpecStage, Stage] = {
-        SpecStage.RESEARCHING: Stage.SPECS,
+        SpecStage.RESEARCHING: Stage.RESEARCHING,
         SpecStage.PLANNED: Stage.PLANNED,
         SpecStage.STAGED: Stage.READY,
         SpecStage.IMPLEMENTING: Stage.IN_PROGRESS,
@@ -204,7 +204,7 @@ class SpecParser:
             DashboardEntity suitable for board display
         """
         # Compute dashboard stage from spec stage
-        dashboard_stage = self.STAGE_MAPPING.get(spec.stage, Stage.SPECS)
+        dashboard_stage = self.STAGE_MAPPING.get(spec.stage, Stage.RESEARCHING)
 
         # Extract title (prefer title from markdown heading, fallback to name)
         title = spec.title if spec.title else spec.name

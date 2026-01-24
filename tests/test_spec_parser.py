@@ -105,7 +105,7 @@ This is a test specification for the spec parser.
         assert entity is not None
         assert entity.id == "simple-spec"
         assert entity.title == "Simple Spec"
-        assert entity.stage == Stage.SPECS
+        assert entity.stage == Stage.RESEARCHING
         assert entity.priority == 2  # default medium -> 2
         assert "complexity:medium" in entity.labels  # default
 
@@ -146,7 +146,7 @@ priority: high
     def test_stage_mapping(self, tmp_specs_root: Path, parser: SpecParser) -> None:
         """Test that spec stages map correctly to dashboard stages."""
         test_cases = [
-            (SpecStage.RESEARCHING, Stage.SPECS),
+            (SpecStage.RESEARCHING, Stage.RESEARCHING),
             (SpecStage.PLANNED, Stage.PLANNED),
             (SpecStage.STAGED, Stage.READY),
             (SpecStage.IMPLEMENTING, Stage.IN_PROGRESS),

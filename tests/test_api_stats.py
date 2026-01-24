@@ -170,7 +170,7 @@ class TestStatsEndpoint:
         # Validate by_stage (using uppercase Stage enum values)
         assert data["by_stage"]["READY"] == 2  # staged -> READY
         assert data["by_stage"]["IN_PROGRESS"] == 2  # implementing -> IN_PROGRESS
-        assert data["by_stage"]["SPECS"] == 1  # researching -> SPECS
+        assert data["by_stage"]["RESEARCHING"] == 1  # researching -> RESEARCHING
 
         # Validate by_type
         assert data["by_type"]["task"] == 3
@@ -185,7 +185,7 @@ class TestStatsEndpoint:
 
         stages = [
             ("backlog", "CAPTURES"),
-            ("researching", "SPECS"),
+            ("researching", "RESEARCHING"),
             ("planned", "PLANNED"),
             ("staged", "READY"),
             ("implementing", "IN_PROGRESS"),

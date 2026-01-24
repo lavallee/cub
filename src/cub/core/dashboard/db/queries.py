@@ -33,7 +33,7 @@ from cub.core.dashboard.db.models import (
 # Mapping from database stage names (lowercase) to Pydantic Stage enum (uppercase)
 DB_STAGE_TO_MODEL_STAGE = {
     "backlog": Stage.CAPTURES,
-    "researching": Stage.SPECS,
+    "researching": Stage.RESEARCHING,
     "planned": Stage.PLANNED,
     "staged": Stage.READY,
     "implementing": Stage.IN_PROGRESS,
@@ -70,8 +70,8 @@ def get_default_view_config() -> ViewConfig:
             ),
             ColumnConfig(
                 id="specs",
-                title="Specs",
-                stages=[Stage.SPECS],
+                title="Researching",
+                stages=[Stage.RESEARCHING],
             ),
             ColumnConfig(
                 id="planned",

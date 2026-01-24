@@ -7,7 +7,7 @@ the correct stage for each entity based on multiple signals.
 
 Stage Computation Logic:
 1. CAPTURES: Capture-type entities
-2. SPECS: Specs in researching stage
+2. RESEARCHING: Specs in researching stage
 3. PLANNED: Specs in planned stage, Plan entities
 4. BLOCKED: Tasks/epics with status=open but have blocking dependencies
 5. READY: Tasks with status=open and no blockers
@@ -472,7 +472,7 @@ def compute_stage(
     5. BLOCKED: Entity status is open but has blocking dependencies (tasks/epics)
     6. READY: Entity status is open with no blockers (tasks only)
     7. PLANNED: Entity status is open (epics, plans)
-    8. SPECS: Spec entities in researching stage
+    8. RESEARCHING: Spec entities in researching stage
     9. CAPTURES: Capture entities
 
     Args:

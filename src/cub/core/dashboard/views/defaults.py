@@ -7,7 +7,7 @@ even if no custom views are defined in `.cub/views/`.
 The system provides three built-in views:
 - default: Full 9-column workflow (Captures → Released)
 - sprint: Active work focused view (Ready → In Progress → Review → Complete)
-- ideas: Idea development focused view (Captures → Specs → Planned)
+- ideas: Idea development focused view (Captures → Researching → Planned)
 
 These views serve as both:
 1. Fallback configurations when custom views are not available
@@ -30,7 +30,7 @@ View configuration format:
 - **columns**: List of column configurations, each with:
   - id: Column identifier
   - title: Display title
-  - stages: List of stages to include (CAPTURES, SPECS, PLANNED, BLOCKED, READY,
+  - stages: List of stages to include (CAPTURES, RESEARCHING, PLANNED, BLOCKED, READY,
             IN_PROGRESS, NEEDS_REVIEW, COMPLETE, RELEASED)
 - **filters**: Entity filtering rules
   - exclude_labels: Labels to exclude from the view
@@ -82,8 +82,8 @@ def get_default_view() -> ViewConfig:
             ),
             ColumnConfig(
                 id="specs",
-                title="Specs",
-                stages=[Stage.SPECS],
+                title="Researching",
+                stages=[Stage.RESEARCHING],
             ),
             ColumnConfig(
                 id="planned",
@@ -199,7 +199,7 @@ def get_ideas_view() -> ViewConfig:
 
     Shows only the columns relevant to developing and planning ideas:
     - Captures: Raw ideas and notes
-    - Specs: Specifications being researched
+    - Researching: Specifications being researched
     - Planned: Plans exist but not yet staged
 
     Returns:
@@ -214,7 +214,7 @@ def get_ideas_view() -> ViewConfig:
     return ViewConfig(
         id="ideas",
         name="Ideas View",
-        description="Idea development focused view (Captures → Specs → Planned)",
+        description="Idea development focused view (Captures → Researching → Planned)",
         columns=[
             ColumnConfig(
                 id="captures",
@@ -223,8 +223,8 @@ def get_ideas_view() -> ViewConfig:
             ),
             ColumnConfig(
                 id="specs",
-                title="Specs",
-                stages=[Stage.SPECS],
+                title="Researching",
+                stages=[Stage.RESEARCHING],
             ),
             ColumnConfig(
                 id="planned",
@@ -297,7 +297,7 @@ def get_built_in_view_summaries() -> list[ViewSummary]:
         ViewSummary(
             id="ideas",
             name="Ideas View",
-            description="Idea development focused view (Captures → Specs → Planned)",
+            description="Idea development focused view (Captures → Researching → Planned)",
             is_default=False,
         ),
     ]

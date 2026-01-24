@@ -65,7 +65,7 @@ class EntityWriter:
     # Map Pydantic Stage enum values to SQLite schema stage values
     STAGE_MAPPING = {
         "CAPTURES": "backlog",  # Captures are in backlog
-        "SPECS": "researching",  # Specs being researched
+        "RESEARCHING": "researching",  # Specs being researched
         "PLANNED": "planned",  # Planned
         "READY": "staged",  # Ready = staged in schema
         "IN_PROGRESS": "implementing",  # In progress = implementing

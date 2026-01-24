@@ -71,10 +71,10 @@ class TestBuiltInViews:
         assert view.name == "Ideas View"
         assert view.is_default is False
         assert len(view.columns) == 3
-        # Should have Captures, Specs, Planned
+        # Should have Captures, Researching, Planned
         column_stages = [col.stages[0] for col in view.columns]
         assert Stage.CAPTURES in column_stages
-        assert Stage.SPECS in column_stages
+        assert Stage.RESEARCHING in column_stages
         assert Stage.PLANNED in column_stages
 
     def test_get_built_in_views(self):

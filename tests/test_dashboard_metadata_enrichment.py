@@ -338,7 +338,7 @@ class TestMetadataPersistence:
             id="test-spec",
             type=EntityType.SPEC,
             title="Test Spec",
-            stage=Stage.SPECS,
+            stage=Stage.RESEARCHING,
             status="researching",
             source_type="file",
             source_path="specs/researching/test.md",
