@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "id": "cub-x3s.1",
-  "title": "Implement index maintenance",
+  "id": "cub-x3s.2",
+  "title": "Enhance ledger search with index",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-x3s"
   },
   "task": {
-    "title": "Implement index maintenance",
-    "description": "The index.jsonl file needs to be updated whenever ledger entries are written.\n\n**Implementation Steps:**\n1. Update `src/cub/core/ledger/writer.py`: add `_update_index()` private method, call after every write\n2. Index entry fields: type, id, title, epic, stage, cost, attempts, updated_at\n3. Handle append vs update (read, filter, append, write)\n4. Add `rebuild_index()` public method for recovery\n\n**Files:** `src/cub/core/ledger/writer.py`",
+    "title": "Enhance ledger search with index",
+    "description": "The ledger search command should use the index for faster queries.\n\n**Implementation Steps:**\n1. Update `src/cub/core/ledger/reader.py`: add `_query_index()` method\n2. Filter on index fields: stage, cost, epic\n3. Update search CLI with `--stage`, `--cost-above`, `--escalated` options\n4. Load full entries only for matches\n\n**Files:** `src/cub/core/ledger/reader.py`, `src/cub/cli/ledger.py`",
     "type": "task",
     "priority": 2,
     "labels": [
@@ -19,16 +19,16 @@
       "model:sonnet",
       "phase-6"
     ],
-    "created_at": "2026-01-24T21:12:34.037337Z",
-    "captured_at": "2026-01-24T22:34:10.949150Z"
+    "created_at": "2026-01-24T21:12:34.037350Z",
+    "captured_at": "2026-01-24T22:39:08.048501Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260124-173410",
-      "started_at": "2026-01-24T17:34:10.953316",
-      "completed_at": "2026-01-24T22:39:05.491967Z",
+      "started_at": "2026-01-24T17:39:08.050363",
+      "completed_at": "2026-01-24T22:42:03.117244Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,16 +41,16 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 294
+      "duration_seconds": 175
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-24T22:39:05.721468Z",
+    "completed_at": "2026-01-24T22:42:03.363400Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 294,
+    "total_duration_seconds": 175,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
@@ -75,24 +75,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-24T22:39:05.721468Z"
+    "stage_updated_at": "2026-01-24T22:42:03.363400Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:34:10.949150Z",
+      "at": "2026-01-24T22:39:08.048501Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:39:05.721468Z",
+      "at": "2026-01-24T22:42:03.363400Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-24T22:34:10.949150Z",
-  "completed_at": "2026-01-24T22:39:05.721468Z",
+  "started_at": "2026-01-24T22:39:08.048501Z",
+  "completed_at": "2026-01-24T22:42:03.363400Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -100,7 +100,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 294,
+  "duration_seconds": 175,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -108,7 +108,7 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.1",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.2",
   "epic_id": "cub-x3s",
   "verification_status": "pending",
   "verification_notes": [],

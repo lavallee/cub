@@ -1,34 +1,34 @@
 {
   "version": 1,
-  "id": "cub-x3s.1",
-  "title": "Implement index maintenance",
+  "id": "cub-x3s.3",
+  "title": "Implement PATCH API endpoint",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-x3s"
   },
   "task": {
-    "title": "Implement index maintenance",
-    "description": "The index.jsonl file needs to be updated whenever ledger entries are written.\n\n**Implementation Steps:**\n1. Update `src/cub/core/ledger/writer.py`: add `_update_index()` private method, call after every write\n2. Index entry fields: type, id, title, epic, stage, cost, attempts, updated_at\n3. Handle append vs update (read, filter, append, write)\n4. Add `rebuild_index()` public method for recovery\n\n**Files:** `src/cub/core/ledger/writer.py`",
+    "title": "Implement PATCH API endpoint",
+    "description": "The dashboard needs to update workflow stage via API, which writes back to ledger files.\n\n**Implementation Steps:**\n1. Update dashboard API: add PATCH /api/entity/{id} endpoint\n2. Accept body: `{\"workflow\": {\"stage\": \"validated\"}, \"reason\": \"...\"}`\n3. Validate stage value, call `LedgerWriter.update_workflow_stage()`\n4. Return updated entity, trigger incremental sync\n\n**Files:** `src/cub/core/dashboard/api/app.py`, `src/cub/core/ledger/writer.py`",
     "type": "task",
     "priority": 2,
     "labels": [
+      "api",
       "complexity:medium",
       "epic:cub-x3s",
-      "logic",
       "model:sonnet",
       "phase-6"
     ],
-    "created_at": "2026-01-24T21:12:34.037337Z",
-    "captured_at": "2026-01-24T22:34:10.949150Z"
+    "created_at": "2026-01-24T21:12:34.037363Z",
+    "captured_at": "2026-01-24T22:42:05.689682Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260124-173410",
-      "started_at": "2026-01-24T17:34:10.953316",
-      "completed_at": "2026-01-24T22:39:05.491967Z",
+      "started_at": "2026-01-24T17:42:05.691788",
+      "completed_at": "2026-01-24T22:45:42.241249Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,16 +41,16 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 294
+      "duration_seconds": 216
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-24T22:39:05.721468Z",
+    "completed_at": "2026-01-24T22:45:42.472380Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 294,
+    "total_duration_seconds": 216,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
@@ -75,24 +75,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-24T22:39:05.721468Z"
+    "stage_updated_at": "2026-01-24T22:45:42.472380Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:34:10.949150Z",
+      "at": "2026-01-24T22:42:05.689682Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:39:05.721468Z",
+      "at": "2026-01-24T22:45:42.472380Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-24T22:34:10.949150Z",
-  "completed_at": "2026-01-24T22:39:05.721468Z",
+  "started_at": "2026-01-24T22:42:05.689682Z",
+  "completed_at": "2026-01-24T22:45:42.472380Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -100,7 +100,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 294,
+  "duration_seconds": 216,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -108,7 +108,7 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.1",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.3",
   "epic_id": "cub-x3s",
   "verification_status": "pending",
   "verification_notes": [],
