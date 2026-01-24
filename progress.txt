@@ -6420,3 +6420,71 @@ This adapter serves as a reference implementation for future sources (smithery.a
 - Glama MCP Directory: https://glama.ai/mcp/servers
 - API Endpoint: https://glama.ai/api/mcp/v1/servers
 
+
+## 2026-01-24 - cub-k3p.5: Implement SkillsMP source adapter
+
+### Task Completed
+Implemented the first SKILL type source adapter for skillsmp.com, a Claude skills marketplace.
+
+### Key Learnings
+
+**1. Researching API-Protected Sites**
+- SkillsMP.com is protected by Cloudflare, blocking direct curl/WebFetch access
+- Web search is invaluable for finding API documentation and structure
+- Searched for "skillsmp.com API endpoint skills list JSON 2026" to find docs
+- Found API endpoints: /api/v1/skills/search and /api/v1/skills/ai-search
+- Even when can't access the site, search results reveal API structure
+
+**2. API Design Patterns from Web Search**
+- SkillsMP follows standard REST patterns: keyword search + AI semantic search
+- Uses Bearer token authentication (optional but recommended for rate limits)
+- Pagination with hasNext boolean (simpler than cursor-based)
+- Response format: {skills: [...], pagination: {page, limit, total, hasNext}}
+
+**3. SKILL vs MCP_SERVER Tool Type**
+- First implementation of ToolType.SKILL (previous sources were MCP_SERVER)
+- Skills install differently: `claude skill add {repo-url}` vs server install commands
+- Tool ID format remains consistent: `skillsmp:{slug}`
+- Skills have categories and tags more prominently than servers
+
+**4. Fixture Design for Skills API**
+- Created realistic fixture with 5 diverse skills (docs, testing, DB, review, devops)
+- Skills have: id, slug, name, description, url, repository, category, tags, author, stars
+- Repository object contains url and optional path to SKILL.md
+- createdAt timestamps in ISO 8601 format for datetime parsing tests
+- Some fields optional (like repository) to test graceful degradation
+
+**5. Test Coverage for New Source Type**
+- 20 comprehensive tests covering all aspects
+- Verified ToolType.SKILL is set correctly (critical for first SKILL source)
+- Tested category/tags merging into tool tags
+- Tested author attribution in tags (author:username pattern)
+- Tested both repository-based and URL-based install hints
+- All tests pass, mypy strict mode passes, ruff linter passes
+
+**6. Error Handling Best Practices**
+- Gracefully handle network errors by returning empty list
+- Parse timestamps with fallback to current time on errors
+- Handle missing optional fields (repository, category, tags, author)
+- Default URL generation when missing: skillsmp.com/skills/{slug}
+
+### Implementation Summary
+
+Created complete source adapter with:
+- SkillsMPSource class in src/cub/core/toolsmith/sources/skillsmp.py
+- Registered in __init__.py alongside glama, mcp-official, smithery
+- Comprehensive tests in tests/test_toolsmith/test_sources/test_skillsmp.py
+- Realistic fixture in tests/test_toolsmith/fixtures/skillsmp_response.json
+- All acceptance criteria met: registered as "skillsmp", returns SKILL tools, handles errors
+- Tool metadata: id, name, source, source_url, tool_type=SKILL, description, install_hint, tags
+- Pagination support, authentication support, search_live implementation
+
+### Resources Used
+
+Sources consulted during research:
+- [Agent Skills Marketplace - SkillsMP](https://skillsmp.com/)
+- [About SkillsMP](https://skillsmp.com/about)
+- [API Documentation - SkillsMP](https://skillsmp.com/docs/api)
+- [SkillsMP Marketplace Guide](https://smartscope.blog/en/blog/skillsmp-marketplace-guide/)
+- [GitHub - anthropics/skills](https://github.com/anthropics/skills)
+
