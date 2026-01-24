@@ -5803,3 +5803,108 @@ Successfully implemented metadata enrichment for dashboard cards during the sync
 3. Could make truncation length configurable per entity type
 4. Could add metadata validation (e.g., warn if description_excerpt is None for certain types)
 
+
+## Task: cub-0qf0 - Group PLANNED specs with their corresponding plans
+
+**Completed:** 2026-01-23
+
+### Implementation Summary
+
+Successfully implemented hierarchical grouping for the PLANNED column in the Kanban dashboard. Specs now serve as group headers with their corresponding plans nested beneath them, providing clearer visualization of spec→plan relationships.
+
+### Key Technical Decisions
+
+1. **Dual-mode Column Display:**
+   - Columns can now operate in either flat or grouped mode
+   - Flat mode: entities displayed as simple list
+   - Grouped mode: entities organized by relationship field (spec_id, epic_id, etc.)
+   - Mode determined by presence of `group_by` in column config
+
+2. **EntityGroup Model:**
+   - Created new `EntityGroup` model to represent a collection of related entities
+   - Includes `group_key` (the relationship ID), `group_entity` (the parent), and `entities` (children)
+   - Supports null group keys for legacy entities without relationships
+
+3. **Frontend Visualization:**
+   - Group headers display the parent entity (spec or epic)
+   - Child entities shown with visual indentation and connecting border
+   - Gracefully handles missing group entities
+
+### Challenges Encountered
+
+1. **Test Adjustment for Column Count:**
+   - Default view now has 9 columns (not 8) due to BLOCKED stage
+   - Had to update multiple test assertions
+
+2. **Integration Test Complexity:**
+   - Needed to check both flat `entities` array and nested `groups` array
+   - Updated test helper to search both locations for entities
+
+3. **Type Safety:**
+   - Ensured TypeScript types matched Python Pydantic models exactly
+   - Added proper nullable/optional types for grouped vs flat columns
+
+### Architecture Insights
+
+- **Grouping logic lives in queries.py:** `group_entities_by_field()` function
+  - Queries database to fetch parent entities
+  - Sorts groups to put entities with parents first
+  - Handles null group keys (legacy entities)
+
+- **View configuration drives grouping:** 
+  - `group_by: spec_id` in YAML enables grouping for a column
+  - Other columns remain flat unless explicitly configured
+  - Makes feature fully configurable without code changes
+
+- **Frontend remains flexible:**
+  - Single `Column` component handles both modes
+  - `EntityGroupComponent` handles nested display
+  - Empty state works for both flat and grouped modes
+
+### Testing Strategy
+
+- Added `TestGroupingBehavior` test class with 2 new tests
+- Test grouping with specs and plans in PLANNED column
+- Test ungrouped columns remain flat
+- Updated integration test to handle both display modes
+- All 161 dashboard tests pass
+
+### Next Steps / Future Enhancements
+
+1. **Collapsed Groups:**
+   - Add UI toggle to collapse/expand groups
+   - Store collapsed state in user preferences
+   - Implement `group_collapsed` display config option
+
+2. **Group-by Other Fields:**
+   - Test grouping by `epic_id` for READY/IN_PROGRESS columns
+   - Consider grouping by `parent_id` for hierarchical tasks
+   - Allow multiple grouping fields (nested groups)
+
+3. **Group-level Actions:**
+   - Bulk actions on entire groups (e.g., "mark all as complete")
+   - Move entire groups between columns
+   - Filter/search within groups
+
+4. **Performance Optimization:**
+   - Consider caching parent entity lookups
+   - Lazy-load group entities on expand
+   - Implement virtual scrolling for large groups
+
+### Files Modified
+
+- `src/cub/core/dashboard/db/models.py` - Added EntityGroup model, updated BoardColumn
+- `src/cub/core/dashboard/db/queries.py` - Implemented grouping logic
+- `src/cub/core/dashboard/views/defaults.py` - Enabled grouping for PLANNED column
+- `src/cub/dashboard/web/src/types/api.ts` - Added TypeScript types
+- `src/cub/dashboard/web/src/components/Column.tsx` - Implemented grouped rendering
+- `tests/test_api_board.py` - Added grouping tests
+- `tests/test_dashboard_integration.py` - Updated to handle grouped columns
+
+### Metrics
+
+- Lines changed: ~370 additions, ~20 deletions
+- New tests: 2
+- Test coverage: 161 tests passing
+- Type checking: Clean (mypy, TypeScript)
+- Linting: Clean (ruff)
