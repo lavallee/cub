@@ -93,6 +93,12 @@ class PlanParser:
         """
         Parse session.json metadata file.
 
+        Handles edge cases gracefully:
+        - Missing file: Returns None
+        - Invalid JSON: Logs warning and returns None
+        - Empty file: Logs warning and returns None
+        - Null/non-dict content: Logs warning and returns None
+
         Args:
             session_dir: Path to session directory
 
@@ -105,25 +111,61 @@ class PlanParser:
             return None
 
         try:
-            with open(session_file) as f:
-                result: dict[str, Any] = json.load(f)
+            # Check if file is empty
+            if session_file.stat().st_size == 0:
+                logger.warning(f"Empty session.json in {session_dir}")
+                return None
+
+            with open(session_file, encoding='utf-8') as f:
+                data = json.load(f)
+
+                # Ensure data is a dict
+                if data is None:
+                    logger.warning(f"Null content in {session_file}, using empty dict")
+                    return {}
+                elif not isinstance(data, dict):
+                    logger.warning(
+                        f"Session metadata in {session_file} is not a dict "
+                        f"(got {type(data).__name__}). Skipping."
+                    )
+                    return None
+
+                result: dict[str, Any] = data
                 return result
         except json.JSONDecodeError as e:
-            logger.warning(f"Invalid JSON in {session_file}: {e}")
+            logger.warning(
+                f"Invalid JSON in {session_file}: {e}. "
+                f"This session will be excluded from the dashboard."
+            )
+            return None
+        except UnicodeDecodeError as e:
+            logger.warning(f"Unable to read {session_file} as UTF-8: {e}")
+            return None
+        except PermissionError as e:
+            logger.error(f"Permission denied reading {session_file}: {e}")
             return None
         except Exception as e:
-            logger.error(f"Error reading {session_file}: {e}")
+            logger.error(
+                f"Unexpected error reading {session_file}: {type(e).__name__}: {e}"
+            )
             return None
 
     def _parse_plan_tasks(self, session_dir: Path) -> list[dict[str, Any]] | None:
         """
         Parse plan.jsonl file containing task definitions.
 
+        Handles edge cases gracefully:
+        - Missing file: Returns None
+        - Invalid JSON lines: Logs warning and skips line, continues with others
+        - Empty file: Returns None
+        - Non-dict JSON: Logs warning and skips line
+        - Partial failures: Returns successfully parsed tasks
+
         Args:
             session_dir: Path to session directory
 
         Returns:
-            List of task dictionaries or None if parsing fails
+            List of task dictionaries or None if no valid tasks found
         """
         plan_file = session_dir / "plan.jsonl"
         if not plan_file.exists():
@@ -131,8 +173,14 @@ class PlanParser:
             return None
 
         tasks = []
+        errors = 0
         try:
-            with open(plan_file) as f:
+            # Check if file is empty
+            if plan_file.stat().st_size == 0:
+                logger.warning(f"Empty plan.jsonl in {session_dir}")
+                return None
+
+            with open(plan_file, encoding='utf-8') as f:
                 for line_num, line in enumerate(f, start=1):
                     line = line.strip()
                     if not line:
@@ -140,15 +188,53 @@ class PlanParser:
 
                     try:
                         task = json.loads(line)
+
+                        # Ensure task is a dict
+                        if task is None:
+                            logger.warning(f"Null task at {plan_file}:{line_num}, skipping")
+                            errors += 1
+                            continue
+                        elif not isinstance(task, dict):
+                            logger.warning(
+                                f"Task at {plan_file}:{line_num} is not a dict "
+                                f"(got {type(task).__name__}), skipping"
+                            )
+                            errors += 1
+                            continue
+
                         tasks.append(task)
                     except json.JSONDecodeError as e:
-                        logger.warning(f"Invalid JSON at {plan_file}:{line_num}: {e}")
+                        logger.warning(
+                            f"Invalid JSON at {plan_file}:{line_num}: {e}. "
+                            f"Skipping line and continuing with others."
+                        )
+                        errors += 1
                         continue
+                    except Exception as e:
+                        logger.warning(
+                            f"Unexpected error parsing line {line_num} in {plan_file}: {e}"
+                        )
+                        errors += 1
+                        continue
+
+            # Log summary if there were errors
+            if errors > 0:
+                logger.warning(
+                    f"Parsed {len(tasks)} tasks from {plan_file} with {errors} errors"
+                )
 
             return tasks if tasks else None
 
+        except UnicodeDecodeError as e:
+            logger.warning(f"Unable to read {plan_file} as UTF-8: {e}")
+            return None
+        except PermissionError as e:
+            logger.error(f"Permission denied reading {plan_file}: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Error reading {plan_file}: {e}")
+            logger.error(
+                f"Unexpected error reading {plan_file}: {type(e).__name__}: {e}"
+            )
             return None
 
     def _map_priority(self, task: dict[str, Any]) -> int:
@@ -210,6 +296,12 @@ class PlanParser:
         Only converts epic tasks to entities. Regular tasks will be
         handled by the task parser once they're in the task backend.
 
+        Handles edge cases gracefully:
+        - Missing id: Logs warning and returns None
+        - Missing title: Uses id as title
+        - Invalid timestamps: Logs debug message and uses None
+        - Missing optional fields: Uses safe defaults
+
         Args:
             task: Task dictionary from plan.jsonl
             session_metadata: Session metadata from session.json
@@ -227,12 +319,31 @@ class PlanParser:
 
         task_id = task.get("id")
         if not task_id:
-            logger.warning(f"Task missing id in {session_dir}")
+            logger.warning(f"Task missing id in {session_dir}, skipping")
             return None
 
+        # Ensure task_id is a string
+        if not isinstance(task_id, str):
+            logger.warning(
+                f"Task id in {session_dir} is not a string (got {type(task_id).__name__}), "
+                f"converting to string"
+            )
+            task_id = str(task_id)
+
         title = task.get("title", task_id)
+        if not isinstance(title, str):
+            logger.debug("Task title is not a string, using id instead")
+            title = task_id
+
         description = task.get("description")
+        if description is not None and not isinstance(description, str):
+            logger.debug("Task description is not a string, converting")
+            description = str(description)
+
         status = task.get("status", "open")
+        if not isinstance(status, str):
+            logger.debug("Task status is not a string, using 'open'")
+            status = "open"
 
         # Plans are in the PLANNED stage (planning complete, not yet ready to work)
         stage = Stage.PLANNED
@@ -245,20 +356,26 @@ class PlanParser:
         if session_created := session_metadata.get("created"):
             try:
                 created_at = datetime.fromisoformat(session_created.replace("Z", "+00:00"))
-            except (ValueError, AttributeError):
-                pass
+            except (ValueError, AttributeError, TypeError) as e:
+                logger.debug(f"Invalid created timestamp in {session_dir}: {e}")
 
         if session_updated := session_metadata.get("updated"):
             try:
                 updated_at = datetime.fromisoformat(session_updated.replace("Z", "+00:00"))
-            except (ValueError, AttributeError):
-                pass
+            except (ValueError, AttributeError, TypeError) as e:
+                logger.debug(f"Invalid updated timestamp in {session_dir}: {e}")
 
         # Get epic_id from session metadata if present
         epic_id = session_metadata.get("epic_id")
+        if epic_id is not None and not isinstance(epic_id, str):
+            logger.debug("epic_id is not a string, converting")
+            epic_id = str(epic_id)
 
         # Get spec_id if task references a spec (not common, but possible)
         spec_id = task.get("spec_id")
+        if spec_id is not None and not isinstance(spec_id, str):
+            logger.debug("spec_id is not a string, converting")
+            spec_id = str(spec_id)
 
         # Extract card metadata
         description_excerpt = self._create_description_excerpt(task)

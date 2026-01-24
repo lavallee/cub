@@ -256,11 +256,13 @@ class SpecParser:
         """
         Parse a single spec file into a DashboardEntity.
 
-        Handles edge cases:
+        Handles edge cases gracefully:
         - Missing frontmatter: Creates entity with defaults
         - Invalid YAML: Logs warning and uses defaults
         - Empty files: Returns None
         - Malformed content: Returns partial entity
+        - Missing frontmatter delimiters: Treats as no frontmatter
+        - Null/empty frontmatter fields: Uses safe defaults
 
         Args:
             file_path: Path to the spec markdown file
@@ -270,21 +272,58 @@ class SpecParser:
             DashboardEntity or None if file is empty/unparseable
         """
         try:
+            # Check if file exists
+            if not file_path.exists():
+                logger.warning(f"Spec file not found: {file_path}")
+                return None
+
             # Check if file is empty
             if file_path.stat().st_size == 0:
                 logger.warning(f"Empty spec file: {file_path}")
                 return None
 
+            # Read file content for parsing
+            try:
+                raw_content = file_path.read_text(encoding='utf-8')
+            except UnicodeDecodeError as e:
+                logger.warning(f"Unable to read {file_path} as UTF-8: {e}. Skipping.")
+                return None
+            except Exception as e:
+                logger.error(f"Error reading file {file_path}: {e}")
+                return None
+
             # Compute checksum for incremental sync
             checksum = self._compute_checksum(file_path)
 
-            # Parse frontmatter
+            # Parse frontmatter with comprehensive error handling
+            post = None
             try:
                 post = frontmatter.load(file_path)
             except yaml.YAMLError as e:
-                logger.warning(f"Invalid YAML frontmatter in {file_path}: {e}. Using defaults.")
+                logger.warning(
+                    f"Invalid YAML frontmatter in {file_path}: {e}. "
+                    f"Using defaults and treating entire file as content."
+                )
                 # Create minimal post with empty metadata
-                post = frontmatter.Post(content=file_path.read_text(), metadata={})
+                post = frontmatter.Post(content=raw_content, metadata={})
+            except Exception as e:
+                logger.warning(
+                    f"Error parsing frontmatter in {file_path}: {e}. "
+                    f"Treating file as plain markdown."
+                )
+                # Treat entire file as content
+                post = frontmatter.Post(content=raw_content, metadata={})
+
+            # Ensure metadata is a dict (handle null frontmatter)
+            if post.metadata is None:
+                logger.debug(f"Null frontmatter in {file_path}, using empty dict")
+                post.metadata = {}
+            elif not isinstance(post.metadata, dict):
+                logger.warning(
+                    f"Frontmatter in {file_path} is not a dict "
+                    f"(got {type(post.metadata).__name__}). Using empty dict."
+                )
+                post.metadata = {}
 
             # Get spec name from filename
             name = file_path.stem
@@ -309,14 +348,26 @@ class SpecParser:
                     title=title,
                 )
             except Exception as e:
-                logger.error(f"Failed to parse spec {file_path}: {e}")
+                logger.error(
+                    f"Failed to parse spec {file_path}: {e}. "
+                    f"This spec will be excluded from the dashboard."
+                )
                 return None
 
             # Convert to DashboardEntity
             return self._spec_to_entity(spec, checksum)
 
+        except FileNotFoundError:
+            logger.warning(f"Spec file disappeared during parsing: {file_path}")
+            return None
+        except PermissionError as e:
+            logger.error(f"Permission denied reading {file_path}: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Unexpected error parsing {file_path}: {e}")
+            logger.error(
+                f"Unexpected error parsing {file_path}: {type(e).__name__}: {e}. "
+                f"This spec will be excluded from the dashboard."
+            )
             return None
 
     def parse_all(self) -> list[DashboardEntity]:

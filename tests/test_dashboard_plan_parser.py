@@ -532,3 +532,291 @@ class TestPlanParser:
         assert entity.frontmatter is not None
         assert "dependencies" in entity.frontmatter
         assert len(entity.frontmatter["dependencies"]) == 1
+
+    def test_parse_session_with_null_session_json(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a session with null content in session.json."""
+        session_dir = tmp_sessions_root / "test-null"
+        session_dir.mkdir()
+
+        # Write null JSON
+        (session_dir / "session.json").write_text("null")
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        # Should handle gracefully - null becomes empty dict
+        assert len(entities) == 1
+        assert "Null content" in caplog.text
+
+    def test_parse_session_with_empty_session_json(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a session with empty session.json."""
+        session_dir = tmp_sessions_root / "test-empty"
+        session_dir.mkdir()
+
+        # Write empty file
+        (session_dir / "session.json").write_text("")
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        # Should skip session due to empty file
+        # But should use directory name as fallback
+        assert len(entities) == 1
+        assert "Empty session.json" in caplog.text
+
+    def test_parse_session_with_non_dict_session_json(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a session with non-dict content in session.json."""
+        session_dir = tmp_sessions_root / "test-non-dict"
+        session_dir.mkdir()
+
+        # Write array instead of dict
+        (session_dir / "session.json").write_text('["item1", "item2"]')
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        # Should still create entities using directory name as fallback session ID
+        # This is graceful degradation - we don't lose the tasks
+        assert len(entities) == 1
+        assert "not a dict" in caplog.text
+        # plan_id should be directory name since session.json was invalid
+        assert entities[0].plan_id == "test-non-dict"
+
+    def test_parse_session_with_invalid_json_in_session_file(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a session with invalid JSON in session.json."""
+        session_dir = tmp_sessions_root / "test-invalid-json"
+        session_dir.mkdir()
+
+        # Write invalid JSON
+        (session_dir / "session.json").write_text('{"id": invalid json}')
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        # Should use directory name as fallback
+        assert len(entities) == 1
+        assert "Invalid JSON" in caplog.text
+
+    def test_parse_plan_with_empty_jsonl(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a session with empty plan.jsonl."""
+        session_dir = tmp_sessions_root / "test-empty-plan"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-empty-plan"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Write empty file
+        (session_dir / "plan.jsonl").write_text("")
+
+        entities = parser.parse_session(session_dir)
+
+        assert len(entities) == 0
+        assert "Empty plan.jsonl" in caplog.text
+
+    def test_parse_plan_with_null_tasks(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a plan.jsonl with null task lines."""
+        session_dir = tmp_sessions_root / "test-null-tasks"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-null-tasks"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Write null and valid tasks
+        content = "null\n"
+        content += json.dumps({"id": "test-E01", "title": "Valid Epic", "issue_type": "epic"}) + "\n"
+        (session_dir / "plan.jsonl").write_text(content)
+
+        entities = parser.parse_session(session_dir)
+
+        # Should get 1 valid entity
+        assert len(entities) == 1
+        assert "Null task" in caplog.text
+
+    def test_parse_plan_with_non_dict_tasks(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a plan.jsonl with non-dict task lines."""
+        session_dir = tmp_sessions_root / "test-non-dict-tasks"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-non-dict-tasks"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Write array and valid task
+        content = '["not", "a", "dict"]\n'
+        content += json.dumps({"id": "test-E01", "title": "Valid Epic", "issue_type": "epic"}) + "\n"
+        (session_dir / "plan.jsonl").write_text(content)
+
+        entities = parser.parse_session(session_dir)
+
+        # Should get 1 valid entity
+        assert len(entities) == 1
+        assert "not a dict" in caplog.text
+
+    def test_parse_plan_with_mixed_valid_invalid_lines(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing plan.jsonl with mix of valid and invalid lines."""
+        session_dir = tmp_sessions_root / "test-mixed"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-mixed"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Write mix of valid, invalid JSON, null, and non-dict
+        content = json.dumps({"id": "test-E01", "title": "Epic 1", "issue_type": "epic"}) + "\n"
+        content += "{invalid json}\n"
+        content += "null\n"
+        content += json.dumps({"id": "test-E02", "title": "Epic 2", "issue_type": "epic"}) + "\n"
+        content += '["array"]\n'
+        content += json.dumps({"id": "test-E03", "title": "Epic 3", "issue_type": "epic"}) + "\n"
+        (session_dir / "plan.jsonl").write_text(content)
+
+        entities = parser.parse_session(session_dir)
+
+        # Should get 3 valid entities
+        assert len(entities) == 3
+        entity_ids = [e.id for e in entities]
+        assert "test-E01" in entity_ids
+        assert "test-E02" in entity_ids
+        assert "test-E03" in entity_ids
+        assert "Parsed 3 tasks" in caplog.text and "3 errors" in caplog.text
+
+    def test_parse_task_with_missing_id(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a task without an id field."""
+        session_dir = tmp_sessions_root / "test-no-id"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-no-id"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Epic without id
+        epic_task = {
+            "title": "Epic without ID",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        assert len(entities) == 0
+        assert "missing id" in caplog.text
+
+    def test_parse_task_with_non_string_id(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a task with non-string id (should convert)."""
+        session_dir = tmp_sessions_root / "test-numeric-id"
+        session_dir.mkdir()
+
+        session_data = {"id": "test-numeric-id"}
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        # Epic with numeric id
+        epic_task = {
+            "id": 12345,  # numeric instead of string
+            "title": "Epic with numeric ID",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        assert len(entities) == 1
+        assert entities[0].id == "12345"  # Converted to string
+        assert "not a string" in caplog.text
+
+    def test_parse_task_with_invalid_timestamps(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing a task with invalid timestamp formats."""
+        import logging
+        caplog.set_level(logging.DEBUG)  # Enable DEBUG level to see timestamp warnings
+
+        session_dir = tmp_sessions_root / "test-invalid-timestamps"
+        session_dir.mkdir()
+
+        # Session with invalid timestamps
+        session_data = {
+            "id": "test-invalid-timestamps",
+            "created": "not-a-timestamp",
+            "updated": "also-invalid",
+        }
+        (session_dir / "session.json").write_text(json.dumps(session_data))
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        assert len(entities) == 1
+        # Timestamps should be None due to invalid format
+        assert entities[0].created_at is None
+        assert entities[0].updated_at is None
+        # Check that debug message was logged
+        assert "Invalid" in caplog.text and "timestamp" in caplog.text
+
+    def test_parse_session_with_unicode_error(
+        self, tmp_sessions_root: Path, parser: PlanParser, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test parsing session.json with invalid UTF-8 encoding."""
+        session_dir = tmp_sessions_root / "test-unicode"
+        session_dir.mkdir()
+
+        # Write invalid UTF-8 bytes
+        (session_dir / "session.json").write_bytes(b"\xff\xfe\x00\x00Invalid UTF-8")
+
+        epic_task = {
+            "id": "test-E01",
+            "title": "Epic task",
+            "issue_type": "epic",
+        }
+        (session_dir / "plan.jsonl").write_text(json.dumps(epic_task) + "\n")
+
+        entities = parser.parse_session(session_dir)
+
+        # Should use directory name as fallback
+        assert len(entities) == 1
+        assert "Unable to read" in caplog.text or "UTF-8" in caplog.text
