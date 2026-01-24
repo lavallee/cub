@@ -78,10 +78,10 @@ class TestBoardEndpoint:
         # Check view config
         assert data["view"]["id"] == "default"
         assert data["view"]["name"] == "Full Workflow"
-        assert len(data["view"]["columns"]) == 8
+        assert len(data["view"]["columns"]) == 9
 
         # Check columns are empty
-        assert len(data["columns"]) == 8
+        assert len(data["columns"]) == 9
         for column in data["columns"]:
             assert column["count"] == 0
             assert column["entities"] == []
@@ -398,3 +398,163 @@ class TestFilterBehavior:
         # Note: This depends on the default view having exclude_labels=["archived"]
         # The current implementation in queries.py applies this filter
         assert data["stats"]["total"] <= 2  # May be 1 or 2 depending on filter impl
+
+
+class TestGroupingBehavior:
+    """Tests for entity grouping in board columns."""
+
+    def test_planned_column_groups_by_spec_id(self, temp_db):
+        """Test that PLANNED column groups plans by their spec_id."""
+        # Add entities to database
+        conn = sqlite3.connect(str(temp_db))
+        configure_connection(conn)
+
+        # Add a spec in PLANNED stage
+        insert_entity(
+            conn,
+            "spec-1",
+            "spec",
+            "Auth Spec",
+            "planned",
+            status="researched",
+        )
+
+        # Add plans that reference the spec
+        insert_entity(
+            conn,
+            "plan-1",
+            "plan",
+            "Auth Plan 1",
+            "planned",
+            status="drafted",
+            data='{"spec_id": "spec-1"}',
+        )
+
+        insert_entity(
+            conn,
+            "plan-2",
+            "plan",
+            "Auth Plan 2",
+            "planned",
+            status="drafted",
+            data='{"spec_id": "spec-1"}',
+        )
+
+        # Add another spec with a plan
+        insert_entity(
+            conn,
+            "spec-2",
+            "spec",
+            "Dashboard Spec",
+            "planned",
+            status="researched",
+        )
+
+        insert_entity(
+            conn,
+            "plan-3",
+            "plan",
+            "Dashboard Plan",
+            "planned",
+            status="drafted",
+            data='{"spec_id": "spec-2"}',
+        )
+
+        # Add a plan without a spec (legacy)
+        insert_entity(
+            conn,
+            "plan-4",
+            "plan",
+            "Legacy Plan",
+            "planned",
+            status="drafted",
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Get board
+        with patch("cub.core.dashboard.api.routes.board.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.get("/api/board")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Find the PLANNED column
+        planned_column = None
+        for col in data["columns"]:
+            if col["id"] == "planned":
+                planned_column = col
+                break
+
+        assert planned_column is not None, "PLANNED column not found"
+
+        # Verify grouping structure
+        assert "groups" in planned_column
+        assert planned_column["groups"] is not None
+        assert len(planned_column["groups"]) == 3  # 2 specs + 1 null group
+
+        # Verify entities are empty when grouped
+        assert planned_column["entities"] == []
+
+        # Verify count includes all entities (2 specs + 3 plans + 1 legacy plan = 6)
+        # Note: Specs themselves are also in the PLANNED stage and will be counted
+        assert planned_column["count"] == 6
+
+        # Check that groups have the right structure
+        for group in planned_column["groups"]:
+            assert "group_key" in group
+            assert "group_entity" in group
+            assert "entities" in group
+            assert "count" in group
+
+    def test_ungrouped_column_has_flat_entities(self, temp_db):
+        """Test that columns without group_by have flat entity list."""
+        # Add entities to database
+        conn = sqlite3.connect(str(temp_db))
+        configure_connection(conn)
+
+        # Add tasks in IN_PROGRESS stage (not grouped by default)
+        insert_entity(
+            conn,
+            "task-1",
+            "task",
+            "Task 1",
+            "implementing",
+            status="in_progress",
+        )
+
+        insert_entity(
+            conn,
+            "task-2",
+            "task",
+            "Task 2",
+            "implementing",
+            status="in_progress",
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Get board
+        with patch("cub.core.dashboard.api.routes.board.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.get("/api/board")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Find the IN_PROGRESS column
+        in_progress_column = None
+        for col in data["columns"]:
+            if col["id"] == "in_progress":
+                in_progress_column = col
+                break
+
+        assert in_progress_column is not None
+
+        # Verify flat structure (no grouping)
+        assert in_progress_column["groups"] is None
+        assert len(in_progress_column["entities"]) == 2
+        assert in_progress_column["count"] == 2

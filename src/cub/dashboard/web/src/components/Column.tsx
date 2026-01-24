@@ -2,7 +2,7 @@
  * Column component - displays a single stage column in the kanban board.
  */
 
-import type { BoardColumn } from '../types/api';
+import type { BoardColumn, EntityGroup } from '../types/api';
 import { EntityCard } from './EntityCard';
 
 export interface ColumnProps {
@@ -11,11 +11,46 @@ export interface ColumnProps {
 }
 
 /**
+ * Renders a group of entities with an optional group header.
+ */
+function EntityGroupComponent({ group, onEntityClick }: { group: EntityGroup; onEntityClick?: (entity: any) => void }) {
+  return (
+    <div class="space-y-2">
+      {/* Group header (spec or epic) */}
+      {group.group_entity && (
+        <div class="mb-2">
+          <EntityCard
+            entity={group.group_entity}
+            onClick={onEntityClick}
+          />
+        </div>
+      )}
+
+      {/* Grouped entities (plans or tasks) */}
+      <div class="ml-3 space-y-2 border-l-2 border-gray-300 pl-2">
+        {group.entities.map((entity) => (
+          <EntityCard
+            key={entity.id}
+            entity={entity}
+            onClick={onEntityClick}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Renders a single kanban column with entities.
  *
  * Shows column title, count, and entity cards.
+ * Supports both flat and grouped entity display.
  */
 export function Column({ column, onEntityClick }: ColumnProps) {
+  const hasGroups = column.groups && column.groups.length > 0;
+  const hasEntities = column.entities && column.entities.length > 0;
+  const isEmpty = !hasGroups && !hasEntities;
+
   return (
     <div class="flex flex-col bg-gray-50 rounded-lg p-4 min-w-[280px] max-w-[320px]">
       {/* Column header */}
@@ -29,8 +64,8 @@ export function Column({ column, onEntityClick }: ColumnProps) {
       </div>
 
       {/* Entity cards */}
-      <div class="flex-1 overflow-y-auto space-y-2">
-        {column.entities.length === 0 ? (
+      <div class="flex-1 overflow-y-auto space-y-3">
+        {isEmpty ? (
           <div class="flex flex-col items-center justify-center py-8 text-center">
             <svg
               class="w-12 h-12 text-gray-300 mb-2"
@@ -47,7 +82,17 @@ export function Column({ column, onEntityClick }: ColumnProps) {
             </svg>
             <p class="text-xs text-gray-400 font-medium">No items</p>
           </div>
+        ) : hasGroups ? (
+          /* Render grouped entities */
+          column.groups!.map((group, index) => (
+            <EntityGroupComponent
+              key={group.group_key || `group-${index}`}
+              group={group}
+              onEntityClick={onEntityClick}
+            />
+          ))
         ) : (
+          /* Render flat list of entities */
           column.entities.map((entity) => (
             <EntityCard
               key={entity.id}

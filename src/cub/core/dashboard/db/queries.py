@@ -21,6 +21,7 @@ from cub.core.dashboard.db.models import (
     DashboardEntity,
     DisplayConfig,
     EntityDetail,
+    EntityGroup,
     EntityType,
     FilterConfig,
     Relationship,
@@ -76,6 +77,7 @@ def get_default_view_config() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
+                group_by="spec_id",
             ),
             ColumnConfig(
                 id="blocked",
@@ -344,6 +346,62 @@ def apply_filters(
     return filtered
 
 
+def group_entities_by_field(
+    entities: list[DashboardEntity],
+    group_by: str,
+    conn: sqlite3.Connection,
+) -> list[EntityGroup]:
+    """
+    Group entities by a specified field (e.g., spec_id, epic_id).
+
+    Args:
+        entities: List of entities to group
+        group_by: Field name to group by (e.g., 'spec_id', 'epic_id')
+        conn: SQLite connection for fetching group entities
+
+    Returns:
+        List of EntityGroup instances
+
+    Example:
+        >>> entities = [
+        ...     DashboardEntity(id="plan-1", plan_id="spec-1", ...),
+        ...     DashboardEntity(id="plan-2", plan_id="spec-1", ...),
+        ...     DashboardEntity(id="plan-3", plan_id="spec-2", ...),
+        ... ]
+        >>> groups = group_entities_by_field(entities, "spec_id", conn)
+        >>> assert len(groups) == 2
+    """
+    from collections import defaultdict
+
+    # Group entities by the specified field
+    grouped: dict[str | None, list[DashboardEntity]] = defaultdict(list)
+    for entity in entities:
+        group_key = getattr(entity, group_by, None)
+        grouped[group_key].append(entity)
+
+    # Create EntityGroup instances
+    groups: list[EntityGroup] = []
+    for group_key, group_entities in grouped.items():
+        # Try to fetch the group entity (e.g., the spec or epic)
+        group_entity = None
+        if group_key:
+            group_entity = get_entity_by_id(conn, group_key)
+
+        groups.append(
+            EntityGroup(
+                group_key=group_key,
+                group_entity=group_entity,
+                entities=group_entities,
+                count=len(group_entities),
+            )
+        )
+
+    # Sort groups: groups with entities first, then by group_key
+    groups.sort(key=lambda g: (g.group_entity is None, g.group_key or ""))
+
+    return groups
+
+
 def compute_board_stats(entities: list[DashboardEntity]) -> BoardStats:
     """
     Compute summary statistics for a list of entities.
@@ -426,7 +484,7 @@ def get_board_data(
         >>> configure_connection(conn)
         >>> create_schema(conn)
         >>> board = get_board_data(conn)
-        >>> assert len(board.columns) == 8
+        >>> assert len(board.columns) == 9
         >>> assert board.view.id == "default"
     """
     # Use default view if not specified
@@ -446,14 +504,28 @@ def get_board_data(
         # Get entities for this column's stages
         col_entities = [e for e in filtered_entities if e.stage in col_config.stages]
 
-        # Create board column
-        column = BoardColumn(
-            id=col_config.id,
-            title=col_config.title,
-            stage=col_config.stages[0],  # Use first stage as primary
-            entities=col_entities,
-            count=len(col_entities),
-        )
+        # Check if grouping is configured for this column
+        if col_config.group_by:
+            # Group entities by the specified field
+            groups = group_entities_by_field(col_entities, col_config.group_by, conn)
+            column = BoardColumn(
+                id=col_config.id,
+                title=col_config.title,
+                stage=col_config.stages[0],  # Use first stage as primary
+                entities=[],  # Empty when grouped
+                groups=groups,
+                count=len(col_entities),
+            )
+        else:
+            # Create flat column without grouping
+            column = BoardColumn(
+                id=col_config.id,
+                title=col_config.title,
+                stage=col_config.stages[0],  # Use first stage as primary
+                entities=col_entities,
+                groups=None,
+                count=len(col_entities),
+            )
         columns.append(column)
 
     # Compute statistics

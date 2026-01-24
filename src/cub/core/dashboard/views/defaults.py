@@ -89,6 +89,7 @@ def get_default_view() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
+                group_by="spec_id",
             ),
             ColumnConfig(
                 id="blocked",
@@ -227,6 +228,7 @@ def get_ideas_view() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
+                group_by="spec_id",
             ),
         ],
         filters=FilterConfig(

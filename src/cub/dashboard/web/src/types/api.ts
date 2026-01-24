@@ -129,11 +129,19 @@ export interface ViewConfig {
 }
 
 // API response models
+export interface EntityGroup {
+  group_key: string | null;
+  group_entity?: DashboardEntity | null;
+  entities: DashboardEntity[];
+  count: number;
+}
+
 export interface BoardColumn {
   id: string;
   title: string;
   stage: Stage;
   entities: DashboardEntity[];
+  groups?: EntityGroup[] | null;
   count: number;
 }
 

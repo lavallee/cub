@@ -340,13 +340,45 @@ class ViewConfig(BaseModel):
     )
 
 
+class EntityGroup(BaseModel):
+    """A group of entities within a column.
+
+    When a column has group_by configured, entities are organized into groups
+    based on the grouping field (e.g., spec_id, epic_id).
+
+    Example:
+        >>> group = EntityGroup(
+        ...     group_key="spec-123",
+        ...     group_entity=spec_entity,
+        ...     entities=[plan1, task1, task2],
+        ...     count=3
+        ... )
+    """
+
+    group_key: str | None = Field(
+        ..., description="Value of the group_by field (e.g., spec ID or epic ID)"
+    )
+    group_entity: DashboardEntity | None = Field(
+        default=None, description="The entity that represents this group (e.g., the spec or epic)"
+    )
+    entities: list[DashboardEntity] = Field(..., description="Entities in this group")
+    count: int = Field(..., ge=0, description="Number of entities in group")
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
 class BoardColumn(BaseModel):
     """A single column in the board response.
 
     Contains the column configuration and the entities that belong
     in this column based on their stage.
 
-    Example:
+    When group_by is specified in the column config, entities are organized
+    into groups. Otherwise, entities are returned as a flat list.
+
+    Example (flat):
         >>> column = BoardColumn(
         ...     id="in_progress",
         ...     title="In Progress",
@@ -354,12 +386,27 @@ class BoardColumn(BaseModel):
         ...     entities=[entity1, entity2],
         ...     count=2
         ... )
+
+    Example (grouped):
+        >>> column = BoardColumn(
+        ...     id="planned",
+        ...     title="Planned",
+        ...     stage=Stage.PLANNED,
+        ...     groups=[group1, group2],
+        ...     entities=[],  # Empty when grouped
+        ...     count=5
+        ... )
     """
 
     id: str = Field(..., description="Column identifier")
     title: str = Field(..., description="Display title")
     stage: Stage = Field(..., description="Primary stage for this column")
-    entities: list[DashboardEntity] = Field(..., description="Entities in this column")
+    entities: list[DashboardEntity] = Field(
+        default_factory=list, description="Entities in this column (empty if grouped)"
+    )
+    groups: list[EntityGroup] | None = Field(
+        default=None, description="Entity groups (when group_by is configured)"
+    )
     count: int = Field(..., ge=0, description="Number of entities")
 
     model_config = ConfigDict(

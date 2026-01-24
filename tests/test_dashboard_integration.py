@@ -183,13 +183,31 @@ class TestDashboardIntegration:
                 assert "entities" in column
                 assert "count" in column
 
-                # Check if our spec is in this column
+                # Check if our spec is in this column (flat entities)
                 for entity in column["entities"]:
                     if entity["id"] == "test-spec-1":
                         spec_found = True
                         assert entity["title"] == "Test Feature"
                         assert entity["type"] == "spec"
                         break
+
+                # Also check grouped entities
+                if "groups" in column and column["groups"]:
+                    for group in column["groups"]:
+                        # Check group entity
+                        group_entity = group.get("group_entity")
+                        if group_entity and group_entity["id"] == "test-spec-1":
+                            spec_found = True
+                            assert group_entity["title"] == "Test Feature"
+                            assert group_entity["type"] == "spec"
+                            break
+                        # Check entities within group
+                        for entity in group["entities"]:
+                            if entity["id"] == "test-spec-1":
+                                spec_found = True
+                                assert entity["title"] == "Test Feature"
+                                assert entity["type"] == "spec"
+                                break
 
             assert spec_found, "Expected to find test-spec-1 in board response"
 
