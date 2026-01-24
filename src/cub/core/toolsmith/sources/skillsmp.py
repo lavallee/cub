@@ -20,7 +20,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
+from cub.core.toolsmith.exceptions import NetworkError, ParseError
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -96,7 +98,8 @@ class SkillsMPSource:
             List of Tool objects representing SkillsMP skills
 
         Raises:
-            httpx.HTTPError: If API request fails
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
         all_tools = []
         page = 1
@@ -113,11 +116,12 @@ class SkillsMPSource:
 
                 page += 1
 
-            except httpx.HTTPError:
-                # Gracefully handle network errors
+            except (NetworkError, ParseError):
                 # If we already have some results, return them
-                # Otherwise, return empty list
-                break
+                # Otherwise, re-raise to let caller handle it
+                if all_tools:
+                    break
+                raise
 
         return all_tools
 
@@ -134,13 +138,13 @@ class SkillsMPSource:
 
         Returns:
             List of Tool objects matching the search query
+
+        Raises:
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
-        try:
-            tools, _ = self._fetch_page(query=query, page=1, limit=50)
-            return tools
-        except httpx.HTTPError:
-            # Gracefully handle network errors by returning empty list
-            return []
+        tools, _ = self._fetch_page(query=query, page=1, limit=50)
+        return tools
 
     def _fetch_page(
         self, query: str = "", page: int = 1, limit: int = 50
@@ -157,7 +161,8 @@ class SkillsMPSource:
             Tuple of (list of Tool objects, pagination metadata dict)
 
         Raises:
-            httpx.HTTPError: If API request fails
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
         # Build API URL with query parameters
         params: dict[str, str] = {
@@ -178,18 +183,63 @@ class SkillsMPSource:
         # Make API request
         # Use /search endpoint for keyword search
         url = f"{self.API_BASE_URL}/skills/search"
-        response = httpx.get(
-            url, params=params, headers=headers, timeout=30.0, follow_redirects=True
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.get(
+                url, params=params, headers=headers, timeout=30.0, follow_redirects=True
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise NetworkError(
+                "skillsmp",
+                "Request timed out while fetching skills from SkillsMP API",
+                url=url,
+                timeout=30.0,
+            ) from e
+        except httpx.HTTPStatusError as e:
+            raise NetworkError(
+                "skillsmp",
+                f"HTTP {e.response.status_code} error from SkillsMP API",
+                url=url,
+                status_code=e.response.status_code,
+            ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                "skillsmp",
+                f"Network error while fetching from SkillsMP API: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
-        data = response.json()
-        skills_data = data.get("skills", [])
-        pagination = data.get("pagination", {})
+        try:
+            data = response.json()
+        except Exception as e:
+            raise ParseError(
+                "skillsmp",
+                "Failed to parse JSON response from SkillsMP API",
+                url=url,
+            ) from e
+
+        # Extract data with error handling
+        try:
+            skills_data = data.get("skills", [])
+            pagination = data.get("pagination", {})
+        except AttributeError as e:
+            raise ParseError(
+                "skillsmp",
+                "Response is not a valid JSON object",
+                url=url,
+                response_type=type(data).__name__,
+            ) from e
 
         # Convert skill entries to Tool objects
-        tools = [self._parse_skill(skill) for skill in skills_data]
+        try:
+            tools = [self._parse_skill(skill) for skill in skills_data]
+        except (KeyError, ValueError, ValidationError) as e:
+            raise ParseError(
+                "skillsmp",
+                f"Failed to parse skill data: {e}",
+                url=url,
+            ) from e
 
         return tools, pagination
 

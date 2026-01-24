@@ -20,7 +20,9 @@ import re
 from datetime import datetime, timezone
 
 import httpx
+from pydantic import ValidationError
 
+from cub.core.toolsmith.exceptions import NetworkError, ParseError
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -69,18 +71,42 @@ class MCPOfficialSource:
             List of Tool objects representing MCP servers
 
         Raises:
-            httpx.HTTPError: If README fetch fails
+            NetworkError: If README fetch fails
+            ParseError: If README parsing fails
         """
         try:
             response = httpx.get(self.README_URL, timeout=10.0, follow_redirects=True)
             response.raise_for_status()
             readme_content = response.text
-        except httpx.HTTPError:
-            # Gracefully handle network errors by returning empty list
-            # Could also raise here depending on error handling preference
-            return []
+        except httpx.TimeoutException as e:
+            raise NetworkError(
+                "mcp-official",
+                "Request timed out while fetching MCP official README",
+                url=self.README_URL,
+                timeout=10.0,
+            ) from e
+        except httpx.HTTPStatusError as e:
+            raise NetworkError(
+                "mcp-official",
+                f"HTTP {e.response.status_code} error from GitHub",
+                url=self.README_URL,
+                status_code=e.response.status_code,
+            ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                "mcp-official",
+                f"Network error while fetching MCP official README: {e}",
+                url=self.README_URL,
+            ) from e
 
-        return self._parse_readme(readme_content)
+        try:
+            return self._parse_readme(readme_content)
+        except (ValueError, ValidationError) as e:
+            raise ParseError(
+                "mcp-official",
+                f"Failed to parse README content: {e}",
+                url=self.README_URL,
+            ) from e
 
     def search_live(self, query: str) -> list[Tool]:
         """
@@ -95,6 +121,10 @@ class MCPOfficialSource:
 
         Returns:
             List of Tool objects matching the search query
+
+        Raises:
+            NetworkError: If README fetch fails
+            ParseError: If README parsing fails
         """
         all_tools = self.fetch_tools()
         query_lower = query.lower()

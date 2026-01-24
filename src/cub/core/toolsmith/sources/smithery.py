@@ -20,7 +20,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
+from cub.core.toolsmith.exceptions import NetworkError, ParseError
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -92,7 +94,8 @@ class SmitherySource:
             List of Tool objects representing Smithery MCP servers
 
         Raises:
-            httpx.HTTPError: If API request fails
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
         all_tools = []
         page = 1
@@ -109,11 +112,12 @@ class SmitherySource:
 
                 page += 1
 
-            except httpx.HTTPError:
-                # Gracefully handle network errors
+            except (NetworkError, ParseError):
                 # If we already have some results, return them
-                # Otherwise, return empty list
-                break
+                # Otherwise, re-raise to let caller handle it
+                if all_tools:
+                    break
+                raise
 
         return all_tools
 
@@ -130,13 +134,13 @@ class SmitherySource:
 
         Returns:
             List of Tool objects matching the search query
+
+        Raises:
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
-        try:
-            tools, _ = self._fetch_page(query=query, page=1, page_size=50)
-            return tools
-        except httpx.HTTPError:
-            # Gracefully handle network errors by returning empty list
-            return []
+        tools, _ = self._fetch_page(query=query, page=1, page_size=50)
+        return tools
 
     def _fetch_page(
         self, query: str = "", page: int = 1, page_size: int = 50
@@ -153,7 +157,8 @@ class SmitherySource:
             Tuple of (list of Tool objects, pagination metadata dict)
 
         Raises:
-            httpx.HTTPError: If API request fails
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
         # Build API URL with query parameters
         params = {"page": str(page), "pageSize": str(page_size)}
@@ -170,18 +175,63 @@ class SmitherySource:
 
         # Make API request
         url = f"{self.API_BASE_URL}/servers"
-        response = httpx.get(
-            url, params=params, headers=headers, timeout=10.0, follow_redirects=True
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.get(
+                url, params=params, headers=headers, timeout=10.0, follow_redirects=True
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise NetworkError(
+                "smithery",
+                "Request timed out while fetching servers from Smithery API",
+                url=url,
+                timeout=10.0,
+            ) from e
+        except httpx.HTTPStatusError as e:
+            raise NetworkError(
+                "smithery",
+                f"HTTP {e.response.status_code} error from Smithery API",
+                url=url,
+                status_code=e.response.status_code,
+            ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                "smithery",
+                f"Network error while fetching from Smithery API: {e}",
+                url=url,
+            ) from e
 
         # Parse JSON response
-        data = response.json()
-        servers_data = data.get("servers", [])
-        pagination = data.get("pagination", {})
+        try:
+            data = response.json()
+        except Exception as e:
+            raise ParseError(
+                "smithery",
+                "Failed to parse JSON response from Smithery API",
+                url=url,
+            ) from e
+
+        # Extract data with error handling
+        try:
+            servers_data = data.get("servers", [])
+            pagination = data.get("pagination", {})
+        except AttributeError as e:
+            raise ParseError(
+                "smithery",
+                "Response is not a valid JSON object",
+                url=url,
+                response_type=type(data).__name__,
+            ) from e
 
         # Convert server entries to Tool objects
-        tools = [self._parse_server(server) for server in servers_data]
+        try:
+            tools = [self._parse_server(server) for server in servers_data]
+        except (KeyError, ValueError, ValidationError) as e:
+            raise ParseError(
+                "smithery",
+                f"Failed to parse server data: {e}",
+                url=url,
+            ) from e
 
         return tools, pagination
 

@@ -28,12 +28,16 @@ Example:
     print(f"Total tools: {stats.total_tools}")
 """
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime, timezone
 
+from cub.core.toolsmith.exceptions import SourceError
 from cub.core.toolsmith.models import CatalogStats, SyncResult, Tool
 from cub.core.toolsmith.sources.base import ToolSource
 from cub.core.toolsmith.store import ToolsmithStore
+
+logger = logging.getLogger(__name__)
 
 
 class ToolsmithService:
@@ -132,6 +136,7 @@ class ToolsmithService:
         now = datetime.now(timezone.utc)
         for source in sources_to_sync:
             try:
+                logger.info(f"Syncing tools from source: {source.name}")
                 tools = source.fetch_tools()
 
                 # Merge tools into catalog
@@ -150,11 +155,25 @@ class ToolsmithService:
 
                 # Track successfully synced source
                 synced_sources.add(source.name)
+                logger.info(
+                    f"Successfully synced {len(tools)} tools from source: {source.name}"
+                )
 
-            except Exception as e:
-                # Log error but continue with other sources
-                error_msg = f"Error syncing source '{source.name}': {e}"
+            except SourceError as e:
+                # Log detailed error for source-specific failures
+                error_msg = str(e)
                 errors.append(error_msg)
+                logger.error(
+                    f"Source error while syncing '{source.name}': {error_msg}",
+                    exc_info=True,
+                )
+            except Exception as e:
+                # Log unexpected errors but continue with other sources
+                error_msg = f"Unexpected error syncing source '{source.name}': {e}"
+                errors.append(error_msg)
+                logger.exception(
+                    f"Unexpected exception while syncing source '{source.name}'"
+                )
 
         # Update catalog with merged tools
         catalog.tools = list(existing_tools.values())
@@ -218,6 +237,7 @@ class ToolsmithService:
 
         for source in self.sources:
             try:
+                logger.debug(f"Searching source '{source.name}' for: {query}")
                 source_results = source.search_live(query)
 
                 # Merge results, preferring local tools (though we have none)
@@ -225,9 +245,19 @@ class ToolsmithService:
                     if tool.id not in live_results:
                         live_results[tool.id] = tool
 
-            except Exception:
-                # Gracefully handle source errors by continuing with other sources
-                # We don't log or raise since this is search, not sync
+                logger.debug(
+                    f"Found {len(source_results)} results from source '{source.name}'"
+                )
+
+            except SourceError as e:
+                # Log source-specific errors but continue with other sources
+                logger.warning(f"Source error during search from '{source.name}': {e}")
+                continue
+            except Exception as e:
+                # Gracefully handle unexpected errors by continuing with other sources
+                logger.warning(
+                    f"Unexpected error during search from '{source.name}': {e}"
+                )
                 continue
 
         return list(live_results.values())

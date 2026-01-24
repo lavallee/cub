@@ -85,3 +85,4 @@
 {"id": "cub-v9s.2", "title": "Implement search with live fallback", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-v9s", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-v9s.3", "title": "Wire CLI commands to service", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-v9s", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-v9s.4", "title": "Write integration tests for full workflow", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-v9s", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-q2w.1", "title": "Add Rich formatting for CLI output", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-q2w", "verification": "pending", "tokens": 0, "workflow_stage": null}

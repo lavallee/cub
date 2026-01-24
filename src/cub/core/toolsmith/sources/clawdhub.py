@@ -20,7 +20,9 @@ import re
 from datetime import datetime, timezone
 
 import httpx
+from pydantic import ValidationError
 
+from cub.core.toolsmith.exceptions import NetworkError, ParseError
 from cub.core.toolsmith.models import Tool, ToolType
 from cub.core.toolsmith.sources.base import register_source
 
@@ -78,15 +80,43 @@ class ClawdHubSource:
             List of Tool objects representing Claude skills
 
         Raises:
-            httpx.HTTPError: If API fetch fails (handled gracefully)
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
+        url = self.API_URL
         try:
-            response = httpx.get(self.API_URL, timeout=10.0, follow_redirects=True)
+            response = httpx.get(url, timeout=10.0, follow_redirects=True)
             response.raise_for_status()
+        except httpx.TimeoutException as e:
+            raise NetworkError(
+                "clawdhub",
+                "Request timed out while fetching skills from GitHub API",
+                url=url,
+                timeout=10.0,
+            ) from e
+        except httpx.HTTPStatusError as e:
+            raise NetworkError(
+                "clawdhub",
+                f"HTTP {e.response.status_code} error from GitHub API",
+                url=url,
+                status_code=e.response.status_code,
+            ) from e
+        except httpx.RequestError as e:
+            raise NetworkError(
+                "clawdhub",
+                f"Network error while fetching from GitHub API: {e}",
+                url=url,
+            ) from e
+
+        # Parse JSON response
+        try:
             directories = response.json()
-        except httpx.HTTPError:
-            # Gracefully handle network errors by returning empty list
-            return []
+        except Exception as e:
+            raise ParseError(
+                "clawdhub",
+                "Failed to parse JSON response from GitHub API",
+                url=url,
+            ) from e
 
         tools = []
         for item in directories:
@@ -119,6 +149,10 @@ class ClawdHubSource:
 
         Returns:
             List of Tool objects matching the search query
+
+        Raises:
+            NetworkError: If API request fails
+            ParseError: If response parsing fails
         """
         all_tools = self.fetch_tools()
         query_lower = query.lower()
@@ -151,12 +185,17 @@ class ClawdHubSource:
             response = httpx.get(skill_md_url, timeout=10.0, follow_redirects=True)
             response.raise_for_status()
             content = response.text
-        except httpx.HTTPError:
+        except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError):
             # Skill doesn't have SKILL.md or fetch failed - skip it
             return None
 
         # Parse frontmatter
-        metadata = self._parse_frontmatter(content)
+        try:
+            metadata = self._parse_frontmatter(content)
+        except (ValueError, ValidationError):
+            # Parsing failed - skip this skill
+            return None
+
         if not metadata:
             return None
 
