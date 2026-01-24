@@ -17,13 +17,14 @@
     "captured_at": "2026-01-24T22:31:12.355687Z"
   },
   "task_ids": [
+    "cub-d8b.3",
     "cub-d8b.2",
     "cub-d8b.1"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -31,25 +32,26 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 369,
-    "avg_duration_seconds": 184,
+    "total_duration_seconds": 428,
+    "avg_duration_seconds": 142,
     "models_used": [
+      "haiku",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-24T22:33:04.329886Z"
+    "stage_updated_at": "2026-01-24T22:34:05.989257Z"
   },
   "state_history": [],
   "started_at": "2026-01-24T22:26:51.797844Z",
-  "completed_at": "2026-01-24T22:33:04.317860Z",
-  "updated_at": "2026-01-24T22:33:04.329888Z",
+  "completed_at": "2026-01-24T22:34:05.977309Z",
+  "updated_at": "2026-01-24T22:34:05.989258Z",
   "first_commit": null,
   "last_commit": null,
   "drift": {
