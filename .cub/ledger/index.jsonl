@@ -237,3 +237,5 @@
 {"id": "cub-dmxf", "title": "Group ready tasks by epic in dashboard", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0}
 {"id": "cub-4fma", "title": "Rename dashboard column from \"SPECS\" to \"RESEARCHING\"", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0}
 {"id": "cub-4eyt", "title": "the view switcher doesn\u2019t work. it just says...", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0}
+{"id": "cub-12be", "title": "Fix artifact content HTML rendering", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0}
+{"id": "cub-hj6j", "title": "Format frontmatter gracefully in dashboard entities", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0}
