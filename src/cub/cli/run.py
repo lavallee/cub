@@ -28,8 +28,7 @@ from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
-from cub.core.ledger.models import LedgerEntry
-from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.writer import LedgerWriter
 
 # TODO: Restore when plan module is implemented
@@ -1148,6 +1147,9 @@ def run(
     ledger_dir = project_dir / ".cub" / "ledger"
     ledger_writer = LedgerWriter(ledger_dir)
 
+    # Initialize ledger integration
+    ledger_integration = LedgerIntegration(ledger_writer)
+
     # Update task counts
     counts = task_backend.get_task_counts()
     status.tasks_total = counts.total
@@ -1315,6 +1317,22 @@ def run(
                 if debug:
                     console.print(f"[dim]Failed to claim task: {e}[/dim]")
 
+            # Create ledger entry for task start
+            if config.ledger.enabled:
+                try:
+                    ledger_integration.on_task_start(
+                        current_task,
+                        run_id=run_id,
+                        epic_id=epic,
+                    )
+                    if debug:
+                        console.print(
+                            f"[dim]Created ledger entry for task start: {current_task.id}[/dim]"
+                        )
+                except Exception as e:
+                    if debug:
+                        console.print(f"[dim]Warning: Failed to create ledger entry: {e}[/dim]")
+
             # Generate task prompt
             task_prompt = generate_task_prompt(current_task, task_backend)
 
@@ -1327,6 +1345,9 @@ def run(
 
             # Invoke harness
             console.print(f"[bold]Running {harness_name}...[/bold]")
+
+            # Track attempt start time
+            attempt_start_time = datetime.now()
 
             try:
                 task_input = TaskInput(
@@ -1344,15 +1365,110 @@ def run(
                     if debug:
                         console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
 
+                # Record attempt start in ledger
+                if config.ledger.enabled:
+                    try:
+                        # Get attempt number (1-based)
+                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
+
+                        # Build combined prompt for ledger
+                        combined_prompt = (
+                            f"# System Prompt\n\n{system_prompt}\n\n"
+                            f"# Task Prompt\n\n{task_prompt}"
+                        )
+
+                        ledger_integration.on_attempt_start(
+                            current_task.id,
+                            attempt_number,
+                            combined_prompt,
+                            run_id=run_id,
+                            harness=harness_name,
+                            model=task_model or "",
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Recorded attempt {attempt_number} start in ledger[/dim]"
+                            )
+                    except Exception as e:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record attempt start: {e}[/dim]"
+                            )
+
                 # Get harness log path for this task
                 harness_log_path = status_writer.get_harness_log_path(current_task.id)
 
                 result = _invoke_harness(
                     harness_backend, task_input, stream, debug, harness_log_path
                 )
+
+                # Record attempt end in ledger
+                if config.ledger.enabled:
+                    try:
+                        # Read harness log content
+                        log_content = ""
+                        if harness_log_path and harness_log_path.exists():
+                            log_content = harness_log_path.read_text(encoding="utf-8")
+
+                        # Convert TokenUsage to LedgerTokenUsage
+                        from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+                        ledger_tokens = LedgerTokenUsage(
+                            input_tokens=result.usage.input_tokens,
+                            output_tokens=result.usage.output_tokens,
+                            cache_read_tokens=result.usage.cache_read_tokens,
+                            cache_creation_tokens=result.usage.cache_creation_tokens,
+                        )
+
+                        ledger_integration.on_attempt_end(
+                            current_task.id,
+                            attempt_number,
+                            log_content,
+                            run_id=run_id,
+                            success=result.success,
+                            harness=harness_name,
+                            model=task_model or "",
+                            tokens=ledger_tokens,
+                            cost_usd=result.usage.cost_usd or 0.0,
+                            duration_seconds=int(result.duration_seconds),
+                            started_at=attempt_start_time,
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Recorded attempt {attempt_number} end in ledger[/dim]"
+                            )
+                    except Exception as e:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record attempt end: {e}[/dim]"
+                            )
+
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
                 status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
+
+                # Record failed attempt in ledger
+                if config.ledger.enabled:
+                    try:
+                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
+                        ledger_integration.on_attempt_end(
+                            current_task.id,
+                            attempt_number,
+                            log_content="",
+                            run_id=run_id,
+                            success=False,
+                            harness=harness_name,
+                            model=task_model or "",
+                            error_category="harness_failure",
+                            error_summary=str(e),
+                            started_at=attempt_start_time,
+                        )
+                    except Exception as ledger_error:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record failed attempt: "
+                                f"{ledger_error}[/dim]"
+                            )
+
                 if config.loop.on_task_failure == "stop":
                     status.mark_failed(str(e))
                     break
@@ -1448,39 +1564,31 @@ def run(
                         task_id=current_task.id,
                     )
 
-                # Create ledger entry after successful task completion
+                # Finalize ledger entry after successful task completion
                 if config.ledger.enabled:
                     try:
-                        ledger_entry = LedgerEntry(
-                            id=current_task.id,
-                            title=current_task.title,
-                            completed_at=datetime.now(),
-                            tokens=LedgerTokenUsage(
-                                input_tokens=result.usage.input_tokens,
-                                output_tokens=result.usage.output_tokens,
-                                cache_read_tokens=result.usage.cache_read_tokens,
-                                cache_creation_tokens=result.usage.cache_creation_tokens,
-                            ),
-                            cost_usd=result.usage.cost_usd or 0.0,
-                            duration_seconds=int(duration),
-                            harness_name=harness_name,
-                            harness_model=task_model or "",
-                            epic_id=epic,
-                            run_log_path=str(status_writer.get_task_dir(current_task.id)),
+                        # Get current task state for drift detection
+                        current_task_state = task_backend.get_task(current_task.id)
+
+                        ledger_integration.on_task_close(
+                            current_task.id,
+                            success=True,
+                            partial=False,
+                            final_model=task_model or "",
+                            current_task=current_task_state,
                         )
-                        ledger_writer.create_entry(ledger_entry)
                         if debug:
                             console.print(
-                                f"[dim]Created ledger entry for {current_task.id}[/dim]"
+                                f"[dim]Finalized ledger entry for {current_task.id}[/dim]"
                             )
                     except Exception as e:
                         # Log but don't fail - ledger is informational
                         if debug:
                             console.print(
-                                f"[dim]Warning: Failed to create ledger entry: {e}[/dim]"
+                                f"[dim]Warning: Failed to finalize ledger entry: {e}[/dim]"
                             )
                         status.add_event(
-                            f"Failed to create ledger entry: {e}",
+                            f"Failed to finalize ledger entry: {e}",
                             EventLevel.WARNING,
                             task_id=current_task.id,
                         )
@@ -1530,6 +1638,28 @@ def run(
                 except Exception as e:
                     if debug:
                         console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
+
+                # Finalize ledger entry after failed task
+                if config.ledger.enabled:
+                    try:
+                        current_task_state = task_backend.get_task(current_task.id)
+                        ledger_integration.on_task_close(
+                            current_task.id,
+                            success=False,
+                            partial=True,
+                            final_model=task_model or "",
+                            current_task=current_task_state,
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Finalized ledger entry for failed task "
+                                f"{current_task.id}[/dim]"
+                            )
+                    except Exception as e:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to finalize ledger entry: {e}[/dim]"
+                            )
 
                 # Run on-error hooks (async - fire and forget for error notifications)
                 on_error_context = HookContext(
