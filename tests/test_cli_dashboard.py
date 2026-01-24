@@ -10,11 +10,42 @@ The dashboard command provides:
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from cub.cli import app
+from cub.core.tasks.models import Task
 
 runner = CliRunner()
+
+
+class MockTaskBackend:
+    """Mock task backend for testing when beads CLI is not available."""
+
+    def __init__(self, tasks: list[Task] | None = None):
+        self.tasks = tasks or []
+        self._backend_name = "mock"
+
+    @property
+    def backend_name(self) -> str:
+        return self._backend_name
+
+    def list_tasks(self, **kwargs) -> list[Task]:  # type: ignore[no-untyped-def]
+        """Return mock tasks."""
+        return self.tasks
+
+    def get_task(self, task_id: str) -> Task | None:
+        """Get task by ID."""
+        for task in self.tasks:
+            if task.id == task_id:
+                return task
+        return None
+
+
+@pytest.fixture
+def mock_backend() -> MockTaskBackend:
+    """Create a mock backend fixture."""
+    return MockTaskBackend()
 
 
 class TestDashboardCommandHelp:
@@ -56,8 +87,10 @@ class TestDashboardNoProject:
 class TestDashboardSync:
     """Test dashboard sync subcommand."""
 
-    def test_sync_empty_project(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_sync_empty_project(self, mock_get_backend: MagicMock) -> None:
         """Test syncing an empty project."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -67,8 +100,10 @@ class TestDashboardSync:
             assert result.exit_code == 0
             assert "sync" in result.output.lower()
 
-    def test_sync_with_specs(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_sync_with_specs(self, mock_get_backend: MagicMock) -> None:
         """Test syncing a project with specs."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -91,8 +126,10 @@ This is a test spec.
             assert "sync" in result.output.lower()
             assert "successful" in result.output.lower() or "complete" in result.output.lower()
 
-    def test_sync_force_flag(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_sync_force_flag(self, mock_get_backend: MagicMock) -> None:
         """Test sync with --force flag."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -213,8 +250,10 @@ class TestDashboardServer:
 class TestDashboardIntegration:
     """Integration tests for dashboard command."""
 
-    def test_dashboard_creates_db(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_dashboard_creates_db(self, mock_get_backend: MagicMock) -> None:
         """Test that dashboard sync creates the database file."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -227,8 +266,10 @@ class TestDashboardIntegration:
             db_path = Path(".cub/dashboard.db")
             assert db_path.exists()
 
-    def test_dashboard_creates_cub_dir(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_dashboard_creates_cub_dir(self, mock_get_backend: MagicMock) -> None:
         """Test that dashboard creates .cub directory if it doesn't exist."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure (no .cub directory)
             Path(".beads").mkdir()
@@ -274,10 +315,12 @@ class TestDashboardExport:
             assert "database not found" in result.output.lower()
             assert "sync" in result.output.lower()
 
-    def test_export_to_stdout(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_export_to_stdout(self, mock_get_backend: MagicMock) -> None:
         """Test export to stdout produces valid JSON."""
         import json
 
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -298,10 +341,12 @@ class TestDashboardExport:
             assert "stats" in data
             assert len(data["columns"]) == 10  # Default 10 columns
 
-    def test_export_to_file(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_export_to_file(self, mock_get_backend: MagicMock) -> None:
         """Test export to file."""
         import json
 
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -322,8 +367,10 @@ class TestDashboardExport:
             assert "columns" in data
             assert "stats" in data
 
-    def test_export_compact(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_export_compact(self, mock_get_backend: MagicMock) -> None:
         """Test export with --compact option produces minified JSON."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -340,8 +387,10 @@ class TestDashboardExport:
             lines = result.output.strip().split("\n")
             assert len(lines) == 1  # All JSON on one line
 
-    def test_export_pretty(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_export_pretty(self, mock_get_backend: MagicMock) -> None:
         """Test export with --pretty option produces indented JSON."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
@@ -358,8 +407,10 @@ class TestDashboardExport:
             lines = result.output.strip().split("\n")
             assert len(lines) > 1  # Multiple lines with indentation
 
-    def test_export_creates_parent_dirs(self) -> None:
+    @patch("cub.core.dashboard.sync.orchestrator.get_backend")
+    def test_export_creates_parent_dirs(self, mock_get_backend: MagicMock) -> None:
         """Test export creates parent directories if needed."""
+        mock_get_backend.return_value = MockTaskBackend()
         with runner.isolated_filesystem():
             # Create project structure
             Path(".beads").mkdir()
