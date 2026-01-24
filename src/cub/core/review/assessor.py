@@ -7,11 +7,11 @@ to determine whether tasks, epics, and plans were fully implemented.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from cub.core.ledger.models import LedgerEntry
 from cub.core.ledger.reader import LedgerReader
+from cub.core.plans import get_epic_ids
 from cub.core.review.models import (
     AssessmentGrade,
     EpicAssessment,
@@ -375,34 +375,10 @@ class PlanAssessor:
                 summary=f"Plan directory not found: {plan_dir}",
             )
 
-        # Look for plan.json (modern) or plan.jsonl (legacy) to find associated epics
-        epic_ids: list[str] = []
+        # Get epic IDs from plan directory (reads itemized-plan.md or cached plan.json)
+        epic_ids = get_epic_ids(plan_dir)
 
-        # Try modern plan.json format first
-        plan_json = plan_dir / "plan.json"
-        if plan_json.exists():
-            with open(plan_json, encoding="utf-8") as f:
-                try:
-                    plan_data = json.load(f)
-                    # Modern format may have epic_ids list or we derive from slug
-                    if "epic_ids" in plan_data:
-                        epic_ids.extend(plan_data["epic_ids"])
-                except json.JSONDecodeError:
-                    pass
-
-        # Try legacy plan.jsonl format
-        plan_jsonl = plan_dir / "plan.jsonl"
-        if plan_jsonl.exists():
-            with open(plan_jsonl, encoding="utf-8") as f:
-                for line in f:
-                    try:
-                        item = json.loads(line.strip())
-                        if "epic_id" in item:
-                            epic_ids.append(item["epic_id"])
-                    except json.JSONDecodeError:
-                        continue
-
-        # Search ledger for tasks with this plan in lineage
+        # Also search ledger for tasks with this plan in lineage (fallback)
         all_entries = self.ledger.list_tasks()
         for entry in all_entries:
             full_entry = self.ledger.get_task(entry.id)
@@ -411,8 +387,14 @@ class PlanAssessor:
                     if full_entry.lineage.epic_id and full_entry.lineage.epic_id not in epic_ids:
                         epic_ids.append(full_entry.lineage.epic_id)
 
-        # Deduplicate
-        epic_ids = list(set(epic_ids))
+        # Deduplicate while preserving order
+        seen: set[str] = set()
+        unique_epic_ids: list[str] = []
+        for eid in epic_ids:
+            if eid not in seen:
+                seen.add(eid)
+                unique_epic_ids.append(eid)
+        epic_ids = unique_epic_ids
 
         if not epic_ids:
             return PlanAssessment(
