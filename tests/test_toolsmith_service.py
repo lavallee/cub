@@ -17,10 +17,19 @@ from cub.core.toolsmith.store import ToolsmithStore
 class MockSource:
     """Mock tool source for testing."""
 
-    def __init__(self, name: str, tools: list[Tool] | None = None, error: Exception | None = None):
+    def __init__(
+        self,
+        name: str,
+        tools: list[Tool] | None = None,
+        error: Exception | None = None,
+        search_results: list[Tool] | None = None,
+        search_error: Exception | None = None,
+    ):
         self._name = name
         self._tools = tools or []
         self._error = error
+        self._search_results = search_results or []
+        self._search_error = search_error
 
     @property
     def name(self) -> str:
@@ -32,7 +41,14 @@ class MockSource:
         return self._tools
 
     def search_live(self, query: str) -> list[Tool]:
-        return []
+        if self._search_error:
+            raise self._search_error
+        # Simple filtering: return tools that contain query in name or description
+        return [
+            tool
+            for tool in self._search_results
+            if query.lower() in tool.name.lower() or query.lower() in tool.description.lower()
+        ]
 
 
 @pytest.fixture
@@ -297,3 +313,201 @@ def test_stats_multiple_tools_same_source(temp_store: ToolsmithStore) -> None:
     assert stats.total_tools == 2
     assert stats.by_source == {"source1": 2}
     assert stats.by_type == {"mcp_server": 2}
+
+
+def test_search_local_catalog_returns_results(
+    temp_store: ToolsmithStore,
+    sample_tool_1: Tool,
+) -> None:
+    """Test search returns local results when available."""
+    source = MockSource("source1", [sample_tool_1])
+    service = ToolsmithService(temp_store, [source])
+
+    # Sync to populate catalog
+    service.sync()
+
+    # Search for tool (should find it locally)
+    results = service.search("test")
+
+    assert len(results) == 1
+    assert results[0].id == "source1:tool1"
+
+
+def test_search_local_catalog_no_fallback_when_found(
+    temp_store: ToolsmithStore,
+    sample_tool_1: Tool,
+) -> None:
+    """Test search does not fall back to live when local results found."""
+    # Create a tool that exists locally
+    local_tool = sample_tool_1
+
+    # Create a different tool that would be returned by live search
+    live_tool = Tool(
+        id="source1:live-tool",
+        name="Live Tool",
+        source="source1",
+        source_url="https://example.com/live",
+        tool_type=ToolType.MCP_SERVER,
+        description="Only available via live search",
+    )
+
+    # Set up source with both tools
+    source = MockSource("source1", [local_tool], search_results=[live_tool])
+    service = ToolsmithService(temp_store, [source])
+
+    # Sync to add local_tool to catalog
+    service.sync()
+
+    # Search for "test" - should find local_tool and NOT call live search
+    results = service.search("test")
+
+    # Should only return local result, not live result
+    assert len(results) == 1
+    assert results[0].id == "source1:tool1"
+
+
+def test_search_fallback_when_no_local_results(temp_store: ToolsmithStore) -> None:
+    """Test search falls back to live sources when no local results."""
+    live_tool = Tool(
+        id="source1:live-tool",
+        name="Live Linter Tool",
+        source="source1",
+        source_url="https://example.com/live",
+        tool_type=ToolType.MCP_SERVER,
+        description="Only available via live search",
+    )
+
+    source = MockSource("source1", [], search_results=[live_tool])
+    service = ToolsmithService(temp_store, [source])
+
+    # Search for "linter" - no local results, should fall back to live
+    results = service.search("linter")
+
+    assert len(results) == 1
+    assert results[0].id == "source1:live-tool"
+
+
+def test_search_no_fallback_when_disabled(temp_store: ToolsmithStore) -> None:
+    """Test search with live_fallback=False only searches local catalog."""
+    live_tool = Tool(
+        id="source1:live-tool",
+        name="Live Tool",
+        source="source1",
+        source_url="https://example.com/live",
+        tool_type=ToolType.MCP_SERVER,
+        description="Only available via live search",
+    )
+
+    source = MockSource("source1", [], search_results=[live_tool])
+    service = ToolsmithService(temp_store, [source])
+
+    # Search with live_fallback=False - should return empty
+    results = service.search("live", live_fallback=False)
+
+    assert len(results) == 0
+
+
+def test_search_deduplicates_by_tool_id(temp_store: ToolsmithStore) -> None:
+    """Test search deduplicates results from multiple sources by tool ID."""
+    # Same tool ID, different sources
+    tool1 = Tool(
+        id="common:tool",
+        name="Tool from Source 1",
+        source="source1",
+        source_url="https://example.com/1",
+        tool_type=ToolType.MCP_SERVER,
+        description="Test tool",
+    )
+    tool2 = Tool(
+        id="common:tool",  # Same ID!
+        name="Tool from Source 2",
+        source="source2",
+        source_url="https://example.com/2",
+        tool_type=ToolType.MCP_SERVER,
+        description="Test tool",
+    )
+
+    source1 = MockSource("source1", [], search_results=[tool1])
+    source2 = MockSource("source2", [], search_results=[tool2])
+    service = ToolsmithService(temp_store, [source1, source2])
+
+    # Search - should deduplicate
+    results = service.search("test")
+
+    # Should only have one result (first one encountered)
+    assert len(results) == 1
+    assert results[0].id == "common:tool"
+
+
+def test_search_merges_results_from_multiple_sources(temp_store: ToolsmithStore) -> None:
+    """Test search merges results from multiple sources."""
+    tool1 = Tool(
+        id="source1:tool1",
+        name="Tool 1",
+        source="source1",
+        source_url="https://example.com/1",
+        tool_type=ToolType.MCP_SERVER,
+        description="Test tool 1",
+    )
+    tool2 = Tool(
+        id="source2:tool2",
+        name="Tool 2",
+        source="source2",
+        source_url="https://example.com/2",
+        tool_type=ToolType.MCP_SERVER,
+        description="Test tool 2",
+    )
+
+    source1 = MockSource("source1", [], search_results=[tool1])
+    source2 = MockSource("source2", [], search_results=[tool2])
+    service = ToolsmithService(temp_store, [source1, source2])
+
+    # Search - should merge from both sources
+    results = service.search("test")
+
+    assert len(results) == 2
+    result_ids = {r.id for r in results}
+    assert result_ids == {"source1:tool1", "source2:tool2"}
+
+
+def test_search_handles_source_errors_gracefully(temp_store: ToolsmithStore) -> None:
+    """Test search continues with other sources when one fails."""
+    tool2 = Tool(
+        id="source2:tool2",
+        name="Tool 2",
+        source="source2",
+        source_url="https://example.com/2",
+        tool_type=ToolType.MCP_SERVER,
+        description="Test tool 2",
+    )
+
+    # source1 will raise an error
+    source1 = MockSource("source1", [], search_error=RuntimeError("API error"))
+    # source2 will return results
+    source2 = MockSource("source2", [], search_results=[tool2])
+
+    service = ToolsmithService(temp_store, [source1, source2])
+
+    # Search - should get results from source2 despite source1 error
+    results = service.search("test")
+
+    assert len(results) == 1
+    assert results[0].id == "source2:tool2"
+
+
+def test_search_empty_query_returns_empty(temp_store: ToolsmithStore) -> None:
+    """Test search with empty query returns empty list."""
+    service = ToolsmithService(temp_store, [])
+
+    results = service.search("")
+
+    assert len(results) == 0
+
+
+def test_search_no_sources_returns_empty(temp_store: ToolsmithStore) -> None:
+    """Test search with no sources returns empty list."""
+    service = ToolsmithService(temp_store, [])
+
+    results = service.search("test")
+
+    assert len(results) == 0

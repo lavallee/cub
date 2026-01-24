@@ -2,7 +2,7 @@
 Toolsmith service layer for catalog synchronization and management.
 
 Coordinates sync operations across multiple tool sources, merges results
-into the catalog, and provides catalog statistics.
+into the catalog, and provides catalog statistics and search functionality.
 
 Example:
     # Create service with store and sources
@@ -16,6 +16,12 @@ Example:
 
     # Sync specific sources
     result = service.sync(source_names=["smithery"])
+
+    # Search for tools (local first, then live fallback)
+    results = service.search("linter")
+
+    # Search local catalog only (offline mode)
+    results = service.search("webpack", live_fallback=False)
 
     # Get catalog statistics
     stats = service.stats()
@@ -35,8 +41,9 @@ class ToolsmithService:
     Service layer for toolsmith catalog operations.
 
     Coordinates sync operations across multiple sources, merging tools
-    into the catalog with update-or-insert logic. Provides catalog
-    statistics and handles source errors gracefully.
+    into the catalog with update-or-insert logic. Provides search with
+    optional live fallback, catalog statistics, and handles source errors
+    gracefully.
 
     Example:
         # Initialize with store and sources
@@ -49,6 +56,9 @@ class ToolsmithService:
 
         # Sync specific sources
         result = service.sync(source_names=["smithery"])
+
+        # Search for tools
+        results = service.search("linter")
 
         # Get statistics
         stats = service.stats()
@@ -165,6 +175,62 @@ class ToolsmithService:
             tools_updated=tools_updated,
             errors=errors,
         )
+
+    def search(self, query: str, live_fallback: bool = True) -> list[Tool]:
+        """
+        Search for tools matching the query.
+
+        Searches the local catalog first. If no results are found and
+        live_fallback is enabled, queries all sources directly and merges
+        the results (deduplicated by tool ID).
+
+        Args:
+            query: Search query string (e.g., "javascript linter")
+            live_fallback: If True, query sources when local search returns empty.
+                          If False, only search local catalog. Defaults to True.
+
+        Returns:
+            List of matching Tool objects (empty if no matches)
+
+        Example:
+            # Search local catalog only
+            >>> results = service.search("linter", live_fallback=False)
+
+            # Search local, fall back to live if needed
+            >>> results = service.search("linter")
+
+            # Offline mode
+            >>> results = service.search("webpack", live_fallback=False)
+        """
+        # First, search local catalog
+        local_results = self.store.search(query)
+
+        # If we have local results, return them
+        if local_results:
+            return local_results
+
+        # If no local results and live_fallback is disabled, return empty
+        if not live_fallback:
+            return []
+
+        # No local results and live_fallback enabled: query sources
+        live_results: dict[str, Tool] = {}  # Dedupe by tool ID
+
+        for source in self.sources:
+            try:
+                source_results = source.search_live(query)
+
+                # Merge results, preferring local tools (though we have none)
+                for tool in source_results:
+                    if tool.id not in live_results:
+                        live_results[tool.id] = tool
+
+            except Exception:
+                # Gracefully handle source errors by continuing with other sources
+                # We don't log or raise since this is search, not sync
+                continue
+
+        return list(live_results.values())
 
     def stats(self) -> CatalogStats:
         """

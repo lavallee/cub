@@ -30,13 +30,6 @@ Example:
 """
 
 from cub.core.toolsmith.sources import base as _base
-from cub.core.toolsmith.sources.base import (
-    ToolSource,
-    get_all_sources,
-    get_source,
-    list_sources,
-    register_source,
-)
 
 # Import source implementations to register them
 from cub.core.toolsmith.sources import clawdhub as _clawdhub  # noqa: F401
@@ -44,6 +37,13 @@ from cub.core.toolsmith.sources import glama as _glama  # noqa: F401
 from cub.core.toolsmith.sources import mcp_official as _mcp_official  # noqa: F401
 from cub.core.toolsmith.sources import skillsmp as _skillsmp  # noqa: F401
 from cub.core.toolsmith.sources import smithery as _smithery  # noqa: F401
+from cub.core.toolsmith.sources.base import (
+    ToolSource,
+    get_all_sources,
+    get_source,
+    list_sources,
+    register_source,
+)
 
 # Expose the registry for testing purposes
 _sources = _base._sources

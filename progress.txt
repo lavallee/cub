@@ -6549,3 +6549,41 @@ Sources consulted during research:
 ### Duration
 ~2 hours (as estimated)
 
+
+## 2026-01-24 - Task cub-v9s.1: Implement ToolsmithService sync logic
+
+### What was implemented
+- Created `ToolsmithService` class that orchestrates catalog sync operations
+- Added `SyncResult` model to track tools_added, tools_updated, and errors
+- Added `CatalogStats` model for catalog statistics (total_tools, by_source, by_type, etc.)
+- Implemented `sync()` method with:
+  - Support for syncing all sources or specific sources by name
+  - Update-or-insert merge logic using tool ID as unique key
+  - Automatic last_seen timestamp updates
+  - Graceful error handling (continues with other sources on failure)
+  - sources_synced tracking that preserves history across syncs
+- Implemented `stats()` method for catalog statistics
+- Created comprehensive test suite with 11 test cases covering all edge cases
+- Updated __init__.py to export new models and service
+
+### Design decisions
+- Used tool ID as the unique key for merge logic (not name or other fields)
+- Errors are collected but don't stop the sync process (fail-fast would prevent partial syncs)
+- sources_synced is a union of all previously synced sources (preserves history)
+- last_seen timestamp is updated on every sync to track when tools were last verified
+- Service takes sources as a parameter (dependency injection) for testability
+- SyncResult reports both successes (tools_added, tools_updated) and failures (errors)
+
+### Testing approach
+- Created MockSource class for testing without real API calls
+- Tested all sync scenarios: all sources, specific sources, updates, errors
+- Verified timestamp handling and sources_synced merging
+- Tested stats generation with various catalog states
+- All 102 toolsmith tests pass
+
+### Lessons learned
+- The pattern of storing sources as a Sequence[ToolSource] enables easy testing with mocks
+- Collecting errors in a list allows the sync to continue and report all issues at once
+- Using update-or-insert (upsert) pattern simplifies the merge logic
+- Tracking both added and updated counts helps users understand sync impact
+- Type checking with strict mode caught several edge cases early
