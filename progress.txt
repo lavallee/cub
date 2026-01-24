@@ -7252,3 +7252,32 @@ escalation_path = unique_models if escalated else []
 - Model escalation = unique models > 1 (haiku -> haiku -> sonnet counts as escalation)
 - Legacy fields maintained for backward compatibility
 - TYPE_CHECKING import for forward references avoids circular imports
+
+## Task: cub-l7e.4 - Wire LedgerIntegration into run loop (2026-01-24)
+
+**Objective:** Integrate LedgerIntegration into the run loop to track task lifecycle.
+
+**Implementation:**
+1. Added import for LedgerIntegration in cli/run.py
+2. Instantiated LedgerIntegration right after LedgerWriter creation
+3. Wired lifecycle calls:
+   - on_task_start: After claiming task (before prompt generation)
+   - on_attempt_start: Before harness invocation (with combined prompt)
+   - on_attempt_end: After harness completes (with log content, tokens)
+   - on_task_close: After task success/failure (with drift detection)
+
+**Key Insights:**
+- Attempt number is 1-based, obtained via get_attempt_count() + 1
+- Combined prompt includes both system and task prompts for audit trail
+- Token conversion needed: HarnessResult.TokenUsage → LedgerTokenUsage
+- Error handling: Failed attempts also recorded with error_category
+- Replaced legacy ledger creation (manual LedgerEntry construction) with integration calls
+- Drift detection: Pass current task state from backend for comparison
+
+**Testing:**
+- All 30 ledger integration tests pass
+- No typecheck errors in modified code
+- Lint issues resolved (line length, unused imports)
+
+**Next Steps:**
+- Task cub-l7e.5: Implement `cub ledger show` command for inspection
