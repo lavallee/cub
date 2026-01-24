@@ -77,7 +77,6 @@ def get_default_view_config() -> ViewConfig:
                 id="planned",
                 title="Planned",
                 stages=[Stage.PLANNED],
-                group_by="spec_id",
             ),
             ColumnConfig(
                 id="blocked",

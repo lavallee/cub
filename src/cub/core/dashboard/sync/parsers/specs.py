@@ -234,7 +234,7 @@ class SpecParser:
             updated_at=updated_at,
             completed_at=None,  # Specs don't have completion timestamps
             parent_id=None,  # Specs are top-level entities
-            spec_id=spec.name,  # Self-reference for relationship tracking
+            spec_id=None,  # Specs don't reference other specs
             plan_id=None,  # Will be linked by plan parser
             epic_id=None,  # Not applicable to specs
             cost_usd=None,  # Metrics come from ledger
