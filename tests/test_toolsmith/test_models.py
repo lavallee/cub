@@ -90,7 +90,7 @@ class TestTool:
         """Test that ID with invalid slug characters raises ValueError."""
         with pytest.raises(ValidationError, match="Invalid slug"):
             Tool(
-                id="smithery:filesystem@latest",  # Invalid character '@' in slug
+                id="smithery:filesystem#latest",  # Invalid character '#' in slug
                 name="Filesystem",
                 source="smithery",
                 source_url="https://smitheryjs.com/package/eslint",

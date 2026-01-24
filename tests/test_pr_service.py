@@ -687,3 +687,1058 @@ class TestPRServiceWithStreaming:
         assert "DEBUG" not in content
         # But normal output (PR created) should still be there
         assert "Creating PR" in content
+
+
+class TestPRServiceError:
+    """Tests for PRServiceError exception class."""
+
+    def test_pr_service_error_message(self):
+        """Test PRServiceError can be raised with a message."""
+        from cub.core.pr.service import PRServiceError
+
+        with pytest.raises(PRServiceError) as exc_info:
+            raise PRServiceError("Something went wrong")
+        assert str(exc_info.value) == "Something went wrong"
+
+    def test_pr_service_error_inheritance(self):
+        """Test PRServiceError inherits from Exception."""
+        from cub.core.pr.service import PRServiceError
+
+        assert issubclass(PRServiceError, Exception)
+
+
+class TestPRResult:
+    """Tests for PRResult dataclass."""
+
+    def test_pr_result_creation(self):
+        """Test PRResult can be created with all fields."""
+        from cub.core.pr.service import PRResult
+
+        result = PRResult(
+            url="https://github.com/user/repo/pull/42",
+            number=42,
+            title="My PR",
+            created=True,
+        )
+        assert result.url == "https://github.com/user/repo/pull/42"
+        assert result.number == 42
+        assert result.title == "My PR"
+        assert result.created is True
+
+    def test_pr_result_existing_pr(self):
+        """Test PRResult for an existing PR."""
+        from cub.core.pr.service import PRResult
+
+        result = PRResult(
+            url="https://github.com/user/repo/pull/1",
+            number=1,
+            title="Old PR",
+            created=False,
+        )
+        assert result.created is False
+
+
+class TestMergeResult:
+    """Tests for MergeResult dataclass."""
+
+    def test_merge_result_success(self):
+        """Test MergeResult for successful merge."""
+        from cub.core.pr.service import MergeResult
+
+        result = MergeResult(
+            success=True,
+            pr_number=42,
+            method="squash",
+            branch_deleted=True,
+        )
+        assert result.success is True
+        assert result.pr_number == 42
+        assert result.method == "squash"
+        assert result.branch_deleted is True
+
+    def test_merge_result_no_branch_deletion(self):
+        """Test MergeResult when branch is not deleted."""
+        from cub.core.pr.service import MergeResult
+
+        result = MergeResult(
+            success=True,
+            pr_number=10,
+            method="merge",
+            branch_deleted=False,
+        )
+        assert result.branch_deleted is False
+
+
+class TestPRServiceInitialization:
+    """Tests for PRService initialization."""
+
+    def test_default_initialization(self):
+        """Test PRService can be initialized with defaults."""
+        service = PRService()
+        assert service.project_dir == Path.cwd()
+        assert service._stream_config is not None
+        assert service._branch_store is None
+        assert service._github_client is None
+
+    def test_initialization_with_project_dir(self, tmp_path):
+        """Test PRService can be initialized with project directory."""
+        service = PRService(project_dir=tmp_path)
+        assert service.project_dir == tmp_path
+
+    def test_initialization_with_stream_config(self, tmp_path):
+        """Test PRService can be initialized with stream config."""
+        config = StreamConfig(enabled=True, debug=True)
+        service = PRService(project_dir=tmp_path, stream_config=config)
+        assert service._stream_config.enabled is True
+        assert service._stream_config.debug is True
+
+    def test_branch_store_lazy_init(self, tmp_path):
+        """Test branch_store property initializes BranchStore lazily."""
+        service = PRService(project_dir=tmp_path)
+        assert service._branch_store is None
+        # Access property to trigger initialization
+        store = service.branch_store
+        assert store is not None
+        assert service._branch_store is not None
+
+    def test_github_client_lazy_init(self, tmp_path):
+        """Test github_client property initializes lazily with mocked from_project_dir."""
+        from cub.core.github.models import RepoInfo
+
+        service = PRService(project_dir=tmp_path)
+        assert service._github_client is None
+
+        # Mock from_project_dir to avoid needing real git repo
+        mock_client = GitHubClient(RepoInfo(owner="test", repo="repo"))
+        with patch.object(GitHubClient, "from_project_dir", return_value=mock_client):
+            client = service.github_client
+            assert client is not None
+            assert service._github_client is not None
+
+
+class TestResolveInput:
+    """Tests for PRService.resolve_input method."""
+
+    @pytest.fixture
+    def pr_service(self, tmp_path):
+        """Create a PR service for testing."""
+        return PRService(project_dir=tmp_path)
+
+    def test_resolve_input_none_uses_current_branch(self, pr_service):
+        """Test resolve_input with None uses current branch."""
+        with (
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_current.return_value = "feature/my-feature"
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = True
+
+            result = pr_service.resolve_input(None)
+
+            assert result.type == "branch"
+            assert result.branch == "feature/my-feature"
+
+    def test_resolve_input_none_no_current_branch_raises(self, pr_service):
+        """Test resolve_input with None raises when no current branch."""
+        from cub.core.pr.service import PRServiceError
+
+        with patch(
+            "cub.core.pr.service.BranchStore.get_current_branch"
+        ) as mock_current:
+            mock_current.return_value = None
+
+            with pytest.raises(PRServiceError) as exc_info:
+                pr_service.resolve_input(None)
+            assert "Could not determine current branch" in str(exc_info.value)
+
+    def test_resolve_input_pr_number(self, pr_service):
+        """Test resolve_input with PR number format."""
+        result = pr_service.resolve_input("42")
+        assert result.type == "pr"
+        assert result.pr_number == 42
+
+    def test_resolve_input_pr_number_with_hash(self, pr_service):
+        """Test resolve_input with #PR format."""
+        result = pr_service.resolve_input("#123")
+        assert result.type == "pr"
+        assert result.pr_number == 123
+
+    def test_resolve_input_epic_id_with_binding(self, pr_service):
+        """Test resolve_input with epic ID that has a binding."""
+        from cub.core.branches.models import BranchBinding
+
+        binding = BranchBinding(
+            epic_id="cub-vd6",
+            branch_name="feature/vd6",
+            base_branch="main",
+        )
+        with patch.object(
+            pr_service.branch_store, "get_binding"
+        ) as mock_get_binding:
+            mock_get_binding.return_value = binding
+
+            result = pr_service.resolve_input("cub-vd6")
+
+            assert result.type == "epic"
+            assert result.epic_id == "cub-vd6"
+            assert result.branch == "feature/vd6"
+            assert result.binding == binding
+
+    def test_resolve_input_branch_with_binding(self, pr_service):
+        """Test resolve_input with branch name that has a binding."""
+        from cub.core.branches.models import BranchBinding
+
+        binding = BranchBinding(
+            epic_id="cub-123",
+            branch_name="feature/my-branch",
+            base_branch="develop",
+        )
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+        ):
+            mock_get_binding.return_value = None  # No epic match
+            mock_get_binding_by_branch.return_value = binding
+
+            result = pr_service.resolve_input("feature/my-branch")
+
+            assert result.type == "branch"
+            assert result.branch == "feature/my-branch"
+            assert result.epic_id == "cub-123"
+            assert result.binding == binding
+
+    def test_resolve_input_valid_git_branch(self, pr_service):
+        """Test resolve_input with valid git branch (no binding)."""
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = True
+
+            result = pr_service.resolve_input("feature/unbound")
+
+            assert result.type == "branch"
+            assert result.branch == "feature/unbound"
+            assert result.binding is None
+
+    def test_resolve_input_unbound_epic(self, pr_service):
+        """Test resolve_input with unbound epic ID (assumed)."""
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = False  # Not a valid branch
+
+            result = pr_service.resolve_input("cub-unknown")
+
+            assert result.type == "epic"
+            assert result.epic_id == "cub-unknown"
+            assert result.binding is None
+
+
+class TestCreatePR:
+    """Tests for PRService.create_pr method."""
+
+    @pytest.fixture
+    def mock_github_client(self):
+        """Create a mock GitHub client."""
+        from cub.core.github.models import RepoInfo
+
+        repo = RepoInfo(owner="user", repo="project")
+        return GitHubClient(repo)
+
+    @pytest.fixture
+    def pr_service(self, tmp_path, mock_github_client):
+        """Create a PR service with mocked GitHub client."""
+        service = PRService(tmp_path)
+        service._github_client = mock_github_client
+        return service
+
+    def test_create_pr_existing_pr(self, pr_service):
+        """Test create_pr when PR already exists."""
+        from cub.core.branches.models import BranchBinding
+
+        binding = BranchBinding(
+            epic_id="cub-123",
+            branch_name="feature/test",
+            base_branch="main",
+            pr_number=None,
+        )
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service.branch_store, "update_pr"
+            ) as mock_update_pr,
+        ):
+            mock_get_binding.return_value = binding
+            mock_existing.return_value = {
+                "number": 99,
+                "url": "https://github.com/user/repo/pull/99",
+                "title": "Existing PR",
+            }
+
+            result = pr_service.create_pr(target="cub-123")
+
+            assert result.created is False
+            assert result.number == 99
+            assert result.url == "https://github.com/user/repo/pull/99"
+            mock_update_pr.assert_called_once_with("cub-123", 99)
+
+    def test_create_pr_dry_run(self, pr_service):
+        """Test create_pr in dry_run mode."""
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service.github_client, "needs_push"
+            ) as mock_needs_push,
+            patch.object(
+                pr_service.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(
+                pr_service.github_client, "get_files_changed"
+            ) as mock_files,
+            patch.object(
+                pr_service.github_client, "get_diff_stat"
+            ) as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_existing.return_value = None
+            mock_needs_push.return_value = False
+            mock_current.return_value = "feature/dry-run"
+            mock_exists.return_value = True
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+
+            result = pr_service.create_pr(target="feature/dry-run", dry_run=True)
+
+            assert result.created is True
+            assert result.url == "(dry-run)"
+            assert result.number == 0
+
+    def test_create_pr_needs_push(self, pr_service):
+        """Test create_pr when branch needs push."""
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service.github_client, "needs_push"
+            ) as mock_needs_push,
+            patch.object(
+                pr_service.github_client, "push_branch"
+            ) as mock_push,
+            patch.object(
+                pr_service.github_client, "branch_exists_on_remote"
+            ) as mock_remote,
+            patch.object(
+                pr_service.github_client, "create_pr"
+            ) as mock_create,
+            patch.object(
+                pr_service.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(
+                pr_service.github_client, "get_files_changed"
+            ) as mock_files,
+            patch.object(
+                pr_service.github_client, "get_diff_stat"
+            ) as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_existing.return_value = None
+            mock_needs_push.return_value = True
+            mock_current.return_value = "feature/push"
+            mock_exists.return_value = True
+            mock_remote.return_value = True
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+            mock_create.return_value = {
+                "url": "https://github.com/user/repo/pull/55",
+                "number": 55,
+            }
+
+            result = pr_service.create_pr(target="feature/push")
+
+            mock_push.assert_called_once_with("feature/push")
+            assert result.number == 55
+
+    def test_create_pr_wrong_branch_raises(self, pr_service):
+        """Test create_pr raises when not on expected branch."""
+        from cub.core.pr.service import PRServiceError
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_existing.return_value = None
+            mock_current.return_value = "main"  # Wrong branch
+            mock_exists.return_value = True
+
+            with pytest.raises(PRServiceError) as exc_info:
+                pr_service.create_pr(target="feature/expected")
+
+            assert "Not on expected branch" in str(exc_info.value)
+            assert "main" in str(exc_info.value)
+            assert "feature/expected" in str(exc_info.value)
+
+    def test_create_pr_no_branch_raises(self, pr_service):
+        """Test create_pr raises when no branch can be determined."""
+        from cub.core.pr.service import PRServiceError
+
+        with patch.object(
+            pr_service.branch_store, "get_binding"
+        ) as mock_get_binding:
+            mock_get_binding.return_value = None
+
+            with pytest.raises(PRServiceError) as exc_info:
+                # Unbound epic with no branch
+                mock_resolved = MagicMock(
+                    type="epic",
+                    branch=None,
+                    binding=None,
+                    epic_id="cub-unbound",
+                    pr_number=None,
+                )
+                pr_service.resolve_input = MagicMock(return_value=mock_resolved)
+                pr_service.create_pr(target="cub-unbound")
+
+            assert "No branch found" in str(exc_info.value)
+
+    def test_create_pr_github_error(self, pr_service):
+        """Test create_pr handles GitHub API errors."""
+        from cub.core.github.client import GitHubClientError
+        from cub.core.pr.service import PRServiceError
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_existing,
+            patch.object(
+                pr_service.github_client, "needs_push"
+            ) as mock_needs_push,
+            patch.object(
+                pr_service.github_client, "branch_exists_on_remote"
+            ) as mock_remote,
+            patch.object(
+                pr_service.github_client, "create_pr"
+            ) as mock_create,
+            patch.object(
+                pr_service.github_client, "get_commits_between"
+            ) as mock_commits,
+            patch.object(
+                pr_service.github_client, "get_files_changed"
+            ) as mock_files,
+            patch.object(
+                pr_service.github_client, "get_diff_stat"
+            ) as mock_stat,
+            patch(
+                "cub.core.pr.service.BranchStore.get_current_branch"
+            ) as mock_current,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_existing.return_value = None
+            mock_needs_push.return_value = False
+            mock_current.return_value = "feature/error"
+            mock_exists.return_value = True
+            mock_remote.return_value = True
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+            mock_create.side_effect = GitHubClientError("API rate limit exceeded")
+
+            with pytest.raises(PRServiceError) as exc_info:
+                pr_service.create_pr(target="feature/error")
+
+            assert "API rate limit exceeded" in str(exc_info.value)
+
+    def test_create_pr_with_pr_target_returns_existing(self, pr_service):
+        """Test create_pr with PR number target returns existing PR info."""
+        with patch.object(
+            pr_service.github_client, "get_pr"
+        ) as mock_get_pr:
+            mock_get_pr.return_value = {
+                "number": 42,
+                "url": "https://github.com/user/repo/pull/42",
+                "title": "Existing PR",
+            }
+
+            result = pr_service.create_pr(target="42")
+
+            assert result.created is False
+            assert result.number == 42
+
+
+class TestGetClaudeCIPrompt:
+    """Tests for PRService.get_claude_ci_prompt method."""
+
+    def test_get_claude_ci_prompt_format(self, tmp_path):
+        """Test get_claude_ci_prompt returns properly formatted prompt."""
+        service = PRService(project_dir=tmp_path)
+
+        prompt = service.get_claude_ci_prompt(
+            pr_number=42,
+            branch="feature/ci-test",
+            base="main",
+        )
+
+        assert "PR #42" in prompt
+        assert "feature/ci-test" in prompt
+        assert "main" in prompt
+        assert "gh pr checks" in prompt
+        assert "gh pr view" in prompt
+        assert "ready to merge" in prompt
+
+    def test_get_claude_ci_prompt_different_base(self, tmp_path):
+        """Test get_claude_ci_prompt with different base branch."""
+        service = PRService(project_dir=tmp_path)
+
+        prompt = service.get_claude_ci_prompt(
+            pr_number=100,
+            branch="hotfix/urgent",
+            base="develop",
+        )
+
+        assert "PR #100" in prompt
+        assert "hotfix/urgent" in prompt
+        assert "develop" in prompt
+
+
+class TestMergePR:
+    """Tests for PRService.merge_pr method."""
+
+    @pytest.fixture
+    def mock_github_client(self):
+        """Create a mock GitHub client."""
+        from cub.core.github.models import RepoInfo
+
+        repo = RepoInfo(owner="user", repo="project")
+        return GitHubClient(repo)
+
+    @pytest.fixture
+    def pr_service(self, tmp_path, mock_github_client):
+        """Create a PR service with mocked GitHub client."""
+        service = PRService(tmp_path)
+        service._github_client = mock_github_client
+        return service
+
+    def test_merge_pr_success(self, pr_service):
+        """Test merge_pr successful merge."""
+        from cub.core.branches.models import BranchBinding
+
+        binding = BranchBinding(
+            epic_id="cub-merge",
+            branch_name="feature/to-merge",
+            base_branch="main",
+            pr_number=77,
+        )
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch.object(
+                pr_service.github_client, "get_pr_checks"
+            ) as mock_checks,
+            patch.object(
+                pr_service.github_client, "merge_pr"
+            ) as mock_merge,
+            patch.object(
+                pr_service.branch_store, "update_status"
+            ) as mock_update_status,
+            patch("cub.core.pr.service._find_worktree_for_branch") as mock_find_wt,
+            patch("cub.core.pr.service._prune_remote_tracking") as mock_prune,
+            patch("subprocess.run") as mock_subprocess,
+        ):
+            mock_get_binding.return_value = binding
+            mock_get_pr.return_value = {
+                "number": 77,
+                "state": "OPEN",
+                "mergeable": True,
+            }
+            mock_checks.return_value = [
+                {"name": "tests", "status": "completed", "conclusion": "success"}
+            ]
+            mock_find_wt.return_value = None
+            mock_prune.return_value = True
+            mock_subprocess.return_value = MagicMock(
+                returncode=0, stdout="main\n", stderr=""
+            )
+
+            result = pr_service.merge_pr(target="cub-merge")
+
+            assert result.success is True
+            assert result.pr_number == 77
+            assert result.method == "squash"
+            mock_merge.assert_called_once()
+            mock_update_status.assert_called_once_with("cub-merge", "merged")
+
+    def test_merge_pr_already_merged(self, pr_service):
+        """Test merge_pr when PR is already merged."""
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = False
+            mock_get_pr.return_value = {
+                "number": 50,
+                "state": "MERGED",
+            }
+
+            result = pr_service.merge_pr(target="50")
+
+            assert result.success is True
+            assert result.pr_number == 50
+            assert result.branch_deleted is True  # Assumed deleted when merged
+
+    def test_merge_pr_closed_raises(self, pr_service):
+        """Test merge_pr raises when PR is closed (not merged)."""
+        from cub.core.pr.service import PRServiceError
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = False
+            mock_get_pr.return_value = {
+                "number": 60,
+                "state": "CLOSED",
+            }
+
+            with pytest.raises(PRServiceError) as exc_info:
+                pr_service.merge_pr(target="60")
+
+            assert "PR #60 is closed" in str(exc_info.value)
+
+    def test_merge_pr_dry_run(self, pr_service):
+        """Test merge_pr in dry_run mode."""
+        from cub.core.branches.models import BranchBinding
+
+        binding = BranchBinding(
+            epic_id="cub-dry",
+            branch_name="feature/dry",
+            base_branch="main",
+            pr_number=88,
+        )
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch.object(
+                pr_service.github_client, "get_pr_checks"
+            ) as mock_checks,
+            patch.object(
+                pr_service.github_client, "merge_pr"
+            ) as mock_merge,
+        ):
+            mock_get_binding.return_value = binding
+            mock_get_pr.return_value = {
+                "number": 88,
+                "state": "OPEN",
+                "mergeable": True,
+            }
+            mock_checks.return_value = []
+
+            result = pr_service.merge_pr(target="cub-dry", dry_run=True)
+
+            assert result.success is True
+            assert result.pr_number == 88
+            mock_merge.assert_not_called()  # Should not actually merge
+
+    def test_merge_pr_no_pr_found_raises(self, pr_service):
+        """Test merge_pr raises when no PR found."""
+        from cub.core.pr.service import PRServiceError
+
+        with (
+            patch.object(
+                pr_service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                pr_service.branch_store, "get_binding_by_branch"
+            ) as mock_get_binding_by_branch,
+            patch.object(
+                pr_service.github_client, "get_pr_by_branch"
+            ) as mock_get_pr_by_branch,
+            patch(
+                "cub.core.pr.service.BranchStore.git_branch_exists"
+            ) as mock_exists,
+        ):
+            mock_get_binding.return_value = None
+            mock_get_binding_by_branch.return_value = None
+            mock_exists.return_value = True
+            mock_get_pr_by_branch.return_value = None
+
+            with pytest.raises(PRServiceError) as exc_info:
+                pr_service.merge_pr(target="feature/no-pr")
+
+            assert "No PR found" in str(exc_info.value)
+
+    def test_merge_pr_with_failed_checks_warns(self, pr_service):
+        """Test merge_pr warns about failed checks but proceeds."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        from cub.core.branches.models import BranchBinding
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        service = PRService(
+            project_dir=pr_service.project_dir,
+            stream_config=StreamConfig(console=console),
+        )
+        service._github_client = pr_service._github_client
+
+        binding = BranchBinding(
+            epic_id="cub-warn",
+            branch_name="feature/warn",
+            base_branch="main",
+            pr_number=99,
+        )
+
+        with (
+            patch.object(
+                service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch.object(
+                service.github_client, "get_pr_checks"
+            ) as mock_checks,
+            patch.object(service.github_client, "merge_pr"),
+            patch.object(service.branch_store, "update_status"),
+            patch("cub.core.pr.service._find_worktree_for_branch") as mock_find_wt,
+            patch("cub.core.pr.service._prune_remote_tracking") as mock_prune,
+            patch("subprocess.run") as mock_subprocess,
+        ):
+            mock_get_binding.return_value = binding
+            mock_get_pr.return_value = {
+                "number": 99,
+                "state": "OPEN",
+                "mergeable": True,
+            }
+            mock_checks.return_value = [
+                {"name": "tests", "status": "completed", "conclusion": "failure"},
+                {"name": "lint", "status": "completed", "conclusion": "success"},
+            ]
+            mock_find_wt.return_value = None
+            mock_prune.return_value = True
+            mock_subprocess.return_value = MagicMock(
+                returncode=0, stdout="main\n", stderr=""
+            )
+
+            service.merge_pr(target="cub-warn")
+
+            output.seek(0)
+            content = output.read()
+            assert "Warning" in content or "failed" in content.lower()
+
+    def test_merge_pr_with_pending_checks_warns(self, pr_service):
+        """Test merge_pr warns about pending checks."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        from cub.core.branches.models import BranchBinding
+
+        output = StringIO()
+        console = Console(file=output, force_terminal=True)
+        service = PRService(
+            project_dir=pr_service.project_dir,
+            stream_config=StreamConfig(console=console),
+        )
+        service._github_client = pr_service._github_client
+
+        binding = BranchBinding(
+            epic_id="cub-pending",
+            branch_name="feature/pending",
+            base_branch="main",
+            pr_number=101,
+        )
+
+        with (
+            patch.object(
+                service.branch_store, "get_binding"
+            ) as mock_get_binding,
+            patch.object(
+                service.github_client, "get_pr"
+            ) as mock_get_pr,
+            patch.object(
+                service.github_client, "get_pr_checks"
+            ) as mock_checks,
+            patch.object(service.github_client, "merge_pr"),
+            patch.object(service.branch_store, "update_status"),
+            patch("cub.core.pr.service._find_worktree_for_branch") as mock_find_wt,
+            patch("cub.core.pr.service._prune_remote_tracking") as mock_prune,
+            patch("subprocess.run") as mock_subprocess,
+        ):
+            mock_get_binding.return_value = binding
+            mock_get_pr.return_value = {
+                "number": 101,
+                "state": "OPEN",
+                "mergeable": True,
+            }
+            mock_checks.return_value = [
+                {"name": "tests", "status": "in_progress", "conclusion": None},
+            ]
+            mock_find_wt.return_value = None
+            mock_prune.return_value = True
+            mock_subprocess.return_value = MagicMock(
+                returncode=0, stdout="main\n", stderr=""
+            )
+
+            service.merge_pr(target="cub-pending")
+
+            output.seek(0)
+            content = output.read()
+            assert "pending" in content.lower() or "Warning" in content
+
+
+class TestWorktreeHelperExceptions:
+    """Additional tests for worktree helper edge cases."""
+
+    def test_find_worktree_oserror(self, tmp_path):
+        """Test _find_worktree_for_branch handles OSError."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = OSError("git not available")
+            result = _find_worktree_for_branch(tmp_path, "main")
+        assert result is None
+
+    def test_update_worktree_oserror(self, tmp_path):
+        """Test _update_worktree handles OSError."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("git not found")
+            result = _update_worktree(tmp_path)
+        assert result is False
+
+    def test_delete_local_branch_oserror(self, tmp_path):
+        """Test _delete_local_branch handles OSError."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = OSError("git not available")
+            result = _delete_local_branch(tmp_path, "feature")
+        assert result is False
+
+    def test_prune_remote_tracking_oserror(self, tmp_path):
+        """Test _prune_remote_tracking handles OSError."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("git not found")
+            result = _prune_remote_tracking(tmp_path)
+        assert result is False
+
+
+class TestGeneratePRBodyEdgeCases:
+    """Additional tests for generate_pr_body edge cases."""
+
+    @pytest.fixture
+    def mock_github_client(self):
+        """Create a mock GitHub client."""
+        from cub.core.github.models import RepoInfo
+
+        repo = RepoInfo(owner="user", repo="project")
+        return GitHubClient(repo)
+
+    @pytest.fixture
+    def pr_service(self, tmp_path, mock_github_client):
+        """Create a PR service with mocked GitHub client."""
+        service = PRService(tmp_path)
+        service._github_client = mock_github_client
+        return service
+
+    def test_generate_pr_body_with_completed_tasks(self, pr_service):
+        """Test PR body includes completed tasks from beads."""
+
+        def mock_subprocess_run(cmd, **kwargs):
+            if cmd[0] == "bd" and cmd[1] == "show":
+                return MagicMock(
+                    returncode=0,
+                    stdout='{"title": "Epic", "description": ""}',
+                )
+            elif cmd[0] == "bd" and cmd[1] == "list":
+                tasks = '[{"id": "task-1", "title": "Task 1"}, '
+                tasks += '{"id": "task-2", "title": "Task 2"}]'
+                return MagicMock(returncode=0, stdout=tasks)
+            return MagicMock(returncode=1)
+
+        with (
+            patch("subprocess.run", side_effect=mock_subprocess_run),
+            patch.object(pr_service.github_client, "get_commits_between") as mock_commits,
+            patch.object(pr_service.github_client, "get_files_changed") as mock_files,
+            patch.object(pr_service.github_client, "get_diff_stat") as mock_stat,
+        ):
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+
+            body = pr_service.generate_pr_body("epic-123", "feature", "main")
+
+            assert "### Completed Tasks" in body
+            assert "task-1" in body
+            assert "Task 1" in body
+            assert "task-2" in body
+
+    def test_generate_pr_body_bd_json_error(self, pr_service):
+        """Test PR body handles bd JSON parse errors gracefully."""
+
+        def mock_subprocess_run(cmd, **kwargs):
+            if cmd[0] == "bd":
+                return MagicMock(
+                    returncode=0,
+                    stdout="invalid json",
+                )
+            return MagicMock(returncode=1)
+
+        with (
+            patch("subprocess.run", side_effect=mock_subprocess_run),
+            patch.object(pr_service.github_client, "get_commits_between") as mock_commits,
+            patch.object(pr_service.github_client, "get_files_changed") as mock_files,
+            patch.object(pr_service.github_client, "get_diff_stat") as mock_stat,
+        ):
+            mock_commits.return_value = []
+            mock_files.return_value = {"added": [], "modified": [], "deleted": []}
+            mock_stat.return_value = {"files": 0, "insertions": 0, "deletions": 0}
+
+            # Should not raise, should handle gracefully
+            body = pr_service.generate_pr_body("epic-123", "feature", "main")
+
+            assert "## Summary" in body
+
+    def test_format_file_list_custom_max(self, pr_service):
+        """Test _format_file_list with custom max_files."""
+        files = [f"file{i}.py" for i in range(10)]
+        result = pr_service._format_file_list(files, max_files=5)
+
+        assert len(result) == 6  # 5 files + "... and 5 more"
+        assert result[-1] == "... and 5 more"
+
+    def test_format_file_list_exact_max(self, pr_service):
+        """Test _format_file_list with exactly max_files files."""
+        files = [f"file{i}.py" for i in range(10)]
+        result = pr_service._format_file_list(files, max_files=10)
+
+        assert len(result) == 10
+        assert "more" not in result[-1]

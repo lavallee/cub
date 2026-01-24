@@ -419,7 +419,7 @@ def adopted() -> None:
     """List adopted tools for this project."""
     try:
         store = AdoptionStore.default()
-        adopted_tools = store.list()
+        adopted_tools = store.list_all()
         if not adopted_tools:
             console.print()
             console.print(Panel(Text("No adopted tools yet."), border_style="yellow", expand=False))

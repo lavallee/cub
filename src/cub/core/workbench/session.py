@@ -42,7 +42,7 @@ def _read_spec_frontmatter(path: Path) -> dict[str, Any]:
 
 
 def _pick_adopted_tool(preferred_ids: list[str]) -> str | None:
-    adopted = AdoptionStore.default().list()
+    adopted = AdoptionStore.default().list_all()
     adopted_ids = {a.tool_id for a in adopted}
     for tid in preferred_ids:
         if tid in adopted_ids:

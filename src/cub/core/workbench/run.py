@@ -54,7 +54,7 @@ def run_next_move(*, session_path: Path) -> RunNextResult:
         # adopted tool matching the expected default.
         from cub.core.toolsmith.adoption import AdoptionStore
 
-        adopted_ids = {a.tool_id for a in AdoptionStore.default().list()}
+        adopted_ids = {a.tool_id for a in AdoptionStore.default().list_all()}
         if "mcp-official:brave-search" in adopted_ids:
             tool_id = "mcp-official:brave-search"
             next_move["tool_id"] = tool_id

@@ -33,7 +33,7 @@ class AdoptionStore:
         self.toolsmith_dir = Path(toolsmith_dir)
         self.adopted_file = self.toolsmith_dir / "adopted.json"
 
-    def list(self) -> list[AdoptedTool]:
+    def list_all(self) -> list[AdoptedTool]:
         if not self.adopted_file.exists():
             return []
         return [
@@ -49,7 +49,7 @@ class AdoptionStore:
         self.adopted_file.write_text(json_str, encoding="utf-8")
 
     def adopt(self, tool_id: str, note: str | None = None) -> AdoptedTool:
-        adopted = self.list()
+        adopted = self.list_all()
         existing = next((a for a in adopted if a.tool_id == tool_id), None)
         if existing is not None:
             # Update note if provided, keep timestamp.
