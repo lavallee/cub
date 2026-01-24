@@ -207,7 +207,7 @@ def detect_async_harness(
     Detection order:
     1. HARNESS environment variable (if set and not 'auto')
     2. Priority list (if provided)
-    3. Default detection order: claude > codex > claude-legacy > openai > gemini > local
+    3. Default detection order: claude-sdk > codex > claude-cli > openai > gemini > local
 
     Only returns harnesses that are both:
     - Available (SDK/CLI installed)
@@ -243,11 +243,11 @@ def detect_async_harness(
                     continue
 
     # Default detection order
-    # Priority: claude (SDK) > codex > claude-legacy > openai > gemini > local
+    # Priority: claude-sdk > codex > claude-cli > openai > gemini > local
     default_priority = [
-        "claude",  # SDK-based (preferred)
+        "claude-sdk",  # SDK-based (preferred)
         "codex",  # Shell-out but primary implementation
-        "claude-legacy",  # Shell-out legacy fallback
+        "claude-cli",  # CLI shell-out fallback
         "openai",
         "gemini",
         "local",

@@ -17,19 +17,19 @@ A harness adapts an AI coding assistant's CLI to work with cub's autonomous loop
 | Harness | Name | CLI Binary | Documentation |
 |---------|------|------------|---------------|
 | [Claude Code (SDK)](claude.md) | `claude` | `claude` | [github.com/anthropics/claude-code](https://github.com/anthropics/claude-code) |
-| [Claude Code (Legacy)](claude.md#legacy-backend) | `claude-legacy` | `claude` | Shell-out mode for compatibility |
+| [Claude Code (CLI)](claude.md#cli-backend) | `claude-cli` | `claude` | Shell-out mode for compatibility |
 | [Codex](codex.md) | `codex` | `codex` | [github.com/openai/codex](https://github.com/openai/codex) |
 | [Gemini](gemini.md) | `gemini` | `gemini` | [github.com/google/gemini-cli](https://github.com/google/gemini-cli) |
 | [OpenCode](opencode.md) | `opencode` | `opencode` | [github.com/sst/opencode](https://github.com/sst/opencode) |
 
-!!! note "Claude Code SDK (v0.24+)"
-    The default `claude` harness now uses the Claude Agent SDK for full hook support and better integration. Use `claude-legacy` for the previous shell-out behavior.
+!!! note "Claude Code SDK vs CLI"
+    The default `claude` harness uses the Claude Agent SDK for full hook support and better integration. Use `claude-cli` explicitly for the shell-out approach (simpler deployment, no SDK dependencies).
 
 ## Capability Matrix
 
 Different harnesses have different features. Cub adapts its behavior based on what each harness supports.
 
-| Capability | Claude (SDK) | Claude (Legacy) | Codex | Gemini | OpenCode |
+| Capability | Claude (SDK) | Claude (CLI) | Codex | Gemini | OpenCode |
 |------------|:------------:|:---------------:|:-----:|:------:|:--------:|
 | **streaming** | :white_check_mark: | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: |
 | **token_reporting** | :white_check_mark: | :white_check_mark: | :x: | :x:* | :white_check_mark: |

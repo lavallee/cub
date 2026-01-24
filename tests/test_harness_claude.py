@@ -1,38 +1,26 @@
 """
-Tests for Claude harness backend (legacy).
+Tests for Claude CLI harness backend.
 """
 
 import json
-import warnings
 from unittest.mock import MagicMock, Mock, patch
 
 from cub.core.harness import get_backend, is_backend_available
-from cub.core.harness.claude import ClaudeLegacyBackend
+from cub.core.harness.claude_cli import ClaudeCLIBackend
 
 
-class TestClaudeLegacyBackend:
-    """Tests for ClaudeLegacyBackend."""
+class TestClaudeCLIBackend:
+    """Tests for ClaudeCLIBackend."""
 
     @staticmethod
     def _create_backend():
-        """Create a backend instance with deprecation warnings suppressed."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            return ClaudeLegacyBackend()
+        """Create a backend instance."""
+        return ClaudeCLIBackend()
 
     def test_name(self):
-        """Test backend name is 'claude-legacy'."""
+        """Test backend name is 'claude-cli'."""
         backend = self._create_backend()
-        assert backend.name == "claude-legacy"
-
-    def test_deprecation_warning(self):
-        """Test that deprecation warning is emitted on instantiation."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            _ = ClaudeLegacyBackend()
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "deprecated" in str(w[0].message).lower()
+        assert backend.name == "claude-cli"
 
     def test_capabilities(self):
         """Test Claude supports all major capabilities."""
@@ -46,7 +34,7 @@ class TestClaudeLegacyBackend:
         assert caps.json_output is True
         assert caps.model_selection is True
 
-    @patch("cub.core.harness.claude.shutil.which")
+    @patch("cub.core.harness.claude_cli.shutil.which")
     def test_is_available_when_installed(self, mock_which):
         """Test is_available returns True when claude is in PATH."""
         mock_which.return_value = "/usr/local/bin/claude"
@@ -55,7 +43,7 @@ class TestClaudeLegacyBackend:
         assert backend.is_available() is True
         mock_which.assert_called_once_with("claude")
 
-    @patch("cub.core.harness.claude.shutil.which")
+    @patch("cub.core.harness.claude_cli.shutil.which")
     def test_is_available_when_not_installed(self, mock_which):
         """Test is_available returns False when claude not in PATH."""
         mock_which.return_value = None
@@ -225,21 +213,19 @@ class TestClaudeLegacyBackend:
         assert version == "unknown"
 
 
-class TestClaudeLegacyBackendRegistry:
-    """Test Claude legacy backend is registered correctly."""
+class TestClaudeCLIBackendRegistry:
+    """Test Claude CLI backend is registered correctly."""
 
-    @patch("cub.core.harness.claude.shutil.which")
+    @patch("cub.core.harness.claude_cli.shutil.which")
     def test_backend_registered(self, mock_which):
-        """Test Claude legacy backend can be retrieved from registry."""
+        """Test Claude CLI backend can be retrieved from registry."""
         mock_which.return_value = "/usr/local/bin/claude"
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            backend = get_backend("claude-legacy")
-        assert backend.name == "claude-legacy"
+        backend = get_backend("claude-cli")
+        assert backend.name == "claude-cli"
 
-    @patch("cub.core.harness.claude.shutil.which")
+    @patch("cub.core.harness.claude_cli.shutil.which")
     def test_backend_available_when_claude_installed(self, mock_which):
         """Test backend is reported as available when claude CLI exists."""
         mock_which.return_value = "/usr/local/bin/claude"
-        assert is_backend_available("claude-legacy") is True
+        assert is_backend_available("claude-cli") is True

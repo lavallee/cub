@@ -6,13 +6,13 @@ Claude Code is the most full-featured harness, supporting all capabilities inclu
     Cub now offers two Claude backends:
 
     - **`claude`** (default): Uses Claude Agent SDK for full hook support
-    - **`claude-legacy`**: Uses shell-out mode for compatibility
+    - **`claude-cli`**: Uses shell-out mode for compatibility
 
     The SDK backend is recommended for new projects.
 
 ## Capabilities
 
-| Capability | SDK (`claude`) | Legacy (`claude-legacy`) |
+| Capability | SDK (`claude`) | CLI (`claude-cli`) |
 |------------|:--------------:|:------------------------:|
 | streaming | :white_check_mark: | :white_check_mark: |
 | token_reporting | :white_check_mark: | :white_check_mark: |
@@ -288,28 +288,28 @@ For more details, see the [Hooks System](../hooks/index.md) guide.
 
 ---
 
-## Legacy Backend
+## CLI Backend
 
-The legacy backend (`claude-legacy`) uses shell-out mode, invoking Claude Code as a subprocess. Use this for:
+The CLI backend (`claude-cli`) uses shell-out mode, invoking Claude Code as a subprocess. Use this for:
 
 - Compatibility with older environments
 - Troubleshooting SDK integration issues
 - Simpler deployments without SDK dependencies
 
-### Selecting Legacy Mode
+### Selecting CLI Mode
 
 ```bash
 # Via CLI flag
-cub run --harness claude-legacy
+cub run --harness claude-cli
 
 # Via environment variable
-HARNESS=claude-legacy cub run
+HARNESS=claude-cli cub run
 
 # Via config
 # .cub.json
 {
   "harness": {
-    "default": "claude-legacy"
+    "default": "claude-cli"
   }
 }
 ```
@@ -324,5 +324,5 @@ HARNESS=claude-legacy cub run
 | Execution | In-process async | Subprocess |
 | Streaming | Async generator | Line-buffered |
 
-!!! warning "Deprecation Notice"
-    The legacy backend is deprecated and will be removed in a future version. Migrate to the SDK backend for continued support.
+!!! note "When to use CLI backend"
+    The CLI backend is maintained for compatibility and simpler deployments. Use it when you don't need hooks, custom tools, or session support.

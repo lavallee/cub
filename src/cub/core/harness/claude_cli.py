@@ -1,12 +1,11 @@
 """
-Claude Code harness backend implementation (legacy shell-out).
+Claude Code harness backend implementation (CLI shell-out).
 
 This backend wraps the `claude` CLI tool for AI coding assistance with full
 streaming support, token reporting, and model selection.
 
-DEPRECATED: Use the SDK-based harness (claude_sdk.py) for new code.
-This legacy harness is provided for backward compatibility and will be
-removed in a future version.
+Use 'claude-cli' to explicitly select this backend, or 'claude-sdk' for the
+SDK-based harness. The alias 'claude' defaults to 'claude-sdk'.
 """
 
 import asyncio
@@ -16,7 +15,6 @@ import os
 import shutil
 import subprocess
 import time
-import warnings
 from collections.abc import AsyncIterator, Callable
 
 from .async_backend import register_async_backend
@@ -35,14 +33,15 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-@register_backend("claude-legacy")
-@register_async_backend("claude-legacy")
-class ClaudeLegacyBackend:
+@register_backend("claude-cli")
+@register_async_backend("claude-cli")
+class ClaudeCLIBackend:
     """
-    Claude Code legacy harness backend (shell-out).
+    Claude Code CLI harness backend (shell-out).
 
-    DEPRECATED: Use ClaudeSDKBackend for new code. This legacy harness
-    wraps the `claude` CLI tool with async compatibility via asyncio.to_thread().
+    Wraps the `claude` CLI tool with async compatibility via asyncio.to_thread().
+    For SDK features like hooks, custom tools, and stateful sessions, use
+    ClaudeSDKBackend (harness='claude-sdk' or 'claude').
 
     Features:
     - Full streaming support via --output-format stream-json
@@ -54,19 +53,13 @@ class ClaudeLegacyBackend:
     """
 
     def __init__(self) -> None:
-        """Initialize and emit deprecation warning."""
-        warnings.warn(
-            "ClaudeLegacyBackend is deprecated. Use ClaudeSDKBackend (harness='claude') "
-            "for SDK features like hooks, custom tools, and stateful sessions. "
-            "Legacy harness will be removed in a future version.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        """Initialize the CLI backend."""
+        pass
 
     @property
     def name(self) -> str:
-        """Return 'claude-legacy' as the harness name."""
-        return "claude-legacy"
+        """Return 'claude-cli' as the harness name."""
+        return "claude-cli"
 
     @property
     def capabilities(self) -> HarnessCapabilities:

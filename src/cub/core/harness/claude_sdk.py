@@ -4,6 +4,10 @@ Claude SDK harness backend implementation.
 This backend wraps the Claude Agent SDK for AI coding assistance with full
 async support, hooks, custom tools, and native streaming.
 
+Use 'claude-sdk' or 'claude' to select this backend. The 'claude' alias
+defaults to this SDK-based implementation. For the CLI shell-out approach,
+use 'claude-cli' explicitly.
+
 Requires:
     - claude-agent-sdk Python package (pip install claude-agent-sdk)
     - Claude Code CLI (bundled with the package)
@@ -215,8 +219,9 @@ def _extract_text_from_message(sdk_message: Any) -> str:
     return "".join(text_parts)
 
 
-@register_async_backend("claude")
-class ClaudeSDKHarness:
+@register_async_backend("claude-sdk")
+@register_async_backend("claude")  # Alias: 'claude' defaults to SDK backend
+class ClaudeSDKBackend:
     """
     Claude SDK harness backend.
 
@@ -241,8 +246,8 @@ class ClaudeSDKHarness:
 
     @property
     def name(self) -> str:
-        """Return 'claude' as the harness name."""
-        return "claude"
+        """Return 'claude-sdk' as the harness name."""
+        return "claude-sdk"
 
     @property
     def capabilities(self) -> HarnessCapabilities:

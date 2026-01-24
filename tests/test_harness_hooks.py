@@ -2,8 +2,8 @@
 Tests for harness hook system.
 
 Tests hook registration, execution, and blocking behavior for:
-- ClaudeSDKHarness (full hook support)
-- ClaudeLegacyBackend (no-op hooks)
+- ClaudeSDKBackend (full hook support)
+- ClaudeCLIBackend (no-op hooks)
 - CodexBackend (no-op hooks)
 """
 
@@ -23,7 +23,7 @@ from cub.core.harness import (
 # Skip SDK tests if claude-agent-sdk is not installed
 pytest.importorskip("claude_agent_sdk")
 
-from cub.core.harness.claude_sdk import ClaudeSDKHarness
+from cub.core.harness.claude_sdk import ClaudeSDKBackend
 
 
 class TestHookTypes:
@@ -85,12 +85,12 @@ class TestHookTypes:
         assert result.reason == "Budget exceeded"
 
 
-class TestClaudeSDKHarnessHooks:
-    """Tests for ClaudeSDKHarness hook system."""
+class TestClaudeSDKBackendHooks:
+    """Tests for ClaudeSDKBackend hook system."""
 
     def test_harness_initializes_empty_hooks(self) -> None:
         """Test harness initializes with empty hook registry."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         for event in HookEvent:
             assert event in harness._hooks
@@ -98,7 +98,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_register_hook(self) -> None:
         """Test registering a hook handler."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def my_hook(ctx: HookContext) -> HookResult | None:
             return None
@@ -110,7 +110,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_register_multiple_hooks(self) -> None:
         """Test registering multiple hooks for same event."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def hook1(ctx: HookContext) -> HookResult | None:
             return None
@@ -127,7 +127,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_unregister_hook(self) -> None:
         """Test unregistering a hook handler."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def my_hook(ctx: HookContext) -> HookResult | None:
             return None
@@ -142,7 +142,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_unregister_nonexistent_hook(self) -> None:
         """Test unregistering a hook that doesn't exist."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def my_hook(ctx: HookContext) -> HookResult | None:
             return None
@@ -153,7 +153,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_clear_hooks_for_event(self) -> None:
         """Test clearing hooks for a specific event."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def hook1(ctx: HookContext) -> HookResult | None:
             return None
@@ -171,7 +171,7 @@ class TestClaudeSDKHarnessHooks:
 
     def test_clear_all_hooks(self) -> None:
         """Test clearing all hooks."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def hook1(ctx: HookContext) -> HookResult | None:
             return None
@@ -188,7 +188,7 @@ class TestClaudeSDKHarnessHooks:
     @pytest.mark.asyncio
     async def test_execute_hooks_no_handlers(self) -> None:
         """Test executing hooks when no handlers registered."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         context = HookContext(event=HookEvent.PRE_TASK)
 
         result = await harness._execute_hooks(HookEvent.PRE_TASK, context)
@@ -198,7 +198,7 @@ class TestClaudeSDKHarnessHooks:
     @pytest.mark.asyncio
     async def test_execute_hooks_allow(self) -> None:
         """Test executing hooks that allow the action."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         called = []
 
         async def allowing_hook(ctx: HookContext) -> HookResult | None:
@@ -216,7 +216,7 @@ class TestClaudeSDKHarnessHooks:
     @pytest.mark.asyncio
     async def test_execute_hooks_block(self) -> None:
         """Test executing hooks that block the action."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def blocking_hook(ctx: HookContext) -> HookResult:
             return HookResult(block=True, reason="Test block")
@@ -232,7 +232,7 @@ class TestClaudeSDKHarnessHooks:
     @pytest.mark.asyncio
     async def test_execute_hooks_stops_on_block(self) -> None:
         """Test that hook execution stops when a hook blocks."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         called = []
 
         async def first_hook(ctx: HookContext) -> HookResult:
@@ -254,7 +254,7 @@ class TestClaudeSDKHarnessHooks:
     @pytest.mark.asyncio
     async def test_execute_hooks_continues_on_exception(self) -> None:
         """Test that hook execution continues if a hook raises exception."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         called = []
 
         async def failing_hook(ctx: HookContext) -> HookResult | None:
@@ -275,13 +275,13 @@ class TestClaudeSDKHarnessHooks:
         assert result.block is False
 
 
-class TestClaudeSDKHarnessRunTaskHooks:
+class TestClaudeSDKBackendRunTaskHooks:
     """Tests for hook execution in run_task."""
 
     @pytest.mark.asyncio
     async def test_run_task_pre_task_hook_blocks(self) -> None:
         """Test that PRE_TASK hook can block task execution."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def blocking_hook(ctx: HookContext) -> HookResult:
             return HookResult(block=True, reason="Budget exceeded")
@@ -301,7 +301,7 @@ class TestClaudeSDKHarnessRunTaskHooks:
         from claude_agent_sdk import AssistantMessage, ResultMessage
         from claude_agent_sdk.types import TextBlock
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         pre_task_called = []
 
         async def allowing_hook(ctx: HookContext) -> HookResult | None:
@@ -345,7 +345,7 @@ class TestClaudeSDKHarnessRunTaskHooks:
         from claude_agent_sdk import AssistantMessage, ResultMessage
         from claude_agent_sdk.types import TextBlock
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         post_task_called = []
 
         async def post_hook(ctx: HookContext) -> HookResult | None:
@@ -389,7 +389,7 @@ class TestClaudeSDKHarnessRunTaskHooks:
         """Test that ON_ERROR hook executes on error."""
         from claude_agent_sdk import CLINotFoundError
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         error_contexts = []
 
         async def error_hook(ctx: HookContext) -> HookResult | None:
@@ -415,13 +415,13 @@ class TestClaudeSDKHarnessRunTaskHooks:
             assert error_contexts[0].error is not None
 
 
-class TestClaudeSDKHarnessStreamTaskHooks:
+class TestClaudeSDKBackendStreamTaskHooks:
     """Tests for hook execution in stream_task."""
 
     @pytest.mark.asyncio
     async def test_stream_task_pre_task_hook_blocks(self) -> None:
         """Test that PRE_TASK hook can block stream_task."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def blocking_hook(ctx: HookContext) -> HookResult:
             return HookResult(block=True, reason="Rate limited")
@@ -440,18 +440,18 @@ class TestLegacyHarnessNoOpHooks:
     """Tests for no-op hook support in legacy harnesses."""
 
     def test_claude_legacy_register_hook_logs_warning(self) -> None:
-        """Test that ClaudeLegacyBackend logs warning on hook registration."""
+        """Test that ClaudeCLIBackend logs warning on hook registration."""
         # Suppress deprecation warning for this test
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            from cub.core.harness.claude import ClaudeLegacyBackend
+            from cub.core.harness.claude_cli import ClaudeCLIBackend
 
-            harness = ClaudeLegacyBackend()
+            harness = ClaudeCLIBackend()
 
         async def my_hook(ctx: HookContext) -> HookResult | None:
             return None
 
-        with patch("cub.core.harness.claude.logger") as mock_logger:
+        with patch("cub.core.harness.claude_cli.logger") as mock_logger:
             harness.register_hook(HookEvent.PRE_TASK, my_hook)
 
             mock_logger.warning.assert_called_once()
@@ -480,7 +480,7 @@ class TestToolLevelHooksWarning:
 
     def test_register_pre_tool_use_warns(self) -> None:
         """Test that registering PRE_TOOL_USE logs a warning."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def tool_hook(ctx: HookContext) -> HookResult | None:
             return None
@@ -495,7 +495,7 @@ class TestToolLevelHooksWarning:
 
     def test_register_post_tool_use_warns(self) -> None:
         """Test that registering POST_TOOL_USE logs a warning."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def tool_hook(ctx: HookContext) -> HookResult | None:
             return None

@@ -131,15 +131,15 @@ def register_backend(name: str) -> Callable[[type[HarnessBackend]], type[Harness
     Decorator to register a harness backend implementation.
 
     Usage:
-        @register_backend('claude')
-        class ClaudeBackend:
+        @register_backend('claude-cli')
+        class ClaudeCLIBackend:
             @property
             def name(self) -> str:
-                return 'claude'
+                return 'claude-cli'
             ...
 
     Args:
-        name: Backend name (e.g., 'claude', 'codex')
+        name: Backend name (e.g., 'claude-sdk', 'claude-cli', 'codex')
 
     Returns:
         Decorator function
@@ -198,7 +198,7 @@ def detect_harness(
     Detection order:
     1. HARNESS environment variable (if set and not 'auto')
     2. Priority list (if provided)
-    3. Default detection order: claude-legacy > codex > opencode > gemini
+    3. Default detection order: claude-cli > codex > opencode > gemini
 
     Only returns harnesses that are both:
     - Available (backend.is_available() returns True)
@@ -236,7 +236,7 @@ def detect_harness(
     # Default detection order
     # Note: Prefer SDK-based harnesses (async registry) for new code
     # This sync registry is for backward compatibility
-    for harness in ["claude-legacy", "codex", "opencode", "gemini"]:
+    for harness in ["claude-cli", "codex", "opencode", "gemini"]:
         if harness in _backends:
             try:
                 backend = _backends[harness]()
