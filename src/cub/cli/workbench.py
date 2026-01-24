@@ -18,10 +18,19 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from cub.core.workbench.run import run_next_move
 from cub.core.workbench.session import create_pm_workbench_session
 
 console = Console()
 app = typer.Typer(name="workbench", help="PM Workbench: unknowns ledger + next move (MVP)")
+
+
+def _latest_session_path() -> Path | None:
+    sessions_dir = Path("specs") / "workbench" / "sessions"
+    if not sessions_dir.exists():
+        return None
+    sessions = sorted(sessions_dir.glob("wb-*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+    return sessions[0] if sessions else None
 
 
 @app.command("start")
@@ -52,6 +61,50 @@ def start(
             Text.from_markup(
                 f"[bold green]Created workbench session[/bold green]\n"
                 f"[dim]path:[/dim] {paths.session_path}"
+            ),
+            border_style="green",
+            expand=False,
+        )
+    )
+    console.print()
+
+
+@app.command("run-next")
+def run_next(
+    session: Annotated[
+        Path | None,
+        typer.Option(
+            "--session",
+            "-f",
+            help="Workbench session file to run (defaults to most recent)",
+        ),
+    ] = None,
+) -> None:
+    """Run the current session's Next Move.
+
+    Executes the tool specified in the session frontmatter (if any) and
+    appends run artifact links back into the session file.
+    """
+    session_path = session
+    if session_path is None:
+        session_path = _latest_session_path()
+
+    if session_path is None:
+        raise typer.BadParameter("No sessions found. Create one with: cub workbench start")
+
+    if not session_path.exists():
+        raise typer.BadParameter(f"Session file not found: {session_path}")
+
+    result = run_next_move(session_path=session_path)
+
+    console.print()
+    console.print(
+        Panel(
+            Text.from_markup(
+                f"[bold green]Ran next move[/bold green]\n"
+                f"[dim]session:[/dim] {result.session_path}\n"
+                f"[dim]tool:[/dim] {result.tool_id}\n"
+                f"[dim]artifacts:[/dim] {len(result.artifact_paths)}"
             ),
             border_style="green",
             expand=False,
