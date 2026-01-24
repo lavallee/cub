@@ -18,6 +18,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
+from cub.core.toolsmith.adoption import AdoptionStore
 from cub.core.toolsmith.exceptions import ToolsmithError
 from cub.core.toolsmith.service import ToolsmithService
 from cub.core.toolsmith.sources import get_all_sources
@@ -299,6 +300,7 @@ def search(
             title_text += f" (source: {source})"
 
         table = Table(title=title_text, border_style="cyan")
+        table.add_column("ID", style="dim", no_wrap=True, width=28)
         table.add_column("Name", style="cyan", no_wrap=True, width=20)
         table.add_column("Type", style="magenta", width=15)
         table.add_column("Source", style="blue", width=15)
@@ -312,6 +314,7 @@ def search(
                 description = description[: max_desc_length - 3] + "..."
 
             table.add_row(
+                tool.id,
                 tool.name,
                 tool.tool_type.value.replace("_", " ").title(),
                 tool.source,
@@ -331,6 +334,67 @@ def search(
 
     except Exception as e:
         handle_error(e, "search")
+        raise typer.Exit(1)
+
+
+@app.command()
+def adopt(
+    tool_id: Annotated[str, typer.Argument(..., help="Tool ID to adopt (see 'cub toolsmith search')")],
+    note: Annotated[
+        str | None,
+        typer.Option("--note", help="Optional note about why/how we are adopting this tool"),
+    ] = None,
+) -> None:
+    """Adopt a tool for this project.
+
+    Records intent to use a tool (and optional note) in .cub/toolsmith/adopted.json.
+
+    This is a lightweight workflow step: discovery → adoption → (future) install/execute.
+    """
+    try:
+        store = AdoptionStore.default()
+        record = store.adopt(tool_id=tool_id, note=note)
+        console.print()
+        console.print(
+            Panel(
+                Text.from_markup(
+                    f"[bold green]Adopted[/bold green] [cyan]{record.tool_id}[/cyan]\n"
+                    f"[dim]adopted_at:[/dim] {record.adopted_at.isoformat()}"
+                ),
+                border_style="green",
+                expand=False,
+            )
+        )
+        console.print()
+    except Exception as e:
+        handle_error(e, "adopt")
+        raise typer.Exit(1)
+
+
+@app.command()
+def adopted() -> None:
+    """List adopted tools for this project."""
+    try:
+        store = AdoptionStore.default()
+        adopted_tools = store.list()
+        if not adopted_tools:
+            console.print()
+            console.print(Panel(Text("No adopted tools yet."), border_style="yellow", expand=False))
+            console.print()
+            return
+
+        table = Table(title="Adopted Tools", border_style="green")
+        table.add_column("Tool ID", style="cyan")
+        table.add_column("Adopted At", style="dim", no_wrap=True)
+        table.add_column("Note", style="white")
+        for a in adopted_tools:
+            table.add_row(a.tool_id, a.adopted_at.isoformat(), a.note or "")
+
+        console.print()
+        console.print(table)
+        console.print()
+    except Exception as e:
+        handle_error(e, "adopted")
         raise typer.Exit(1)
 
 

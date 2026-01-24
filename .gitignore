@@ -7,7 +7,7 @@
 .cub/logs/
 .cub/runs/
 .cub/config.json            # Auto-generated project config (project_id)
-.cub/toolsmith/             # Toolsmith local catalog/cache (project-scoped)
+.cub/toolsmith/             # Toolsmith local catalog/cache + adoptions (project-scoped)
 
 # Beads viewer local config and caches
 .bv/
