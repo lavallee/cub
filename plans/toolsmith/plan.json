@@ -1,0 +1,13 @@
+{
+  "slug": "toolsmith",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "toolsmith.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-20T16:23:00+00:00",
+  "updated": "2026-01-23T15:28:34+00:00"
+}
