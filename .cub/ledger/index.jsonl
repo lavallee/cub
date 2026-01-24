@@ -76,3 +76,4 @@
 {"id": "cub-v9s.4", "title": "Write integration tests for full workflow", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-v9s", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-wrdb", "title": "Fix Readiness validation errors in dashboard sync", "completed": "2026-01-23", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-o0f4", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-xh49", "title": "Test pipx editable", "completed": "2026-01-24", "cost_usd": 0.31964079999999995, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 619601, "workflow_stage": null}
+{"id": "cub-c5i.1", "title": "Extend ledger show for new fields", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-c5i", "verification": "pending", "tokens": 0, "workflow_stage": null}
