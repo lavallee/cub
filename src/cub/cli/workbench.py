@@ -18,6 +18,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from cub.core.workbench.note import write_research_note_from_session
 from cub.core.workbench.run import run_next_move
 from cub.core.workbench.session import create_pm_workbench_session
 
@@ -79,6 +80,13 @@ def run_next(
             help="Workbench session file to run (defaults to most recent)",
         ),
     ] = None,
+    write_note: Annotated[
+        bool,
+        typer.Option(
+            "--write-note/--no-write-note",
+            help="Write/append a markdown note from tool run artifacts",
+        ),
+    ] = False,
 ) -> None:
     """Run the current session's Next Move.
 
@@ -97,6 +105,27 @@ def run_next(
 
     result = run_next_move(session_path=session_path)
 
+    note_path: Path | None = None
+    if write_note:
+        # Prefer the path declared in the session next_move.artifact_plan.path.
+        try:
+            import frontmatter
+
+            post = frontmatter.load(result.session_path)
+            meta = post.metadata if isinstance(post.metadata, dict) else {}
+            nm = meta.get("next_move") if isinstance(meta.get("next_move"), dict) else {}
+            ap = nm.get("artifact_plan") if isinstance(nm.get("artifact_plan"), dict) else {}
+            np = ap.get("path")
+            if isinstance(np, str) and np.strip():
+                note_path = Path(np)
+        except Exception:
+            note_path = None
+
+        if note_path is None:
+            note_path = Path("specs") / "investigations" / "research" / "workbench-research.md"
+
+        write_research_note_from_session(session_path=result.session_path, note_path=note_path)
+
     console.print()
     console.print(
         Panel(
@@ -105,6 +134,7 @@ def run_next(
                 f"[dim]session:[/dim] {result.session_path}\n"
                 f"[dim]tool:[/dim] {result.tool_id}\n"
                 f"[dim]artifacts:[/dim] {len(result.artifact_paths)}"
+                + (f"\n[dim]note:[/dim] {note_path}" if note_path else "")
             ),
             border_style="green",
             expand=False,
