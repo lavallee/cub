@@ -100,6 +100,7 @@ def get_default_view() -> ViewConfig:
                 id="ready",
                 title="Ready",
                 stages=[Stage.READY],
+                group_by="epic_id",
             ),
             ColumnConfig(
                 id="in_progress",
@@ -162,6 +163,7 @@ def get_sprint_view() -> ViewConfig:
                 id="ready",
                 title="Ready",
                 stages=[Stage.READY],
+                group_by="epic_id",
             ),
             ColumnConfig(
                 id="in_progress",

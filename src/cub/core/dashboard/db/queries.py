@@ -88,6 +88,7 @@ def get_default_view_config() -> ViewConfig:
                 id="ready",
                 title="Ready",
                 stages=[Stage.READY],
+                group_by="epic_id",
             ),
             ColumnConfig(
                 id="in_progress",

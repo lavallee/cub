@@ -138,6 +138,45 @@ class TaskParser:
             return excerpt
         return None
 
+    def _extract_epic_id(self, task: Task) -> str | None:
+        """
+        Extract epic ID from task using multiple detection mechanisms.
+
+        Epic associations are detected via:
+        1. Parent relationship (task.parent field)
+        2. Label with epic ID format (e.g., 'epic:cub-abc')
+        3. Explicit epic_id field (future compatibility)
+
+        Priority order: parent > label > None
+
+        Args:
+            task: Task object
+
+        Returns:
+            Epic ID string or None if not associated with an epic
+        """
+        # For epics themselves, return None (they don't have an epic_id)
+        if task.type == TaskType.EPIC:
+            return None
+
+        # Priority 1: Check parent field (most reliable)
+        if task.parent:
+            return task.parent
+
+        # Priority 2: Check for epic: label
+        for label in task.labels:
+            if label.startswith("epic:"):
+                epic_id = label.split(":", 1)[1]
+                if epic_id:  # Ensure it's not empty
+                    return epic_id
+
+        # Priority 3: Check for explicit epic_id field (future compatibility)
+        # Note: This would require extending the Task model in the future
+        # if hasattr(task, "epic_id") and task.epic_id:
+        #     return task.epic_id
+
+        return None
+
     def _task_to_entity(self, task: Task, checksum: str) -> DashboardEntity:
         """
         Convert a Task object to a DashboardEntity.
@@ -164,6 +203,9 @@ class TaskParser:
         # Extract card metadata
         description_excerpt = self._create_description_excerpt(task)
 
+        # Extract epic association
+        epic_id = self._extract_epic_id(task)
+
         return DashboardEntity(
             id=task.id,
             type=entity_type,
@@ -179,7 +221,7 @@ class TaskParser:
             parent_id=task.parent,
             spec_id=None,  # Will be linked by relationship resolver
             plan_id=None,  # Will be linked by relationship resolver
-            epic_id=task.parent if task.type != TaskType.EPIC else None,
+            epic_id=epic_id,
             cost_usd=None,  # Metrics come from ledger
             tokens=None,
             duration_seconds=None,
