@@ -6018,3 +6018,54 @@ The frontend was using `response.text()` to parse the API response, which conver
 - TypeScript errors will fail the build
 - Vite handles both transpilation and bundling
 - Use build output to verify no type errors
+
+## Task: cub-hj6j - Format frontmatter gracefully in dashboard entities
+
+**Date:** 2026-01-23
+
+**Objective:** Enhance dashboard parsers to handle frontmatter edge cases gracefully without crashing or producing unhelpful errors.
+
+**Key accomplishments:**
+1. Enhanced SpecParser with comprehensive error handling for:
+   - Invalid YAML frontmatter (logs warning, uses defaults)
+   - Missing/null frontmatter (creates entity with defaults)
+   - Non-dict frontmatter (converts to empty dict)
+   - Invalid UTF-8 encoding (skips file with warning)
+   - Empty frontmatter fields (uses safe defaults)
+
+2. Enhanced PlanParser with comprehensive error handling for:
+   - Invalid JSON in session.json and plan.jsonl
+   - Null/empty/non-dict content (graceful fallbacks)
+   - Partial file failures (continues with valid entries)
+   - Type validation and coercion (non-string IDs, timestamps)
+   - Missing required fields (clear error messages)
+
+3. Verified SyncOrchestrator already continues with partial results when individual parsers fail
+
+4. Added 21 comprehensive tests covering all edge cases
+
+**Technical insights:**
+- The `frontmatter` library is quite robust and parses YAML lists/null gracefully
+- Adding explicit type checks after parsing prevents downstream errors
+- Using different log levels (debug/warning/error) helps distinguish severity
+- Graceful degradation (e.g., using directory name when session.json invalid) is better than failing entirely
+- Clear error messages with context (file path, line number) are essential
+
+**Design decisions:**
+- Prefer logging warnings and continuing over failing fast
+- Use directory/file names as fallback IDs when metadata is invalid
+- Convert types (e.g., numeric IDs to strings) rather than rejecting
+- Skip individual malformed lines in JSONL files, continue with valid ones
+- Return None from parsers only when file is truly unusable (empty, missing, etc.)
+
+**Testing approach:**
+- Created test cases for each acceptance criterion
+- Tested null, empty, and non-dict variations
+- Verified log messages appear at correct levels
+- Tested mixed valid/invalid content to ensure partial success
+- All 173 dashboard tests pass
+
+**Next steps:**
+- Consider adding metrics for parse failures to monitor data quality
+- Could add a "parse warnings" count to SyncResult for visibility
+
