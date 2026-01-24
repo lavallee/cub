@@ -9,6 +9,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from cub.core.ledger.models import LedgerEntry, LedgerIndex, WorkflowStage
 
 
@@ -184,3 +186,118 @@ class LedgerWriter:
         with task_file.open(encoding="utf-8") as f:
             data = json.load(f)
             return LedgerEntry.model_validate(data)
+
+    def write_prompt_file(
+        self,
+        task_id: str,
+        attempt_number: int,
+        prompt_content: str,
+        *,
+        harness: str = "",
+        model: str = "",
+        run_id: str = "",
+        started_at: datetime | None = None,
+    ) -> Path:
+        """Write a prompt file with YAML frontmatter for an attempt.
+
+        Creates the attempts directory if needed and writes a prompt file
+        with YAML frontmatter containing execution context metadata.
+
+        Args:
+            task_id: Task ID (e.g., 'cub-abc')
+            attempt_number: Attempt sequence number (1-based)
+            prompt_content: The prompt content (markdown)
+            harness: Harness name (e.g., 'claude')
+            model: Model name (e.g., 'haiku', 'sonnet')
+            run_id: Run session ID this attempt belongs to
+            started_at: Attempt start time (defaults to now)
+
+        Returns:
+            Path to the written prompt file
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> path = writer.write_prompt_file(
+            ...     "cub-abc", 1, "# Task: Fix login\\n...",
+            ...     harness="claude", model="haiku", run_id="cub-20260124-123456"
+            ... )
+            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-prompt.md
+        """
+        # Ensure task directory exists
+        task_dir = self.by_task_dir / task_id
+        task_dir.mkdir(parents=True, exist_ok=True)
+
+        # Ensure attempts directory exists
+        attempts_dir = task_dir / "attempts"
+        attempts_dir.mkdir(parents=True, exist_ok=True)
+
+        # Format attempt number as zero-padded 3 digits
+        attempt_str = f"{attempt_number:03d}"
+        prompt_file = attempts_dir / f"{attempt_str}-prompt.md"
+
+        # Prepare frontmatter
+        frontmatter = {
+            "attempt": attempt_number,
+            "harness": harness,
+            "model": model,
+            "run_id": run_id,
+            "started_at": (started_at or datetime.now(timezone.utc)).isoformat(),
+        }
+
+        # Build the full content with YAML frontmatter
+        content_parts = [
+            "---",
+            yaml.dump(frontmatter, default_flow_style=False, sort_keys=False).strip(),
+            "---",
+            "",
+            prompt_content,
+        ]
+        full_content = "\n".join(content_parts)
+
+        # Write to file
+        prompt_file.write_text(full_content, encoding="utf-8")
+
+        return prompt_file
+
+    def write_harness_log(
+        self,
+        task_id: str,
+        attempt_number: int,
+        log_content: str,
+    ) -> Path:
+        """Write a harness log file for an attempt.
+
+        Creates the attempts directory if needed and writes the harness
+        output log.
+
+        Args:
+            task_id: Task ID (e.g., 'cub-abc')
+            attempt_number: Attempt sequence number (1-based)
+            log_content: The harness log content
+
+        Returns:
+            Path to the written log file
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> path = writer.write_harness_log(
+            ...     "cub-abc", 1, "Harness output here..."
+            ... )
+            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-harness.log
+        """
+        # Ensure task directory exists
+        task_dir = self.by_task_dir / task_id
+        task_dir.mkdir(parents=True, exist_ok=True)
+
+        # Ensure attempts directory exists
+        attempts_dir = task_dir / "attempts"
+        attempts_dir.mkdir(parents=True, exist_ok=True)
+
+        # Format attempt number as zero-padded 3 digits
+        attempt_str = f"{attempt_number:03d}"
+        log_file = attempts_dir / f"{attempt_str}-harness.log"
+
+        # Write log content
+        log_file.write_text(log_content, encoding="utf-8")
+
+        return log_file

@@ -166,3 +166,4 @@
 {"id": "cub-r4n.3", "title": "Wire session manager into cub run", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r4n", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r4n.4", "title": "Update cub monitor for session reading", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r4n", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r4n.5", "title": "Add tests for session lifecycle", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r4n", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-l7e.1", "title": "Extend LedgerEntry model with new fields", "completed": "2026-01-24", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-l7e", "verification": "pending", "tokens": 0, "workflow_stage": null}
