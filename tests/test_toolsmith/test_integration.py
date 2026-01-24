@@ -316,7 +316,7 @@ class TestCLICommands:
             # Verify success
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
             assert "Sync complete" in result.stdout
-            assert "Tools added:" in result.stdout
+            assert "Sync Statistics" in result.stdout or "Tools added" in result.stdout
 
     @patch("httpx.get")
     def test_sync_command_with_source_filter(
@@ -366,7 +366,7 @@ class TestCLICommands:
 
             # Should report errors and exit with error code
             assert result.exit_code == 1, "Should exit with error code on failure"
-            assert "Errors encountered:" in result.stdout
+            assert "Errors" in result.stdout
 
     @patch("httpx.get")
     def test_search_command_success(
@@ -447,8 +447,8 @@ class TestCLICommands:
 
             # Verify output
             assert result.exit_code == 0, f"Command failed: {result.stdout}"
-            assert "Tool Catalog Statistics" in result.stdout
-            assert "Total tools:" in result.stdout
+            assert "Tool Catalog Overview" in result.stdout or "Total tools" in result.stdout
+            assert "Total tools" in result.stdout
 
     def test_stats_command_empty_catalog(
         self,

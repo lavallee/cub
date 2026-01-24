@@ -10,8 +10,10 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+from rich.text import Text
 
 from cub.core.toolsmith.service import ToolsmithService
 from cub.core.toolsmith.sources import get_all_sources
@@ -59,7 +61,7 @@ def sync(
     source_names = [source] if source else None
     source_desc = f"source '{source}'" if source else "all sources"
 
-    # Show progress while syncing
+    # Show progress while syncing with spinner
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -70,22 +72,41 @@ def sync(
         result = service.sync(source_names=source_names)
         elapsed = time.time() - start_time
 
-    # Display results
-    console.print()
-    console.print(f"[bold green]✓[/bold green] Sync complete in {elapsed:.2f}s")
+    # Display results with formatted panel
     console.print()
 
-    # Show sync statistics
-    console.print(f"Tools added: [green]{result.tools_added}[/green]")
-    console.print(f"Tools updated: [blue]{result.tools_updated}[/blue]")
-    console.print(f"Total changes: [bold]{result.tools_added + result.tools_updated}[/bold]")
+    # Create summary text with status indicator
+    status_indicator = Text("✓", style="bold green")
+    summary_text = Text.from_markup(f"Sync complete in {elapsed:.2f}s")
+    console.print(Panel(summary_text, title=status_indicator, border_style="green", expand=False))
+    console.print()
+
+    # Create statistics table
+    stats_table = Table(title="Sync Statistics", show_header=False, box=None)
+    stats_table.add_column("Metric", style="cyan", no_wrap=True, width=20)
+    stats_table.add_column("Count", justify="right", style="bold")
+
+    stats_table.add_row("Tools added", Text(str(result.tools_added), style="green"))
+    stats_table.add_row("Tools updated", Text(str(result.tools_updated), style="blue"))
+    total_changes = result.tools_added + result.tools_updated
+    stats_table.add_row(
+        "Total changes",
+        Text(str(total_changes), style="bold cyan"),
+    )
+
+    console.print(stats_table)
+    console.print()
 
     # Show errors if any
     if result.errors:
         console.print()
-        console.print("[yellow]Errors encountered:[/yellow]")
-        for error in result.errors:
-            console.print(f"  [red]•[/red] {error}")
+        error_panel_content = Text()
+        for i, error in enumerate(result.errors):
+            if i > 0:
+                error_panel_content.append("\n")
+            error_panel_content.append(f"• {error}")
+        console.print(Panel(error_panel_content, title="[bold yellow]Errors[/bold yellow]", border_style="red", expand=False))
+        console.print()
         raise typer.Exit(1)
 
 
@@ -134,30 +155,49 @@ def search(
 
     # Display results
     if not results:
-        console.print(f"[yellow]No tools found matching '[/yellow]{query}[yellow]'[/yellow]")
+        console.print()
+        no_results_text = Text.from_markup(f"[yellow]No tools found matching '[bold]{query}[/bold]'[/yellow]")
         if source:
-            console.print(f"[dim]Filtered by source: {source}[/dim]")
+            no_results_text.append(Text(f"\nFiltered by source: {source}", style="dim"))
+        console.print(Panel(no_results_text, border_style="yellow", expand=False))
+        console.print()
         return
 
-    # Create results table
-    table = Table(title=f"Search Results: '{query}'" + (f" (source: {source})" if source else ""))
-    table.add_column("Name", style="cyan", no_wrap=True)
-    table.add_column("Type", style="magenta")
-    table.add_column("Source", style="blue")
+    # Create results table with improved formatting
+    title_text = f"Search Results: '{query}'"
+    if source:
+        title_text += f" (source: {source})"
+
+    table = Table(title=title_text, border_style="cyan")
+    table.add_column("Name", style="cyan", no_wrap=True, width=20)
+    table.add_column("Type", style="magenta", width=15)
+    table.add_column("Source", style="blue", width=15)
     table.add_column("Description", style="white")
 
     for tool in results:
+        # Truncate long descriptions with ellipsis
+        description = tool.description
+        max_desc_length = 60
+        if len(description) > max_desc_length:
+            description = description[: max_desc_length - 3] + "..."
+
         table.add_row(
             tool.name,
             tool.tool_type.value.replace("_", " ").title(),
             tool.source,
-            tool.description[:80] + "..." if len(tool.description) > 80 else tool.description,
+            description,
         )
 
     console.print()
     console.print(table)
     console.print()
-    console.print(f"[dim]Found {len(results)} tool(s)[/dim]")
+
+    # Display results summary
+    result_summary = Text()
+    result_summary.append("Found ", style="dim")
+    result_summary.append(str(len(results)), style="bold green")
+    result_summary.append(f" tool{'s' if len(results) != 1 else ''}", style="dim")
+    console.print(result_summary)
 
 
 @app.command()
@@ -174,25 +214,28 @@ def stats() -> None:
     service = _get_service()
     catalog_stats = service.stats()
 
-    # Display overview
+    # Display overview with panel
     console.print()
-    console.print("[bold]Tool Catalog Statistics[/bold]")
-    console.print()
-    console.print(f"Total tools: [bold cyan]{catalog_stats.total_tools}[/bold cyan]")
+    overview_table = Table(show_header=False, box=None)
+    overview_table.add_column("Metric", style="cyan", no_wrap=True, width=15)
+    overview_table.add_column("Value", style="bold")
+
+    overview_table.add_row("Total tools", Text(str(catalog_stats.total_tools), style="bold cyan"))
 
     if catalog_stats.last_sync:
         last_sync_str = catalog_stats.last_sync.strftime("%Y-%m-%d %H:%M:%S UTC")
-        console.print(f"Last sync: [dim]{last_sync_str}[/dim]")
+        overview_table.add_row("Last sync", Text(last_sync_str, style="dim"))
     else:
-        console.print("Last sync: [yellow]Never[/yellow]")
+        overview_table.add_row("Last sync", Text("Never", style="yellow"))
 
+    console.print(Panel(overview_table, title="[bold]Tool Catalog Overview[/bold]", border_style="blue", expand=False))
     console.print()
 
     # Tools by source table
     if catalog_stats.by_source:
-        source_table = Table(title="Tools by Source")
-        source_table.add_column("Source", style="cyan")
-        source_table.add_column("Count", justify="right", style="green")
+        source_table = Table(title="Tools by Source", border_style="cyan")
+        source_table.add_column("Source", style="cyan", width=20)
+        source_table.add_column("Count", justify="right", style="green", width=10)
 
         sorted_sources = sorted(
             catalog_stats.by_source.items(), key=lambda x: x[1], reverse=True
@@ -202,12 +245,15 @@ def stats() -> None:
 
         console.print(source_table)
         console.print()
+    else:
+        console.print("[yellow]No sources have been synced yet[/yellow]")
+        console.print()
 
     # Tools by type table
     if catalog_stats.by_type:
-        type_table = Table(title="Tools by Type")
-        type_table.add_column("Type", style="magenta")
-        type_table.add_column("Count", justify="right", style="green")
+        type_table = Table(title="Tools by Type", border_style="magenta")
+        type_table.add_column("Type", style="magenta", width=20)
+        type_table.add_column("Count", justify="right", style="green", width=10)
 
         sorted_types = sorted(
             catalog_stats.by_type.items(), key=lambda x: x[1], reverse=True
@@ -217,15 +263,25 @@ def stats() -> None:
 
         console.print(type_table)
         console.print()
+    else:
+        console.print("[yellow]No tools available yet[/yellow]")
+        console.print()
 
     # Sources synced
     if catalog_stats.sources_synced:
-        console.print("[bold]Synced Sources:[/bold]")
+        synced_text = Text()
+        synced_text.append("Synced Sources:\n", style="bold")
         for source in sorted(catalog_stats.sources_synced):
-            console.print(f"  [blue]•[/blue] {source}")
+            synced_text.append(f"  • {source}\n", style="blue")
+        synced_text.rstrip()
+        console.print(Panel(synced_text, border_style="green", expand=False))
     else:
-        console.print("[yellow]No sources have been synced yet[/yellow]")
-        console.print("[dim]Run 'cub toolsmith sync' to sync tools from all sources[/dim]")
+        help_text = Text()
+        help_text.append("No sources have been synced yet\n", style="yellow")
+        help_text.append("Run ", style="dim")
+        help_text.append("cub toolsmith sync", style="bold cyan")
+        help_text.append(" to sync tools from all sources", style="dim")
+        console.print(Panel(help_text, border_style="yellow", expand=False))
 
 
 __all__ = ["app"]
