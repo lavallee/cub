@@ -5908,3 +5908,58 @@ Successfully implemented hierarchical grouping for the PLANNED column in the Kan
 - Test coverage: 161 tests passing
 - Type checking: Clean (mypy, TypeScript)
 - Linting: Clean (ruff)
+
+
+## 2026-01-23: Renamed dashboard column from SPECS to RESEARCHING (cub-4fma)
+
+Successfully renamed the dashboard column header from "SPECS" to "RESEARCHING" to better reflect the workflow stage rather than the entity type. This involved:
+
+1. **Core changes:**
+   - Updated Stage enum in models.py: SPECS → RESEARCHING
+   - Changed all column titles in view defaults from "Specs" to "Researching"
+   - Updated stage mappings in queries.py, writer.py, and parsers/specs.py
+
+2. **Documentation updates:**
+   - Updated all docstrings and comments to reference RESEARCHING instead of SPECS
+   - Updated view descriptions and configuration examples
+
+3. **Test updates:**
+   - Updated 6 test files to use Stage.RESEARCHING
+   - Fixed line length linting issue in test_resolver.py by reformatting
+
+4. **Validation:**
+   - All 152 tests pass
+   - Type checking passes with mypy
+   - No new lint errors introduced
+
+The change maintains backward compatibility in the API by keeping the internal database column ID as "specs" while updating the display title to "Researching".
+
+
+## 2026-01-23 - Fixed view switcher API port mismatch (cub-4eyt)
+
+**Problem**: View switcher showed "API request failed: Not Found" error.
+
+**Root cause**: Two issues:
+1. Frontend API client defaulted to `http://localhost:8000` but backend runs on port 8080
+2. FastAPI app wasn't configured to serve the built static files
+
+**Solution**:
+1. Updated frontend API client default port to 8080 to match backend default
+2. Added static file serving to FastAPI:
+   - Mounted `/assets` directory with StaticFiles
+   - Added catch-all SPA route to serve index.html
+   - Ensured /health endpoint is registered before catch-all
+3. Rebuilt frontend with updated configuration
+4. Updated tests to expect HTML from root endpoint
+
+**Key learnings**:
+- FastAPI route order matters - specific routes must be registered before catch-all routes
+- When serving SPAs from FastAPI, need both assets mount and index.html route
+- Default configuration values should match between frontend and backend
+- Test client can be used to verify API behavior before restarting servers
+
+**Files changed**:
+- src/cub/dashboard/web/src/api/client.ts (API port default)
+- src/cub/dashboard/web/.env.example (env example port)
+- src/cub/core/dashboard/api/app.py (static file serving)
+- tests/test_api_board.py, tests/test_api_errors.py (test updates)

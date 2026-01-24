@@ -56,8 +56,8 @@ export function ArtifactViewer({ sourcePath, entityType }: ArtifactViewerProps) 
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
 
-        const text = await response.text();
-        setContent(text);
+        const data = await response.json();
+        setContent(data.content);
       } catch (err) {
         console.error('Failed to fetch artifact:', err);
         setError(err instanceof Error ? err.message : 'Failed to load artifact');
