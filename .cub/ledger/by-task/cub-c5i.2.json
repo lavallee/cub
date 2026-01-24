@@ -1,34 +1,34 @@
 {
   "version": 1,
-  "id": "cub-c5i.1",
-  "title": "Extend ledger show for new fields",
+  "id": "cub-c5i.2",
+  "title": "Add ledger update command",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-c5i"
   },
   "task": {
-    "title": "Extend ledger show for new fields",
-    "description": "The existing `ledger show` command needs to display the new fields: attempts, outcome, lineage, workflow history.\n\n**Implementation Steps:**\n1. Update `src/cub/cli/ledger.py` show command with `--attempt N`, `--changes`, `--history` flags\n2. Update default display to include lineage, attempts summary, outcome, workflow stage\n3. Use Rich tables for attempts list\n4. Format durations and costs nicely\n\n**Files:** `src/cub/cli/ledger.py`",
+    "title": "Add ledger update command",
+    "description": "Users need to manually transition workflow stages (e.g., mark as validated after review).\n\n**Implementation Steps:**\n1. Add `ledger update` command with `--stage` and `--reason` options\n2. Validate stage is one of: dev_complete, needs_review, validated, released\n3. Call `LedgerWriter.update_workflow_stage()`\n4. Append to state_history and display confirmation\n\n**Files:** `src/cub/cli/ledger.py`, `src/cub/core/ledger/writer.py`",
     "type": "task",
     "priority": 1,
     "labels": [
       "complexity:medium",
       "epic:cub-c5i",
+      "logic",
       "model:sonnet",
-      "phase-4",
-      "ui"
+      "phase-4"
     ],
-    "created_at": "2026-01-24T21:12:34.037258Z",
-    "captured_at": "2026-01-24T22:08:52.743254Z"
+    "created_at": "2026-01-24T21:12:34.037265Z",
+    "captured_at": "2026-01-24T22:12:33.075435Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260124-170852",
-      "started_at": "2026-01-24T17:08:52.747043",
-      "completed_at": "2026-01-24T22:12:30.513834Z",
+      "started_at": "2026-01-24T17:12:33.077272",
+      "completed_at": "2026-01-24T22:18:38.045461Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,16 +41,16 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 217
+      "duration_seconds": 364
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-24T22:12:30.745411Z",
+    "completed_at": "2026-01-24T22:18:38.276931Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 217,
+    "total_duration_seconds": 364,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
@@ -75,24 +75,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-24T22:12:30.745411Z"
+    "stage_updated_at": "2026-01-24T22:18:38.276931Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:08:52.743254Z",
+      "at": "2026-01-24T22:12:33.075435Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-24T22:12:30.745411Z",
+      "at": "2026-01-24T22:18:38.276931Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-24T22:08:52.743254Z",
-  "completed_at": "2026-01-24T22:12:30.745411Z",
+  "started_at": "2026-01-24T22:12:33.075435Z",
+  "completed_at": "2026-01-24T22:18:38.276931Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -100,7 +100,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 217,
+  "duration_seconds": 364,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -108,7 +108,7 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.1",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.2",
   "epic_id": "cub-c5i",
   "verification_status": "pending",
   "verification_notes": [],

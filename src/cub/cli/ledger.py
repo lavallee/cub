@@ -4,7 +4,9 @@ Cub CLI - Ledger commands.
 Query and display completed work records from the ledger system.
 """
 
+import csv
 import json
+import sys
 from typing import TYPE_CHECKING
 
 import typer
@@ -745,3 +747,185 @@ def search(
     console.print(table)
     console.print()
     console.print(f"Total cost: {_format_cost(sum(r.cost_usd for r in results))}")
+
+
+@app.command()
+def export(
+    format: str = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Export format: json or csv",
+    ),
+    epic: str | None = typer.Option(
+        None,
+        "--epic",
+        "-e",
+        help="Only export tasks in this epic",
+    ),
+    output: str | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file path (default: stdout)",
+    ),
+    since: str | None = typer.Option(
+        None,
+        "--since",
+        help="Only include tasks completed since date (YYYY-MM-DD)",
+    ),
+) -> None:
+    """
+    Export ledger data for external analysis or reporting.
+
+    Exports completed task data in JSON or CSV format for use in spreadsheets,
+    reporting tools, or custom analysis scripts.
+
+    Examples:
+        cub ledger export --format json --output ledger.json
+        cub ledger export --format csv --epic cub-vd6 --output epic.csv
+        cub ledger export --format json --since 2026-01-01 > recent.json
+    """
+    reader = _get_ledger_reader()
+
+    if not reader.exists():
+        console.print(
+            "[yellow]Warning:[/yellow] No ledger found. "
+            "Tasks have not been completed yet."
+        )
+        raise typer.Exit(1)
+
+    # Validate format
+    if format not in ["json", "csv"]:
+        console.print(f"[red]Error:[/red] Invalid format '{format}'. Must be 'json' or 'csv'")
+        raise typer.Exit(1)
+
+    # Get entries
+    entries = reader.list_tasks(since=since, epic=epic)
+
+    if not entries:
+        console.print("[yellow]Warning:[/yellow] No tasks found matching filters")
+        raise typer.Exit(0)
+
+    # Get full entries for export
+    full_entries = []
+    for index_entry in entries:
+        full_entry = reader.get_task(index_entry.id)
+        if full_entry:
+            full_entries.append(full_entry)
+
+    # Export data
+    if format == "json":
+        _export_json(full_entries, output)
+    else:
+        _export_csv(full_entries, output)
+
+    # Print confirmation if writing to file
+    if output:
+        console.print(f"[green]✓[/green] Exported {len(full_entries)} task(s) to {output}")
+
+
+def _export_json(entries: list["LedgerEntry"], output: str | None) -> None:
+    """Export entries as JSON."""
+    data = [entry.model_dump(mode="json") for entry in entries]
+    json_str = json.dumps(data, indent=2, default=str)
+
+    if output:
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(json_str)
+    else:
+        sys.stdout.write(json_str)
+        sys.stdout.write("\n")
+
+
+def _export_csv(entries: list["LedgerEntry"], output: str | None) -> None:
+    """Export entries as CSV with flattened fields."""
+    if not entries:
+        return
+
+    # Define flattened fields for CSV
+    fieldnames = [
+        "id",
+        "title",
+        "completed_at",
+        "started_at",
+        "duration_seconds",
+        "cost_usd",
+        "tokens_total",
+        "tokens_input",
+        "tokens_output",
+        "tokens_cache_read",
+        "tokens_cache_creation",
+        "harness_name",
+        "harness_model",
+        "verification_status",
+        "workflow_stage",
+        "epic_id",
+        "spec_file",
+        "files_changed_count",
+        "commits_count",
+        "iterations",
+        "outcome_success",
+        "outcome_partial",
+        "outcome_total_attempts",
+        "outcome_total_cost_usd",
+        "outcome_escalated",
+        "outcome_final_model",
+    ]
+
+    # Prepare rows
+    rows = []
+    for entry in entries:
+        # Handle outcome fields (prefer outcome data if available)
+        outcome_success = entry.outcome.success if entry.outcome else False
+        outcome_partial = entry.outcome.partial if entry.outcome else False
+        outcome_total_attempts = entry.outcome.total_attempts if entry.outcome else entry.iterations
+        outcome_total_cost_usd = entry.outcome.total_cost_usd if entry.outcome else entry.cost_usd
+        outcome_escalated = entry.outcome.escalated if entry.outcome else False
+        outcome_final_model = entry.outcome.final_model if entry.outcome else entry.harness_model
+
+        # Handle workflow stage (prefer workflow object if available)
+        workflow_stage = entry.workflow.stage if entry.workflow else (
+            entry.workflow_stage.value if entry.workflow_stage else "dev_complete"
+        )
+
+        row = {
+            "id": entry.id,
+            "title": entry.title,
+            "completed_at": entry.completed_at.isoformat() if entry.completed_at else "",
+            "started_at": entry.started_at.isoformat() if entry.started_at else "",
+            "duration_seconds": entry.duration_seconds,
+            "cost_usd": entry.cost_usd,
+            "tokens_total": entry.tokens.total_tokens,
+            "tokens_input": entry.tokens.input_tokens,
+            "tokens_output": entry.tokens.output_tokens,
+            "tokens_cache_read": entry.tokens.cache_read_tokens,
+            "tokens_cache_creation": entry.tokens.cache_creation_tokens,
+            "harness_name": entry.harness_name,
+            "harness_model": entry.harness_model,
+            "verification_status": entry.verification_status.value,
+            "workflow_stage": workflow_stage,
+            "epic_id": entry.epic_id or "",
+            "spec_file": entry.spec_file or "",
+            "files_changed_count": len(entry.files_changed),
+            "commits_count": len(entry.commits),
+            "iterations": entry.iterations,
+            "outcome_success": outcome_success,
+            "outcome_partial": outcome_partial,
+            "outcome_total_attempts": outcome_total_attempts,
+            "outcome_total_cost_usd": outcome_total_cost_usd,
+            "outcome_escalated": outcome_escalated,
+            "outcome_final_model": outcome_final_model,
+        }
+        rows.append(row)
+
+    # Write CSV
+    if output:
+        with open(output, "w", encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+    else:
+        writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)

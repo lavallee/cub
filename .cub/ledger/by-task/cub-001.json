@@ -25,5 +25,17 @@
   "harness_name": "claude",
   "harness_model": "sonnet",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "workflow": {
+    "stage": "needs_review",
+    "stage_updated_at": "2026-01-24T22:17:41.104872+00:00"
+  },
+  "state_history": [
+    {
+      "stage": "needs_review",
+      "at": "2026-01-24T22:17:41.104874+00:00",
+      "by": "cli",
+      "reason": "Ready for review"
+    }
+  ]
 }

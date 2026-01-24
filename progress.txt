@@ -7560,3 +7560,27 @@ Successfully extended the `cub ledger show` command to display new unified track
 - Linter clean (ruff)
 - Handles both new and legacy ledger entry formats
 
+
+## 2026-01-24 - Task cub-c5i.2: Add ledger update command
+
+**Completed:**
+- Implemented `cub ledger update` command for manual workflow stage transitions
+- Updated `LedgerWriter.update_workflow_stage()` to use new workflow and state_history fields
+- Added validation for stage values and task existence
+- Implemented confirmation display with formatted workflow stage
+
+**Key Implementation Details:**
+- Changed from WorkflowStage enum to string validation for flexibility
+- Update both `workflow.stage` and append to `state_history` array
+- Support optional `--reason` flag to document why stage changed
+- Handle cases where ledger entries don't yet have workflow/state_history fields
+
+**Testing:**
+- All 163 ledger tests pass
+- Manual testing confirmed command works correctly
+- Validation properly rejects invalid stages and nonexistent tasks
+
+**Learnings:**
+- The ledger system uses both legacy fields (workflow_stage) and new fields (workflow, state_history)
+- String-based stage validation is more flexible than enum-based for CLI commands
+- State history provides valuable audit trail of workflow progression
