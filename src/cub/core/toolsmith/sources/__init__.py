@@ -39,6 +39,7 @@ from cub.core.toolsmith.sources.base import (
 )
 
 # Import source implementations to register them
+from cub.core.toolsmith.sources import glama as _glama  # noqa: F401
 from cub.core.toolsmith.sources import mcp_official as _mcp_official  # noqa: F401
 from cub.core.toolsmith.sources import smithery as _smithery  # noqa: F401
 
