@@ -7029,3 +7029,88 @@ Successfully achieved 80%+ test coverage on all core Toolsmith modules, improvin
 - Typecheck passes ✅  
 - Lint passes ✅
 
+
+## Task cub-r4n.4: Update cub monitor for session reading
+
+**Completed:** 2026-01-24
+
+**Summary:**
+Updated `cub monitor` command to read the active session via RunSessionManager instead of using the old list_runs() mechanism. The monitor now displays comprehensive session info including run ID, harness, tasks completed/failed, and budget usage (tokens and cost).
+
+**Implementation:**
+1. Imported RunSessionManager and RunSession models
+2. Used get_active_session() to detect active run via symlink
+3. Added _display_session_info() helper to show session details in a panel
+4. Implemented periodic session file polling (5-second interval) to detect orphaned sessions
+5. Gracefully handles missing or invalid session files
+
+**Key Changes:**
+- Auto-detection now uses session_manager.get_active_session() instead of list_runs()
+- Session info panel displays before live dashboard starts
+- Monitors for orphaned session status during live monitoring
+- Shows detailed budget usage (tokens and cost with percentages)
+
+**Files Modified:**
+- src/cub/cli/monitor.py
+
+**Tests:**
+- All session manager tests pass (24/24)
+- Type checking passes with mypy --strict
+- Linting passes with ruff
+
+**Learnings:**
+- The RunSessionManager provides a clean interface for session detection via symlink
+- Displaying session info before the live dashboard gives users context
+- Periodic polling of the session file allows detection of status changes (e.g., orphaned)
+- Using Rich's Panel and Table.grid makes for clean, readable output
+
+## 2026-01-24 - cub-r4n.5: Add tests for session lifecycle
+
+### Task Completed
+Created comprehensive test suite for RunSessionManager with 24 tests covering all session lifecycle operations. All tests passing with 94% coverage on manager.py.
+
+### Key Learnings
+
+**1. Test Organization for Lifecycle Management**
+- Fixture-based setup with tmp_path for isolated session directories
+- Test naming pattern: `test_{operation}_{scenario}` for clarity
+- Logical grouping by functionality: creation, retrieval, updates, completion, orphan detection
+- Each test focuses on single responsibility with clear assertions
+
+**2. Session File and Symlink Testing**
+- Session files are JSON persisted to `.cub/run-sessions/{run_id}.json`
+- Active symlink `active-run.json` points to current session using relative path
+- Symlink atomicity: unlink existing before creating new (prevents dangling symlinks)
+- Test symlink following with `Path.resolve()` to verify target
+
+**3. Orphan Detection Logic**
+- Orphans detected by: status=RUNNING AND run_id != active_run_id
+- Sleep(1.1) needed in tests to ensure different timestamps for run_id generation
+- Orphan detection marks sessions immediately, doesn't return already-marked
+- Multiple detection calls should not re-mark previously orphaned sessions
+
+**4. Edge Cases Handled**
+- Missing symlink target: get_active_session() cleans up broken symlinks gracefully
+- Invalid JSON in session file: JSONDecodeError caught and wrapped in RunSessionError
+- Multiple sessions in sequence: all files persisted, only active session pointed to
+- Session update with missing file: RunSessionError raised with clear message
+
+**5. Test Quality and Linting**
+- Ruff catches unused variables in test setup code
+- Fixed by removing variable assignment when return value not needed (e.g., `manager.start_session()` instead of `session = ...`)
+- Coverage metrics: 94% on manager.py, 60% on models.py (due to uncovered properties)
+- All 24 tests pass consistently
+
+**6. Budget and Metadata Testing**
+- SessionBudget tracks tokens and cost with optional limits
+- Session updates support partial updates (only changed fields)
+- Project directory defaults to cub_dir parent but can be customized
+- Current task tracking for monitoring in-flight operations
+
+### Implementation Summary
+- Tests: 24 comprehensive test cases
+- Coverage: 94% on manager.py
+- All tests passing with zero linting errors
+- Pattern: start_session → operations → detect_orphans/end_session
+- Fixtures handle directory cleanup automatically via tmp_path
+
