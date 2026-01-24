@@ -38,6 +38,7 @@ from cub.core.ledger.writer import LedgerWriter
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
+from cub.core.session import RunSessionManager, SessionBudget
 
 # TODO: Restore when specs module is implemented
 # from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_implementing
@@ -937,6 +938,16 @@ def run(
     # Load configuration
     config = load_config(project_dir)
 
+    # Initialize session manager
+    session_manager = RunSessionManager(project_dir / ".cub")
+
+    # Detect orphaned sessions from previous runs
+    orphaned_sessions = session_manager.detect_orphans()
+    if orphaned_sessions and debug:
+        console.print(f"[dim]Detected {len(orphaned_sessions)} orphaned session(s)[/dim]")
+        for orphan in orphaned_sessions:
+            console.print(f"[dim]  - {orphan.run_id}: {orphan.orphaned_reason}[/dim]")
+
     # Handle --worktree flag: create and enter worktree
     worktree_path: Path | None = None
     original_cwd: Path | None = None
@@ -1157,6 +1168,19 @@ def run(
 
     # Generate system prompt
     system_prompt = generate_system_prompt(project_dir)
+
+    # Start run session tracking
+    session_budget = SessionBudget(
+        tokens_limit=status.budget.tokens_limit or 0,
+        cost_limit=status.budget.cost_limit or 0.0,
+    )
+    run_session = session_manager.start_session(
+        harness=harness_name,
+        budget=session_budget,
+        project_dir=project_dir,
+    )
+    if debug:
+        console.print(f"[dim]Run session: {run_session.run_id}[/dim]")
 
     # Main loop
     status.phase = RunPhase.RUNNING
@@ -1536,6 +1560,25 @@ def run(
             # Write status
             status_writer.write(status)
 
+            # Update run session with progress
+            try:
+                session_budget = SessionBudget(
+                    tokens_used=status.budget.tokens_used,
+                    tokens_limit=status.budget.tokens_limit or 0,
+                    cost_usd=status.budget.cost_usd,
+                    cost_limit=status.budget.cost_limit or 0.0,
+                )
+                session_manager.update_session(
+                    run_session.run_id,
+                    tasks_completed=status.budget.tasks_completed,
+                    tasks_failed=status.tasks_closed - status.budget.tasks_completed,
+                    current_task=None,  # Task just finished
+                    budget=session_budget,
+                )
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to update run session: {e}[/dim]")
+
             # If running specific task, exit after one iteration
             if task_id:
                 if result.success:
@@ -1569,6 +1612,15 @@ def run(
 
         # Wait for all async hooks to complete (post-task, on-error)
         wait_async_hooks()
+
+        # End run session tracking
+        try:
+            session_manager.end_session(run_session.run_id)
+            if debug:
+                console.print(f"[dim]Ended run session: {run_session.run_id}[/dim]")
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to end run session: {e}[/dim]")
 
         # Auto-close epic if all tasks are complete
         if epic:
