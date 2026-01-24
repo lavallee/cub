@@ -38,6 +38,8 @@ from typing import TYPE_CHECKING
 
 from cub.core.ledger.models import (
     Attempt,
+    EpicEntry,
+    EpicSnapshot,
     LedgerEntry,
     Lineage,
     Outcome,
@@ -412,6 +414,11 @@ class LedgerIntegration:
         # Write finalized entry
         self.writer.update_entry(entry)
 
+        # Update epic aggregates if this task belongs to an epic
+        epic_id = entry.lineage.epic_id or entry.epic_id
+        if epic_id:
+            self._update_or_create_epic(epic_id, current_task)
+
         # Cleanup cache
         self._active_entries.pop(task_id, None)
         self._task_snapshots.pop(task_id, None)
@@ -531,3 +538,72 @@ class LedgerIntegration:
             return len(entry.attempts)
 
         return 0
+
+    def _update_or_create_epic(
+        self,
+        epic_id: str,
+        current_task: Task | None = None,
+    ) -> None:
+        """Update epic aggregates, creating the epic entry if needed.
+
+        This method ensures that when a task is closed, its parent epic is
+        properly tracked in the ledger. If the epic doesn't exist yet, it
+        creates a minimal epic entry. Then it recomputes aggregates from all
+        child tasks.
+
+        Args:
+            epic_id: Epic ID to update or create
+            current_task: Current task being closed (for extracting epic metadata)
+        """
+        now = datetime.now(timezone.utc)
+
+        # Check if epic entry exists
+        epic_entry = self.writer.get_epic_entry(epic_id)
+
+        if not epic_entry:
+            # Auto-create epic entry if it doesn't exist
+            # Try to get epic metadata from the task if available
+            epic_title = epic_id  # Default fallback
+            epic_description = ""
+            epic_status = "in_progress"
+            epic_priority = 0
+            epic_labels: list[str] = []
+
+            if current_task and hasattr(current_task, "parent_task"):
+                # If we have access to the parent epic task, use its metadata
+                parent = current_task.parent_task
+                if parent:
+                    epic_title = parent.title
+                    epic_description = parent.description
+                    epic_status = parent.status if hasattr(parent, "status") else "in_progress"
+                    epic_priority = (
+                        parent.priority_numeric if hasattr(parent, "priority_numeric") else 0
+                    )
+                    epic_labels = list(parent.labels) if hasattr(parent, "labels") else []
+
+            # Create epic snapshot
+            epic_snapshot = EpicSnapshot(
+                title=epic_title,
+                description=epic_description,
+                status=epic_status,
+                priority=epic_priority,
+                labels=epic_labels,
+                created_at=now,
+                captured_at=now,
+            )
+
+            # Create minimal epic entry
+            epic_entry = EpicEntry(
+                id=epic_id,
+                title=epic_title,
+                epic=epic_snapshot,
+                lineage=Lineage(),
+                task_ids=[],
+                started_at=now,
+            )
+
+            # Write initial epic entry
+            self.writer.create_epic_entry(epic_entry)
+
+        # Update epic aggregates from all child tasks
+        self.writer.update_epic_aggregates(epic_id)

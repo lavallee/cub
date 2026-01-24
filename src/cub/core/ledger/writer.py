@@ -11,7 +11,13 @@ from pathlib import Path
 
 import yaml
 
-from cub.core.ledger.models import LedgerEntry, LedgerIndex, WorkflowStage
+from cub.core.ledger.models import (
+    EpicEntry,
+    LedgerEntry,
+    LedgerIndex,
+    WorkflowStage,
+    compute_aggregates,
+)
 
 
 class LedgerWriter:
@@ -35,6 +41,7 @@ class LedgerWriter:
         self.ledger_dir = ledger_dir
         self.index_file = ledger_dir / "index.jsonl"
         self.by_task_dir = ledger_dir / "by-task"
+        self.by_epic_dir = ledger_dir / "by-epic"
 
     def create_entry(self, entry: LedgerEntry) -> None:
         """Create a new ledger entry.
@@ -301,3 +308,198 @@ class LedgerWriter:
         log_file.write_text(log_content, encoding="utf-8")
 
         return log_file
+
+    def create_epic_entry(self, entry: EpicEntry) -> None:
+        """Create a new epic ledger entry.
+
+        Writes the epic entry to by-epic/{epic-id}/entry.json and creates
+        the directory structure if needed.
+
+        Args:
+            entry: EpicEntry to write
+
+        Raises:
+            IOError: If write fails
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> epic = EpicEntry(id="cub-e2p", title="Unified Tracking Model")
+            >>> writer.create_epic_entry(epic)
+        """
+        # Ensure directories exist
+        self.ledger_dir.mkdir(parents=True, exist_ok=True)
+        self.by_epic_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create epic-specific directory
+        epic_dir = self.by_epic_dir / entry.id
+        epic_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write entry to epic directory
+        entry_file = epic_dir / "entry.json"
+        with entry_file.open("w", encoding="utf-8") as f:
+            json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
+
+    def get_epic_entry(self, epic_id: str) -> EpicEntry | None:
+        """Get an epic ledger entry by epic ID.
+
+        Args:
+            epic_id: Epic ID to retrieve (e.g., 'cub-e2p')
+
+        Returns:
+            EpicEntry if found, None otherwise
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> epic = writer.get_epic_entry("cub-e2p")
+        """
+        entry_file = self.by_epic_dir / epic_id / "entry.json"
+        if not entry_file.exists():
+            return None
+
+        with entry_file.open(encoding="utf-8") as f:
+            data = json.load(f)
+            return EpicEntry.model_validate(data)
+
+    def update_epic_aggregates(self, epic_id: str) -> EpicEntry | None:
+        """Recompute and update epic aggregates from child task ledger entries.
+
+        Reads all task ledger entries that belong to this epic, computes
+        aggregated metrics (cost, duration, tokens, etc.), and updates the
+        epic entry.
+
+        Args:
+            epic_id: Epic ID to update
+
+        Returns:
+            Updated EpicEntry if epic exists, None otherwise
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> epic = writer.update_epic_aggregates("cub-e2p")
+            >>> print(f"Total cost: ${epic.aggregates.total_cost_usd:.2f}")
+        """
+        # Get existing epic entry
+        epic_entry = self.get_epic_entry(epic_id)
+        if not epic_entry:
+            return None
+
+        # Find all task entries for this epic
+        task_entries = []
+        if self.by_task_dir.exists():
+            for task_file in self.by_task_dir.glob("*.json"):
+                with task_file.open(encoding="utf-8") as f:
+                    data = json.load(f)
+                    task_entry = LedgerEntry.model_validate(data)
+
+                    # Check if task belongs to this epic
+                    if task_entry.lineage.epic_id == epic_id or task_entry.epic_id == epic_id:
+                        task_entries.append(task_entry)
+
+        # Compute aggregates from child tasks
+        epic_entry.aggregates = compute_aggregates(task_entries)
+        epic_entry.task_ids = [t.id for t in task_entries]
+
+        # Update temporal bounds
+        if task_entries:
+            started_times = [t.started_at for t in task_entries if t.started_at]
+            if started_times:
+                epic_entry.started_at = min(started_times)
+
+            completed_times = [t.completed_at for t in task_entries]
+            epic_entry.completed_at = max(completed_times) if completed_times else None
+
+            # Update commit range
+            all_commits = [c for t in task_entries for c in t.commits]
+            if all_commits:
+                # Sort by timestamp
+                sorted_commits = sorted(all_commits, key=lambda c: c.timestamp)
+                epic_entry.first_commit = sorted_commits[0]
+                epic_entry.last_commit = sorted_commits[-1]
+
+        # Compute epic workflow stage based on child task stages
+        epic_entry.workflow.stage = self._compute_epic_stage(task_entries)
+        epic_entry.workflow.stage_updated_at = datetime.now(timezone.utc)
+
+        # Update timestamp
+        epic_entry.updated_at = datetime.now(timezone.utc)
+
+        # Write updated entry
+        epic_dir = self.by_epic_dir / epic_id
+        epic_dir.mkdir(parents=True, exist_ok=True)
+        entry_file = epic_dir / "entry.json"
+        with entry_file.open("w", encoding="utf-8") as f:
+            json.dump(epic_entry.model_dump(mode="json"), f, indent=2, default=str)
+
+        return epic_entry
+
+    def _compute_epic_stage(self, task_entries: list[LedgerEntry]) -> str:
+        """Compute epic workflow stage based on child task stages.
+
+        The epic stage is determined by the least-progressed child task:
+        - If any task is still in dev_complete, epic is dev_complete
+        - If all tasks are needs_review or beyond, epic is needs_review
+        - If all tasks are validated or beyond, epic is validated
+        - If all tasks are released, epic is released
+
+        Args:
+            task_entries: List of task ledger entries in the epic
+
+        Returns:
+            Epic workflow stage string
+        """
+        if not task_entries:
+            return "dev_complete"
+
+        # Define stage progression order
+        stage_order = ["dev_complete", "needs_review", "validated", "released"]
+
+        # Get all task stages
+        task_stages = []
+        for task in task_entries:
+            if task.workflow:
+                task_stages.append(task.workflow.stage)
+            elif task.workflow_stage:
+                task_stages.append(task.workflow_stage.value)
+            else:
+                task_stages.append("dev_complete")
+
+        # Epic stage is the minimum (least progressed) of all task stages
+        min_stage_idx = min(
+            stage_order.index(stage) if stage in stage_order else 0
+            for stage in task_stages
+        )
+
+        return stage_order[min_stage_idx]
+
+    def add_task_to_epic(self, epic_id: str, task_id: str) -> bool:
+        """Add a task to an epic and update aggregates.
+
+        This is a convenience method that ensures a task is tracked in the epic
+        and triggers aggregate recomputation. If the epic doesn't exist yet,
+        it will NOT be created automatically - you must create it first with
+        create_epic_entry().
+
+        Args:
+            epic_id: Epic ID to add task to
+            task_id: Task ID to add
+
+        Returns:
+            True if successful, False if epic doesn't exist
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> writer.add_task_to_epic("cub-e2p", "cub-e2p.2")
+        """
+        # Check if epic exists
+        epic_entry = self.get_epic_entry(epic_id)
+        if not epic_entry:
+            return False
+
+        # Add task to epic's task list if not already there
+        if task_id not in epic_entry.task_ids:
+            epic_entry.task_ids.append(task_id)
+
+        # Recompute aggregates (this will include the new task)
+        self.update_epic_aggregates(epic_id)
+
+        return True
