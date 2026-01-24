@@ -3,7 +3,7 @@ Dashboard system for cub.
 
 Provides a unified view of project state by aggregating data from multiple sources:
 - Specs (specs/**/*.md)
-- Plans (.cub/sessions/*/plan.jsonl)
+- Plans (plans//*/plan.jsonl)
 - Tasks (beads or JSON backend)
 - Ledger entries (.cub/ledger/)
 - Changelog (CHANGELOG.md)

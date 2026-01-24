@@ -12,7 +12,7 @@ Schema Design:
 
 Entity Types:
 - spec: Specification files (specs/**/*.md)
-- plan: Plans from sessions (.cub/sessions/*/plan.jsonl)
+- plan: Plans from sessions (plans//*/plan.jsonl)
 - epic: Epic tasks (parent tasks)
 - task: Individual tasks (beads or JSON)
 - ledger: Completed work ledger entries

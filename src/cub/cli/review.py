@@ -31,10 +31,10 @@ def _get_ledger_reader() -> LedgerReader:
     return LedgerReader(ledger_dir)
 
 
-def _get_sessions_root() -> Path:
-    """Get sessions directory for current project."""
+def _get_plans_root() -> Path:
+    """Get plans directory for current project."""
     project_root = get_project_root()
-    return project_root / ".cub" / "sessions"
+    return project_root / "plans"
 
 
 @app.command()
@@ -155,12 +155,12 @@ def plan(
     providing an overall assessment of plan completion.
 
     Examples:
-        cub review plan session-123
-        cub review plan session-123 --json
-        cub review plan session-123 --verbose
+        cub review plan unified-tracking-model
+        cub review plan unified-tracking-model --json
+        cub review plan unified-tracking-model --verbose
     """
     reader = _get_ledger_reader()
-    sessions_root = _get_sessions_root()
+    plans_root = _get_plans_root()
 
     if not reader.exists():
         console.print(
@@ -169,7 +169,7 @@ def plan(
         )
         raise typer.Exit(0)
 
-    assessor = PlanAssessor(reader, sessions_root)
+    assessor = PlanAssessor(reader, plans_root)
     assessment = assessor.assess_plan(plan_slug)
 
     if json_output:

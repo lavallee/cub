@@ -3,7 +3,7 @@ Parsers for converting source data into DashboardEntity objects.
 
 Each parser handles a specific data source:
 - SpecParser: Specs from specs/**/*.md
-- PlanParser: Plans from .cub/sessions/*/plan.jsonl
+- PlanParser: Plans from plans//*/plan.jsonl
 - TaskParser: Tasks from beads or JSON backend
 - LedgerParser: Ledger entries from .cub/ledger/
 - ChangelogParser: Releases from CHANGELOG.md

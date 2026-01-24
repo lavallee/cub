@@ -30,7 +30,7 @@ Usage:
     orchestrator = SyncOrchestrator(
         db_path=Path(".cub/dashboard.db"),
         specs_root=Path("./specs"),
-        plans_root=Path(".cub/sessions"),
+        plans_root=Path("./plans"),
         tasks_backend="beads",
         ledger_path=Path(".cub/ledger"),
         changelog_path=Path("CHANGELOG.md")
@@ -93,7 +93,7 @@ class SyncOrchestrator:
         Args:
             db_path: Path to SQLite database file
             specs_root: Root directory for specs (e.g., ./specs)
-            plans_root: Root directory for plans (e.g., .cub/sessions)
+            plans_root: Root directory for plans (e.g., ./plans)
             tasks_backend: Task backend type ("beads" or "json")
             ledger_path: Path to ledger directory (e.g., .cub/ledger)
             changelog_path: Path to CHANGELOG.md
@@ -102,7 +102,7 @@ class SyncOrchestrator:
             >>> orchestrator = SyncOrchestrator(
             ...     db_path=Path(".cub/dashboard.db"),
             ...     specs_root=Path("./specs"),
-            ...     plans_root=Path(".cub/sessions"),
+            ...     plans_root=Path("./plans"),
             ...     tasks_backend="beads",
             ...     ledger_path=Path(".cub/ledger"),
             ...     changelog_path=Path("CHANGELOG.md")

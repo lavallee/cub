@@ -7,6 +7,7 @@ to determine whether tasks, epics, and plans were fully implemented.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from cub.core.ledger.models import LedgerEntry
@@ -345,27 +346,27 @@ class EpicAssessor:
 class PlanAssessor:
     """Assess plan implementations by finding and assessing all epics."""
 
-    def __init__(self, ledger_reader: LedgerReader, sessions_root: Path) -> None:
+    def __init__(self, ledger_reader: LedgerReader, plans_root: Path) -> None:
         """Initialize the plan assessor.
 
         Args:
             ledger_reader: LedgerReader instance for accessing ledger data
-            sessions_root: Path to .cub/sessions directory
+            plans_root: Path to plans directory (e.g., ./plans)
         """
         self.ledger = ledger_reader
-        self.sessions_root = sessions_root
+        self.plans_root = plans_root
         self.epic_assessor = EpicAssessor(ledger_reader)
 
     def assess_plan(self, plan_slug: str) -> PlanAssessment:
         """Assess a plan by finding its epics and tasks.
 
         Args:
-            plan_slug: Plan session slug (e.g., 'session-123')
+            plan_slug: Plan slug (e.g., 'unified-tracking-model')
 
         Returns:
             PlanAssessment with epic assessments and overall metrics
         """
-        plan_dir = self.sessions_root / plan_slug
+        plan_dir = self.plans_root / plan_slug
 
         if not plan_dir.exists():
             return PlanAssessment(
@@ -374,15 +375,25 @@ class PlanAssessor:
                 summary=f"Plan directory not found: {plan_dir}",
             )
 
-        # Look for plan.jsonl to find associated epics
-        plan_file = plan_dir / "plan.jsonl"
+        # Look for plan.json (modern) or plan.jsonl (legacy) to find associated epics
         epic_ids: list[str] = []
 
-        if plan_file.exists():
-            # Parse plan.jsonl to find epic_id references
-            import json
+        # Try modern plan.json format first
+        plan_json = plan_dir / "plan.json"
+        if plan_json.exists():
+            with open(plan_json, encoding="utf-8") as f:
+                try:
+                    plan_data = json.load(f)
+                    # Modern format may have epic_ids list or we derive from slug
+                    if "epic_ids" in plan_data:
+                        epic_ids.extend(plan_data["epic_ids"])
+                except json.JSONDecodeError:
+                    pass
 
-            with open(plan_file, encoding="utf-8") as f:
+        # Try legacy plan.jsonl format
+        plan_jsonl = plan_dir / "plan.jsonl"
+        if plan_jsonl.exists():
+            with open(plan_jsonl, encoding="utf-8") as f:
                 for line in f:
                     try:
                         item = json.loads(line.strip())
@@ -391,7 +402,7 @@ class PlanAssessor:
                     except json.JSONDecodeError:
                         continue
 
-        # Also search ledger for tasks with this plan_file in lineage
+        # Search ledger for tasks with this plan in lineage
         all_entries = self.ledger.list_tasks()
         for entry in all_entries:
             full_entry = self.ledger.get_task(entry.id)

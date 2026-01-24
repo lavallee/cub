@@ -132,7 +132,7 @@ def dashboard(
             console.print("[cyan]Syncing project data...[/cyan]")
 
             # Detect project paths for sync sources
-            plans_root = project_root / ".cub" / "sessions"
+            plans_root = project_root / "plans"
             ledger_path = project_root / ".cub" / "ledger"
             changelog_path = project_root / "CHANGELOG.md"
 
@@ -255,7 +255,7 @@ def sync(
         console.print("[cyan]Syncing project data...[/cyan]")
 
         # Detect project paths for sync sources
-        plans_root = project_root / ".cub" / "sessions"
+        plans_root = project_root / "plans"
         ledger_path = project_root / ".cub" / "ledger"
         changelog_path = project_root / "CHANGELOG.md"
 
