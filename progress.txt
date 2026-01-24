@@ -6984,3 +6984,48 @@ task(cub-q2w.5): Write user documentation
 - Code passes linting and type checking
 ```
 
+
+## 2026-01-24: Test Coverage Task (cub-q2w.6)
+
+Successfully achieved 80%+ test coverage on all core Toolsmith modules, improving overall coverage from 82% to 91%.
+
+### Key Learnings
+
+1. **Retry Decorator and Test Mocking**: The @with_retry decorator caused tests to fail because:
+   - It retries network errors 3 times before re-raising the exception
+   - Tests were directly calling source methods without mocking time.sleep
+   - Solution: Mock time.sleep to make retries instant and update tests to expect the correct exception types (NetworkError instead of empty lists)
+
+2. **Exception Hierarchy in httpx**: The sources were catching specific httpx exception types (TimeoutException, HTTPStatusError, RequestError) but NOT the base httpx.HTTPError. The retry decorator can raise the generic HTTPError after retries are exhausted. Solution: Add httpx.HTTPError to the exception handlers.
+
+3. **Test-Driven Coverage**: Creating dedicated test files for each module (test_models.py, test_http.py, test_base.py) was more effective than trying to increase coverage through integration tests. This also improved code quality by testing edge cases and error paths.
+
+4. **Pydantic Validation Testing**: Testing Pydantic model validators requires using pytest.raises(ValidationError) and matching against the error message. The validators are in @field_validator decorated methods and test all edge cases (empty strings, invalid types, boundary conditions).
+
+5. **RetryConfig Edge Cases**: Testing retry logic required:
+   - Mocking time.sleep to avoid delays
+   - Testing both retryable (5xx, timeout) and non-retryable (4xx) errors
+   - Verifying exponential backoff with and without jitter
+   - Ensuring negative delay values are clamped to 0
+
+### Coverage Improvements
+
+| Module | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| models.py | 68% | 93% | +25% |
+| http.py | 68% | 94% | +26% |
+| base.py | 74% | 91% | +17% |
+| exceptions.py | 57% | 87% | +30% |
+| service.py | 92% | 92% | 0% (already good) |
+| store.py | 91% | 91% | 0% (already good) |
+| **Overall** | **82%** | **91%** | **+9%** |
+
+### Test Suite Stats
+
+- Total tests: 166 (added 56 new tests)
+- New test files: 3 (test_models.py, test_http.py, test_base.py)
+- Fixed failing tests: 12 (network error handling)
+- All tests pass ✅
+- Typecheck passes ✅  
+- Lint passes ✅
+
