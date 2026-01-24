@@ -6292,3 +6292,131 @@ The frontend was using `response.text()` to parse the API response, which conver
 
 **Next phase:**
 Ready for Phase 3 implementation of actual tool discovery, search, and catalog management logic.
+
+## 2026-01-24: MCP Official Source Adapter (cub-k3p.2)
+
+### Implementation Summary
+Implemented the first tool source adapter for the official MCP servers repository. The adapter fetches and parses the README from github.com/modelcontextprotocol/servers to extract MCP server metadata.
+
+### Key Technical Decisions
+1. **README Parsing**: Used regex patterns to parse markdown list entries with format `- **[Name](url)** - description`
+2. **Emoji Handling**: Extended regex to handle emoji variation selectors (\uFE00-\uFE0F) for proper section name extraction
+3. **Error Handling**: Gracefully handle network errors by returning empty list (could also raise, left as design choice)
+4. **Tool ID Format**: Slugified server names to create IDs like `mcp-official:sequential-thinking`
+5. **Source Registration**: Added import in sources/__init__.py to auto-register on module import
+
+### Challenges & Solutions
+- **Emoji parsing**: Initial regex didn't handle variation selectors (like ️ in 🎖️), expanded pattern to include \uFE00-\uFE0F range
+- **List item validation**: Had to add explicit check for "- " prefix to avoid matching bold links outside of list items
+- **Package management**: Had to use `uv` since pip wasn't available in venv - project uses uv for package management
+
+### Testing Strategy
+- Created comprehensive test suite with 17 tests
+- Used fixture file with sample README content for offline testing
+- Tested live endpoint integration separately
+- Covered edge cases: special characters in names, emoji in headers, invalid entries
+
+### Metrics
+- **Lines of Code**: ~220 (source) + ~340 (tests)
+- **Tools Discovered**: 1,378 MCP servers from official repo
+- **Test Coverage**: 17/17 passing
+- **Type Safety**: mypy strict mode passes
+- **Lint**: ruff passes with 100 char line limit
+
+### Next Steps
+This adapter serves as a reference implementation for future sources (smithery.ai, custom sources). The parsing pattern can be adapted for other markdown-based catalogs.
+
+
+## Task cub-k3p.3: Implement Smithery.ai source adapter
+
+**Status:** ✅ Complete
+
+**Implementation:**
+- Created `SmitherySource` adapter for the Smithery.ai MCP marketplace
+- Uses Smithery Registry API at https://registry.smithery.ai/servers
+- Supports pagination, search, and optional authentication via SMITHERY_API_TOKEN
+- Tool ID format: `smithery:{qualified-name}` (e.g., `smithery:weather/openweather`)
+- Install hints generated for deployed servers: `smithery install {qualified-name}`
+- Handles network errors gracefully by returning empty lists
+
+**Key Learnings:**
+1. **API Discovery:** Found official API documentation via web search instead of relying on web scraping
+2. **Qualified Names:** Smithery uses qualified names with slashes (author/server-name) which required proper ID validation
+3. **Pagination Pattern:** Implemented similar pagination pattern as MCP Official source
+4. **Optional Auth:** API works without authentication but supports bearer tokens for higher rate limits
+5. **Type Safety:** Used `dict[str, Any]` for API response types to satisfy mypy strict mode
+
+**Testing:**
+- 17 comprehensive tests covering all functionality
+- Mock API responses with realistic data
+- Test coverage: pagination, authentication, error handling, edge cases
+- All tests passing with mypy --strict and ruff linting
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/smithery.py` - Source adapter implementation
+- `tests/test_toolsmith/test_sources/test_smithery.py` - Test suite
+- `tests/test_toolsmith/fixtures/smithery_response.json` - Mock API fixture
+
+**Files Modified:**
+- `src/cub/core/toolsmith/sources/__init__.py` - Registered new source
+
+**Acceptance Criteria:** ✅ All met
+- [x] `SmitherySource` is registered as "smithery"
+- [x] `fetch_tools()` returns list of Tool objects
+- [x] Each Tool has: id, name, source="smithery", source_url, tool_type=MCP_SERVER
+- [x] Description and install_hint populated when available
+- [x] `search_live()` searches tools by query
+- [x] Handles network errors gracefully
+- [x] Test with fixture verifies parsing
+- [x] mypy passes with strict mode
+
+**Resources:**
+- Smithery Registry API: https://smithery.ai/docs/use/registry
+- API Response Format: https://smithery.ai/docs/concepts/registry_get_server
+
+## Task cub-k3p.4: Implement Glama.ai source adapter
+
+**Status:** ✅ Complete
+
+**Implementation:**
+- Created `GlamaSource` adapter for Glama.ai MCP directory (17,155+ servers)
+- Uses Glama public API at https://glama.ai/api/mcp/v1/servers
+- Supports cursor-based pagination (not page numbers like Smithery)
+- Tool ID format: `glama:{server-id}` (e.g., `glama:wl91nncvbq`)
+- Install hints include repository URLs when available
+- Handles network errors gracefully by returning empty lists
+
+**Key Learnings:**
+1. **API Discovery:** Found API by inspecting individual server pages, which revealed the `/api/mcp/v1/servers/{namespace}/{slug}` endpoint
+2. **Cursor Pagination:** Glama uses cursor-based pagination (`endCursor`/`startCursor`) rather than page numbers
+3. **Server IDs:** Unlike Smithery's qualified names, Glama uses unique server IDs (e.g., `wl91nncvbq`)
+4. **Attributes as Tags:** Glama's "attributes" field (e.g., `hosting:remote-capable`) maps well to tags
+5. **Optional Auth:** Like Smithery, API works without authentication but supports GLAMA_API_TOKEN env var
+
+**Testing:**
+- 18 comprehensive tests covering all functionality
+- Mock API responses with realistic data from live API
+- Test coverage: cursor pagination, search, authentication, error handling, edge cases
+- All tests passing with mypy --strict and ruff linting
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/glama.py` - Source adapter implementation
+- `tests/test_toolsmith/test_sources/test_glama.py` - Test suite
+- `tests/test_toolsmith/fixtures/glama_response.json` - Mock API fixture
+
+**Files Modified:**
+- `src/cub/core/toolsmith/sources/__init__.py` - Registered new source
+
+**Acceptance Criteria:** ✅ All met
+- [x] `GlamaSource` is registered as "glama"
+- [x] `fetch_tools()` returns list of Tool objects
+- [x] Each Tool has: id, name, source="glama", source_url, tool_type=MCP_SERVER
+- [x] `search_live()` searches tools by query
+- [x] Handles network errors gracefully
+- [x] Test with fixture verifies parsing
+- [x] mypy passes with strict mode
+
+**Resources:**
+- Glama MCP Directory: https://glama.ai/mcp/servers
+- API Endpoint: https://glama.ai/api/mcp/v1/servers
+
