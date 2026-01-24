@@ -224,7 +224,7 @@ def test_detect_orphans_finds_abandoned_session(manager: RunSessionManager) -> N
     time.sleep(1.1)
 
     # Create second session (simulates new run)
-    session2 = manager.start_session("claude")
+    manager.start_session("claude")
 
     # Now session1 should be detected as orphaned
     orphans = manager.detect_orphans()
@@ -273,7 +273,7 @@ def test_detect_orphans_ignores_completed(manager: RunSessionManager) -> None:
 def test_detect_orphans_ignores_already_orphaned(manager: RunSessionManager) -> None:
     """Test detect_orphans doesn't re-mark already orphaned sessions."""
     # Create first session
-    session1 = manager.start_session("claude")
+    manager.start_session("claude")
 
     # Sleep to ensure different run_id timestamp
     time.sleep(1.1)
@@ -293,7 +293,7 @@ def test_detect_orphans_ignores_already_orphaned(manager: RunSessionManager) -> 
 def test_update_active_symlink_atomic_replacement(manager: RunSessionManager) -> None:
     """Test active symlink replacement is atomic."""
     # Create first session
-    session1 = manager.start_session("claude")
+    manager.start_session("claude")
 
     # Manually create second session
     session2 = RunSession(
