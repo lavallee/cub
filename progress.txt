@@ -7584,3 +7584,27 @@ Successfully extended the `cub ledger show` command to display new unified track
 - The ledger system uses both legacy fields (workflow_stage) and new fields (workflow, state_history)
 - String-based stage validation is more flexible than enum-based for CLI commands
 - State history provides valuable audit trail of workflow progression
+
+## 2026-01-24 - Task cub-c5i.3: Add ledger export command
+
+Successfully implemented the ledger export command with JSON and CSV format support.
+
+### Implementation Details
+- Added `cub ledger export` command with `--format`, `--epic`, `--output`, and `--since` options
+- JSON export uses `model_dump(mode="json")` for proper serialization
+- CSV export flattens complex fields into a spreadsheet-friendly format
+- Supports both stdout and file output
+- Handles both new outcome-based fields and legacy fields gracefully
+
+### Key Learnings
+1. **Pydantic serialization**: Using `model_dump(mode="json")` ensures proper datetime serialization
+2. **CSV field selection**: Selected key fields for CSV that balance detail with usability in spreadsheets
+3. **Backward compatibility**: Export handles both new outcome-based and legacy ledger fields
+4. **Filter composition**: Leveraged existing LedgerReader filter methods for consistency
+
+### Testing
+- All existing tests pass (189 ledger-related tests)
+- Manually tested JSON/CSV export to stdout and file
+- Verified filtering by epic and date
+- Confirmed proper field flattening in CSV format
+
