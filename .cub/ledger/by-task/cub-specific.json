@@ -2,14 +2,14 @@
   "id": "cub-specific",
   "title": "Specific task",
   "started_at": null,
-  "completed_at": "2026-01-24T10:11:46.602660",
+  "completed_at": "2026-01-24T11:45:24.092497",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
     "cache_read_tokens": 0,
     "cache_creation_tokens": 0
   },
-  "cost_usd": 0.0,
+  "cost_usd": 0.01,
   "duration_seconds": 1,
   "iterations": 1,
   "approach": "",
@@ -18,12 +18,12 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4601845744'>",
+  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4970097568'>",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": "",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
