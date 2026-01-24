@@ -1,5 +1,69 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-f7m.1: Create Tool, ToolType, and Catalog Pydantic models
+
+### Task Completed
+Implemented core Pydantic models for Toolsmith tool catalog system.
+
+### Key Learnings
+
+**1. Slug Validation Pattern**
+- ID format `{source}:{slug}` is flexible - allow alphanumeric, hyphens, underscores, AND forward slashes
+- Forward slashes enable GitHub-style identifiers (e.g., `github:owner/repo`)
+- Implementation: Use set of valid characters with `all(c in valid_chars for c in slug)` pattern
+
+**2. Timestamp Normalization Strategy**
+- Always convert naive datetimes to UTC using `dt.replace(tzinfo=timezone.utc)`
+- Accept multiple formats: datetime objects, ISO 8601 strings, naive strings
+- Follow Cub convention: ensure all timestamps are timezone-aware for consistency
+
+**3. Semantic Version Validation**
+- Use regex pattern: `^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$`
+- Supports prerelease tags (alpha, beta, rc) via the optional `-prerelease` suffix
+- Simple, focused validation - don't over-engineer
+
+**4. Field Validator Mode Parameter**
+- `mode="before"` validators run before Pydantic type coercion
+- Useful for normalizing input types (string → datetime, single string → list)
+- Pydantic v2 uses `@field_validator()` decorator with `mode` parameter
+
+**5. Test Coverage Strategy**
+- Separate test classes for each concern: basics, validation, serialization, edge cases
+- Test both valid and invalid inputs thoroughly
+- Verify error messages contain expected keywords for debugging
+- Use assertion on lowercase error strings for case-insensitive matching
+
+**6. Pydantic v2 Patterns**
+- Use `ConfigDict` with `populate_by_name=True` for flexibility
+- `model_dump()` and `model_validate()` for dict conversions
+- `model_dump_json()` and `model_validate_json()` for JSON roundtrips
+- Line length: break long strings carefully, prefer variable assignments for complex messages
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/toolsmith/__init__.py` - Package initialization with docstring
+- `src/cub/core/toolsmith/models.py` - All three models with validators (270+ lines)
+- `tests/test_toolsmith_models.py` - 43 comprehensive tests covering all scenarios
+
+**Models Implemented:**
+- `ToolType` enum: MCP_SERVER, SKILL
+- `Tool`: 9 fields with ID/source/slug/timestamp validation
+- `Catalog`: Version control, tool collection, sync tracking
+
+**Quality Metrics:**
+- ✅ mypy strict mode: 0 errors
+- ✅ ruff lint: 0 errors after formatting
+- ✅ pytest: 43/43 tests passing
+- ✅ All acceptance criteria verified
+
+### Blockers Unblocked
+This task unblocks:
+- cub-f7m.2: Implement ToolsmithStore (depends on models)
+- cub-k3p.1: Define ToolSource protocol (will use Tool model)
+
+---
+
 ## 2026-01-23 - cub-p9w.3: Implement cub dashboard export command
 
 ### Task Completed
