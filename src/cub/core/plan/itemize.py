@@ -25,6 +25,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from cub.core.plan.claude import (
+    ClaudeNotFoundError,
+    invoke_claude_command,
+)
 from cub.core.plan.ids import generate_epic_id, generate_task_id
 from cub.core.plan.models import PlanStage, StageStatus
 
@@ -642,17 +646,18 @@ class ItemizeStage:
         except ValueError:
             return str(self.ctx.spec_path)
 
-    def run(self) -> ItemizeResult:
+    def run(self, non_interactive: bool = False) -> ItemizeResult:
         """
         Run the itemize stage.
 
-        This method:
-        1. Validates prerequisites
-        2. Reads orientation.md and architecture.md
-        3. Extracts information from both documents
-        4. Generates epics and tasks with beads IDs
-        5. Produces itemized-plan.md
-        6. Updates plan status
+        This method invokes Claude Code with the /cub:itemize command to
+        conduct an interactive interview and generate itemized-plan.md.
+
+        In non-interactive mode, it uses claude -p for best-effort generation.
+        If Claude Code is not available, falls back to template-based generation.
+
+        Args:
+            non_interactive: If True, use claude -p for non-interactive mode.
 
         Returns:
             ItemizeResult with output path and generated epics/tasks.
@@ -670,32 +675,52 @@ class ItemizeStage:
         self.ctx.ensure_plan_dir()
         self.ctx.save_plan()
 
-        # Read input documents
-        orientation_content = self._read_orientation()
-        architecture_content = self._read_architecture()
-
-        # Extract information
-        orientation_extracted = self._extract_from_orientation(orientation_content)
-        architecture_extracted = self._extract_from_architecture(architecture_content)
-
-        # Generate epics and tasks
-        epics, tasks = self._generate_epics_and_tasks(
-            orientation_extracted, architecture_extracted
-        )
-
-        # Generate itemized plan document
-        itemized_plan_content = self._generate_itemized_plan(
-            orientation_extracted, architecture_extracted, epics, tasks
-        )
-
-        # Write itemized-plan.md
         output_path = self.ctx.itemized_plan_path
+        epics: list[Epic] = []
+        tasks: list[Task] = []
+
+        # Build arguments for Claude command - pass the plan slug
+        args = self.ctx.plan.slug
+
         try:
-            output_path.write_text(itemized_plan_content, encoding="utf-8")
-        except OSError as e:
+            # Invoke Claude Code with /cub:itemize
+            result = invoke_claude_command(
+                command="cub:itemize",
+                args=args,
+                working_dir=self.ctx.project_root,
+                output_path=output_path,
+                non_interactive=non_interactive,
+            )
+
+            if result.needs_human_input:
+                # Stage is blocked on human input
+                raise ItemizeStageError(
+                    "Itemize stage needs human input:\n"
+                    + "\n".join(f"  - {q}" for q in (result.human_input_questions or []))
+                )
+
+            if not result.success:
+                # Claude command failed - fall back to template generation
+                epics, tasks = self._run_template_fallback(output_path)
+            else:
+                # Parse epics and tasks from the generated content
+                content = (
+                    output_path.read_text(encoding="utf-8")
+                    if output_path.exists()
+                    else ""
+                )
+                epics, tasks = self._parse_itemized_plan(content)
+
+        except ClaudeNotFoundError:
+            # Fall back to template-based generation
+            epics, tasks = self._run_template_fallback(output_path)
+
+        # Verify output was created
+        if not output_path.exists():
             raise ItemizeStageError(
-                f"Cannot write itemized plan file {output_path}: {e}"
-            ) from e
+                f"Itemized plan output file not created: {output_path}. "
+                "Claude session may have been interrupted."
+            )
 
         # Mark stage as complete
         self.ctx.plan.complete_stage(PlanStage.ITEMIZE)
@@ -716,16 +741,157 @@ class ItemizeStage:
             completed_at=completed_at,
         )
 
+    def _run_template_fallback(
+        self, output_path: Path
+    ) -> tuple[list[Epic], list[Task]]:
+        """
+        Fall back to template-based generation when Claude is not available.
 
-def run_itemize(ctx: PlanContext) -> ItemizeResult:
+        Args:
+            output_path: Path to write the itemized plan file.
+
+        Returns:
+            Tuple of (list of Epic, list of Task).
+        """
+        # Read input documents
+        orientation_content = self._read_orientation()
+        architecture_content = self._read_architecture()
+
+        # Extract information
+        orientation_extracted = self._extract_from_orientation(orientation_content)
+        architecture_extracted = self._extract_from_architecture(architecture_content)
+
+        # Generate epics and tasks
+        epics, tasks = self._generate_epics_and_tasks(
+            orientation_extracted, architecture_extracted
+        )
+
+        # Generate itemized plan document
+        itemized_plan_content = self._generate_itemized_plan(
+            orientation_extracted, architecture_extracted, epics, tasks
+        )
+
+        # Write itemized-plan.md
+        try:
+            output_path.write_text(itemized_plan_content, encoding="utf-8")
+        except OSError as e:
+            raise ItemizeStageError(
+                f"Cannot write itemized plan file {output_path}: {e}"
+            ) from e
+
+        return epics, tasks
+
+    def _parse_itemized_plan(self, content: str) -> tuple[list[Epic], list[Task]]:
+        """
+        Parse epics and tasks from generated itemized-plan.md content.
+
+        Args:
+            content: Content of the itemized-plan.md file.
+
+        Returns:
+            Tuple of (list of Epic, list of Task).
+        """
+        epics: list[Epic] = []
+        tasks: list[Task] = []
+
+        # Parse epic sections: ## Epic: ID - Title
+        epic_pattern = re.compile(
+            r"##\s+Epic:\s*(\S+)\s*-\s*(.+?)\n"
+            r"(?:\n)?Priority:\s*(\d+)\n"
+            r"Labels:\s*(.+?)\n"
+            r"(?:\n)?(?:Description:?\n)?([\s\S]*?)(?=\n##|\n###|\Z)",
+            re.IGNORECASE,
+        )
+
+        for match in epic_pattern.finditer(content):
+            epic_id = match.group(1).strip()
+            title = match.group(2).strip()
+            priority = int(match.group(3))
+            labels = [l.strip() for l in match.group(4).split(",")]
+            description = match.group(5).strip()
+
+            epics.append(Epic(
+                id=epic_id,
+                title=title,
+                priority=priority,
+                labels=labels,
+                description=description,
+            ))
+
+        # Parse task sections: ### Task: ID - Title
+        task_pattern = re.compile(
+            r"###\s+Task:\s*(\S+)\s*-\s*(.+?)\n"
+            r"(?:\n)?Priority:\s*(\d+)\n"
+            r"Labels:\s*(.+?)\n"
+            r"(?:Blocks:\s*(.+?)\n)?"
+            r"([\s\S]*?)(?=\n###|\n##|\n---|\Z)",
+            re.IGNORECASE,
+        )
+
+        # Track current epic for task assignment
+        current_epic_id = ""
+        for match in task_pattern.finditer(content):
+            task_id = match.group(1).strip()
+            title = match.group(2).strip()
+            priority = int(match.group(3))
+            labels = [l.strip() for l in match.group(4).split(",")]
+            blocks_str = match.group(5)
+            blocks = [b.strip() for b in blocks_str.split(",")] if blocks_str else []
+            body = match.group(6).strip()
+
+            # Extract context from body
+            context_match = re.search(r"\*\*Context\*\*:\s*(.+?)(?:\n|$)", body)
+            context = context_match.group(1) if context_match else ""
+
+            # Extract implementation steps
+            impl_match = re.search(
+                r"\*\*Implementation Steps\*\*:\s*\n((?:\d+\..+\n?)+)",
+                body,
+            )
+            impl_steps = []
+            if impl_match:
+                impl_steps = re.findall(r"\d+\.\s*(.+)", impl_match.group(1))
+
+            # Extract acceptance criteria
+            acc_match = re.search(
+                r"\*\*Acceptance Criteria\*\*:\s*\n((?:-\s*\[.\].+\n?)+)",
+                body,
+            )
+            acceptance = []
+            if acc_match:
+                acceptance = re.findall(r"-\s*\[.\]\s*(.+)", acc_match.group(1))
+
+            # Determine epic ID from task ID (before the dot)
+            if "." in task_id:
+                epic_id = task_id.rsplit(".", 1)[0]
+            else:
+                epic_id = current_epic_id
+
+            tasks.append(Task(
+                id=task_id,
+                title=title,
+                priority=priority,
+                labels=labels,
+                epic_id=epic_id,
+                blocks=blocks,
+                context=context,
+                implementation_steps=impl_steps,
+                acceptance_criteria=acceptance,
+            ))
+
+        return epics, tasks
+
+
+def run_itemize(ctx: PlanContext, non_interactive: bool = False) -> ItemizeResult:
     """
     Convenience function to run the itemize stage.
 
     Args:
         ctx: PlanContext for this planning session.
+        non_interactive: If True, use claude -p for non-interactive mode.
 
     Returns:
         ItemizeResult with output path and generated epics/tasks.
     """
     stage = ItemizeStage(ctx)
-    return stage.run()
+    return stage.run(non_interactive=non_interactive)

@@ -29,6 +29,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from cub.core.plan.claude import (
+    ClaudeNotFoundError,
+    invoke_claude_command,
+)
 from cub.core.plan.models import PlanStage, StageStatus
 
 if TYPE_CHECKING:
@@ -866,20 +870,18 @@ class ArchitectStage:
 
         return "\n".join(lines)
 
-    def run(self) -> ArchitectResult:
+    def run(self, non_interactive: bool = False) -> ArchitectResult:
         """
         Run the architect stage.
 
-        This method:
-        1. Validates prerequisites
-        2. Reads orientation.md
-        3. Gathers project context
-        4. Extracts information from orientation
-        5. Generates technology stack recommendations
-        6. Generates component design
-        7. Generates implementation phases
-        8. Produces architecture.md
-        9. Updates plan status
+        This method invokes Claude Code with the /cub:architect command to
+        conduct an interactive interview and generate architecture.md.
+
+        In non-interactive mode, it uses claude -p for best-effort generation.
+        If Claude Code is not available, falls back to template-based generation.
+
+        Args:
+            non_interactive: If True, use claude -p for non-interactive mode.
 
         Returns:
             ArchitectResult with output path and design information.
@@ -897,6 +899,99 @@ class ArchitectStage:
         self.ctx.ensure_plan_dir()
         self.ctx.save_plan()
 
+        output_path = self.ctx.architecture_path
+
+        # Build arguments for Claude command - pass the plan slug
+        args = self.ctx.plan.slug
+
+        try:
+            # Invoke Claude Code with /cub:architect
+            result = invoke_claude_command(
+                command="cub:architect",
+                args=args,
+                working_dir=self.ctx.project_root,
+                output_path=output_path,
+                non_interactive=non_interactive,
+            )
+
+            if result.needs_human_input:
+                # Stage is blocked on human input
+                raise ArchitectStageError(
+                    "Architect stage needs human input:\n"
+                    + "\n".join(f"  - {q}" for q in (result.human_input_questions or []))
+                )
+
+            if not result.success:
+                # Claude command failed - fall back to template generation
+                self._run_template_fallback(output_path)
+
+        except ClaudeNotFoundError:
+            # Fall back to template-based generation
+            self._run_template_fallback(output_path)
+
+        # Verify output was created
+        if not output_path.exists():
+            raise ArchitectStageError(
+                f"Architecture output file not created: {output_path}. "
+                "Claude session may have been interrupted."
+            )
+
+        # Mark stage as complete
+        self.ctx.plan.complete_stage(PlanStage.ARCHITECT)
+        try:
+            self.ctx.save_plan()
+        except (OSError, ValueError) as e:
+            raise ArchitectStageError(
+                f"Cannot save plan after architect stage: {e}"
+            ) from e
+
+        completed_at = datetime.now(timezone.utc)
+
+        # Parse the generated architecture for the result
+        content = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+        extracted = self._extract_from_orientation(content)
+
+        # Generate minimal result - the file is the source of truth
+        tech_stack = self._infer_tech_stack({"orientation_content": content}, extracted)
+        components = self._generate_components(extracted)
+        phases = self._generate_phases(extracted)
+
+        technical_risks: list[TechnicalRisk] = []
+        if self.mindset == "prototype":
+            technical_risks.append(TechnicalRisk(
+                risk="Code quality debt",
+                impact="Medium",
+                likelihood="High",
+                mitigation="Acceptable for prototype",
+            ))
+        else:
+            technical_risks.append(TechnicalRisk(
+                risk="Scope creep",
+                impact="High",
+                likelihood="Medium",
+                mitigation="Strict MVP boundary",
+            ))
+
+        return ArchitectResult(
+            output_path=output_path,
+            technical_summary=str(extracted.get("problem_statement") or ""),
+            tech_stack=tech_stack,
+            components=components,
+            implementation_phases=phases,
+            technical_risks=technical_risks,
+            mindset=self.mindset,
+            scale=self.scale,
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+
+    def _run_template_fallback(self, output_path: Path) -> None:
+        """
+        Fall back to template-based generation when Claude is not available.
+
+        Args:
+            output_path: Path to write the architecture file.
+        """
         # Gather context
         context = self._gather_context()
 
@@ -915,7 +1010,6 @@ class ArchitectStage:
         )
 
         # Write architecture.md
-        output_path = self.ctx.architecture_path
         try:
             output_path.write_text(architecture_content, encoding="utf-8")
         except OSError as e:
@@ -923,53 +1017,12 @@ class ArchitectStage:
                 f"Cannot write architecture file {output_path}: {e}"
             ) from e
 
-        # Mark stage as complete
-        self.ctx.plan.complete_stage(PlanStage.ARCHITECT)
-        try:
-            self.ctx.save_plan()
-        except (OSError, ValueError) as e:
-            raise ArchitectStageError(
-                f"Cannot save plan after architect stage: {e}"
-            ) from e
-
-        completed_at = datetime.now(timezone.utc)
-
-        # Generate technical risks for result
-        technical_risks: list[TechnicalRisk] = []
-        if self.mindset == "prototype":
-            technical_risks.append(TechnicalRisk(
-                risk="Code quality debt",
-                impact="Medium",
-                likelihood="High",
-                mitigation="Acceptable for prototype",
-            ))
-        else:
-            technical_risks.append(TechnicalRisk(
-                risk="Scope creep",
-                impact="High",
-                likelihood="Medium",
-                mitigation="Strict MVP boundary",
-            ))
-
-        # Build result
-        return ArchitectResult(
-            output_path=output_path,
-            technical_summary=str(extracted.get("problem_statement") or ""),
-            tech_stack=tech_stack,
-            components=components,
-            implementation_phases=phases,
-            technical_risks=technical_risks,
-            mindset=self.mindset,
-            scale=self.scale,
-            started_at=started_at,
-            completed_at=completed_at,
-        )
-
 
 def run_architect(
     ctx: PlanContext,
     mindset: str = "mvp",
     scale: str = "team",
+    non_interactive: bool = False,
 ) -> ArchitectResult:
     """
     Convenience function to run the architect stage.
@@ -978,9 +1031,10 @@ def run_architect(
         ctx: PlanContext for this planning session.
         mindset: Technical mindset (prototype/mvp/production/enterprise).
         scale: Expected usage scale (personal/team/product/internet-scale).
+        non_interactive: If True, use claude -p for non-interactive mode.
 
     Returns:
         ArchitectResult with output path and design information.
     """
     stage = ArchitectStage(ctx, mindset=mindset, scale=scale)
-    return stage.run()
+    return stage.run(non_interactive=non_interactive)

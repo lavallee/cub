@@ -371,7 +371,7 @@ class PlanPipeline:
 
         try:
             stage = OrientStage(ctx)
-            result = stage.run()
+            result = stage.run(non_interactive=self.config.non_interactive)
             self.on_progress(
                 PlanStage.ORIENT,
                 "complete",
@@ -403,7 +403,7 @@ class PlanPipeline:
                 mindset=self.config.mindset.lower(),
                 scale=self.config.scale.lower(),
             )
-            result = stage.run()
+            result = stage.run(non_interactive=self.config.non_interactive)
             self.on_progress(
                 PlanStage.ARCHITECT,
                 "complete",
@@ -431,7 +431,7 @@ class PlanPipeline:
 
         try:
             stage = ItemizeStage(ctx)
-            result = stage.run()
+            result = stage.run(non_interactive=self.config.non_interactive)
             self.on_progress(
                 PlanStage.ITEMIZE,
                 "complete",
@@ -738,6 +738,7 @@ def run_pipeline(
     scale: str = "team",
     verbose: bool = False,
     move_spec: bool = True,
+    non_interactive: bool = False,
     on_progress: ProgressCallback | None = None,
 ) -> PipelineResult:
     """
@@ -752,6 +753,7 @@ def run_pipeline(
         scale: Architect phase scale.
         verbose: Whether to show verbose output.
         move_spec: Whether to move spec on plan completion.
+        non_interactive: Whether to run without user interaction.
         on_progress: Optional callback for progress updates.
 
     Returns:
@@ -765,6 +767,7 @@ def run_pipeline(
         scale=scale,
         verbose=verbose,
         move_spec=move_spec,
+        non_interactive=non_interactive,
     )
     pipeline = PlanPipeline(project_root, config, on_progress)
     return pipeline.run()
@@ -777,6 +780,7 @@ def continue_pipeline(
     scale: str = "team",
     verbose: bool = False,
     move_spec: bool = True,
+    non_interactive: bool = False,
     on_progress: ProgressCallback | None = None,
 ) -> PipelineResult:
     """
@@ -789,6 +793,7 @@ def continue_pipeline(
         scale: Architect phase scale.
         verbose: Whether to show verbose output.
         move_spec: Whether to move spec on plan completion.
+        non_interactive: Whether to run without user interaction.
         on_progress: Optional callback for progress updates.
 
     Returns:
@@ -800,6 +805,7 @@ def continue_pipeline(
         scale=scale,
         verbose=verbose,
         move_spec=move_spec,
+        non_interactive=non_interactive,
     )
     pipeline = PlanPipeline(project_root, config, on_progress)
     return pipeline.run()

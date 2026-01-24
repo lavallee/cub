@@ -2,8 +2,8 @@
 Orient stage implementation for cub plan.
 
 The orient stage gathers requirements and understands the problem space.
-It reads the input spec (if provided), analyzes the codebase context,
-and produces orientation.md with:
+It invokes Claude Code with the /cub:orient command to conduct an interactive
+interview, analyze the spec, and produce orientation.md with:
 - Problem statement (refined)
 - Requirements (P0/P1/P2)
 - Constraints
@@ -31,6 +31,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from cub.core.plan.claude import (
+    ClaudeNotFoundError,
+    invoke_claude_command,
+)
 from cub.core.plan.models import PlanStage
 
 if TYPE_CHECKING:
@@ -450,16 +454,18 @@ class OrientStage:
         except ValueError:
             return str(self.ctx.spec_path)
 
-    def run(self) -> OrientResult:
+    def run(self, non_interactive: bool = False) -> OrientResult:
         """
         Run the orient stage.
 
-        This method:
-        1. Validates prerequisites
-        2. Gathers context from project
-        3. Extracts information from spec
-        4. Generates orientation.md
-        5. Updates plan status
+        This method invokes Claude Code with the /cub:orient command to conduct
+        an interactive interview and generate orientation.md.
+
+        In non-interactive mode, it uses claude -p for best-effort generation.
+        If Claude Code is not available, falls back to template-based generation.
+
+        Args:
+            non_interactive: If True, use claude -p for non-interactive mode.
 
         Returns:
             OrientResult with output path and extracted information.
@@ -477,24 +483,44 @@ class OrientStage:
         self.ctx.ensure_plan_dir()
         self.ctx.save_plan()
 
-        # Gather context
-        context = self._gather_context()
-
-        # Extract from spec
-        spec_content = context.get("spec_content") or ""
-        extracted = self._extract_from_spec(spec_content)
-
-        # Generate orientation
-        orientation_content = self._generate_orientation(context, extracted)
-
-        # Write orientation.md
         output_path = self.ctx.orientation_path
+
+        # Build arguments for Claude command
+        # Pass the spec path and plan slug for Claude to use
+        args = str(self.ctx.spec_path) if self.ctx.spec_path else ""
+        args = f"{args} {self.ctx.plan.slug}".strip()
+
         try:
-            output_path.write_text(orientation_content, encoding="utf-8")
-        except OSError as e:
+            # Invoke Claude Code with /cub:orient
+            result = invoke_claude_command(
+                command="cub:orient",
+                args=args,
+                working_dir=self.ctx.project_root,
+                output_path=output_path,
+                non_interactive=non_interactive,
+            )
+
+            if result.needs_human_input:
+                # Stage is blocked on human input
+                raise OrientStageError(
+                    "Orient stage needs human input:\n"
+                    + "\n".join(f"  - {q}" for q in (result.human_input_questions or []))
+                )
+
+            if not result.success:
+                # Claude command failed - fall back to template generation
+                self._run_template_fallback(output_path)
+
+        except ClaudeNotFoundError:
+            # Fall back to template-based generation
+            self._run_template_fallback(output_path)
+
+        # Verify output was created
+        if not output_path.exists():
             raise OrientStageError(
-                f"Cannot write orientation file {output_path}: {e}"
-            ) from e
+                f"Orient output file not created: {output_path}. "
+                "Claude session may have been interrupted."
+            )
 
         # Mark stage as complete
         self.ctx.plan.complete_stage(PlanStage.ORIENT)
@@ -505,7 +531,10 @@ class OrientStage:
 
         completed_at = datetime.now(timezone.utc)
 
-        # Build result
+        # Parse the generated orientation for the result
+        # (For now, return minimal info - the file is the source of truth)
+        content = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+        extracted = self._extract_from_spec(content)
         goals = extracted.get("goals", [])
         questions = extracted.get("open_questions", [])
 
@@ -524,16 +553,42 @@ class OrientStage:
             completed_at=completed_at,
         )
 
+    def _run_template_fallback(self, output_path: Path) -> None:
+        """
+        Fall back to template-based generation when Claude is not available.
 
-def run_orient(ctx: PlanContext) -> OrientResult:
+        Args:
+            output_path: Path to write the orientation file.
+        """
+        # Gather context
+        context = self._gather_context()
+
+        # Extract from spec
+        spec_content = context.get("spec_content") or ""
+        extracted = self._extract_from_spec(spec_content)
+
+        # Generate orientation
+        orientation_content = self._generate_orientation(context, extracted)
+
+        # Write orientation.md
+        try:
+            output_path.write_text(orientation_content, encoding="utf-8")
+        except OSError as e:
+            raise OrientStageError(
+                f"Cannot write orientation file {output_path}: {e}"
+            ) from e
+
+
+def run_orient(ctx: PlanContext, non_interactive: bool = False) -> OrientResult:
     """
     Convenience function to run the orient stage.
 
     Args:
         ctx: PlanContext for this planning session.
+        non_interactive: If True, use claude -p for non-interactive mode.
 
     Returns:
         OrientResult with output path and extracted information.
     """
     stage = OrientStage(ctx)
-    return stage.run()
+    return stage.run(non_interactive=non_interactive)
