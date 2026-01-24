@@ -5963,3 +5963,58 @@ The change maintains backward compatibility in the API by keeping the internal d
 - src/cub/dashboard/web/.env.example (env example port)
 - src/cub/core/dashboard/api/app.py (static file serving)
 - tests/test_api_board.py, tests/test_api_errors.py (test updates)
+
+## 2026-01-23 - cub-12be: Fix artifact content HTML rendering
+
+### Task Completed
+Fixed artifact content rendering issue where HTML markup was displayed as raw text instead of being rendered as DOM elements in the dashboard UI.
+
+### What Was Implemented
+
+**Root Cause:**
+The frontend was using `response.text()` to parse the API response, which converted the entire JSON object to a string. This caused the HTML content to be displayed as escaped text rather than rendered HTML.
+
+**Fix** (`src/cub/dashboard/web/src/components/ArtifactViewer.tsx`):
+- Changed from `response.text()` to `response.json()` on line 59
+- Extract content from JSON object: `data.content` instead of raw text
+- API returns: `{"path": "...", "content": "...", "size": ...}`
+- Frontend now correctly parses the JSON and extracts the `content` field
+
+**Security Considerations:**
+- No XSS vulnerabilities introduced
+- Content is already sanitized by `marked.parse()` before rendering
+- Uses `dangerouslySetInnerHTML` safely with markdown-parsed content
+- API validates paths to prevent directory traversal (validated by 28 security tests)
+
+### Verification
+
+**All Tests Pass:**
+- 28/28 artifact API tests pass (including security tests)
+- TypeScript compilation successful with no errors
+- Ruff linter: all checks passed
+- Mypy type checker: no issues found
+
+**Build Success:**
+- Frontend builds successfully with Vite
+- No TypeScript errors
+- Only minor chunk size warning (unrelated to this fix)
+
+### Learnings
+
+**API Response Handling:**
+- Always check API response format before parsing
+- `response.text()` returns the entire response as a string (even for JSON)
+- `response.json()` parses JSON and returns the object
+- When API returns JSON, must use `.json()` method to access structured data
+
+**Debugging Frontend Issues:**
+- Check network tab in browser devtools to see actual API responses
+- Verify API contract matches frontend expectations
+- Read API endpoint code to understand response format
+- Look at existing tests to understand expected behavior
+
+**TypeScript Frontend Development:**
+- Build process (`npm run build`) includes TypeScript compilation
+- TypeScript errors will fail the build
+- Vite handles both transpilation and bundling
+- Use build output to verify no type errors
