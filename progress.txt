@@ -7405,3 +7405,118 @@ escalation_path = unique_models if escalated else []
 - Drift detection happens only at close, not during execution
 - All metrics are aggregated from attempts array (single source of truth)
 
+
+## 2026-01-24 - Task cub-e2p.1: Add EpicEntry and aggregation models
+
+### What was implemented
+Added comprehensive epic-level tracking models to support project-level visibility:
+- `EpicSnapshot`: Captures epic state at entry creation (similar to TaskSnapshot)
+- `EpicAggregates`: Computed metrics from child tasks including completion, cost, escalation, attempts, tokens, duration, and model usage
+- `EpicEntry`: Complete epic ledger entry with lineage, workflow, drift tracking, and aggregated metrics
+- `compute_aggregates()`: Helper function that takes a list of LedgerEntry objects and computes all epic-level aggregates
+
+### Key design decisions
+1. **Computed aggregates**: Made aggregates computed from task entries rather than manually updated, ensuring accuracy and consistency
+2. **Model usage tracking**: Tracks both unique models used and the most common model across all tasks in an epic
+3. **Success vs completion**: Distinguishes between completed tasks (all attempts done) and successful tasks (completed with success=True)
+4. **Backward compatibility**: Uses both new outcome fields and legacy fields for robustness with existing data
+5. **Properties for derived metrics**: Added computed properties like completion_rate, success_rate, total_duration_hours for convenience
+
+### Technical learnings
+- Used Pydantic field validators and default_factory for datetime fields
+- Implemented helper properties for common calculations (rates, percentages, time conversions)
+- Designed aggregation function to handle both new (outcome-based) and legacy data structures
+- Used set operations for model usage tracking and dict for counting most common model
+
+### Testing approach
+- All existing 179 ledger tests pass
+- Created manual test of compute_aggregates with 3 sample tasks covering success, failure, and escalation scenarios
+- Verified all aggregate calculations: costs, attempts, escalation rate, token metrics, model usage
+- Confirmed typecheck (mypy) and lint (ruff) pass cleanly
+
+### What's next
+- Next task (cub-e2p.2): Implement epic CRUD and aggregation updates
+- Will need to create epic entries, update them when child tasks change, and provide query methods
+
+## Task: cub-e2p.2 - Implement epic CRUD and aggregation updates
+
+**Completed:** 2026-01-24
+
+**What was implemented:**
+- Added epic CRUD methods to LedgerWriter (create_epic_entry, get_epic_entry, update_epic_aggregates, add_task_to_epic)
+- Created directory structure: .cub/ledger/by-epic/{epic-id}/entry.json
+- Updated LedgerIntegration.on_task_close() to auto-update epic aggregates after task completion
+- Implemented epic workflow stage computation based on child task stages (least-progressed task determines epic stage)
+- Auto-create epic entry on first task closure if epic doesn't exist
+
+**Key design decisions:**
+- Epic stage follows "least-progressed" logic: if any task is still in dev_complete, epic stays in dev_complete
+- Epic entry auto-creation uses task metadata to populate epic snapshot when parent epic info is available
+- update_epic_aggregates() scans all task ledger entries to find children (supports both lineage.epic_id and legacy epic_id)
+- Temporal bounds (started_at, completed_at) derived from min/max of child task timestamps
+- Commit range tracked from all child task commits
+
+**Technical notes:**
+- Uses compute_aggregates() from models.py to aggregate metrics across child tasks
+- Epic workflow stage progression: dev_complete → needs_review → validated → released
+- All existing tests pass (66 tests in test_ledger_io.py and test_ledger_integration.py)
+- No new type errors introduced (mypy passes, only pre-existing yaml stub warning)
+
+**Follow-up work:**
+- Write tests for new epic CRUD methods
+- Consider adding epic index similar to task index.jsonl for fast queries
+- Dashboard integration to display epic aggregates
+
+
+## Task: cub-e2p.3 - Add tests for epic aggregation
+
+**Completed:** 2026-01-24
+
+**What was implemented:**
+- Created comprehensive test suite: tests/test_epic_aggregation.py (718 lines)
+- 15 tests covering all epic aggregation features:
+  - Epic auto-creation when first task closes
+  - Aggregates computation from single and multiple child tasks
+  - Escalation rate calculation (none, partial, all)
+  - Epic workflow stage computation based on child task stages
+  - Temporal bounds tracking (started_at, completed_at) from child tasks
+  - Task ID tracking and add_task_to_epic method
+
+**Test structure:**
+- TestEpicAutoCreation: 2 tests for epic creation scenarios
+- TestAggregatesComputation: 3 tests for metric aggregation
+- TestEscalationRate: 3 tests for escalation rate calculation
+- TestEpicStageComputation: 3 tests for stage computation logic
+- TestMultipleTasksInEpic: 4 tests for multi-task handling
+
+**Key discoveries:**
+- TokenUsage model uses input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
+- total_tokens is a computed property, not a field parameter
+- tasks_completed counts only successful tasks (success=True), not all finished tasks
+- EpicAggregates and EpicSnapshot are not exported from ledger __init__.py (must import from models)
+- Epic stage computation follows "least-progressed" logic: mixed stages use the earliest stage in progression
+
+**Technical insights:**
+- Tests follow pytest fixture pattern consistent with test_ledger_integration.py
+- Used pytest.approx() for floating-point comparisons
+- Proper use of Lineage, Outcome, and WorkflowState models in test setup
+- Token metrics: properly constructed from individual token categories
+- Model tracking: correctly identifies most_common_model from outcome.final_model and harness_model
+
+**Quality metrics:**
+- All 15 tests pass ✓
+- Lint passes (ruff clean) ✓
+- Mypy errors consistent with existing test files (expected import-untyped warnings)
+- No regression: existing 179 ledger tests still pass
+
+**Learnings for future tests:**
+- Always verify whether computed properties vs. field parameters in Pydantic models
+- Test edge cases: empty epics, partial data, failed tasks
+- Use proper token structure when testing token aggregation
+- Follow project patterns for imports (use __init__.py exports where available)
+- Document non-obvious behavior (e.g., tasks_completed vs. total_tasks distinction)
+
+**What's next:**
+- Cub-e2p feature now has complete test coverage for epic aggregation
+- Ready for dashboard integration to display epic metrics
+- Can now safely refactor epic aggregation implementation with test safety net
