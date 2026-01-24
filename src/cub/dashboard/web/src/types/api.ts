@@ -20,14 +20,24 @@ export type EntityType = typeof EntityType[keyof typeof EntityType];
 
 export const Stage = {
   CAPTURES: 'CAPTURES',
-  SPECS: 'SPECS',
+  RESEARCHING: 'RESEARCHING',
   PLANNED: 'PLANNED',
+  BLOCKED: 'BLOCKED',
   READY: 'READY',
   IN_PROGRESS: 'IN_PROGRESS',
-  NEEDS_REVIEW: 'NEEDS_REVIEW',
   COMPLETE: 'COMPLETE',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
+  VALIDATED: 'VALIDATED',
   RELEASED: 'RELEASED',
 } as const;
+
+// Workflow stages - the post-completion stages that can be updated via drag-and-drop
+export const WORKFLOW_STAGES: Stage[] = [
+  Stage.COMPLETE,
+  Stage.NEEDS_REVIEW,
+  Stage.VALIDATED,
+  Stage.RELEASED,
+];
 
 export type Stage = typeof Stage[keyof typeof Stage];
 

@@ -4,7 +4,7 @@
  * Provides a type-safe wrapper around fetch for consuming the FastAPI backend.
  */
 
-import type { ApiError, BoardResponse, BoardStats, EntityDetail, ViewSummary } from '../types/api';
+import type { ApiError, BoardResponse, BoardStats, EntityDetail, Stage, ViewSummary } from '../types/api';
 
 /**
  * Base API configuration
@@ -128,5 +128,19 @@ export const apiClient = {
    */
   health: async (): Promise<{ status: string }> => {
     return fetchApi<{ status: string }>('/health');
+  },
+
+  /**
+   * Update entity workflow stage (for drag-and-drop)
+   * PUT /api/entity/{id}/workflow
+   */
+  updateWorkflowStage: async (entityId: string, stage: Stage): Promise<{ success: boolean }> => {
+    return fetchApi<{ success: boolean }>(
+      `/api/entity/${encodeURIComponent(entityId)}/workflow`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ stage }),
+      }
+    );
   },
 };

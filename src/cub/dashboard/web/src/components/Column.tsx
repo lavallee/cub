@@ -2,18 +2,27 @@
  * Column component - displays a single stage column in the kanban board.
  */
 
-import type { BoardColumn, EntityGroup } from '../types/api';
+import { useState } from 'preact/hooks';
+import type { BoardColumn, DashboardEntity, EntityGroup, Stage } from '../types/api';
 import { EntityCard } from './EntityCard';
 
 export interface ColumnProps {
   column: BoardColumn;
-  onEntityClick?: (entity: any) => void;
+  onEntityClick?: (entity: DashboardEntity) => void;
+  isWorkflowColumn?: boolean;
+  onDrop?: (entityId: string, targetStage: Stage) => void;
+}
+
+interface EntityGroupProps {
+  group: EntityGroup;
+  onEntityClick?: (entity: DashboardEntity) => void;
+  isDraggable?: boolean;
 }
 
 /**
  * Renders a group of entities with an optional group header.
  */
-function EntityGroupComponent({ group, onEntityClick }: { group: EntityGroup; onEntityClick?: (entity: any) => void }) {
+function EntityGroupComponent({ group, onEntityClick, isDraggable }: EntityGroupProps) {
   return (
     <div class="space-y-2">
       {/* Group header (spec or epic) */}
@@ -22,6 +31,7 @@ function EntityGroupComponent({ group, onEntityClick }: { group: EntityGroup; on
           <EntityCard
             entity={group.group_entity}
             onClick={onEntityClick}
+            isDraggable={isDraggable}
           />
         </div>
       )}
@@ -33,6 +43,7 @@ function EntityGroupComponent({ group, onEntityClick }: { group: EntityGroup; on
             key={entity.id}
             entity={entity}
             onClick={onEntityClick}
+            isDraggable={isDraggable}
           />
         ))}
       </div>
@@ -45,14 +56,50 @@ function EntityGroupComponent({ group, onEntityClick }: { group: EntityGroup; on
  *
  * Shows column title, count, and entity cards.
  * Supports both flat and grouped entity display.
+ * Workflow columns support drag-and-drop for stage updates.
  */
-export function Column({ column, onEntityClick }: ColumnProps) {
+export function Column({ column, onEntityClick, isWorkflowColumn, onDrop }: ColumnProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
   const hasGroups = column.groups && column.groups.length > 0;
   const hasEntities = column.entities && column.entities.length > 0;
   const isEmpty = !hasGroups && !hasEntities;
 
+  // Handle drag events for workflow columns
+  const handleDragOver = (e: DragEvent) => {
+    if (!isWorkflowColumn) return;
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    if (!isWorkflowColumn || !onDrop) return;
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const entityId = e.dataTransfer?.getData('text/plain');
+    if (entityId) {
+      onDrop(entityId, column.stage);
+    }
+  };
+
+  // Column styling - different for workflow columns
+  const columnClass = isWorkflowColumn
+    ? `flex flex-col bg-white/60 rounded-lg p-4 min-w-[280px] max-w-[320px] transition-all ${
+        isDragOver ? 'ring-2 ring-indigo-400 bg-indigo-50/50' : ''
+      }`
+    : 'flex flex-col bg-gray-50 rounded-lg p-4 min-w-[280px] max-w-[320px]';
+
   return (
-    <div class="flex flex-col bg-gray-50 rounded-lg p-4 min-w-[280px] max-w-[320px]">
+    <div
+      class={columnClass}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Column header */}
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -89,6 +136,7 @@ export function Column({ column, onEntityClick }: ColumnProps) {
               key={group.group_key || `group-${index}`}
               group={group}
               onEntityClick={onEntityClick}
+              isDraggable={isWorkflowColumn}
             />
           ))
         ) : (
@@ -98,6 +146,7 @@ export function Column({ column, onEntityClick }: ColumnProps) {
               key={entity.id}
               entity={entity}
               onClick={onEntityClick}
+              isDraggable={isWorkflowColumn}
             />
           ))
         )}

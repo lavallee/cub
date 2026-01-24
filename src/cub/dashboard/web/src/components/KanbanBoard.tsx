@@ -12,7 +12,9 @@ import { StatsBar } from './StatsBar';
 import { ViewSwitcher } from './ViewSwitcher';
 import { BoardSkeleton } from './LoadingSkeleton';
 import { FullScreenError } from './ErrorDisplay';
-import type { DashboardEntity } from '../types/api';
+import type { BoardColumn, DashboardEntity, Stage } from '../types/api';
+import { WORKFLOW_STAGES } from '../types/api';
+import { apiClient } from '../api/client';
 
 /**
  * Main kanban board component.
@@ -73,6 +75,25 @@ export function KanbanBoard() {
     setSelectedViewId(viewId);
     navigation.clear();
   };
+
+  // Handle drag-and-drop for workflow stage updates
+  const handleDrop = async (entityId: string, targetStage: Stage) => {
+    try {
+      await apiClient.updateWorkflowStage(entityId, targetStage);
+      refetch(); // Refresh the board to show updated position
+    } catch (error) {
+      console.error('Failed to update workflow stage:', error);
+    }
+  };
+
+  // Check if a column is a workflow column (draggable)
+  const isWorkflowColumn = (column: BoardColumn): boolean => {
+    return WORKFLOW_STAGES.includes(column.stage);
+  };
+
+  // Separate columns into regular and workflow groups
+  const regularColumns = data.columns.filter(col => !isWorkflowColumn(col));
+  const workflowColumns = data.columns.filter(col => isWorkflowColumn(col));
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -135,13 +156,30 @@ export function KanbanBoard() {
       {/* Scrollable board columns */}
       <div class="flex-1 overflow-x-auto overflow-y-hidden">
         <div class="flex gap-4 p-6 h-full">
-          {data.columns.map((column) => (
+          {/* Regular columns (pre-completion stages) */}
+          {regularColumns.map((column) => (
             <Column
               key={column.id}
               column={column}
               onEntityClick={handleEntityClick}
+              isWorkflowColumn={false}
             />
           ))}
+
+          {/* Workflow columns (post-completion stages) with grouped shading */}
+          {workflowColumns.length > 0 && (
+            <div class="flex gap-4 bg-gradient-to-b from-indigo-50 to-purple-50 rounded-xl p-3 border border-indigo-100">
+              {workflowColumns.map((column) => (
+                <Column
+                  key={column.id}
+                  column={column}
+                  onEntityClick={handleEntityClick}
+                  isWorkflowColumn={true}
+                  onDrop={handleDrop}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
