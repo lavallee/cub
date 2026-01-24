@@ -1,5 +1,76 @@
 # Cub Project Progress
 
+## 2026-01-23 - cub-k3p.1: Define ToolSource protocol and source registry
+
+### Task Completed
+Implemented pluggable tool source abstraction layer following TaskBackend pattern.
+
+### Key Learnings
+
+**1. Protocol-Based Registry Pattern**
+- Use `@runtime_checkable` decorator on Protocol for isinstance() checks at runtime
+- Mirror the TaskBackend pattern for consistency across codebase
+- Registry uses module-level dict `_sources: dict[str, type[ToolSource]]`
+- Sources are instantiated on demand via `source_class()`, not at import time
+- This lazy instantiation pattern avoids circular imports and initialization costs
+
+**2. Decorator for Registration**
+- Decorator returns a function that takes the class, registers it, and returns it
+- Prevents duplicate registrations by checking `if name in _sources` and raising ValueError
+- Error message includes list of available sources for helpful debugging
+- Pattern: `@register_source('name')` followed by class definition
+
+**3. Registry Functions Architecture**
+- `get_source(name)` - Returns fresh instance each call for independent state
+- `list_sources()` - Returns sorted list for consistent ordering
+- `get_all_sources()` - Returns all instances for aggregate operations
+- Use descriptive error messages: "not registered. Available sources: ..."
+- Handles empty registry gracefully: "Available sources: none registered"
+
+**4. Protocol Methods vs Properties**
+- Properties (like `name`) return identifiers/metadata
+- Methods (like `fetch_tools()`, `search_live()`) perform operations
+- Protocol enforces contract but doesn't require base class inheritance
+- isinstance() checks work because Protocol is @runtime_checkable
+
+**5. Test Organization for Protocols**
+- TestSourceRegistry: Registration and retrieval (7 tests)
+- TestToolSourceProtocol: Protocol implementation and contract (4 tests)
+- TestSourceBehavior: Real behavior and return types (3 tests)
+- TestEdgeCases: Error handling and boundary conditions (4 tests)
+- Total: 18 tests providing comprehensive coverage with mypy strict mode
+
+**6. Module Organization**
+- `base.py` contains protocol, registry, and all functions
+- `__init__.py` imports and re-exports public API
+- `_sources` dict exposed for testing via module import
+- Example usage in module docstring for developer guidance
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/toolsmith/sources/base.py` (177 lines)
+  - ToolSource Protocol with 3 required members
+  - Registry dict and decorator
+  - 4 registry management functions
+
+- `src/cub/core/toolsmith/sources/__init__.py` (50 lines)
+  - Public API with __all__
+  - Example usage docstring
+
+- `tests/test_toolsmith_sources.py` (497 lines)
+  - 18 comprehensive tests
+  - Full coverage of protocol, registry, and edge cases
+
+### Quality Metrics
+
+- Tests: 18/18 passing (plus 73 existing toolsmith tests = 91 total)
+- Type Checking: mypy --strict passes with "no issues found"
+- Linting: ruff passes with no errors
+- Acceptance Criteria: 8/8 met ✓
+
+---
+
 ## 2026-01-23 - cub-f7m.1: Create Tool, ToolType, and Catalog Pydantic models
 
 ### Task Completed
