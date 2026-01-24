@@ -6682,3 +6682,34 @@ Sources consulted during research:
 - To make --live skip local search entirely would require service API changes
 - Source filtering in search happens client-side after service returns results
 - Could be optimized in future to filter at service layer
+
+## 2026-01-24 - Task cub-v9s.4: Integration Tests for Toolsmith
+
+**What I Did:**
+Fixed existing integration tests that were incomplete and had critical bugs preventing them from running.
+
+**Key Challenges:**
+1. **Infinite Loop Bug**: Glama fixture had `hasNextPage: true`, causing endless pagination
+2. **Mock Factory Gaps**: GitHub API calls weren't properly mocked - needed separate handling for:
+   - api.github.com (JSON directory listing)
+   - raw.githubusercontent.com (text/markdown content)
+3. **Error Handling Tests**: Initially tested httpx.get failures, but sources handle those gracefully
+   - Solution: Mock source.fetch_tools() to raise exceptions instead
+
+**Solution Approach:**
+1. Fixed Glama pagination fixture (hasNextPage: false)
+2. Enhanced mock factory with specific GitHub URL patterns
+3. Redesigned error tests to properly test service-level exception handling
+4. All 17 integration tests now pass in <1s
+
+**Learnings:**
+- When sources handle errors gracefully (return empty lists), service-level tests need to mock the source methods directly
+- Pagination bugs in fixtures can cause infinite loops - always verify test data
+- Multi-call sources (like ClawdHub) need careful mock factory design to handle different URL patterns
+- Integration tests should use comprehensive fixtures that match real API responses
+
+**Outcome:**
+✅ All acceptance criteria met
+✅ 17 integration tests passing
+✅ Full workflow coverage: sync, search, CLI, error handling
+✅ Clean lint and type checking
