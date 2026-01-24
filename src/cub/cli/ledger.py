@@ -929,3 +929,138 @@ def _export_csv(entries: list["LedgerEntry"], output: str | None) -> None:
         writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+@app.command()
+def gc(
+    keep_latest: int = typer.Option(
+        5,
+        "--keep-latest",
+        "-k",
+        help="Number of latest attempts to keep per task",
+    ),
+    dry_run: bool = typer.Option(
+        True,
+        "--dry-run",
+        help="Show what would be deleted without actually deleting (always true for now)",
+    ),
+) -> None:
+    """
+    Garbage collect old attempt files.
+
+    Scans all task directories and identifies attempt files that would be
+    deleted based on the retention policy. Currently runs in dry-run mode only
+    (shows what would be deleted without actually deleting).
+
+    For each task, keeps only the N most recent attempt files (prompt and log),
+    and identifies older attempts that could be removed.
+
+    Examples:
+        cub ledger gc
+        cub ledger gc --keep-latest 3
+        cub ledger gc -k 10
+    """
+    reader = _get_ledger_reader()
+
+    if not reader.exists():
+        console.print(
+            "[yellow]Warning:[/yellow] No ledger found. "
+            "No attempt files to garbage collect."
+        )
+        raise typer.Exit(0)
+
+    ledger_dir = reader.ledger_dir
+    by_task_dir = ledger_dir / "by-task"
+
+    if not by_task_dir.exists():
+        console.print(
+            "[yellow]Warning:[/yellow] No task directories found. "
+            "No attempt files to garbage collect."
+        )
+        raise typer.Exit(0)
+
+    # Scan all task directories for attempt files
+    total_files = 0
+    total_size_bytes = 0
+    task_summary = []
+
+    for task_dir in sorted(by_task_dir.iterdir()):
+        if not task_dir.is_dir():
+            continue
+
+        attempts_dir = task_dir / "attempts"
+        if not attempts_dir.exists():
+            continue
+
+        # Get all attempt files, sorted by modification time (oldest first)
+        attempt_files = sorted(
+            attempts_dir.iterdir(),
+            key=lambda p: p.stat().st_mtime
+        )
+
+        if not attempt_files:
+            continue
+
+        # Determine which files to keep
+        # Keep only the latest attempt files based on attempt number
+        files_to_delete = []
+        if len(attempt_files) > keep_latest:
+            files_to_delete = attempt_files[:-keep_latest]
+
+        if files_to_delete:
+            files_count = len(files_to_delete)
+            files_size = sum(f.stat().st_size for f in files_to_delete)
+            total_files += files_count
+            total_size_bytes += files_size
+
+            task_summary.append({
+                "task_id": task_dir.name,
+                "files_to_delete": files_count,
+                "size_bytes": files_size,
+                "files": [f.name for f in files_to_delete],
+            })
+
+    # Display summary
+    console.print()
+    console.print("[bold]Ledger Garbage Collection (Dry Run)[/bold]")
+    console.print()
+
+    if total_files == 0:
+        console.print("[dim]No attempt files would be deleted.[/dim]")
+        console.print(f"All tasks have {keep_latest} or fewer attempt files.")
+        raise typer.Exit(0)
+
+    # Show details for tasks with files to delete
+    if task_summary:
+        console.print(f"[bold]Tasks with old attempt files ({len(task_summary)}):[/bold]\n")
+
+        details_table = Table(show_header=True, header_style="bold", box=None, padding=(0, 1))
+        details_table.add_column("Task ID", style="cyan")
+        details_table.add_column("Files to Delete", justify="right")
+        details_table.add_column("Size", justify="right")
+
+        for summary in task_summary:
+            size_bytes: float = summary["size_bytes"]  # type: ignore
+            size_mb = size_bytes / (1024 * 1024)
+            files_to_delete: int = summary["files_to_delete"]  # type: ignore
+            task_id: str = summary["task_id"]  # type: ignore
+            details_table.add_row(
+                task_id,
+                str(files_to_delete),
+                f"{size_mb:.2f} MB" if size_mb > 0 else "~0 MB",
+            )
+
+        console.print(details_table)
+        console.print()
+
+    # Summary line
+    total_size_float: float = float(total_size_bytes)
+    size_mb = total_size_float / (1024 * 1024)
+    console.print("[bold]Summary:[/bold]")
+    console.print(
+        f"Would delete [yellow]{total_files}[/yellow] file(s), "
+        f"freeing [yellow]~{size_mb:.2f} MB[/yellow]"
+    )
+    console.print()
+    console.print("[dim]Note: This is a dry-run. Files are not actually deleted.[/dim]")
+    console.print("[dim]Future versions will support actual deletion with --dry-run=false.[/dim]")
