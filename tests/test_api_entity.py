@@ -600,3 +600,119 @@ class TestRelationshipIntegrity:
         assert "epics" in relationships
         assert len(relationships["epics"]) == 1
         assert relationships["epics"][0]["id"] == "epic-1"
+
+
+class TestPatchEntity:
+    """Tests for PATCH /api/entity/{id} endpoint."""
+
+    def test_patch_entity_workflow_stage(self, temp_db):
+        """Test updating entity workflow stage via PATCH."""
+        conn = sqlite3.connect(str(temp_db))
+        configure_connection(conn)
+
+        # Create a test task
+        insert_entity(
+            conn,
+            "task-1",
+            "task",
+            "Test Task",
+            "completed",
+            status="closed",
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Update workflow stage to VALIDATED
+        with patch("cub.core.dashboard.api.routes.entity.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.patch(
+                "/api/entity/task-1",
+                json={"workflow": {"stage": "VALIDATED"}, "reason": "Tests passed"},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify response includes updated entity
+        assert "entity" in data
+        entity = data["entity"]
+        assert entity["id"] == "task-1"
+        assert entity["stage"] == "VALIDATED"
+
+    def test_patch_entity_invalid_stage(self, temp_db):
+        """Test PATCH with invalid workflow stage returns 400."""
+        conn = sqlite3.connect(str(temp_db))
+        configure_connection(conn)
+
+        insert_entity(
+            conn,
+            "task-1",
+            "task",
+            "Test Task",
+            "completed",
+            status="closed",
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Try to update with invalid stage
+        with patch("cub.core.dashboard.api.routes.entity.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.patch(
+                "/api/entity/task-1",
+                json={"workflow": {"stage": "INVALID_STAGE"}},
+            )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "Invalid workflow stage" in data["detail"]
+
+    def test_patch_entity_not_found(self, temp_db):
+        """Test PATCH for non-existent entity returns 404."""
+        with patch("cub.core.dashboard.api.routes.entity.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.patch(
+                "/api/entity/nonexistent",
+                json={"workflow": {"stage": "VALIDATED"}},
+            )
+
+        assert response.status_code == 404
+        data = response.json()
+        assert "detail" in data
+        assert "Entity not found" in data["detail"]
+
+    def test_patch_entity_complete_stage(self, temp_db):
+        """Test PATCH with COMPLETE stage clears workflow stage."""
+        conn = sqlite3.connect(str(temp_db))
+        configure_connection(conn)
+
+        # Create a task with a workflow stage
+        insert_entity(
+            conn,
+            "task-1",
+            "task",
+            "Test Task",
+            "validated",
+            status="closed",
+        )
+
+        conn.commit()
+        conn.close()
+
+        # Update to COMPLETE (should clear workflow stage)
+        with patch("cub.core.dashboard.api.routes.entity.get_db_path") as mock_path:
+            mock_path.return_value = temp_db
+            response = client.patch(
+                "/api/entity/task-1",
+                json={"workflow": {"stage": "COMPLETE"}},
+            )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify stage is set back to completed
+        entity = data["entity"]
+        assert entity["stage"] == "COMPLETE"
