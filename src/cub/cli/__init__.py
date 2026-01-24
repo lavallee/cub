@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from cub import __version__
+from cub.core.config.env import load_layered_env
 from cub.cli import (
     audit,
     capture,
@@ -71,6 +72,10 @@ def main(
 
     A CLI tool that wraps AI coding assistants for autonomous task execution.
     """
+    # Load layered env files early so API keys etc. are available to all commands.
+    # Precedence: OS env > project .env > user .env
+    load_layered_env()
+
     # Store debug flag in context for subcommands
     ctx.obj = {"debug": debug}
 
