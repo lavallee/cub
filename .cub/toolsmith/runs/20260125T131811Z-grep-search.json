@@ -1,0 +1,15 @@
+{
+  "tool_id": "grep",
+  "action": "search",
+  "success": false,
+  "output": null,
+  "output_markdown": null,
+  "started_at": "2026-01-25T13:18:11.592150Z",
+  "duration_ms": 0,
+  "tokens_used": null,
+  "error": "CLI configuration not provided",
+  "error_type": "validation",
+  "adapter_type": "cli",
+  "artifact_path": null,
+  "metadata": null
+}

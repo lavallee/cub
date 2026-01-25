@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "tools": {
+    "mcp-official:memory": {
+      "id": "mcp-official:memory",
+      "name": "Memory",
+      "adapter_type": "mcp_stdio",
+      "capabilities": [
+        "reference-servers"
+      ],
+      "http_config": null,
+      "cli_config": null,
+      "mcp_config": {
+        "command": "memory",
+        "args": [],
+        "env_vars": {}
+      },
+      "auth": null,
+      "adopted_at": "2026-01-25T13:19:56.458423Z",
+      "adopted_from": "mcp-official",
+      "version_hash": "0e93ea7b45a6b8d8e31839d661f8b503a7f33c6c53c8e77d56f1e9e02974bdf6"
+    }
+  }
+}
