@@ -29,7 +29,9 @@ from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
+from cub.core.ledger.models import CommitRef
 from cub.core.ledger.writer import LedgerWriter
+from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -1317,6 +1319,11 @@ def run(
                 if debug:
                     console.print(f"[dim]Failed to claim task: {e}[/dim]")
 
+            # Capture git state at task start for commit tracking
+            task_start_commit = get_current_commit()
+            if debug and task_start_commit:
+                console.print(f"[dim]Starting commit: {task_start_commit[:7]}[/dim]")
+
             # Create ledger entry for task start
             if config.ledger.enabled:
                 try:
@@ -1570,11 +1577,29 @@ def run(
                         # Get current task state for drift detection
                         current_task_state = task_backend.get_task(current_task.id)
 
+                        # Collect commits made during task execution
+                        task_commits: list[CommitRef] = []
+                        if task_start_commit:
+                            raw_commits = get_commits_between(task_start_commit)
+                            for rc in raw_commits:
+                                task_commits.append(
+                                    CommitRef(
+                                        hash=rc["hash"],
+                                        message=rc["message"],
+                                        timestamp=parse_commit_timestamp(rc["timestamp"]),
+                                    )
+                                )
+                            if debug and task_commits:
+                                console.print(
+                                    f"[dim]Captured {len(task_commits)} commits[/dim]"
+                                )
+
                         ledger_integration.on_task_close(
                             current_task.id,
                             success=True,
                             partial=False,
                             final_model=task_model or "",
+                            commits=task_commits,
                             current_task=current_task_state,
                         )
                         if debug:
@@ -1643,11 +1668,26 @@ def run(
                 if config.ledger.enabled:
                     try:
                         current_task_state = task_backend.get_task(current_task.id)
+
+                        # Collect commits made during task execution (even on failure)
+                        task_commits_fail: list[CommitRef] = []
+                        if task_start_commit:
+                            raw_commits = get_commits_between(task_start_commit)
+                            for rc in raw_commits:
+                                task_commits_fail.append(
+                                    CommitRef(
+                                        hash=rc["hash"],
+                                        message=rc["message"],
+                                        timestamp=parse_commit_timestamp(rc["timestamp"]),
+                                    )
+                                )
+
                         ledger_integration.on_task_close(
                             current_task.id,
                             success=False,
                             partial=True,
                             final_model=task_model or "",
+                            commits=task_commits_fail,
                             current_task=current_task_state,
                         )
                         if debug:

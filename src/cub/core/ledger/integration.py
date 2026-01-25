@@ -38,6 +38,7 @@ from typing import TYPE_CHECKING
 
 from cub.core.ledger.models import (
     Attempt,
+    CommitRef,
     EpicEntry,
     EpicSnapshot,
     LedgerEntry,
@@ -319,6 +320,7 @@ class LedgerIntegration:
         partial: bool = False,
         final_model: str = "",
         files_changed: list[str] | None = None,
+        commits: list[CommitRef] | None = None,
         approach: str | None = None,
         decisions: list[str] | None = None,
         lessons_learned: list[str] | None = None,
@@ -336,6 +338,7 @@ class LedgerIntegration:
             partial: Whether the task was partially completed
             final_model: Model used in final successful attempt
             files_changed: Files modified during task execution
+            commits: Git commits made during task execution
             approach: Approach taken (markdown)
             decisions: Key decisions made during implementation
             lessons_learned: Lessons learned during implementation
@@ -376,6 +379,7 @@ class LedgerIntegration:
             escalated=escalated,
             escalation_path=unique_models if escalated else [],
             files_changed=files_changed or [],
+            commits=commits or [],
             approach=approach,
             decisions=decisions or [],
             lessons_learned=lessons_learned or [],
@@ -407,6 +411,7 @@ class LedgerIntegration:
         # Update legacy fields
         entry.completed_at = now
         entry.files_changed = files_changed or []
+        entry.commits = commits or []
         entry.approach = approach or ""
         entry.decisions = decisions or []
         entry.lessons_learned = lessons_learned or []

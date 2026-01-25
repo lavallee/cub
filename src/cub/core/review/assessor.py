@@ -100,7 +100,11 @@ class TaskAssessor:
         )
 
     def _check_verification(self, entry: LedgerEntry) -> list[ReviewIssue]:
-        """Check verification status for issues."""
+        """Check verification status for issues.
+
+        Note: verification_pending is NOT a warning - that's what this review
+        tool helps humans do. Only actual failures are issues.
+        """
         issues: list[ReviewIssue] = []
 
         if entry.verification.status == "fail":
@@ -112,15 +116,7 @@ class TaskAssessor:
                     recommendation="Run tests and fix failing checks: pytest tests/",
                 )
             )
-        elif entry.verification.status == "pending":
-            issues.append(
-                ReviewIssue(
-                    type=IssueType.VERIFICATION_PENDING,
-                    severity=IssueSeverity.WARNING,
-                    description="Verification checks not yet run",
-                    recommendation="Run verification: pytest tests/ && mypy src/",
-                )
-            )
+        # Note: "pending" is not an issue - review tool assists with verification
 
         return issues
 
