@@ -1,12 +1,21 @@
 """
 Tool execution models and adapter configuration.
 
-This module defines Pydantic models for tool execution results and
-adapter-specific configurations (HTTP, CLI, MCP). These models ensure
-consistent data structures across all tool adapters.
+This module defines Pydantic models for tool execution results, adapter-specific
+configurations (HTTP, CLI, MCP), tool registry, and tool configurations. These
+models ensure consistent data structures across all tool adapters and provide
+the foundation for the unified tool ecosystem.
+
+Key Models:
+    - ToolResult: Structured result from tool execution
+    - ToolConfig: Configuration for an approved tool
+    - Registry: Tool registry with approved tools and version tracking
+    - HTTPConfig, CLIConfig, MCPConfig: Adapter-specific configurations
+    - AuthConfig: Authentication requirements
 
 Example:
-    >>> from cub.core.tools.models import ToolResult, HTTPConfig, AdapterType
+    >>> from cub.core.tools.models import ToolResult, ToolConfig, Registry
+    >>> from cub.core.tools.models import HTTPConfig, AdapterType, AuthConfig
     >>> from datetime import datetime, timezone
     >>>
     >>> # Creating a tool result
@@ -20,14 +29,32 @@ Example:
     ...     adapter_type=AdapterType.HTTP
     ... )
     >>>
-    >>> # Creating HTTP adapter config
-    >>> http_config = HTTPConfig(
-    ...     base_url="https://api.brave.com",
-    ...     endpoints={"search": "/v1/web/search"},
-    ...     headers={"Accept": "application/json"},
-    ...     auth_header="X-API-Key",
-    ...     auth_env_var="BRAVE_API_KEY"
+    >>> # Creating a tool configuration
+    >>> tool_config = ToolConfig(
+    ...     id="brave-search",
+    ...     name="Brave Search",
+    ...     adapter_type=AdapterType.HTTP,
+    ...     capabilities=["web_search", "current_events"],
+    ...     http_config=HTTPConfig(
+    ...         base_url="https://api.brave.com",
+    ...         endpoints={"search": "/v1/web/search"},
+    ...         headers={"Accept": "application/json"},
+    ...         auth_header="X-API-Key",
+    ...         auth_env_var="BRAVE_API_KEY"
+    ...     ),
+    ...     auth=AuthConfig(
+    ...         required=True,
+    ...         env_var="BRAVE_API_KEY",
+    ...         signup_url="https://brave.com/search/api/"
+    ...     ),
+    ...     adopted_at=datetime.now(timezone.utc),
+    ...     adopted_from="mcp-official"
     ... )
+    >>>
+    >>> # Creating a registry
+    >>> registry = Registry(version="1.0.0")
+    >>> registry.add(tool_config)
+    >>> found = registry.find_by_capability("web_search")
 """
 
 from datetime import datetime, timezone
@@ -319,3 +346,294 @@ class AuthConfig(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
+
+
+class ToolConfig(BaseModel):
+    """
+    Configuration for an approved tool.
+
+    ToolConfig represents a tool that has been approved for execution with all
+    configuration needed to invoke it. Tools are adopted from the catalog into
+    the registry, transitioning from "known" to "runnable".
+
+    Attributes:
+        id: Unique tool identifier (e.g., "brave-search")
+        name: Human-readable tool name
+        adapter_type: Type of adapter to use (http | cli | mcp_stdio)
+        capabilities: List of capabilities this tool provides (e.g., ["web_search"])
+        http_config: HTTP adapter configuration (if adapter_type is HTTP)
+        cli_config: CLI adapter configuration (if adapter_type is CLI)
+        mcp_config: MCP adapter configuration (if adapter_type is MCP_STDIO)
+        auth: Authentication requirements and configuration
+        adopted_at: Timestamp when tool was adopted into registry
+        adopted_from: Source where tool was adopted from (e.g., "mcp-official")
+        version_hash: Optional hash for detecting version changes requiring re-approval
+    """
+
+    id: str = Field(
+        ...,
+        min_length=1,
+        description="Unique tool identifier",
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="Human-readable tool name",
+    )
+    adapter_type: AdapterType = Field(
+        ...,
+        description="Type of adapter to use for execution",
+    )
+    capabilities: list[str] = Field(
+        default_factory=list,
+        description="List of capabilities this tool provides",
+    )
+
+    # Adapter-specific configurations (mutually exclusive by adapter_type)
+    http_config: HTTPConfig | None = Field(
+        default=None,
+        description="HTTP adapter configuration",
+    )
+    cli_config: CLIConfig | None = Field(
+        default=None,
+        description="CLI adapter configuration",
+    )
+    mcp_config: MCPConfig | None = Field(
+        default=None,
+        description="MCP adapter configuration",
+    )
+
+    # Authentication
+    auth: AuthConfig | None = Field(
+        default=None,
+        description="Authentication requirements and configuration",
+    )
+
+    # Adoption metadata
+    adopted_at: datetime = Field(
+        ...,
+        description="Timestamp when tool was adopted into registry",
+    )
+    adopted_from: str = Field(
+        ...,
+        min_length=1,
+        description="Source where tool was adopted from",
+    )
+    version_hash: str | None = Field(
+        default=None,
+        description="Optional hash for detecting version changes",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+    @field_validator("adopted_at", mode="before")
+    @classmethod
+    def normalize_adopted_at(cls, v: datetime | str) -> datetime:
+        """
+        Normalize adopted_at to timezone-aware datetime.
+
+        Args:
+            v: The adopted_at value (datetime or ISO string)
+
+        Returns:
+            Timezone-aware datetime
+
+        Raises:
+            ValueError: If datetime string cannot be parsed
+        """
+        if isinstance(v, datetime):
+            # Ensure timezone-aware (treat naive as UTC)
+            if v.tzinfo is None:
+                return v.replace(tzinfo=timezone.utc)
+            return v
+        if isinstance(v, str):
+            try:
+                # Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+                normalized = v.replace("Z", "+00:00") if v.endswith("Z") else v
+                dt = datetime.fromisoformat(normalized)
+                # Ensure timezone-aware (treat naive as UTC)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except ValueError as e:
+                raise ValueError(f"Invalid 'adopted_at' timestamp format: {v}") from e
+        raise ValueError(f"Invalid 'adopted_at' type: {type(v)}")
+
+    @field_validator("adapter_type")
+    @classmethod
+    def validate_adapter_config(cls, v: AdapterType, info: Any) -> AdapterType:
+        """
+        Validate that appropriate config is provided for adapter_type.
+
+        Note: This validator only checks after all fields are set. The actual
+        validation happens in model_validator with mode='after'.
+
+        Args:
+            v: The adapter_type value
+
+        Returns:
+            The validated adapter_type
+        """
+        # Validation happens in model_validator below
+        return v
+
+    @field_validator("capabilities")
+    @classmethod
+    def validate_capabilities(cls, v: list[str]) -> list[str]:
+        """
+        Validate capabilities list.
+
+        Args:
+            v: The capabilities list
+
+        Returns:
+            The validated capabilities list
+
+        Raises:
+            ValueError: If capabilities contains empty strings
+        """
+        if any(not cap.strip() for cap in v):
+            raise ValueError("Capabilities cannot contain empty strings")
+        return v
+
+    def get_adapter_config(self) -> HTTPConfig | CLIConfig | MCPConfig:
+        """
+        Get the adapter configuration for this tool.
+
+        Returns:
+            The adapter-specific configuration
+
+        Raises:
+            ValueError: If no adapter configuration is set
+        """
+        match self.adapter_type:
+            case AdapterType.HTTP:
+                if self.http_config is None:
+                    raise ValueError("HTTP adapter requires http_config")
+                return self.http_config
+            case AdapterType.CLI:
+                if self.cli_config is None:
+                    raise ValueError("CLI adapter requires cli_config")
+                return self.cli_config
+            case AdapterType.MCP_STDIO:
+                if self.mcp_config is None:
+                    raise ValueError("MCP stdio adapter requires mcp_config")
+                return self.mcp_config
+
+
+class Registry(BaseModel):
+    """
+    Tool registry with approved tools.
+
+    Registry holds all approved tools with version tracking. It serves as the
+    source of truth for which tools can be executed. Registries exist at both
+    user and project levels, with project-level overriding user-level.
+
+    Storage locations:
+    - User: ~/.config/cub/tools/registry.json
+    - Project: .cub/tools/registry.json
+
+    Attributes:
+        version: Registry schema version (semantic versioning)
+        tools: Mapping of tool IDs to their configurations
+    """
+
+    version: str = Field(
+        default="1.0.0",
+        description="Registry schema version",
+    )
+    tools: dict[str, ToolConfig] = Field(
+        default_factory=dict,
+        description="Mapping of tool IDs to configurations",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def validate_version(cls, v: str) -> str:
+        """
+        Validate version format (semantic versioning).
+
+        Args:
+            v: The version string to validate
+
+        Returns:
+            The validated version
+
+        Raises:
+            ValueError: If version format is invalid
+        """
+        if not isinstance(v, str):
+            raise ValueError("Version must be a string")
+        if not v:
+            raise ValueError("Version cannot be empty")
+        # Allow semantic versioning formats: X.Y.Z, X.Y.Z-prerelease
+        import re
+
+        if not re.match(r"^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$", v):
+            raise ValueError(
+                f"Invalid version format: '{v}' (expected semantic version like 1.0.0)"
+            )
+        return v
+
+    def get(self, tool_id: str) -> ToolConfig | None:
+        """
+        Get a tool configuration by ID.
+
+        Args:
+            tool_id: The tool identifier
+
+        Returns:
+            The tool configuration, or None if not found
+        """
+        return self.tools.get(tool_id)
+
+    def add(self, tool: ToolConfig) -> None:
+        """
+        Add a tool to the registry.
+
+        Args:
+            tool: The tool configuration to add
+        """
+        self.tools[tool.id] = tool
+
+    def remove(self, tool_id: str) -> bool:
+        """
+        Remove a tool from the registry.
+
+        Args:
+            tool_id: The tool identifier
+
+        Returns:
+            True if tool was removed, False if not found
+        """
+        if tool_id in self.tools:
+            del self.tools[tool_id]
+            return True
+        return False
+
+    def find_by_capability(self, capability: str) -> list[ToolConfig]:
+        """
+        Find all tools that provide a specific capability.
+
+        Args:
+            capability: The capability to search for
+
+        Returns:
+            List of tool configurations that provide the capability
+        """
+        return [tool for tool in self.tools.values() if capability in tool.capabilities]
+
+    def list_all(self) -> list[ToolConfig]:
+        """
+        Get all tools in the registry.
+
+        Returns:
+            List of all tool configurations
+        """
+        return list(self.tools.values())
