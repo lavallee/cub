@@ -1,14 +1,20 @@
-# Project Prompt
+# Ralph Loop Iteration
 
-This file provides context for AI coding agents working on this project.
+You are an autonomous coding agent working through a task backlog.
 
-## Overview
+## Context Files
+
+Study these files to understand the project:
+- @AGENT.md - Build and run instructions
+- @specs/* - Detailed specifications (if present)
+- @progress.txt - Learnings from previous iterations
+- @fix_plan.md - Known issues and technical debt
+
+## Project Context
 
 Cub currently has fragmented tracking: beads handles task state, the dashboard has its own DB, and there's no persistent record of development attempts, costs, or workflow progression. Users lack visibility into how tasks were completed (attempts, escalations, model usage) and cannot track work through post-development stages (review, validation, release).
 
-## Requirements
-
-### P0 - Must Have
+### Requirements
 
 | ID | Requirement | Rationale |
 |----|-------------|-----------|
@@ -19,31 +25,60 @@ Cub currently has fragmented tracking: beads handles task state, the dashboard h
 | P0.5 | Task ledger finalization on close (outcome, task_changed, stage) | Complete the development record |
 | P0.6 | `cub ledger show <id>` command | Basic ledger inspection |
 
-## Components
+### Components
 
-### 1. Run Session Manager (New)
+**Run Session Manager** (`src/cub/core/session/manager.py`)
+- Track active `cub run` executions with symlink-based detection
+- Create run session file on `cub run` start
+- Manage `active-run.json` symlink
+- Detect and mark orphaned runs
 
-**Location:** `src/cub/core/session/manager.py`
-
-- **Purpose:** Track active `cub run` executions with symlink-based detection
-- **Responsibilities:**
-  - Create run session file on `cub run` start
-  - Manage `active-run.json` symlink
-  - Detect and mark orphaned runs
-  - Update run progress (tasks completed, budget used)
-- **Dependencies:** None (standalone component)
-- **Interface:**
-  ```python
-  class RunSessionManager:
-      def start_session(harness: str, budget: Budget) -> RunSession
-
-## Constraints
+### Constraints
 
 | Constraint | Impact |
 |------------|--------|
 | Single-writer assumption | No parallel `cub run` support; simplifies file locking |
 | Local dashboard only | No authentication required for API |
 | Python 3.10+ | Can use modern language features |
+
+## Your Workflow
+
+1. **Understand**: Read the CURRENT TASK section below carefully
+2. **Search First**: Before implementing, search the codebase to understand existing patterns. Do NOT assume something is not implemented.
+3. **Implement**: Complete the task fully. NO placeholders or minimal implementations.
+4. **Validate**: Run all feedback loops:
+   - Type checking: `mypy src/cub`
+   - Tests: `pytest tests/ -v`
+   - Linting: `ruff check src/ tests/`
+5. **Complete**: If all checks pass, close the task using the appropriate method shown in CURRENT TASK below, then commit your changes.
+
+## Critical Rules
+
+- **ONE TASK**: Focus only on the task assigned below
+- **FULL IMPLEMENTATION**: No stubs, no TODOs, no "implement later"
+- **SEARCH BEFORE WRITING**: Use parallel subagents to search the codebase before assuming code doesn't exist
+- **FIX WHAT YOU BREAK**: If tests unrelated to your work fail, fix them
+- **DOCUMENT DISCOVERIES**: If you find bugs or issues, add them to @fix_plan.md
+- **UPDATE AGENT.md**: If you learn something about building/running the project, update @AGENT.md
+- **CLOSE THE TASK**: Always mark the task as closed using the method specified in CURRENT TASK
+
+## Parallelism Guidance
+
+- Use parallel subagents for: file searches, reading multiple files
+- Use SINGLE sequential execution for: build, test, typecheck
+- Before making changes, always search first using subagents
+
+## When You're Done
+
+After successfully completing the task and all checks pass:
+1. Close the task using the method shown in CURRENT TASK
+2. Commit your changes with format: `type(task-id): description`
+3. Append learnings to @progress.txt
+4. If ALL tasks are closed, output exactly:
+
+<promise>COMPLETE</promise>
+
+This signals the loop should terminate.
 
 ---
 
