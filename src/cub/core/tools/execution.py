@@ -7,9 +7,15 @@ with the appropriate adapter, enforcing timeouts, and writing execution artifact
 Example:
     >>> from pathlib import Path
     >>> from cub.core.tools.execution import ExecutionService
+    >>> from cub.core.tools.registry import RegistryService
     >>> from cub.core.tools.models import HTTPConfig
     >>>
-    >>> service = ExecutionService(artifact_dir=Path(".cub/toolsmith/runs"))
+    >>> # Initialize with registry service for adopt-before-execute flow
+    >>> registry_service = RegistryService()
+    >>> service = ExecutionService(
+    ...     artifact_dir=Path(".cub/toolsmith/runs"),
+    ...     registry_service=registry_service
+    ... )
     >>>
     >>> # Check if a tool is ready to run
     >>> readiness = await service.check_readiness(
@@ -19,7 +25,7 @@ Example:
     ... )
     >>>
     >>> if readiness.ready:
-    ...     # Execute the tool
+    ...     # Execute the tool (raises ToolNotAdoptedError if not in registry)
     ...     result = await service.execute(
     ...         tool_id="brave-search",
     ...         action="search",
@@ -43,12 +49,16 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
 
 from cub.core.tools.adapter import get_adapter
+from cub.core.tools.exceptions import ToolNotAdoptedError
 from cub.core.tools.models import ToolResult
+
+if TYPE_CHECKING:
+    from cub.core.tools.registry import RegistryService
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +98,16 @@ class ExecutionService:
     Attributes:
         artifact_dir: Directory where execution artifacts are saved
             (default: .cub/toolsmith/runs)
+        registry_service: Optional RegistryService for enforcing adopt-before-execute
 
     Example:
-        >>> service = ExecutionService()
+        >>> from cub.core.tools.registry import RegistryService
         >>>
-        >>> # Check readiness
+        >>> # Initialize with registry service
+        >>> registry_service = RegistryService()
+        >>> service = ExecutionService(registry_service=registry_service)
+        >>>
+        >>> # Check readiness (includes registry check)
         >>> readiness = await service.check_readiness(
         ...     tool_id="brave-search",
         ...     adapter_type="http",
@@ -102,7 +117,7 @@ class ExecutionService:
         >>> if not readiness.ready:
         ...     print(f"Missing: {', '.join(readiness.missing)}")
         ...
-        >>> # Execute tool
+        >>> # Execute tool (raises ToolNotAdoptedError if not in registry)
         >>> result = await service.execute(
         ...     tool_id="brave-search",
         ...     action="search",
@@ -115,16 +130,23 @@ class ExecutionService:
         >>> print(f"Artifact: {result.artifact_path}")
     """
 
-    def __init__(self, artifact_dir: Path | None = None):
+    def __init__(
+        self,
+        artifact_dir: Path | None = None,
+        registry_service: RegistryService | None = None,
+    ):
         """
         Initialize the execution service.
 
         Args:
             artifact_dir: Directory where execution artifacts are saved.
                 If None, defaults to .cub/toolsmith/runs
+            registry_service: RegistryService for looking up tool configurations.
+                If None, registry checks are disabled (tools can execute without adoption).
         """
         self.artifact_dir = artifact_dir or Path(".cub/toolsmith/runs")
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        self.registry_service = registry_service
 
     async def execute(
         self,
@@ -141,6 +163,9 @@ class ExecutionService:
         Selects the adapter based on adapter_type, executes the tool action,
         and optionally saves the execution artifact to disk using atomic writes.
 
+        If a registry_service is configured, verifies that the tool has been
+        adopted before allowing execution.
+
         Args:
             tool_id: Tool identifier (e.g., "brave-search", "gh")
             action: Action to invoke (e.g., "search", "pr create")
@@ -153,6 +178,7 @@ class ExecutionService:
             ToolResult with execution results and artifact path if saved
 
         Raises:
+            ToolNotAdoptedError: If registry_service is configured and tool is not adopted
             ValueError: If adapter_type is not registered
             TimeoutError: If execution exceeds timeout
             RuntimeError: If tool execution fails critically
@@ -168,6 +194,15 @@ class ExecutionService:
             >>> if result.success:
             ...     print(result.output)
         """
+        # Check if tool is adopted (if registry service is configured)
+        if self.registry_service is not None:
+            if not self.registry_service.is_approved(tool_id):
+                raise ToolNotAdoptedError(
+                    tool_id,
+                    f"Tool '{tool_id}' must be adopted before execution. "
+                    f"Use 'cub tools adopt {tool_id}' to adopt this tool.",
+                )
+
         # Get the appropriate adapter
         adapter = get_adapter(adapter_type)
 
@@ -197,9 +232,10 @@ class ExecutionService:
         Check if a tool is ready to execute.
 
         Verifies that:
-        1. The adapter is available and healthy
-        2. Required authentication credentials are present (if applicable)
-        3. Required commands/executables are available (for CLI tools)
+        1. The tool is adopted in the registry (if registry_service is configured)
+        2. The adapter is available and healthy
+        3. Required authentication credentials are present (if applicable)
+        4. Required commands/executables are available (for CLI tools)
 
         Args:
             tool_id: Tool identifier
@@ -219,6 +255,16 @@ class ExecutionService:
             ...     print(f"Missing: {', '.join(readiness.missing)}")
         """
         missing: list[str] = []
+
+        # Check if tool is adopted in registry (if registry service is configured)
+        if self.registry_service is not None:
+            if not self.registry_service.is_approved(tool_id):
+                missing.append(
+                    f"Tool '{tool_id}' not adopted in registry. "
+                    f"Use 'cub tools adopt {tool_id}' to adopt this tool."
+                )
+                # Return early - no point checking other things if not adopted
+                return ReadinessCheck(ready=False, missing=missing)
 
         try:
             # Get the adapter

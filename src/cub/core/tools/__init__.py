@@ -53,6 +53,12 @@ from .adapter import (
     list_adapters,
     register_adapter,
 )
+from .exceptions import (
+    AdapterError,
+    ExecutionError,
+    ToolError,
+    ToolNotAdoptedError,
+)
 from .execution import ExecutionService, ReadinessCheck
 from .models import (
     AdapterType,
@@ -73,6 +79,11 @@ __all__ = [
     # Execution service
     "ExecutionService",
     "ReadinessCheck",
+    # Exceptions
+    "ToolError",
+    "ToolNotAdoptedError",
+    "AdapterError",
+    "ExecutionError",
     # Models
     "AdapterType",
     "AuthConfig",

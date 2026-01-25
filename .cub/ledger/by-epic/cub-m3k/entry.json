@@ -19,12 +19,13 @@
   "task_ids": [
     "cub-m3k.5",
     "cub-m3k.2",
+    "cub-m3k.3",
     "cub-m3k.1"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -32,12 +33,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 1283,
-    "avg_duration_seconds": 427,
+    "total_duration_seconds": 1590,
+    "avg_duration_seconds": 397,
     "models_used": [
       "sonnet"
     ],
@@ -45,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T05:16:05.676206Z"
+    "stage_updated_at": "2026-01-25T05:21:15.208629Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T04:54:35.152197Z",
-  "completed_at": "2026-01-25T05:16:05.668132Z",
-  "updated_at": "2026-01-25T05:16:05.676206Z",
+  "completed_at": "2026-01-25T05:21:15.195241Z",
+  "updated_at": "2026-01-25T05:21:15.208629Z",
   "first_commit": {
     "hash": "cc454fbc61e1b1f3eada4f52f931bbae160c589f",
     "message": "task(cub-m3k.5): Create cub tools CLI subcommand",
@@ -58,10 +59,10 @@
     "timestamp": "2026-01-25T05:02:59Z"
   },
   "last_commit": {
-    "hash": "8b58e9f3a102bb5e0efb12d4d01dd2640382fd5b",
-    "message": "task(cub-m3k.2): Implement RegistryStore",
+    "hash": "6147e709a2cd52b6b95be0ba08877346172b2a0a",
+    "message": "doc: Add learnings from cub-m3k.3 (RegistryService)",
     "author": "",
-    "timestamp": "2026-01-25T05:15:30Z"
+    "timestamp": "2026-01-25T05:21:01Z"
   },
   "drift": {
     "additions": [],
