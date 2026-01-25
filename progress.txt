@@ -8227,3 +8227,50 @@ Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
 - Follows existing HTTPAdapter patterns for consistency
 - 100% test coverage of core functionality
 
+
+## Task cub-x7f.5: Create ExecutionService
+
+**Date:** 2026-01-24
+
+**Key Learnings:**
+
+1. **ExecutionService Architecture**: Created a high-level orchestration service that wraps the adapter registry, providing:
+   - Adapter selection via `get_adapter(adapter_type)`
+   - Readiness checks (adapter health, tool availability, auth credentials)
+   - Artifact persistence with atomic writes
+   - Artifact listing and filtering capabilities
+
+2. **ReadinessCheck Pattern**: Introduced a structured model for dependency verification:
+   - `ready: bool` - Overall readiness status
+   - `missing: list[str]` - Specific missing requirements
+   - Enables informative error messages for users
+
+3. **Atomic Artifact Writes**: Used tempfile + rename pattern from existing codebase:
+   - Write to `.tmp` file in same directory (same filesystem for atomic rename)
+   - Use `Path.replace()` for atomic rename
+   - Clean up temp file on failure
+   - Prevents corruption on write failures
+
+4. **Artifact Filename Parsing**: Learned to handle tool IDs with dashes (e.g., "brave-search"):
+   - Filename format: `YYYYMMDDTHHMMSSZ-{tool_id}-{action}.json`
+   - Timestamp is 16 chars (not 15 - includes 'Z')
+   - Use `rfind('-')` to split from the end (handles multi-dash tool IDs)
+   - Parse: `remainder = name[17:]` then split by last dash
+
+5. **Test Coverage Best Practices**: Created comprehensive test suite (27 tests):
+   - Test model validation (ReadinessCheck)
+   - Test initialization with default and custom paths
+   - Test execution success/failure paths
+   - Test readiness checks with multiple failure scenarios
+   - Test artifact CRUD operations
+   - Test artifact filtering and sorting
+
+6. **Import Order for Registration**: Added `from . import adapters` to `__init__.py` to trigger adapter registration via decorators. This ensures HTTP and CLI adapters are registered when the tools package is imported.
+
+7. **Linting Fixes**: 
+   - Remove unused imports (timezone was imported but unused after auto-serialization)
+   - Split long lines in docstring examples
+   - Remove unused local variables in tests
+
+**Outcome:** Successfully implemented ExecutionService as the main entry point for tool execution. All tests passing (27/27), mypy clean, ready for integration with higher-level tool runtime.
+
