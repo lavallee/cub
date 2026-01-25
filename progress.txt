@@ -9096,3 +9096,27 @@ Successfully added capability gap recognition API to enable agents to query for 
 - Future: Add caching to avoid repeated catalog scans
 - Future: Add more sophisticated relevance scoring (TF-IDF, embeddings)
 
+
+## Task cub-t5w.2: Implement freedom dial configuration
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Freedom Level Design**: Implemented a three-tier autonomy model (LOW/MEDIUM/HIGH) that balances safety with automation. The MEDIUM level provides a good default by allowing most tools but requiring approval for explicitly risky ones.
+
+2. **Approval Logic at MEDIUM**: At MEDIUM freedom level, only explicitly marked risky tools require approval. Unknown tools default to allowed, which matches the "balanced" intent - you explicitly mark dangerous tools rather than having to whitelist safe ones.
+
+3. **Model-First Design**: Built the approval logic in the Pydantic model (ToolApprovals) with the service (ApprovalService) as a thin storage layer. This keeps business logic in the model and makes it easy to test without I/O.
+
+4. **Exception-Based Flow Control**: Used ToolApprovalRequiredError to signal approval requirements. This allows callers to catch the exception and prompt the user, following the established pattern in the codebase.
+
+5. **Optional Service Pattern**: Made approval_service optional in ExecutionService (defaults to None). This means approval checking is opt-in - if you don't configure it, tools execute without prompting. This matches the pattern used for registry_service and metrics_store.
+
+6. **Storage Location**: Followed the established pattern: user-level config at ~/.config/cub/tools/approvals.json. Project-level could be added at .cub/tools/approvals.json if needed later.
+
+7. **Atomic Writes**: Used the same atomic write pattern (tempfile + rename) as other storage layers to prevent corruption during saves.
+
+8. **TYPE_CHECKING imports**: Used TYPE_CHECKING guard for ApprovalService import in execution.py to avoid circular dependencies while maintaining type safety.
+
+**Outcome:** Successfully implemented freedom dial with three autonomy levels. ExecutionService now checks approval requirements before execution. All tests pass, type checking clean, ready for integration with user configuration system.
