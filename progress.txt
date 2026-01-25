@@ -8390,3 +8390,95 @@ Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
 7. **Type Safety**: mypy strict mode catches issues early. The `yaml` import error in `branches/store.py` is unrelated to this task and should be addressed separately.
 
 **Outcome:** Successfully implemented RegistryStore with full test coverage (29 tests), clean type checking, and consistent patterns. Ready for RegistryService to build on top of this foundation.
+
+## 2026-01-25 - cub-m3k.3: Implement RegistryService
+
+### Task Completed
+Implemented RegistryService business logic layer for tool registry operations.
+
+### Key Learnings
+
+**1. Service Layer Pattern**
+- Service classes encapsulate business logic and delegate storage to Store classes
+- RegistryService manages user+project registry merging, adoption, approval, and version tracking
+- Follows established pattern from ToolsmithService and TaskService
+- Services provide high-level operations while stores handle I/O
+
+**2. Version Hash Generation for Change Detection**
+- Generate deterministic SHA256 hash from tool metadata (name, source, adapter_type, adapter config)
+- Use `json.dumps(dict, sort_keys=True)` for consistent serialization (Pydantic doesn't support sort_keys in model_dump_json)
+- Version hash enables re-approval detection when tools change
+- Hash is automatically generated during adoption if not present
+
+**3. Registry Merge Semantics**
+- load() always loads fresh from disk (no caching)
+- Project-level tools override user-level tools when IDs conflict
+- find_by_capability() searches merged registry
+- is_approved() checks merged registry
+- adopt() and remove() only modify project registry, not user registry
+
+**4. Test Organization for Services**
+- Separate test classes for each public method
+- Integration tests for common workflows (adopt→approve→check)
+- Test both positive and negative cases (matching hash vs. different hash)
+- Test edge cases (missing tool, missing hash, empty registries)
+- 28 comprehensive tests providing full coverage
+
+**5. Timestamp Management**
+- adopt() updates adopted_at to current time (datetime.now(timezone.utc))
+- Always use timezone-aware datetimes (Cub convention)
+- Test timestamp updates by checking before/after bounds
+
+**6. Hash Determinism**
+- Same tool config → same hash (test with two identical configs)
+- Different tool config → different hash (test with varied configs)
+- Hash includes adapter config, so config changes are detected
+- Works across all adapter types (HTTP, CLI, MCP)
+
+### Implementation Summary
+
+**Files Modified:**
+- `src/cub/core/tools/registry.py` (+289 lines)
+  - Added RegistryService class with 7 public methods
+  - Added _generate_version_hash() private method
+  - Imports hashlib for SHA256 hashing
+  - Updated module docstring with service usage examples
+
+**Files Created:**
+- `tests/test_tools_registry_service.py` (673 lines)
+  - 28 comprehensive tests across 8 test classes
+  - TestRegistryServiceLoad (3 tests)
+  - TestRegistryServiceAdopt (4 tests)
+  - TestRegistryServiceFindByCapability (3 tests)
+  - TestRegistryServiceIsApproved (3 tests)
+  - TestRegistryServiceNeedsReapproval (4 tests)
+  - TestRegistryServiceRemove (3 tests)
+  - TestRegistryServiceGenerateVersionHash (5 tests)
+  - TestRegistryServiceIntegration (3 tests)
+
+### Quality Metrics
+
+- Tests: 28/28 passing (plus 311 existing tools tests = 339 total)
+- Type Checking: mypy --strict passes (no errors in registry.py)
+- Linting: ruff passes with auto-fixes applied
+- Acceptance Criteria: All 5 criteria met ✓
+
+### Architecture Notes
+
+**Service Methods:**
+- `load()` - Delegates to RegistryStore.merge(user, project)
+- `adopt(config)` - Generates hash, updates timestamp, saves to project registry
+- `find_by_capability(cap)` - Searches merged registry
+- `is_approved(id)` - Checks if tool exists in merged registry
+- `needs_reapproval(id, hash)` - Compares stored hash vs. current hash
+- `remove(id)` - Removes from project registry only
+- `_generate_version_hash(config)` - SHA256 of name|source|adapter_type|adapter_config
+
+**Design Decisions:**
+- adopt() always uses project registry (not user) - user registry is for global tools
+- version_hash is optional but recommended - generated automatically if missing
+- needs_reapproval() returns True for missing tools (treat as "needs initial approval")
+- remove() only affects project registry - user tools remain available
+
+---
+
