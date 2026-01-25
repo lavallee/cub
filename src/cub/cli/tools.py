@@ -24,6 +24,7 @@ from cub.core.tools import (
     ExecutionService,
     list_adapters,
 )
+from cub.core.tools.metrics import MetricsStore
 
 console = Console()
 app = typer.Typer(
@@ -558,6 +559,165 @@ def artifacts(
 
     except Exception as e:
         handle_error(e, "artifacts")
+        raise typer.Exit(1)
+
+
+@app.command()
+def stats(
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable debug mode with full tracebacks and verbose logging",
+        ),
+    ] = False,
+) -> None:
+    """
+    View tool effectiveness metrics.
+
+    Shows execution statistics for all tools, including invocation counts,
+    success rates, timing information, and error tracking. Metrics are
+    color-coded based on success rate for quick assessment.
+
+    Success rate color coding:
+        Green: >80% - Highly reliable
+        Yellow: 50-80% - Moderately reliable
+        Red: <50% - Low reliability
+
+    Examples:
+        cub tools stats
+        cub tools stats --debug
+    """
+    setup_logging(debug)
+
+    try:
+        store = MetricsStore.project()
+        all_metrics = store.list_all()
+
+        if not all_metrics:
+            console.print()
+            console.print(
+                Panel(
+                    Text("No metrics yet", style="yellow"),
+                    title="[bold yellow]No Data[/bold yellow]",
+                    border_style="yellow",
+                    expand=False,
+                )
+            )
+            console.print()
+            console.print(
+                "[dim]Metrics will appear here after executing tools with 'cub tools run'[/dim]"
+            )
+            console.print()
+            return
+
+        # Sort by invocations (most used first)
+        all_metrics.sort(key=lambda m: m.invocations, reverse=True)
+
+        # Create table
+        table = Table(title="Tool Effectiveness Metrics", border_style="cyan")
+        table.add_column("Tool ID", style="cyan", no_wrap=True)
+        table.add_column("Invocations", style="white", justify="right")
+        table.add_column("Success Rate", style="white", justify="right")
+        table.add_column("Avg Duration", style="white", justify="right")
+        table.add_column("Errors", style="white", justify="right")
+        table.add_column("Last Used", style="dim")
+
+        for metrics in all_metrics:
+            # Calculate success rate
+            success_rate = metrics.success_rate()
+
+            # Color-code success rate
+            if success_rate > 80.0:
+                success_style = "bold green"
+            elif success_rate >= 50.0:
+                success_style = "bold yellow"
+            else:
+                success_style = "bold red"
+
+            # Format success rate with color
+            success_text = Text(f"{success_rate:.1f}%", style=success_style)
+
+            # Format average duration
+            avg_duration = (
+                f"{metrics.avg_duration_ms:.0f}ms"
+                if metrics.avg_duration_ms
+                else "N/A"
+            )
+
+            # Count total errors
+            total_errors = sum(metrics.error_types.values())
+            errors_text = str(total_errors) if total_errors > 0 else "-"
+
+            # Format last used timestamp
+            if metrics.last_used_at:
+                # Show relative time or date depending on recency
+                from datetime import datetime, timezone
+
+                now = datetime.now(timezone.utc)
+                time_diff = now - metrics.last_used_at
+                total_seconds = time_diff.total_seconds()
+
+                if total_seconds < 60:
+                    last_used = "just now"
+                elif total_seconds < 3600:
+                    minutes = int(total_seconds // 60)
+                    last_used = f"{minutes}m ago"
+                elif total_seconds < 86400:
+                    hours = int(total_seconds // 3600)
+                    last_used = f"{hours}h ago"
+                elif time_diff.days == 1:
+                    last_used = "yesterday"
+                elif time_diff.days < 7:
+                    last_used = f"{time_diff.days}d ago"
+                else:
+                    last_used = metrics.last_used_at.strftime("%Y-%m-%d")
+            else:
+                last_used = "N/A"
+
+            table.add_row(
+                metrics.tool_id,
+                str(metrics.invocations),
+                success_text,
+                avg_duration,
+                errors_text,
+                last_used,
+            )
+
+        console.print()
+        console.print(table)
+        console.print()
+
+        # Summary statistics
+        summary = Text()
+        summary.append("Total tools: ", style="dim")
+        summary.append(str(len(all_metrics)), style="bold cyan")
+        summary.append("  •  Total invocations: ", style="dim")
+        total_invocations = sum(m.invocations for m in all_metrics)
+        summary.append(str(total_invocations), style="bold green")
+
+        # Calculate overall success rate
+        total_successes = sum(m.successes for m in all_metrics)
+        overall_success_rate = (
+            (total_successes / total_invocations) * 100 if total_invocations > 0 else 0.0
+        )
+        summary.append("  •  Overall success rate: ", style="dim")
+
+        # Color-code overall rate
+        if overall_success_rate > 80.0:
+            rate_style = "bold green"
+        elif overall_success_rate >= 50.0:
+            rate_style = "bold yellow"
+        else:
+            rate_style = "bold red"
+
+        summary.append(f"{overall_success_rate:.1f}%", style=rate_style)
+
+        console.print(summary)
+        console.print()
+
+    except Exception as e:
+        handle_error(e, "stats")
         raise typer.Exit(1)
 
 
