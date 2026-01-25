@@ -1,0 +1,13 @@
+{
+  "slug": "unified-tool-ecosystem",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "unified-tool-ecosystem.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-25T03:57:31.223651+00:00",
+  "updated": "2026-01-25T04:16:43.718025+00:00"
+}
