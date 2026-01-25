@@ -347,28 +347,236 @@ def adopt(
         str | None,
         typer.Option("--note", help="Optional note about why/how we are adopting this tool"),
     ] = None,
+    adapter: Annotated[
+        str | None,
+        typer.Option(
+            "--adapter",
+            help="Adapter type (http, cli, mcp_stdio). Required for non-interactive adoption.",
+        ),
+    ] = None,
+    capabilities: Annotated[
+        str | None,
+        typer.Option(
+            "--capabilities",
+            help="Comma-separated list of capabilities (e.g., 'web_search,current_events')",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable debug mode with full tracebacks and verbose logging",
+        ),
+    ] = False,
 ) -> None:
     """Adopt a tool for this project.
 
-    Records intent to use a tool (and optional note) in .cub/toolsmith/adopted.json.
+    Creates a registry entry for the tool, enabling it for execution.
+    Also records adoption intent in .cub/toolsmith/adopted.json for tracking.
 
-    This is a lightweight workflow step: discovery → adoption → (future) install/execute.
+    The tool is looked up in the catalog to extract metadata. If not found in
+    the catalog, you must provide --adapter and --capabilities for manual adoption.
+
+    Examples:
+        # Adopt a tool from catalog
+        cub toolsmith adopt mcp-official:brave-search
+
+        # Adopt with note
+        cub toolsmith adopt mcp-official:brave-search --note "For market research"
+
+        # Manual adoption (not in catalog)
+        cub toolsmith adopt custom:my-tool --adapter http --capabilities "api_access"
     """
+    setup_logging(debug)
+
     try:
-        store = AdoptionStore.default()
-        record = store.adopt(tool_id=tool_id, note=note)
+        from datetime import datetime, timezone
+
+        from cub.core.tools.models import (
+            AdapterType,
+            CLIConfig,
+            HTTPConfig,
+            MCPConfig,
+            ToolConfig,
+        )
+        from cub.core.tools.registry import RegistryService
+        from cub.core.toolsmith.store import ToolsmithStore
+
+        # Record adoption intent
+        adoption_store = AdoptionStore.default()
+        adoption_store.adopt(tool_id=tool_id, note=note)
+
+        # Look up tool in catalog to get metadata
+        toolsmith_store = ToolsmithStore.default()
+        catalog = toolsmith_store.load_catalog()
+        catalog_tool = next((t for t in catalog.tools if t.id == tool_id), None)
+
+        # Determine adapter type and capabilities
+        if catalog_tool is not None:
+            # Tool found in catalog - use catalog metadata
+            # For now, we need adapter configuration to be provided
+            # In future, this could be inferred from catalog metadata
+            if adapter is None:
+                console.print()
+                console.print(
+                    Panel(
+                        Text.from_markup(
+                            f"[yellow]Tool found in catalog: {catalog_tool.name}[/yellow]\n\n"
+                            "[dim]To complete adoption, please specify adapter "
+                            "configuration:[/dim]\n"
+                            "  --adapter [http|cli|mcp_stdio]\n\n"
+                            "[dim]Example:[/dim]\n"
+                            f"  cub toolsmith adopt {tool_id} --adapter http"
+                        ),
+                        title="[bold yellow]Configuration Required[/bold yellow]",
+                        border_style="yellow",
+                        expand=False,
+                    )
+                )
+                console.print()
+                raise typer.Exit(1)
+
+            tool_name = catalog_tool.name
+            tool_capabilities = (
+                capabilities.split(",") if capabilities else catalog_tool.tags
+            )
+            adopted_from = catalog_tool.source
+        else:
+            # Tool not in catalog - require manual configuration
+            if adapter is None or capabilities is None:
+                console.print()
+                console.print(
+                    Panel(
+                        Text.from_markup(
+                            f"[yellow]Tool '{tool_id}' not found in catalog[/yellow]\n\n"
+                            "[dim]For manual adoption, you must specify:[/dim]\n"
+                            "  --adapter [http|cli|mcp_stdio]\n"
+                            "  --capabilities [comma-separated list]\n\n"
+                            "[dim]Example:[/dim]\n"
+                            f"  cub toolsmith adopt {tool_id} --adapter http "
+                            "--capabilities 'web_search'"
+                        ),
+                        title="[bold yellow]Configuration Required[/bold yellow]",
+                        border_style="yellow",
+                        expand=False,
+                    )
+                )
+                console.print()
+                raise typer.Exit(1)
+
+            tool_name = tool_id
+            tool_capabilities = capabilities.split(",")
+            adopted_from = "manual"
+
+        # Parse adapter type
+        try:
+            adapter_type = AdapterType(adapter.lower())
+        except ValueError:
+            console.print()
+            console.print(
+                Panel(
+                    Text.from_markup(
+                        f"[red]Invalid adapter type: '{adapter}'[/red]\n\n"
+                        f"[dim]Valid options:[/dim]\n"
+                        f"  • http\n"
+                        f"  • cli\n"
+                        f"  • mcp_stdio"
+                    ),
+                    title="[bold red]Error[/bold red]",
+                    border_style="red",
+                    expand=False,
+                )
+            )
+            console.print()
+            raise typer.Exit(1)
+
+        # For now, create placeholder adapter configs
+        # In a real implementation, these would be gathered interactively or from catalog
+        http_config = None
+        cli_config = None
+        mcp_config = None
+
+        if adapter_type == AdapterType.HTTP:
+            # Placeholder HTTP config - would be gathered interactively
+            http_config = HTTPConfig(
+                base_url="https://api.example.com",
+                endpoints={"default": "/"},
+            )
+        elif adapter_type == AdapterType.CLI:
+            # Placeholder CLI config - would be gathered interactively
+            cli_config = CLIConfig(
+                command=tool_id.split(":")[-1],
+            )
+        elif adapter_type == AdapterType.MCP_STDIO:
+            # Placeholder MCP config - would be gathered interactively
+            mcp_config = MCPConfig(
+                command=tool_id.split(":")[-1],
+            )
+
+        # Create ToolConfig for registry
+        tool_config = ToolConfig(
+            id=tool_id,
+            name=tool_name,
+            adapter_type=adapter_type,
+            capabilities=tool_capabilities,
+            http_config=http_config,
+            cli_config=cli_config,
+            mcp_config=mcp_config,
+            auth=None,  # Would be gathered interactively if needed
+            adopted_at=datetime.now(timezone.utc),
+            adopted_from=adopted_from,
+        )
+
+        # Adopt into registry
+        registry_service = RegistryService()
+        adopted_config = registry_service.adopt(tool_config)
+
+        # Display success with registry details
         console.print()
+
+        # Create details table
+        details_table = Table(show_header=False, box=None)
+        details_table.add_column("Field", style="cyan", no_wrap=True, width=15)
+        details_table.add_column("Value", style="white")
+
+        details_table.add_row("Tool ID", Text(adopted_config.id, style="bold"))
+        details_table.add_row("Name", adopted_config.name)
+        details_table.add_row("Adapter", adopted_config.adapter_type.value)
+        details_table.add_row(
+            "Capabilities",
+            ", ".join(adopted_config.capabilities) if adopted_config.capabilities else "(none)",
+        )
+        details_table.add_row("Adopted From", adopted_config.adopted_from)
+        details_table.add_row("Adopted At", adopted_config.adopted_at.isoformat())
+        if adopted_config.version_hash:
+            details_table.add_row(
+                "Version Hash", Text(adopted_config.version_hash[:16] + "...", style="dim")
+            )
+        if note:
+            details_table.add_row("Note", note)
+
         console.print(
             Panel(
-                Text.from_markup(
-                    f"[bold green]Adopted[/bold green] [cyan]{record.tool_id}[/cyan]\n"
-                    f"[dim]adopted_at:[/dim] {record.adopted_at.isoformat()}"
-                ),
+                details_table,
+                title="[bold green]✓ Tool Adopted[/bold green]",
                 border_style="green",
                 expand=False,
             )
         )
         console.print()
+
+        # Show next steps
+        next_steps = Text()
+        next_steps.append("Next steps:\n", style="bold")
+        next_steps.append("  1. Configure adapter settings in ", style="dim")
+        next_steps.append(".cub/tools/registry.json\n", style="cyan")
+        next_steps.append("  2. Set up authentication if required\n", style="dim")
+        next_steps.append("  3. Test the tool with ", style="dim")
+        next_steps.append(f"cub toolsmith run {tool_id}", style="cyan")
+
+        console.print(Panel(next_steps, border_style="blue", expand=False))
+        console.print()
+
     except Exception as e:
         handle_error(e, "adopt")
         raise typer.Exit(1)

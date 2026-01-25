@@ -8482,3 +8482,59 @@ Implemented RegistryService business logic layer for tool registry operations.
 
 ---
 
+
+## Task cub-m3k.4: Integrate registry with ExecutionService (2026-01-25)
+
+Successfully integrated RegistryService with ExecutionService to complete the adopt → execute flow.
+
+### Implementation approach:
+1. Created src/cub/core/tools/exceptions.py with a hierarchy of exceptions:
+   - ToolError (base exception)
+   - ToolNotAdoptedError (for unapproved tool execution)
+   - AdapterError (for adapter failures)
+   - ExecutionError (for execution failures)
+
+2. Updated ExecutionService to accept optional RegistryService:
+   - Added registry_service parameter to __init__
+   - Made it optional for backward compatibility
+   - Used TYPE_CHECKING to avoid circular imports
+
+3. Modified execute() method:
+   - Added registry check at the start if registry_service is configured
+   - Raises ToolNotAdoptedError with helpful message if tool not adopted
+   - Provides clear CLI command for adopting the tool
+
+4. Modified check_readiness() method:
+   - Added registry check as first verification step
+   - Returns early if tool not adopted (no point checking other things)
+   - Maintains backward compatibility when registry_service is None
+
+5. Created comprehensive test suite (test_tools_execution_registry.py):
+   - Tests for ToolNotAdoptedError being raised correctly
+   - Tests for adopted tools executing successfully
+   - Tests for backward compatibility without registry_service
+   - Tests for readiness checks with and without registry
+   - Tests for exception hierarchy and behavior
+
+### Key learnings:
+- The registry integration is optional - ExecutionService can work without RegistryService
+- This allows for gradual adoption and backward compatibility
+- TYPE_CHECKING pattern is useful for avoiding circular imports while maintaining type hints
+- Early returns in check_readiness() improve efficiency when tool not adopted
+- Providing helpful error messages (like CLI commands) improves UX
+- All 348 existing tests pass, showing good backward compatibility
+
+### Testing results:
+- All existing tests pass (348 tests)
+- 9 new tests for registry integration all pass
+- Type checking passes with mypy
+- Linting passes with ruff
+- Full feedback loop validation successful
+
+### Files modified:
+- src/cub/core/tools/exceptions.py (new)
+- src/cub/core/tools/execution.py
+- src/cub/core/tools/__init__.py
+- tests/test_tools_execution_registry.py (new)
+
+The adopt → execute flow is now complete and ready for CLI integration.
