@@ -8331,3 +8331,35 @@ Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
    - Never use `sys.exit()` in Typer commands
 
 **Outcome:** Successfully implemented `cub tools` CLI with 4 commands (list, check, run, artifacts). All commands follow established patterns, use Rich formatting, and integrate cleanly with ExecutionService. Passed all feedback loops (mypy, ruff, 122 tests).
+
+## Task cub-m3k.1: Define ToolConfig and Registry models
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Model Design Pattern**: Used existing patterns from toolsmith/models.py and toolsmith/adoption.py as references for validator patterns, datetime handling, and helper methods.
+
+2. **Validator Consistency**: All datetime validators follow the same pattern:
+   - Handle both datetime and ISO string inputs
+   - Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+   - Ensure timezone-aware datetimes (treat naive as UTC)
+   - Consistent error messages
+
+3. **Helper Methods**: Registry includes CRUD operations (get, add, remove, list_all) and capability-based search (find_by_capability) as documented in the architecture spec.
+
+4. **Adapter Config Validation**: ToolConfig includes get_adapter_config() helper method that validates the appropriate config exists for the adapter_type. This encapsulates the match statement pattern for type-specific config access.
+
+5. **Semantic Versioning**: Version validation uses regex pattern `^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$` to support both release versions (1.0.0) and pre-release versions (1.0.0-beta).
+
+6. **Test Coverage**: Created comprehensive test suite with 19 tests covering:
+   - Model creation for all adapter types (HTTP, CLI, MCP)
+   - Validator edge cases
+   - Helper method functionality
+   - JSON serialization/deserialization
+   - Capability-based search
+
+7. **Documentation**: Updated module docstring with comprehensive examples showing ToolConfig, Registry, and helper method usage.
+
+**Outcome:** Successfully implemented ToolConfig and Registry models with full validation, helper methods, and comprehensive test coverage. All tests passing, mypy clean, ready for RegistryStore implementation (next task).
+
