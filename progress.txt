@@ -8875,3 +8875,35 @@ Implemented MCP stdio adapter for JSON-RPC over stdio communication with MCP ser
 - Tests: 30/30 passing (462 total tools tests pass)
 - Type Checking: mypy --strict passes on entire tools module (11 files)
 - Linting: ruff passes with no errors
+
+## Task cub-r2v.2: Add JSON-RPC helpers
+
+**Completed:** Successfully extracted JSON-RPC utilities from MCP stdio adapter into reusable module
+
+**Implementation:**
+- Created src/cub/core/tools/jsonrpc.py with comprehensive JSON-RPC 2.0 utilities
+- Extracted and refactored build_request, parse_response, validate_response_format, classify_error
+- Added filter_internal_params helper for parameter filtering
+- Implemented proper exception hierarchy (JSONRPCError, JSONRPCParseError, JSONRPCInvalidRequestError)
+- Created JSONRPCResponse class for structured response handling
+- Built comprehensive test suite with 53 tests covering all edge cases
+
+**Key Learnings:**
+1. JSON-RPC 2.0 spec compliance requires strict validation (jsonrpc version, id, result XOR error)
+2. Newline-delimited JSON is common in MCP - parser handles multiple messages gracefully
+3. Error classification maps JSON-RPC codes to semantic types (protocol, validation, execution)
+4. Internal parameter filtering (prefix-based) prevents config leakage in RPC calls
+5. Exception naming must follow Python conventions (Error suffix for linter compliance)
+
+**Testing:**
+- All 53 tests pass (100% coverage of new functionality)
+- Type checking clean (mypy)
+- Linting compliant (ruff) after fixing exception naming
+- Existing MCP adapter tests continue to pass (no regressions)
+
+**Quality:**
+- Full docstrings with examples for all public functions
+- Comprehensive error handling with proper exception hierarchy
+- Clean separation of concerns (parsing, validation, building separate)
+- Ready for reuse in future adapters (HTTP, WebSocket, etc.)
+
