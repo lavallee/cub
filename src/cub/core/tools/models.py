@@ -10,6 +10,7 @@ Key Models:
     - ToolResult: Structured result from tool execution
     - ToolConfig: Configuration for an approved tool
     - Registry: Tool registry with approved tools and version tracking
+    - ToolMetrics: Execution statistics for tool performance tracking
     - HTTPConfig, CLIConfig, MCPConfig: Adapter-specific configurations
     - AuthConfig: Authentication requirements
 
@@ -521,6 +522,179 @@ class ToolConfig(BaseModel):
                 if self.mcp_config is None:
                     raise ValueError("MCP stdio adapter requires mcp_config")
                 return self.mcp_config
+
+
+class ToolMetrics(BaseModel):
+    """
+    Execution statistics for a tool.
+
+    Tracks usage metrics for a tool, including invocation count, success/failure
+    rates, timing statistics, and error tracking. These metrics enable the learning
+    loop to evaluate tool reliability and performance over time.
+
+    Attributes:
+        tool_id: Unique identifier of the tool being tracked
+        invocations: Total number of times the tool has been invoked
+        successes: Number of successful invocations
+        failures: Number of failed invocations
+        total_duration_ms: Cumulative execution time across all invocations (milliseconds)
+        min_duration_ms: Fastest execution time (milliseconds)
+        max_duration_ms: Slowest execution time (milliseconds)
+        avg_duration_ms: Average execution time (milliseconds)
+        error_types: Mapping of error types to their occurrence counts
+        last_used_at: Timestamp of most recent invocation
+        first_used_at: Timestamp of first invocation
+    """
+
+    tool_id: str = Field(
+        ...,
+        min_length=1,
+        description="Unique identifier of the tool being tracked",
+    )
+    invocations: int = Field(
+        default=0,
+        ge=0,
+        description="Total number of invocations",
+    )
+    successes: int = Field(
+        default=0,
+        ge=0,
+        description="Number of successful invocations",
+    )
+    failures: int = Field(
+        default=0,
+        ge=0,
+        description="Number of failed invocations",
+    )
+    total_duration_ms: int = Field(
+        default=0,
+        ge=0,
+        description="Cumulative execution time (milliseconds)",
+    )
+    min_duration_ms: int | None = Field(
+        default=None,
+        description="Fastest execution time (milliseconds)",
+    )
+    max_duration_ms: int | None = Field(
+        default=None,
+        description="Slowest execution time (milliseconds)",
+    )
+    avg_duration_ms: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Average execution time (milliseconds)",
+    )
+    error_types: dict[str, int] = Field(
+        default_factory=dict,
+        description="Mapping of error types to occurrence counts",
+    )
+    last_used_at: datetime | None = Field(
+        default=None,
+        description="Timestamp of most recent invocation",
+    )
+    first_used_at: datetime | None = Field(
+        default=None,
+        description="Timestamp of first invocation",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+    @field_validator("last_used_at", "first_used_at", mode="before")
+    @classmethod
+    def normalize_timestamps(cls, v: datetime | str | None) -> datetime | None:
+        """
+        Normalize timestamp fields to timezone-aware datetime.
+
+        Args:
+            v: The timestamp value (datetime, ISO string, or None)
+
+        Returns:
+            Timezone-aware datetime or None
+
+        Raises:
+            ValueError: If datetime string cannot be parsed
+        """
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            # Ensure timezone-aware (treat naive as UTC)
+            if v.tzinfo is None:
+                return v.replace(tzinfo=timezone.utc)
+            return v
+        if isinstance(v, str):
+            try:
+                # Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+                normalized = v.replace("Z", "+00:00") if v.endswith("Z") else v
+                dt = datetime.fromisoformat(normalized)
+                # Ensure timezone-aware (treat naive as UTC)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt
+            except ValueError as e:
+                raise ValueError(f"Invalid timestamp format: {v}") from e
+        raise ValueError(f"Invalid timestamp type: {type(v)}")
+
+    def success_rate(self) -> float:
+        """
+        Calculate success rate as a percentage.
+
+        Returns:
+            Success rate (0.0-100.0), or 0.0 if no invocations
+        """
+        if self.invocations == 0:
+            return 0.0
+        return (self.successes / self.invocations) * 100
+
+    def failure_rate(self) -> float:
+        """
+        Calculate failure rate as a percentage.
+
+        Returns:
+            Failure rate (0.0-100.0), or 0.0 if no invocations
+        """
+        if self.invocations == 0:
+            return 0.0
+        return (self.failures / self.invocations) * 100
+
+    def record_execution(self, result: ToolResult) -> None:
+        """
+        Update metrics based on a tool execution result.
+
+        Args:
+            result: The ToolResult from tool execution
+        """
+        # Increment invocation count
+        self.invocations += 1
+
+        # Update success/failure counts
+        if result.success:
+            self.successes += 1
+        else:
+            self.failures += 1
+            # Track error type if present
+            if result.error_type:
+                self.error_types[result.error_type] = (
+                    self.error_types.get(result.error_type, 0) + 1
+                )
+
+        # Update timing statistics
+        self.total_duration_ms += result.duration_ms
+
+        if self.min_duration_ms is None or result.duration_ms < self.min_duration_ms:
+            self.min_duration_ms = result.duration_ms
+
+        if self.max_duration_ms is None or result.duration_ms > self.max_duration_ms:
+            self.max_duration_ms = result.duration_ms
+
+        self.avg_duration_ms = self.total_duration_ms / self.invocations
+
+        # Update timestamps
+        if self.first_used_at is None:
+            self.first_used_at = result.started_at
+
+        self.last_used_at = result.started_at
 
 
 class Registry(BaseModel):

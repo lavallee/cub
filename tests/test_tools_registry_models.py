@@ -13,6 +13,8 @@ from cub.core.tools.models import (
     MCPConfig,
     Registry,
     ToolConfig,
+    ToolMetrics,
+    ToolResult,
 )
 
 
@@ -408,3 +410,417 @@ class TestRegistry:
         assert len(loaded_tool.capabilities) == 2
         assert loaded_tool.auth is not None
         assert loaded_tool.auth.required is True
+
+
+class TestToolMetrics:
+    """Tests for ToolMetrics model."""
+
+    def test_create_empty_metrics(self):
+        """Test creating empty metrics for a tool."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        assert metrics.tool_id == "test-tool"
+        assert metrics.invocations == 0
+        assert metrics.successes == 0
+        assert metrics.failures == 0
+        assert metrics.total_duration_ms == 0
+        assert metrics.min_duration_ms is None
+        assert metrics.max_duration_ms is None
+        assert metrics.avg_duration_ms == 0.0
+        assert metrics.error_types == {}
+        assert metrics.last_used_at is None
+        assert metrics.first_used_at is None
+
+    def test_create_with_initial_data(self):
+        """Test creating metrics with initial data."""
+        now = datetime.now(timezone.utc)
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=8,
+            failures=2,
+            total_duration_ms=5000,
+            min_duration_ms=100,
+            max_duration_ms=1000,
+            avg_duration_ms=500.0,
+            error_types={"timeout": 1, "auth": 1},
+            last_used_at=now,
+            first_used_at=now,
+        )
+        assert metrics.invocations == 10
+        assert metrics.successes == 8
+        assert metrics.failures == 2
+        assert metrics.total_duration_ms == 5000
+        assert metrics.min_duration_ms == 100
+        assert metrics.max_duration_ms == 1000
+        assert metrics.avg_duration_ms == 500.0
+        assert metrics.error_types == {"timeout": 1, "auth": 1}
+        assert metrics.last_used_at == now
+        assert metrics.first_used_at == now
+
+    def test_success_rate_empty(self):
+        """Test success rate calculation with no invocations."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        assert metrics.success_rate() == 0.0
+
+    def test_success_rate_all_successful(self):
+        """Test success rate with all successful invocations."""
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=10,
+            failures=0,
+        )
+        assert metrics.success_rate() == 100.0
+
+    def test_success_rate_partial(self):
+        """Test success rate with partial success."""
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=7,
+            failures=3,
+        )
+        assert metrics.success_rate() == 70.0
+
+    def test_failure_rate_empty(self):
+        """Test failure rate calculation with no invocations."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        assert metrics.failure_rate() == 0.0
+
+    def test_failure_rate_all_failed(self):
+        """Test failure rate with all failed invocations."""
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=0,
+            failures=10,
+        )
+        assert metrics.failure_rate() == 100.0
+
+    def test_failure_rate_partial(self):
+        """Test failure rate with partial failure."""
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=7,
+            failures=3,
+        )
+        assert metrics.failure_rate() == 30.0
+
+    def test_record_successful_execution(self):
+        """Test recording a successful tool execution."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        started_at = datetime.now(timezone.utc)
+
+        result = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={"result": "success"},
+            started_at=started_at,
+            duration_ms=250,
+            adapter_type=AdapterType.HTTP,
+        )
+
+        metrics.record_execution(result)
+
+        assert metrics.invocations == 1
+        assert metrics.successes == 1
+        assert metrics.failures == 0
+        assert metrics.total_duration_ms == 250
+        assert metrics.min_duration_ms == 250
+        assert metrics.max_duration_ms == 250
+        assert metrics.avg_duration_ms == 250.0
+        assert metrics.first_used_at == started_at
+        assert metrics.last_used_at == started_at
+
+    def test_record_failed_execution(self):
+        """Test recording a failed tool execution."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        started_at = datetime.now(timezone.utc)
+
+        result = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=False,
+            output=None,
+            error="Connection timeout",
+            error_type="timeout",
+            started_at=started_at,
+            duration_ms=5000,
+            adapter_type=AdapterType.HTTP,
+        )
+
+        metrics.record_execution(result)
+
+        assert metrics.invocations == 1
+        assert metrics.successes == 0
+        assert metrics.failures == 1
+        assert metrics.error_types == {"timeout": 1}
+        assert metrics.total_duration_ms == 5000
+
+    def test_record_multiple_executions(self):
+        """Test recording multiple executions and metric updates."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        base_time = datetime.now(timezone.utc)
+
+        # First execution - success, 100ms
+        result1 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={"result": "success"},
+            started_at=base_time,
+            duration_ms=100,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result1)
+
+        # Second execution - success, 300ms
+        result2 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={"result": "success"},
+            started_at=base_time,
+            duration_ms=300,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result2)
+
+        # Third execution - failure, 200ms
+        result3 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=False,
+            output=None,
+            error="Auth error",
+            error_type="auth",
+            started_at=base_time,
+            duration_ms=200,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result3)
+
+        assert metrics.invocations == 3
+        assert metrics.successes == 2
+        assert metrics.failures == 1
+        assert metrics.total_duration_ms == 600
+        assert metrics.min_duration_ms == 100
+        assert metrics.max_duration_ms == 300
+        assert metrics.avg_duration_ms == 200.0
+        assert metrics.error_types == {"auth": 1}
+        assert metrics.success_rate() == pytest.approx(66.666, rel=0.01)
+        assert metrics.failure_rate() == pytest.approx(33.333, rel=0.01)
+
+    def test_record_multiple_error_types(self):
+        """Test tracking multiple error types."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        base_time = datetime.now(timezone.utc)
+
+        # Timeout error
+        result1 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=False,
+            output=None,
+            error="Timeout",
+            error_type="timeout",
+            started_at=base_time,
+            duration_ms=5000,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result1)
+
+        # Auth error
+        result2 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=False,
+            output=None,
+            error="Auth failed",
+            error_type="auth",
+            started_at=base_time,
+            duration_ms=100,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result2)
+
+        # Another timeout
+        result3 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=False,
+            output=None,
+            error="Timeout again",
+            error_type="timeout",
+            started_at=base_time,
+            duration_ms=5000,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result3)
+
+        assert metrics.error_types == {"timeout": 2, "auth": 1}
+        assert metrics.failures == 3
+
+    def test_timestamp_normalization_naive_datetime(self):
+        """Test that naive datetimes are normalized to UTC."""
+        naive_dt = datetime(2024, 1, 15, 10, 30, 0)
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            first_used_at=naive_dt,
+            last_used_at=naive_dt,
+        )
+        assert metrics.first_used_at is not None
+        assert metrics.first_used_at.tzinfo == timezone.utc
+        assert metrics.last_used_at is not None
+        assert metrics.last_used_at.tzinfo == timezone.utc
+
+    def test_timestamp_normalization_iso_string(self):
+        """Test that ISO strings are normalized to timezone-aware datetime."""
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            first_used_at="2024-01-15T10:30:00Z",
+            last_used_at="2024-01-15T11:00:00+00:00",
+        )
+        assert metrics.first_used_at is not None
+        assert metrics.first_used_at.tzinfo is not None
+        assert metrics.last_used_at is not None
+        assert metrics.last_used_at.tzinfo is not None
+
+    def test_validation_negative_counts(self):
+        """Test that negative counts are rejected."""
+        with pytest.raises(ValidationError):
+            ToolMetrics(
+                tool_id="test-tool",
+                invocations=-1,
+            )
+
+        with pytest.raises(ValidationError):
+            ToolMetrics(
+                tool_id="test-tool",
+                successes=-1,
+            )
+
+        with pytest.raises(ValidationError):
+            ToolMetrics(
+                tool_id="test-tool",
+                failures=-1,
+            )
+
+    def test_validation_empty_tool_id(self):
+        """Test that empty tool_id is rejected."""
+        with pytest.raises(ValidationError):
+            ToolMetrics(tool_id="")
+
+    def test_json_serialization(self):
+        """Test JSON serialization and deserialization."""
+        now = datetime.now(timezone.utc)
+        metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=10,
+            successes=8,
+            failures=2,
+            total_duration_ms=5000,
+            min_duration_ms=100,
+            max_duration_ms=1000,
+            avg_duration_ms=500.0,
+            error_types={"timeout": 1, "auth": 1},
+            last_used_at=now,
+            first_used_at=now,
+        )
+
+        # Serialize
+        json_str = metrics.model_dump_json()
+        assert "test-tool" in json_str
+        assert "timeout" in json_str
+
+        # Deserialize
+        loaded = ToolMetrics.model_validate_json(json_str)
+        assert loaded.tool_id == "test-tool"
+        assert loaded.invocations == 10
+        assert loaded.successes == 8
+        assert loaded.failures == 2
+        assert loaded.error_types == {"timeout": 1, "auth": 1}
+        assert loaded.first_used_at is not None
+        assert loaded.last_used_at is not None
+
+    def test_first_used_timestamp_only_set_once(self):
+        """Test that first_used_at is only set on first execution."""
+        metrics = ToolMetrics(tool_id="test-tool")
+
+        time1 = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        result1 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={},
+            started_at=time1,
+            duration_ms=100,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result1)
+
+        time2 = datetime(2024, 1, 2, 10, 0, 0, tzinfo=timezone.utc)
+        result2 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={},
+            started_at=time2,
+            duration_ms=100,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result2)
+
+        # first_used_at should still be time1
+        assert metrics.first_used_at == time1
+        # last_used_at should be time2
+        assert metrics.last_used_at == time2
+
+    def test_min_max_duration_updates(self):
+        """Test that min and max duration are properly tracked."""
+        metrics = ToolMetrics(tool_id="test-tool")
+        base_time = datetime.now(timezone.utc)
+
+        # First execution - 500ms
+        result1 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={},
+            started_at=base_time,
+            duration_ms=500,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result1)
+        assert metrics.min_duration_ms == 500
+        assert metrics.max_duration_ms == 500
+
+        # Second execution - 200ms (new min)
+        result2 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={},
+            started_at=base_time,
+            duration_ms=200,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result2)
+        assert metrics.min_duration_ms == 200
+        assert metrics.max_duration_ms == 500
+
+        # Third execution - 1000ms (new max)
+        result3 = ToolResult(
+            tool_id="test-tool",
+            action="test",
+            success=True,
+            output={},
+            started_at=base_time,
+            duration_ms=1000,
+            adapter_type=AdapterType.HTTP,
+        )
+        metrics.record_execution(result3)
+        assert metrics.min_duration_ms == 200
+        assert metrics.max_duration_ms == 1000
