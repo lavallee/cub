@@ -13,6 +13,8 @@ Key Models:
     - ToolMetrics: Execution statistics for tool performance tracking
     - HTTPConfig, CLIConfig, MCPConfig: Adapter-specific configurations
     - AuthConfig: Authentication requirements
+    - FreedomLevel: Autonomy level for tool execution (low, medium, high)
+    - ToolApprovals: Tool approval configuration based on freedom level
 
 Example:
     >>> from cub.core.tools.models import ToolResult, ToolConfig, Registry
@@ -71,6 +73,21 @@ class AdapterType(str, Enum):
     HTTP = "http"
     CLI = "cli"
     MCP_STDIO = "mcp_stdio"
+
+
+class FreedomLevel(str, Enum):
+    """
+    Freedom level for tool execution autonomy.
+
+    Controls how autonomous the system is when executing tools:
+    - LOW: Prompt before every tool execution (maximum safety)
+    - MEDIUM: Prompt only for destructive/risky operations (balanced)
+    - HIGH: Execute tools without prompting (maximum autonomy)
+    """
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 class ToolResult(BaseModel):
@@ -928,3 +945,123 @@ class ToolSuggestion(BaseModel):
                 f"Invalid match_type: '{v}' (must be one of: {', '.join(valid_types)})"
             )
         return v
+
+
+class ToolApprovals(BaseModel):
+    """
+    Tool approval configuration for autonomy control.
+
+    Controls which tools can be executed automatically based on the freedom level.
+    Tools are categorized by risk level, and the freedom dial determines whether
+    they require explicit approval before execution.
+
+    Attributes:
+        freedom_level: Current freedom level (low, medium, high)
+        risky_tools: Tool IDs considered risky (require approval at medium freedom)
+        safe_tools: Tool IDs considered safe (always allowed at medium+ freedom)
+        always_prompt_tools: Tool IDs that always require approval regardless of freedom level
+    """
+
+    freedom_level: FreedomLevel = Field(
+        default=FreedomLevel.MEDIUM,
+        description="Current freedom level for tool execution",
+    )
+    risky_tools: list[str] = Field(
+        default_factory=list,
+        description="Tool IDs considered risky (require approval at medium freedom)",
+    )
+    safe_tools: list[str] = Field(
+        default_factory=list,
+        description="Tool IDs considered safe (always allowed at medium+ freedom)",
+    )
+    always_prompt_tools: list[str] = Field(
+        default_factory=list,
+        description="Tool IDs that always require approval regardless of freedom level",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+    def requires_approval(self, tool_id: str, action: str = "") -> bool:
+        """
+        Check if a tool requires approval before execution.
+
+        Approval logic based on freedom level:
+        - LOW: All tools require approval
+        - MEDIUM: Only risky tools (and always_prompt_tools) require approval
+        - HIGH: Only always_prompt_tools require approval
+
+        Args:
+            tool_id: Tool identifier to check
+            action: Optional action being performed (for future action-based rules)
+
+        Returns:
+            True if approval is required, False otherwise
+
+        Example:
+            >>> approvals = ToolApprovals(freedom_level=FreedomLevel.MEDIUM)
+            >>> approvals.risky_tools = ["rm", "kubectl-delete"]
+            >>> approvals.requires_approval("rm")
+            True
+            >>> approvals.requires_approval("grep")
+            False
+        """
+        # Always prompt tools require approval regardless of freedom level
+        if tool_id in self.always_prompt_tools:
+            return True
+
+        # Freedom level determines approval requirements
+        match self.freedom_level:
+            case FreedomLevel.LOW:
+                # Prompt before every tool execution
+                return True
+            case FreedomLevel.MEDIUM:
+                # Prompt only for risky tools
+                # Safe tools are always allowed, unknown tools default to allowed
+                return tool_id in self.risky_tools
+            case FreedomLevel.HIGH:
+                # Execute tools without prompting (except always_prompt)
+                return False
+
+    def mark_safe(self, tool_id: str) -> None:
+        """
+        Mark a tool as safe for automatic execution.
+
+        Adds the tool to safe_tools list and removes it from risky_tools
+        if present.
+
+        Args:
+            tool_id: Tool identifier to mark as safe
+        """
+        if tool_id not in self.safe_tools:
+            self.safe_tools.append(tool_id)
+        if tool_id in self.risky_tools:
+            self.risky_tools.remove(tool_id)
+
+    def mark_risky(self, tool_id: str) -> None:
+        """
+        Mark a tool as risky (requires approval at medium freedom).
+
+        Adds the tool to risky_tools list and removes it from safe_tools
+        if present.
+
+        Args:
+            tool_id: Tool identifier to mark as risky
+        """
+        if tool_id not in self.risky_tools:
+            self.risky_tools.append(tool_id)
+        if tool_id in self.safe_tools:
+            self.safe_tools.remove(tool_id)
+
+    def mark_always_prompt(self, tool_id: str) -> None:
+        """
+        Mark a tool to always require approval.
+
+        Adds the tool to always_prompt_tools list.
+
+        Args:
+            tool_id: Tool identifier to mark as always requiring approval
+        """
+        if tool_id not in self.always_prompt_tools:
+            self.always_prompt_tools.append(tool_id)

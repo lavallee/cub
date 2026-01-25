@@ -7,6 +7,7 @@ and adapter-related errors.
 Exception Hierarchy:
     ToolError (base)
     ├── ToolNotAdoptedError (tool not in registry)
+    ├── ToolApprovalRequiredError (tool requires user approval)
     ├── AdapterError (adapter-related errors)
     └── ExecutionError (execution failures)
 
@@ -87,6 +88,49 @@ class ToolNotAdoptedError(ToolError):
         return f"Tool '{self.tool_id}' not adopted: {self.message}"
 
 
+class ToolApprovalRequiredError(ToolError):
+    """
+    Exception raised when a tool requires user approval before execution.
+
+    Raised when a tool execution is attempted but the freedom level setting
+    requires user approval for this tool. The caller should prompt the user
+    for approval before proceeding with execution.
+
+    Attributes:
+        tool_id: The ID of the tool that requires approval
+        action: The action being performed
+        message: Human-readable error message
+        context: Additional context about the requirement
+
+    Example:
+        >>> raise ToolApprovalRequiredError(
+        ...     "kubectl",
+        ...     "delete",
+        ...     "Tool 'kubectl' requires user approval at current freedom level"
+        ... )
+    """
+
+    def __init__(
+        self, tool_id: str, action: str, message: str, **context: object
+    ) -> None:
+        """
+        Initialize a tool approval required error.
+
+        Args:
+            tool_id: The tool identifier that requires approval
+            action: The action being performed
+            message: Human-readable error message
+            **context: Additional context as keyword arguments
+        """
+        super().__init__(message, tool_id=tool_id, action=action, **context)
+        self.tool_id = tool_id
+        self.action = action
+
+    def __str__(self) -> str:
+        """Return string representation with tool ID and action."""
+        return f"Approval required for '{self.tool_id}' (action: {self.action}): {self.message}"
+
+
 class AdapterError(ToolError):
     """
     Exception for adapter-related errors.
@@ -165,6 +209,7 @@ class ExecutionError(ToolError):
 __all__ = [
     "ToolError",
     "ToolNotAdoptedError",
+    "ToolApprovalRequiredError",
     "AdapterError",
     "ExecutionError",
 ]

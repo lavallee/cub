@@ -54,10 +54,14 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, Field
 
 from cub.core.tools.adapter import get_adapter
-from cub.core.tools.exceptions import ToolNotAdoptedError
+from cub.core.tools.exceptions import (
+    ToolApprovalRequiredError,
+    ToolNotAdoptedError,
+)
 from cub.core.tools.models import ToolMetrics, ToolResult
 
 if TYPE_CHECKING:
+    from cub.core.tools.approvals import ApprovalService
     from cub.core.tools.metrics import MetricsStore
     from cub.core.tools.registry import RegistryService
 
@@ -101,6 +105,7 @@ class ExecutionService:
             (default: .cub/toolsmith/runs)
         registry_service: Optional RegistryService for enforcing adopt-before-execute
         metrics_store: Optional MetricsStore for recording execution metrics
+        approval_service: Optional ApprovalService for enforcing freedom-level-based approvals
 
     Example:
         >>> from cub.core.tools.registry import RegistryService
@@ -137,6 +142,7 @@ class ExecutionService:
         artifact_dir: Path | None = None,
         registry_service: RegistryService | None = None,
         metrics_store: MetricsStore | None = None,
+        approval_service: ApprovalService | None = None,
     ):
         """
         Initialize the execution service.
@@ -148,11 +154,14 @@ class ExecutionService:
                 If None, registry checks are disabled (tools can execute without adoption).
             metrics_store: MetricsStore for recording execution metrics.
                 If None, metrics recording is disabled.
+            approval_service: ApprovalService for checking approval requirements.
+                If None, approval checks are disabled (tools execute without prompting).
         """
         self.artifact_dir = artifact_dir or Path(".cub/toolsmith/runs")
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         self.registry_service = registry_service
         self.metrics_store = metrics_store
+        self.approval_service = approval_service
 
     async def execute(
         self,
@@ -185,6 +194,7 @@ class ExecutionService:
 
         Raises:
             ToolNotAdoptedError: If registry_service is configured and tool is not adopted
+            ToolApprovalRequiredError: If approval_service is configured and tool requires approval
             ValueError: If adapter_type is not registered
             TimeoutError: If execution exceeds timeout
             RuntimeError: If tool execution fails critically
@@ -207,6 +217,18 @@ class ExecutionService:
                     tool_id,
                     f"Tool '{tool_id}' must be adopted before execution. "
                     f"Use 'cub tools adopt {tool_id}' to adopt this tool.",
+                )
+
+        # Check if tool requires approval (if approval service is configured)
+        if self.approval_service is not None:
+            if self.approval_service.requires_approval(tool_id, action):
+                freedom_level = self.approval_service.get_freedom_level()
+                raise ToolApprovalRequiredError(
+                    tool_id,
+                    action,
+                    f"Tool '{tool_id}' requires user approval at "
+                    f"freedom level '{freedom_level.value}'. "
+                    f"Either approve this execution or increase the freedom level.",
                 )
 
         # Get the appropriate adapter

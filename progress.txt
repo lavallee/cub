@@ -9044,3 +9044,55 @@ Implemented safe process spawning with timeout and cleanup utilities for subproc
 - JSON-RPC protocol: 52 tests (request/response/validation/error handling)
 - MCP adapter unit: 31 tests (mocked subprocess communication)
 - MCP adapter integration: 9 tests (real subprocess with mock server)
+
+## Task: cub-t5w.1 - Add capability gap recognition API
+
+### Implementation Summary
+Successfully added capability gap recognition API to enable agents to query for tools by capability and receive both adopted tools and suggestions for adoption.
+
+### Key Changes
+1. **Models (models.py)**:
+   - Added `CapabilityGapResult` model to represent query results
+   - Added `ToolSuggestion` model for catalog tool suggestions
+   - Both models include full validation and documentation
+
+2. **Registry Service (registry.py)**:
+   - Added `query_capability()` method that searches both registry and catalog
+   - Added `_calculate_relevance()` helper for ranking algorithm
+   - Implements exact/partial/fuzzy matching with scoring
+
+3. **Ranking Algorithm**:
+   - Exact match (1.0): Capability exactly matches a tool's tag
+   - Partial match (0.5-0.8): Capability appears in name/description/tags
+   - Fuzzy match (0.3-0.5): Some words overlap
+   - Normalizes underscores to spaces for better matching
+   - Filters out already-adopted tools from suggestions
+
+4. **Tests (test_tools_capability_gap.py)**:
+   - 13 comprehensive tests covering all scenarios
+   - Registry searches, catalog searches, ranking, integration
+   - All existing 418 tests continue to pass
+
+### Technical Decisions
+- Used `Any` type for catalog_tool parameter since Tool is imported dynamically
+- Gracefully handles missing catalog (returns empty suggestions)
+- Sorts suggestions by relevance score (highest first)
+- Reuses existing `find_by_capability()` for registry search
+
+### Testing Strategy
+- Separated test classes by functionality (Registry, Catalog, Ranking, Integration)
+- Used monkeypatch to set working directory for catalog loading
+- Tested edge cases (missing catalog, no matches, duplicate filtering)
+
+### Learnings
+1. When a module is imported dynamically (like toolsmith), use `Any` type hints rather than forward references
+2. Test names should match actual behavior - "fuzzy match" depends on how words appear in searchable text
+3. Scoring thresholds need to account for multiple occurrences of search terms
+4. The ToolsmithStore.default() uses Path.cwd(), so tests need monkeypatch.chdir()
+
+### Next Steps
+- This API enables agents to self-discover capabilities
+- Can be integrated into harness or workbench for autonomous tool adoption
+- Future: Add caching to avoid repeated catalog scans
+- Future: Add more sophisticated relevance scoring (TF-IDF, embeddings)
+
