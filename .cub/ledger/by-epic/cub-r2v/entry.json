@@ -19,12 +19,13 @@
   "task_ids": [
     "cub-r2v.1",
     "cub-r2v.3",
-    "cub-r2v.2"
+    "cub-r2v.2",
+    "cub-r2v.4"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -32,12 +33,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 1311,
-    "avg_duration_seconds": 437,
+    "total_duration_seconds": 1823,
+    "avg_duration_seconds": 455,
     "models_used": [
       "opus",
       "sonnet"
@@ -46,12 +47,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T06:18:58.457361Z"
+    "stage_updated_at": "2026-01-25T11:52:53.523441Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T05:57:02.191218Z",
-  "completed_at": "2026-01-25T06:18:58.438961Z",
-  "updated_at": "2026-01-25T06:18:58.457361Z",
+  "completed_at": "2026-01-25T11:52:53.504783Z",
+  "updated_at": "2026-01-25T11:52:53.523444Z",
   "first_commit": {
     "hash": "85c612837b289e43febb867709cff99b39170dc8",
     "message": "task(cub-r2v.1): Implement MCPStdioAdapter",
@@ -59,10 +60,10 @@
     "timestamp": "2026-01-25T06:01:37Z"
   },
   "last_commit": {
-    "hash": "46f5462228a5c26096d077670289018edf40c92b",
-    "message": "task(cub-r2v.3): Add process management utilities",
+    "hash": "876fe432559c55f335904b67f74bb799628bba4c",
+    "message": "task(cub-r2v.4): Add tests for MCP adapter",
     "author": "",
-    "timestamp": "2026-01-25T06:17:33Z"
+    "timestamp": "2026-01-25T11:52:32Z"
   },
   "drift": {
     "additions": [],

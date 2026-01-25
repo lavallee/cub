@@ -108,4 +108,4 @@
 {"id": "cub-r2v.1", "title": "Implement MCPStdioAdapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "85c6128", "spec": null, "epic": "cub-r2v", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r2v.2", "title": "Add JSON-RPC helpers", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "1e34a31", "spec": null, "epic": "cub-r2v", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r2v.3", "title": "Add process management utilities", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "46f5462", "spec": null, "epic": "cub-r2v", "verification": "pending", "tokens": 0, "workflow_stage": null}
-{"id": "cub-r2v.4", "title": "Add tests for MCP adapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r2v", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-r2v.4", "title": "Add tests for MCP adapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "876fe43", "spec": null, "epic": "cub-r2v", "verification": "pending", "tokens": 0, "workflow_stage": null}
