@@ -32,18 +32,32 @@ Example:
 # Export protocol and models
 from .adapter import (
     ToolAdapter,
-    ToolResult,
     get_adapter,
     is_adapter_available,
     list_adapters,
     register_adapter,
 )
+from .models import (
+    AdapterType,
+    AuthConfig,
+    CLIConfig,
+    HTTPConfig,
+    MCPConfig,
+    ToolResult,
+)
 
 __all__ = [
+    # Adapter protocol and registry
     "ToolAdapter",
-    "ToolResult",
     "get_adapter",
     "is_adapter_available",
     "list_adapters",
     "register_adapter",
+    # Models
+    "AdapterType",
+    "AuthConfig",
+    "CLIConfig",
+    "HTTPConfig",
+    "MCPConfig",
+    "ToolResult",
 ]

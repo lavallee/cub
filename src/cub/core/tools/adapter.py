@@ -6,32 +6,9 @@ must implement, enabling pluggable tool execution backends (HTTP, CLI, MCP stdio
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
-
-@dataclass
-class ToolResult:
-    """
-    Structured result from tool execution.
-
-    Attributes:
-        success: Whether the tool executed successfully
-        output: Structured data returned by the tool (dict, list, str, etc.)
-        output_markdown: Optional human-readable summary of the result
-        duration_ms: Execution time in milliseconds
-        tokens_used: Optional token count for LLM-based tools
-        error: Optional error message if success=False
-        metadata: Additional execution metadata (headers, status codes, etc.)
-    """
-
-    success: bool
-    output: Any
-    output_markdown: str | None = None
-    duration_ms: int = 0
-    tokens_used: int | None = None
-    error: str | None = None
-    metadata: dict[str, Any] | None = None
+from cub.core.tools.models import ToolResult
 
 
 @runtime_checkable

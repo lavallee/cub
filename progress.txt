@@ -8067,3 +8067,44 @@ Implemented comprehensive test coverage for ledger index operations and dashboar
 - tests/test_ledger_index.py: 588 lines, comprehensive index testing
 - tests/test_dashboard_api.py: 502 lines, comprehensive API testing
 
+
+## Task cub-x7f.1: Define ToolAdapter Protocol and adapter registry
+
+**Date:** 2026-01-24
+
+**Key Learnings:**
+
+1. **Protocol Pattern Consistency**: The cub codebase has a well-established pattern for pluggable backends:
+   - Use `@runtime_checkable` Protocol for the interface
+   - Module-level `_backends` dict for registration
+   - Decorator factory (`register_adapter()`) for registration
+   - `get_adapter()` for retrieval with helpful error messages
+   - Utility functions: `list_adapters()`, `is_adapter_available()`
+
+2. **Adapter vs Backend Naming**: The term "adapter" is used for tool execution backends (HTTP, CLI, MCP stdio) to differentiate from task backends (beads, json) and harness backends (claude, codex). This follows the Adapter design pattern from Gang of Four.
+
+3. **Async-First Design**: Tool execution is inherently async (network calls, subprocess execution, server communication), so the ToolAdapter protocol uses `async def` methods. This differs from task/harness backends which are synchronous.
+
+4. **ToolResult Structure**: Comprehensive result dataclass captures:
+   - Success/failure status
+   - Output data (structured, not just strings)
+   - Optional markdown summary for humans
+   - Timing info (duration_ms)
+   - Token usage for LLM-based tools
+   - Error messages
+   - Arbitrary metadata (headers, status codes, etc.)
+
+5. **Test Pattern**: Backend/adapter tests follow a consistent structure:
+   - Registry tests (register, get, list)
+   - Availability tests
+   - Protocol conformance tests (isinstance checks)
+   - Test fixtures clean up by popping from registry
+
+6. **Module Documentation**: Package `__init__.py` should include:
+   - Overview of the package purpose
+   - Key components list
+   - Example usage
+   - Explicit `__all__` exports
+
+**Outcome:** Successfully created the foundation for pluggable tool execution. The ToolAdapter protocol and registry enable HTTP, CLI, MCP stdio, and skill bridge adapters to be implemented with a consistent interface. All 11 tests pass, mypy clean, ruff clean.
+
