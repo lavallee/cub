@@ -100,6 +100,14 @@ class ReviewReporter:
         if assessment.issues:
             self._render_issues(assessment.issues)
 
+        # Deep analysis section (in verbose mode)
+        if self.verbose and assessment.deep_analysis:
+            self.console.print("  [bold]Deep Analysis:[/bold]")
+            for line in assessment.deep_analysis.split("\n"):
+                if line.strip():
+                    self.console.print(f"  [dim]{line}[/dim]")
+            self.console.print()
+
         # Summary
         self.console.print(f"  [dim]Summary:[/dim] {assessment.summary}")
         self.console.print()
@@ -145,13 +153,24 @@ class ReviewReporter:
                 self.console.print(badge, end="")
                 self.console.print(f" {task.task_id} - {task.title}")
 
-                # In verbose mode, show per-task issues
-                if self.verbose and task.issues:
-                    for issue in task.issues:
-                        style = _severity_style(issue.severity)
+                # In verbose mode, show per-task issues and deep analysis
+                if self.verbose:
+                    if task.issues:
+                        for issue in task.issues:
+                            style = _severity_style(issue.severity)
+                            self.console.print(
+                                f"        [{style}]└ {issue.description}[/{style}]"
+                            )
+                    # Show deep analysis text if available
+                    if task.deep_analysis:
+                        self.console.print()
                         self.console.print(
-                            f"        [{style}]└ {issue.description}[/{style}]"
+                            "        [bold dim]Deep Analysis:[/bold dim]"
                         )
+                        # Indent each line of the deep analysis
+                        for line in task.deep_analysis.split("\n"):
+                            if line.strip():
+                                self.console.print(f"        [dim]{line}[/dim]")
 
         self.console.print()
 
