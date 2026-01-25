@@ -33,6 +33,7 @@ class HarnessFeature(str, Enum):
     SESSIONS = "sessions"
     SESSION_FORKING = "session_forking"
     SUBAGENTS = "subagents"
+    ANALYSIS = "analysis"  # LLM-based code analysis (read-only, no file changes)
 
 
 class HookEvent(str, Enum):

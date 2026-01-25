@@ -45,6 +45,7 @@ class IssueType(str, Enum):
     # Deep analysis issues
     IMPLEMENTATION_GAP = "implementation_gap"
     SPEC_MISMATCH = "spec_mismatch"
+    DEEP_ANALYSIS_FINDING = "deep_analysis_finding"  # General LLM-identified issue
 
 
 class IssueSeverity(str, Enum):

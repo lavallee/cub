@@ -11,6 +11,8 @@ Supports two levels of analysis:
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import re
 from pathlib import Path
 
@@ -28,6 +30,8 @@ from cub.core.review.models import (
     TaskAssessment,
 )
 from cub.utils.project import get_project_root
+
+logger = logging.getLogger(__name__)
 
 
 class TaskAssessor:
@@ -99,9 +103,7 @@ class TaskAssessor:
         missing_tests = self._check_tests_exist(specified_files)
 
         # Add structural issues
-        issues.extend(self._check_structural(
-            missing_files, unchecked_criteria, missing_tests
-        ))
+        issues.extend(self._check_structural(missing_files, unchecked_criteria, missing_tests))
 
         # Deep analysis with LLM (if requested)
         deep_analysis = None
@@ -224,9 +226,7 @@ class TaskAssessor:
                 )
 
             if entry.outcome.escalated:
-                escalation_desc = (
-                    f"Task escalated: {' -> '.join(entry.outcome.escalation_path)}"
-                )
+                escalation_desc = f"Task escalated: {' -> '.join(entry.outcome.escalation_path)}"
                 issues.append(
                     ReviewIssue(
                         type=IssueType.TASK_ESCALATED,
@@ -445,7 +445,7 @@ class TaskAssessor:
                     type=IssueType.MISSING_FILE,
                     severity=IssueSeverity.CRITICAL,
                     description=f"Specified file not found: {file_path}",
-                    recommendation=f"Create the file or update task description",
+                    recommendation="Create the file or update task description",
                 )
             )
 
@@ -486,8 +486,8 @@ class TaskAssessor:
     ) -> tuple[str | None, list[ReviewIssue]]:
         """Run LLM-based deep analysis of implementation.
 
-        This is a placeholder - actual LLM integration would go here.
-        For now, returns None and empty issues.
+        Uses the configured harness to perform code review analysis
+        comparing implementation against specification.
 
         Args:
             entry: The ledger entry to analyze
@@ -496,13 +496,94 @@ class TaskAssessor:
         Returns:
             Tuple of (analysis_text, issues_found)
         """
-        # TODO: Implement LLM-based analysis
-        # This would:
-        # 1. Read the spec file if available
-        # 2. Read the implemented files
-        # 3. Use an LLM to compare implementation vs spec
-        # 4. Return analysis text and any issues found
-        return None, []
+        # Import here to avoid circular imports and allow lazy loading
+        from cub.core.harness.async_backend import get_async_backend
+        from cub.core.harness.models import HarnessFeature
+        from cub.core.review.prompts import (
+            build_analysis_context,
+            parse_analysis_issues,
+            read_implementation_files,
+            read_spec_file,
+        )
+
+        try:
+            # Get the configured async harness
+            harness = get_async_backend()
+
+            # Check if harness supports analysis
+            if not harness.supports_feature(HarnessFeature.ANALYSIS):
+                logger.warning(f"Harness '{harness.name}' may not fully support analysis feature")
+
+            # Read spec file if available
+            spec_path = entry.lineage.spec_file or entry.spec_file
+            spec_content = read_spec_file(spec_path, self.project_root)
+
+            # Determine files to analyze
+            files_to_read = specified_files.copy()
+            if entry.outcome and entry.outcome.files_changed:
+                files_to_read.extend(entry.outcome.files_changed)
+            elif entry.files_changed:
+                files_to_read.extend(entry.files_changed)
+
+            # Deduplicate
+            files_to_read = list(dict.fromkeys(files_to_read))
+
+            # Read implementation files
+            implementation_files = read_implementation_files(files_to_read, self.project_root)
+
+            # Build analysis context
+            context = build_analysis_context(
+                entry=entry,
+                spec_content=spec_content,
+                implementation_files=implementation_files,
+            )
+
+            # Run the analysis using asyncio.run() to bridge sync/async
+            async def run_analysis() -> tuple[str, list[ReviewIssue]]:
+                result = await harness.analyze(
+                    context=context,
+                    files_content=implementation_files,
+                    analysis_type="implementation_review",
+                    model="sonnet",  # Use sonnet for balanced analysis
+                )
+
+                if result.failed:
+                    logger.warning(f"Deep analysis failed: {result.error}")
+                    return "", []
+
+                # Parse issues from the analysis output
+                issues = parse_analysis_issues(result.output)
+                return result.output, issues
+
+            # Run the async analysis
+            analysis_text, issues = asyncio.run(run_analysis())
+
+            if not analysis_text:
+                return None, []
+
+            return analysis_text, issues
+
+        except ValueError as e:
+            # No harness available
+            logger.warning(f"Deep analysis unavailable: {e}")
+            return None, [
+                ReviewIssue(
+                    type=IssueType.DEEP_ANALYSIS_FINDING,
+                    severity=IssueSeverity.INFO,
+                    description="Deep analysis unavailable - no harness configured",
+                    recommendation="Install a harness (claude, codex) for deep analysis",
+                )
+            ]
+        except Exception as e:
+            logger.warning(f"Deep analysis failed with error: {e}")
+            return None, [
+                ReviewIssue(
+                    type=IssueType.DEEP_ANALYSIS_FINDING,
+                    severity=IssueSeverity.WARNING,
+                    description=f"Deep analysis failed: {str(e)[:100]}",
+                    recommendation="Check harness configuration and try again",
+                )
+            ]
 
 
 class EpicAssessor:

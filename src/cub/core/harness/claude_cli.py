@@ -389,7 +389,7 @@ class ClaudeCLIBackend:
         Returns:
             True if feature is supported
         """
-        # Legacy harness supports basic shell-out features
+        # Legacy harness supports basic shell-out features + analysis
         supported = {
             HarnessFeature.STREAMING,
             HarnessFeature.TOKEN_REPORTING,
@@ -397,6 +397,7 @@ class ClaudeCLIBackend:
             HarnessFeature.AUTO_MODE,
             HarnessFeature.JSON_OUTPUT,
             HarnessFeature.MODEL_SELECTION,
+            HarnessFeature.ANALYSIS,  # Read-only analysis via prompts
         }
         return feature in supported
 
@@ -513,3 +514,132 @@ class ClaudeCLIBackend:
             "Use harness='claude' for SDK-based hook support.",
             self.name,
         )
+
+    async def analyze(
+        self,
+        context: str,
+        files_content: dict[str, str] | None = None,
+        analysis_type: str = "implementation_review",
+        model: str | None = None,
+    ) -> TaskResult:
+        """
+        Run LLM-based analysis without modifying files.
+
+        Uses run_task() internally with a specialized system prompt
+        that instructs the LLM to analyze without making changes.
+
+        Args:
+            context: Context about what to analyze
+            files_content: Dict mapping file paths to contents
+            analysis_type: Type of analysis to perform
+            model: Optional model override (defaults to 'sonnet')
+
+        Returns:
+            TaskResult with analysis text in output field
+        """
+        # Build analysis prompt
+        system_prompt = self._build_analysis_system_prompt(analysis_type)
+        user_prompt = self._build_analysis_user_prompt(context, files_content, analysis_type)
+
+        # Create task input with read-only settings
+        task_input = TaskInput(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model=model or "sonnet",
+            auto_approve=True,
+        )
+
+        return await self.run_task(task_input)
+
+    def _build_analysis_system_prompt(self, analysis_type: str) -> str:
+        """Build system prompt for analysis based on type."""
+        base_prompt = """You are a code review assistant. Your task is to analyze code and provide detailed feedback.
+
+IMPORTANT RULES:
+1. This is a READ-ONLY analysis. Do NOT suggest using any tools to modify files.
+2. Do NOT attempt to run commands, create files, or make changes.
+3. Focus solely on analyzing the provided code and specifications.
+4. Provide your analysis as structured text output only.
+"""
+
+        type_prompts = {
+            "implementation_review": """
+Your goal is to compare implementation against specifications and identify:
+- Missing features or incomplete implementations
+- Deviations from the spec
+- Potential bugs or issues
+- Areas that need improvement
+
+Format your response with these sections:
+## Summary
+Brief overview of the implementation status.
+
+## Issues Found
+List specific issues with severity (CRITICAL, WARNING, INFO).
+Format: [SEVERITY] Description - Recommendation
+
+## Coverage Analysis
+What percentage of the spec appears to be implemented.
+
+## Recommendations
+Prioritized list of actions to address issues.
+""",
+            "code_quality": """
+Your goal is to analyze code quality and identify:
+- Code style and consistency issues
+- Potential bugs or error-prone patterns
+- Performance concerns
+- Security vulnerabilities
+- Test coverage gaps
+
+Format your response with these sections:
+## Summary
+Brief quality assessment.
+
+## Issues Found
+List issues with severity (CRITICAL, WARNING, INFO).
+
+## Recommendations
+Prioritized improvements.
+""",
+            "spec_gap": """
+Your goal is to find gaps between specification and implementation:
+- Features in spec but not in code
+- Features in code but not in spec
+- Partial implementations
+- Behavioral differences
+
+Format your response with these sections:
+## Summary
+Overview of spec coverage.
+
+## Gaps Found
+List gaps with impact assessment.
+
+## Alignment Score
+Estimate of spec-to-implementation alignment (0-100%).
+""",
+        }
+
+        return base_prompt + type_prompts.get(analysis_type, type_prompts["implementation_review"])
+
+    def _build_analysis_user_prompt(
+        self,
+        context: str,
+        files_content: dict[str, str] | None,
+        analysis_type: str,
+    ) -> str:
+        """Build user prompt with context and file contents."""
+        parts = [f"# Analysis Request\n\n{context}"]
+
+        if files_content:
+            parts.append("\n\n# Files to Analyze\n")
+            for path, content in files_content.items():
+                # Truncate very large files
+                if len(content) > 50000:
+                    content = content[:50000] + "\n... [truncated]"
+                parts.append(f"\n## {path}\n```\n{content}\n```\n")
+
+        parts.append(f"\n\nPlease perform a {analysis_type.replace('_', ' ')} analysis.")
+
+        return "".join(parts)
