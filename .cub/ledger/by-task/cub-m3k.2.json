@@ -1,34 +1,34 @@
 {
   "version": 1,
-  "id": "cub-m3k.1",
-  "title": "Define ToolConfig and Registry models",
+  "id": "cub-m3k.2",
+  "title": "Implement RegistryStore",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-m3k"
   },
   "task": {
-    "title": "Define ToolConfig and Registry models",
-    "description": "ToolConfig represents an approved tool with all config needed to execute it. Registry holds all approved tools with version tracking.\n\n**Implementation Steps:**\n1. Add to `src/cub/core/tools/models.py`:\n2. Add validators:\n3. Add helper methods:\n\n**Files:** `src/cub/core/tools/models.py`",
+    "title": "Implement RegistryStore",
+    "description": "RegistryStore handles JSON file I/O for registry persistence. Supports user-level and project-level registries with merge logic.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/registry.py` with `RegistryStore` class:\n2. Handle missing files gracefully (return empty registry)\n3. Use atomic write pattern (tempfile \u2192 rename)\n4. Create parent directories if needed\n\n**Files:** `src/cub/core/tools/registry.py`",
     "type": "task",
     "priority": 0,
     "labels": [
       "complexity:medium",
       "epic:cub-m3k",
-      "model",
+      "logic",
       "model:sonnet",
       "phase-2"
     ],
-    "created_at": "2026-01-25T04:16:42.019200Z",
-    "captured_at": "2026-01-25T05:04:22.224231Z"
+    "created_at": "2026-01-25T04:16:42.019208Z",
+    "captured_at": "2026-01-25T05:12:05.657490Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260124-235434",
-      "started_at": "2026-01-25T00:04:22.227436",
-      "completed_at": "2026-01-25T05:12:03.173683Z",
+      "started_at": "2026-01-25T00:12:05.660776",
+      "completed_at": "2026-01-25T05:16:05.479368Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,32 +41,26 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 460
+      "duration_seconds": 239
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-25T05:12:03.368582Z",
+    "completed_at": "2026-01-25T05:16:05.668132Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 460,
+    "total_duration_seconds": 239,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
     "commits": [
       {
-        "hash": "e8aec154c1b61459be3da1c2c18fa1d6335e72a8",
-        "message": "docs: add learnings from cub-m3k.1 to progress.txt",
+        "hash": "8b58e9f3a102bb5e0efb12d4d01dd2640382fd5b",
+        "message": "task(cub-m3k.2): Implement RegistryStore",
         "author": "",
-        "timestamp": "2026-01-25T05:11:48Z"
-      },
-      {
-        "hash": "3ee0e70ff0fecb48d435544c778b8463df82ff14",
-        "message": "task(cub-m3k.1): Define ToolConfig and Registry models",
-        "author": "",
-        "timestamp": "2026-01-25T05:11:29Z"
+        "timestamp": "2026-01-25T05:15:30Z"
       }
     ],
     "approach": null,
@@ -88,24 +82,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T05:12:03.368582Z"
+    "stage_updated_at": "2026-01-25T05:16:05.668132Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T05:04:22.224231Z",
+      "at": "2026-01-25T05:12:05.657490Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T05:12:03.368582Z",
+      "at": "2026-01-25T05:16:05.668132Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-25T05:04:22.224231Z",
-  "completed_at": "2026-01-25T05:12:03.368582Z",
+  "started_at": "2026-01-25T05:12:05.657490Z",
+  "completed_at": "2026-01-25T05:16:05.668132Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -113,7 +107,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 460,
+  "duration_seconds": 239,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -121,20 +115,14 @@
   "files_changed": [],
   "commits": [
     {
-      "hash": "e8aec154c1b61459be3da1c2c18fa1d6335e72a8",
-      "message": "docs: add learnings from cub-m3k.1 to progress.txt",
+      "hash": "8b58e9f3a102bb5e0efb12d4d01dd2640382fd5b",
+      "message": "task(cub-m3k.2): Implement RegistryStore",
       "author": "",
-      "timestamp": "2026-01-25T05:11:48Z"
-    },
-    {
-      "hash": "3ee0e70ff0fecb48d435544c778b8463df82ff14",
-      "message": "task(cub-m3k.1): Define ToolConfig and Registry models",
-      "author": "",
-      "timestamp": "2026-01-25T05:11:29Z"
+      "timestamp": "2026-01-25T05:15:30Z"
     }
   ],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-m3k.1",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-m3k.2",
   "epic_id": "cub-m3k",
   "verification_status": "pending",
   "verification_notes": [],

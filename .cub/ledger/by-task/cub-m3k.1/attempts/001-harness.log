@@ -1,0 +1,43 @@
+I'll help you complete this task. Let me start by understanding the current state of the codebase and then implement the ToolConfig and Registry models.Now let me search for existing models and understand the codebase structure:Excellent! Now I understand the existing codebase. Let me read the current state of the models file and implement ToolConfig and Registry:Perfect! Now I understand the full context. Let me check for any tests or specs to understand what's expected:Perfect! Now I have all the context I need. Let me implement ToolConfig and Registry models based on the architecture spec. I'll add these to the existing `src/cub/core/tools/models.py` file:Now let me update the module docstring to include the new models and update the example:Perfect! Now let me run the feedback loops to verify the implementation:That error is unrelated to my changes. Let me check just the tools module:That's from a different file. Let me run pytest to test the models:Great! Now let me create a simple test to verify the new models work correctly:Excellent! Now let me test JSON serialization/deserialization:Perfect! Let me test validator edge cases:Excellent! Now let me run the full test suite to make sure I didn't break anything:The tests are taking a while. Let me check the output so far and also run type checking and linting:Perfect! Linting passed. Let me check a specific subset of tests related to tools:Perfect! All tool-related tests pass. Let me also check if mypy is happy with the overall module:Great! Let me verify the implementation is complete and create a comprehensive test file for the new models:Now let me run the new tests to make sure they pass:Perfect! All tests pass. Now let me run the full feedback loops:Excellent! All tests pass. The mypy error is in a different file (branches/store.py) and is not related to my changes. Now let me close the task and commit:Perfect! Now let me commit the changes:Excellent! Now let me append learnings to progress.txt:Perfect! Let me commit this update as well:Excellent! Let me check if there are any other tasks ready to work on:Perfect! Task cub-m3k.1 is complete. Let me provide a summary:
+
+## Task Complete ✅
+
+I successfully completed task **cub-m3k.1: Define ToolConfig and Registry models**.
+
+### What I Implemented
+
+1. **ToolConfig Model** - Configuration for an approved tool with:
+   - Tool metadata (id, name, adapter_type, capabilities)
+   - Adapter-specific configs (http_config, cli_config, mcp_config)
+   - Authentication requirements (auth)
+   - Adoption metadata (adopted_at, adopted_from, version_hash)
+   - Validators for datetime normalization and capabilities
+   - Helper method `get_adapter_config()` for type-safe config access
+
+2. **Registry Model** - Tool registry with version tracking:
+   - Version (semantic versioning with validation)
+   - Tools dictionary (tool_id -> ToolConfig mapping)
+   - Helper methods: `get()`, `add()`, `remove()`, `find_by_capability()`, `list_all()`
+   - Full JSON serialization/deserialization support
+
+3. **Comprehensive Tests** - 19 tests in `tests/test_tools_registry_models.py`:
+   - All adapter types (HTTP, CLI, MCP)
+   - Validator edge cases
+   - Helper method functionality
+   - JSON round-trip serialization
+
+4. **Documentation** - Updated module docstring with complete examples
+
+### Validation Results
+
+- ✅ All 30 tool-related tests passing
+- ✅ Mypy type checking clean (only unrelated error in branches/store.py)
+- ✅ Ruff linting passed
+- ✅ Code formatted
+
+### Committed Changes
+
+- Commit 1: `task(cub-m3k.1): Define ToolConfig and Registry models`
+- Commit 2: `docs: add learnings from cub-m3k.1 to progress.txt`
+
+The implementation follows established patterns from the codebase and is ready for the next task (cub-m3k.2: Implement RegistryStore).

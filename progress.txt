@@ -8363,3 +8363,30 @@ Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
 
 **Outcome:** Successfully implemented ToolConfig and Registry models with full validation, helper methods, and comprehensive test coverage. All tests passing, mypy clean, ready for RegistryStore implementation (next task).
 
+
+## Task cub-m3k.2: Implement RegistryStore
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Storage Pattern Consistency**: Following established patterns from `ToolsmithStore` ensures consistency across the codebase. The atomic write pattern (tempfile → rename) prevents corruption during saves.
+
+2. **Pydantic Serialization**: When serializing Pydantic models to JSON that contain datetime objects, use `model_dump(mode='json')` instead of `model_dump()` to automatically convert datetime objects to ISO strings.
+
+3. **Factory Methods for Locations**: Using class methods like `user()` and `project()` provides clean APIs for common storage locations while respecting XDG standards and environment variables.
+
+4. **Merge Logic**: The merge strategy (project overrides user) aligns with config precedence patterns throughout the codebase. Using `dict.update()` makes this straightforward.
+
+5. **Test Coverage Patterns**: Following existing test patterns from `test_toolsmith_store.py` ensures comprehensive coverage:
+   - Load tests (missing files, invalid JSON, schema validation)
+   - Save tests (directory creation, atomic writes, formatting)
+   - Factory tests (path validation, environment variables)
+   - Merge tests (empty, non-overlapping, conflicts)
+   - Integration tests (roundtrip, workflows)
+
+6. **Graceful Degradation**: Returning empty registries when files don't exist (rather than raising errors) simplifies calling code and supports fresh installations.
+
+7. **Type Safety**: mypy strict mode catches issues early. The `yaml` import error in `branches/store.py` is unrelated to this task and should be addressed separately.
+
+**Outcome:** Successfully implemented RegistryStore with full test coverage (29 tests), clean type checking, and consistent patterns. Ready for RegistryService to build on top of this foundation.
