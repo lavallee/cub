@@ -17,12 +17,13 @@
     "captured_at": "2026-01-25T05:39:29.174437Z"
   },
   "task_ids": [
-    "cub-p9q.1"
+    "cub-p9q.1",
+    "cub-p9q.4"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -30,12 +31,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 367,
-    "avg_duration_seconds": 367,
+    "total_duration_seconds": 991,
+    "avg_duration_seconds": 495,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T05:39:29.186453Z"
+    "stage_updated_at": "2026-01-25T05:49:56.136725Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T05:33:21.814185Z",
-  "completed_at": "2026-01-25T05:39:29.171291Z",
-  "updated_at": "2026-01-25T05:39:29.186456Z",
+  "completed_at": "2026-01-25T05:49:56.119710Z",
+  "updated_at": "2026-01-25T05:49:56.136726Z",
   "first_commit": {
     "hash": "f87081def0b0785a54af82708b036de38cbc1092",
     "message": "task(cub-p9q.1): Define ToolMetrics model",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-25T05:35:53Z"
   },
   "last_commit": {
-    "hash": "529906022e76942719671784dce73fe599787adf",
-    "message": "docs: Add learnings from task cub-p9q.2",
+    "hash": "0475587fd952d3e2d9742e6aaf6757a301fed8ab",
+    "message": "task(cub-p9q.4): Add cub tools stats command",
     "author": "",
-    "timestamp": "2026-01-25T05:39:15Z"
+    "timestamp": "2026-01-25T05:48:52Z"
   },
   "drift": {
     "additions": [],

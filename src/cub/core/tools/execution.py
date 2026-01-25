@@ -55,9 +55,10 @@ from pydantic import BaseModel, Field
 
 from cub.core.tools.adapter import get_adapter
 from cub.core.tools.exceptions import ToolNotAdoptedError
-from cub.core.tools.models import ToolResult
+from cub.core.tools.models import ToolMetrics, ToolResult
 
 if TYPE_CHECKING:
+    from cub.core.tools.metrics import MetricsStore
     from cub.core.tools.registry import RegistryService
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,7 @@ class ExecutionService:
         artifact_dir: Directory where execution artifacts are saved
             (default: .cub/toolsmith/runs)
         registry_service: Optional RegistryService for enforcing adopt-before-execute
+        metrics_store: Optional MetricsStore for recording execution metrics
 
     Example:
         >>> from cub.core.tools.registry import RegistryService
@@ -134,6 +136,7 @@ class ExecutionService:
         self,
         artifact_dir: Path | None = None,
         registry_service: RegistryService | None = None,
+        metrics_store: MetricsStore | None = None,
     ):
         """
         Initialize the execution service.
@@ -143,10 +146,13 @@ class ExecutionService:
                 If None, defaults to .cub/toolsmith/runs
             registry_service: RegistryService for looking up tool configurations.
                 If None, registry checks are disabled (tools can execute without adoption).
+            metrics_store: MetricsStore for recording execution metrics.
+                If None, metrics recording is disabled.
         """
         self.artifact_dir = artifact_dir or Path(".cub/toolsmith/runs")
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         self.registry_service = registry_service
+        self.metrics_store = metrics_store
 
     async def execute(
         self,
@@ -219,6 +225,10 @@ class ExecutionService:
             artifact_path = self._write_artifact(result)
             # Update result with artifact path
             result.artifact_path = str(artifact_path)
+
+        # Record metrics if metrics_store is configured
+        if self.metrics_store is not None:
+            self.metrics_store.record_execution(result)
 
         return result
 
@@ -454,3 +464,45 @@ class ExecutionService:
         # Sort by modification time (most recent first)
         artifacts.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         return artifacts
+
+    def get_metrics(self, tool_id: str) -> ToolMetrics | None:
+        """
+        Get execution metrics for a specific tool.
+
+        Args:
+            tool_id: Tool identifier
+
+        Returns:
+            ToolMetrics for the tool, or None if metrics_store is not configured
+            or no metrics exist for the tool
+
+        Example:
+            >>> metrics = service.get_metrics("brave-search")
+            >>> if metrics:
+            ...     print(f"Success rate: {metrics.success_rate():.1f}%")
+            ...     print(f"Avg duration: {metrics.avg_duration_ms}ms")
+        """
+        if self.metrics_store is None:
+            return None
+        return self.metrics_store.get(tool_id)
+
+    def get_degraded_tools(self, threshold: float = 80.0) -> list[ToolMetrics]:
+        """
+        Get tools with success rates below a threshold.
+
+        Args:
+            threshold: Success rate threshold percentage (default: 80.0)
+
+        Returns:
+            List of ToolMetrics for tools with success rates below the threshold.
+            Returns empty list if metrics_store is not configured.
+
+        Example:
+            >>> # Get tools with success rate below 80%
+            >>> degraded = service.get_degraded_tools(threshold=80.0)
+            >>> for metrics in degraded:
+            ...     print(f"{metrics.tool_id}: {metrics.success_rate():.1f}%")
+        """
+        if self.metrics_store is None:
+            return []
+        return self.metrics_store.filter(lambda m: m.success_rate() < threshold)

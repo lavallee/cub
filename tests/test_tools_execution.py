@@ -621,3 +621,216 @@ class TestExecutionServiceArtifacts:
         # Should only see the real artifact, not the temp file
         assert len(artifacts) == 1
         assert artifacts[0].suffix == ".json"
+
+
+class TestExecutionServiceMetrics:
+    """Test ExecutionService metrics integration."""
+
+    @pytest.mark.asyncio
+    async def test_execute_records_metrics_when_store_configured(self, tmp_path):
+        """Test that execute records metrics when metrics_store is configured."""
+        from cub.core.tools.metrics import MetricsStore
+
+        # Setup
+        artifact_dir = tmp_path / "artifacts"
+        metrics_file = tmp_path / "metrics.json"
+        metrics_store = MetricsStore(metrics_file)
+        service = ExecutionService(
+            artifact_dir=artifact_dir, metrics_store=metrics_store
+        )
+
+        # Create mock adapter
+        mock_adapter = Mock()
+        mock_result = ToolResult(
+            tool_id="test-tool",
+            action="search",
+            success=True,
+            output={"results": []},
+            started_at="2024-01-24T12:00:00Z",
+            duration_ms=250,
+            adapter_type=AdapterType.HTTP,
+        )
+        mock_adapter.execute = AsyncMock(return_value=mock_result)
+
+        # Execute
+        with patch("cub.core.tools.execution.get_adapter", return_value=mock_adapter):
+            await service.execute(
+                tool_id="test-tool",
+                action="search",
+                adapter_type="http",
+                params={"query": "test"},
+                timeout=30.0,
+            )
+
+        # Verify metrics were recorded
+        metrics = metrics_store.get("test-tool")
+        assert metrics is not None
+        assert metrics.tool_id == "test-tool"
+        assert metrics.invocations == 1
+        assert metrics.successes == 1
+        assert metrics.failures == 0
+
+    @pytest.mark.asyncio
+    async def test_execute_without_metrics_store_works(self, tmp_path):
+        """Test that execute works without metrics_store configured."""
+        artifact_dir = tmp_path / "artifacts"
+        service = ExecutionService(artifact_dir=artifact_dir)
+
+        # Create mock adapter
+        mock_adapter = Mock()
+        mock_result = ToolResult(
+            tool_id="test-tool",
+            action="search",
+            success=True,
+            output={},
+            started_at="2024-01-24T12:00:00Z",
+            duration_ms=250,
+            adapter_type=AdapterType.HTTP,
+        )
+        mock_adapter.execute = AsyncMock(return_value=mock_result)
+
+        # Execute should work fine without metrics_store
+        with patch("cub.core.tools.execution.get_adapter", return_value=mock_adapter):
+            result = await service.execute(
+                tool_id="test-tool",
+                action="search",
+                adapter_type="http",
+                params={"query": "test"},
+                timeout=30.0,
+            )
+
+        assert result.success is True
+
+    def test_get_metrics_returns_none_without_store(self, tmp_path):
+        """Test get_metrics returns None when metrics_store not configured."""
+        artifact_dir = tmp_path / "artifacts"
+        service = ExecutionService(artifact_dir=artifact_dir)
+
+        metrics = service.get_metrics("test-tool")
+        assert metrics is None
+
+    def test_get_metrics_returns_metrics_with_store(self, tmp_path):
+        """Test get_metrics returns metrics when store is configured."""
+        from cub.core.tools.metrics import MetricsStore
+        from cub.core.tools.models import ToolMetrics
+
+        metrics_file = tmp_path / "metrics.json"
+        metrics_store = MetricsStore(metrics_file)
+        service = ExecutionService(metrics_store=metrics_store)
+
+        # Add some metrics to the store
+        test_metrics = ToolMetrics(
+            tool_id="test-tool",
+            invocations=5,
+            successes=4,
+            failures=1,
+            total_duration_ms=1000,
+            avg_duration_ms=200,
+        )
+        metrics_store.save({"test-tool": test_metrics})
+
+        # Get metrics through service
+        metrics = service.get_metrics("test-tool")
+        assert metrics is not None
+        assert metrics.tool_id == "test-tool"
+        assert metrics.invocations == 5
+        assert metrics.successes == 4
+        assert metrics.failures == 1
+
+    def test_get_metrics_returns_none_for_unknown_tool(self, tmp_path):
+        """Test get_metrics returns None for unknown tool."""
+        from cub.core.tools.metrics import MetricsStore
+
+        metrics_file = tmp_path / "metrics.json"
+        metrics_store = MetricsStore(metrics_file)
+        service = ExecutionService(metrics_store=metrics_store)
+
+        metrics = service.get_metrics("unknown-tool")
+        assert metrics is None
+
+    def test_get_degraded_tools_returns_empty_without_store(self, tmp_path):
+        """Test get_degraded_tools returns empty list without store."""
+        artifact_dir = tmp_path / "artifacts"
+        service = ExecutionService(artifact_dir=artifact_dir)
+
+        degraded = service.get_degraded_tools(threshold=80.0)
+        assert degraded == []
+
+    def test_get_degraded_tools_filters_by_threshold(self, tmp_path):
+        """Test get_degraded_tools returns tools below threshold."""
+        from cub.core.tools.metrics import MetricsStore
+        from cub.core.tools.models import ToolMetrics
+
+        metrics_file = tmp_path / "metrics.json"
+        metrics_store = MetricsStore(metrics_file)
+        service = ExecutionService(metrics_store=metrics_store)
+
+        # Tool 1: 90% success rate (above threshold)
+        tool1 = ToolMetrics(
+            tool_id="reliable-tool",
+            invocations=10,
+            successes=9,
+            failures=1,
+        )
+
+        # Tool 2: 70% success rate (below threshold)
+        tool2 = ToolMetrics(
+            tool_id="unreliable-tool",
+            invocations=10,
+            successes=7,
+            failures=3,
+        )
+
+        # Tool 3: 50% success rate (below threshold)
+        tool3 = ToolMetrics(
+            tool_id="very-unreliable-tool",
+            invocations=10,
+            successes=5,
+            failures=5,
+        )
+
+        metrics_store.save(
+            {
+                "reliable-tool": tool1,
+                "unreliable-tool": tool2,
+                "very-unreliable-tool": tool3,
+            }
+        )
+
+        # Get degraded tools (below 80%)
+        degraded = service.get_degraded_tools(threshold=80.0)
+
+        # Should return only tools below 80%
+        assert len(degraded) == 2
+        tool_ids = {m.tool_id for m in degraded}
+        assert "unreliable-tool" in tool_ids
+        assert "very-unreliable-tool" in tool_ids
+        assert "reliable-tool" not in tool_ids
+
+    def test_get_degraded_tools_custom_threshold(self, tmp_path):
+        """Test get_degraded_tools with custom threshold."""
+        from cub.core.tools.metrics import MetricsStore
+        from cub.core.tools.models import ToolMetrics
+
+        metrics_file = tmp_path / "metrics.json"
+        metrics_store = MetricsStore(metrics_file)
+        service = ExecutionService(metrics_store=metrics_store)
+
+        # Tool with 60% success rate
+        tool = ToolMetrics(
+            tool_id="semi-reliable-tool",
+            invocations=10,
+            successes=6,
+            failures=4,
+        )
+
+        metrics_store.save({"semi-reliable-tool": tool})
+
+        # Should be degraded at 70% threshold
+        degraded_70 = service.get_degraded_tools(threshold=70.0)
+        assert len(degraded_70) == 1
+        assert degraded_70[0].tool_id == "semi-reliable-tool"
+
+        # Should NOT be degraded at 50% threshold
+        degraded_50 = service.get_degraded_tools(threshold=50.0)
+        assert len(degraded_50) == 0

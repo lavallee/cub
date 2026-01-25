@@ -8694,3 +8694,47 @@ The adopt → execute flow is now complete and ready for CLI integration.
 
 **Outcome:** Successfully implemented MetricsStore with full test coverage. Follows established codebase patterns. All feedback loops passing. Ready for integration into ExecutionService.
 
+
+## Task cub-p9q.4: Add cub tools stats command
+
+**Timestamp:** 2026-01-25T05:50:00Z
+
+**Task Description:** Implement CLI command to view tool effectiveness metrics from MetricsStore.
+
+**Approach:**
+1. Added import of MetricsStore to src/cub/cli/tools.py
+2. Implemented stats command following established CLI patterns in the file
+3. Used MetricsStore.project() to load metrics from .cub/tools/metrics.json
+4. Created rich Table with columns: Tool ID, Invocations, Success Rate, Avg Duration, Errors, Last Used
+5. Implemented color-coded success rates using Text() with conditional styling:
+   - Green (bold green): >80% success rate
+   - Yellow (bold yellow): 50-80% success rate  
+   - Red (bold red): <50% success rate
+6. Added relative timestamp formatting for Last Used column:
+   - "just now" for <60s
+   - "Xm ago" for <1h
+   - "Xh ago" for <24h
+   - "yesterday" for 1 day
+   - "Xd ago" for <7 days
+   - "YYYY-MM-DD" for >=7 days
+7. Displayed "no metrics yet" panel when no data available
+8. Added overall statistics summary showing total tools, invocations, and overall success rate
+9. Sorted tools by invocations (most used first)
+
+**Key Implementation Details:**
+- Used total_seconds() for time difference calculation to avoid edge cases with days/hours boundaries
+- Calculated overall success rate by summing all successes/invocations across tools
+- Error count displays "-" when zero, number when >0
+- Followed existing error handling pattern with handle_error() and setup_logging()
+- Maintained consistency with other commands in the file (list, check, run, artifacts)
+
+**Testing:**
+- Manually tested with no metrics (shows "no metrics yet" panel)
+- Manually tested with various success rates to verify color coding
+- Manually tested relative timestamps with different time offsets
+- Verified mypy type checking passes (--strict mode)
+- Verified ruff linting passes
+- Ran test_tools_metrics_store.py tests successfully (22 passed)
+
+**Outcome:** Successfully implemented cub tools stats command with color-coded success rates and relative timestamps. All feedback loops passing. Command provides clear visualization of tool effectiveness metrics for the learning loop.
+
