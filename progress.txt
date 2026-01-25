@@ -8108,3 +8108,37 @@ Implemented comprehensive test coverage for ledger index operations and dashboar
 
 **Outcome:** Successfully created the foundation for pluggable tool execution. The ToolAdapter protocol and registry enable HTTP, CLI, MCP stdio, and skill bridge adapters to be implemented with a consistent interface. All 11 tests pass, mypy clean, ruff clean.
 
+
+## 2026-01-25 - Task cub-x7f.2: Define ToolResult and adapter config models
+
+### What was implemented
+- Created comprehensive Pydantic v2 models for tool execution in src/cub/core/tools/models.py
+- Migrated ToolResult from dataclass to Pydantic BaseModel with enhanced fields
+- Implemented HTTPConfig, CLIConfig, MCPConfig, and AuthConfig models
+- Added datetime field validators for timezone-aware normalization
+- Added py.typed marker for type checking support
+- Comprehensive test coverage (35 tests passing)
+
+### Key learnings
+1. **Datetime handling in Pydantic**: The datetime.fromisoformat() method doesn't support 'Z' suffix in Python 3.10, so we normalize it to '+00:00' before parsing
+2. **Timezone normalization**: All naive datetimes are treated as UTC by replacing tzinfo=timezone.utc
+3. **Model consistency**: Using ConfigDict(populate_by_name=True) ensures consistent field name handling across all models
+4. **Field validators**: Pydantic v2 uses @field_validator decorator with mode="before" for preprocessing input values
+5. **Enum integration**: AdapterType(str, Enum) works seamlessly with Pydantic for string-based enums
+6. **Test migration**: When migrating from dataclass to Pydantic BaseModel, all required fields must be provided in tests
+
+### Patterns established
+- All models use ConfigDict(populate_by_name=True)
+- Field descriptions use Field(..., description="...") for documentation
+- Datetime fields have validators for timezone normalization and ISO string parsing
+- Validation errors provide clear messages with field context
+- Models support JSON serialization via model_dump(mode='json') and model_dump_json()
+
+### Files modified
+- src/cub/core/tools/models.py (new)
+- src/cub/core/tools/adapter.py (updated to import ToolResult from models)
+- src/cub/core/tools/__init__.py (updated exports)
+- src/cub/core/tools/py.typed (new)
+- tests/test_tools_models.py (new, 24 tests)
+- tests/test_tools_adapter.py (updated for new ToolResult model)
+
