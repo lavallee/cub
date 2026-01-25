@@ -145,6 +145,14 @@ class ReviewReporter:
                 self.console.print(badge, end="")
                 self.console.print(f" {task.task_id} - {task.title}")
 
+                # In verbose mode, show per-task issues
+                if self.verbose and task.issues:
+                    for issue in task.issues:
+                        style = _severity_style(issue.severity)
+                        self.console.print(
+                            f"        [{style}]└ {issue.description}[/{style}]"
+                        )
+
         self.console.print()
 
         # Recommendations
@@ -195,6 +203,19 @@ class ReviewReporter:
                 self.console.print("    ", end="")
                 self.console.print(badge, end="")
                 self.console.print(f" {epic.epic_id} - {epic.title} {task_info}")
+
+                # In verbose mode, show per-task details within each epic
+                if self.verbose and epic.task_assessments:
+                    for task in epic.task_assessments:
+                        task_badge = _grade_badge(task.grade)
+                        self.console.print("      ", end="")
+                        self.console.print(task_badge, end="")
+                        self.console.print(f" {task.task_id}")
+                        for issue in task.issues:
+                            style = _severity_style(issue.severity)
+                            self.console.print(
+                                f"          [{style}]└ {issue.description}[/{style}]"
+                            )
 
         self.console.print()
 
