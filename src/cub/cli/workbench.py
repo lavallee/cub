@@ -113,8 +113,10 @@ def run_next(
 
             post = frontmatter.load(result.session_path)
             meta = post.metadata if isinstance(post.metadata, dict) else {}
-            nm = meta.get("next_move") if isinstance(meta.get("next_move"), dict) else {}
-            ap = nm.get("artifact_plan") if isinstance(nm.get("artifact_plan"), dict) else {}
+            nm_raw = meta.get("next_move")
+            nm = nm_raw if isinstance(nm_raw, dict) else {}
+            ap_raw = nm.get("artifact_plan")
+            ap = ap_raw if isinstance(ap_raw, dict) else {}
             np = ap.get("path")
             if isinstance(np, str) and np.strip():
                 note_path = Path(np)

@@ -8,7 +8,7 @@ fixing filenames, and ensuring consistency.
 from datetime import datetime, timezone
 from pathlib import Path
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 import typer
 from rich.console import Console
 from rich.table import Table

@@ -9,7 +9,7 @@ import re
 import subprocess
 from pathlib import Path
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 
 from cub.core.specs.models import Spec, Stage
 
