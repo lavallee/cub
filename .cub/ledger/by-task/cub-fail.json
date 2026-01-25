@@ -1,20 +1,20 @@
 {
   "version": 1,
-  "id": "cub-001",
-  "title": "Task",
+  "id": "cub-fail",
+  "title": "Failing task",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": null
   },
   "task": {
-    "title": "Task",
+    "title": "Failing task",
     "description": "",
     "type": "task",
     "priority": 1,
     "labels": [],
     "created_at": null,
-    "captured_at": "2026-01-25T04:27:50.783400Z"
+    "captured_at": "2026-01-25T04:27:50.415215Z"
   },
   "task_changed": null,
   "attempts": [],
@@ -34,18 +34,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T04:27:50.783400Z"
+    "stage_updated_at": "2026-01-25T04:27:50.415215Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T04:27:50.783400Z",
+      "at": "2026-01-25T04:27:50.415215Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-25T04:27:50.783400Z",
-  "completed_at": "2026-01-25T04:27:50.783400Z",
+  "started_at": "2026-01-25T04:27:50.415215Z",
+  "completed_at": "2026-01-25T04:27:50.415215Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -61,7 +61,7 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-001",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-fail",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
