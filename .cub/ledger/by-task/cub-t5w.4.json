@@ -1,34 +1,34 @@
 {
   "version": 1,
-  "id": "cub-t5w.3",
-  "title": "Integrate tools with workbench",
+  "id": "cub-t5w.4",
+  "title": "Add cub tools configure command",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-t5w"
   },
   "task": {
-    "title": "Integrate tools with workbench",
-    "description": "Workbench's run-next should use the new tool execution system instead of hardcoded brave-search.\n\n**Implementation Steps:**\n1. Update `src/cub/cli/workbench.py` (if exists on feature/toolsmith):\n2. If workbench doesn't exist yet, document integration point\n3. Ensure ToolResult.output_markdown used for notes\n\n**Files:** `src/cub/cli/workbench.py`",
+    "title": "Add cub tools configure command",
+    "description": "CLI command to configure freedom dial and manage approvals.\n\n**Implementation Steps:**\n1. Add to `src/cub/cli/tools.py`:\n2. Show current freedom level and approved tools\n\n**Files:** `src/cub/cli/tools.py`",
     "type": "task",
     "priority": 2,
     "labels": [
-      "complexity:medium",
+      "api",
+      "complexity:low",
       "epic:cub-t5w",
-      "logic",
       "model:sonnet",
       "phase-5"
     ],
-    "created_at": "2026-01-25T04:16:42.019333Z",
-    "captured_at": "2026-01-25T12:03:47.448967Z"
+    "created_at": "2026-01-25T04:16:42.019339Z",
+    "captured_at": "2026-01-25T12:08:02.328390Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260125-065257",
-      "started_at": "2026-01-25T07:03:47.452605",
-      "completed_at": "2026-01-25T12:07:59.865406Z",
+      "started_at": "2026-01-25T07:08:02.332065",
+      "completed_at": "2026-01-25T12:21:15.366156Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,26 +41,32 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 252
+      "duration_seconds": 793
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-25T12:08:00.045833Z",
+    "completed_at": "2026-01-25T12:21:15.551696Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 252,
+    "total_duration_seconds": 793,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
     "commits": [
       {
-        "hash": "5af11c3b3ef223e1e2771c467b6421285f2bef83",
-        "message": "task(cub-t5w.3): Integrate tools with workbench",
+        "hash": "9b2c5388ad3d8452df5b3362530e506a7a05ed46",
+        "message": "task(cub-t5w.5): Add integration tests for tools ecosystem",
         "author": "",
-        "timestamp": "2026-01-25T12:07:12Z"
+        "timestamp": "2026-01-25T12:20:25Z"
+      },
+      {
+        "hash": "bdf86b8bd03a12b75344cfeff3a251adc607eac9",
+        "message": "task(cub-t5w.4): Add cub tools configure command",
+        "author": "",
+        "timestamp": "2026-01-25T12:15:26Z"
       }
     ],
     "approach": null,
@@ -82,24 +88,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T12:08:00.045833Z"
+    "stage_updated_at": "2026-01-25T12:21:15.551696Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T12:03:47.448967Z",
+      "at": "2026-01-25T12:08:02.328390Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T12:08:00.045833Z",
+      "at": "2026-01-25T12:21:15.551696Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-25T12:03:47.448967Z",
-  "completed_at": "2026-01-25T12:08:00.045833Z",
+  "started_at": "2026-01-25T12:08:02.328390Z",
+  "completed_at": "2026-01-25T12:21:15.551696Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -107,7 +113,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 252,
+  "duration_seconds": 793,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -115,14 +121,20 @@
   "files_changed": [],
   "commits": [
     {
-      "hash": "5af11c3b3ef223e1e2771c467b6421285f2bef83",
-      "message": "task(cub-t5w.3): Integrate tools with workbench",
+      "hash": "9b2c5388ad3d8452df5b3362530e506a7a05ed46",
+      "message": "task(cub-t5w.5): Add integration tests for tools ecosystem",
       "author": "",
-      "timestamp": "2026-01-25T12:07:12Z"
+      "timestamp": "2026-01-25T12:20:25Z"
+    },
+    {
+      "hash": "bdf86b8bd03a12b75344cfeff3a251adc607eac9",
+      "message": "task(cub-t5w.4): Add cub tools configure command",
+      "author": "",
+      "timestamp": "2026-01-25T12:15:26Z"
     }
   ],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-t5w.3",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-t5w.4",
   "epic_id": "cub-t5w",
   "verification_status": "pending",
   "verification_notes": [],
