@@ -531,10 +531,15 @@ class OrientStage:
 
         completed_at = datetime.now(timezone.utc)
 
-        # Parse the generated orientation for the result
-        # (For now, return minimal info - the file is the source of truth)
-        content = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
-        extracted = self._extract_from_spec(content)
+        # Parse the original spec for the result
+        # (The generated orientation.md has different section names)
+        spec_content = ""
+        if self.ctx.has_spec and self.ctx.spec_path and self.ctx.spec_path.exists():
+            try:
+                spec_content = self.ctx.read_spec_content()
+            except Exception:
+                pass
+        extracted = self._extract_from_spec(spec_content)
         goals = extracted.get("goals", [])
         questions = extracted.get("open_questions", [])
 

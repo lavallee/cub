@@ -947,12 +947,18 @@ class ArchitectStage:
 
         completed_at = datetime.now(timezone.utc)
 
-        # Parse the generated architecture for the result
-        content = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
-        extracted = self._extract_from_orientation(content)
+        # Parse the orientation.md for the result (not the generated architecture.md)
+        # The orientation.md has the Problem Statement section
+        orientation_content = ""
+        if self.ctx.orientation_path.exists():
+            try:
+                orientation_content = self.ctx.orientation_path.read_text(encoding="utf-8")
+            except OSError:
+                pass
+        extracted = self._extract_from_orientation(orientation_content)
 
         # Generate minimal result - the file is the source of truth
-        tech_stack = self._infer_tech_stack({"orientation_content": content}, extracted)
+        tech_stack = self._infer_tech_stack({"orientation_content": orientation_content}, extracted)
         components = self._generate_components(extracted)
         phases = self._generate_phases(extracted)
 
