@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "da34df093297a6f78b3ad773da239090a9188ba6",
+      "message": "task(cub-r4n.2): Implement RunSessionManager class",
+      "timestamp": "2026-01-24T16:24:00-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.2",
   "epic_id": "cub-r4n",

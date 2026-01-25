@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "307d2a75bf547e7a654f22055398343f0cb0c6af",
+      "message": "task(cub-r4n.5): Add tests for session lifecycle",
+      "timestamp": "2026-01-24T16:32:11-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.5",
   "epic_id": "cub-r4n",

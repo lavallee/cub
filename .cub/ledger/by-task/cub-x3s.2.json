@@ -55,7 +55,13 @@
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
-    "commits": [],
+    "commits": [
+      {
+        "hash": "85c88dd03de70897930c93806a2f5a515ee6dc6f",
+        "message": "task(cub-x3s.2): Enhance ledger search with index",
+        "timestamp": "2026-01-24T17:41:25-05:00"
+      }
+    ],
     "approach": null,
     "decisions": [],
     "lessons_learned": []
@@ -106,7 +112,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "85c88dd03de70897930c93806a2f5a515ee6dc6f",
+      "message": "task(cub-x3s.2): Enhance ledger search with index",
+      "timestamp": "2026-01-24T17:41:25-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.2",
   "epic_id": "cub-x3s",

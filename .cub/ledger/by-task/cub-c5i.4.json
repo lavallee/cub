@@ -55,7 +55,13 @@
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
-    "commits": [],
+    "commits": [
+      {
+        "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
+        "message": "task(cub-c5i.4): Add ledger gc stub command",
+        "timestamp": "2026-01-24T17:22:47-05:00"
+      }
+    ],
     "approach": null,
     "decisions": [],
     "lessons_learned": []
@@ -106,7 +112,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
+      "message": "task(cub-c5i.4): Add ledger gc stub command",
+      "timestamp": "2026-01-24T17:22:47-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.4",
   "epic_id": "cub-c5i",

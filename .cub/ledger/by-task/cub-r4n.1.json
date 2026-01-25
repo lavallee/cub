@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "2d13c538e69645c70bb80a53bd9f9c096e8dc7ad",
+      "message": "task(cub-r4n.1): Create session module and models",
+      "timestamp": "2026-01-24T16:19:31-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.1",
   "epic_id": "cub-r4n",

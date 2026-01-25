@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "ee370b70a4a58f92f6b9d6201c5218595b9b1db1",
+      "message": "task(cub-r4n.4): Update cub monitor for session reading",
+      "timestamp": "2026-01-24T16:30:44-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.4",
   "epic_id": "cub-r4n",

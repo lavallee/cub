@@ -55,7 +55,13 @@
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
-    "commits": [],
+    "commits": [
+      {
+        "hash": "a5b0b47e78c76dd4324c8f2bf5a0d2dd19bd7ad0",
+        "message": "task(cub-d8b.1): Create LedgerParser",
+        "timestamp": "2026-01-24T17:30:46-05:00"
+      }
+    ],
     "approach": null,
     "decisions": [],
     "lessons_learned": []
@@ -106,7 +112,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "a5b0b47e78c76dd4324c8f2bf5a0d2dd19bd7ad0",
+      "message": "task(cub-d8b.1): Create LedgerParser",
+      "timestamp": "2026-01-24T17:30:46-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-d8b.1",
   "epic_id": "cub-d8b",

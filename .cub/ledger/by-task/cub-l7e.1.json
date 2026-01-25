@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "c284ae6368ff04db8a846e45fea3c032e2fa6d64",
+      "message": "task(cub-l7e.1): Extend LedgerEntry model with new fields",
+      "timestamp": "2026-01-24T16:35:47-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-163241/tasks/cub-l7e.1",
   "epic_id": "cub-l7e",

@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "17a7cd2f931aef68b250503bab678241584db685",
+      "message": "task(cub-l7e.3): Create LedgerIntegration layer",
+      "timestamp": "2026-01-24T16:44:08-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-163241/tasks/cub-l7e.3",
   "epic_id": "cub-l7e",

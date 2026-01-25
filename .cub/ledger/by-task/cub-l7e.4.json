@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "ebd5e809ac53d8552cbbb8329ee9075d3e135e67",
+      "message": "task(cub-l7e.4): Wire LedgerIntegration into run loop",
+      "timestamp": "2026-01-24T16:53:57-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-163241/tasks/cub-l7e.4",
   "epic_id": "cub-l7e",

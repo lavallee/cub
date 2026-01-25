@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "00699a34c2b4e146eb9bfbb175c7ba7616c152fb",
+      "message": "task(cub-r4n.3): Wire session manager into cub run",
+      "timestamp": "2026-01-24T16:27:33-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.3",
   "epic_id": "cub-r4n",

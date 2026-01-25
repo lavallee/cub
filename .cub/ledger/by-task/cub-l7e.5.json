@@ -16,7 +16,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "2cdeac7debb0ac9211050d7715bc4de2a615a3c2",
+      "message": "docs: Add learnings for cub-l7e.5 to progress.txt",
+      "timestamp": "2026-01-24T16:55:29-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-163241/tasks/cub-l7e.5",
   "epic_id": "cub-l7e",

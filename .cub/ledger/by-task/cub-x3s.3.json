@@ -55,7 +55,13 @@
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
-    "commits": [],
+    "commits": [
+      {
+        "hash": "16df68b907850de2964f606580c496220a2bcbe9",
+        "message": "task(cub-x3s.3): Implement PATCH API endpoint",
+        "timestamp": "2026-01-24T17:45:18-05:00"
+      }
+    ],
     "approach": null,
     "decisions": [],
     "lessons_learned": []
@@ -106,7 +112,13 @@
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "16df68b907850de2964f606580c496220a2bcbe9",
+      "message": "task(cub-x3s.3): Implement PATCH API endpoint",
+      "timestamp": "2026-01-24T17:45:18-05:00"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x3s.3",
   "epic_id": "cub-x3s",
