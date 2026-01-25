@@ -9120,3 +9120,164 @@ Successfully added capability gap recognition API to enable agents to query for 
 8. **TYPE_CHECKING imports**: Used TYPE_CHECKING guard for ApprovalService import in execution.py to avoid circular dependencies while maintaining type safety.
 
 **Outcome:** Successfully implemented freedom dial with three autonomy levels. ExecutionService now checks approval requirements before execution. All tests pass, type checking clean, ready for integration with user configuration system.
+
+## Task cub-t5w.3: Integrate tools with workbench
+
+**Completed:** 2026-01-25
+
+**Changes:**
+- Updated `src/cub/core/workbench/run.py` to use ExecutionService and RegistryService
+- Replaced hardcoded brave-search execution with generic tool adapter system
+- Modified `src/cub/core/workbench/note.py` to use ToolResult.output_markdown
+- Added fallback support for legacy artifact formats in note generation
+
+**Key learnings:**
+- The new tool execution system uses ExecutionService as the main entry point
+- Registry must be checked before execution (tools must be adopted)
+- ToolResult includes output_markdown field for human-readable summaries
+- Async execution must be wrapped with asyncio.run() for sync callers
+- Adapter configs (http_config, cli_config, mcp_config) must be passed in params
+- The system is designed to support any tool type, not just web search
+
+**Dependencies resolved:**
+- Workbench now works with any adopted tool with web_search capability
+- No longer hardcoded to mcp-official:brave-search
+- Can leverage all tool adapters (HTTP, CLI, MCP stdio)
+
+
+## Task cub-t5w.4: Add cub tools configure command (2026-01-25)
+
+Successfully implemented the `cub tools configure` command for managing freedom dial and tool approvals.
+
+### Implementation Details
+
+1. **Command Structure**: Added new `configure` command to `src/cub/cli/tools.py`
+   - `--freedom/-f`: Set freedom level (low/medium/high)
+   - `--approve/-a`: Mark tool as safe for automatic execution
+   - `--revoke/-r`: Mark tool as risky (requires approval at medium)
+   - `--always-prompt`: Mark tool to always require approval
+   - `--show/-s`: Display current configuration
+   - Multiple operations can be combined in a single command
+
+2. **Integration**: Uses existing ApprovalService from `src/cub/core/tools/approvals.py`
+   - Service handles loading/saving to `~/.config/cub/tools/approvals.json`
+   - Atomic writes ensure configuration integrity
+   - Default freedom level is MEDIUM
+
+3. **User Experience**:
+   - Rich-formatted output with panels and tables
+   - Color-coded status indicators (green=safe, yellow=risky, red=always-prompt)
+   - Descriptive feedback for each operation
+   - Shows configuration file location
+   - Comprehensive help text with examples
+
+4. **Error Handling**:
+   - Validates freedom level input (low/medium/high only)
+   - Clear error messages for invalid inputs
+   - Debug mode support for troubleshooting
+
+### Key Learnings
+
+- **ApprovalService API**: The service provides clean methods for managing approvals:
+  - `set_freedom_level()`, `get_freedom_level()`
+  - `mark_safe()`, `mark_risky()`, `mark_always_prompt()`
+  - `get_safe_tools()`, `get_risky_tools()`, `get_always_prompt_tools()`
+  - `save()` - atomic write to disk
+  
+- **Freedom Level Logic**:
+  - LOW: Prompt before every tool execution
+  - MEDIUM: Prompt only for risky/unknown tools
+  - HIGH: Execute tools without prompting (except always_prompt_tools)
+
+- **Rich Console Patterns**: Followed existing patterns in tools.py:
+  - Panel for status/success/error messages
+  - Table for structured data display
+  - Text with styling for multi-colored output
+  - Consistent visual language across commands
+
+### Testing
+
+- Manual testing verified all operations work correctly
+- Tested setting freedom level, approving/revoking tools
+- Verified configuration persistence to JSON file
+- Tested error handling for invalid inputs
+- Confirmed command appears in `cub tools --help`
+- All linting checks passed (ruff)
+
+### Files Modified
+
+- `src/cub/cli/tools.py`: Added configure command (320 lines)
+  - Imported ApprovalService and FreedomLevel
+  - Implemented comprehensive configure command with all operations
+
+
+## Task cub-t5w.5: Add integration tests for tools ecosystem (2026-01-25)
+
+Successfully created comprehensive integration tests for the unified tool execution runtime.
+
+### Implementation Details
+
+1. **Test File**: Created `tests/test_tools_integration.py` with 645 lines
+   - 4 test classes covering different integration scenarios
+   - 9 test cases total
+   - All tests use `tmp_path` fixture for isolation
+   - Mock services for execution (no external dependencies)
+
+2. **Test Coverage**:
+
+   **TestFullFlowWithApprovals** (4 tests):
+   - LOW freedom level requires approval for all tools
+   - HIGH freedom level executes without approval
+   - MEDIUM freedom level allows safe tools
+   - MEDIUM freedom level blocks risky tools
+
+   **TestFullFlowWithRegistry** (1 test):
+   - Discover → adopt → execute flow
+   - Verifies registry integration works end-to-end
+
+   **TestFullFlowWithMetrics** (3 tests):
+   - Execute → learn flow with successful execution
+   - Execute → learn flow with failed execution
+   - Execute → learn flow with mixed success/failure results
+   - Verifies metrics aggregation and success rate calculation
+
+   **TestEndToEndFlow** (1 test):
+   - Complete flow: discover → adopt → approve → execute → learn
+   - All components integrated (registry, approvals, metrics)
+   - Verifies artifact saving
+   - Checks all state is properly maintained
+
+3. **Key Patterns Used**:
+   - `tmp_path` fixture for all file operations
+   - `AsyncMock` for mocking async adapter execution
+   - `patch` for mocking adapter retrieval
+   - Proper ToolResult construction with all required fields
+   - ToolConfig with HTTPConfig, AuthConfig, etc.
+   - Registry load/save verification
+   - Metrics aggregation verification
+
+### Key Learnings
+
+- **ToolConfig Structure**: ToolConfig doesn't have a `description` field, only `id` and `name`
+- **AuthConfig Requirements**: Both `required` and `env_var` fields are required (can't just pass `required=False`)
+- **Registry API**: Use `registry_service.load()` to get Registry object, then access `registry.tools` dict
+- **No list_tools()**: RegistryService doesn't have a `list_tools()` method - must use `load()` and access tools dict
+- **Import Organization**: HTTPConfig is in `cub.core.tools.models`, not `cub.core.tools.adapters.http`
+- **Registry is file-based**: `registry.py` is a single file, not a package directory
+
+### Testing Results
+
+- All 9 tests pass ✓
+- All linting checks pass (ruff) ✓
+- No type errors in test file ✓
+- Tests run in ~0.12 seconds (very fast)
+
+### Epic Status
+
+Epic **cub-t5w** (unified-tool-ecosystem #5: Lifecycle Integration) is now COMPLETE with all 5 tasks closed:
+1. ✓ cub-t5w.1: Add capability gap recognition API
+2. ✓ cub-t5w.2: Implement freedom dial configuration
+3. ✓ cub-t5w.3: Integrate tools with workbench
+4. ✓ cub-t5w.4: Add cub tools configure command
+5. ✓ cub-t5w.5: Add integration tests
+
