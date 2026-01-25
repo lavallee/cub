@@ -8907,3 +8907,113 @@ Implemented MCP stdio adapter for JSON-RPC over stdio communication with MCP ser
 - Clean separation of concerns (parsing, validation, building separate)
 - Ready for reuse in future adapters (HTTP, WebSocket, etc.)
 
+
+---
+
+## 2026-01-25 - cub-r2v.3: Add process management utilities
+
+### Task Completed
+Implemented safe process spawning with timeout and cleanup utilities for subprocess management.
+
+### Key Learnings
+
+**1. Process Group Management for Clean Termination**
+- Use `start_new_session=True` on Unix to create process groups for clean multi-process termination
+- On Windows, this parameter is silently ignored (not supported) - need fallback strategy
+- Pattern: `os.getpgid(process.pid)` + `os.killpg(pgid, signal.SIGKILL)` for Unix
+- Windows limitation: Direct `process.kill()` doesn't kill child processes automatically
+- For production Windows support, consider using `win32job` module or `psutil` library
+- Platform detection: Use `sys.platform == "win32"` for Windows vs Unix branching
+
+**2. Escalating Termination Strategy**
+- Always implement graceful → forceful shutdown sequence:
+  1. `process.terminate()` sends SIGTERM (graceful)
+  2. Wait up to 2 seconds with `asyncio.wait_for(process.wait(), timeout=2.0)`
+  3. If timeout, use `kill_process_group()` for SIGKILL (forceful)
+- This pattern prevents data loss while ensuring cleanup
+- Always use in `finally` blocks to guarantee execution
+- Handle `ProcessLookupError` gracefully (process may already be dead)
+
+**3. Timeout Handling with asyncio.wait_for()**
+- Wrap `process.communicate()` with `asyncio.wait_for(coro, timeout=timeout)`
+- On `asyncio.TimeoutError`, immediately kill process group before returning
+- Always await `process.wait()` after killing to ensure cleanup completes
+- Calculate duration before handling timeout to get accurate timing
+- Return structured error with `timed_out=True` flag for clear status
+
+**4. Environment Variable Merging**
+- Start with `os.environ.copy()` to preserve system environment
+- Update with tool-specific vars: `env.update(config.env_vars)`
+- Return `None` if no custom vars to use system default
+- Pattern used consistently across CLI, MCP, and process modules
+
+**5. Structured Result Pattern**
+- Use Pydantic models for process results (ProcessResult vs ToolResult)
+- Include: success flag, exit_code, stdout, stderr, duration_ms, timed_out, error
+- Keep stdout/stderr even on error for debugging
+- Set exit_code to None for timeout/kill scenarios (process didn't exit normally)
+- Error message should be human-readable and specific
+
+**6. Testing Process Management**
+- Use real subprocesses for integration tests (echo, python -c, sleep)
+- Mock `asyncio.create_subprocess_exec` for error scenarios
+- Test platform-specific behavior with `@pytest.mark.skipif(IS_WINDOWS, ...)`
+- Test timeout scenarios with very short timeouts (0.1s) to keep tests fast
+- Always clean up test processes in finally blocks to prevent hangs
+- Total: 23 tests with 1 platform-specific skip
+
+**7. Input Handling with subprocess**
+- Use `stdin=asyncio.subprocess.PIPE` to enable input
+- Pass bytes to `process.communicate(input_bytes)`, not the constructor
+- Encode strings with UTF-8: `input_data.encode("utf-8")`
+- Process handles stdin closing automatically after communicate
+
+**8. Error Handling Best Practices**
+- `FileNotFoundError`: Command not found (not in PATH)
+- `ProcessLookupError`: Process already terminated (safe to ignore)
+- `OSError`: Generic OS-level error (permissions, etc.)
+- `asyncio.TimeoutError`: Timeout exceeded
+- Always wrap unexpected errors and log with `logger.exception()`
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/tools/process.py` (~330 lines)
+  - run_process(): Main async execution function
+  - kill_process_group(): Platform-aware force kill
+  - ensure_process_terminated(): Graceful shutdown with escalation
+  - wait_for_process(): Timeout-aware wait helper
+  - is_process_running(): Status check helper
+  - ProcessResult model for structured output
+  - Platform detection constants (IS_WINDOWS, IS_UNIX)
+
+- `tests/test_tools_process.py` (~340 lines)
+  - 23 comprehensive tests
+  - Platform-specific test skipping
+  - Real subprocess integration tests
+  - Mock-based unit tests for edge cases
+
+### Quality Metrics
+
+- Tests: 23/23 passing (396 total tools tests passing, 1 skipped)
+- Type Checking: mypy passes on entire tools module (13 files)
+- Linting: ruff passes with no errors (fixed unused import)
+- Test Coverage: Success cases, error cases, timeouts, platform differences
+
+### Future Improvements
+
+**Windows Process Group Support:**
+- Consider adding `win32job` support for true process group management on Windows
+- Alternative: Use `psutil` library for cross-platform child process enumeration/kill
+- Document Windows limitation in module docstring
+
+**Signal Handling:**
+- Could add configurable signal escalation (SIGTERM → SIGKILL)
+- Allow custom termination timeout values
+- Support for custom signal handlers
+
+**Process Monitoring:**
+- Add optional callback for process output streaming
+- Support for real-time stdout/stderr monitoring
+- Process resource usage tracking (CPU, memory)
+
