@@ -23,8 +23,56 @@
     "captured_at": "2026-01-25T11:57:54.141826Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260125-065257",
+      "started_at": "2026-01-25T06:57:54.145410",
+      "completed_at": "2026-01-25T12:03:44.978237Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 350
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T12:03:45.159799Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 350,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "ce8c39356d7301e573bca97f310de7909d495c50",
+        "message": "docs: add learnings for task cub-t5w.2",
+        "author": "",
+        "timestamp": "2026-01-25T12:03:26Z"
+      },
+      {
+        "hash": "b60162b3f193fb260bd79b5c3fe3079931e02812",
+        "message": "task(cub-t5w.2): Implement freedom dial configuration",
+        "author": "",
+        "timestamp": "2026-01-25T12:03:06Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +88,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T11:57:54.141826Z"
+    "stage_updated_at": "2026-01-25T12:03:45.159799Z"
   },
   "state_history": [
     {
@@ -48,10 +96,16 @@
       "at": "2026-01-25T11:57:54.141826Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T12:03:45.159799Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-25T11:57:54.141826Z",
-  "completed_at": "2026-01-25T11:57:54.141826Z",
+  "completed_at": "2026-01-25T12:03:45.159799Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -59,20 +113,33 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "duration_seconds": 350,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "ce8c39356d7301e573bca97f310de7909d495c50",
+      "message": "docs: add learnings for task cub-t5w.2",
+      "author": "",
+      "timestamp": "2026-01-25T12:03:26Z"
+    },
+    {
+      "hash": "b60162b3f193fb260bd79b5c3fe3079931e02812",
+      "message": "task(cub-t5w.2): Implement freedom dial configuration",
+      "author": "",
+      "timestamp": "2026-01-25T12:03:06Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-t5w.2",
   "epic_id": "cub-t5w",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

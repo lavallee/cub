@@ -17,12 +17,13 @@
     "captured_at": "2026-01-25T11:57:51.855305Z"
   },
   "task_ids": [
-    "cub-t5w.1"
+    "cub-t5w.1",
+    "cub-t5w.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -30,12 +31,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 293,
-    "avg_duration_seconds": 293,
+    "total_duration_seconds": 643,
+    "avg_duration_seconds": 321,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T11:57:51.868186Z"
+    "stage_updated_at": "2026-01-25T12:03:45.176408Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T11:52:57.704525Z",
-  "completed_at": "2026-01-25T11:57:51.852490Z",
-  "updated_at": "2026-01-25T11:57:51.868189Z",
+  "completed_at": "2026-01-25T12:03:45.159799Z",
+  "updated_at": "2026-01-25T12:03:45.176409Z",
   "first_commit": {
     "hash": "71ff176fcd3a6a6ee339d5e4901b308fd2691ff9",
     "message": "task(cub-t5w.1): Add capability gap recognition API",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-25T11:57:21Z"
   },
   "last_commit": {
-    "hash": "71ff176fcd3a6a6ee339d5e4901b308fd2691ff9",
-    "message": "task(cub-t5w.1): Add capability gap recognition API",
+    "hash": "ce8c39356d7301e573bca97f310de7909d495c50",
+    "message": "docs: add learnings for task cub-t5w.2",
     "author": "",
-    "timestamp": "2026-01-25T11:57:21Z"
+    "timestamp": "2026-01-25T12:03:26Z"
   },
   "drift": {
     "additions": [],

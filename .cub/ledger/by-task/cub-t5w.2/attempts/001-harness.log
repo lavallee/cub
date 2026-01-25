@@ -1,0 +1,68 @@
+I'll implement the freedom dial configuration for controlling autonomy level in tool execution. Let me start by understanding the current codebase structure and then implement the required components.Let me search for existing models and understand the current structure:Now let me check the config models to understand the current structure for user configuration:Now let me examine the existing registry and adoption code to understand the context better:Good! Now I have a clear understanding of the codebase. Let me implement the freedom dial configuration as specified in the task. I'll need to:
+
+1. Add `FreedomLevel` enum to models
+2. Add `ToolApprovals` model to models
+3. Create `src/cub/core/tools/approvals.py` with approval checking logic
+4. Update `ExecutionService` to check approval based on freedom level
+
+Let me start by implementing the changes:Now let me implement the changes. I'll start by adding the FreedomLevel enum and ToolApprovals model to models.py:Now I'll add the ToolApprovals model. Let me find a good place to add it after the existing models:Let me add the ToolApprovals model at the end of the file:Good! Now I need to update the module docstring to include the new models. Let me also check the __init__.py to see what's exported:Let me update the docstring to include the new models:Now let me create the `approvals.py` module:Now I need to update the ExecutionService to integrate approval checking. Let me read the current execute method:Now let me update the ExecutionService to add approval checking. I'll need to:
+
+1. Add `approval_service` parameter to `__init__`
+2. Add approval check in the `execute` method
+3. Update the docstringsNow let me add a new exception for approval requirements:Let me add a new exception for approval requirement:Now let me update the ExecutionService to integrate approval checking:Now let me update the execute method to add the approval check:Now let me update the execute method to add the approval check:Now let me update the docstring for the execute method to include the new exception:Now let me update the class docstring as well:Great! Now let me run the type checker and tests to ensure everything is working:The error is unrelated to our changes (it's in a different module). Let me run mypy with --no-error-summary to check just our files:The yaml error is from an unrelated module. Let me check if mypy passes on the specific files by running them in isolation:I found a bug in my logic! At MEDIUM freedom level, unknown tools (not in safe_tools) should require approval. Let me fix the logic:I see the issue. The logic at line 1023 is redundant: `tool_id in self.risky_tools or tool_id not in self.safe_tools` - this means "if risky OR not safe", which is essentially "if not safe" since any tool not in safe_tools will be caught by the second part. This is actually correct behavior for MEDIUM - only safe tools don't require approval. But let me reconsider the design. Looking at the task description again, it says:
+
+- LOW: Prompt before every tool execution
+- MEDIUM: Prompt only for destructive/risky operations
+- HIGH: Execute tools without prompting
+
+So for MEDIUM, we should only prompt for risky tools, not for unknown tools. Let me fix this:Now let me also update the docstring to reflect this logic:Now let me test again:Excellent! Now let me test the ApprovalService:Perfect! Now let me test the ExecutionService integration. First, let me check if there are existing tests:Let me run the existing tests to make sure I didn't break anything:Great! Now let me run the execution tests:Perfect! All tests pass. Now let me run all the tools-related tests to make sure nothing is broken:Perfect! All tests pass. Now let me run mypy on the whole tools module:Let me see what the error is:The error is in the branches module, not in our tools code. Let me verify our code passes type checking:The yaml error is from branches module which is unrelated to our changes. Let me check if the issue existed before our changes:Excellent! Now let me run linting to make sure the code follows the style guide:Let me fix the line length issue:Perfect! Now let me run the full test suite one more time to ensure everything works:Perfect! All tests pass. Now let me close the task and commit the changes:Now let me append learnings to progress.txt:Perfect! Let me check if there are any more open tasks to work on:The task is complete! Let me create a summary:
+
+## Summary
+
+I successfully implemented the freedom dial configuration for tool execution autonomy control. Here's what was accomplished:
+
+### Components Implemented
+
+1. **FreedomLevel Enum** (`src/cub/core/tools/models.py`)
+   - Three levels: LOW, MEDIUM, HIGH
+   - Controls autonomy level for tool execution
+
+2. **ToolApprovals Model** (`src/cub/core/tools/models.py`)
+   - Manages approval requirements based on freedom level
+   - Tracks risky_tools, safe_tools, and always_prompt_tools
+   - Implements `requires_approval()` logic:
+     - LOW: All tools require approval
+     - MEDIUM: Only risky tools require approval
+     - HIGH: Only always_prompt tools require approval
+
+3. **ApprovalService** (`src/cub/core/tools/approvals.py`)
+   - Service layer for managing approval configurations
+   - Loads/saves from `~/.config/cub/tools/approvals.json`
+   - Provides methods to mark tools as safe/risky/always_prompt
+   - Uses atomic writes for safe persistence
+
+4. **ToolApprovalRequiredError** (`src/cub/core/tools/exceptions.py`)
+   - New exception for signaling approval requirements
+   - Includes tool_id, action, and descriptive message
+
+5. **ExecutionService Integration** (`src/cub/core/tools/execution.py`)
+   - Added optional `approval_service` parameter
+   - Checks approval requirements before tool execution
+   - Raises `ToolApprovalRequiredError` when approval needed
+
+### Testing & Quality
+
+- ✅ All existing tests pass (559 tests)
+- ✅ Type checking clean (mypy)
+- ✅ Linting clean (ruff)
+- ✅ Manual testing confirms correct behavior at all freedom levels
+- ✅ Atomic writes prevent configuration corruption
+
+### Design Decisions
+
+- **MEDIUM as default**: Balances safety and automation by only requiring approval for explicitly risky tools
+- **Model-first**: Business logic in Pydantic models, service as thin storage layer
+- **Optional integration**: approval_service is opt-in (defaults to None)
+- **Exception-based flow**: Follows established codebase patterns for error signaling
+
+The implementation is ready for integration with the user configuration system and workbench.

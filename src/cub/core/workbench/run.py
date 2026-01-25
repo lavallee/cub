@@ -11,6 +11,7 @@ This is intentionally narrow to support experimentation.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,7 +19,9 @@ from typing import Any
 
 import frontmatter
 
-from cub.core.toolsmith.execution import ToolExecutionError, run_tool
+from cub.core.tools.exceptions import ExecutionError, ToolNotAdoptedError
+from cub.core.tools.execution import ExecutionService
+from cub.core.tools.registry import RegistryService
 
 
 @dataclass(frozen=True)
@@ -39,9 +42,15 @@ def _save_session(path: Path, post: frontmatter.Post) -> None:
 def run_next_move(*, session_path: Path) -> RunNextResult:
     """Run the session's configured next_move.
 
-    Currently supports only next_move.kind == 'research' with tool_id
-    mcp-official:brave-search.
+    Uses the new unified tool execution system with ExecutionService
+    and RegistryService. Supports any adopted tool with search capability.
     """
+    # Run async execution in a synchronous context
+    return asyncio.run(_run_next_move_async(session_path=session_path))
+
+
+async def _run_next_move_async(*, session_path: Path) -> RunNextResult:
+    """Async implementation of run_next_move."""
     post = _load_session(session_path)
     meta: dict[str, Any] = post.metadata if isinstance(post.metadata, dict) else {}
 
@@ -50,20 +59,32 @@ def run_next_move(*, session_path: Path) -> RunNextResult:
         raise ValueError("session next_move must be a dict")
 
     tool_id = next_move.get("tool_id")
+
+    # Initialize registry and execution services
+    registry_service = RegistryService()
+    execution_service = ExecutionService(registry_service=registry_service)
+
     if not tool_id or not isinstance(tool_id, str):
         # Fallback: if the session didn't have a tool selected yet, try to use an
-        # adopted tool matching the expected default.
-        from cub.core.toolsmith.adoption import AdoptionStore
-
-        adopted_ids = {a.tool_id for a in AdoptionStore.default().list_all()}
-        if "mcp-official:brave-search" in adopted_ids:
-            tool_id = "mcp-official:brave-search"
+        # adopted tool with search capability.
+        search_tools = registry_service.find_by_capability("web_search")
+        if search_tools:
+            tool_id = search_tools[0].id
             next_move["tool_id"] = tool_id
         else:
             raise ValueError(
-                "next_move.tool_id is missing; adopt a tool (e.g., mcp-official:brave-search) "
-                "or edit the session"
+                "next_move.tool_id is missing and no tools with 'web_search' capability "
+                "are adopted. Adopt a search tool first (e.g., brave-search)."
             )
+
+    # Verify tool is adopted
+    tool_config = registry_service.load().get(tool_id)
+    if tool_config is None:
+        raise ToolNotAdoptedError(
+            tool_id,
+            f"Tool '{tool_id}' must be adopted before use. "
+            f"Use 'cub tools adopt {tool_id}' to adopt this tool.",
+        )
 
     kind = next_move.get("kind")
     if kind != "research":
@@ -85,17 +106,49 @@ def run_next_move(*, session_path: Path) -> RunNextResult:
         if not q:
             continue
         try:
-            r = run_tool(tool_id, params={"query": q, "count": count})
-            artifact_paths.append(r.artifact_path)
-            results.append(
-                {
-                    "query": q,
-                    "artifact": str(r.artifact_path),
-                    "summary": r.summary,
-                    "ok": True,
-                }
+            # Build params with config from registry
+            params = {"query": q, "count": count}
+
+            # Add adapter-specific config to params
+            if tool_config.http_config:
+                params["_http_config"] = tool_config.http_config
+            elif tool_config.cli_config:
+                params["_cli_config"] = tool_config.cli_config
+            elif tool_config.mcp_config:
+                params["_mcp_config"] = tool_config.mcp_config
+
+            # Execute the tool using the new system
+            r = await execution_service.execute(
+                tool_id=tool_id,
+                action="search",
+                adapter_type=tool_config.adapter_type.value,
+                params=params,
+                timeout=30.0,
+                save_artifact=True,
             )
-        except ToolExecutionError as e:
+
+            if r.success and r.artifact_path:
+                artifact_paths.append(Path(r.artifact_path))
+                results.append(
+                    {
+                        "query": q,
+                        "artifact": r.artifact_path,
+                        "summary": r.output_markdown or "Tool executed successfully",
+                        "ok": True,
+                    }
+                )
+            else:
+                # Tool execution failed
+                results.append(
+                    {
+                        "query": q,
+                        "ok": False,
+                        "error": r.error or "Tool execution failed",
+                    }
+                )
+                break
+
+        except (ExecutionError, ToolNotAdoptedError) as e:
             # Record the failure and stop further queries to avoid hammering
             # rate-limited APIs.
             results.append({"query": q, "ok": False, "error": str(e)})
