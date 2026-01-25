@@ -167,7 +167,8 @@ These commands have been migrated to Python and execute directly without bash:
 - **`init`** - Initialize cub configuration (global or project-level)
 - **`monitor`** - Live dashboard for task execution monitoring
 - **`doctor`** - Diagnose and fix configuration issues
-- **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`)
+- **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`, `update`, `export`, `gc`)
+- **`review`** - Assess task implementations against requirements
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
@@ -176,6 +177,7 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `monitor.py` - Live dashboard via Rich
 - `doctor.py` - Configuration diagnostics
 - `ledger.py` - Task completion ledger
+- `review.py` - Task/epic/plan assessment and deep analysis
 
 ### Delegated Commands (Bash-Implemented)
 
@@ -535,7 +537,7 @@ The dashboard consists of four layers:
    - Incremental sync via checksums to detect source changes
 
 2. **Sync Layer** (`cub.core.dashboard.sync`)
-   - Parsers for each data source (SpecParser, PlanParser, TaskParser, ChangelogParser)
+   - Parsers for each data source (SpecParser, PlanParser, TaskParser, LedgerParser, ChangelogParser)
    - RelationshipResolver to map explicit markers (spec_id, plan_id, epic_id)
    - SyncOrchestrator coordinates parsing and writing
    - EntityWriter handles database transactions
@@ -555,7 +557,7 @@ The dashboard consists of four layers:
 
 1. **Sync Phase** - Parse entities from multiple sources
    - Specs from `specs/**/*.md` using frontmatter markers
-   - Plans from `.cub/sessions/*/plan.jsonl`
+   - Plans from `plans/*/plan.jsonl`
    - Tasks from beads or JSON backend
    - Ledger entries from `.cub/ledger/`
    - Release info from `CHANGELOG.md`
