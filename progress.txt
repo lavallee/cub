@@ -8738,3 +8738,71 @@ The adopt → execute flow is now complete and ready for CLI integration.
 
 **Outcome:** Successfully implemented cub tools stats command with color-coded success rates and relative timestamps. All feedback loops passing. Command provides clear visualization of tool effectiveness metrics for the learning loop.
 
+
+## Task cub-p9q.3: Integrate metrics into ExecutionService (2026-01-25)
+
+Successfully integrated MetricsStore into ExecutionService for automatic metrics recording.
+
+**Implementation:**
+- Updated ExecutionService.__init__ to accept optional MetricsStore parameter
+- Modified execute() to call metrics_store.record_execution(result) after execution
+- Added get_metrics(tool_id) method that returns ToolMetrics or None
+- Added get_degraded_tools(threshold) method that filters tools by success rate
+- Both methods handle the case where metrics_store is None gracefully
+
+**Key Design Decisions:**
+1. Made metrics_store optional to maintain backward compatibility
+2. Automatic recording happens in execute() - no manual intervention needed
+3. get_degraded_tools uses the existing MetricsStore.filter() method with a lambda
+4. All new methods gracefully handle missing metrics_store by returning None or []
+
+**Testing:**
+- Added 8 comprehensive test cases covering all new functionality
+- Tests verify metrics recording, retrieval, and threshold filtering
+- Tests ensure backward compatibility when metrics_store is not configured
+- All 44 execution tests pass
+- Type checking and linting pass without issues
+
+**Files Modified:**
+- src/cub/core/tools/execution.py (added metrics integration)
+- tests/test_tools_execution.py (added TestExecutionServiceMetrics class)
+
+**Learning:**
+The metrics integration was straightforward because MetricsStore.record_execution() 
+already handles all the complexity of loading, updating, and saving metrics atomically.
+The ExecutionService just needs to call it with the ToolResult.
+
+
+## Task: cub-p9q.5 - Add tests for metrics (2026-01-25)
+
+### What was done:
+- Created comprehensive test suite for ToolMetrics model in tests/test_tools_metrics.py
+- Added 35 tests covering:
+  - Basic metrics creation and initialization
+  - Success/failure rate calculations
+  - Metrics recording functionality (record_execution method)
+  - Timing statistics (min, max, avg duration tracking)
+  - Error type tracking with multiple error types
+  - Timestamp handling (first_used_at, last_used_at)
+  - Timestamp normalization (naive datetimes, ISO strings, None values)
+  - Field validation (non-negative values, required fields)
+  - Serialization (to dict and JSON-compatible dict)
+  - Degradation detection scenarios:
+    * Success rate drops over time
+    * Timing degradation (slower executions)
+    * New error patterns emerging
+    * Increasing error frequency
+    * Recovery after degradation
+    * Stable performance baseline
+
+### Key learnings:
+- The ToolMetrics model has comprehensive validation and tracking capabilities
+- Timestamp normalization handles naive datetimes, ISO strings, and timezone-aware datetimes
+- Degradation detection is a key use case - tests verify metrics can track performance degradation
+- Type annotations required for all test methods (-> None) to pass mypy checks
+- For Pydantic model validators that accept strings but type hints show datetime, use type: ignore[arg-type]
+
+### Files modified:
+- tests/test_tools_metrics.py (created)
+
+### Tests: All 35 tests pass, mypy clean, ruff clean
