@@ -9017,3 +9017,30 @@ Implemented safe process spawning with timeout and cleanup utilities for subproc
 - Support for real-time stdout/stderr monitoring
 - Process resource usage tracking (CPU, memory)
 
+
+## Task cub-r2v.4: Add tests for MCP adapter (2026-01-25)
+
+**Status:** ✅ Complete
+
+**What was accomplished:**
+- Discovered comprehensive test coverage already existed (52 JSON-RPC tests + 31 MCP adapter tests)
+- Created real subprocess integration tests (9 tests) using actual process communication
+- Built a mock MCP server fixture implementing JSON-RPC 2.0 protocol
+- Mock server supports: initialize, tools/list, tools/call with proper error handling
+- All 92 tests pass with type checking and linting
+
+**Key learnings:**
+1. The codebase uses separate unit tests (with mocks) and integration tests (with real subprocesses)
+2. Mock MCP server fixture at tests/fixtures/mock_mcp_server.py can be reused for other tests
+3. Integration tests are valuable for testing actual subprocess lifecycle and I/O
+4. Comprehensive test structure: TestClass for init, TestClassExecute for main logic, TestClassHelpers for utilities
+5. The existing JSON-RPC helpers (src/cub/core/tools/jsonrpc.py) are thoroughly tested and production-ready
+
+**Files added:**
+- tests/test_tools_mcp_integration.py (9 integration tests with real subprocess)
+- tests/fixtures/mock_mcp_server.py (executable JSON-RPC 2.0 server for testing)
+
+**Test coverage summary:**
+- JSON-RPC protocol: 52 tests (request/response/validation/error handling)
+- MCP adapter unit: 31 tests (mocked subprocess communication)
+- MCP adapter integration: 9 tests (real subprocess with mock server)
