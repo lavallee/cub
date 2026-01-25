@@ -8538,3 +8538,64 @@ Successfully integrated RegistryService with ExecutionService to complete the ad
 - tests/test_tools_execution_registry.py (new)
 
 The adopt → execute flow is now complete and ready for CLI integration.
+
+## 2026-01-25: Enhanced toolsmith adopt command (cub-m3k.6)
+
+### What was implemented
+- Enhanced `cub toolsmith adopt` to create registry entries, not just adoption intent
+- Added `--adapter` and `--capabilities` options for non-interactive use
+- Bridged catalog → registry flow via RegistryService integration
+- Maintained backward compatibility with AdoptionStore for tracking
+
+### Key learnings
+1. **Two-level tracking**: Adoption intent (lightweight) + Registry entry (executable)
+   - AdoptionStore records "we want to use this" (.cub/toolsmith/adopted.json)
+   - RegistryService records "we can execute this" (.cub/tools/registry.json)
+
+2. **Catalog metadata extraction**: Tools in catalog provide name, tags, source
+   - Tags → capabilities mapping
+   - Source → adopted_from tracking
+   - Future: Could auto-detect adapter type from catalog metadata
+
+3. **Placeholder adapter configs**: Current implementation uses minimal configs
+   - Real implementation would gather these interactively or from catalog
+   - HTTP: needs base_url + endpoints
+   - CLI: needs command template
+   - MCP: needs stdio command + args
+
+4. **Version hashing**: RegistryService auto-generates version_hash on adoption
+   - Enables re-approval detection when tools change
+   - SHA256 of (name, source, adapter_type, adapter_config)
+
+5. **User experience**: Progressive disclosure of required information
+   - Helpful error messages guide users through configuration
+   - Rich tables display registry entry details
+   - Next steps guide users to completion
+
+### Architecture insights
+- Clean separation: toolsmith (discovery) vs tools (execution)
+- RegistryService bridges the gap with adopt() method
+- Both stores use atomic writes for safety
+- Registry has user-level + project-level with merge semantics
+
+
+## 2026-01-25 - Task cub-m3k.7: Add tests for registry
+
+**Finding:** Comprehensive registry tests already existed when task was assigned.
+
+**Details:**
+- Tests organized into three well-structured files instead of one monolithic file:
+  - `test_tools_registry_models.py` - 19 tests for ToolConfig and Registry models
+  - `test_tools_registry_store.py` - 29 tests for load/save/merge operations
+  - `test_tools_registry_service.py` - 28 tests for business logic
+- Total of 76 tests providing 98% code coverage
+- All task requirements already met:
+  - tmp_path fixtures used for all file operations
+  - Comprehensive merge logic tests (project overrides user)
+  - Missing file and directory handling tests
+  - Malformed JSON and schema validation tests
+  - Integration tests for real-world workflows
+
+**Lesson:** Always search existing codebase thoroughly before assuming implementation is missing. The task description may be outdated if work was already completed in a previous iteration or by another process.
+
+**Outcome:** Task closed as complete. No changes needed.
