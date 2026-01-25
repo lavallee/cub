@@ -24,7 +24,9 @@ from cub.core.tools import (
     ExecutionService,
     list_adapters,
 )
+from cub.core.tools.approvals import ApprovalService
 from cub.core.tools.metrics import MetricsStore
+from cub.core.tools.models import FreedomLevel
 
 console = Console()
 app = typer.Typer(
@@ -718,6 +720,324 @@ def stats(
 
     except Exception as e:
         handle_error(e, "stats")
+        raise typer.Exit(1)
+
+
+@app.command()
+def configure(
+    freedom: Annotated[
+        str | None,
+        typer.Option(
+            "--freedom",
+            "-f",
+            help="Set freedom level (low, medium, high)",
+        ),
+    ] = None,
+    approve: Annotated[
+        str | None,
+        typer.Option(
+            "--approve",
+            "-a",
+            help="Mark a tool as safe for automatic execution",
+        ),
+    ] = None,
+    revoke: Annotated[
+        str | None,
+        typer.Option(
+            "--revoke",
+            "-r",
+            help="Mark a tool as risky (requires approval)",
+        ),
+    ] = None,
+    always_prompt: Annotated[
+        str | None,
+        typer.Option(
+            "--always-prompt",
+            help="Mark a tool to always require approval",
+        ),
+    ] = None,
+    show: Annotated[
+        bool,
+        typer.Option(
+            "--show",
+            "-s",
+            help="Show current configuration",
+        ),
+    ] = False,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable debug mode with full tracebacks and verbose logging",
+        ),
+    ] = False,
+) -> None:
+    """
+    Configure freedom dial and manage tool approvals.
+
+    The freedom dial controls how autonomous the system is when executing tools:
+    - LOW: Prompt before every tool execution (maximum safety)
+    - MEDIUM: Prompt only for risky/unknown tools (balanced)
+    - HIGH: Execute tools without prompting (maximum autonomy)
+
+    Tools can be marked as:
+    - Safe: Always allowed at MEDIUM+ freedom level
+    - Risky: Requires approval at MEDIUM (but allowed at HIGH)
+    - Always prompt: Always requires approval regardless of freedom level
+
+    Examples:
+        cub tools configure --show
+        cub tools configure --freedom high
+        cub tools configure --approve grep
+        cub tools configure --revoke kubectl
+        cub tools configure --always-prompt rm
+        cub tools configure --freedom medium --approve grep --revoke kubectl
+    """
+    setup_logging(debug)
+
+    try:
+        service = ApprovalService.user()
+
+        # Track if any changes were made
+        changes_made = False
+
+        # Set freedom level if provided
+        if freedom:
+            freedom_lower = freedom.lower()
+            try:
+                # Validate freedom level
+                if freedom_lower == "low":
+                    level = FreedomLevel.LOW
+                elif freedom_lower == "medium":
+                    level = FreedomLevel.MEDIUM
+                elif freedom_lower == "high":
+                    level = FreedomLevel.HIGH
+                else:
+                    console.print()
+                    console.print(
+                        Panel(
+                            Text(
+                                f"Invalid freedom level: {freedom}\n\n"
+                                "Valid levels: low, medium, high",
+                                style="red",
+                            ),
+                            title="[bold red]Error[/bold red]",
+                            border_style="red",
+                            expand=False,
+                        )
+                    )
+                    console.print()
+                    raise typer.Exit(1)
+
+                service.set_freedom_level(level)
+                changes_made = True
+
+                console.print()
+                success_text = Text()
+                success_text.append("Freedom level set to ", style="dim")
+                success_text.append(freedom_lower.upper(), style="bold cyan")
+                console.print(
+                    Panel(
+                        success_text,
+                        title="[bold green]✓ Updated[/bold green]",
+                        border_style="green",
+                        expand=False,
+                    )
+                )
+                console.print()
+
+            except ValueError as e:
+                console.print()
+                console.print(
+                    Panel(
+                        Text(f"Invalid freedom level: {e}", style="red"),
+                        title="[bold red]Error[/bold red]",
+                        border_style="red",
+                        expand=False,
+                    )
+                )
+                console.print()
+                raise typer.Exit(1)
+
+        # Approve a tool
+        if approve:
+            service.mark_safe(approve)
+            changes_made = True
+
+            console.print()
+            success_text = Text()
+            success_text.append("Tool ", style="dim")
+            success_text.append(approve, style="bold cyan")
+            success_text.append(" marked as safe", style="dim")
+            console.print(
+                Panel(
+                    success_text,
+                    title="[bold green]✓ Approved[/bold green]",
+                    border_style="green",
+                    expand=False,
+                )
+            )
+            console.print()
+
+        # Revoke approval (mark as risky)
+        if revoke:
+            service.mark_risky(revoke)
+            changes_made = True
+
+            console.print()
+            success_text = Text()
+            success_text.append("Tool ", style="dim")
+            success_text.append(revoke, style="bold cyan")
+            success_text.append(" marked as risky", style="dim")
+            console.print(
+                Panel(
+                    success_text,
+                    title="[bold yellow]⚠ Revoked[/bold yellow]",
+                    border_style="yellow",
+                    expand=False,
+                )
+            )
+            console.print()
+
+        # Mark as always prompt
+        if always_prompt:
+            service.mark_always_prompt(always_prompt)
+            changes_made = True
+
+            console.print()
+            success_text = Text()
+            success_text.append("Tool ", style="dim")
+            success_text.append(always_prompt, style="bold cyan")
+            success_text.append(" will always require approval", style="dim")
+            console.print(
+                Panel(
+                    success_text,
+                    title="[bold red]⚠ Always Prompt[/bold red]",
+                    border_style="red",
+                    expand=False,
+                )
+            )
+            console.print()
+
+        # Save changes if any were made
+        if changes_made:
+            saved_path = service.save()
+            console.print(f"[dim]Configuration saved to: {saved_path}[/dim]")
+            console.print()
+
+        # Show current configuration if requested or if no changes were made
+        if show or not changes_made:
+            current_level = service.get_freedom_level()
+            safe_tools = service.get_safe_tools()
+            risky_tools = service.get_risky_tools()
+            always_prompt_tools = service.get_always_prompt_tools()
+
+            console.print()
+
+            # Freedom level panel
+            freedom_text = Text()
+            freedom_text.append("Current freedom level: ", style="dim")
+            freedom_text.append(current_level.value.upper(), style="bold cyan")
+            freedom_text.append("\n\n", style="dim")
+
+            # Add description based on level
+            if current_level == FreedomLevel.LOW:
+                freedom_text.append(
+                    "• Prompt before every tool execution\n",
+                    style="yellow",
+                )
+                freedom_text.append("• Maximum safety\n", style="yellow")
+            elif current_level == FreedomLevel.MEDIUM:
+                freedom_text.append(
+                    "• Prompt only for risky/unknown tools\n",
+                    style="yellow",
+                )
+                freedom_text.append("• Balanced approach\n", style="yellow")
+            else:  # HIGH
+                freedom_text.append(
+                    "• Execute tools without prompting\n",
+                    style="yellow",
+                )
+                freedom_text.append("• Maximum autonomy\n", style="yellow")
+
+            console.print(
+                Panel(
+                    freedom_text,
+                    title="[bold cyan]Freedom Dial[/bold cyan]",
+                    border_style="cyan",
+                    expand=False,
+                )
+            )
+            console.print()
+
+            # Approved tools table
+            if safe_tools or risky_tools or always_prompt_tools:
+                table = Table(
+                    title="Tool Approvals",
+                    border_style="cyan",
+                    show_header=True,
+                )
+                table.add_column("Tool ID", style="cyan", no_wrap=True)
+                table.add_column("Status", style="white")
+                table.add_column("Description", style="dim")
+
+                # Add safe tools
+                for tool_id in sorted(safe_tools):
+                    table.add_row(
+                        tool_id,
+                        Text("Safe", style="bold green"),
+                        "Always allowed at MEDIUM+",
+                    )
+
+                # Add risky tools
+                for tool_id in sorted(risky_tools):
+                    table.add_row(
+                        tool_id,
+                        Text("Risky", style="bold yellow"),
+                        "Requires approval at MEDIUM",
+                    )
+
+                # Add always prompt tools
+                for tool_id in sorted(always_prompt_tools):
+                    table.add_row(
+                        tool_id,
+                        Text("Always Prompt", style="bold red"),
+                        "Always requires approval",
+                    )
+
+                console.print(table)
+                console.print()
+
+                # Summary
+                summary = Text()
+                summary.append("Total: ", style="dim")
+                total = len(safe_tools) + len(risky_tools) + len(always_prompt_tools)
+                summary.append(str(total), style="bold cyan")
+                summary.append(" tools (", style="dim")
+                summary.append(f"{len(safe_tools)} safe", style="green")
+                summary.append(", ", style="dim")
+                summary.append(f"{len(risky_tools)} risky", style="yellow")
+                summary.append(", ", style="dim")
+                summary.append(f"{len(always_prompt_tools)} always prompt", style="red")
+                summary.append(")", style="dim")
+                console.print(summary)
+                console.print()
+            else:
+                console.print(
+                    Panel(
+                        Text("No tool approvals configured", style="yellow"),
+                        border_style="yellow",
+                        expand=False,
+                    )
+                )
+                console.print()
+
+            # Show config file location
+            console.print(f"[dim]Configuration file: {service.approvals_file}[/dim]")
+            console.print()
+
+    except Exception as e:
+        handle_error(e, "configure")
         raise typer.Exit(1)
 
 
