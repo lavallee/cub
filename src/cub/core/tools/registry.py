@@ -41,8 +41,14 @@ import os
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
-from cub.core.tools.models import Registry, ToolConfig
+from cub.core.tools.models import (
+    CapabilityGapResult,
+    Registry,
+    ToolConfig,
+    ToolSuggestion,
+)
 
 
 class RegistryStore:
@@ -446,6 +452,155 @@ class RegistryService:
             self.project_store.save(project_registry)
 
         return removed
+
+    def query_capability(self, capability: str) -> CapabilityGapResult:
+        """
+        Query for tools that provide a specific capability.
+
+        Searches both the registry (adopted tools) and the catalog (available tools)
+        for tools that match the given capability. Returns adopted tools that are
+        ready to use, plus suggestions for tools that could be adopted.
+
+        Ranking:
+        - Exact match: Capability exactly matches a tool's capability tag (score: 1.0)
+        - Partial match: Capability appears in tool name or description (score: 0.5-0.8)
+        - Fuzzy match: Related terms or similar capabilities (score: 0.3-0.5)
+
+        Args:
+            capability: The capability to search for (e.g., "web_search")
+
+        Returns:
+            CapabilityGapResult with adopted tools and suggestions
+
+        Example:
+            >>> service = RegistryService()
+            >>> result = service.query_capability("web_search")
+            >>> print(f"Found {len(result.adopted_tools)} adopted tools")
+            >>> print(f"Found {len(result.suggestions)} suggestions")
+            >>> for tool in result.adopted_tools:
+            ...     print(f"Ready to use: {tool.name}")
+            >>> for suggestion in result.suggestions:
+            ...     print(f"Can adopt: {suggestion.name} (score: {suggestion.relevance_score})")
+        """
+        # Search registry for adopted tools
+        adopted_tools = self.find_by_capability(capability)
+
+        # Search catalog for suggestions
+        suggestions: list[ToolSuggestion] = []
+
+        # Try to load catalog from toolsmith store
+        try:
+            from cub.core.toolsmith.store import ToolsmithStore
+
+            store = ToolsmithStore.default()
+            catalog = store.load_catalog()
+
+            # Get IDs of already adopted tools to filter them out
+            adopted_tool_ids = {tool.id for tool in adopted_tools}
+
+            # Normalize capability for comparison
+            capability_lower = capability.lower().replace("_", " ")
+            capability_parts = set(capability_lower.split())
+
+            for catalog_tool in catalog.tools:
+                # Skip tools that are already adopted
+                if catalog_tool.id in adopted_tool_ids:
+                    continue
+
+                # Calculate relevance score and match type
+                score, match_type = self._calculate_relevance(
+                    capability,
+                    capability_lower,
+                    capability_parts,
+                    catalog_tool,
+                )
+
+                # Only include tools with meaningful relevance
+                if score > 0.0:
+                    suggestions.append(
+                        ToolSuggestion(
+                            tool_id=catalog_tool.id,
+                            name=catalog_tool.name,
+                            description=catalog_tool.description,
+                            source=catalog_tool.source,
+                            source_url=catalog_tool.source_url,
+                            tags=catalog_tool.tags,
+                            relevance_score=score,
+                            match_type=match_type,
+                        )
+                    )
+
+            # Sort suggestions by relevance score (highest first)
+            suggestions.sort(key=lambda s: s.relevance_score, reverse=True)
+
+        except ImportError:
+            # Toolsmith module not available, catalog search will be empty
+            pass
+        except Exception:
+            # Catalog loading failed, but registry results are still valid
+            # Silently continue with empty suggestions
+            pass
+
+        return CapabilityGapResult(
+            capability=capability,
+            adopted_tools=adopted_tools,
+            suggestions=suggestions,
+        )
+
+    def _calculate_relevance(
+        self,
+        capability: str,
+        capability_lower: str,
+        capability_parts: set[str],
+        catalog_tool: Any,
+    ) -> tuple[float, str]:
+        """
+        Calculate relevance score and match type for a catalog tool.
+
+        Implements the ranking logic:
+        - Exact match: Capability exactly matches a tag (1.0)
+        - Partial match: Capability appears in name/description/tags (0.5-0.8)
+        - Fuzzy match: Some terms overlap (0.3-0.5)
+
+        Args:
+            capability: Original capability string
+            capability_lower: Lowercased capability with underscores replaced
+            capability_parts: Set of words in the capability
+            catalog_tool: Tool from catalog to evaluate
+
+        Returns:
+            Tuple of (relevance_score, match_type)
+        """
+        # Exact match: capability tag matches exactly
+        tool_tags_normalized = [tag.lower().replace("_", " ") for tag in catalog_tool.tags]
+        if capability_lower in tool_tags_normalized or capability in catalog_tool.tags:
+            return (1.0, "exact")
+
+        # Check name and description for matches
+        name_lower = catalog_tool.name.lower()
+        desc_lower = catalog_tool.description.lower()
+        searchable = f"{name_lower} {desc_lower} {' '.join(tool_tags_normalized)}"
+
+        # Partial match: full capability string appears in searchable text
+        if capability_lower in searchable:
+            return (0.8, "partial")
+
+        # Fuzzy match: calculate word overlap
+        searchable_words = set(searchable.split())
+        overlap = capability_parts & searchable_words
+
+        if not overlap:
+            return (0.0, "none")
+
+        # Score based on proportion of capability words that match
+        overlap_ratio = len(overlap) / len(capability_parts)
+
+        if overlap_ratio >= 0.5:
+            # At least half the words match - good partial match
+            return (0.5 + (overlap_ratio * 0.3), "partial")
+        else:
+            # Some words match - fuzzy match
+            return (0.3 + (overlap_ratio * 0.2), "fuzzy")
 
     def _generate_version_hash(self, tool_config: ToolConfig) -> str:
         """

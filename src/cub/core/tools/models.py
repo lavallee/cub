@@ -811,3 +811,120 @@ class Registry(BaseModel):
             List of all tool configurations
         """
         return list(self.tools.values())
+
+
+class CapabilityGapResult(BaseModel):
+    """
+    Result from querying for tools by capability.
+
+    Provides information about tools that provide a capability, including
+    both adopted tools (from registry) and suggestions for adoption (from catalog).
+
+    Attributes:
+        capability: The capability that was queried
+        adopted_tools: List of tools already adopted that provide this capability
+        suggestions: List of tools from the catalog that could be adopted
+    """
+
+    capability: str = Field(
+        ...,
+        min_length=1,
+        description="The capability that was queried",
+    )
+    adopted_tools: list[ToolConfig] = Field(
+        default_factory=list,
+        description="Tools already adopted that provide this capability",
+    )
+    suggestions: list["ToolSuggestion"] = Field(
+        default_factory=list,
+        description="Tools from catalog that could be adopted",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+
+class ToolSuggestion(BaseModel):
+    """
+    A suggested tool from the catalog that could be adopted.
+
+    Provides information about a tool that matches a capability query,
+    including relevance ranking and metadata.
+
+    Attributes:
+        tool_id: Unique tool identifier from catalog
+        name: Human-readable tool name
+        description: Brief description of what the tool does
+        source: Package source (e.g., "npm", "github", "pypi")
+        source_url: URL to the tool's source/documentation
+        tags: Tags for categorization and discovery
+        relevance_score: Score indicating how well this tool matches (0.0-1.0)
+        match_type: Type of match (exact | partial | fuzzy)
+    """
+
+    tool_id: str = Field(
+        ...,
+        min_length=1,
+        description="Unique tool identifier from catalog",
+    )
+    name: str = Field(
+        ...,
+        min_length=1,
+        description="Human-readable tool name",
+    )
+    description: str = Field(
+        ...,
+        min_length=1,
+        description="Brief description of what the tool does",
+    )
+    source: str = Field(
+        ...,
+        min_length=1,
+        description="Package source (npm, github, pypi, etc.)",
+    )
+    source_url: str = Field(
+        ...,
+        min_length=1,
+        description="URL to tool source/documentation",
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Tags for categorization and discovery",
+    )
+    relevance_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score indicating how well this tool matches (0.0-1.0)",
+    )
+    match_type: str = Field(
+        ...,
+        description="Type of match (exact | partial | fuzzy)",
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
+
+    @field_validator("match_type")
+    @classmethod
+    def validate_match_type(cls, v: str) -> str:
+        """
+        Validate match_type is a supported type.
+
+        Args:
+            v: The match_type value
+
+        Returns:
+            The validated match_type
+
+        Raises:
+            ValueError: If match_type is not supported
+        """
+        valid_types = {"exact", "partial", "fuzzy"}
+        if v not in valid_types:
+            raise ValueError(
+                f"Invalid match_type: '{v}' (must be one of: {', '.join(valid_types)})"
+            )
+        return v

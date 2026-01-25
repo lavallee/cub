@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260125-115257",
+  "started_at": "2026-01-25T11:52:57.531361Z",
+  "project_dir": "/Users/lavallee/Experiments/cub_planning",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": 0,
+    "cost_usd": 0.0,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 0,
+  "tasks_failed": 0,
+  "current_task": null,
+  "status": "running",
+  "ended_at": null,
+  "orphaned_at": null,
+  "orphaned_reason": null
+}
