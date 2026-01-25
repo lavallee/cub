@@ -517,11 +517,12 @@ class EpicAssessor:
         self.ledger = ledger_reader
         self.task_assessor = TaskAssessor(ledger_reader)
 
-    def assess_epic(self, epic_id: str) -> EpicAssessment:
+    def assess_epic(self, epic_id: str, *, deep: bool = False) -> EpicAssessment:
         """Assess all tasks in an epic.
 
         Args:
             epic_id: Epic ID to assess
+            deep: If True, run LLM-based deep analysis on each task
 
         Returns:
             EpicAssessment with task assessments and aggregate metrics
@@ -539,7 +540,7 @@ class EpicAssessor:
 
         # Assess each task
         task_assessments = [
-            self.task_assessor.assess_task(entry.id) for entry in index_entries
+            self.task_assessor.assess_task(entry.id, deep=deep) for entry in index_entries
         ]
 
         # Get epic title from first task's parent info or use ID
@@ -618,11 +619,12 @@ class PlanAssessor:
         self.plans_root = plans_root
         self.epic_assessor = EpicAssessor(ledger_reader)
 
-    def assess_plan(self, plan_slug: str) -> PlanAssessment:
+    def assess_plan(self, plan_slug: str, *, deep: bool = False) -> PlanAssessment:
         """Assess a plan by finding its epics and tasks.
 
         Args:
             plan_slug: Plan slug (e.g., 'unified-tracking-model')
+            deep: If True, run LLM-based deep analysis on each task
 
         Returns:
             PlanAssessment with epic assessments and overall metrics
@@ -665,7 +667,7 @@ class PlanAssessor:
             )
 
         # Assess each epic
-        epic_assessments = [self.epic_assessor.assess_epic(eid) for eid in epic_ids]
+        epic_assessments = [self.epic_assessor.assess_epic(eid, deep=deep) for eid in epic_ids]
 
         # Aggregate counts
         epics_total = len(epic_assessments)

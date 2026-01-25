@@ -51,6 +51,11 @@ def task(
         "-v",
         help="Show detailed output including recommendations",
     ),
+    deep: bool = typer.Option(
+        False,
+        "--deep",
+        help="Run LLM-based deep analysis of implementation vs spec",
+    ),
 ) -> None:
     """
     Review a single task implementation.
@@ -58,10 +63,13 @@ def task(
     Assesses the task by examining its ledger entry for verification status,
     spec drift, outcome success, and commit history.
 
+    Use --deep for LLM-based analysis comparing implementation to specification.
+
     Examples:
         cub review task beads-abc
         cub review task beads-abc --json
         cub review task beads-abc --verbose
+        cub review task beads-abc --deep
     """
     reader = _get_ledger_reader()
 
@@ -73,7 +81,7 @@ def task(
         raise typer.Exit(0)
 
     assessor = TaskAssessor(reader)
-    assessment = assessor.assess_task(task_id)
+    assessment = assessor.assess_task(task_id, deep=deep)
 
     if json_output:
         reporter = ReviewReporter(console, verbose=verbose)
@@ -99,6 +107,11 @@ def epic(
         "-v",
         help="Show detailed output including recommendations",
     ),
+    deep: bool = typer.Option(
+        False,
+        "--deep",
+        help="Run LLM-based deep analysis of implementation vs spec",
+    ),
 ) -> None:
     """
     Review all tasks in an epic.
@@ -106,10 +119,13 @@ def epic(
     Assesses each task in the epic and provides an aggregate assessment
     including completion rates and overall grade.
 
+    Use --deep for LLM-based analysis comparing implementation to specification.
+
     Examples:
         cub review epic cub-abc
         cub review epic cub-abc --json
         cub review epic cub-abc --verbose
+        cub review epic cub-abc --deep
     """
     reader = _get_ledger_reader()
 
@@ -121,7 +137,7 @@ def epic(
         raise typer.Exit(0)
 
     assessor = EpicAssessor(reader)
-    assessment = assessor.assess_epic(epic_id)
+    assessment = assessor.assess_epic(epic_id, deep=deep)
 
     if json_output:
         reporter = ReviewReporter(console, verbose=verbose)
@@ -147,6 +163,11 @@ def plan(
         "-v",
         help="Show detailed output including recommendations",
     ),
+    deep: bool = typer.Option(
+        False,
+        "--deep",
+        help="Run LLM-based deep analysis of implementation vs spec",
+    ),
 ) -> None:
     """
     Review all work from a plan.
@@ -154,10 +175,13 @@ def plan(
     Assesses all epics and tasks associated with a plan session,
     providing an overall assessment of plan completion.
 
+    Use --deep for LLM-based analysis comparing implementation to specification.
+
     Examples:
         cub review plan unified-tracking-model
         cub review plan unified-tracking-model --json
         cub review plan unified-tracking-model --verbose
+        cub review plan unified-tracking-model --deep
     """
     reader = _get_ledger_reader()
     plans_root = _get_plans_root()
@@ -170,7 +194,7 @@ def plan(
         raise typer.Exit(0)
 
     assessor = PlanAssessor(reader, plans_root)
-    assessment = assessor.assess_plan(plan_slug)
+    assessment = assessor.assess_plan(plan_slug, deep=deep)
 
     if json_output:
         reporter = ReviewReporter(console, verbose=verbose)
