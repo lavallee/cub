@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-x7f.3",
+  "title": "Implement HTTPAdapter",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-x7f"
+  },
+  "task": {
+    "title": "Implement HTTPAdapter",
+    "description": "The HTTP adapter handles REST API tools like Brave Search. This migrates and generalizes the existing brave-search logic from `cub.core.toolsmith.execution`.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/adapters/` package\n2. Create `src/cub/core/tools/adapters/http.py` with `HTTPAdapter` class:\n3. Handle rate limits with exponential backoff (3 retries)\n4. Map HTTP errors to ToolResult.error_type categories\n5. Generate output_markdown summary from response\n\n**Files:** `src/cub/core/tools/adapters/__init__.py`, `src/cub/core/tools/adapters/http.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-x7f",
+      "logic",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-25T04:16:42.019166Z",
+    "captured_at": "2026-01-25T04:36:19.764802Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-231814",
+      "started_at": "2026-01-24T23:36:19.768443",
+      "completed_at": "2026-01-25T04:43:04.056167Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 404
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T04:43:04.245307Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 404,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "2adcb51ac3dc2f72fb01ef7942bd2c1767d7dd6b",
+        "message": "task(cub-x7f.3): Implement HTTPAdapter",
+        "author": "",
+        "timestamp": "2026-01-25T04:42:14Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T04:43:04.245307Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:36:19.764802Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:43:04.245307Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T04:36:19.764802Z",
+  "completed_at": "2026-01-25T04:43:04.245307Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 404,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "2adcb51ac3dc2f72fb01ef7942bd2c1767d7dd6b",
+      "message": "task(cub-x7f.3): Implement HTTPAdapter",
+      "author": "",
+      "timestamp": "2026-01-25T04:42:14Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x7f.3",
+  "epic_id": "cub-x7f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

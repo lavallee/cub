@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-t5w.1",
+  "title": "Add capability gap recognition API",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t5w"
+  },
+  "task": {
+    "title": "Add capability gap recognition API",
+    "description": "Enable agents to query for tools by capability. Returns adopted tools or suggests adoption.\n\n**Implementation Steps:**\n1. Add to `src/cub/core/tools/registry.py`:\n2. Search both registry and catalog\n3. Rank suggestions by relevance (exact match > partial match)\n\n**Files:** `src/cub/core/tools/registry.py`, `src/cub/core/tools/models.py`",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-t5w",
+      "logic",
+      "model:sonnet",
+      "phase-5"
+    ],
+    "created_at": "2026-01-25T04:16:42.019318Z",
+    "captured_at": "2026-01-25T11:52:57.704525Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260125-065257",
+      "started_at": "2026-01-25T06:52:57.709156",
+      "completed_at": "2026-01-25T11:57:51.664256Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 293
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T11:57:51.852490Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 293,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "71ff176fcd3a6a6ee339d5e4901b308fd2691ff9",
+        "message": "task(cub-t5w.1): Add capability gap recognition API",
+        "author": "",
+        "timestamp": "2026-01-25T11:57:21Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T11:57:51.852490Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T11:52:57.704525Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T11:57:51.852490Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T11:52:57.704525Z",
+  "completed_at": "2026-01-25T11:57:51.852490Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 293,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "71ff176fcd3a6a6ee339d5e4901b308fd2691ff9",
+      "message": "task(cub-t5w.1): Add capability gap recognition API",
+      "author": "",
+      "timestamp": "2026-01-25T11:57:21Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-t5w.1",
+  "epic_id": "cub-t5w",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-m3k.6",
+  "title": "Enhance toolsmith adopt to bridge to registry",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3k"
+  },
+  "task": {
+    "title": "Enhance toolsmith adopt to bridge to registry",
+    "description": "The existing `cub toolsmith adopt` records adoption intent. Enhance it to also create a registry entry, completing the catalog \u2192 registry flow.\n\n**Implementation Steps:**\n1. Update `src/cub/cli/toolsmith.py` adopt command:\n2. Add `--adapter` and `--capabilities` options for non-interactive use\n3. Show confirmation with registry entry details\n\n**Files:** `src/cub/cli/toolsmith.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-m3k",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-25T04:16:42.019238Z",
+    "captured_at": "2026-01-25T05:26:34.356390Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-235434",
+      "started_at": "2026-01-25T00:26:34.359626",
+      "completed_at": "2026-01-25T05:30:40.022494Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 245
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T05:30:40.205096Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 245,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "579f80e95d1f5ab6f99498ce6fbd3d0d48fc7b16",
+        "message": "task(cub-m3k.6): Enhance toolsmith adopt to bridge to registry",
+        "author": "",
+        "timestamp": "2026-01-25T05:29:58Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T05:30:40.205096Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:26:34.356390Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:30:40.205096Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T05:26:34.356390Z",
+  "completed_at": "2026-01-25T05:30:40.205096Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 245,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "579f80e95d1f5ab6f99498ce6fbd3d0d48fc7b16",
+      "message": "task(cub-m3k.6): Enhance toolsmith adopt to bridge to registry",
+      "author": "",
+      "timestamp": "2026-01-25T05:29:58Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-m3k.6",
+  "epic_id": "cub-m3k",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

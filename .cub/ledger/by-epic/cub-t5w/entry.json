@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "cub-t5w",
+  "title": "cub-t5w",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-t5w",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-25T11:57:51.855305Z",
+    "captured_at": "2026-01-25T11:57:51.855305Z"
+  },
+  "task_ids": [
+    "cub-t5w.1",
+    "cub-t5w.4",
+    "cub-t5w.2",
+    "cub-t5w.3"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 1688,
+    "avg_duration_seconds": 422,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T12:21:15.568515Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-25T11:52:57.704525Z",
+  "completed_at": "2026-01-25T12:21:15.551696Z",
+  "updated_at": "2026-01-25T12:21:15.568516Z",
+  "first_commit": {
+    "hash": "71ff176fcd3a6a6ee339d5e4901b308fd2691ff9",
+    "message": "task(cub-t5w.1): Add capability gap recognition API",
+    "author": "",
+    "timestamp": "2026-01-25T11:57:21Z"
+  },
+  "last_commit": {
+    "hash": "9b2c5388ad3d8452df5b3362530e506a7a05ed46",
+    "message": "task(cub-t5w.5): Add integration tests for tools ecosystem",
+    "author": "",
+    "timestamp": "2026-01-25T12:20:25Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

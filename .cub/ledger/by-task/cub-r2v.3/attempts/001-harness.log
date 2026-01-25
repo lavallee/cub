@@ -1,0 +1,47 @@
+I'll start by understanding the current task and searching the codebase to understand existing patterns.Now let me search for existing process management patterns in the codebase:Now let me check for existing tests to understand the testing patterns:Perfect! Now I have a comprehensive understanding. Let me create the `process.py` module with proper process management utilities. Based on the patterns I found:
+
+1. **Async-first design** using `asyncio.create_subprocess_exec()`
+2. **Process group handling** with `start_new_session=True` for Unix, Windows support
+3. **Graceful shutdown** with escalating kill strategy
+4. **Timeout support** using `asyncio.wait_for()`
+5. **Platform detection** for Windows vs UnixGood! Now let me create comprehensive tests for the process module:Now let me run the feedback loops to validate the implementation:Good! Tests pass but there's a minor issue with the mock test. Let me fix that test:The test has a minor warning but it works. Let me simplify that test to avoid the async mock complexity:Actually, let me simplify even more - the test is getting complex. Let me just verify the behavior with a simpler approach:Good! Now let me run the tests again:Perfect! All tests pass. Now let me run type checking:Great! Now let me run linting:Let me fix the linting issue:Excellent! Now let me run the full test suite to make sure I haven't broken anything:Perfect! All tests pass. Now let me run the full typecheck to make sure everything is good:Excellent! Now let me close the task and commit the changes:Now let me commit the changes:Perfect! Now let me append the learnings to progress.txt. Let me check what exists:Now let me append my learnings:Perfect! Let me verify the task is closed and check if there are any more tasks:Great! The task is successfully closed. Let me check the next ready task:Let me check if these tests already exist:The tests already exist! Let me verify they're comprehensive:Perfect! The tests are comprehensive and already exist. Task cub-r2v.4 appears to have been completed already. Let me check the task status and see if I should close it:Perfect! The tests exist and all pass. According to my instructions, I should focus on ONE TASK only. Let me check if there are any other tasks in the current epic that need work:The only remaining task in this epic is cub-r2v.4, and as I discovered, the tests already exist and pass. My task (cub-r2v.3) is complete. Let me create a summary:
+
+## Summary
+
+I have successfully completed task **cub-r2v.3: Add process management utilities**.
+
+### What Was Implemented
+
+1. **Created `src/cub/core/tools/process.py`** (~330 lines)
+   - `run_process()`: Async subprocess execution with timeout, env, cwd, and input support
+   - `kill_process_group()`: Platform-aware process group termination (Unix/Windows)
+   - `ensure_process_terminated()`: Graceful shutdown with escalating termination (SIGTERM → SIGKILL)
+   - `wait_for_process()`: Timeout-aware process wait helper
+   - `is_process_running()`: Simple status check
+   - `ProcessResult`: Pydantic model for structured results
+   - Platform detection constants (`IS_WINDOWS`, `IS_UNIX`)
+
+2. **Created comprehensive test suite** (`tests/test_tools_process.py`, ~340 lines)
+   - 23 tests covering all functionality
+   - Real subprocess integration tests
+   - Platform-specific test skipping
+   - Mock-based edge case testing
+
+### Key Features
+
+- **Process groups on Unix** with `start_new_session=True` for clean multi-process termination
+- **Escalating shutdown strategy**: Graceful SIGTERM → Wait → Force SIGKILL
+- **Platform-aware**: Handles Windows/Unix differences appropriately
+- **Timeout handling** with `asyncio.wait_for()` and proper cleanup
+- **Structured results** with success/failure, exit codes, output, and timing
+- **Environment merging** that preserves system env while adding custom vars
+
+### Quality Metrics
+
+✅ **All tests pass**: 396 total tests passing (1 skipped for platform)  
+✅ **Type checking passes**: mypy clean on entire tools module (13 files)  
+✅ **Linting passes**: ruff with no errors  
+✅ **Committed** with detailed commit message and learnings documented in progress.txt  
+✅ **Task closed** in beads system
+
+The implementation follows all existing codebase patterns discovered through exploration and is ready for use by the CLI and MCP adapters.

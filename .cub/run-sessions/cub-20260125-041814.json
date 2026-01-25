@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260125-041814",
+  "started_at": "2026-01-25T04:18:14.519364Z",
+  "project_dir": "/Users/lavallee/Experiments/cub_planning",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": 0,
+    "cost_usd": 0.0,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 1,
+  "tasks_failed": -1,
+  "current_task": null,
+  "status": "orphaned",
+  "ended_at": "2026-01-25T04:27:50.281798Z",
+  "orphaned_at": "2026-01-25T04:27:50.281798Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
+}

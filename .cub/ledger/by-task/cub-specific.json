@@ -1,16 +1,80 @@
 {
+  "version": 1,
   "id": "cub-specific",
   "title": "Specific task",
-  "started_at": null,
-  "completed_at": "2026-01-24T16:26:52.942603",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "task": {
+    "title": "Specific task",
+    "description": "",
+    "type": "task",
+    "priority": 1,
+    "labels": [],
+    "created_at": null,
+    "captured_at": "2026-01-25T06:11:33.623553Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T06:11:33.640075Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 0,
+    "total_duration_seconds": 0,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T06:11:33.640075Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T06:11:33.623553Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T06:11:33.640075Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T06:11:33.623553Z",
+  "completed_at": "2026-01-25T06:11:33.640075Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
     "cache_read_tokens": 0,
     "cache_creation_tokens": 0
   },
-  "cost_usd": 0.01,
-  "duration_seconds": 1,
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -18,12 +82,12 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4360306768'>",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-specific",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "claude",
-  "harness_model": "sonnet",
+  "harness_name": "",
+  "harness_model": "",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

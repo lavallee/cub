@@ -8067,3 +8067,1217 @@ Implemented comprehensive test coverage for ledger index operations and dashboar
 - tests/test_ledger_index.py: 588 lines, comprehensive index testing
 - tests/test_dashboard_api.py: 502 lines, comprehensive API testing
 
+
+## Task cub-x7f.1: Define ToolAdapter Protocol and adapter registry
+
+**Date:** 2026-01-24
+
+**Key Learnings:**
+
+1. **Protocol Pattern Consistency**: The cub codebase has a well-established pattern for pluggable backends:
+   - Use `@runtime_checkable` Protocol for the interface
+   - Module-level `_backends` dict for registration
+   - Decorator factory (`register_adapter()`) for registration
+   - `get_adapter()` for retrieval with helpful error messages
+   - Utility functions: `list_adapters()`, `is_adapter_available()`
+
+2. **Adapter vs Backend Naming**: The term "adapter" is used for tool execution backends (HTTP, CLI, MCP stdio) to differentiate from task backends (beads, json) and harness backends (claude, codex). This follows the Adapter design pattern from Gang of Four.
+
+3. **Async-First Design**: Tool execution is inherently async (network calls, subprocess execution, server communication), so the ToolAdapter protocol uses `async def` methods. This differs from task/harness backends which are synchronous.
+
+4. **ToolResult Structure**: Comprehensive result dataclass captures:
+   - Success/failure status
+   - Output data (structured, not just strings)
+   - Optional markdown summary for humans
+   - Timing info (duration_ms)
+   - Token usage for LLM-based tools
+   - Error messages
+   - Arbitrary metadata (headers, status codes, etc.)
+
+5. **Test Pattern**: Backend/adapter tests follow a consistent structure:
+   - Registry tests (register, get, list)
+   - Availability tests
+   - Protocol conformance tests (isinstance checks)
+   - Test fixtures clean up by popping from registry
+
+6. **Module Documentation**: Package `__init__.py` should include:
+   - Overview of the package purpose
+   - Key components list
+   - Example usage
+   - Explicit `__all__` exports
+
+**Outcome:** Successfully created the foundation for pluggable tool execution. The ToolAdapter protocol and registry enable HTTP, CLI, MCP stdio, and skill bridge adapters to be implemented with a consistent interface. All 11 tests pass, mypy clean, ruff clean.
+
+
+## 2026-01-25 - Task cub-x7f.2: Define ToolResult and adapter config models
+
+### What was implemented
+- Created comprehensive Pydantic v2 models for tool execution in src/cub/core/tools/models.py
+- Migrated ToolResult from dataclass to Pydantic BaseModel with enhanced fields
+- Implemented HTTPConfig, CLIConfig, MCPConfig, and AuthConfig models
+- Added datetime field validators for timezone-aware normalization
+- Added py.typed marker for type checking support
+- Comprehensive test coverage (35 tests passing)
+
+### Key learnings
+1. **Datetime handling in Pydantic**: The datetime.fromisoformat() method doesn't support 'Z' suffix in Python 3.10, so we normalize it to '+00:00' before parsing
+2. **Timezone normalization**: All naive datetimes are treated as UTC by replacing tzinfo=timezone.utc
+3. **Model consistency**: Using ConfigDict(populate_by_name=True) ensures consistent field name handling across all models
+4. **Field validators**: Pydantic v2 uses @field_validator decorator with mode="before" for preprocessing input values
+5. **Enum integration**: AdapterType(str, Enum) works seamlessly with Pydantic for string-based enums
+6. **Test migration**: When migrating from dataclass to Pydantic BaseModel, all required fields must be provided in tests
+
+### Patterns established
+- All models use ConfigDict(populate_by_name=True)
+- Field descriptions use Field(..., description="...") for documentation
+- Datetime fields have validators for timezone normalization and ISO string parsing
+- Validation errors provide clear messages with field context
+- Models support JSON serialization via model_dump(mode='json') and model_dump_json()
+
+### Files modified
+- src/cub/core/tools/models.py (new)
+- src/cub/core/tools/adapter.py (updated to import ToolResult from models)
+- src/cub/core/tools/__init__.py (updated exports)
+- src/cub/core/tools/py.typed (new)
+- tests/test_tools_models.py (new, 24 tests)
+- tests/test_tools_adapter.py (updated for new ToolResult model)
+
+
+## Task: cub-x7f.3 - Implement HTTPAdapter (2026-01-25)
+
+Successfully implemented HTTPAdapter with comprehensive retry logic and error handling.
+
+### Key learnings
+
+1. **pytest-asyncio setup**: Need to install pytest-asyncio (via `uv pip install pytest-asyncio`) and register the 'asyncio' marker in pyproject.toml for async tests
+2. **Retry logic reuse**: The existing `cub.core.toolsmith.http.retry_request()` function provides robust retry logic with exponential backoff that can be reused across adapters
+3. **Error classification**: HTTP status codes map to semantic error types:
+   - 401/403 → "auth"
+   - 429 → "rate_limit"
+   - 400-499 → "validation"
+   - 500-599 → "network"
+4. **Async context managers**: When using `async with httpx.AsyncClient()` in type-checked code, the context variable can be omitted if unused to avoid linting warnings
+5. **Testing async code**: Use `@pytest.mark.asyncio` decorator and `async def test_*()` pattern for async tests
+
+### Design decisions
+
+1. **Configuration via params**: HTTPAdapter accepts `_http_config` in params dict (filtered out from request params) as a temporary solution until registry integration
+2. **Optimistic availability**: `is_available()` returns True by default - will be enhanced when registry is integrated
+3. **Markdown generation**: Generic markdown summary with extensibility for tool-specific formatting
+4. **Error metadata**: Store HTTP status codes and headers in ToolResult.metadata for debugging
+
+### Patterns established
+
+- All HTTP adapters should use `retry_request()` from toolsmith.http for consistent retry behavior
+- Internal parameters (prefixed with `_`) are filtered from HTTP request params
+- Error classification should be semantic (auth, rate_limit, etc.) not just status codes
+- Health checks should be lightweight (e.g., client creation only, no actual requests)
+
+### Files created
+
+- src/cub/core/tools/adapters/__init__.py
+- src/cub/core/tools/adapters/http.py (403 lines)
+- tests/test_tools_http_adapter.py (34 tests, all passing)
+
+### Dependencies updated
+
+- pyproject.toml: Added 'asyncio' marker for pytest-asyncio
+- Environment: Installed pytest-asyncio via `uv pip install`
+
+### Testing
+
+All 34 HTTPAdapter tests pass:
+- 4 adapter property/health tests
+- 11 execute() tests (success, errors, edge cases)
+- 18 helper method tests
+- 1 registration test
+
+All tools module tests pass (69 total)
+Type checking: ✓ (mypy)
+Linting: ✓ (ruff)
+
+## 2026-01-24 - CLIAdapter Implementation (cub-x7f.4)
+
+Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
+
+### Key Implementation Details:
+- Used `asyncio.create_subprocess_exec` for secure subprocess execution (NO shell=True)
+- Used `shlex.split()` for safe argument parsing from templates
+- Implemented timeout handling with `asyncio.wait_for()` and proper process cleanup
+- Supported multiple output formats: JSON, text, lines
+- Environment variable injection via env parameter to subprocess
+- Comprehensive error classification: timeout, validation, execution, unknown
+
+### Testing Patterns:
+- Mock `asyncio.create_subprocess_exec` with AsyncMock for process
+- Use regular Mock for synchronous methods like `process.kill()`
+- Test all error paths: timeout, FileNotFoundError, non-zero exit, JSON parse errors
+- Test helper methods independently for better coverage
+
+### Security Considerations:
+- NEVER use shell=True (command injection risk)
+- Use shlex.split() for proper argument parsing
+- Validate command existence via FileNotFoundError handling
+- No direct user input to shell commands
+
+### Code Quality:
+- All 26 tests pass
+- Type checking passes (mypy)
+- Linting passes (ruff)
+- Follows existing HTTPAdapter patterns for consistency
+- 100% test coverage of core functionality
+
+
+## Task cub-x7f.5: Create ExecutionService
+
+**Date:** 2026-01-24
+
+**Key Learnings:**
+
+1. **ExecutionService Architecture**: Created a high-level orchestration service that wraps the adapter registry, providing:
+   - Adapter selection via `get_adapter(adapter_type)`
+   - Readiness checks (adapter health, tool availability, auth credentials)
+   - Artifact persistence with atomic writes
+   - Artifact listing and filtering capabilities
+
+2. **ReadinessCheck Pattern**: Introduced a structured model for dependency verification:
+   - `ready: bool` - Overall readiness status
+   - `missing: list[str]` - Specific missing requirements
+   - Enables informative error messages for users
+
+3. **Atomic Artifact Writes**: Used tempfile + rename pattern from existing codebase:
+   - Write to `.tmp` file in same directory (same filesystem for atomic rename)
+   - Use `Path.replace()` for atomic rename
+   - Clean up temp file on failure
+   - Prevents corruption on write failures
+
+4. **Artifact Filename Parsing**: Learned to handle tool IDs with dashes (e.g., "brave-search"):
+   - Filename format: `YYYYMMDDTHHMMSSZ-{tool_id}-{action}.json`
+   - Timestamp is 16 chars (not 15 - includes 'Z')
+   - Use `rfind('-')` to split from the end (handles multi-dash tool IDs)
+   - Parse: `remainder = name[17:]` then split by last dash
+
+5. **Test Coverage Best Practices**: Created comprehensive test suite (27 tests):
+   - Test model validation (ReadinessCheck)
+   - Test initialization with default and custom paths
+   - Test execution success/failure paths
+   - Test readiness checks with multiple failure scenarios
+   - Test artifact CRUD operations
+   - Test artifact filtering and sorting
+
+6. **Import Order for Registration**: Added `from . import adapters` to `__init__.py` to trigger adapter registration via decorators. This ensures HTTP and CLI adapters are registered when the tools package is imported.
+
+7. **Linting Fixes**: 
+   - Remove unused imports (timezone was imported but unused after auto-serialization)
+   - Split long lines in docstring examples
+   - Remove unused local variables in tests
+
+**Outcome:** Successfully implemented ExecutionService as the main entry point for tool execution. All tests passing (27/27), mypy clean, ready for integration with higher-level tool runtime.
+
+
+## Task cub-m3k.5: Create cub tools CLI subcommand
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **CLI Pattern Reuse**: Followed existing patterns from toolsmith.py for consistency:
+   - Module-level `typer.Typer()` app with descriptive name and help
+   - Global `_debug_mode` flag for error handling verbosity
+   - Unified `handle_error()` function for consistent error display
+   - `setup_logging()` to configure Python logging based on debug flag
+   - Rich formatting throughout (Tables, Panels, styled Text)
+
+2. **Async CLI Commands**: Used `asyncio.run()` pattern for async operations:
+   - Define inner async function `async def _run():`
+   - Call `asyncio.run(_run())` from synchronous command handler
+   - Enables use of `await` with ExecutionService methods
+   - Keeps CLI interface synchronous while using async internals
+
+3. **Rich Output Patterns**:
+   - **Success panels**: Green border with checkmark (✓) in title
+   - **Error panels**: Red border with X (✗) in title
+   - **Info panels**: Yellow border for warnings/no-results
+   - **Tables**: Title, styled columns, border_style parameter
+   - **Text composition**: Build multi-styled Text with append() calls
+
+4. **CLI Registration in Main App**:
+   - Import module in `src/cub/cli/__init__.py`
+   - Register with `app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_ROADMAP)`
+   - Commands automatically appear in `cub --help` with proper grouping
+   - Subcommands inherit global `--debug` flag from parent context
+
+5. **JSON Parameter Parsing**: Used `json.loads()` for `--params` option:
+   - Accept JSON string via CLI option
+   - Parse with proper error handling
+   - Display user-friendly error panel on invalid JSON
+   - Pass parsed dict directly to ExecutionService
+
+6. **Artifact Path Display**: Made paths user-friendly:
+   - Use `artifact_path.relative_to(Path.cwd())` if possible
+   - Fall back to absolute path if not relative to cwd
+   - Helps with readability in terminal output
+
+7. **Command Design Philosophy**:
+   - `list`: Discovery (show what's available)
+   - `check`: Validation (verify readiness before running)
+   - `run`: Execution (actually run a tool)
+   - `artifacts`: History (browse past executions)
+   - Each command is self-contained and focused
+
+8. **Error Exit Codes**: Always use `raise typer.Exit(1)` after errors:
+   - Ensures proper shell exit codes for scripting
+   - Placed after `handle_error()` call
+   - Never use `sys.exit()` in Typer commands
+
+**Outcome:** Successfully implemented `cub tools` CLI with 4 commands (list, check, run, artifacts). All commands follow established patterns, use Rich formatting, and integrate cleanly with ExecutionService. Passed all feedback loops (mypy, ruff, 122 tests).
+
+## Task cub-m3k.1: Define ToolConfig and Registry models
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Model Design Pattern**: Used existing patterns from toolsmith/models.py and toolsmith/adoption.py as references for validator patterns, datetime handling, and helper methods.
+
+2. **Validator Consistency**: All datetime validators follow the same pattern:
+   - Handle both datetime and ISO string inputs
+   - Handle 'Z' suffix for UTC (Python 3.10 compatibility)
+   - Ensure timezone-aware datetimes (treat naive as UTC)
+   - Consistent error messages
+
+3. **Helper Methods**: Registry includes CRUD operations (get, add, remove, list_all) and capability-based search (find_by_capability) as documented in the architecture spec.
+
+4. **Adapter Config Validation**: ToolConfig includes get_adapter_config() helper method that validates the appropriate config exists for the adapter_type. This encapsulates the match statement pattern for type-specific config access.
+
+5. **Semantic Versioning**: Version validation uses regex pattern `^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$` to support both release versions (1.0.0) and pre-release versions (1.0.0-beta).
+
+6. **Test Coverage**: Created comprehensive test suite with 19 tests covering:
+   - Model creation for all adapter types (HTTP, CLI, MCP)
+   - Validator edge cases
+   - Helper method functionality
+   - JSON serialization/deserialization
+   - Capability-based search
+
+7. **Documentation**: Updated module docstring with comprehensive examples showing ToolConfig, Registry, and helper method usage.
+
+**Outcome:** Successfully implemented ToolConfig and Registry models with full validation, helper methods, and comprehensive test coverage. All tests passing, mypy clean, ready for RegistryStore implementation (next task).
+
+
+## Task cub-m3k.2: Implement RegistryStore
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Storage Pattern Consistency**: Following established patterns from `ToolsmithStore` ensures consistency across the codebase. The atomic write pattern (tempfile → rename) prevents corruption during saves.
+
+2. **Pydantic Serialization**: When serializing Pydantic models to JSON that contain datetime objects, use `model_dump(mode='json')` instead of `model_dump()` to automatically convert datetime objects to ISO strings.
+
+3. **Factory Methods for Locations**: Using class methods like `user()` and `project()` provides clean APIs for common storage locations while respecting XDG standards and environment variables.
+
+4. **Merge Logic**: The merge strategy (project overrides user) aligns with config precedence patterns throughout the codebase. Using `dict.update()` makes this straightforward.
+
+5. **Test Coverage Patterns**: Following existing test patterns from `test_toolsmith_store.py` ensures comprehensive coverage:
+   - Load tests (missing files, invalid JSON, schema validation)
+   - Save tests (directory creation, atomic writes, formatting)
+   - Factory tests (path validation, environment variables)
+   - Merge tests (empty, non-overlapping, conflicts)
+   - Integration tests (roundtrip, workflows)
+
+6. **Graceful Degradation**: Returning empty registries when files don't exist (rather than raising errors) simplifies calling code and supports fresh installations.
+
+7. **Type Safety**: mypy strict mode catches issues early. The `yaml` import error in `branches/store.py` is unrelated to this task and should be addressed separately.
+
+**Outcome:** Successfully implemented RegistryStore with full test coverage (29 tests), clean type checking, and consistent patterns. Ready for RegistryService to build on top of this foundation.
+
+## 2026-01-25 - cub-m3k.3: Implement RegistryService
+
+### Task Completed
+Implemented RegistryService business logic layer for tool registry operations.
+
+### Key Learnings
+
+**1. Service Layer Pattern**
+- Service classes encapsulate business logic and delegate storage to Store classes
+- RegistryService manages user+project registry merging, adoption, approval, and version tracking
+- Follows established pattern from ToolsmithService and TaskService
+- Services provide high-level operations while stores handle I/O
+
+**2. Version Hash Generation for Change Detection**
+- Generate deterministic SHA256 hash from tool metadata (name, source, adapter_type, adapter config)
+- Use `json.dumps(dict, sort_keys=True)` for consistent serialization (Pydantic doesn't support sort_keys in model_dump_json)
+- Version hash enables re-approval detection when tools change
+- Hash is automatically generated during adoption if not present
+
+**3. Registry Merge Semantics**
+- load() always loads fresh from disk (no caching)
+- Project-level tools override user-level tools when IDs conflict
+- find_by_capability() searches merged registry
+- is_approved() checks merged registry
+- adopt() and remove() only modify project registry, not user registry
+
+**4. Test Organization for Services**
+- Separate test classes for each public method
+- Integration tests for common workflows (adopt→approve→check)
+- Test both positive and negative cases (matching hash vs. different hash)
+- Test edge cases (missing tool, missing hash, empty registries)
+- 28 comprehensive tests providing full coverage
+
+**5. Timestamp Management**
+- adopt() updates adopted_at to current time (datetime.now(timezone.utc))
+- Always use timezone-aware datetimes (Cub convention)
+- Test timestamp updates by checking before/after bounds
+
+**6. Hash Determinism**
+- Same tool config → same hash (test with two identical configs)
+- Different tool config → different hash (test with varied configs)
+- Hash includes adapter config, so config changes are detected
+- Works across all adapter types (HTTP, CLI, MCP)
+
+### Implementation Summary
+
+**Files Modified:**
+- `src/cub/core/tools/registry.py` (+289 lines)
+  - Added RegistryService class with 7 public methods
+  - Added _generate_version_hash() private method
+  - Imports hashlib for SHA256 hashing
+  - Updated module docstring with service usage examples
+
+**Files Created:**
+- `tests/test_tools_registry_service.py` (673 lines)
+  - 28 comprehensive tests across 8 test classes
+  - TestRegistryServiceLoad (3 tests)
+  - TestRegistryServiceAdopt (4 tests)
+  - TestRegistryServiceFindByCapability (3 tests)
+  - TestRegistryServiceIsApproved (3 tests)
+  - TestRegistryServiceNeedsReapproval (4 tests)
+  - TestRegistryServiceRemove (3 tests)
+  - TestRegistryServiceGenerateVersionHash (5 tests)
+  - TestRegistryServiceIntegration (3 tests)
+
+### Quality Metrics
+
+- Tests: 28/28 passing (plus 311 existing tools tests = 339 total)
+- Type Checking: mypy --strict passes (no errors in registry.py)
+- Linting: ruff passes with auto-fixes applied
+- Acceptance Criteria: All 5 criteria met ✓
+
+### Architecture Notes
+
+**Service Methods:**
+- `load()` - Delegates to RegistryStore.merge(user, project)
+- `adopt(config)` - Generates hash, updates timestamp, saves to project registry
+- `find_by_capability(cap)` - Searches merged registry
+- `is_approved(id)` - Checks if tool exists in merged registry
+- `needs_reapproval(id, hash)` - Compares stored hash vs. current hash
+- `remove(id)` - Removes from project registry only
+- `_generate_version_hash(config)` - SHA256 of name|source|adapter_type|adapter_config
+
+**Design Decisions:**
+- adopt() always uses project registry (not user) - user registry is for global tools
+- version_hash is optional but recommended - generated automatically if missing
+- needs_reapproval() returns True for missing tools (treat as "needs initial approval")
+- remove() only affects project registry - user tools remain available
+
+---
+
+
+## Task cub-m3k.4: Integrate registry with ExecutionService (2026-01-25)
+
+Successfully integrated RegistryService with ExecutionService to complete the adopt → execute flow.
+
+### Implementation approach:
+1. Created src/cub/core/tools/exceptions.py with a hierarchy of exceptions:
+   - ToolError (base exception)
+   - ToolNotAdoptedError (for unapproved tool execution)
+   - AdapterError (for adapter failures)
+   - ExecutionError (for execution failures)
+
+2. Updated ExecutionService to accept optional RegistryService:
+   - Added registry_service parameter to __init__
+   - Made it optional for backward compatibility
+   - Used TYPE_CHECKING to avoid circular imports
+
+3. Modified execute() method:
+   - Added registry check at the start if registry_service is configured
+   - Raises ToolNotAdoptedError with helpful message if tool not adopted
+   - Provides clear CLI command for adopting the tool
+
+4. Modified check_readiness() method:
+   - Added registry check as first verification step
+   - Returns early if tool not adopted (no point checking other things)
+   - Maintains backward compatibility when registry_service is None
+
+5. Created comprehensive test suite (test_tools_execution_registry.py):
+   - Tests for ToolNotAdoptedError being raised correctly
+   - Tests for adopted tools executing successfully
+   - Tests for backward compatibility without registry_service
+   - Tests for readiness checks with and without registry
+   - Tests for exception hierarchy and behavior
+
+### Key learnings:
+- The registry integration is optional - ExecutionService can work without RegistryService
+- This allows for gradual adoption and backward compatibility
+- TYPE_CHECKING pattern is useful for avoiding circular imports while maintaining type hints
+- Early returns in check_readiness() improve efficiency when tool not adopted
+- Providing helpful error messages (like CLI commands) improves UX
+- All 348 existing tests pass, showing good backward compatibility
+
+### Testing results:
+- All existing tests pass (348 tests)
+- 9 new tests for registry integration all pass
+- Type checking passes with mypy
+- Linting passes with ruff
+- Full feedback loop validation successful
+
+### Files modified:
+- src/cub/core/tools/exceptions.py (new)
+- src/cub/core/tools/execution.py
+- src/cub/core/tools/__init__.py
+- tests/test_tools_execution_registry.py (new)
+
+The adopt → execute flow is now complete and ready for CLI integration.
+
+## 2026-01-25: Enhanced toolsmith adopt command (cub-m3k.6)
+
+### What was implemented
+- Enhanced `cub toolsmith adopt` to create registry entries, not just adoption intent
+- Added `--adapter` and `--capabilities` options for non-interactive use
+- Bridged catalog → registry flow via RegistryService integration
+- Maintained backward compatibility with AdoptionStore for tracking
+
+### Key learnings
+1. **Two-level tracking**: Adoption intent (lightweight) + Registry entry (executable)
+   - AdoptionStore records "we want to use this" (.cub/toolsmith/adopted.json)
+   - RegistryService records "we can execute this" (.cub/tools/registry.json)
+
+2. **Catalog metadata extraction**: Tools in catalog provide name, tags, source
+   - Tags → capabilities mapping
+   - Source → adopted_from tracking
+   - Future: Could auto-detect adapter type from catalog metadata
+
+3. **Placeholder adapter configs**: Current implementation uses minimal configs
+   - Real implementation would gather these interactively or from catalog
+   - HTTP: needs base_url + endpoints
+   - CLI: needs command template
+   - MCP: needs stdio command + args
+
+4. **Version hashing**: RegistryService auto-generates version_hash on adoption
+   - Enables re-approval detection when tools change
+   - SHA256 of (name, source, adapter_type, adapter_config)
+
+5. **User experience**: Progressive disclosure of required information
+   - Helpful error messages guide users through configuration
+   - Rich tables display registry entry details
+   - Next steps guide users to completion
+
+### Architecture insights
+- Clean separation: toolsmith (discovery) vs tools (execution)
+- RegistryService bridges the gap with adopt() method
+- Both stores use atomic writes for safety
+- Registry has user-level + project-level with merge semantics
+
+
+## 2026-01-25 - Task cub-m3k.7: Add tests for registry
+
+**Finding:** Comprehensive registry tests already existed when task was assigned.
+
+**Details:**
+- Tests organized into three well-structured files instead of one monolithic file:
+  - `test_tools_registry_models.py` - 19 tests for ToolConfig and Registry models
+  - `test_tools_registry_store.py` - 29 tests for load/save/merge operations
+  - `test_tools_registry_service.py` - 28 tests for business logic
+- Total of 76 tests providing 98% code coverage
+- All task requirements already met:
+  - tmp_path fixtures used for all file operations
+  - Comprehensive merge logic tests (project overrides user)
+  - Missing file and directory handling tests
+  - Malformed JSON and schema validation tests
+  - Integration tests for real-world workflows
+
+**Lesson:** Always search existing codebase thoroughly before assuming implementation is missing. The task description may be outdated if work was already completed in a previous iteration or by another process.
+
+**Outcome:** Task closed as complete. No changes needed.
+
+## Task cub-p9q.1: Define ToolMetrics model
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Pydantic Model Patterns**: Followed existing patterns in models.py:
+   - Used Field() with descriptive text and validation constraints (ge=0, min_length=1)
+   - Implemented field validators for timezone-aware datetime normalization
+   - Used ConfigDict with populate_by_name=True for flexible field names
+   - Comprehensive docstrings following existing format
+
+2. **Helper Methods Design**: Added three key helper methods:
+   - `success_rate()` and `failure_rate()`: Simple percentage calculations with zero-division protection
+   - `record_execution()`: Mutating method that updates all metrics from a ToolResult
+   - These methods enable the learning loop to track and analyze tool performance
+
+3. **Timestamp Handling**: Reused the timestamp normalization pattern from ToolResult:
+   - Validator handles datetime, ISO strings, and None
+   - Converts naive datetimes to UTC
+   - Handles 'Z' suffix for Python 3.10 compatibility
+   - DRY approach: applied same validator to multiple fields using tuple syntax
+
+4. **Metrics Accumulation Logic**: The record_execution() method implements rolling statistics:
+   - Updates min/max only when new extremes are found
+   - Calculates average by dividing total_duration_ms by invocations
+   - Sets first_used_at only once, updates last_used_at every time
+   - Tracks error_types in a dict with occurrence counts
+
+5. **Test Coverage Best Practices**:
+   - 19 comprehensive tests covering all scenarios
+   - Tests for empty state, partial data, full data
+   - Validation tests for constraints (negative values, empty strings)
+   - Edge case tests (zero invocations, first vs last timestamps)
+   - JSON serialization round-trip tests
+   - Tests follow existing patterns in test_tools_registry_models.py
+
+6. **Model Placement**: Added ToolMetrics between ToolConfig and Registry:
+   - Logical grouping: tool definition → tool metrics → tool registry
+   - Updated module docstring to document the new model
+   - No __all__ export needed (module doesn't use it)
+
+**Outcome:** Successfully implemented ToolMetrics model with full test coverage. All feedback loops passing (mypy, pytest, ruff). Ready for MetricsStore implementation in next task.
+
+
+## Task cub-p9q.2: Implement MetricsStore
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Store Pattern Consistency**: Followed established patterns from RegistryStore and CaptureStore:
+   - Same atomic write pattern (tempfile → rename)
+   - Same directory creation strategy (mkdir with parents=True, exist_ok=True)
+   - Same classmethod pattern for standard locations (project())
+   - Same graceful degradation (return empty dict when file doesn't exist)
+
+2. **Atomic Write Implementation**: The atomic write pattern prevents file corruption:
+   - Write to temp file in same directory (ensures same filesystem)
+   - Use delete=False and suffix=".tmp" for NamedTemporaryFile
+   - Call flush() before rename to ensure all data is written
+   - Use Path.replace() for atomic rename (replaces existing file)
+
+3. **Type Annotations for Callables**: Python 3.10+ requires collections.abc.Callable:
+   - Use `from collections.abc import Callable` (not typing.Callable in 3.10+)
+   - Syntax: `Callable[[ArgType], ReturnType]`
+   - Don't use lowercase `callable[[Type], Type]` - causes TypeError
+
+4. **Helper Methods Design**: Implemented convenience methods beyond basic CRUD:
+   - `get_or_create()`: Atomic get with fallback to new instance
+   - `record_execution()`: One-shot update from ToolResult (loads, updates, saves)
+   - `filter()`: Query with predicate lambdas for flexible filtering
+   - These reduce boilerplate in calling code
+
+5. **JSON Serialization**: Pydantic's mode='json' handles datetimes:
+   - `model_dump(mode='json')` converts datetime to ISO strings
+   - Allows round-trip serialization without custom encoders
+   - Consistent with RegistryStore approach
+
+6. **Test Organization**: Structured tests by functionality:
+   - Basic operations (create, load, save)
+   - CRUD methods (get, remove, list_all)
+   - Business logic (record_execution, filter)
+   - Edge cases (atomic write, datetime serialization)
+   - 22 tests provide comprehensive coverage
+
+7. **Filter Pattern**: Lambda predicates enable expressive queries:
+   - `filter(lambda m: m.success_rate() < 80.0)` - unreliable tools
+   - `filter(lambda m: m.invocations > 10)` - popular tools
+   - `filter(lambda m: len(m.error_types) > 0)` - tools with errors
+   - More flexible than fixed query methods
+
+**Outcome:** Successfully implemented MetricsStore with full test coverage. Follows established codebase patterns. All feedback loops passing. Ready for integration into ExecutionService.
+
+
+## Task cub-p9q.4: Add cub tools stats command
+
+**Timestamp:** 2026-01-25T05:50:00Z
+
+**Task Description:** Implement CLI command to view tool effectiveness metrics from MetricsStore.
+
+**Approach:**
+1. Added import of MetricsStore to src/cub/cli/tools.py
+2. Implemented stats command following established CLI patterns in the file
+3. Used MetricsStore.project() to load metrics from .cub/tools/metrics.json
+4. Created rich Table with columns: Tool ID, Invocations, Success Rate, Avg Duration, Errors, Last Used
+5. Implemented color-coded success rates using Text() with conditional styling:
+   - Green (bold green): >80% success rate
+   - Yellow (bold yellow): 50-80% success rate  
+   - Red (bold red): <50% success rate
+6. Added relative timestamp formatting for Last Used column:
+   - "just now" for <60s
+   - "Xm ago" for <1h
+   - "Xh ago" for <24h
+   - "yesterday" for 1 day
+   - "Xd ago" for <7 days
+   - "YYYY-MM-DD" for >=7 days
+7. Displayed "no metrics yet" panel when no data available
+8. Added overall statistics summary showing total tools, invocations, and overall success rate
+9. Sorted tools by invocations (most used first)
+
+**Key Implementation Details:**
+- Used total_seconds() for time difference calculation to avoid edge cases with days/hours boundaries
+- Calculated overall success rate by summing all successes/invocations across tools
+- Error count displays "-" when zero, number when >0
+- Followed existing error handling pattern with handle_error() and setup_logging()
+- Maintained consistency with other commands in the file (list, check, run, artifacts)
+
+**Testing:**
+- Manually tested with no metrics (shows "no metrics yet" panel)
+- Manually tested with various success rates to verify color coding
+- Manually tested relative timestamps with different time offsets
+- Verified mypy type checking passes (--strict mode)
+- Verified ruff linting passes
+- Ran test_tools_metrics_store.py tests successfully (22 passed)
+
+**Outcome:** Successfully implemented cub tools stats command with color-coded success rates and relative timestamps. All feedback loops passing. Command provides clear visualization of tool effectiveness metrics for the learning loop.
+
+
+## Task cub-p9q.3: Integrate metrics into ExecutionService (2026-01-25)
+
+Successfully integrated MetricsStore into ExecutionService for automatic metrics recording.
+
+**Implementation:**
+- Updated ExecutionService.__init__ to accept optional MetricsStore parameter
+- Modified execute() to call metrics_store.record_execution(result) after execution
+- Added get_metrics(tool_id) method that returns ToolMetrics or None
+- Added get_degraded_tools(threshold) method that filters tools by success rate
+- Both methods handle the case where metrics_store is None gracefully
+
+**Key Design Decisions:**
+1. Made metrics_store optional to maintain backward compatibility
+2. Automatic recording happens in execute() - no manual intervention needed
+3. get_degraded_tools uses the existing MetricsStore.filter() method with a lambda
+4. All new methods gracefully handle missing metrics_store by returning None or []
+
+**Testing:**
+- Added 8 comprehensive test cases covering all new functionality
+- Tests verify metrics recording, retrieval, and threshold filtering
+- Tests ensure backward compatibility when metrics_store is not configured
+- All 44 execution tests pass
+- Type checking and linting pass without issues
+
+**Files Modified:**
+- src/cub/core/tools/execution.py (added metrics integration)
+- tests/test_tools_execution.py (added TestExecutionServiceMetrics class)
+
+**Learning:**
+The metrics integration was straightforward because MetricsStore.record_execution() 
+already handles all the complexity of loading, updating, and saving metrics atomically.
+The ExecutionService just needs to call it with the ToolResult.
+
+
+## Task: cub-p9q.5 - Add tests for metrics (2026-01-25)
+
+### What was done:
+- Created comprehensive test suite for ToolMetrics model in tests/test_tools_metrics.py
+- Added 35 tests covering:
+  - Basic metrics creation and initialization
+  - Success/failure rate calculations
+  - Metrics recording functionality (record_execution method)
+  - Timing statistics (min, max, avg duration tracking)
+  - Error type tracking with multiple error types
+  - Timestamp handling (first_used_at, last_used_at)
+  - Timestamp normalization (naive datetimes, ISO strings, None values)
+  - Field validation (non-negative values, required fields)
+  - Serialization (to dict and JSON-compatible dict)
+  - Degradation detection scenarios:
+    * Success rate drops over time
+    * Timing degradation (slower executions)
+    * New error patterns emerging
+    * Increasing error frequency
+    * Recovery after degradation
+    * Stable performance baseline
+
+### Key learnings:
+- The ToolMetrics model has comprehensive validation and tracking capabilities
+- Timestamp normalization handles naive datetimes, ISO strings, and timezone-aware datetimes
+- Degradation detection is a key use case - tests verify metrics can track performance degradation
+- Type annotations required for all test methods (-> None) to pass mypy checks
+- For Pydantic model validators that accept strings but type hints show datetime, use type: ignore[arg-type]
+
+### Files modified:
+- tests/test_tools_metrics.py (created)
+
+### Tests: All 35 tests pass, mypy clean, ruff clean
+
+---
+
+## 2026-01-25 - cub-r2v.1: Implement MCPStdioAdapter
+
+### Task Completed
+Implemented MCP stdio adapter for JSON-RPC over stdio communication with MCP servers.
+
+### Key Learnings
+
+**1. Process Group Termination for Clean Timeout Handling**
+- Use `start_new_session=True` in `asyncio.create_subprocess_exec()` to create a new process group
+- This allows killing the entire process group on timeout, preventing zombie child processes
+- Pattern: `os.getpgid(process.pid)` to get group ID, then `os.killpg(pgid, signal.SIGKILL)`
+- Always have fallback: if process group kill fails, fall back to `process.kill()` directly
+
+**2. JSON-RPC 2.0 Protocol Handling**
+- Messages are newline-delimited JSON
+- Response must have matching `id` field to correlate with request
+- Error responses have `error` field with `code`, `message`, and optional `data`
+- Standard error codes: -32700 (parse), -32600 (invalid request), -32601 (method not found), -32602 (invalid params), -32603 (internal)
+- Server errors use range -32099 to -32000
+
+**3. Multiline Response Handling**
+- MCP servers may output multiple JSON objects (e.g., initialization messages + actual response)
+- Parse each line separately and look for response with matching request ID
+- Fallback: if no matching ID found, use the last valid JSON object
+
+**4. Async Subprocess Communication Pattern**
+- Use `process.stdin.write()` then `drain()` then `close()` then `wait_closed()` for clean input
+- Signal end of input by closing stdin before reading response
+- Use `asyncio.wait_for()` with timeout around the communication, not the process creation
+- Capture both stdout (JSON-RPC response) and stderr (debugging info, not exposed to user)
+
+**5. Error Classification Strategy**
+- Classify JSON-RPC error codes into cub error types (validation, execution, protocol, unknown)
+- Protocol errors: parse errors, empty responses, invalid JSON
+- Validation errors: method not found, invalid params, invalid request
+- Execution errors: internal server errors, server-specific errors
+- Always include raw output in metadata for debugging when parsing fails
+
+**6. Testing MCP Adapters**
+- Mock the entire subprocess lifecycle: stdin (write, drain, close, wait_closed), stdout/stderr (read)
+- Capture the written request to extract the generated ID for matching in response
+- Test multiline responses, error responses, empty responses, invalid JSON
+- Test process group termination on timeout (mock os.getpgid, os.killpg)
+- Total: 30 tests covering all error paths and success scenarios
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/tools/adapters/mcp_stdio.py` (~500 lines)
+  - MCPStdioAdapter class with full Protocol implementation
+  - JSON-RPC request/response handling
+  - Process lifecycle management with clean termination
+  - Error classification for protocol errors
+
+- `tests/test_tools_mcp_stdio_adapter.py` (~600 lines)
+  - 30 comprehensive tests
+  - Full coverage of execute, helpers, integration patterns
+
+**Files Modified:**
+- `src/cub/core/tools/adapters/__init__.py` (exports MCPStdioAdapter)
+
+### Quality Metrics
+
+- Tests: 30/30 passing (462 total tools tests pass)
+- Type Checking: mypy --strict passes on entire tools module (11 files)
+- Linting: ruff passes with no errors
+
+## Task cub-r2v.2: Add JSON-RPC helpers
+
+**Completed:** Successfully extracted JSON-RPC utilities from MCP stdio adapter into reusable module
+
+**Implementation:**
+- Created src/cub/core/tools/jsonrpc.py with comprehensive JSON-RPC 2.0 utilities
+- Extracted and refactored build_request, parse_response, validate_response_format, classify_error
+- Added filter_internal_params helper for parameter filtering
+- Implemented proper exception hierarchy (JSONRPCError, JSONRPCParseError, JSONRPCInvalidRequestError)
+- Created JSONRPCResponse class for structured response handling
+- Built comprehensive test suite with 53 tests covering all edge cases
+
+**Key Learnings:**
+1. JSON-RPC 2.0 spec compliance requires strict validation (jsonrpc version, id, result XOR error)
+2. Newline-delimited JSON is common in MCP - parser handles multiple messages gracefully
+3. Error classification maps JSON-RPC codes to semantic types (protocol, validation, execution)
+4. Internal parameter filtering (prefix-based) prevents config leakage in RPC calls
+5. Exception naming must follow Python conventions (Error suffix for linter compliance)
+
+**Testing:**
+- All 53 tests pass (100% coverage of new functionality)
+- Type checking clean (mypy)
+- Linting compliant (ruff) after fixing exception naming
+- Existing MCP adapter tests continue to pass (no regressions)
+
+**Quality:**
+- Full docstrings with examples for all public functions
+- Comprehensive error handling with proper exception hierarchy
+- Clean separation of concerns (parsing, validation, building separate)
+- Ready for reuse in future adapters (HTTP, WebSocket, etc.)
+
+
+---
+
+## 2026-01-25 - cub-r2v.3: Add process management utilities
+
+### Task Completed
+Implemented safe process spawning with timeout and cleanup utilities for subprocess management.
+
+### Key Learnings
+
+**1. Process Group Management for Clean Termination**
+- Use `start_new_session=True` on Unix to create process groups for clean multi-process termination
+- On Windows, this parameter is silently ignored (not supported) - need fallback strategy
+- Pattern: `os.getpgid(process.pid)` + `os.killpg(pgid, signal.SIGKILL)` for Unix
+- Windows limitation: Direct `process.kill()` doesn't kill child processes automatically
+- For production Windows support, consider using `win32job` module or `psutil` library
+- Platform detection: Use `sys.platform == "win32"` for Windows vs Unix branching
+
+**2. Escalating Termination Strategy**
+- Always implement graceful → forceful shutdown sequence:
+  1. `process.terminate()` sends SIGTERM (graceful)
+  2. Wait up to 2 seconds with `asyncio.wait_for(process.wait(), timeout=2.0)`
+  3. If timeout, use `kill_process_group()` for SIGKILL (forceful)
+- This pattern prevents data loss while ensuring cleanup
+- Always use in `finally` blocks to guarantee execution
+- Handle `ProcessLookupError` gracefully (process may already be dead)
+
+**3. Timeout Handling with asyncio.wait_for()**
+- Wrap `process.communicate()` with `asyncio.wait_for(coro, timeout=timeout)`
+- On `asyncio.TimeoutError`, immediately kill process group before returning
+- Always await `process.wait()` after killing to ensure cleanup completes
+- Calculate duration before handling timeout to get accurate timing
+- Return structured error with `timed_out=True` flag for clear status
+
+**4. Environment Variable Merging**
+- Start with `os.environ.copy()` to preserve system environment
+- Update with tool-specific vars: `env.update(config.env_vars)`
+- Return `None` if no custom vars to use system default
+- Pattern used consistently across CLI, MCP, and process modules
+
+**5. Structured Result Pattern**
+- Use Pydantic models for process results (ProcessResult vs ToolResult)
+- Include: success flag, exit_code, stdout, stderr, duration_ms, timed_out, error
+- Keep stdout/stderr even on error for debugging
+- Set exit_code to None for timeout/kill scenarios (process didn't exit normally)
+- Error message should be human-readable and specific
+
+**6. Testing Process Management**
+- Use real subprocesses for integration tests (echo, python -c, sleep)
+- Mock `asyncio.create_subprocess_exec` for error scenarios
+- Test platform-specific behavior with `@pytest.mark.skipif(IS_WINDOWS, ...)`
+- Test timeout scenarios with very short timeouts (0.1s) to keep tests fast
+- Always clean up test processes in finally blocks to prevent hangs
+- Total: 23 tests with 1 platform-specific skip
+
+**7. Input Handling with subprocess**
+- Use `stdin=asyncio.subprocess.PIPE` to enable input
+- Pass bytes to `process.communicate(input_bytes)`, not the constructor
+- Encode strings with UTF-8: `input_data.encode("utf-8")`
+- Process handles stdin closing automatically after communicate
+
+**8. Error Handling Best Practices**
+- `FileNotFoundError`: Command not found (not in PATH)
+- `ProcessLookupError`: Process already terminated (safe to ignore)
+- `OSError`: Generic OS-level error (permissions, etc.)
+- `asyncio.TimeoutError`: Timeout exceeded
+- Always wrap unexpected errors and log with `logger.exception()`
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/tools/process.py` (~330 lines)
+  - run_process(): Main async execution function
+  - kill_process_group(): Platform-aware force kill
+  - ensure_process_terminated(): Graceful shutdown with escalation
+  - wait_for_process(): Timeout-aware wait helper
+  - is_process_running(): Status check helper
+  - ProcessResult model for structured output
+  - Platform detection constants (IS_WINDOWS, IS_UNIX)
+
+- `tests/test_tools_process.py` (~340 lines)
+  - 23 comprehensive tests
+  - Platform-specific test skipping
+  - Real subprocess integration tests
+  - Mock-based unit tests for edge cases
+
+### Quality Metrics
+
+- Tests: 23/23 passing (396 total tools tests passing, 1 skipped)
+- Type Checking: mypy passes on entire tools module (13 files)
+- Linting: ruff passes with no errors (fixed unused import)
+- Test Coverage: Success cases, error cases, timeouts, platform differences
+
+### Future Improvements
+
+**Windows Process Group Support:**
+- Consider adding `win32job` support for true process group management on Windows
+- Alternative: Use `psutil` library for cross-platform child process enumeration/kill
+- Document Windows limitation in module docstring
+
+**Signal Handling:**
+- Could add configurable signal escalation (SIGTERM → SIGKILL)
+- Allow custom termination timeout values
+- Support for custom signal handlers
+
+**Process Monitoring:**
+- Add optional callback for process output streaming
+- Support for real-time stdout/stderr monitoring
+- Process resource usage tracking (CPU, memory)
+
+
+## Task cub-r2v.4: Add tests for MCP adapter (2026-01-25)
+
+**Status:** ✅ Complete
+
+**What was accomplished:**
+- Discovered comprehensive test coverage already existed (52 JSON-RPC tests + 31 MCP adapter tests)
+- Created real subprocess integration tests (9 tests) using actual process communication
+- Built a mock MCP server fixture implementing JSON-RPC 2.0 protocol
+- Mock server supports: initialize, tools/list, tools/call with proper error handling
+- All 92 tests pass with type checking and linting
+
+**Key learnings:**
+1. The codebase uses separate unit tests (with mocks) and integration tests (with real subprocesses)
+2. Mock MCP server fixture at tests/fixtures/mock_mcp_server.py can be reused for other tests
+3. Integration tests are valuable for testing actual subprocess lifecycle and I/O
+4. Comprehensive test structure: TestClass for init, TestClassExecute for main logic, TestClassHelpers for utilities
+5. The existing JSON-RPC helpers (src/cub/core/tools/jsonrpc.py) are thoroughly tested and production-ready
+
+**Files added:**
+- tests/test_tools_mcp_integration.py (9 integration tests with real subprocess)
+- tests/fixtures/mock_mcp_server.py (executable JSON-RPC 2.0 server for testing)
+
+**Test coverage summary:**
+- JSON-RPC protocol: 52 tests (request/response/validation/error handling)
+- MCP adapter unit: 31 tests (mocked subprocess communication)
+- MCP adapter integration: 9 tests (real subprocess with mock server)
+
+## Task: cub-t5w.1 - Add capability gap recognition API
+
+### Implementation Summary
+Successfully added capability gap recognition API to enable agents to query for tools by capability and receive both adopted tools and suggestions for adoption.
+
+### Key Changes
+1. **Models (models.py)**:
+   - Added `CapabilityGapResult` model to represent query results
+   - Added `ToolSuggestion` model for catalog tool suggestions
+   - Both models include full validation and documentation
+
+2. **Registry Service (registry.py)**:
+   - Added `query_capability()` method that searches both registry and catalog
+   - Added `_calculate_relevance()` helper for ranking algorithm
+   - Implements exact/partial/fuzzy matching with scoring
+
+3. **Ranking Algorithm**:
+   - Exact match (1.0): Capability exactly matches a tool's tag
+   - Partial match (0.5-0.8): Capability appears in name/description/tags
+   - Fuzzy match (0.3-0.5): Some words overlap
+   - Normalizes underscores to spaces for better matching
+   - Filters out already-adopted tools from suggestions
+
+4. **Tests (test_tools_capability_gap.py)**:
+   - 13 comprehensive tests covering all scenarios
+   - Registry searches, catalog searches, ranking, integration
+   - All existing 418 tests continue to pass
+
+### Technical Decisions
+- Used `Any` type for catalog_tool parameter since Tool is imported dynamically
+- Gracefully handles missing catalog (returns empty suggestions)
+- Sorts suggestions by relevance score (highest first)
+- Reuses existing `find_by_capability()` for registry search
+
+### Testing Strategy
+- Separated test classes by functionality (Registry, Catalog, Ranking, Integration)
+- Used monkeypatch to set working directory for catalog loading
+- Tested edge cases (missing catalog, no matches, duplicate filtering)
+
+### Learnings
+1. When a module is imported dynamically (like toolsmith), use `Any` type hints rather than forward references
+2. Test names should match actual behavior - "fuzzy match" depends on how words appear in searchable text
+3. Scoring thresholds need to account for multiple occurrences of search terms
+4. The ToolsmithStore.default() uses Path.cwd(), so tests need monkeypatch.chdir()
+
+### Next Steps
+- This API enables agents to self-discover capabilities
+- Can be integrated into harness or workbench for autonomous tool adoption
+- Future: Add caching to avoid repeated catalog scans
+- Future: Add more sophisticated relevance scoring (TF-IDF, embeddings)
+
+
+## Task cub-t5w.2: Implement freedom dial configuration
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Freedom Level Design**: Implemented a three-tier autonomy model (LOW/MEDIUM/HIGH) that balances safety with automation. The MEDIUM level provides a good default by allowing most tools but requiring approval for explicitly risky ones.
+
+2. **Approval Logic at MEDIUM**: At MEDIUM freedom level, only explicitly marked risky tools require approval. Unknown tools default to allowed, which matches the "balanced" intent - you explicitly mark dangerous tools rather than having to whitelist safe ones.
+
+3. **Model-First Design**: Built the approval logic in the Pydantic model (ToolApprovals) with the service (ApprovalService) as a thin storage layer. This keeps business logic in the model and makes it easy to test without I/O.
+
+4. **Exception-Based Flow Control**: Used ToolApprovalRequiredError to signal approval requirements. This allows callers to catch the exception and prompt the user, following the established pattern in the codebase.
+
+5. **Optional Service Pattern**: Made approval_service optional in ExecutionService (defaults to None). This means approval checking is opt-in - if you don't configure it, tools execute without prompting. This matches the pattern used for registry_service and metrics_store.
+
+6. **Storage Location**: Followed the established pattern: user-level config at ~/.config/cub/tools/approvals.json. Project-level could be added at .cub/tools/approvals.json if needed later.
+
+7. **Atomic Writes**: Used the same atomic write pattern (tempfile + rename) as other storage layers to prevent corruption during saves.
+
+8. **TYPE_CHECKING imports**: Used TYPE_CHECKING guard for ApprovalService import in execution.py to avoid circular dependencies while maintaining type safety.
+
+**Outcome:** Successfully implemented freedom dial with three autonomy levels. ExecutionService now checks approval requirements before execution. All tests pass, type checking clean, ready for integration with user configuration system.
+
+## Task cub-t5w.3: Integrate tools with workbench
+
+**Completed:** 2026-01-25
+
+**Changes:**
+- Updated `src/cub/core/workbench/run.py` to use ExecutionService and RegistryService
+- Replaced hardcoded brave-search execution with generic tool adapter system
+- Modified `src/cub/core/workbench/note.py` to use ToolResult.output_markdown
+- Added fallback support for legacy artifact formats in note generation
+
+**Key learnings:**
+- The new tool execution system uses ExecutionService as the main entry point
+- Registry must be checked before execution (tools must be adopted)
+- ToolResult includes output_markdown field for human-readable summaries
+- Async execution must be wrapped with asyncio.run() for sync callers
+- Adapter configs (http_config, cli_config, mcp_config) must be passed in params
+- The system is designed to support any tool type, not just web search
+
+**Dependencies resolved:**
+- Workbench now works with any adopted tool with web_search capability
+- No longer hardcoded to mcp-official:brave-search
+- Can leverage all tool adapters (HTTP, CLI, MCP stdio)
+
+
+## Task cub-t5w.4: Add cub tools configure command (2026-01-25)
+
+Successfully implemented the `cub tools configure` command for managing freedom dial and tool approvals.
+
+### Implementation Details
+
+1. **Command Structure**: Added new `configure` command to `src/cub/cli/tools.py`
+   - `--freedom/-f`: Set freedom level (low/medium/high)
+   - `--approve/-a`: Mark tool as safe for automatic execution
+   - `--revoke/-r`: Mark tool as risky (requires approval at medium)
+   - `--always-prompt`: Mark tool to always require approval
+   - `--show/-s`: Display current configuration
+   - Multiple operations can be combined in a single command
+
+2. **Integration**: Uses existing ApprovalService from `src/cub/core/tools/approvals.py`
+   - Service handles loading/saving to `~/.config/cub/tools/approvals.json`
+   - Atomic writes ensure configuration integrity
+   - Default freedom level is MEDIUM
+
+3. **User Experience**:
+   - Rich-formatted output with panels and tables
+   - Color-coded status indicators (green=safe, yellow=risky, red=always-prompt)
+   - Descriptive feedback for each operation
+   - Shows configuration file location
+   - Comprehensive help text with examples
+
+4. **Error Handling**:
+   - Validates freedom level input (low/medium/high only)
+   - Clear error messages for invalid inputs
+   - Debug mode support for troubleshooting
+
+### Key Learnings
+
+- **ApprovalService API**: The service provides clean methods for managing approvals:
+  - `set_freedom_level()`, `get_freedom_level()`
+  - `mark_safe()`, `mark_risky()`, `mark_always_prompt()`
+  - `get_safe_tools()`, `get_risky_tools()`, `get_always_prompt_tools()`
+  - `save()` - atomic write to disk
+  
+- **Freedom Level Logic**:
+  - LOW: Prompt before every tool execution
+  - MEDIUM: Prompt only for risky/unknown tools
+  - HIGH: Execute tools without prompting (except always_prompt_tools)
+
+- **Rich Console Patterns**: Followed existing patterns in tools.py:
+  - Panel for status/success/error messages
+  - Table for structured data display
+  - Text with styling for multi-colored output
+  - Consistent visual language across commands
+
+### Testing
+
+- Manual testing verified all operations work correctly
+- Tested setting freedom level, approving/revoking tools
+- Verified configuration persistence to JSON file
+- Tested error handling for invalid inputs
+- Confirmed command appears in `cub tools --help`
+- All linting checks passed (ruff)
+
+### Files Modified
+
+- `src/cub/cli/tools.py`: Added configure command (320 lines)
+  - Imported ApprovalService and FreedomLevel
+  - Implemented comprehensive configure command with all operations
+
+
+## Task cub-t5w.5: Add integration tests for tools ecosystem (2026-01-25)
+
+Successfully created comprehensive integration tests for the unified tool execution runtime.
+
+### Implementation Details
+
+1. **Test File**: Created `tests/test_tools_integration.py` with 645 lines
+   - 4 test classes covering different integration scenarios
+   - 9 test cases total
+   - All tests use `tmp_path` fixture for isolation
+   - Mock services for execution (no external dependencies)
+
+2. **Test Coverage**:
+
+   **TestFullFlowWithApprovals** (4 tests):
+   - LOW freedom level requires approval for all tools
+   - HIGH freedom level executes without approval
+   - MEDIUM freedom level allows safe tools
+   - MEDIUM freedom level blocks risky tools
+
+   **TestFullFlowWithRegistry** (1 test):
+   - Discover → adopt → execute flow
+   - Verifies registry integration works end-to-end
+
+   **TestFullFlowWithMetrics** (3 tests):
+   - Execute → learn flow with successful execution
+   - Execute → learn flow with failed execution
+   - Execute → learn flow with mixed success/failure results
+   - Verifies metrics aggregation and success rate calculation
+
+   **TestEndToEndFlow** (1 test):
+   - Complete flow: discover → adopt → approve → execute → learn
+   - All components integrated (registry, approvals, metrics)
+   - Verifies artifact saving
+   - Checks all state is properly maintained
+
+3. **Key Patterns Used**:
+   - `tmp_path` fixture for all file operations
+   - `AsyncMock` for mocking async adapter execution
+   - `patch` for mocking adapter retrieval
+   - Proper ToolResult construction with all required fields
+   - ToolConfig with HTTPConfig, AuthConfig, etc.
+   - Registry load/save verification
+   - Metrics aggregation verification
+
+### Key Learnings
+
+- **ToolConfig Structure**: ToolConfig doesn't have a `description` field, only `id` and `name`
+- **AuthConfig Requirements**: Both `required` and `env_var` fields are required (can't just pass `required=False`)
+- **Registry API**: Use `registry_service.load()` to get Registry object, then access `registry.tools` dict
+- **No list_tools()**: RegistryService doesn't have a `list_tools()` method - must use `load()` and access tools dict
+- **Import Organization**: HTTPConfig is in `cub.core.tools.models`, not `cub.core.tools.adapters.http`
+- **Registry is file-based**: `registry.py` is a single file, not a package directory
+
+### Testing Results
+
+- All 9 tests pass ✓
+- All linting checks pass (ruff) ✓
+- No type errors in test file ✓
+- Tests run in ~0.12 seconds (very fast)
+
+### Epic Status
+
+Epic **cub-t5w** (unified-tool-ecosystem #5: Lifecycle Integration) is now COMPLETE with all 5 tasks closed:
+1. ✓ cub-t5w.1: Add capability gap recognition API
+2. ✓ cub-t5w.2: Implement freedom dial configuration
+3. ✓ cub-t5w.3: Integrate tools with workbench
+4. ✓ cub-t5w.4: Add cub tools configure command
+5. ✓ cub-t5w.5: Add integration tests
+

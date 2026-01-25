@@ -1,16 +1,59 @@
 {
+  "version": 1,
   "id": "cub-success",
   "title": "Successful task",
-  "started_at": null,
-  "completed_at": "2026-01-24T16:26:53.008477",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "task": {
+    "title": "Successful task",
+    "description": "",
+    "type": "task",
+    "priority": 1,
+    "labels": [],
+    "created_at": null,
+    "captured_at": "2026-01-25T06:11:33.707676Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T06:11:33.707676Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T06:11:33.707676Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-25T06:11:33.707676Z",
+  "completed_at": "2026-01-25T06:11:33.707676Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
     "cache_read_tokens": 0,
     "cache_creation_tokens": 0
   },
-  "cost_usd": 0.01,
-  "duration_seconds": 1,
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -18,12 +61,12 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4363126496'>",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-success",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "claude",
-  "harness_model": "sonnet",
+  "harness_name": "",
+  "harness_model": "",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

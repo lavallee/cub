@@ -3,7 +3,7 @@
 Takes tool run artifacts (JSON) and synthesizes them into a durable markdown note.
 This is the missing bridge between "tool executed" and "human-usable artifact".
 
-Current scope: Brave Search web results.
+Current scope: Brave Search web results and other search tools.
 """
 
 from __future__ import annotations
@@ -15,22 +15,39 @@ from typing import Any
 
 import frontmatter
 
+from cub.core.tools.models import ToolResult
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    with path.open(encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, dict):
-        return {}
-    return data
+def _load_tool_result(path: Path) -> ToolResult | None:
+    """Load a ToolResult from an artifact JSON file."""
+    try:
+        with path.open(encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return None
+        return ToolResult.model_validate(data)
+    except Exception:
+        return None
 
 
 def _extract_web_results(payload: dict[str, Any]) -> list[dict[str, str]]:
-    """Extract Brave web results into a stable [{title,url,description}] list."""
-    result = payload.get("result")
+    """Extract Brave web results into a stable [{title,url,description}] list.
+
+    This is a fallback for legacy artifact formats or when output_markdown is not available.
+    """
+    # Handle new ToolResult format where output is the response data
+    output = payload.get("output")
+    if isinstance(output, dict):
+        result: dict[str, Any] = output
+    else:
+        # Fallback to legacy format
+        result_val = payload.get("result")
+        result = result_val if isinstance(result_val, dict) else {}
+
     if not isinstance(result, dict):
         return []
 
@@ -99,31 +116,48 @@ def write_research_note_from_session(
 
         if not ok:
             err = str(rr.get("error") or "").strip()
-            lines.append(f"- Status: FAILED")
+            lines.append("- Status: FAILED")
             if err:
                 lines.append(f"- Error: {err}")
             lines.append("")
             continue
 
-        lines.append(f"- Status: OK")
+        lines.append("- Status: OK")
         if artifact:
             lines.append(f"- Artifact: `{artifact}`")
 
-        results: list[dict[str, str]] = []
+        # Try to load ToolResult and use output_markdown if available
+        tool_result = None
         if artifact:
-            payload = _load_json(Path(artifact))
-            results = _extract_web_results(payload)[:max_results_per_query]
+            tool_result = _load_tool_result(Path(artifact))
 
-        if results:
+        # Prefer output_markdown from ToolResult
+        if tool_result and tool_result.output_markdown:
             lines.append("")
-            for item in results:
-                title = item.get("title", "").strip()
-                url = item.get("url", "").strip()
-                desc = item.get("description", "").strip()
-                lines.append(f"- {title}\n  - {url}")
-                if desc:
-                    lines.append(f"  - {desc}")
-        lines.append("")
+            lines.append(tool_result.output_markdown)
+            lines.append("")
+        else:
+            # Fallback: extract web results from artifact payload
+            results: list[dict[str, str]] = []
+            if artifact:
+                try:
+                    with Path(artifact).open(encoding="utf-8") as f:
+                        payload = json.load(f)
+                    if isinstance(payload, dict):
+                        results = _extract_web_results(payload)[:max_results_per_query]
+                except Exception:
+                    pass
+
+            if results:
+                lines.append("")
+                for item in results:
+                    title = item.get("title", "").strip()
+                    url = item.get("url", "").strip()
+                    desc = item.get("description", "").strip()
+                    lines.append(f"- {title}\n  - {url}")
+                    if desc:
+                        lines.append(f"  - {desc}")
+            lines.append("")
 
     # Ensure parent dirs exist
     note_path.parent.mkdir(parents=True, exist_ok=True)

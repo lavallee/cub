@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-m3k.3",
+  "title": "Implement RegistryService",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3k"
+  },
+  "task": {
+    "title": "Implement RegistryService",
+    "description": "RegistryService provides business logic for registry operations - adoption, capability lookup, approval checking.\n\n**Implementation Steps:**\n1. Add `RegistryService` class to `src/cub/core/tools/registry.py`:\n2. Generate version_hash from tool metadata (name, source, description hash)\n\n**Files:** `src/cub/core/tools/registry.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-m3k",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-25T04:16:42.019216Z",
+    "captured_at": "2026-01-25T05:16:07.942603Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-235434",
+      "started_at": "2026-01-25T00:16:07.945904",
+      "completed_at": "2026-01-25T05:21:15.015559Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 307
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T05:21:15.195241Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 307,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6147e709a2cd52b6b95be0ba08877346172b2a0a",
+        "message": "doc: Add learnings from cub-m3k.3 (RegistryService)",
+        "author": "",
+        "timestamp": "2026-01-25T05:21:01Z"
+      },
+      {
+        "hash": "85b7a85d00fde0cede83b485a3b8a6d4198fbc9a",
+        "message": "task(cub-m3k.3): Implement RegistryService",
+        "author": "",
+        "timestamp": "2026-01-25T05:20:21Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T05:21:15.195241Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:16:07.942603Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:21:15.195241Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T05:16:07.942603Z",
+  "completed_at": "2026-01-25T05:21:15.195241Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 307,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "6147e709a2cd52b6b95be0ba08877346172b2a0a",
+      "message": "doc: Add learnings from cub-m3k.3 (RegistryService)",
+      "author": "",
+      "timestamp": "2026-01-25T05:21:01Z"
+    },
+    {
+      "hash": "85b7a85d00fde0cede83b485a3b8a6d4198fbc9a",
+      "message": "task(cub-m3k.3): Implement RegistryService",
+      "author": "",
+      "timestamp": "2026-01-25T05:20:21Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-m3k.3",
+  "epic_id": "cub-m3k",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

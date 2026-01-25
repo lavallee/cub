@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-m3k.4",
+  "title": "Integrate registry with ExecutionService",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3k"
+  },
+  "task": {
+    "title": "Integrate registry with ExecutionService",
+    "description": "ExecutionService needs to look up tool config from registry before execution. This completes the adopt \u2192 execute flow.\n\n**Implementation Steps:**\n1. Update `ExecutionService.__init__` to accept `RegistryService`\n2. Update `execute()` to:\n3. Update `check_ready()` to also verify tool is in registry\n4. Add `ToolNotAdoptedError` to exceptions\n\n**Files:** `src/cub/core/tools/execution.py`, `src/cub/core/tools/exceptions.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-m3k",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-25T04:16:42.019224Z",
+    "captured_at": "2026-01-25T05:21:17.480882Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-235434",
+      "started_at": "2026-01-25T00:21:17.484356",
+      "completed_at": "2026-01-25T05:26:31.894922Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 314
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T05:26:32.073104Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 314,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "8f3c5dcf387ca920ee6ae43a5c4420df08b1a5fe",
+        "message": "task(cub-m3k.4): Integrate registry with ExecutionService",
+        "author": "",
+        "timestamp": "2026-01-25T05:25:30Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T05:26:32.073104Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:21:17.480882Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T05:26:32.073104Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T05:21:17.480882Z",
+  "completed_at": "2026-01-25T05:26:32.073104Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 314,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "8f3c5dcf387ca920ee6ae43a5c4420df08b1a5fe",
+      "message": "task(cub-m3k.4): Integrate registry with ExecutionService",
+      "author": "",
+      "timestamp": "2026-01-25T05:25:30Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-m3k.4",
+  "epic_id": "cub-m3k",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

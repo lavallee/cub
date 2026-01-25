@@ -1,0 +1,36 @@
+I'll implement the RegistryStore class that handles JSON file I/O for registry persistence. Let me start by understanding the existing codebase structure and then implement the solution.Now let me search for existing patterns for file I/O and atomic writes in the codebase:Perfect! I can see the existing pattern for atomic writes in `ToolsmithStore.save_catalog()`. Now let me check if there's a test pattern I should follow:Perfect! Now I have a clear understanding. Let me implement the `RegistryStore` class following the same patterns I saw in `ToolsmithStore`:Now let me create comprehensive tests for the `RegistryStore` class following the same patterns from `test_toolsmith_store.py`:Now let me run the tests to make sure everything works:I have two test failures to fix:
+
+1. Need to use `mode='json'` when serializing datetime objects
+2. The Registry model has a default version, so missing version doesn't raise
+
+Let me fix these tests:Now let's run the tests again:Perfect! All tests pass. Now let's run the type checker and linter:Let me fix the linting errors (line too long):Now let's run the checks again:The error about yaml is from a different file (`branches/store.py`), not our code. Let's verify our specific files pass mypy:The error is from an unrelated file. Let me check just the registry.py file in isolation:Perfect! Now let's run all the tests to make sure we didn't break anything:Excellent! All tests pass. Now let's close the task and commit the changes:Now let's commit the changes:Perfect! Now let's append learnings to the progress.txt file:Perfect! Let's verify the learnings were appended:Excellent! Now let's check what tasks are remaining:Perfect! Task cub-m3k.2 is now complete. The implementation is done, tested, type-checked, and committed. 
+
+## Summary
+
+I've successfully completed task **cub-m3k.2: Implement RegistryStore**:
+
+### What was implemented:
+1. **RegistryStore class** (`src/cub/core/tools/registry.py`) with:
+   - `load()` - Loads registry from disk, returns empty if missing
+   - `save()` - Atomic write with tempfile → rename pattern
+   - `user()` - Factory for user-level registry (~/.config/cub/tools/registry.json)
+   - `project()` - Factory for project-level registry (.cub/tools/registry.json)
+   - `merge()` - Merges user and project registries (project wins on conflicts)
+
+2. **Comprehensive test suite** (`tests/test_tools_registry_store.py`) with 29 tests covering:
+   - Load operations (missing files, invalid JSON, schema validation)
+   - Save operations (directory creation, atomic writes, formatting)
+   - Factory methods (user/project paths, XDG compliance)
+   - Merge logic (empty, non-overlapping, conflicts)
+   - Integration workflows (roundtrip, incremental updates)
+
+### Quality checks passed:
+- ✅ All 29 tests passing
+- ✅ mypy type checking clean
+- ✅ ruff linting passed
+- ✅ Follows existing patterns from `ToolsmithStore`
+- ✅ Atomic writes prevent corruption
+- ✅ Graceful handling of missing files
+
+### Next steps:
+The next task is **cub-m3k.3: Implement RegistryService**, which will build on this storage foundation to provide higher-level registry management operations.

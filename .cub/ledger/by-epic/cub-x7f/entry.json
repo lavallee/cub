@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cub-x7f",
+  "title": "cub-x7f",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-x7f",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-25T04:31:01.299963Z",
+    "captured_at": "2026-01-25T04:31:01.299963Z"
+  },
+  "task_ids": [
+    "cub-x7f.3",
+    "cub-x7f.2",
+    "cub-x7f.5",
+    "cub-x7f.4",
+    "cub-x7f.1"
+  ],
+  "aggregates": {
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 5,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 2163,
+    "avg_duration_seconds": 432,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T04:54:29.775586Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-25T04:18:14.699251Z",
+  "completed_at": "2026-01-25T04:54:29.763181Z",
+  "updated_at": "2026-01-25T04:54:29.775586Z",
+  "first_commit": {
+    "hash": "3aabe2957818f895929d236c83fbeb42e0279c59",
+    "message": "task(cub-x7f.1): Define ToolAdapter Protocol and adapter registry",
+    "author": "",
+    "timestamp": "2026-01-25T04:29:25Z"
+  },
+  "last_commit": {
+    "hash": "36ac13914eca0e2780e0841e9f41a3ae37244cbb",
+    "message": "task(cub-x7f.6): Document test coverage for execution runtime",
+    "author": "",
+    "timestamp": "2026-01-25T04:54:16Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

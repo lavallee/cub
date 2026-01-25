@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-x7f.1",
+  "title": "Define ToolAdapter Protocol and adapter registry",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-x7f"
+  },
+  "task": {
+    "title": "Define ToolAdapter Protocol and adapter registry",
+    "description": "The adapter pattern enables pluggable tool execution backends. Following cub's established patterns (harness/tasks backends), we use a Protocol with decorator-based registration.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/` package with `__init__.py`\n2. Create `src/cub/core/tools/adapter.py` with:\n3. Follow existing patterns from `cub.core.harness.backend` and `cub.core.toolsmith.sources.base`\n\n**Files:** `src/cub/core/tools/__init__.py`, `src/cub/core/tools/adapter.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-x7f",
+      "model:sonnet",
+      "phase-1",
+      "setup"
+    ],
+    "created_at": "2026-01-25T04:16:42.019105Z",
+    "captured_at": "2026-01-25T04:18:14.699251Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-231814",
+      "started_at": "2026-01-24T23:18:14.704304",
+      "completed_at": "2026-01-25T04:31:01.109931Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 766
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T04:31:01.297361Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 766,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "3aabe2957818f895929d236c83fbeb42e0279c59",
+        "message": "task(cub-x7f.1): Define ToolAdapter Protocol and adapter registry",
+        "author": "",
+        "timestamp": "2026-01-25T04:29:25Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T04:31:01.297361Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:18:14.699251Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:31:01.297361Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T04:18:14.699251Z",
+  "completed_at": "2026-01-25T04:31:01.297361Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 766,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "3aabe2957818f895929d236c83fbeb42e0279c59",
+      "message": "task(cub-x7f.1): Define ToolAdapter Protocol and adapter registry",
+      "author": "",
+      "timestamp": "2026-01-25T04:29:25Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x7f.1",
+  "epic_id": "cub-x7f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

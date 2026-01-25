@@ -56,6 +56,9 @@ cub = ["bash/**/*"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-v --strict-markers"
+markers = [
+    "asyncio: mark test as an async test",
+]
 
 [tool.ruff]
 line-length = 100

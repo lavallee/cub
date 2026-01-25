@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-x7f.4",
+  "title": "Implement CLIAdapter",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-x7f"
+  },
+  "task": {
+    "title": "Implement CLIAdapter",
+    "description": "The CLI adapter executes tools via subprocess. This enables integration with command-line tools like `gh`, `jq`, etc.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/adapters/cli.py` with `CLIAdapter` class:\n2. Security: NO `shell=True`, validate/sanitize arguments\n3. Use `subprocess.run()` with `timeout` parameter\n4. Handle `subprocess.TimeoutExpired` gracefully\n\n**Files:** `src/cub/core/tools/adapters/cli.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-x7f",
+      "logic",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-25T04:16:42.019175Z",
+    "captured_at": "2026-01-25T04:43:06.528842Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-231814",
+      "started_at": "2026-01-24T23:43:06.532252",
+      "completed_at": "2026-01-25T04:48:09.630993Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 303
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-25T04:48:09.814152Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 303,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d2072b880d8bcc48be65231fabc57540a9765cd8",
+        "message": "task(cub-x7f.4): Implement CLIAdapter",
+        "author": "",
+        "timestamp": "2026-01-25T04:47:34Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-25T04:48:09.814152Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:43:06.528842Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-25T04:48:09.814152Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-25T04:43:06.528842Z",
+  "completed_at": "2026-01-25T04:48:09.814152Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 303,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d2072b880d8bcc48be65231fabc57540a9765cd8",
+      "message": "task(cub-x7f.4): Implement CLIAdapter",
+      "author": "",
+      "timestamp": "2026-01-25T04:47:34Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x7f.4",
+  "epic_id": "cub-x7f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
