@@ -14,7 +14,7 @@
     "priority": 1,
     "labels": [],
     "created_at": null,
-    "captured_at": "2026-01-25T04:27:50.340020Z"
+    "captured_at": "2026-01-25T06:11:33.707676Z"
   },
   "task_changed": null,
   "attempts": [],
@@ -34,18 +34,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T04:27:50.340020Z"
+    "stage_updated_at": "2026-01-25T06:11:33.707676Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T04:27:50.340020Z",
+      "at": "2026-01-25T06:11:33.707676Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-25T04:27:50.340020Z",
-  "completed_at": "2026-01-25T04:27:50.340020Z",
+  "started_at": "2026-01-25T06:11:33.707676Z",
+  "completed_at": "2026-01-25T06:11:33.707676Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,

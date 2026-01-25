@@ -8806,3 +8806,72 @@ The ExecutionService just needs to call it with the ToolResult.
 - tests/test_tools_metrics.py (created)
 
 ### Tests: All 35 tests pass, mypy clean, ruff clean
+
+---
+
+## 2026-01-25 - cub-r2v.1: Implement MCPStdioAdapter
+
+### Task Completed
+Implemented MCP stdio adapter for JSON-RPC over stdio communication with MCP servers.
+
+### Key Learnings
+
+**1. Process Group Termination for Clean Timeout Handling**
+- Use `start_new_session=True` in `asyncio.create_subprocess_exec()` to create a new process group
+- This allows killing the entire process group on timeout, preventing zombie child processes
+- Pattern: `os.getpgid(process.pid)` to get group ID, then `os.killpg(pgid, signal.SIGKILL)`
+- Always have fallback: if process group kill fails, fall back to `process.kill()` directly
+
+**2. JSON-RPC 2.0 Protocol Handling**
+- Messages are newline-delimited JSON
+- Response must have matching `id` field to correlate with request
+- Error responses have `error` field with `code`, `message`, and optional `data`
+- Standard error codes: -32700 (parse), -32600 (invalid request), -32601 (method not found), -32602 (invalid params), -32603 (internal)
+- Server errors use range -32099 to -32000
+
+**3. Multiline Response Handling**
+- MCP servers may output multiple JSON objects (e.g., initialization messages + actual response)
+- Parse each line separately and look for response with matching request ID
+- Fallback: if no matching ID found, use the last valid JSON object
+
+**4. Async Subprocess Communication Pattern**
+- Use `process.stdin.write()` then `drain()` then `close()` then `wait_closed()` for clean input
+- Signal end of input by closing stdin before reading response
+- Use `asyncio.wait_for()` with timeout around the communication, not the process creation
+- Capture both stdout (JSON-RPC response) and stderr (debugging info, not exposed to user)
+
+**5. Error Classification Strategy**
+- Classify JSON-RPC error codes into cub error types (validation, execution, protocol, unknown)
+- Protocol errors: parse errors, empty responses, invalid JSON
+- Validation errors: method not found, invalid params, invalid request
+- Execution errors: internal server errors, server-specific errors
+- Always include raw output in metadata for debugging when parsing fails
+
+**6. Testing MCP Adapters**
+- Mock the entire subprocess lifecycle: stdin (write, drain, close, wait_closed), stdout/stderr (read)
+- Capture the written request to extract the generated ID for matching in response
+- Test multiline responses, error responses, empty responses, invalid JSON
+- Test process group termination on timeout (mock os.getpgid, os.killpg)
+- Total: 30 tests covering all error paths and success scenarios
+
+### Implementation Summary
+
+**Files Created:**
+- `src/cub/core/tools/adapters/mcp_stdio.py` (~500 lines)
+  - MCPStdioAdapter class with full Protocol implementation
+  - JSON-RPC request/response handling
+  - Process lifecycle management with clean termination
+  - Error classification for protocol errors
+
+- `tests/test_tools_mcp_stdio_adapter.py` (~600 lines)
+  - 30 comprehensive tests
+  - Full coverage of execute, helpers, integration patterns
+
+**Files Modified:**
+- `src/cub/core/tools/adapters/__init__.py` (exports MCPStdioAdapter)
+
+### Quality Metrics
+
+- Tests: 30/30 passing (462 total tools tests pass)
+- Type Checking: mypy --strict passes on entire tools module (11 files)
+- Linting: ruff passes with no errors

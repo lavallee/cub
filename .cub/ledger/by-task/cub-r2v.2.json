@@ -1,39 +1,30 @@
 {
   "version": 1,
-  "id": "cub-specific",
-  "title": "Specific task",
+  "id": "cub-r2v.2",
+  "title": "Add JSON-RPC helpers",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
-    "epic_id": null
+    "epic_id": "cub-r2v"
   },
   "task": {
-    "title": "Specific task",
-    "description": "",
+    "title": "Add JSON-RPC helpers",
+    "description": "JSON-RPC message formatting and parsing extracted to helpers for reuse and testing.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/jsonrpc.py`:\n2. Validate JSON-RPC 2.0 format\n3. Handle malformed responses gracefully\n\n**Files:** `src/cub/core/tools/jsonrpc.py`",
     "type": "task",
     "priority": 1,
-    "labels": [],
-    "created_at": null,
-    "captured_at": "2026-01-25T06:11:33.623553Z"
+    "labels": [
+      "complexity:low",
+      "epic:cub-r2v",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-25T04:16:42.019299Z",
+    "captured_at": "2026-01-25T06:02:25.671249Z"
   },
   "task_changed": null,
   "attempts": [],
-  "outcome": {
-    "success": true,
-    "partial": false,
-    "completed_at": "2026-01-25T06:11:33.640075Z",
-    "total_cost_usd": 0.0,
-    "total_attempts": 0,
-    "total_duration_seconds": 0,
-    "final_model": "sonnet",
-    "escalated": false,
-    "escalation_path": [],
-    "files_changed": [],
-    "commits": [],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
-  },
+  "outcome": null,
   "drift": {
     "additions": [],
     "omissions": [],
@@ -49,24 +40,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T06:11:33.640075Z"
+    "stage_updated_at": "2026-01-25T06:02:25.671249Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T06:11:33.623553Z",
+      "at": "2026-01-25T06:02:25.671249Z",
       "by": "cub-run",
       "reason": "Task execution started"
-    },
-    {
-      "stage": "dev_complete",
-      "at": "2026-01-25T06:11:33.640075Z",
-      "by": "cub-run",
-      "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-25T06:11:33.623553Z",
-  "completed_at": "2026-01-25T06:11:33.640075Z",
+  "started_at": "2026-01-25T06:02:25.671249Z",
+  "completed_at": "2026-01-25T06:02:25.671249Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -82,8 +67,8 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-specific",
-  "epic_id": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r2v.2",
+  "epic_id": "cub-r2v",
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "",

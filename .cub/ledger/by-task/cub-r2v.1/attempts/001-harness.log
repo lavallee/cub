@@ -1,0 +1,48 @@
+Let me first understand the project structure and existing patterns by searching the codebase:Now let me read the existing adapters and models to understand the exact patterns:Now let me also check the http.py adapter to see how it handles retries and the full pattern, and check for any existing tests:Let me read the existing tests to understand the testing patterns:Let me read the progress.txt and check for any AGENT.md:Now I have a clear understanding of the project patterns. Let me search for any MCP-specific documentation or JSON-RPC patterns that might be helpful:Let me check the task details and the architecture file to understand MCP better:Let me check the architecture doc for more details on the MCP adapter design:Now I have a complete understanding. Let me implement the MCPStdioAdapter. The key requirements are:
+
+1. Spawn MCP server process
+2. Send JSON-RPC request via stdin
+3. Read JSON-RPC response from stdout
+4. Kill process after response or timeout
+5. Handle MCP protocol errors (JSON-RPC error field)
+6. Capture stderr for debugging (don't expose to user)Now let me update the adapters `__init__.py` to export the new adapter:Now let me write comprehensive tests for the MCPStdioAdapter:Now let me run the feedback loops to ensure everything works:All 30 tests pass. Now let's run linting:Now let's run the broader test suite to make sure we didn't break anything:Excellent! All 462 tests pass. Let's also run a quick type check on the whole tools module to make sure everything integrates correctly:All checks pass. Let me update the progress and close the task:Now let me commit the changes:Now let me append learnings to progress.txt:Now let me check if there are any remaining open tasks:I see there are more tasks in the cub-r2v epic. Let me verify my task is closed and check the status:The task is closed. The other tasks in the epic (cub-r2v.2, cub-r2v.3, cub-r2v.4) appear to be additional sub-tasks that were planned but may be redundant now since my implementation already included:
+
+- JSON-RPC helpers (built into `_build_jsonrpc_request`, `_parse_jsonrpc_response`, `_classify_jsonrpc_error`)
+- Process management utilities (built into `_kill_process_group`, `_ensure_process_terminated`, `_communicate_jsonrpc`)
+- Tests (30 comprehensive tests)
+
+These were all done as part of the main implementation task. The system shows my task (cub-r2v.1) is complete.## Summary
+
+I've successfully implemented the MCPStdioAdapter for task cub-r2v.1. Here's what was done:
+
+### Implementation
+
+**`src/cub/core/tools/adapters/mcp_stdio.py`** - The complete MCP stdio adapter with:
+- JSON-RPC 2.0 protocol handling (request building, response parsing)
+- Spawn-per-call process model (no persistent servers)
+- Timeout handling with process group termination (using `start_new_session=True` and `os.killpg()`)
+- Stderr capture for debugging (not exposed to users)
+- Comprehensive error handling and classification:
+  - Protocol errors (parse errors, empty responses, invalid JSON)
+  - Validation errors (method not found, invalid params)
+  - Execution errors (internal server errors)
+  - Timeout errors
+- Environment variable injection from MCPConfig
+- Multiline response handling for MCP servers that output multiple messages
+
+**`tests/test_tools_mcp_stdio_adapter.py`** - 30 comprehensive tests covering:
+- Basic adapter properties and health checks
+- Successful execution with JSON-RPC responses
+- Error handling (missing config, timeout, command not found, JSON-RPC errors)
+- Empty and invalid JSON responses
+- Environment variable handling
+- Multiline response handling
+- Helper method testing (env building, request building, error classification, markdown generation)
+- Full integration workflow test
+
+**`src/cub/core/tools/adapters/__init__.py`** - Updated to export MCPStdioAdapter
+
+### Quality Verification
+- ✅ mypy --strict: No issues found in 11 source files
+- ✅ pytest: 30/30 new tests pass, 462 total tools tests pass
+- ✅ ruff: All checks passed
