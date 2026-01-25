@@ -1,0 +1,55 @@
+{
+  "id": "cub-r4n.4",
+  "title": "Update cub monitor for session reading",
+  "started_at": null,
+  "completed_at": "2026-01-24T16:31:11.122608",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 193,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "ee370b70a4a58f92f6b9d6201c5218595b9b1db1",
+      "message": "task(cub-r4n.4): Update cub monitor for session reading",
+      "timestamp": "2026-01-24T16:30:44-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/runs/cub-20260124-161721/tasks/cub-r4n.4",
+  "epic_id": "cub-r4n",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Update cub monitor for session reading",
+    "description": "`cub monitor` displays live progress. It should read the active session via the symlink rather than any previous mechanism.\n\n**Implementation Steps:**\n1. Import RunSessionManager in `cli/monitor.py`\n2. Use `get_active_session()` to check if a run is active\n3. Display session info: run_id, harness, tasks_completed, budget usage\n4. Handle case where no active session (show \"No active run\")\n5. Add refresh logic to poll session file for updates\n\n**Files:** `src/cub/cli/monitor.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-r4n",
+      "model:sonnet",
+      "phase-1",
+      "ui"
+    ],
+    "created_at": "2026-01-24T21:12:34.037156Z",
+    "captured_at": "2026-01-25T00:39:35.298305Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r4n"
+  }
+}

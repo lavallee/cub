@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Ship default view configurations",
+    "description": "Ship three default views as both built-in Python dicts and as example YAML files users can copy/modify.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/views/defaults.py`:\n2. Create example files in `src/cub/dashboard/examples/`:\n3. Add `cub dashboard init` command that copies examples to `.cub/views/`\n4. Document view configuration format\n\n**Files:** `src/cub/core/dashboard/views/defaults.py`, `src/cub/dashboard/examples/*.yaml`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "config",
+      "model:haiku",
+      "views"
+    ],
+    "created_at": "2026-01-23T18:13:28.809843Z",
+    "captured_at": "2026-01-25T00:39:38.581914Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p9w"
+  }
 }

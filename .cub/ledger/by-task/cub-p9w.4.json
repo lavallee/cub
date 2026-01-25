@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement cub dashboard views command",
+    "description": "List available views from the CLI without starting the server.\n\n**Implementation Steps:**\n1. Update `src/cub/cli/dashboard.py`:\n2. Implementation:\n3. Add tests\n\n**Files:** `src/cub/cli/dashboard.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cli",
+      "complexity:low",
+      "model:haiku"
+    ],
+    "created_at": "2026-01-23T18:13:28.809861Z",
+    "captured_at": "2026-01-25T00:39:37.276314Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p9w"
+  }
 }

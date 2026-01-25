@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "the view switcher doesn\u2019t work. it just says...",
+    "description": "the view switcher doesn\u2019t work. it just says \u201cAPI request failed: Not Found\u201d",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:20.925824-05:00",
+    "captured_at": "2026-01-25T00:39:34.736281Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

@@ -23,7 +23,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 import yaml
 
 from cub.core.dashboard.db.models import DashboardEntity, EntityType, Stage

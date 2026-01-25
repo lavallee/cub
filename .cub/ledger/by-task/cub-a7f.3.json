@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement /api/views endpoint",
+    "description": "The views endpoint lists available view configurations for the view switcher UI.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/api/routes/views.py`\n2. Implement `GET /api/views`:\n3. Register route in app\n4. Add tests\n\n**Files:** `src/cub/core/dashboard/api/routes/views.py`, `tests/test_api_views.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:low",
+      "model:haiku"
+    ],
+    "created_at": "2026-01-23T18:13:28.809743Z",
+    "captured_at": "2026-01-25T00:39:35.449386Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a7f"
+  }
 }

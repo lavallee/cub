@@ -28,7 +28,7 @@ Usage:
 
 # Import backends to trigger registration
 from . import (
-    claude,  # noqa: F401
+    claude_cli,  # noqa: F401
     claude_sdk,  # noqa: F401
     codex,  # noqa: F401
 )

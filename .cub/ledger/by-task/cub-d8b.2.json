@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-d8b.2",
+  "title": "Register parser and update resolver",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d8b"
+  },
+  "task": {
+    "title": "Register parser and update resolver",
+    "description": "The LedgerParser needs to be registered in SyncOrchestrator and relationships need to be resolved.\n\n**Implementation Steps:**\n1. Update `src/cub/core/dashboard/sync/orchestrator.py`: import LedgerParser, add to parser list\n2. Update `src/cub/core/dashboard/db/models.py`: add TASK_TO_LEDGER to RelationshipType, add LEDGER to EntityType\n3. Update `src/cub/core/dashboard/sync/resolver.py`: add ledger relationship resolution, enrich tasks with ledger data\n\n**Files:** `src/cub/core/dashboard/sync/orchestrator.py`, `src/cub/core/dashboard/sync/resolver.py`, `src/cub/core/dashboard/db/models.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-d8b",
+      "logic",
+      "model:sonnet",
+      "phase-5"
+    ],
+    "created_at": "2026-01-24T21:12:34.037315Z",
+    "captured_at": "2026-01-24T22:31:14.681902Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-172651",
+      "started_at": "2026-01-24T17:31:14.684076",
+      "completed_at": "2026-01-24T22:33:04.088981Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 109
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:33:04.317860Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 109,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "1d5efdc7af611d4431fa1e452db94a0e7f4579df",
+        "message": "task(cub-d8b.2): Register parser and update resolver",
+        "timestamp": "2026-01-24T17:32:44-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:33:04.317860Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:31:14.681902Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:33:04.317860Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:31:14.681902Z",
+  "completed_at": "2026-01-24T22:33:04.317860Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 109,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "1d5efdc7af611d4431fa1e452db94a0e7f4579df",
+      "message": "task(cub-d8b.2): Register parser and update resolver",
+      "timestamp": "2026-01-24T17:32:44-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-d8b.2",
+  "epic_id": "cub-d8b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

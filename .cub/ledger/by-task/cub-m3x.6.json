@@ -23,5 +23,25 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Add loading states, error states, and keyboard navigation",
+    "description": "Polish the UI with proper loading indicators, error handling, and keyboard shortcuts.\n\n**Implementation Steps:**\n1. Create loading skeleton components:\n2. Create error boundary and error display:\n3. Add keyboard navigation:\n4. Add empty state for columns with no entities\n\n**Files:** Various frontend components",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "polish",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809824Z",
+    "captured_at": "2026-01-25T00:39:34.522261Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3x"
+  }
 }

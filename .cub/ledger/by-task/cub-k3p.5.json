@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Implement SkillsMP source adapter",
+    "description": "## Context\nImplement the source adapter for skillsmp.com, a Claude skills marketplace. This is the first SKILL type source (vs MCP_SERVER).\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 2h\n**Approach:** Inspect skillsmp.com to find API endpoints or scrape listings.\n\n## Implementation Steps\n1. Create `src/cub/core/toolsmith/sources/skillsmp.py`\n2. Research skillsmp.com structure (inspect network requests, look for API)\n3. Implement `SkillsMPSource` class implementing `ToolSource`\n4. Fetch skill list from API or scrape listing pages\n5. Transform each entry to `Tool` model with tool_type=SKILL\n6. Implement `search_live()`\n7. Create test fixture with sample response\n8. Write tests for parsing logic\n\n## Acceptance Criteria\n- [ ] `SkillsMPSource` is registered as \"skillsmp\"\n- [ ] `fetch_tools()` returns list of Tool objects\n- [ ] Each Tool has: id, name, source=\"skillsmp\", source_url, tool_type=SKILL\n- [ ] `search_live()` searches skills by query\n- [ ] Handles network errors gracefully\n- [ ] Test with fixture verifies parsing\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/core/toolsmith/sources/skillsmp.py` (new)\n- `tests/test_toolsmith/test_sources/test_skillsmp.py` (new)\n- `tests/test_toolsmith/fixtures/skillsmp_response.html` or `.json` (new)\n\n## Notes\n- First SKILL type source - ensure tool_type is set correctly\n- Tool ID format: `skillsmp:{skill-slug}`\n- Install hint might be `claude skill add {name}` or similar",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "api",
+      "complexity:medium",
+      "epic:cub-k3p",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:38.657069Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k3p"
+  }
 }

@@ -25,7 +25,7 @@ pytest.importorskip("claude_agent_sdk")
 
 
 from cub.core.harness.claude_sdk import (
-    ClaudeSDKHarness,
+    ClaudeSDKBackend,
     _build_options,
     _cli_available,
     _extract_text_from_message,
@@ -35,17 +35,17 @@ from cub.core.harness.claude_sdk import (
 )
 
 
-class TestClaudeSDKHarness:
-    """Tests for ClaudeSDKHarness class."""
+class TestClaudeSDKBackend:
+    """Tests for ClaudeSDKBackend class."""
 
     def test_name(self) -> None:
         """Test backend name is 'claude'."""
-        harness = ClaudeSDKHarness()
-        assert harness.name == "claude"
+        harness = ClaudeSDKBackend()
+        assert harness.name == "claude-sdk"
 
     def test_capabilities(self) -> None:
         """Test Claude SDK supports all capabilities."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         caps = harness.capabilities
 
         assert caps.streaming is True
@@ -62,7 +62,7 @@ class TestClaudeSDKHarness:
 
     def test_supports_feature_all(self) -> None:
         """Test supports_feature returns True for all features."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         for feature in HarnessFeature:
             assert harness.supports_feature(feature) is True
@@ -74,7 +74,7 @@ class TestClaudeSDKHarness:
         mock_sdk.return_value = True
         mock_cli.return_value = True
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         assert harness.is_available() is True
 
     @patch("cub.core.harness.claude_sdk._sdk_available")
@@ -84,7 +84,7 @@ class TestClaudeSDKHarness:
         mock_sdk.return_value = False
         mock_cli.return_value = True
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         assert harness.is_available() is False
 
     @patch("cub.core.harness.claude_sdk._sdk_available")
@@ -94,7 +94,7 @@ class TestClaudeSDKHarness:
         mock_sdk.return_value = True
         mock_cli.return_value = False
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         assert harness.is_available() is False
 
     @patch("subprocess.run")
@@ -105,7 +105,7 @@ class TestClaudeSDKHarness:
         mock_result.stdout = "Claude Code 1.2.3\n"
         mock_run.return_value = mock_result
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         version = harness.get_version()
 
         assert version == "Claude Code 1.2.3"
@@ -115,7 +115,7 @@ class TestClaudeSDKHarness:
         """Test get_version returns 'unknown' on error."""
         mock_run.side_effect = FileNotFoundError("claude not found")
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
         version = harness.get_version()
 
         assert version == "unknown"
@@ -369,7 +369,7 @@ class TestBackendRegistry:
         # This may fail if SDK or CLI not available, which is fine
         try:
             backend = get_async_backend("claude")
-            assert backend.name == "claude"
+            assert backend.name == "claude-sdk"
         except ValueError:
             # Expected if harness not available
             pass
@@ -381,7 +381,7 @@ class TestRunTask:
     @pytest.mark.asyncio
     async def test_run_task_not_available(self) -> None:
         """Test run_task raises when harness not available."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         with patch.object(harness, "is_available", return_value=False):
             task_input = TaskInput(prompt="Hello")
@@ -394,7 +394,7 @@ class TestRunTask:
         """Test run_task handles CLINotFoundError."""
         from claude_agent_sdk import CLINotFoundError
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         async def mock_query(*args: Any, **kwargs: Any) -> Any:
             raise CLINotFoundError("Claude not found")
@@ -416,7 +416,7 @@ class TestRunTask:
         from claude_agent_sdk import AssistantMessage, ResultMessage
         from claude_agent_sdk.types import TextBlock
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         # Create mock messages
         messages = [
@@ -460,7 +460,7 @@ class TestStreamTask:
     @pytest.mark.asyncio
     async def test_stream_task_not_available(self) -> None:
         """Test stream_task raises when harness not available."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         with patch.object(harness, "is_available", return_value=False):
             task_input = TaskInput(prompt="Hello")
@@ -475,7 +475,7 @@ class TestStreamTask:
         from claude_agent_sdk import AssistantMessage
         from claude_agent_sdk.types import TextBlock
 
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         messages = [
             AssistantMessage(
@@ -520,7 +520,7 @@ class TestIntegration:
     @pytest.mark.asyncio
     async def test_run_task_real(self) -> None:
         """Test run_task with real SDK execution."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         if not harness.is_available():
             pytest.skip("Claude SDK or CLI not available")
@@ -539,7 +539,7 @@ class TestIntegration:
     @pytest.mark.asyncio
     async def test_stream_task_real(self) -> None:
         """Test stream_task with real SDK execution."""
-        harness = ClaudeSDKHarness()
+        harness = ClaudeSDKBackend()
 
         if not harness.is_available():
             pytest.skip("Claude SDK or CLI not available")

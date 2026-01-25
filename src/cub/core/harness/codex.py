@@ -376,12 +376,13 @@ class CodexBackend:
         Returns:
             True if feature is supported
         """
-        # Codex supports these features
+        # Codex supports these features + analysis
         supported = {
             HarnessFeature.STREAMING,
             HarnessFeature.AUTO_MODE,
             HarnessFeature.JSON_OUTPUT,
             HarnessFeature.MODEL_SELECTION,
+            HarnessFeature.ANALYSIS,  # Read-only analysis via prompts
         }
         return feature in supported
 
@@ -493,3 +494,157 @@ class CodexBackend:
             "Hook registration ignored: harness '%s' does not support hooks.",
             self.name,
         )
+
+    async def analyze(
+        self,
+        context: str,
+        files_content: dict[str, str] | None = None,
+        analysis_type: str = "implementation_review",
+        model: str | None = None,
+    ) -> TaskResult:
+        """
+        Run LLM-based analysis without modifying files.
+
+        Uses run_task() internally with a specialized system prompt
+        that instructs the LLM to analyze without making changes.
+
+        Args:
+            context: Context about what to analyze
+            files_content: Dict mapping file paths to contents
+            analysis_type: Type of analysis to perform
+            model: Optional model override
+
+        Returns:
+            TaskResult with analysis text in output field
+        """
+        # Build analysis prompt
+        system_prompt = self._build_analysis_system_prompt(analysis_type)
+        user_prompt = self._build_analysis_user_prompt(context, files_content, analysis_type)
+
+        # Create task input with read-only settings
+        task_input = TaskInput(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model=model,
+            auto_approve=True,
+        )
+
+        return await self.run_task(task_input)
+
+    def _build_analysis_system_prompt(self, analysis_type: str) -> str:
+        """Build system prompt for analysis based on type."""
+        base_prompt = """You are a code review assistant providing actionable feedback for follow-up work.
+
+IMPORTANT RULES:
+1. This is a READ-ONLY analysis. Do NOT suggest using any tools to modify files.
+2. Do NOT attempt to run commands, create files, or make changes.
+3. Focus on providing ACTIONABLE guidance for whoever will fix these issues.
+4. Distinguish between issues with CLEAR FIXES vs issues that NEED DECISIONS.
+"""
+
+        type_prompts = {
+            "implementation_review": """
+Your goal is to compare implementation against the spec/plan/task and provide actionable follow-up guidance.
+
+For each issue you find, determine:
+1. Is the fix CLEAR from the spec/plan/task? → Provide specific fix instructions
+2. Does this raise a QUESTION that needs human decision? → Flag for clarification
+
+FORMAT YOUR RESPONSE WITH THESE SECTIONS:
+
+## Summary
+Brief overview: what percentage complete, major gaps, overall quality.
+
+## Fix Now (Clear Remedies)
+Issues where the correct fix is obvious from the spec/plan/task.
+Format each as:
+[SEVERITY] **Issue**: Description of what's wrong
+**Expected**: What the spec/plan/task specified
+**Fix**: Specific steps to resolve (be concrete - file names, function names, what to add/change)
+
+## Needs Decision (Questions to Resolve)
+Issues where implementation differs from spec in ways that might be intentional, or where the spec is ambiguous.
+Format each as:
+[WARNING] **Drift**: Description of the deviation
+**Question**: What needs to be decided
+**Options**: Possible resolutions and their trade-offs
+
+## Verification Checklist
+Concrete checks the follow-up work should pass:
+- [ ] Specific test or validation to perform
+- [ ] File/function that should exist
+- [ ] Behavior that should be observable
+""",
+            "code_quality": """
+Your goal is to analyze code quality and provide actionable improvement guidance.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Brief quality assessment with specific metrics if observable.
+
+## Fix Now (Clear Issues)
+Issues with obvious fixes. Format:
+[SEVERITY] **Issue**: What's wrong
+**Fix**: Specific remediation steps
+
+## Consider (Trade-off Decisions)
+Issues that involve trade-offs or architectural choices. Format:
+[INFO] **Observation**: What you noticed
+**Trade-off**: Why this might be intentional vs problematic
+**Recommendation**: Suggested approach if they decide to address it
+
+## Verification Checklist
+- [ ] Specific quality checks to run
+- [ ] Tests to add or verify
+""",
+            "spec_gap": """
+Your goal is to find gaps between spec and implementation, categorizing each by actionability.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Alignment score (0-100%) and key findings.
+
+## Missing from Implementation (Fix Required)
+Features in spec but not in code. Format:
+[SEVERITY] **Gap**: What's missing
+**Spec Reference**: Where this was specified
+**Implementation Path**: Suggested approach to add it
+
+## Implementation Drift (Decision Required)
+Features in code but not in spec, or behavioral differences. Format:
+[WARNING] **Drift**: What differs
+**Question**: Keep, remove, or update spec?
+**Impact**: What changes if each option is chosen
+
+## Alignment Checklist
+- [ ] Specific spec requirements to verify
+- [ ] Behaviors to test
+""",
+        }
+
+        return base_prompt + type_prompts.get(
+            analysis_type, type_prompts["implementation_review"]
+        )
+
+    def _build_analysis_user_prompt(
+        self,
+        context: str,
+        files_content: dict[str, str] | None,
+        analysis_type: str,
+    ) -> str:
+        """Build user prompt with context and file contents."""
+        parts = [f"# Analysis Request\n\n{context}"]
+
+        if files_content:
+            parts.append("\n\n# Files to Analyze\n")
+            for path, content in files_content.items():
+                # Truncate very large files
+                if len(content) > 50000:
+                    content = content[:50000] + "\n... [truncated]"
+                parts.append(f"\n## {path}\n```\n{content}\n```\n")
+
+        parts.append(f"\n\nPlease perform a {analysis_type.replace('_', ' ')} analysis.")
+
+        return "".join(parts)

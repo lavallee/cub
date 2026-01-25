@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Add Rich formatting for CLI output",
+    "description": "## Context\nEnhance CLI output with Rich tables, colors, and formatting for better user experience.\n\n## Implementation Hints\n\n**Recommended Model:** haiku\n**Estimated Duration:** 1h\n**Approach:** Use Rich Table, Panel, and styling for structured output.\n\n## Implementation Steps\n1. Update `src/cub/cli/toolsmith.py`\n2. Create Rich Table for search results (columns: name, source, type, description)\n3. Create Rich Table for stats (sources, counts, last sync)\n4. Add color coding (green for success, yellow for warnings, red for errors)\n5. Add Panel for individual tool details in search output\n6. Add progress bar/spinner for sync operation\n\n## Acceptance Criteria\n- [ ] Search results display in formatted table\n- [ ] Tool descriptions are truncated if too long\n- [ ] Stats display in formatted table\n- [ ] Sync shows progress indicator\n- [ ] Success/warning/error messages are color-coded\n- [ ] Output is readable on standard terminal widths\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/cli/toolsmith.py` (modify)\n\n## Notes\n- Follow Rich patterns from other Cub CLI commands\n- Use `console.print()` consistently\n- Test output width handling for long descriptions\n- Consider `--json` flag for machine-readable output (future)",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cli",
+      "complexity:low",
+      "epic:cub-q2w",
+      "model:haiku",
+      "phase-4"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:35.521481Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2w"
+  }
 }

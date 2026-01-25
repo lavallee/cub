@@ -1,12 +1,11 @@
 """
-Claude Code harness backend implementation (legacy shell-out).
+Claude Code harness backend implementation (CLI shell-out).
 
 This backend wraps the `claude` CLI tool for AI coding assistance with full
 streaming support, token reporting, and model selection.
 
-DEPRECATED: Use the SDK-based harness (claude_sdk.py) for new code.
-This legacy harness is provided for backward compatibility and will be
-removed in a future version.
+Use 'claude-cli' to explicitly select this backend, or 'claude-sdk' for the
+SDK-based harness. The alias 'claude' defaults to 'claude-sdk'.
 """
 
 import asyncio
@@ -16,7 +15,6 @@ import os
 import shutil
 import subprocess
 import time
-import warnings
 from collections.abc import AsyncIterator, Callable
 
 from .async_backend import register_async_backend
@@ -35,14 +33,15 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
-@register_backend("claude-legacy")
-@register_async_backend("claude-legacy")
-class ClaudeLegacyBackend:
+@register_backend("claude-cli")
+@register_async_backend("claude-cli")
+class ClaudeCLIBackend:
     """
-    Claude Code legacy harness backend (shell-out).
+    Claude Code CLI harness backend (shell-out).
 
-    DEPRECATED: Use ClaudeSDKBackend for new code. This legacy harness
-    wraps the `claude` CLI tool with async compatibility via asyncio.to_thread().
+    Wraps the `claude` CLI tool with async compatibility via asyncio.to_thread().
+    For SDK features like hooks, custom tools, and stateful sessions, use
+    ClaudeSDKBackend (harness='claude-sdk' or 'claude').
 
     Features:
     - Full streaming support via --output-format stream-json
@@ -54,19 +53,13 @@ class ClaudeLegacyBackend:
     """
 
     def __init__(self) -> None:
-        """Initialize and emit deprecation warning."""
-        warnings.warn(
-            "ClaudeLegacyBackend is deprecated. Use ClaudeSDKBackend (harness='claude') "
-            "for SDK features like hooks, custom tools, and stateful sessions. "
-            "Legacy harness will be removed in a future version.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        """Initialize the CLI backend."""
+        pass
 
     @property
     def name(self) -> str:
-        """Return 'claude-legacy' as the harness name."""
-        return "claude-legacy"
+        """Return 'claude-cli' as the harness name."""
+        return "claude-cli"
 
     @property
     def capabilities(self) -> HarnessCapabilities:
@@ -173,7 +166,7 @@ class ClaudeLegacyBackend:
                         output_tokens=usage_data.get("output_tokens", 0),
                         cache_read_tokens=usage_data.get("cache_read_input_tokens", 0),
                         cache_creation_tokens=usage_data.get("cache_creation_input_tokens", 0),
-                        cost_usd=output_json.get("cost_usd"),
+                        cost_usd=output_json.get("total_cost_usd"),
                         estimated=False,
                     )
 
@@ -321,7 +314,8 @@ class ClaudeLegacyBackend:
 
                     elif event_type == "result":
                         # Extract cost from result event
-                        cost = event.get("cost_usd")
+                        # Claude outputs total_cost_usd, not cost_usd
+                        cost = event.get("total_cost_usd")
                         if cost is not None:
                             final_cost = cost
 
@@ -395,7 +389,7 @@ class ClaudeLegacyBackend:
         Returns:
             True if feature is supported
         """
-        # Legacy harness supports basic shell-out features
+        # Legacy harness supports basic shell-out features + analysis
         supported = {
             HarnessFeature.STREAMING,
             HarnessFeature.TOKEN_REPORTING,
@@ -403,6 +397,7 @@ class ClaudeLegacyBackend:
             HarnessFeature.AUTO_MODE,
             HarnessFeature.JSON_OUTPUT,
             HarnessFeature.MODEL_SELECTION,
+            HarnessFeature.ANALYSIS,  # Read-only analysis via prompts
         }
         return feature in supported
 
@@ -519,3 +514,157 @@ class ClaudeLegacyBackend:
             "Use harness='claude' for SDK-based hook support.",
             self.name,
         )
+
+    async def analyze(
+        self,
+        context: str,
+        files_content: dict[str, str] | None = None,
+        analysis_type: str = "implementation_review",
+        model: str | None = None,
+    ) -> TaskResult:
+        """
+        Run LLM-based analysis without modifying files.
+
+        Uses run_task() internally with a specialized system prompt
+        that instructs the LLM to analyze without making changes.
+
+        Args:
+            context: Context about what to analyze
+            files_content: Dict mapping file paths to contents
+            analysis_type: Type of analysis to perform
+            model: Optional model override (defaults to 'sonnet')
+
+        Returns:
+            TaskResult with analysis text in output field
+        """
+        # Build analysis prompt
+        system_prompt = self._build_analysis_system_prompt(analysis_type)
+        user_prompt = self._build_analysis_user_prompt(context, files_content, analysis_type)
+
+        # Create task input with read-only settings
+        task_input = TaskInput(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model=model or "sonnet",
+            auto_approve=True,
+        )
+
+        return await self.run_task(task_input)
+
+    def _build_analysis_system_prompt(self, analysis_type: str) -> str:
+        """Build system prompt for analysis based on type."""
+        base_prompt = """You are a code review assistant providing actionable feedback for follow-up work.
+
+IMPORTANT RULES:
+1. This is a READ-ONLY analysis. Do NOT suggest using any tools to modify files.
+2. Do NOT attempt to run commands, create files, or make changes.
+3. Focus on providing ACTIONABLE guidance for whoever will fix these issues.
+4. Distinguish between issues with CLEAR FIXES vs issues that NEED DECISIONS.
+"""
+
+        type_prompts = {
+            "implementation_review": """
+Your goal is to compare implementation against the spec/plan/task and provide actionable follow-up guidance.
+
+For each issue you find, determine:
+1. Is the fix CLEAR from the spec/plan/task? → Provide specific fix instructions
+2. Does this raise a QUESTION that needs human decision? → Flag for clarification
+
+FORMAT YOUR RESPONSE WITH THESE SECTIONS:
+
+## Summary
+Brief overview: what percentage complete, major gaps, overall quality.
+
+## Fix Now (Clear Remedies)
+Issues where the correct fix is obvious from the spec/plan/task.
+Format each as:
+[SEVERITY] **Issue**: Description of what's wrong
+**Expected**: What the spec/plan/task specified
+**Fix**: Specific steps to resolve (be concrete - file names, function names, what to add/change)
+
+## Needs Decision (Questions to Resolve)
+Issues where implementation differs from spec in ways that might be intentional, or where the spec is ambiguous.
+Format each as:
+[WARNING] **Drift**: Description of the deviation
+**Question**: What needs to be decided
+**Options**: Possible resolutions and their trade-offs
+
+## Verification Checklist
+Concrete checks the follow-up work should pass:
+- [ ] Specific test or validation to perform
+- [ ] File/function that should exist
+- [ ] Behavior that should be observable
+""",
+            "code_quality": """
+Your goal is to analyze code quality and provide actionable improvement guidance.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Brief quality assessment with specific metrics if observable.
+
+## Fix Now (Clear Issues)
+Issues with obvious fixes. Format:
+[SEVERITY] **Issue**: What's wrong
+**Fix**: Specific remediation steps
+
+## Consider (Trade-off Decisions)
+Issues that involve trade-offs or architectural choices. Format:
+[INFO] **Observation**: What you noticed
+**Trade-off**: Why this might be intentional vs problematic
+**Recommendation**: Suggested approach if they decide to address it
+
+## Verification Checklist
+- [ ] Specific quality checks to run
+- [ ] Tests to add or verify
+""",
+            "spec_gap": """
+Your goal is to find gaps between spec and implementation, categorizing each by actionability.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Alignment score (0-100%) and key findings.
+
+## Missing from Implementation (Fix Required)
+Features in spec but not in code. Format:
+[SEVERITY] **Gap**: What's missing
+**Spec Reference**: Where this was specified
+**Implementation Path**: Suggested approach to add it
+
+## Implementation Drift (Decision Required)
+Features in code but not in spec, or behavioral differences. Format:
+[WARNING] **Drift**: What differs
+**Question**: Keep, remove, or update spec?
+**Impact**: What changes if each option is chosen
+
+## Alignment Checklist
+- [ ] Specific spec requirements to verify
+- [ ] Behaviors to test
+""",
+        }
+
+        return base_prompt + type_prompts.get(
+            analysis_type, type_prompts["implementation_review"]
+        )
+
+    def _build_analysis_user_prompt(
+        self,
+        context: str,
+        files_content: dict[str, str] | None,
+        analysis_type: str,
+    ) -> str:
+        """Build user prompt with context and file contents."""
+        parts = [f"# Analysis Request\n\n{context}"]
+
+        if files_content:
+            parts.append("\n\n# Files to Analyze\n")
+            for path, content in files_content.items():
+                # Truncate very large files
+                if len(content) > 50000:
+                    content = content[:50000] + "\n... [truncated]"
+                parts.append(f"\n## {path}\n```\n{content}\n```\n")
+
+        parts.append(f"\n\nPlease perform a {analysis_type.replace('_', ' ')} analysis.")
+
+        return "".join(parts)

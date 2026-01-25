@@ -127,6 +127,40 @@ class AsyncHarnessBackend(Protocol):
         """
         ...
 
+    async def analyze(
+        self,
+        context: str,
+        files_content: dict[str, str] | None = None,
+        analysis_type: str = "implementation_review",
+        model: str | None = None,
+    ) -> TaskResult:
+        """
+        Run LLM-based analysis without modifying files.
+
+        This is a read-only analysis operation, unlike run_task() which
+        can modify files. Use this for code review, spec comparison,
+        and quality assessment.
+
+        Args:
+            context: Context about what to analyze (task description,
+                requirements, etc.)
+            files_content: Optional dict mapping file paths to their
+                contents for analysis. If None, harness may read files
+                from the working directory.
+            analysis_type: Type of analysis to perform:
+                - "implementation_review": Compare implementation vs spec
+                - "code_quality": General code quality analysis
+                - "spec_gap": Find gaps between spec and implementation
+            model: Optional model override (e.g., 'opus' for deep analysis)
+
+        Returns:
+            TaskResult with analysis text in output field
+
+        Raises:
+            RuntimeError: If harness doesn't support analysis or fails
+        """
+        ...
+
 
 # Backend registry
 _async_backends: dict[str, type[AsyncHarnessBackend]] = {}
@@ -207,7 +241,7 @@ def detect_async_harness(
     Detection order:
     1. HARNESS environment variable (if set and not 'auto')
     2. Priority list (if provided)
-    3. Default detection order: claude > codex > claude-legacy > openai > gemini > local
+    3. Default detection order: claude-sdk > codex > claude-cli > openai > gemini > local
 
     Only returns harnesses that are both:
     - Available (SDK/CLI installed)
@@ -243,11 +277,11 @@ def detect_async_harness(
                     continue
 
     # Default detection order
-    # Priority: claude (SDK) > codex > claude-legacy > openai > gemini > local
+    # Priority: claude-sdk > codex > claude-cli > openai > gemini > local
     default_priority = [
-        "claude",  # SDK-based (preferred)
+        "claude-sdk",  # SDK-based (preferred)
         "codex",  # Shell-out but primary implementation
-        "claude-legacy",  # Shell-out legacy fallback
+        "claude-cli",  # CLI shell-out fallback
         "openai",
         "gemini",
         "local",

@@ -64,6 +64,68 @@ class LedgerReader:
                     data = json.loads(line)
                     yield LedgerIndex.model_validate(data)
 
+    def _query_index(
+        self,
+        since: str | None = None,
+        epic: str | None = None,
+        verification: VerificationStatus | None = None,
+        stage: str | None = None,
+        cost_above: float | None = None,
+        escalated: bool | None = None,
+    ) -> list[LedgerIndex]:
+        """Query index with filters for fast lookups.
+
+        Args:
+            since: Filter to tasks completed on or after this date (YYYY-MM-DD)
+            epic: Filter to tasks in this epic
+            verification: Filter by verification status
+            stage: Filter by workflow stage
+            cost_above: Filter to tasks with cost above this threshold (USD)
+            escalated: Filter to tasks that were escalated (requires loading full entries)
+
+        Returns:
+            List of LedgerIndex entries matching the filters
+        """
+        entries = list(self._read_index())
+
+        # Apply index-based filters
+        if since:
+            since_date = datetime.strptime(since, "%Y-%m-%d").date()
+            entries = [
+                e for e in entries
+                if datetime.strptime(e.completed, "%Y-%m-%d").date() >= since_date
+            ]
+
+        if epic:
+            entries = [e for e in entries if e.epic == epic]
+
+        if verification:
+            entries = [e for e in entries if e.verification == verification.value]
+
+        if stage:
+            entries = [e for e in entries if e.workflow_stage == stage]
+
+        if cost_above is not None:
+            entries = [e for e in entries if e.cost_usd > cost_above]
+
+        # Escalated filter requires loading full entries
+        if escalated is not None:
+            filtered_entries = []
+            for index_entry in entries:
+                full_entry = self.get_task(index_entry.id)
+                if full_entry:
+                    # Check if task was escalated (via outcome or multiple harness changes)
+                    is_escalated = False
+                    if full_entry.outcome and full_entry.outcome.escalated:
+                        is_escalated = True
+
+                    # Match the filter
+                    if is_escalated == escalated:
+                        filtered_entries.append(index_entry)
+            entries = filtered_entries
+
+        return entries
+
     def list_tasks(
         self,
         since: str | None = None,
@@ -80,23 +142,7 @@ class LedgerReader:
         Returns:
             List of LedgerIndex entries matching the filters
         """
-        entries = list(self._read_index())
-
-        # Apply filters
-        if since:
-            since_date = datetime.strptime(since, "%Y-%m-%d").date()
-            entries = [
-                e for e in entries
-                if datetime.strptime(e.completed, "%Y-%m-%d").date() >= since_date
-            ]
-
-        if epic:
-            entries = [e for e in entries if e.epic == epic]
-
-        if verification:
-            entries = [e for e in entries if e.verification == verification.value]
-
-        return entries
+        return self._query_index(since=since, epic=epic, verification=verification)
 
     def get_task(self, task_id: str) -> LedgerEntry | None:
         """Get full ledger entry for a task.
@@ -121,12 +167,24 @@ class LedgerReader:
         self,
         query: str,
         fields: list[str] | None = None,
+        since: str | None = None,
+        epic: str | None = None,
+        verification: VerificationStatus | None = None,
+        stage: str | None = None,
+        cost_above: float | None = None,
+        escalated: bool | None = None,
     ) -> list[LedgerIndex]:
-        """Search tasks by text query.
+        """Search tasks by text query with optional filters.
 
         Args:
             query: Text to search for (case-insensitive)
             fields: Fields to search in (default: title, files, spec)
+            since: Filter to tasks completed on or after this date (YYYY-MM-DD)
+            epic: Filter to tasks in this epic
+            verification: Filter by verification status
+            stage: Filter by workflow stage
+            cost_above: Filter to tasks with cost above this threshold (USD)
+            escalated: Filter to tasks that were escalated
 
         Returns:
             List of matching LedgerIndex entries
@@ -134,10 +192,21 @@ class LedgerReader:
         if fields is None:
             fields = ["title", "files", "spec"]
 
+        # First apply index-based filters for fast filtering
+        entries = self._query_index(
+            since=since,
+            epic=epic,
+            verification=verification,
+            stage=stage,
+            cost_above=cost_above,
+            escalated=escalated,
+        )
+
+        # Then apply text search on filtered results
         query_lower = query.lower()
         results = []
 
-        for entry in self._read_index():
+        for entry in entries:
             # Check each field for match
             for field in fields:
                 value = getattr(entry, field, None)

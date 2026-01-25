@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement /api/stats endpoint",
+    "description": "The stats endpoint provides aggregate metrics for the stats bar: counts by type/stage, total cost, recent activity.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/api/routes/stats.py`\n2. Implement `GET /api/stats`:\n3. Add to `src/cub/core/dashboard/db/queries.py`:\n4. Register route in app\n5. Add tests\n\n**Files:** `src/cub/core/dashboard/api/routes/stats.py`, `tests/test_api_stats.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:medium",
+      "model:sonnet"
+    ],
+    "created_at": "2026-01-23T18:13:28.809760Z",
+    "captured_at": "2026-01-25T00:39:34.948971Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a7f"
+  }
 }

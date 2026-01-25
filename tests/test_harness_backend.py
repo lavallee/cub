@@ -555,9 +555,9 @@ class TestDetectHarness:
         monkeypatch.setenv("HARNESS", "auto")
 
         # Should ignore 'auto' and use default detection
-        # Note: sync backend registry has "claude-legacy" now
+        # Note: sync backend registry has "claude-cli" now
         result = detect_harness()
-        assert result == "claude-legacy"
+        assert result == "claude-cli"
 
 
 class TestGetBackendAutoDetect:
@@ -565,7 +565,7 @@ class TestGetBackendAutoDetect:
 
     def test_get_backend_auto_detects(self, monkeypatch):
         """Test get_backend auto-detects when name is None."""
-        # Since claude-legacy is now the first in detection order,
+        # Since claude-cli is now the first in detection order,
         # auto-detection should find it
         import shutil
         import warnings
@@ -579,8 +579,8 @@ class TestGetBackendAutoDetect:
             warnings.simplefilter("ignore", DeprecationWarning)
             backend = get_backend(None)
 
-        # Should detect claude-legacy since it's first in the default order
-        assert backend.name == "claude-legacy"
+        # Should detect claude-cli since it's first in the default order
+        assert backend.name == "claude-cli"
 
     def test_get_backend_auto_detects_with_auto_string(self, monkeypatch):
         """Test get_backend auto-detects when name is 'auto'."""

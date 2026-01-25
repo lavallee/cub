@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Add error handling for network and parse failures",
+    "description": "## Context\nAdd robust error handling for network failures, parse errors, and other exceptional conditions throughout Toolsmith.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 1.5h\n**Approach:** Define custom exceptions, add try/except blocks, provide user-friendly error messages.\n\n## Implementation Steps\n1. Create `src/cub/core/toolsmith/exceptions.py`\n2. Define custom exceptions: `ToolsmithError`, `SourceError`, `ParseError`, `NetworkError`\n3. Update source adapters to catch and wrap errors\n4. Update service to handle source errors gracefully\n5. Update CLI to display user-friendly error messages\n6. Add `--debug` flag to show full tracebacks\n\n## Acceptance Criteria\n- [ ] Custom exception hierarchy defined\n- [ ] Network errors are caught and wrapped with context\n- [ ] Parse errors include source name and what failed\n- [ ] Service continues with other sources on single source failure\n- [ ] CLI displays user-friendly error messages\n- [ ] `--debug` flag shows full traceback\n- [ ] No unhandled exceptions reach the user\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/core/toolsmith/exceptions.py` (new)\n- `src/cub/core/toolsmith/sources/*.py` (modify all)\n- `src/cub/core/toolsmith/service.py` (modify)\n- `src/cub/cli/toolsmith.py` (modify)\n\n## Notes\n- Wrap httpx exceptions in NetworkError\n- Include original exception as `__cause__`\n- Log errors at appropriate levels\n- Consider partial success reporting in SyncResult",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-q2w",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:36.494508Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2w"
+  }
 }

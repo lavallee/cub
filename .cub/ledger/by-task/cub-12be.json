@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Fix artifact content HTML rendering",
+    "description": "Artifact content is rendering raw HTML markup instead of interpolated/processed HTML. When artifacts are displayed in the dashboard or UI, HTML tags appear as text (e.g., `<div>content</div>`) instead of being rendered as actual DOM elements.\n\n**Context:**\nThe dashboard sync layer parses artifact content from files and stores it in the database. When this content is served via the API and rendered in the frontend, HTML should be properly rendered as DOM elements, not displayed as raw markup.\n\n**Acceptance Criteria:**\n- Artifact HTML content renders as DOM elements in the UI (not as text)\n- HTML tags are properly interpreted and displayed\n- No XSS vulnerabilities introduced (content should be sanitized if user-generated)\n- Artifacts display with proper formatting and styling\n- Both inline HTML and structured HTML artifacts work correctly",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:21.220626-05:00",
+    "captured_at": "2026-01-25T00:39:36.912811Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

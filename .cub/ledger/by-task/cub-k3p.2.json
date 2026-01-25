@@ -25,5 +25,26 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Implement MCP Official source adapter",
+    "description": "## Context\nImplement the first source adapter for the official MCP servers repository. This is likely the simplest source as it's a well-structured GitHub repo with a known format.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 2h\n**Approach:** Fetch the servers list from GitHub raw content or API. Parse the README or servers.json to extract tool metadata.\n\n## Implementation Steps\n1. Create `src/cub/core/toolsmith/sources/mcp_official.py`\n2. Research the MCP servers repo structure (github.com/modelcontextprotocol/servers)\n3. Implement `MCPOfficialSource` class implementing `ToolSource`\n4. Fetch server list (README parsing or JSON if available)\n5. Transform each entry to `Tool` model\n6. Implement `search_live()` (can filter fetch_tools results)\n7. Create test fixture with sample response\n8. Write tests for parsing logic\n\n## Acceptance Criteria\n- [ ] `MCPOfficialSource` is registered as \"mcp-official\"\n- [ ] `fetch_tools()` returns list of Tool objects from real endpoint\n- [ ] Each Tool has: id, name, source=\"mcp-official\", source_url, tool_type=MCP_SERVER\n- [ ] `search_live()` filters tools by query\n- [ ] Handles network errors gracefully (returns empty list or raises)\n- [ ] Test with fixture verifies parsing of sample response\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/core/toolsmith/sources/mcp_official.py` (new)\n- `tests/test_toolsmith/test_sources/__init__.py` (new)\n- `tests/test_toolsmith/test_sources/test_mcp_official.py` (new)\n- `tests/test_toolsmith/fixtures/mcp_official_response.json` (new)\n\n## Notes\n- Use httpx for HTTP requests\n- MCP repo may have a servers.json or similar structured file - check first\n- If only README, parse markdown tables or lists\n- Tool ID format: `mcp-official:{server-name}`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "api",
+      "checkpoint",
+      "complexity:medium",
+      "epic:cub-k3p",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:36.216410Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k3p"
+  }
 }

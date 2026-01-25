@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement spec parser for sync layer",
+    "description": "The spec parser reads markdown files from `specs/` directories and converts them to `DashboardEntity` objects. This is the first parser - start simple, add others later.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/__init__.py`\n2. Create `src/cub/core/dashboard/sync/parsers/__init__.py`\n3. Create `src/cub/core/dashboard/sync/parsers/specs.py`\n4. Implement `SpecParser` class:\n5. Handle edge cases: missing frontmatter, invalid YAML, empty files\n6. Add tests with fixture spec files\n\n**Files:** `src/cub/core/dashboard/sync/parsers/specs.py`, `tests/test_spec_parser.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "model:sonnet",
+      "parser",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809566Z",
+    "captured_at": "2026-01-25T00:39:37.991866Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

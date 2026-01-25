@@ -14,7 +14,7 @@ Cub 0.24 introduces a new async harness architecture with support for hooks, cus
 
     1. Update cub: `git pull && uv sync`
     2. The default `claude` harness now uses the SDK backend
-    3. Use `--harness claude-legacy` for the previous behavior
+    3. Use `--harness claude-cli` for the previous behavior
     4. Install `claude-agent-sdk` for hook support (optional)
 
 ### What Changed
@@ -22,7 +22,7 @@ Cub 0.24 introduces a new async harness architecture with support for hooks, cus
 **New Harness Architecture:**
 
 - All harnesses now use an async interface (`run_task`, `stream_task`)
-- Claude backend split into `claude` (SDK) and `claude-legacy` (shell-out)
+- Claude backend split into `claude` (SDK) and `claude-cli` (shell-out)
 - New capabilities: hooks, custom_tools, sessions
 
 **New Capabilities (Claude SDK only):**
@@ -56,7 +56,7 @@ pip install claude-agent-sdk
 cub run --once
 
 # Fall back to legacy if needed
-cub run --once --harness claude-legacy
+cub run --once --harness claude-cli
 ```
 
 ### Breaking Changes
@@ -72,7 +72,7 @@ cub run --once --harness claude-legacy
 === "After (v0.24)"
 
     ```
-    claude (SDK) > claude-legacy > codex > gemini > opencode
+    claude (SDK) > claude-cli > codex > gemini > opencode
     ```
 
 **Python API changes:**
@@ -104,12 +104,12 @@ Install the SDK or use legacy mode:
 ```bash
 pip install claude-agent-sdk
 # or
-cub run --harness claude-legacy
+cub run --harness claude-cli
 ```
 
 **Hooks not working**
 
-Hooks only work with the SDK backend. Verify you're using `claude`, not `claude-legacy`:
+Hooks only work with the SDK backend. Verify you're using `claude`, not `claude-cli`:
 
 ```bash
 cub run --harness claude  # SDK with hooks

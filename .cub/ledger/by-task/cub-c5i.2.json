@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-c5i.2",
+  "title": "Add ledger update command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-c5i"
+  },
+  "task": {
+    "title": "Add ledger update command",
+    "description": "Users need to manually transition workflow stages (e.g., mark as validated after review).\n\n**Implementation Steps:**\n1. Add `ledger update` command with `--stage` and `--reason` options\n2. Validate stage is one of: dev_complete, needs_review, validated, released\n3. Call `LedgerWriter.update_workflow_stage()`\n4. Append to state_history and display confirmation\n\n**Files:** `src/cub/cli/ledger.py`, `src/cub/core/ledger/writer.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-c5i",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-24T21:12:34.037265Z",
+    "captured_at": "2026-01-24T22:12:33.075435Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-170852",
+      "started_at": "2026-01-24T17:12:33.077272",
+      "completed_at": "2026-01-24T22:18:38.045461Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 364
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:18:38.276931Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 364,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "efbf79b0862169c8a5bd7f4e513a5fc7b0e017ba",
+        "message": "task(cub-c5i.2): Add ledger update command",
+        "timestamp": "2026-01-24T17:18:20-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:18:38.276931Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:12:33.075435Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:18:38.276931Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:12:33.075435Z",
+  "completed_at": "2026-01-24T22:18:38.276931Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 364,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "efbf79b0862169c8a5bd7f4e513a5fc7b0e017ba",
+      "message": "task(cub-c5i.2): Add ledger update command",
+      "timestamp": "2026-01-24T17:18:20-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.2",
+  "epic_id": "cub-c5i",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

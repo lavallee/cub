@@ -17,7 +17,7 @@ import secrets
 import string
 from pathlib import Path
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 
 from cub.core.captures.models import Capture, CaptureStatus
 from cub.core.captures.project_id import get_project_id

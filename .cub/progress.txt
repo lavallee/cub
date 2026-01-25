@@ -6338,3 +6338,92 @@ Enhanced the dashboard to group ready tasks by their associated epic. Tasks can 
 - Could show epic progress (X/Y tasks complete) in group headers
 - Could add validation to ensure epic: labels reference valid epic IDs
 
+
+## Task: cub-r4n.2 - Implement RunSessionManager class
+
+**Completed:** 2026-01-24
+
+### Summary
+Successfully implemented the RunSessionManager class that handles the lifecycle of run sessions. The manager creates session files, manages the active-run.json symlink, detects orphaned sessions, and provides update mechanisms for tracking progress.
+
+### Key Implementation Details
+
+1. **RunSessionManager Class**
+   - Location: `src/cub/core/session/manager.py`
+   - Manages `.cub/run-sessions/` directory structure
+   - Uses `active-run.json` symlink for current session tracking
+   - Atomic symlink replacement via unlink + symlink pattern
+
+2. **Core Methods**
+   - `start_session()` - Create new session and update symlink
+   - `get_active_session()` - Follow symlink to read current session
+   - `update_session()` - Update tasks, budget, current_task
+   - `end_session()` - Mark completed and clear symlink
+   - `detect_orphans()` - Find and mark abandoned sessions
+
+3. **Orphan Detection Logic**
+   - A session is orphaned if status=RUNNING and it's not the active session
+   - Detection marks session file with orphaned timestamp and reason
+   - Already orphaned sessions are ignored on subsequent scans
+
+### Technical Challenges
+
+1. **Test Timing Issue**
+   - Problem: `generate_run_id()` uses timestamp format `cub-YYYYMMDD-HHMMSS`
+   - Two calls within same second return identical run_id
+   - Solution: Added `time.sleep(1.1)` in tests that create multiple sessions
+   - This ensures unique run IDs for proper test isolation
+
+2. **Method Signature Refinement**
+   - Initially `_mark_orphaned()` took a RunSession object
+   - Changed to take run_id string and re-read file
+   - This ensures we always work with latest file state, not in-memory objects
+   - Prevents race conditions and stale data issues
+
+3. **Symlink Management**
+   - Must handle both existence check and symlink validity
+   - Use `path.exists() or path.is_symlink()` for proper detection
+   - Graceful handling when symlink exists but target is missing
+
+### Testing Strategy
+
+Comprehensive test suite with 24 tests covering:
+- Session lifecycle (start, update, end)
+- Active symlink management
+- Orphan detection in various scenarios
+- Error handling for invalid files
+- Multiple sessions in sequence
+- Edge cases (missing targets, already orphaned, etc.)
+
+All tests pass, type-checking clean, linting clean.
+
+### Files Modified
+- `src/cub/core/session/manager.py` (new, 348 lines)
+- `src/cub/core/session/__init__.py` (updated exports)
+- `tests/test_session_manager.py` (new, 355 lines)
+
+### Next Steps
+This component is ready for integration with the run loop. Future tasks will:
+1. Wire RunSessionManager into `cub run` command
+2. Call session manager at appropriate lifecycle points
+3. Use session tracking for ledger integration
+
+
+## cub-r4n.3: Wire session manager into cub run
+
+**Completed:** 2026-01-24
+
+**Changes:**
+- Imported RunSessionManager and SessionBudget from cub.core.session module
+- Added session manager initialization after config is loaded (line 941)
+- Detect and log orphaned sessions from previous runs before run starts
+- Start a new run session with harness and budget info before main loop
+- Update session with task completion/failure counts and budget usage after each task
+- End session in finally block to ensure proper cleanup even on exceptions/interrupts
+
+**Key Integration Points:**
+1. Session manager created with `.cub` directory path
+2. Orphan detection runs before new session starts
+3. SessionBudget mirrors BudgetStatus for consistent tracking
+4. Session update happens after status_writer.write() for consistency
+5. Session end happens early in finally block, after async hooks complete

@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement basic sync orchestrator and SQLite writer",
+    "description": "The sync orchestrator coordinates parsing and writing to SQLite. For the vertical slice, we only sync specs - other sources added later.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/writer.py`:\n2. Create `src/cub/core/dashboard/sync/orchestrator.py`:\n3. Add tests with in-memory SQLite\n\n**Files:** `src/cub/core/dashboard/sync/writer.py`, `src/cub/core/dashboard/sync/orchestrator.py`, `tests/test_sync_orchestrator.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "database",
+      "model:sonnet",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809590Z",
+    "captured_at": "2026-01-25T00:39:36.840190Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

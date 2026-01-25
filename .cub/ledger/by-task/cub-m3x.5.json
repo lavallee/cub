@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement ArtifactViewer with markdown rendering",
+    "description": "The artifact viewer renders spec/plan content nicely - markdown with syntax highlighting for code blocks.\n\n**Implementation Steps:**\n1. Install markdown library: `npm install marked highlight.js`\n2. Create `src/cub/dashboard/web/src/components/ArtifactViewer.tsx`:\n3. Update `DetailPanel.tsx`:\n4. Add \"View Source\" button to open raw file\n\n**Files:** `src/cub/dashboard/web/src/components/ArtifactViewer.tsx`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809815Z",
+    "captured_at": "2026-01-25T00:39:38.794987Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3x"
+  }
 }

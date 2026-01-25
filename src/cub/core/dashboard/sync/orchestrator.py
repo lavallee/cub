@@ -30,7 +30,7 @@ Usage:
     orchestrator = SyncOrchestrator(
         db_path=Path(".cub/dashboard.db"),
         specs_root=Path("./specs"),
-        plans_root=Path(".cub/sessions"),
+        plans_root=Path("./plans"),
         tasks_backend="beads",
         ledger_path=Path(".cub/ledger"),
         changelog_path=Path("CHANGELOG.md")
@@ -47,7 +47,7 @@ from typing import Any
 
 from cub.core.dashboard.db import get_connection, init_db
 from cub.core.dashboard.db.models import SyncResult
-from cub.core.dashboard.sync.parsers import PlanParser, SpecParser, TaskParser
+from cub.core.dashboard.sync.parsers import LedgerParser, PlanParser, SpecParser, TaskParser
 from cub.core.dashboard.sync.resolver import RelationshipResolver
 from cub.core.dashboard.sync.writer import EntityWriter
 from cub.core.tasks.backend import get_backend
@@ -93,7 +93,7 @@ class SyncOrchestrator:
         Args:
             db_path: Path to SQLite database file
             specs_root: Root directory for specs (e.g., ./specs)
-            plans_root: Root directory for plans (e.g., .cub/sessions)
+            plans_root: Root directory for plans (e.g., ./plans)
             tasks_backend: Task backend type ("beads" or "json")
             ledger_path: Path to ledger directory (e.g., .cub/ledger)
             changelog_path: Path to CHANGELOG.md
@@ -102,7 +102,7 @@ class SyncOrchestrator:
             >>> orchestrator = SyncOrchestrator(
             ...     db_path=Path(".cub/dashboard.db"),
             ...     specs_root=Path("./specs"),
-            ...     plans_root=Path(".cub/sessions"),
+            ...     plans_root=Path("./plans"),
             ...     tasks_backend="beads",
             ...     ledger_path=Path(".cub/ledger"),
             ...     changelog_path=Path("CHANGELOG.md")
@@ -217,6 +217,21 @@ class SyncOrchestrator:
                         logger.info(f"Parsed {len(task_entities)} task entities")
                     except Exception as e:
                         error_msg = f"Task parsing failed: {e}"
+                        logger.error(error_msg)
+                        errors.append(error_msg)
+                        # Continue with other sources
+
+                # Sync ledger
+                if self.ledger_path:
+                    try:
+                        logger.info("Parsing ledger...")
+                        ledger_parser = LedgerParser(self.ledger_path)
+                        ledger_entities = ledger_parser.parse()
+                        all_entities.extend(ledger_entities)
+                        sources_synced.append("ledger")
+                        logger.info(f"Parsed {len(ledger_entities)} ledger entities")
+                    except Exception as e:
+                        error_msg = f"Ledger parsing failed: {e}"
                         logger.error(error_msg)
                         errors.append(error_msg)
                         # Continue with other sources

@@ -1,7 +1,7 @@
 """
 Plan parser for the dashboard sync layer.
 
-Converts plan files (.cub/sessions/*/plan.jsonl + session.json) into
+Converts plan files (plans//*/plan.jsonl + session.json) into
 DashboardEntity objects for the Kanban board. Handles:
 - Parsing JSONL plan files with task definitions
 - Reading session metadata from session.json
@@ -41,7 +41,7 @@ class PlanParser:
     """
     Parser for converting plan files into DashboardEntity objects.
 
-    The PlanParser reads session directories from .cub/sessions/ and
+    The PlanParser reads session directories from plans// and
     converts plan.jsonl and session.json into DashboardEntity objects
     suitable for display on the Kanban board.
 
@@ -49,7 +49,7 @@ class PlanParser:
     thought through but before tasks are fully broken down and ready.
 
     Example:
-        >>> parser = PlanParser(sessions_root=Path(".cub/sessions"))
+        >>> parser = PlanParser(sessions_root=Path("plans/"))
         >>> entities = parser.parse_all()
         >>> for entity in entities:
         ...     print(f"{entity.id}: {entity.title} [{entity.stage.value}]")
@@ -69,7 +69,7 @@ class PlanParser:
         Initialize the PlanParser.
 
         Args:
-            sessions_root: Root directory containing session subdirectories (e.g., .cub/sessions)
+            sessions_root: Root directory containing session subdirectories (e.g., plans/)
         """
         self.sessions_root = Path(sessions_root)
 

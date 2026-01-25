@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement cub dashboard CLI command",
+    "description": "The CLI command ties everything together - syncs data, starts the server, and opens the browser. This completes the vertical slice.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/dashboard.py`\n2. Create Typer app with main command and subcommands:\n3. Implement main command:\n4. Implement sync subcommand:\n5. Register in `src/cub/cli/__init__.py`\n6. Add integration test\n\n**Files:** `src/cub/cli/dashboard.py`, `src/cub/cli/__init__.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "model:sonnet"
+    ],
+    "created_at": "2026-01-23T18:13:28.809643Z",
+    "captured_at": "2026-01-25T00:39:37.134583Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

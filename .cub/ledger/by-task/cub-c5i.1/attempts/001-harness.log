@@ -1,0 +1,40 @@
+I'll help you extend the ledger show command to display the new fields. Let me start by claiming the task and exploring the current implementation.Now let me check if there are any example ledger files to understand the structure better:Perfect! Now I understand the structure. Let me create a comprehensive implementation plan and start updating the `ledger show` command:Now let me update the ledger.py file with the new functionality:Now let's update the show command signature to add the new flags:Now let's update the main body of the show function. Let me first read the rest of the function to understand the full structure:Now I'll completely rewrite the show function body to handle the new fields. Let me do this in sections:Now let me continue with the rest of the show function and handle the --changes and --history flags:Now I need to add the helper function `_show_attempt_detail` that's referenced in the show command:Perfect! Now let's run the feedback loops to ensure everything works correctly:Let me fix the type annotation issue:We need to add the import at the top of the file:Now let's run typecheck again:Great! No type errors. Now let's run the linter:Let me fix these linting issues:Now let me fix the line that's too long:Now let's run the linter again:Perfect! Now let's run tests to see if there are any tests we need to update or if any existing tests break:Let's see if all the tests pass:Perfect! All tests passed. Now let's mark the todo as complete and close the task:Excellent! Now let's close the task and commit the changes:Perfect! Now let's append learnings to progress.txt:Perfect! Let me provide a summary of what was completed:
+
+## ✅ Task Complete: cub-c5i.1
+
+I've successfully extended the `cub ledger show` command to display all the new unified tracking fields. Here's what was implemented:
+
+### New Features
+
+**1. Three new command flags:**
+- `--attempt N` / `-a`: Shows detailed information for a specific attempt number
+- `--changes` / `-c`: Shows full lists of files and commits (not truncated)
+- `--history` / `-h`: Shows workflow stage transition history in a table
+
+**2. Enhanced default display with new sections:**
+- **Lineage**: Shows epic, spec, and plan file references
+- **Workflow Stage**: Color-coded stage display (dev_complete/needs_review/validated/released)
+- **Outcome Summary**: Success status, total cost, duration, attempts, escalation path
+- **Attempts Table**: First 10 attempts with model, duration, cost, and status
+- **Task Change Detection**: Warning if task definition changed during implementation
+- **Spec Drift**: Shows additions/omissions from original spec
+
+**3. New formatting helpers:**
+- `_format_duration()`: Human-readable durations (e.g., "1h 23m 45s" instead of "5025 seconds")
+- `_format_workflow_stage()`: Color-coded workflow stages
+- `_show_attempt_detail()`: Dedicated view for single attempt details
+
+**4. Backward compatibility:**
+- Falls back to legacy fields (cost_usd, harness_name, etc.) if new fields not present
+- Prefers new outcome.* fields when available
+- Handles both old and new ledger entry formats seamlessly
+
+### Quality Checks ✅
+- All 189 ledger-related tests pass
+- Typecheck clean (mypy)
+- Linter clean (ruff)
+- Task closed in beads
+- Changes committed with detailed commit message
+- Learnings documented in progress.txt
+
+The implementation maintains full backward compatibility while providing rich, detailed views of the new tracking data!

@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement CHANGELOG parser for release detection",
+    "description": "CHANGELOG.md contains release entries with task/epic IDs. Parse to determine which entities have been released.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/parsers/changelog.py`\n2. Implement `ChangelogParser` class:\n3. Handle various ID formats: `cub-xxx`, `cub-xxx.n`, `#123`\n4. Gracefully handle missing CHANGELOG or unparseable content\n5. Add tests with sample CHANGELOG content\n\n**Files:** `src/cub/core/dashboard/sync/parsers/changelog.py`, `tests/test_changelog_parser.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "model:sonnet",
+      "parser",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809679Z",
+    "captured_at": "2026-01-25T00:39:35.935222Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

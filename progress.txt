@@ -7029,3 +7029,1041 @@ Successfully achieved 80%+ test coverage on all core Toolsmith modules, improvin
 - Typecheck passes ✅  
 - Lint passes ✅
 
+
+## Task cub-r4n.4: Update cub monitor for session reading
+
+**Completed:** 2026-01-24
+
+**Summary:**
+Updated `cub monitor` command to read the active session via RunSessionManager instead of using the old list_runs() mechanism. The monitor now displays comprehensive session info including run ID, harness, tasks completed/failed, and budget usage (tokens and cost).
+
+**Implementation:**
+1. Imported RunSessionManager and RunSession models
+2. Used get_active_session() to detect active run via symlink
+3. Added _display_session_info() helper to show session details in a panel
+4. Implemented periodic session file polling (5-second interval) to detect orphaned sessions
+5. Gracefully handles missing or invalid session files
+
+**Key Changes:**
+- Auto-detection now uses session_manager.get_active_session() instead of list_runs()
+- Session info panel displays before live dashboard starts
+- Monitors for orphaned session status during live monitoring
+- Shows detailed budget usage (tokens and cost with percentages)
+
+**Files Modified:**
+- src/cub/cli/monitor.py
+
+**Tests:**
+- All session manager tests pass (24/24)
+- Type checking passes with mypy --strict
+- Linting passes with ruff
+
+**Learnings:**
+- The RunSessionManager provides a clean interface for session detection via symlink
+- Displaying session info before the live dashboard gives users context
+- Periodic polling of the session file allows detection of status changes (e.g., orphaned)
+- Using Rich's Panel and Table.grid makes for clean, readable output
+
+## 2026-01-24 - cub-r4n.5: Add tests for session lifecycle
+
+### Task Completed
+Created comprehensive test suite for RunSessionManager with 24 tests covering all session lifecycle operations. All tests passing with 94% coverage on manager.py.
+
+### Key Learnings
+
+**1. Test Organization for Lifecycle Management**
+- Fixture-based setup with tmp_path for isolated session directories
+- Test naming pattern: `test_{operation}_{scenario}` for clarity
+- Logical grouping by functionality: creation, retrieval, updates, completion, orphan detection
+- Each test focuses on single responsibility with clear assertions
+
+**2. Session File and Symlink Testing**
+- Session files are JSON persisted to `.cub/run-sessions/{run_id}.json`
+- Active symlink `active-run.json` points to current session using relative path
+- Symlink atomicity: unlink existing before creating new (prevents dangling symlinks)
+- Test symlink following with `Path.resolve()` to verify target
+
+**3. Orphan Detection Logic**
+- Orphans detected by: status=RUNNING AND run_id != active_run_id
+- Sleep(1.1) needed in tests to ensure different timestamps for run_id generation
+- Orphan detection marks sessions immediately, doesn't return already-marked
+- Multiple detection calls should not re-mark previously orphaned sessions
+
+**4. Edge Cases Handled**
+- Missing symlink target: get_active_session() cleans up broken symlinks gracefully
+- Invalid JSON in session file: JSONDecodeError caught and wrapped in RunSessionError
+- Multiple sessions in sequence: all files persisted, only active session pointed to
+- Session update with missing file: RunSessionError raised with clear message
+
+**5. Test Quality and Linting**
+- Ruff catches unused variables in test setup code
+- Fixed by removing variable assignment when return value not needed (e.g., `manager.start_session()` instead of `session = ...`)
+- Coverage metrics: 94% on manager.py, 60% on models.py (due to uncovered properties)
+- All 24 tests pass consistently
+
+**6. Budget and Metadata Testing**
+- SessionBudget tracks tokens and cost with optional limits
+- Session updates support partial updates (only changed fields)
+- Project directory defaults to cub_dir parent but can be customized
+- Current task tracking for monitoring in-flight operations
+
+### Implementation Summary
+- Tests: 24 comprehensive test cases
+- Coverage: 94% on manager.py
+- All tests passing with zero linting errors
+- Pattern: start_session → operations → detect_orphans/end_session
+- Fixtures handle directory cleanup automatically via tmp_path
+
+
+## 2026-01-24 - Task cub-l7e.1: Extend LedgerEntry model with new fields
+
+### What was done:
+- Extended LedgerEntry Pydantic model with 9 new supporting models
+- Added Lineage, TaskSnapshot, TaskChanged, Attempt, Outcome, DriftRecord, Verification, WorkflowState, StateTransition models
+- Added version field (default=1) for schema versioning
+- Maintained backward compatibility by keeping all old fields as deprecated
+- Updated exports in __init__.py for all new models
+- All tests pass (125 tests), lint and type checks pass
+
+### Key insights:
+- Pydantic v2 models with Field() and default_factory work seamlessly for complex nested structures
+- Backward compatibility is achieved by keeping old fields alongside new structured fields
+- Using optional fields (| None) and factory defaults ensures old code continues to work
+- Field validators with allowed sets provide good runtime validation
+- The architecture spec's data model maps cleanly to Pydantic models
+- All new fields have sensible defaults making them truly optional
+
+### Technical notes:
+- Used @field_validator for custom validation (severity, status, stage fields)
+- Used @property decorators for computed values (duration_minutes, etc.)
+- All datetime fields use timezone.utc via lambda: datetime.now(timezone.utc)
+- TokenUsage is embedded in Attempt, matching the architecture spec
+- Old fields marked as DEPRECATED in descriptions to guide future migration
+
+### Testing approach:
+- Verified all existing tests still pass (56 in test_ledger_models.py)
+- Manually tested new models with full instantiation and serialization
+- Confirmed backward compatibility by checking old fields remain accessible
+- Tested field validators reject invalid values correctly
+
+## 2026-01-24 - Task cub-l7e.2: Implement prompt and log file writing
+
+**Completed:** Added `write_prompt_file()` and `write_harness_log()` methods to LedgerWriter.
+
+**Key Implementation Details:**
+- Prompt files use YAML frontmatter to store execution context metadata
+- Used PyYAML's `yaml.dump()` with `default_flow_style=False` for readable output
+- Zero-padded 3-digit attempt numbers (001, 002, etc.) for proper sorting
+- Directory structure auto-created: `.cub/ledger/by-task/{task-id}/attempts/`
+- Both methods return the Path to the written file for convenience
+
+**Technical Decisions:**
+- Made `started_at` optional with default to `datetime.now(timezone.utc)`
+- Used keyword-only arguments (after `*,`) for metadata parameters to enforce clarity
+- Separated prompt content from log content (different methods for different concerns)
+
+**Testing Approach:**
+- 8 comprehensive tests covering basic usage, multiple attempts, zero-padding, and directory creation
+- Verified YAML frontmatter format and content presence
+- Tested both methods independently and together
+
+**Challenges:**
+- Pre-existing mypy warning about yaml stubs (types-PyYAML) - not related to this task
+- Pre-existing E501 line length violations in edge case tests - not related to this task
+
+**Lessons Learned:**
+- YAML frontmatter format is simple: `---\nYAML\n---\n\ncontent`
+- Zero-padding with f-strings: `f"{num:03d}"` is cleaner than `.zfill(3)`
+- Creating parent directories: `mkdir(parents=True, exist_ok=True)` is idempotent
+- Type hints: Using `datetime | None = None` enables optional parameters with clear defaults
+
+
+---
+
+## 2026-01-24 - cub-l7e.3: Create LedgerIntegration layer
+
+### Task Completed
+Implemented LedgerIntegration class that coordinates all ledger writes during task execution, providing a clean interface for the run loop.
+
+### What Was Implemented
+
+**LedgerIntegration Class** (`src/cub/core/ledger/integration.py`):
+- `on_task_start()`: Creates initial ledger entry with task snapshot for drift detection
+  - Captures task state (title, description, priority, labels, type) at execution start
+  - Sets up lineage tracking (epic_id, spec_file, plan_file)
+  - Initializes workflow state and state history
+- `on_attempt_start()`: Writes prompt file with YAML frontmatter
+  - Delegates to LedgerWriter.write_prompt_file()
+  - Creates audit trail of what was sent to harness
+- `on_attempt_end()`: Writes harness log and appends attempt record
+  - Records success/failure, tokens, cost, duration
+  - Updates active entry with aggregated metrics
+  - Supports error categorization (timeout, api_error, etc.)
+- `on_task_close()`: Finalizes ledger entry with outcome
+  - Aggregates totals from all attempts
+  - Detects model escalation (haiku -> sonnet -> opus)
+  - Performs drift detection via `_detect_task_changed()`
+  - Updates workflow state and state history
+
+**Drift Detection** (`_detect_task_changed()`):
+- Compares current task state with snapshot captured at start
+- Detects changes in: title, description, priority, labels, type
+- Generates human-readable notes about what changed
+- Returns `TaskChanged` record or None if no drift
+
+**Active Entry Caching**:
+- Maintains `_active_entries` dict for in-progress tasks
+- Avoids repeated disk reads during execution
+- Cleaned up on task close
+
+### Technical Details
+
+**Pattern: Event-Driven Coordinator**
+- LedgerIntegration doesn't replace LedgerWriter, it coordinates it
+- Each lifecycle method (`on_*`) maps to a run loop event
+- This separation keeps LedgerWriter focused on file I/O
+
+**Escalation Detection Algorithm**:
+```python
+models_used = [a.model for a in entry.attempts if a.model]
+unique_models = list(dict.fromkeys(models_used))  # Preserve order
+escalated = len(unique_models) > 1
+escalation_path = unique_models if escalated else []
+```
+
+**Task Snapshot Strategy**:
+- Snapshot captured at `on_task_start()` time
+- Stored in `_task_snapshots` dict keyed by task_id
+- Used only at `on_task_close()` for drift comparison
+- Cleaned up after comparison
+
+### Tests
+30 comprehensive tests covering:
+- Initialization and state management
+- Task start with various options (epic, spec, plan)
+- Attempt start/end with token tracking
+- Task close with verification and escalation
+- Drift detection for all field types
+- Full workflow scenarios (single success, escalation, drift)
+
+### Learnings
+- Caching active entries prevents repeated disk reads during execution
+- Drift detection needs snapshot at start + current state at close
+- Model escalation = unique models > 1 (haiku -> haiku -> sonnet counts as escalation)
+- Legacy fields maintained for backward compatibility
+- TYPE_CHECKING import for forward references avoids circular imports
+
+## Task: cub-l7e.4 - Wire LedgerIntegration into run loop (2026-01-24)
+
+**Objective:** Integrate LedgerIntegration into the run loop to track task lifecycle.
+
+**Implementation:**
+1. Added import for LedgerIntegration in cli/run.py
+2. Instantiated LedgerIntegration right after LedgerWriter creation
+3. Wired lifecycle calls:
+   - on_task_start: After claiming task (before prompt generation)
+   - on_attempt_start: Before harness invocation (with combined prompt)
+   - on_attempt_end: After harness completes (with log content, tokens)
+   - on_task_close: After task success/failure (with drift detection)
+
+**Key Insights:**
+- Attempt number is 1-based, obtained via get_attempt_count() + 1
+- Combined prompt includes both system and task prompts for audit trail
+- Token conversion needed: HarnessResult.TokenUsage → LedgerTokenUsage
+- Error handling: Failed attempts also recorded with error_category
+- Replaced legacy ledger creation (manual LedgerEntry construction) with integration calls
+- Drift detection: Pass current task state from backend for comparison
+
+**Testing:**
+- All 30 ledger integration tests pass
+- No typecheck errors in modified code
+- Lint issues resolved (line length, unused imports)
+
+**Next Steps:**
+- Task cub-l7e.5: Implement `cub ledger show` command for inspection
+
+## 2026-01-24 - cub-l7e.5: Add tests for ledger entry lifecycle
+
+### Task Completed
+Created comprehensive test suite for LedgerIntegration layer verifying full task lifecycle tracking including task start, attempts, and task close with drift detection.
+
+### Key Learnings
+
+**1. Comprehensive Test Structure (30 tests in 8 classes)**
+- **TestLedgerIntegrationInit** (1 test): Verify initialization of internal state
+- **TestOnTaskStart** (6 tests): Task lifecycle start with various parameters
+  - Basic entry creation with task snapshot
+  - Epic ID and spec/plan file tracking
+  - Disk persistence and caching
+  - Duplicate detection (error handling)
+- **TestOnAttemptStart** (2 tests): Prompt file writing with frontmatter
+  - Single and multiple attempt files with proper naming (001-prompt.md, 002-prompt.md)
+  - YAML frontmatter with run_id, harness, model metadata
+- **TestOnAttemptEnd** (4 tests): Harness log writing and attempt tracking
+  - Token usage aggregation (input_tokens, output_tokens, cache tokens)
+  - Cost and duration tracking per attempt
+  - Active entry updates with cost/token/duration aggregation
+  - Error recording (category, summary)
+- **TestOnTaskClose** (5 tests): Task finalization and outcome recording
+  - Basic outcome creation with aggregated metrics
+  - Verification status (pass/fail with test/typecheck/lint flags)
+  - Model escalation detection (haiku -> sonnet -> opus)
+  - Cache cleanup on close
+  - Graceful handling of nonexistent tasks
+- **TestDetectTaskChanged** (6 tests): Drift detection during execution
+  - No changes when task unmodified
+  - Detection of: title, description, labels, priority changes
+  - Handles missing snapshots gracefully
+- **TestHelperMethods** (3 tests): Cache and query operations
+  - has_active_entry() for entry existence checks
+  - get_attempt_count() from cache and disk
+- **TestFullWorkflow** (3 tests): End-to-end scenarios
+  - Single successful attempt workflow
+  - Multiple attempts with model escalation
+  - Task drift detection during execution
+
+**2. Fixtures for Test Isolation**
+- `ledger_dir`: Temporary ledger directory (tmp_path / ".cub" / "ledger")
+- `writer`: LedgerWriter instance for file I/O
+- `integration`: LedgerIntegration instance under test
+- `sample_task`: Standard Task with P0 priority, multiple labels
+  - Created with: id, title, description, status, priority, type, labels, parent, created_at
+  - Timezone-aware: datetime(2026, 1, 24, 10, 0, tzinfo=timezone.utc)
+
+**3. Test Data Patterns**
+- **Run IDs**: Format "cub-20260124-163241" (timestamp-based)
+- **Task IDs**: Format "cub-abc.1", "cub-xyz", "cub-disk"
+- **Model escalation paths**: ["haiku", "sonnet", "opus"] tracks progression
+- **Cost tracking**: Realistic values (0.02, 0.05, 0.10, 0.50 USD)
+- **Token metrics**: input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
+- **Files changed**: Realistic paths (["src/feature.py"], ["src/bug.py"])
+
+**4. State Management During Lifecycle**
+- `_active_entries`: In-memory cache keyed by task_id
+- `_task_snapshots`: Original task state for drift detection
+- Both cleared on `on_task_close()` to prevent memory leaks
+- Can read from disk if entry not in cache (resilience)
+
+**5. Drift Detection Implementation Details**
+- Snapshot captured at task start with: title, description, type, priority, labels, created_at
+- Comparison at close detects: title, description, priority, labels, type changes
+- TaskChanged record includes:
+  - detected_at: timestamp
+  - fields_changed: list of changed field names
+  - original_description / final_description: full text for description changes
+  - notes: human-readable summary of all changes
+
+**6. Escalation Detection Algorithm**
+```python
+models_used = [a.model for a in entry.attempts if a.model]
+unique_models = list(dict.fromkeys(models_used))  # Preserve order, deduplicate
+escalated = len(unique_models) > 1
+escalation_path = unique_models if escalated else []
+```
+- Preserves order of escalation (haiku first, then sonnet, then opus)
+- Only set escalated=True if multiple unique models used
+- Empty path if no escalation
+
+**7. Error Handling Patterns**
+- `on_task_start()` raises ValueError if task already active (duplicate detection)
+- `on_task_close()` returns None for nonexistent tasks (graceful)
+- Error categories: "timeout", "api_error" (enumerations)
+- All state updates survive process restart via disk persistence
+
+**8. File Structure Created**
+```
+.cub/ledger/
+└── by-task/
+    └── {task_id}/
+        ├── entry.json (LedgerEntry)
+        └── attempts/
+            ├── 001-prompt.md (with frontmatter)
+            ├── 001-harness.log
+            ├── 002-prompt.md
+            ├── 002-harness.log
+            └── ...
+```
+
+### Test Coverage Verification
+- All 30 tests passing
+- No warnings from pytest
+- Linting: ruff clean (via `ruff check --fix`)
+- Type checking: mypy import warnings only (not critical)
+
+### Implementation Quality
+- Tests verify P0.2 (Task ledger creation on start)
+- Tests verify P0.4 (Attempt tracking with cost/tokens)
+- Tests verify P0.5 (Task finalization with outcome/drift)
+- Tests verify P0.6 partial (ledger show not tested here, see test_cli_ledger.py)
+- Integration with LedgerWriter verified via file existence checks
+- Disk persistence verified via writer.get_entry() reads
+
+### Architectural Insights
+- LedgerIntegration acts as orchestrator, not storage layer
+- Separation of concerns: Integration coordinates, Writer persists
+- Caching strategy balances performance (memory) vs durability (disk)
+- Drift detection happens only at close, not during execution
+- All metrics are aggregated from attempts array (single source of truth)
+
+
+## 2026-01-24 - Task cub-e2p.1: Add EpicEntry and aggregation models
+
+### What was implemented
+Added comprehensive epic-level tracking models to support project-level visibility:
+- `EpicSnapshot`: Captures epic state at entry creation (similar to TaskSnapshot)
+- `EpicAggregates`: Computed metrics from child tasks including completion, cost, escalation, attempts, tokens, duration, and model usage
+- `EpicEntry`: Complete epic ledger entry with lineage, workflow, drift tracking, and aggregated metrics
+- `compute_aggregates()`: Helper function that takes a list of LedgerEntry objects and computes all epic-level aggregates
+
+### Key design decisions
+1. **Computed aggregates**: Made aggregates computed from task entries rather than manually updated, ensuring accuracy and consistency
+2. **Model usage tracking**: Tracks both unique models used and the most common model across all tasks in an epic
+3. **Success vs completion**: Distinguishes between completed tasks (all attempts done) and successful tasks (completed with success=True)
+4. **Backward compatibility**: Uses both new outcome fields and legacy fields for robustness with existing data
+5. **Properties for derived metrics**: Added computed properties like completion_rate, success_rate, total_duration_hours for convenience
+
+### Technical learnings
+- Used Pydantic field validators and default_factory for datetime fields
+- Implemented helper properties for common calculations (rates, percentages, time conversions)
+- Designed aggregation function to handle both new (outcome-based) and legacy data structures
+- Used set operations for model usage tracking and dict for counting most common model
+
+### Testing approach
+- All existing 179 ledger tests pass
+- Created manual test of compute_aggregates with 3 sample tasks covering success, failure, and escalation scenarios
+- Verified all aggregate calculations: costs, attempts, escalation rate, token metrics, model usage
+- Confirmed typecheck (mypy) and lint (ruff) pass cleanly
+
+### What's next
+- Next task (cub-e2p.2): Implement epic CRUD and aggregation updates
+- Will need to create epic entries, update them when child tasks change, and provide query methods
+
+## Task: cub-e2p.2 - Implement epic CRUD and aggregation updates
+
+**Completed:** 2026-01-24
+
+**What was implemented:**
+- Added epic CRUD methods to LedgerWriter (create_epic_entry, get_epic_entry, update_epic_aggregates, add_task_to_epic)
+- Created directory structure: .cub/ledger/by-epic/{epic-id}/entry.json
+- Updated LedgerIntegration.on_task_close() to auto-update epic aggregates after task completion
+- Implemented epic workflow stage computation based on child task stages (least-progressed task determines epic stage)
+- Auto-create epic entry on first task closure if epic doesn't exist
+
+**Key design decisions:**
+- Epic stage follows "least-progressed" logic: if any task is still in dev_complete, epic stays in dev_complete
+- Epic entry auto-creation uses task metadata to populate epic snapshot when parent epic info is available
+- update_epic_aggregates() scans all task ledger entries to find children (supports both lineage.epic_id and legacy epic_id)
+- Temporal bounds (started_at, completed_at) derived from min/max of child task timestamps
+- Commit range tracked from all child task commits
+
+**Technical notes:**
+- Uses compute_aggregates() from models.py to aggregate metrics across child tasks
+- Epic workflow stage progression: dev_complete → needs_review → validated → released
+- All existing tests pass (66 tests in test_ledger_io.py and test_ledger_integration.py)
+- No new type errors introduced (mypy passes, only pre-existing yaml stub warning)
+
+**Follow-up work:**
+- Write tests for new epic CRUD methods
+- Consider adding epic index similar to task index.jsonl for fast queries
+- Dashboard integration to display epic aggregates
+
+
+## Task: cub-e2p.3 - Add tests for epic aggregation
+
+**Completed:** 2026-01-24
+
+**What was implemented:**
+- Created comprehensive test suite: tests/test_epic_aggregation.py (718 lines)
+- 15 tests covering all epic aggregation features:
+  - Epic auto-creation when first task closes
+  - Aggregates computation from single and multiple child tasks
+  - Escalation rate calculation (none, partial, all)
+  - Epic workflow stage computation based on child task stages
+  - Temporal bounds tracking (started_at, completed_at) from child tasks
+  - Task ID tracking and add_task_to_epic method
+
+**Test structure:**
+- TestEpicAutoCreation: 2 tests for epic creation scenarios
+- TestAggregatesComputation: 3 tests for metric aggregation
+- TestEscalationRate: 3 tests for escalation rate calculation
+- TestEpicStageComputation: 3 tests for stage computation logic
+- TestMultipleTasksInEpic: 4 tests for multi-task handling
+
+**Key discoveries:**
+- TokenUsage model uses input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens
+- total_tokens is a computed property, not a field parameter
+- tasks_completed counts only successful tasks (success=True), not all finished tasks
+- EpicAggregates and EpicSnapshot are not exported from ledger __init__.py (must import from models)
+- Epic stage computation follows "least-progressed" logic: mixed stages use the earliest stage in progression
+
+**Technical insights:**
+- Tests follow pytest fixture pattern consistent with test_ledger_integration.py
+- Used pytest.approx() for floating-point comparisons
+- Proper use of Lineage, Outcome, and WorkflowState models in test setup
+- Token metrics: properly constructed from individual token categories
+- Model tracking: correctly identifies most_common_model from outcome.final_model and harness_model
+
+**Quality metrics:**
+- All 15 tests pass ✓
+- Lint passes (ruff clean) ✓
+- Mypy errors consistent with existing test files (expected import-untyped warnings)
+- No regression: existing 179 ledger tests still pass
+
+**Learnings for future tests:**
+- Always verify whether computed properties vs. field parameters in Pydantic models
+- Test edge cases: empty epics, partial data, failed tasks
+- Use proper token structure when testing token aggregation
+- Follow project patterns for imports (use __init__.py exports where available)
+- Document non-obvious behavior (e.g., tasks_completed vs. total_tasks distinction)
+
+**What's next:**
+- Cub-e2p feature now has complete test coverage for epic aggregation
+- Ready for dashboard integration to display epic metrics
+- Can now safely refactor epic aggregation implementation with test safety net
+
+## 2026-01-24 - Task cub-c5i.1: Extended ledger show command
+
+Successfully extended the `cub ledger show` command to display new unified tracking fields.
+
+### What was implemented:
+1. Added three new flags:
+   - `--attempt N`: Shows detailed information for specific attempt number
+   - `--changes`: Shows full file and commit lists (not truncated)
+   - `--history`: Shows workflow stage transition history table
+
+2. Updated default display with new sections:
+   - Lineage section (epic, spec, plan)
+   - Workflow stage with color coding and timestamp
+   - Outcome summary (status, cost, duration, attempts, escalation)
+   - Attempts summary table (first 10 attempts with model/duration/cost/status)
+   - Task change detection warning
+   - Spec drift section (additions/omissions)
+
+3. Added formatting helpers:
+   - `_format_duration()`: Human-readable duration (e.g., "1h 23m 45s")
+   - `_format_workflow_stage()`: Color-coded stage display
+   - `_show_attempt_detail()`: Detailed single attempt view
+
+4. Maintained backward compatibility:
+   - Falls back to legacy fields if new fields not present
+   - Prefers outcome.* over legacy fields when available
+
+### Key learnings:
+- Rich tables with `box=None` and custom padding look clean in terminal
+- Forward-compatible field preference pattern (try new, fallback to old) works well
+- Using TYPE_CHECKING import prevents circular dependencies
+- Breaking long ternary expressions into multi-line improves readability
+
+### Verification:
+- All 189 ledger-related tests pass
+- Typecheck clean (mypy)
+- Linter clean (ruff)
+- Handles both new and legacy ledger entry formats
+
+
+## 2026-01-24 - Task cub-c5i.2: Add ledger update command
+
+**Completed:**
+- Implemented `cub ledger update` command for manual workflow stage transitions
+- Updated `LedgerWriter.update_workflow_stage()` to use new workflow and state_history fields
+- Added validation for stage values and task existence
+- Implemented confirmation display with formatted workflow stage
+
+**Key Implementation Details:**
+- Changed from WorkflowStage enum to string validation for flexibility
+- Update both `workflow.stage` and append to `state_history` array
+- Support optional `--reason` flag to document why stage changed
+- Handle cases where ledger entries don't yet have workflow/state_history fields
+
+**Testing:**
+- All 163 ledger tests pass
+- Manual testing confirmed command works correctly
+- Validation properly rejects invalid stages and nonexistent tasks
+
+**Learnings:**
+- The ledger system uses both legacy fields (workflow_stage) and new fields (workflow, state_history)
+- String-based stage validation is more flexible than enum-based for CLI commands
+- State history provides valuable audit trail of workflow progression
+
+## 2026-01-24 - Task cub-c5i.3: Add ledger export command
+
+Successfully implemented the ledger export command with JSON and CSV format support.
+
+### Implementation Details
+- Added `cub ledger export` command with `--format`, `--epic`, `--output`, and `--since` options
+- JSON export uses `model_dump(mode="json")` for proper serialization
+- CSV export flattens complex fields into a spreadsheet-friendly format
+- Supports both stdout and file output
+- Handles both new outcome-based fields and legacy fields gracefully
+
+### Key Learnings
+1. **Pydantic serialization**: Using `model_dump(mode="json")` ensures proper datetime serialization
+2. **CSV field selection**: Selected key fields for CSV that balance detail with usability in spreadsheets
+3. **Backward compatibility**: Export handles both new outcome-based and legacy ledger fields
+4. **Filter composition**: Leveraged existing LedgerReader filter methods for consistency
+
+### Testing
+- All existing tests pass (189 ledger-related tests)
+- Manually tested JSON/CSV export to stdout and file
+- Verified filtering by epic and date
+- Confirmed proper field flattening in CSV format
+
+
+## Task: cub-c5i.4 - Add ledger gc stub command [COMPLETED]
+Date: 2026-01-24
+Duration: ~15 minutes
+Status: ✓ Completed
+
+### Implementation Details:
+- Added `cub ledger gc` command to src/cub/cli/ledger.py
+- Scans all task directories under .cub/ledger/by-task for attempt files
+- Calculates which files would be deleted based on --keep-latest parameter
+- Displays rich formatted output with:
+  - Table showing per-task breakdown
+  - Total files that would be deleted
+  - Estimated space freed (in MB)
+  - Note that this is a dry-run
+  
+### Key Features:
+- --keep-latest N (default 5): Number of latest attempts to keep per task
+- --dry-run (always true for now): Placeholder for future actual deletion
+- Short option -k for --keep-latest
+- Handles edge cases:
+  - No ledger exists
+  - No task directories
+  - No attempt files in tasks
+  - Tasks with <= keep_latest files (no action needed)
+  
+### Testing:
+- All existing tests pass (16 tests in test_cli_ledger.py)
+- Manual testing confirms:
+  - gc command displays correct output with default keep-latest=5
+  - Displays summary when files would be deleted (keep-latest=1)
+  - Shows "No files to delete" message when appropriate
+  - Help text displays correctly
+  - -k short option works
+
+### Type Safety & Linting:
+- Fixed type annotations for dictionary unpacking from task_summary
+- No mypy errors
+- All ruff checks pass
+
+### Commit:
+- Commit hash: c0fd1b1
+- Message: "task(cub-c5i.4): Add ledger gc stub command"
+- Staged: src/cub/cli/ledger.py
+
+### Lessons Learned:
+1. Task summary list should use type annotations when unpacking dict items
+   to avoid mypy errors with dictionary access
+2. Rich Table API requires proper type annotations for add_row() arguments
+3. The dry-run mode was implemented as a feature flag ready for future
+   actual deletion functionality
+4. The command fits well into the existing ledger CLI structure and reuses
+   existing helpers like _get_ledger_reader()
+
+
+## Task cub-c5i.5: Add tests for CLI commands [COMPLETED 2026-01-24]
+
+### Summary
+Successfully created comprehensive test suite for all ledger CLI commands covering new unified-tracking-model features.
+
+### Tests Added (52 total)
+
+1. **Formatting Helpers Tests (19 tests)**
+   - _format_cost (3 tests): zero, positive, small amounts
+   - _format_verification (7 tests): pass, fail, warn, skip, pending, error, unknown
+   - _format_workflow_stage (5 tests): dev_complete, needs_review, validated, released, none
+   - _format_duration (4 tests): zero, seconds only, minutes+seconds, hours+minutes+seconds
+
+2. **Show Command with New Fields (7 tests)**
+   - Display lineage information (epic_id, spec_file, plan_file)
+   - Display workflow stage information
+   - Display outcome (success status, costs, duration, attempts, final model)
+   - Display attempts summary table
+   - Show specific attempt details with --attempt flag
+   - Handle invalid attempt numbers with proper error
+   - JSON output format validation
+
+3. **Update Stage Command (7 tests)**
+   - Update workflow stage to: needs_review, validated, released
+   - Update with reason annotation
+   - Invalid stage validation
+   - Task not found error handling
+   - Missing ledger error handling
+
+4. **Export Command (8 tests)**
+   - JSON export to stdout
+   - JSON export to file
+   - CSV export to file
+   - CSV export to stdout
+   - Invalid format validation
+   - Missing ledger error handling
+   - Epic filtering (--epic)
+   - Date filtering (--since)
+
+5. **Garbage Collection Command (5 tests)**
+   - Dry-run summary display
+   - No files to delete scenario
+   - Custom --keep-latest parameter
+   - Missing ledger handling
+   - Multiple tasks with varying attempt counts
+
+### Key Implementation Details
+
+- Used `CliRunner` from Typer for CLI invocation in tests
+- Created realistic test data with `LedgerEntry`, `Attempt`, `Outcome`, and `Workflow` models
+- Used mocking for project root to test with temporary directories
+- Comprehensive error handling and edge case testing
+- All tests pass with 100% success rate (52/52)
+- Full linting compliance (no ruff issues)
+- Follows pytest conventions and patterns used in existing tests
+
+### Files Modified
+- `tests/test_cli_ledger.py`: Extended from 25 to 747 lines with comprehensive test coverage
+
+### Learnings
+1. Ledger model uses `WorkflowState` not `Workflow` as the field name
+2. Commands check ledger existence before task existence
+3. Need to create `by-task` directory structure for update command tests
+4. Attempt files need proper naming convention (NNN-prompt.md, NNN-harness.log)
+5. Rich formatting codes need exact matching in output assertions
+
+### QA Results
+✓ All 52 tests pass
+✓ Linting passes (ruff clean)
+✓ No mypy errors on test file (untyped library stubs expected)
+✓ Code follows project conventions
+
+## Task: cub-d8b.1 - Create LedgerParser (2026-01-24)
+
+**Implementation:**
+- Created LedgerParser following the same pattern as TaskParser
+- Reads from index.jsonl for fast enumeration, loads full JSON for details
+- Maps workflow stages (dev_complete, needs_review, validated, released) to dashboard stages
+- Extracts metrics from outcome (preferred) with fallback to legacy fields
+- Handles epic_id from lineage with fallback to legacy field
+- Sorts entries by completion date (newest first) with proper datetime handling
+
+**Key Decisions:**
+- Used EntityType.LEDGER for all ledger entries (not TASK)
+- Preferred outcome.* fields over legacy fields for cost/tokens/duration
+- Used lineage.* fields for epic_id, spec_id, plan_id
+- Added description_excerpt truncation at 100 chars
+- MD5 checksum for change detection
+
+**Testing:**
+- 17 comprehensive tests covering all stage mappings
+- Tests for epic filtering, stage filtering, sorting
+- Tests for legacy field fallbacks
+- Tests for missing files and error handling
+- All tests pass ✓
+
+**Patterns Learned:**
+- Parser structure: _read_index(), _load_full_entry(), _compute_stage(), _to_dashboard_entity()
+- Checksum computation using model_dump_json with exclude_none
+- Stage computation as separate method for testability
+- Graceful handling of missing files with warning logs
+
+**Files Modified:**
+- src/cub/core/dashboard/sync/parsers/ledger.py (new, 310 lines)
+- src/cub/core/dashboard/sync/parsers/__init__.py (updated)
+- tests/test_ledger_parser.py (new, 600+ lines)
+
+## Task cub-d8b.2: Register parser and update resolver
+
+**Completed:** 2026-01-24
+
+**Summary:**
+Integrated the LedgerParser into the SyncOrchestrator to enable ledger data in the dashboard sync pipeline.
+
+**Key learnings:**
+1. The LedgerParser was already fully implemented with proper interface (parse() method)
+2. EntityType.LEDGER and RelationType.TASK_TO_LEDGER were already defined in models.py
+3. Relationship resolution for ledger entries was already implemented in resolver.py
+4. Only needed to register the parser in orchestrator.py following the same pattern as other parsers
+5. Graceful error handling allows sync to continue even if ledger parsing fails
+6. The ledger sync phase fits naturally after task parsing in the pipeline
+
+**Testing:**
+- All orchestrator tests passed (21 tests)
+- All ledger-related tests passed (242 tests)
+- Typecheck clean
+- Lint clean
+
+**Implementation notes:**
+- Added LedgerParser import to orchestrator.py
+- Added ledger parsing phase between task parsing and relationship resolution
+- Follows same error handling pattern as other parsers (log error, continue)
+- Logs parsing progress for visibility
+
+## 2026-01-24 - cub-d8b.3: Add tests for dashboard sync
+
+### Task Completed
+Verified and completed comprehensive test suite for LedgerParser and dashboard sync integration.
+
+### Test Coverage
+The `tests/test_ledger_parser.py` file contains 17 tests covering:
+
+**1. Parser Operations (3 tests)**
+- `test_parse_empty_ledger`: Handles empty directory gracefully
+- `test_parse_nonexistent_ledger`: Handles missing ledger directory
+- `test_parse_single_entry`: Correctly parses single entry with full metadata
+
+**2. Stage Computation (4 tests)**
+- Maps workflow stages to dashboard stages:
+  - `dev_complete` → `Stage.COMPLETE`
+  - `needs_review` → `Stage.NEEDS_REVIEW`
+  - `validated` → `Stage.VALIDATED`
+  - `released` → `Stage.RELEASED`
+
+**3. Entity Metadata Extraction (3 tests)**
+- Extracts cost, tokens, duration from outcome
+- Handles epic_id from lineage with fallback to legacy field
+- Extracts spec_id and plan_id from lineage paths
+
+**4. Core Features (5 tests)**
+- Checksum computation using MD5 for change detection
+- Parsing multiple entries with correct sorting (newest first)
+- Filtering by epic with `parse_by_epic(epic_id)`
+- Filtering by stage with `parse_by_stage(stage)`
+- Missing full entry file handling (graceful skip)
+
+**5. Backward Compatibility (2 tests)**
+- Legacy epic_id field fallback when lineage.epic_id is None
+- Description excerpt truncation at 100 chars with "..." suffix
+
+### Key Design Insights
+- Parser reads from `index.jsonl` for fast enumeration
+- Loads full JSON from `by-task/{id}.json` for detailed metrics
+- Stage computation is crucial for dashboard filtering and display
+- Checksum enables change detection for incremental syncs
+- Graceful degradation: missing files are logged and skipped
+
+### Integration Testing
+Dashboard integration tests verify end-to-end sync workflow:
+- `test_full_sync_to_api_flow`: Complete sync pipeline
+- `test_sync_and_query_entity_endpoint`: Entity retrieval after sync
+- Both pass successfully with proper stage mapping
+
+### Feedback Loops Completed
+✓ All 17 parser tests pass (0.16s)
+✓ Integration tests pass (0.38s combined)
+✓ Ruff linting passes
+✓ Type checking (mypy) expected warnings for untyped internal modules
+
+
+## 2026-01-24: Index Maintenance Implementation (cub-x3s.1)
+
+### What Was Done
+Implemented efficient index maintenance for the ledger system:
+
+1. **Added _update_index() method**: Handles both append and update operations
+   - Reads existing index entries
+   - Replaces matching entry if found by ID
+   - Appends new entry if not found
+   - Rewrites entire index file atomically
+
+2. **Updated all write operations**:
+   - create_entry() now calls _update_index() instead of _append_to_index()
+   - update_entry() now calls _update_index() instead of _rebuild_index()
+   - update_workflow_stage() validates data and calls _update_index()
+
+3. **Made rebuild_index() public**:
+   - Renamed from _rebuild_index() to rebuild_index()
+   - Added documentation marking it as a recovery method
+   - Updated test to use public method
+
+### Key Design Decisions
+
+**Why rewrite the entire index on every update?**
+- JSONL format requires rewriting entire file to update a line
+- Index files are small (one line per task)
+- Simplifies implementation and ensures consistency
+- Alternative (append-only log) would require periodic compaction
+
+**Why _update_index() reads and rewrites instead of seeking?**
+- JSONL doesn't support in-place updates
+- Reading entire file is fast for typical index sizes
+- Ensures atomic updates (old index preserved until write completes)
+- Handles both create and update cases uniformly
+
+### Testing Strategy
+- All existing 232 ledger tests continue to pass
+- Manual verification of append vs update scenarios
+- Verified no duplicate entries after updates
+- Confirmed rebuild_index() still works for recovery
+
+### Lessons Learned
+
+1. **JSONL trade-offs**: Great for append-only logs, requires full rewrites for updates
+2. **Index size matters**: Current approach works well for hundreds of entries, may need optimization for thousands
+3. **Atomic operations**: Writing to temp file then renaming would be more robust (future improvement)
+4. **Test coverage**: Existing tests caught no regressions, validating the abstraction
+
+### Files Modified
+- src/cub/core/ledger/writer.py: Added _update_index(), made rebuild_index() public
+- tests/test_ledger_io.py: Updated test to use public rebuild_index()
+
+
+## 2026-01-24 - cub-x3s.2: Enhance ledger search with index
+
+### Task Completed
+Enhanced ledger search with index-based filtering for faster queries on stage, cost, and escalation status.
+
+### Key Learnings
+
+**1. Index-Based Filtering Architecture**
+- Created `_query_index()` method as centralized filtering layer before text search
+- Index fields (stage, cost_usd, epic, verification) can be filtered without loading full entries
+- Escalated filter requires loading full entries to check outcome.escalated field
+- This two-tier approach optimizes common queries while supporting complex filters
+
+**2. Parameter Cascade Pattern**
+- `search_tasks()` accepts all filter params and passes them to `_query_index()`
+- `list_tasks()` calls `_query_index()` with subset of params (backward compat)
+- This layered API allows gradual feature expansion without breaking existing callers
+- Future filters can be added to `_query_index()` without touching `list_tasks()`
+
+**3. CLI Option Design**
+- Added `--stage`, `--cost-above`, and `--escalated` options to search command
+- Stage validation uses set of valid stages with helpful error messages
+- Cost threshold uses float type for decimal precision (e.g., 0.50)
+- Escalated uses bool type (true/false) for clear intent
+- Updated docstring with examples showing new filter combinations
+
+**4. Selective Full Entry Loading**
+- Most filters operate on index fields only (fast path)
+- Escalated filter loads full entries for affected tasks only
+- Pattern: filter index first, then load full entries only for remaining candidates
+- This minimizes disk I/O while maintaining filter accuracy
+
+**5. Filter Composition**
+- All filters are optional (None = no filter applied)
+- Filters compose via list comprehension: each filter narrows the result set
+- Order matters: cheap filters first (index fields), expensive filters last (full load)
+- Example: stage filter before escalated filter reduces full entry loads
+
+**6. Test Coverage and Type Safety**
+- All existing tests passed (36 ledger_io tests, 53 cli_ledger tests)
+- Type checking passed for both reader.py and ledger.py
+- Linting passed with no new warnings
+- Search functionality tested via existing test suite
+
+### Implementation Summary
+
+Added three files modified:
+1. `src/cub/core/ledger/reader.py`: Added `_query_index()` method, enhanced `search_tasks()`
+2. `src/cub/cli/ledger.py`: Added CLI options for stage, cost-above, escalated filters
+
+The ledger search now supports fast filtering by workflow stage, cost threshold, and escalation status, enabling more targeted queries for task analysis and reporting.
+
+
+## 2026-01-24 - Task cub-x3s.3: Implement PATCH API endpoint
+
+**Completed:**
+- Added PATCH /api/entity/{id} endpoint to dashboard API
+- Endpoint accepts {"workflow": {"stage": "..."}, "reason": "..."} body
+- Updates both dashboard DB (immediate UI) and ledger files (persistence)
+- Comprehensive test coverage for happy path, error cases, and edge cases
+
+**Key learnings:**
+- The existing PUT /entity/{id}/workflow endpoint was close but didn't match spec
+- PATCH endpoint provides more RESTful semantics for partial updates
+- Database stage values (e.g., "completed") differ from Stage enum values (e.g., "COMPLETE")
+- Ledger updates are optional - DB update is sufficient for entities without ledger entries (epics)
+- Reason field is captured in ledger state_history for audit trail
+
+**Implementation details:**
+- Uses LedgerWriter.update_workflow_stage() which already handled reason and state_history
+- Maps workflow stages: NEEDS_REVIEW, VALIDATED, RELEASED, COMPLETE
+- COMPLETE clears workflow_stage, returning entity to default completed state
+- Returns full EntityDetail response for immediate UI update ("incremental sync")
+
+
+## 2026-01-24 - cub-x3s.4: Add tests for index and API
+
+### Task Completed
+Implemented comprehensive test coverage for ledger index operations and dashboard API workflow updates.
+
+### Key Learnings
+
+**1. Ledger Index Architecture**
+- Index is stored in JSONL format (one entry per line) at `.cub/ledger/index.jsonl`
+- Provides fast lookups without reading full markdown files
+- LedgerIndex.from_ledger_entry() converts full entries to compact index entries
+- Update strategy: read all existing entries, replace the one being updated, rewrite entire file
+- This atomic replacement prevents corruption from partial writes
+
+**2. Index Consistency Patterns**
+- Always verify index consistency by comparing task files with indexed entries
+- Rebuild index recovery method reads all by-task/*.json and reconstructs index from scratch
+- New entries append to index during creation, updates replace in-place
+- Date filtering requires ISO format (YYYY-MM-DD) for consistent string comparison
+- Optional fields (epic, workflow_stage) may be null in index but must serialize properly
+
+**3. Search Index Usage**
+- Search queries use index for fast field lookups before loading full entries
+- Case-insensitive search requires .lower() on both query and field values
+- Multi-field search checks all specified fields (title, files, spec) with OR logic
+- Filter ordering: index-based filters first (epic, verification) then text search
+- Escalated filter is special case - requires loading full entry to check outcome.escalated
+
+**4. LedgerEntry Model Evolution**
+- New model uses `workflow: WorkflowState` field containing stage and stage_updated_at
+- Old deprecated fields `workflow_stage` and `workflow_stage_updated_at` still exist for compatibility
+- WorkflowState.stage has validator allowing only: "dev_complete", "needs_review", "validated", "released"
+- Index stores workflow_stage as string or null (string value from .value property)
+- Tests must check `entry.workflow.stage` not `entry.workflow_stage` for new code
+
+**5. API Workflow Update Flow**
+- PATCH /api/entity/{id} endpoint validates stage names (case-insensitive conversion to uppercase)
+- Invalid stage returns 400 with clear message listing valid options
+- Entity not found returns 404 with entity ID in detail message
+- Database update is primary - ledger update is optional fallback (fail silently if no ledger entry)
+- COMPLETE stage clears workflow (sets to None in ledger, "dev_complete" in database)
+
+**6. Database and Ledger Synchronization**
+- Database updates persist immediately in entities table (stage column)
+- Ledger updates are secondary and may fail silently if entry doesn't exist
+- Ledger workflow stored as WorkflowState with ISO-formatted timestamps
+- State transitions appended to state_history array for audit trail
+- Database stage values: "completed", "verifying", "validated", "released"
+- Maps to WorkflowStage enum: NEEDS_REVIEW, VALIDATED, RELEASED
+
+**7. Test Structure for API Endpoints**
+- Use TestClient from fastapi.testclient for HTTP testing
+- Mock get_db_path() to control database location during tests
+- Fixtures: temp_db (SQLite), sample_entity_in_db (inserted record), sample_ledger_entry (written files)
+- Test response structure with response.json() after checking status code
+- Verify persistence by querying database directly after API call
+
+**8. Fixture Dependencies and Setup**
+- Ledger fixtures need temp_path from pytest, create .cub/ledger structure
+- Database fixtures need configure_connection() and create_schema() setup
+- LedgerWriter and LedgerReader both created fresh per test for isolation
+- Ledger entries must have valid dates in ISO format (strftime("%Y-%m-%d"))
+- Patch both db_path and cwd when testing ledger + database interactions together
+
+### Implementation Summary
+
+**tests/test_ledger_index.py**: 21 tests organized in 6 test classes
+- TestIndexUpdate: 5 tests for creation, appending, modification, schema, optional fields
+- TestIndexRebuild: 4 tests for rebuild from files, order preservation, empty directory, corruption handling
+- TestIndexConsistency: 3 tests for task/index alignment, field matching, update consistency
+- TestSearchUsesIndex: 7 tests for title search, case-insensitivity, file search, filters, epic/status lists
+- TestIndexDates: 2 tests for date-based filtering and cost thresholds
+
+**tests/test_dashboard_api.py**: 18 tests organized in 5 test classes
+- TestPatchEntityWorkflow: 6 tests for stage transitions, reasons, case-insensitivity
+- TestInvalidStageValidation: 4 tests for error messages, empty/null values
+- TestEntityNotFoundHandling: 2 tests for missing entities and databases
+- TestLedgerWriteback: 3 tests for ledger updates, clearing workflow, optional entries
+- TestDatabaseUpdatePersistence: 3 tests for database persistence, sequential updates, entity isolation
+
+**All 39 tests pass (100% success rate)** with proper linting (ruff passed).
+
+### Files Created
+- tests/test_ledger_index.py: 588 lines, comprehensive index testing
+- tests/test_dashboard_api.py: 502 lines, comprehensive API testing
+

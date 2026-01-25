@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-d8b.1",
+  "title": "Create LedgerParser",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d8b"
+  },
+  "task": {
+    "title": "Create LedgerParser",
+    "description": "The dashboard needs a parser to read ledger files and convert them to DashboardEntity objects.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/parsers/ledger.py`\n2. Implement `LedgerParser` class with `parse()`, `_compute_stage()`, `_to_dashboard_entity()`, `_compute_checksum()`\n3. Read from index.jsonl for fast enumeration\n4. Map workflow stages: dev_complete \u2192 COMPLETE, needs_review \u2192 NEEDS_REVIEW, etc.\n\n**Files:** `src/cub/core/dashboard/sync/parsers/ledger.py`, `src/cub/core/dashboard/sync/parsers/__init__.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-d8b",
+      "logic",
+      "model:sonnet",
+      "phase-5"
+    ],
+    "created_at": "2026-01-24T21:12:34.037303Z",
+    "captured_at": "2026-01-24T22:26:51.797844Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-172651",
+      "started_at": "2026-01-24T17:26:51.801117",
+      "completed_at": "2026-01-24T22:31:12.114130Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 260
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:31:12.348120Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 260,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a5b0b47e78c76dd4324c8f2bf5a0d2dd19bd7ad0",
+        "message": "task(cub-d8b.1): Create LedgerParser",
+        "timestamp": "2026-01-24T17:30:46-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:31:12.348120Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:26:51.797844Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:31:12.348120Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:26:51.797844Z",
+  "completed_at": "2026-01-24T22:31:12.348120Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 260,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "a5b0b47e78c76dd4324c8f2bf5a0d2dd19bd7ad0",
+      "message": "task(cub-d8b.1): Create LedgerParser",
+      "timestamp": "2026-01-24T17:30:46-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-d8b.1",
+  "epic_id": "cub-d8b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

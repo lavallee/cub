@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement /api/entity/{id} endpoint",
+    "description": "The entity detail endpoint returns full entity data with relationships, enabling the detail panel in the UI.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/api/routes/entity.py`\n2. Implement `GET /api/entity/{id}`:\n3. Add to `src/cub/core/dashboard/db/queries.py`:\n4. Register route in app\n5. Add tests\n\n**Files:** `src/cub/core/dashboard/api/routes/entity.py`, `src/cub/core/dashboard/db/queries.py`, `tests/test_api_entity.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:medium",
+      "model:sonnet"
+    ],
+    "created_at": "2026-01-23T18:13:28.809723Z",
+    "captured_at": "2026-01-25T00:39:36.631667Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a7f"
+  }
 }

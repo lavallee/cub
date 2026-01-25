@@ -2,7 +2,7 @@
   "id": "cub-001",
   "title": "Task",
   "started_at": null,
-  "completed_at": "2026-01-24T11:45:24.371771",
+  "completed_at": "2026-01-24T16:26:53.173483",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -18,12 +18,47 @@
   "files_changed": [],
   "commits": [],
   "spec_file": null,
-  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4969983888'>",
+  "run_log_path": "<MagicMock name='StatusWriter().get_task_dir()' id='4364311520'>",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
   "harness_model": "sonnet",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "workflow": {
+    "stage": "needs_review",
+    "stage_updated_at": "2026-01-24T22:17:41.104872+00:00"
+  },
+  "state_history": [
+    {
+      "stage": "needs_review",
+      "at": "2026-01-24T22:17:41.104874+00:00",
+      "by": "cli",
+      "reason": "Ready for review"
+    }
+  ],
+  "task": {
+    "title": "Create lib/session.sh with animal wordlist",
+    "description": "## Context\nSession identity allows concurrent curb instances to be distinguished. The animal wordlist provides friendly, memorable names.\n\n## Implementation Hints\n\n**Recommended Model:** haiku\n**Estimated Duration:** 25m\n**Approach:** Create a Bash array with ~100 animal names. Keep it simple - no external dependencies.\n\n## Implementation Steps\n1. Create lib/session.sh with standard header\n2. Define ANIMAL_NAMES array with ~100 animals (fox, owl, bear, wolf, etc.)\n3. Add session_random_name() function that picks randomly from array\n4. Source xdg.sh for any path helpers needed\n\n## Acceptance Criteria\n- [ ] lib/session.sh exists with proper header\n- [ ] ANIMAL_NAMES array contains ~100 unique animals\n- [ ] session_random_name returns a valid animal name\n- [ ] No external dependencies beyond bash builtins\n\n## Files Likely Involved\n- lib/session.sh (new)\n\n## Notes\nUse $RANDOM % array_length for selection. Animals should be lowercase, single words.",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "complexity:medium",
+      "docs",
+      "model:haiku",
+      "model:sonnet",
+      "phase-1",
+      "release:v0.21",
+      "setup"
+    ],
+    "created_at": "2026-01-10T10:15:02.633149-05:00",
+    "captured_at": "2026-01-25T00:39:33.956057Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-E01"
+  }
 }

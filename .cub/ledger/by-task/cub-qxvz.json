@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Add BLOCKED stage for tasks not yet ready",
+    "description": "Currently, tasks and epics that are not ready (e.g., blocked by dependencies) are incorrectly placed in the PLANNED stage. We need to create a new BLOCKED stage to properly represent their status.\n\n**Context:**\nThe dashboard's stage computation logic currently lacks a distinct stage for blocked work items. Tasks and epics that cannot proceed (due to unmet dependencies, blocking issues, etc.) should be visually separated from PLANNED items, which represent work that is ready to start but hasn't been started yet.\n\n**Acceptance Criteria:**\n- [ ] New BLOCKED stage is added to the Stage enum in `cub.core.dashboard.db.models`\n- [ ] Stage computation logic in `cub.core.dashboard.sync` correctly identifies and assigns tasks/epics to BLOCKED stage when they have blocking dependencies or are not ready\n- [ ] BLOCKED stage is positioned appropriately in the Kanban workflow (between SPECS and READY)\n- [ ] Dashboard API returns BLOCKED stage entities correctly\n- [ ] Dashboard views display BLOCKED as a distinct column\n- [ ] Tests verify that blocked tasks/epics appear in BLOCKED stage, not PLANNED\n- [ ] EPICs and TASKs no longer appear in PLANNED stage unless they are actually ready to start",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:19.709258-05:00",
+    "captured_at": "2026-01-25T00:39:37.501457Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

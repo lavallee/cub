@@ -13,7 +13,7 @@ import os
 import subprocess
 from datetime import datetime, timedelta, timezone
 
-import frontmatter  # type: ignore[import-untyped]
+import frontmatter
 import typer
 from rich.console import Console
 from rich.table import Table

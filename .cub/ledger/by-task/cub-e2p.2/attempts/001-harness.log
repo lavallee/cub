@@ -1,0 +1,36 @@
+I'll implement the epic CRUD and aggregation updates for the ledger system. Let me start by claiming the task and understanding the current code structure.Let me search for existing ledger files:Good! Now let me read the existing ledger files:Now let me check if there's a reader module that I should be aware of:Perfect! Now I understand the codebase structure. Let me create a todo list and implement the epic CRUD and aggregation updates.Now let me implement the epic CRUD methods in LedgerWriter:Now let me add the epic CRUD methods at the end of the LedgerWriter class:Good! Now let me update the LedgerIntegration.on_task_close() to update epic aggregates. Let me also add the auto-creation logic:Now let me update the on_task_close method to handle epic aggregate updates:Now I need to add the `_update_or_create_epic` helper method. Let me add it after the `_detect_task_changed` method:Perfect! Now let me update the todo list and run the feedback loops:Now let me run the feedback loops. First, let me check what feedback tools are available:Let me check for available commands:Good! Let me run mypy first:This is a pre-existing issue with yaml stubs. Let me check if the code actually has type issues by running mypy with less strict settings or checking the specific code I added:Let me check the project's mypy configuration:The yaml import issue is pre-existing. Let me check if we can just run mypy on the whole project to see if there are new issues specifically in my code:Good! No actual type errors in my code. Let me run the tests:Let me find the correct test location:Excellent! All tests pass. Now let me run ruff:Perfect! All checks pass. Let me update the todo list and close the task:Now let me close the task and commit:Let me commit the changes:Perfect! Now let me append learnings to progress.txt:Perfect! The task is complete. Let me summarize what was accomplished:
+
+## Summary
+
+Successfully implemented epic CRUD and aggregation updates for the ledger system:
+
+### ✅ What was implemented:
+
+1. **Epic CRUD methods in LedgerWriter:**
+   - `create_epic_entry()` - Creates epic entry in `.cub/ledger/by-epic/{epic-id}/entry.json`
+   - `get_epic_entry()` - Retrieves epic entry by ID
+   - `update_epic_aggregates()` - Recomputes aggregates from all child task ledger entries
+   - `add_task_to_epic()` - Convenience method to add tasks and update aggregates
+   - `_compute_epic_stage()` - Computes epic workflow stage from child task stages
+
+2. **LedgerIntegration updates:**
+   - Modified `on_task_close()` to automatically update epic aggregates when a task is closed
+   - Auto-creates epic entry on first task closure if epic doesn't exist yet
+   - Added `_update_or_create_epic()` helper method to manage epic lifecycle
+
+3. **Epic aggregation features:**
+   - Aggregates cost, duration, tokens across all child tasks
+   - Tracks task completion counts, success rates, escalation metrics
+   - Computes temporal bounds (started_at, completed_at) from child tasks
+   - Maintains commit range (first_commit, last_commit)
+   - Epic workflow stage follows "least-progressed" logic (epic stage = minimum of all child task stages)
+
+### ✅ Quality checks passed:
+- All 66 existing tests pass
+- Ruff linting passes
+- No new mypy type errors introduced
+- Task closed: `cub-e2p.2`
+- Changes committed with detailed commit message
+- Learnings appended to `progress.txt`
+
+The implementation provides a solid foundation for tracking epic-level metrics and workflow progression based on child task completion.

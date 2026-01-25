@@ -4,6 +4,10 @@ Claude SDK harness backend implementation.
 This backend wraps the Claude Agent SDK for AI coding assistance with full
 async support, hooks, custom tools, and native streaming.
 
+Use 'claude-sdk' or 'claude' to select this backend. The 'claude' alias
+defaults to this SDK-based implementation. For the CLI shell-out approach,
+use 'claude-cli' explicitly.
+
 Requires:
     - claude-agent-sdk Python package (pip install claude-agent-sdk)
     - Claude Code CLI (bundled with the package)
@@ -215,8 +219,9 @@ def _extract_text_from_message(sdk_message: Any) -> str:
     return "".join(text_parts)
 
 
-@register_async_backend("claude")
-class ClaudeSDKHarness:
+@register_async_backend("claude-sdk")
+@register_async_backend("claude")  # Alias: 'claude' defaults to SDK backend
+class ClaudeSDKBackend:
     """
     Claude SDK harness backend.
 
@@ -235,14 +240,12 @@ class ClaudeSDKHarness:
 
     def __init__(self) -> None:
         """Initialize the harness with empty hook registry."""
-        self._hooks: dict[HookEvent, list[HookHandler]] = {
-            event: [] for event in HookEvent
-        }
+        self._hooks: dict[HookEvent, list[HookHandler]] = {event: [] for event in HookEvent}
 
     @property
     def name(self) -> str:
-        """Return 'claude' as the harness name."""
-        return "claude"
+        """Return 'claude-sdk' as the harness name."""
+        return "claude-sdk"
 
     @property
     def capabilities(self) -> HarnessCapabilities:
@@ -281,7 +284,8 @@ class ClaudeSDKHarness:
         """
         Check if harness supports a specific feature.
 
-        Claude SDK supports all features in HarnessFeature.
+        Claude SDK supports all features in HarnessFeature, including
+        ANALYSIS for LLM-based code review.
 
         Args:
             feature: Feature to check
@@ -289,6 +293,7 @@ class ClaudeSDKHarness:
         Returns:
             True (all features supported)
         """
+        # Claude SDK supports all features including analysis
         return True
 
     def register_hook(
@@ -350,9 +355,7 @@ class ClaudeSDKHarness:
         """
         try:
             self._hooks[event].remove(handler)
-            logger.debug(
-                "Unregistered hook for event %s: %s", event.value, handler.__name__
-            )
+            logger.debug("Unregistered hook for event %s: %s", event.value, handler.__name__)
             return True
         except ValueError:
             return False
@@ -724,3 +727,168 @@ class ClaudeSDKHarness:
             return result.stdout.strip() or "unknown"
         except Exception:
             return "unknown"
+
+    async def analyze(
+        self,
+        context: str,
+        files_content: dict[str, str] | None = None,
+        analysis_type: str = "implementation_review",
+        model: str | None = None,
+    ) -> TaskResult:
+        """
+        Run LLM-based analysis without modifying files.
+
+        Uses run_task() internally with a specialized system prompt
+        that instructs the LLM to analyze without making changes.
+
+        Args:
+            context: Context about what to analyze
+            files_content: Dict mapping file paths to contents
+            analysis_type: Type of analysis to perform
+            model: Optional model override (defaults to 'sonnet')
+
+        Returns:
+            TaskResult with analysis text in output field
+        """
+        # Build analysis prompt
+        system_prompt = self._build_analysis_system_prompt(analysis_type)
+        user_prompt = self._build_analysis_user_prompt(context, files_content, analysis_type)
+
+        # Create task input with read-only settings
+        task_input = TaskInput(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model=model or "sonnet",  # Default to sonnet for analysis
+            auto_approve=True,  # No user interaction needed
+            # Don't pass working_dir to prevent file access
+        )
+
+        return await self.run_task(task_input)
+
+    def _build_analysis_system_prompt(self, analysis_type: str) -> str:
+        """Build system prompt for analysis based on type."""
+        base_prompt = """You are a code review assistant providing actionable feedback for follow-up work.
+
+IMPORTANT RULES:
+1. This is a READ-ONLY analysis. Do NOT suggest using any tools to modify files.
+2. Do NOT attempt to run commands, create files, or make changes.
+3. Focus on providing ACTIONABLE guidance for whoever will fix these issues.
+4. Distinguish between issues with CLEAR FIXES vs issues that NEED DECISIONS.
+"""
+
+        type_prompts = {
+            "implementation_review": """
+Your goal is to compare implementation against the spec/plan/task and provide actionable follow-up guidance.
+
+For each issue you find, determine:
+1. Is the fix CLEAR from the spec/plan/task? → Provide specific fix instructions
+2. Does this raise a QUESTION that needs human decision? → Flag for clarification
+
+FORMAT YOUR RESPONSE WITH THESE SECTIONS:
+
+## Summary
+Brief overview: what percentage complete, major gaps, overall quality.
+
+## Fix Now (Clear Remedies)
+Issues where the correct fix is obvious from the spec/plan/task.
+Format each as:
+[SEVERITY] **Issue**: Description of what's wrong
+**Expected**: What the spec/plan/task specified
+**Fix**: Specific steps to resolve (be concrete - file names, function names, what to add/change)
+
+Example:
+[CRITICAL] **Issue**: Missing error handling in parse_config()
+**Expected**: Task specified "handle invalid JSON gracefully"
+**Fix**: Add try/except around json.loads() in src/config.py:45, return ConfigError with message
+
+## Needs Decision (Questions to Resolve)
+Issues where implementation differs from spec in ways that might be intentional, or where the spec is ambiguous.
+Format each as:
+[WARNING] **Drift**: Description of the deviation
+**Question**: What needs to be decided
+**Options**: Possible resolutions and their trade-offs
+
+Example:
+[WARNING] **Drift**: Added caching layer not mentioned in spec
+**Question**: Should caching be kept, removed, or added to spec?
+**Options**: (1) Keep and update spec (2) Remove to match spec (3) Make configurable
+
+## Verification Checklist
+Concrete checks the follow-up work should pass:
+- [ ] Specific test or validation to perform
+- [ ] File/function that should exist
+- [ ] Behavior that should be observable
+""",
+            "code_quality": """
+Your goal is to analyze code quality and provide actionable improvement guidance.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Brief quality assessment with specific metrics if observable.
+
+## Fix Now (Clear Issues)
+Issues with obvious fixes. Format:
+[SEVERITY] **Issue**: What's wrong
+**Fix**: Specific remediation steps
+
+## Consider (Trade-off Decisions)
+Issues that involve trade-offs or architectural choices. Format:
+[INFO] **Observation**: What you noticed
+**Trade-off**: Why this might be intentional vs problematic
+**Recommendation**: Suggested approach if they decide to address it
+
+## Verification Checklist
+- [ ] Specific quality checks to run
+- [ ] Tests to add or verify
+""",
+            "spec_gap": """
+Your goal is to find gaps between spec and implementation, categorizing each by actionability.
+
+FORMAT YOUR RESPONSE:
+
+## Summary
+Alignment score (0-100%) and key findings.
+
+## Missing from Implementation (Fix Required)
+Features in spec but not in code. Format:
+[SEVERITY] **Gap**: What's missing
+**Spec Reference**: Where this was specified
+**Implementation Path**: Suggested approach to add it
+
+## Implementation Drift (Decision Required)
+Features in code but not in spec, or behavioral differences. Format:
+[WARNING] **Drift**: What differs
+**Question**: Keep, remove, or update spec?
+**Impact**: What changes if each option is chosen
+
+## Alignment Checklist
+- [ ] Specific spec requirements to verify
+- [ ] Behaviors to test
+""",
+        }
+
+        return base_prompt + type_prompts.get(
+            analysis_type, type_prompts["implementation_review"]
+        )
+
+    def _build_analysis_user_prompt(
+        self,
+        context: str,
+        files_content: dict[str, str] | None,
+        analysis_type: str,
+    ) -> str:
+        """Build user prompt with context and file contents."""
+        parts = [f"# Analysis Request\n\n{context}"]
+
+        if files_content:
+            parts.append("\n\n# Files to Analyze\n")
+            for path, content in files_content.items():
+                # Truncate very large files
+                if len(content) > 50000:
+                    content = content[:50000] + "\n... [truncated]"
+                parts.append(f"\n## {path}\n```\n{content}\n```\n")
+
+        parts.append(f"\n\nPlease perform a {analysis_type.replace('_', ' ')} analysis.")
+
+        return "".join(parts)

@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Implement ToolsmithService sync logic",
+    "description": "## Context\nThe ToolsmithService orchestrates sync operations across multiple sources and merges results into the catalog. This is the core business logic for catalog management.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 2h\n**Approach:** Create service class that coordinates store and sources. Handle merging with update-or-insert logic.\n\n## Implementation Steps\n1. Create `src/cub/core/toolsmith/service.py`\n2. Define `SyncResult` model (tools_added, tools_updated, errors)\n3. Define `CatalogStats` model (total_tools, by_source, by_type, last_sync)\n4. Implement `ToolsmithService.__init__(store, sources)`\n5. Implement `sync(source_names=None) -> SyncResult`\n   - Fetch from each source (or specified sources)\n   - Merge into catalog (update existing by ID, add new)\n   - Update sources_synced timestamps\n   - Save catalog\n6. Implement `stats() -> CatalogStats`\n\n## Acceptance Criteria\n- [ ] `ToolsmithService` takes store and sources in constructor\n- [ ] `sync()` with no args syncs all registered sources\n- [ ] `sync([\"smithery\"])` syncs only specified source\n- [ ] Sync updates existing tools (matched by ID) and adds new ones\n- [ ] Sync updates `last_sync` and `sources_synced` timestamps\n- [ ] `SyncResult` reports tools_added, tools_updated, any errors\n- [ ] `stats()` returns catalog statistics\n- [ ] Handles source errors gracefully (continues with other sources)\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/core/toolsmith/service.py` (new)\n- `src/cub/core/toolsmith/models.py` (add SyncResult, CatalogStats)\n\n## Notes\n- Tool ID is the unique key for merge logic\n- Update `last_seen` timestamp on existing tools during sync\n- Consider adding `tools_removed` for tools no longer in source (future)",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-v9s",
+      "logic",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:34.452526Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-v9s"
+  }
 }

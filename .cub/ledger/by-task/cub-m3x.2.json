@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement relationship navigation",
+    "description": "Clicking relationship links in the detail panel should navigate to that entity, enabling exploration of the entity graph.\n\n**Implementation Steps:**\n1. Update `DetailPanel.tsx`:\n2. Add breadcrumb or back button for navigation history\n3. Create `src/cub/dashboard/web/src/hooks/useNavigation.ts`:\n4. Style relationship links as visually distinct\n\n**Files:** `src/cub/dashboard/web/src/components/DetailPanel.tsx`, `hooks/useNavigation.ts`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809786Z",
+    "captured_at": "2026-01-25T00:39:36.147251Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3x"
+  }
 }

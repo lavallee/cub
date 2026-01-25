@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-c5i.4",
+  "title": "Add ledger gc stub command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-c5i"
+  },
+  "task": {
+    "title": "Add ledger gc stub command",
+    "description": "Placeholder for future garbage collection/retention policy. For now, just shows what would be deleted.\n\n**Implementation Steps:**\n1. Add `ledger gc` command with `--dry-run` (always true for now) and `--keep-latest` options\n2. Scan all task directories for attempt files\n3. Identify files that would be deleted based on keep_latest\n4. Print summary: \"Would delete N files, freeing ~X MB\"\n\n**Files:** `src/cub/cli/ledger.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "epic:cub-c5i",
+      "logic",
+      "model:haiku",
+      "phase-4"
+    ],
+    "created_at": "2026-01-24T21:12:34.037283Z",
+    "captured_at": "2026-01-24T22:20:59.495937Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-170852",
+      "started_at": "2026-01-24T17:20:59.497962",
+      "completed_at": "2026-01-24T22:23:17.652956Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 138
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:23:17.882843Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 138,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
+        "message": "task(cub-c5i.4): Add ledger gc stub command",
+        "timestamp": "2026-01-24T17:22:47-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:23:17.882843Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:20:59.495937Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:23:17.882843Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:20:59.495937Z",
+  "completed_at": "2026-01-24T22:23:17.882843Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 138,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
+      "message": "task(cub-c5i.4): Add ledger gc stub command",
+      "timestamp": "2026-01-24T17:22:47-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.4",
+  "epic_id": "cub-c5i",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

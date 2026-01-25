@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-e2p.3",
+  "title": "Add tests for epic aggregation",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-e2p"
+  },
+  "task": {
+    "title": "Add tests for epic aggregation",
+    "description": "Tests ensure epic aggregation works correctly across multiple tasks.\n\n**Implementation Steps:**\n1. Create `tests/test_epic_aggregation.py`\n2. Test: epic auto-creation, aggregates computation, escalation rate, stage computation, multiple tasks same epic\n\n**Files:** `tests/test_epic_aggregation.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "epic:cub-e2p",
+      "model:haiku",
+      "phase-3",
+      "test"
+    ],
+    "created_at": "2026-01-24T21:12:34.037249Z",
+    "captured_at": "2026-01-24T22:02:25.963626Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-165555",
+      "started_at": "2026-01-24T17:02:25.965534",
+      "completed_at": "2026-01-24T22:08:46.532680Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 380
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:08:46.793840Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 380,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c138ee735c4347a8b6adc07539549a37e7327efa",
+        "message": "task(cub-e2p.3): Add tests for epic aggregation",
+        "timestamp": "2026-01-24T17:07:58-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:08:46.793840Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:02:25.963626Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:08:46.793840Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:02:25.963626Z",
+  "completed_at": "2026-01-24T22:08:46.793840Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 380,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "c138ee735c4347a8b6adc07539549a37e7327efa",
+      "message": "task(cub-e2p.3): Add tests for epic aggregation",
+      "timestamp": "2026-01-24T17:07:58-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-e2p.3",
+  "epic_id": "cub-e2p",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

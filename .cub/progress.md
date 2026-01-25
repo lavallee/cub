@@ -2416,3 +2416,48 @@ markdown-like parsing, and section structure preservation. PDF files can now be 
 as first-class sources alongside Markdown, JSON, and GitHub issues, with full support
 for both task backends and source reference tracking.
 
+
+---
+
+## 2026-01-24: Session Models Implementation (cub-r4n.1)
+
+**Task:** Create session module and models for unified tracking system
+
+**Implementation:**
+Created `src/cub/core/session/` module with Pydantic models for tracking active `cub run` executions:
+
+1. **SessionStatus Enum** - Three states (running, completed, orphaned) with helper properties
+2. **SessionBudget Model** - Tracks tokens and cost with limits, utilization, and exceeded checks
+3. **RunSession Model** - Complete run session state with 12 fields per architecture spec
+4. **generate_run_id()** - Helper function generating cub-YYYYMMDD-HHMMSS format IDs
+
+**Key Design Decisions:**
+- Used Pydantic v2 BaseModel with strict typing for all models
+- Added computed properties for budget utilization, duration calculations, and task metrics
+- Implemented state transition methods (mark_completed, mark_orphaned) on RunSession
+- Regex pattern validation on run_id field to enforce format
+- All datetime fields use UTC timezone
+
+**Pattern Adherence:**
+- Followed existing ledger/tasks module patterns (Enum properties, computed fields)
+- Used Field() with descriptions and validators (ge=0 for counts, min_length for strings)
+- Supported JSON serialization via model_dump() and model_validate_json()
+- Passed mypy --strict type checking
+- Passed ruff linting with 100 char line limit
+
+**Files Created:**
+- src/cub/core/session/__init__.py: Module exports (20 lines)
+- src/cub/core/session/models.py: Pydantic models (264 lines)
+
+**Testing:**
+- Manual testing verified JSON serialization round-trip
+- Tested all enum properties and budget calculations
+- Verified generate_run_id() format (cub-YYYYMMDD-HHMMSS = 19 chars)
+- Confirmed state transitions (mark_completed, mark_orphaned)
+- All mypy strict checks pass
+- All ruff linting checks pass
+
+**Next Steps:**
+This lays the foundation for Phase 1. Next task (cub-r4n.2) will implement the RunSessionManager
+class that uses these models to track active runs with symlink-based detection.
+

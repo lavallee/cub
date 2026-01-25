@@ -1,0 +1,65 @@
+I'll implement the PATCH API endpoint for updating workflow stages. Let me start by claiming the task and then examining the current code structure.Let me find the correct file paths:Now let me check the ledger models to understand the WorkflowStage enum:Good! Now I understand the structure. Let me examine the current implementation of `update_workflow_stage` in the writer to see what needs to be adapted:
+
+Looking at the code, I can see:
+
+1. **Current state**: There's already a `PUT /api/entity/{entity_id}/workflow` endpoint that updates workflow stages
+2. **Task requirement**: We need to implement a `PATCH /api/entity/{id}` endpoint that accepts `{"workflow": {"stage": "validated"}, "reason": "..."}`
+
+The existing PUT endpoint is close but doesn't match the spec. Let me implement the PATCH endpoint as specified:Now let's add the PATCH endpoint. I'll add it after the PUT endpoint:Great! Now I need to verify that the `update_workflow_stage` method in `LedgerWriter` already handles the requirements correctly. Looking at the code I read earlier, I can see it:
+
+1. ✅ Validates the stage value
+2. ✅ Accepts a `reason` parameter
+3. ✅ Updates the ledger entry file
+4. ✅ Updates the index
+
+However, I noticed the method signature uses string stages like "validated", not the enum. Let me verify this is correct by checking the implementation again:
+
+Looking at lines 187-261 of writer.py, the `update_workflow_stage` method:
+- Takes stage as a string
+- Validates against `{"dev_complete", "needs_review", "validated", "released"}`
+- This matches the `WorkflowStage` enum values
+
+Perfect! The implementation is complete. Now let's run the feedback loops:Good! Now let's look for tests specifically related to workflow stage updates:Now let's check if there are specific tests for the API workflow endpoint:Let me check if there are tests for the PUT workflow endpoint that I can reference:Let me check the test_api_entity.py file to see what tests exist:I can see the test file doesn't have tests for the PATCH endpoint yet. Let me write a test for it. First, let me add a test class to the existing test file:Now let's run the new tests to make sure they pass:I need to fix the test - the stage returned is "COMPLETE" not "COMPLETED". Let me check what the actual value should be:I see - the database stores "completed" but the API returns the uppercase stage. Let me check how stages are converted back when returned:Let me check how the Stage enum is defined:Ah, I see! The Stage enum value is `COMPLETE`, not `COMPLETED`. Let me fix the test:Now let's run the tests again:Perfect! Now let's run all the feedback loops:The mypy error is pre-existing (yaml stubs), and tests pass. Let me fix the ruff lint error:Perfect! All checks are passing. Now let me run the full test suite to make sure nothing broke:Excellent! All tests are passing. Now let's close the task and commit:Now let's create a commit:Perfect! Now let me append learnings to progress.txt:Perfect! Let me summarize what was accomplished:
+
+## Summary
+
+I've successfully implemented the PATCH API endpoint for updating workflow stages:
+
+### Implementation
+
+**1. Added PATCH /api/entity/{id} endpoint** (`src/cub/core/dashboard/api/routes/entity.py`):
+   - Accepts request body: `{"workflow": {"stage": "validated"}, "reason": "..."}`
+   - Validates stage values: `NEEDS_REVIEW`, `VALIDATED`, `RELEASED`, `COMPLETE`
+   - Updates dashboard database for immediate UI feedback
+   - Writes back to ledger files for persistence across syncs
+   - Returns updated `EntityDetail` for incremental sync
+   - Special handling: `COMPLETE` stage clears workflow stage
+
+**2. Added comprehensive test coverage** (`tests/test_api_entity.py`):
+   - Happy path: updating workflow stage with reason
+   - Error handling: invalid stage names (400)
+   - Error handling: entity not found (404)
+   - Edge case: COMPLETE stage clearing workflow stage
+
+### Technical Details
+
+- Used existing `LedgerWriter.update_workflow_stage()` method which already:
+  - Validates stage values
+  - Accepts optional reason parameter
+  - Appends state transitions to history with timestamp and actor
+  - Updates both the ledger entry file and index
+
+- The endpoint gracefully handles entities without ledger entries (like epics) - database update is sufficient for UI purposes
+
+- Returns full `EntityDetail` response to enable "incremental sync" - dashboard gets updated entity immediately without full refresh
+
+### Testing
+
+✅ All tests passing:
+- 4 new PATCH endpoint tests
+- 12 existing entity endpoint tests  
+- 82 ledger-related integration tests
+- Typecheck clean (pre-existing yaml stub warning)
+- Lint clean
+
+Task **cub-x3s.3** is now complete and committed!

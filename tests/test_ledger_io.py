@@ -8,7 +8,6 @@ import pytest
 
 from cub.core.ledger.models import (
     LedgerEntry,
-    LedgerIndex,
     TokenUsage,
     VerificationStatus,
 )
@@ -68,9 +67,7 @@ class TestLedgerWriter:
         assert writer.index_file == ledger_dir / "index.jsonl"
         assert writer.by_task_dir == ledger_dir / "by-task"
 
-    def test_create_entry(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_create_entry(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test creating a ledger entry."""
         writer = LedgerWriter(ledger_dir)
         writer.create_entry(sample_entry)
@@ -114,9 +111,7 @@ class TestLedgerWriter:
             lines = f.readlines()
         assert len(lines) == 2
 
-    def test_entry_exists(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_entry_exists(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test checking if entry exists."""
         writer = LedgerWriter(ledger_dir)
 
@@ -130,9 +125,7 @@ class TestLedgerWriter:
         assert writer.entry_exists(sample_entry.id)
         assert not writer.entry_exists("nonexistent-id")
 
-    def test_update_entry(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_update_entry(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test updating an existing entry."""
         writer = LedgerWriter(ledger_dir)
         writer.create_entry(sample_entry)
@@ -170,10 +163,10 @@ class TestLedgerWriter:
             writer.update_entry(sample_entry)
 
     def test_rebuild_index_empty_by_task_dir(self, ledger_dir: Path) -> None:
-        """Test _rebuild_index with no by-task directory."""
+        """Test rebuild_index with no by-task directory."""
         writer = LedgerWriter(ledger_dir)
         # Should not raise even when by_task_dir doesn't exist
-        writer._rebuild_index()
+        writer.rebuild_index()
 
     def test_update_entry_rebuilds_index(
         self,
@@ -295,9 +288,7 @@ class TestLedgerReader:
         assert len(tasks) == 1
         assert tasks[0].id == sample_entry.id
 
-    def test_get_task(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_get_task(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test getting full task entry."""
         writer = LedgerWriter(ledger_dir)
         writer.create_entry(sample_entry)
@@ -359,9 +350,7 @@ class TestLedgerReader:
         results = reader.search_tasks("FEATURE")
         assert len(results) == 1
 
-    def test_search_tasks_no_match(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_search_tasks_no_match(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test search with no matches."""
         writer = LedgerWriter(ledger_dir)
         writer.create_entry(sample_entry)
@@ -468,9 +457,7 @@ class TestLedgerReaderEdgeCases:
 class TestLedgerRoundTrip:
     """Test read/write round trips."""
 
-    def test_roundtrip_entry(
-        self, ledger_dir: Path, sample_entry: LedgerEntry
-    ) -> None:
+    def test_roundtrip_entry(self, ledger_dir: Path, sample_entry: LedgerEntry) -> None:
         """Test writing and reading back an entry."""
         writer = LedgerWriter(ledger_dir)
         writer.create_entry(sample_entry)
@@ -487,3 +474,180 @@ class TestLedgerRoundTrip:
         assert entry.tokens.total_tokens == sample_entry.tokens.total_tokens
         assert entry.cost_usd == sample_entry.cost_usd
         assert entry.harness_name == sample_entry.harness_name
+
+
+class TestLedgerPromptAndLogWriting:
+    """Test prompt and log file writing for attempts."""
+
+    def test_write_prompt_file_basic(self, ledger_dir: Path) -> None:
+        """Test writing a basic prompt file with frontmatter."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-abc"
+        prompt_content = "# Task: Fix login\n\nFix the login bug..."
+
+        prompt_path = writer.write_prompt_file(
+            task_id,
+            1,
+            prompt_content,
+            harness="claude",
+            model="haiku",
+            run_id="cub-20260124-123456",
+        )
+
+        # Verify file was created
+        expected_path = ledger_dir / "by-task" / task_id / "attempts" / "001-prompt.md"
+        assert prompt_path == expected_path
+        assert prompt_path.exists()
+
+        # Verify content
+        content = prompt_path.read_text(encoding="utf-8")
+        assert content.startswith("---\n")
+        assert "attempt: 1" in content
+        assert "harness: claude" in content
+        assert "model: haiku" in content
+        assert "run_id: cub-20260124-123456" in content
+        assert "started_at:" in content
+        assert "# Task: Fix login" in content
+
+    def test_write_prompt_file_multiple_attempts(self, ledger_dir: Path) -> None:
+        """Test writing multiple prompt files for different attempts."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-xyz"
+
+        # Write first attempt
+        path1 = writer.write_prompt_file(task_id, 1, "Attempt 1", harness="claude", model="haiku")
+        # Write second attempt
+        path2 = writer.write_prompt_file(task_id, 2, "Attempt 2", harness="claude", model="sonnet")
+
+        # Verify both files exist
+        assert path1.exists()
+        assert path2.exists()
+        assert path1.name == "001-prompt.md"
+        assert path2.name == "002-prompt.md"
+
+        # Verify directory structure
+        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
+        assert attempts_dir.exists()
+        assert len(list(attempts_dir.glob("*-prompt.md"))) == 2
+
+    def test_write_prompt_file_with_custom_started_at(self, ledger_dir: Path) -> None:
+        """Test writing prompt file with custom started_at timestamp."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-test"
+        custom_time = datetime(2026, 1, 24, 12, 35, 0, tzinfo=timezone.utc)
+
+        prompt_path = writer.write_prompt_file(
+            task_id,
+            1,
+            "Test prompt",
+            harness="claude",
+            model="haiku",
+            run_id="test-run",
+            started_at=custom_time,
+        )
+
+        content = prompt_path.read_text(encoding="utf-8")
+        assert "started_at: '2026-01-24T12:35:00+00:00'" in content
+
+    def test_write_prompt_file_zero_padding(self, ledger_dir: Path) -> None:
+        """Test that attempt numbers are zero-padded to 3 digits."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-pad"
+
+        # Test various attempt numbers
+        path1 = writer.write_prompt_file(task_id, 1, "Attempt 1")
+        path5 = writer.write_prompt_file(task_id, 5, "Attempt 5")
+        path99 = writer.write_prompt_file(task_id, 99, "Attempt 99")
+        path123 = writer.write_prompt_file(task_id, 123, "Attempt 123")
+
+        assert path1.name == "001-prompt.md"
+        assert path5.name == "005-prompt.md"
+        assert path99.name == "099-prompt.md"
+        assert path123.name == "123-prompt.md"
+
+    def test_write_harness_log_basic(self, ledger_dir: Path) -> None:
+        """Test writing a basic harness log file."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-log"
+        log_content = "Harness output...\nSome logs here\n"
+
+        log_path = writer.write_harness_log(task_id, 1, log_content)
+
+        # Verify file was created
+        expected_path = ledger_dir / "by-task" / task_id / "attempts" / "001-harness.log"
+        assert log_path == expected_path
+        assert log_path.exists()
+
+        # Verify content
+        content = log_path.read_text(encoding="utf-8")
+        assert content == log_content
+
+    def test_write_harness_log_multiple_attempts(self, ledger_dir: Path) -> None:
+        """Test writing multiple harness logs for different attempts."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-multi"
+
+        # Write logs for multiple attempts
+        path1 = writer.write_harness_log(task_id, 1, "Log for attempt 1")
+        path2 = writer.write_harness_log(task_id, 2, "Log for attempt 2")
+        path3 = writer.write_harness_log(task_id, 3, "Log for attempt 3")
+
+        # Verify all files exist
+        assert path1.exists()
+        assert path2.exists()
+        assert path3.exists()
+        assert path1.name == "001-harness.log"
+        assert path2.name == "002-harness.log"
+        assert path3.name == "003-harness.log"
+
+        # Verify directory structure
+        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
+        assert attempts_dir.exists()
+        assert len(list(attempts_dir.glob("*-harness.log"))) == 3
+
+    def test_write_prompt_and_log_together(self, ledger_dir: Path) -> None:
+        """Test writing both prompt and log files for the same attempt."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-both"
+
+        # Write both prompt and log for attempt 1
+        prompt_path = writer.write_prompt_file(
+            task_id,
+            1,
+            "# Task prompt",
+            harness="claude",
+            model="haiku",
+            run_id="test-run",
+        )
+        log_path = writer.write_harness_log(task_id, 1, "Harness output")
+
+        # Verify both exist in the same directory
+        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
+        assert prompt_path.parent == attempts_dir
+        assert log_path.parent == attempts_dir
+        assert prompt_path.exists()
+        assert log_path.exists()
+
+        # Verify both have matching attempt numbers
+        assert prompt_path.name == "001-prompt.md"
+        assert log_path.name == "001-harness.log"
+
+    def test_write_files_creates_directories(self, ledger_dir: Path) -> None:
+        """Test that write methods create necessary directories."""
+        writer = LedgerWriter(ledger_dir)
+        task_id = "cub-newdirs"
+
+        # Verify directories don't exist yet
+        task_dir = ledger_dir / "by-task" / task_id
+        attempts_dir = task_dir / "attempts"
+        assert not task_dir.exists()
+        assert not attempts_dir.exists()
+
+        # Write a prompt file
+        writer.write_prompt_file(task_id, 1, "Test prompt")
+
+        # Verify directories were created
+        assert task_dir.exists()
+        assert attempts_dir.exists()
+        assert task_dir.is_dir()
+        assert attempts_dir.is_dir()

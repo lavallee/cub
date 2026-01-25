@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "id": "cub-c5i.3",
+  "title": "Add ledger export command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-c5i"
+  },
+  "task": {
+    "title": "Add ledger export command",
+    "description": "Users need to export ledger data for external analysis or reporting.\n\n**Implementation Steps:**\n1. Add `ledger export` command with `--format` (json/csv), `--epic`, `--output` options\n2. Use LedgerReader to get entries\n3. For JSON: use `json.dumps()` with indent; For CSV: use `csv.DictWriter` with flattened fields\n4. Output to file or stdout\n\n**Files:** `src/cub/cli/ledger.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-c5i",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-24T21:12:34.037274Z",
+    "captured_at": "2026-01-24T22:18:40.581047Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260124-170852",
+      "started_at": "2026-01-24T17:18:40.582838",
+      "completed_at": "2026-01-24T22:20:56.948739Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 136
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-24T22:20:57.170329Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 136,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "cc1e3b9bb0a44db18afc920894a7f730074a4459",
+        "message": "task(cub-c5i.3): Add ledger export command",
+        "timestamp": "2026-01-24T17:20:29-05:00"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-24T22:20:57.170329Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:18:40.581047Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-24T22:20:57.170329Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-24T22:18:40.581047Z",
+  "completed_at": "2026-01-24T22:20:57.170329Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 136,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "cc1e3b9bb0a44db18afc920894a7f730074a4459",
+      "message": "task(cub-c5i.3): Add ledger export command",
+      "timestamp": "2026-01-24T17:20:29-05:00"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-c5i.3",
+  "epic_id": "cub-c5i",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

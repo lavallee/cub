@@ -34,14 +34,24 @@ Example:
 """
 
 from cub.core.ledger.extractor import InsightExtraction, extract_insights
+from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import (
+    Attempt,
     CommitRef,
+    DriftRecord,
     EpicSummary,
     LedgerEntry,
     LedgerIndex,
     LedgerStats,
+    Lineage,
+    Outcome,
+    StateTransition,
+    TaskChanged,
+    TaskSnapshot,
     TokenUsage,
+    Verification,
     VerificationStatus,
+    WorkflowState,
 )
 from cub.core.ledger.reader import LedgerReader
 from cub.core.ledger.writer import LedgerWriter
@@ -53,6 +63,16 @@ __all__ = [
     "CommitRef",
     "EpicSummary",
     "LedgerStats",
+    # New tracking models
+    "Lineage",
+    "TaskSnapshot",
+    "TaskChanged",
+    "Attempt",
+    "Outcome",
+    "DriftRecord",
+    "Verification",
+    "WorkflowState",
+    "StateTransition",
     # Supporting models
     "TokenUsage",
     "VerificationStatus",
@@ -60,6 +80,8 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Integration
+    "LedgerIntegration",
     # Extraction
     "InsightExtraction",
     "extract_insights",

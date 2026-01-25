@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement StatsBar component",
+    "description": "The stats bar shows quick metrics: entity counts by stage, total cost spent, etc.\n\n**Implementation Steps:**\n1. Create `src/cub/dashboard/web/src/components/StatsBar.tsx`:\n2. Update `App.tsx`:\n3. Style for information density without clutter\n\n**Files:** `src/cub/dashboard/web/src/components/StatsBar.tsx`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "frontend",
+      "model:haiku",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809806Z",
+    "captured_at": "2026-01-25T00:39:38.061708Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3x"
+  }
 }
