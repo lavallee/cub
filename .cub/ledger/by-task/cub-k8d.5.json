@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement FastAPI app with /api/board endpoint",
+    "description": "The API server exposes dashboard data to the frontend. Start with just `/api/board` - enough to render the kanban board.\n\n**Implementation Steps:**\n1. Add `fastapi` and `uvicorn` to pyproject.toml dependencies\n2. Create `src/cub/core/dashboard/api/__init__.py`\n3. Create `src/cub/core/dashboard/api/app.py`:\n4. Create `src/cub/core/dashboard/api/routes/__init__.py`\n5. Create `src/cub/core/dashboard/api/routes/board.py`:\n6. Create `src/cub/core/dashboard/db/queries.py`:\n7. Add API tests with TestClient\n\n**Files:** `src/cub/core/dashboard/api/app.py`, `src/cub/core/dashboard/api/routes/board.py`, `src/cub/core/dashboard/db/queries.py`, `tests/test_api_board.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:medium",
+      "model:sonnet"
+    ],
+    "created_at": "2026-01-23T18:13:28.809606Z",
+    "captured_at": "2026-01-25T00:39:36.771204Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

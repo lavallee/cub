@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Implement retry logic with exponential backoff",
+    "description": "## Context\nAdd retry logic with exponential backoff for HTTP requests to handle transient failures gracefully.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 1h\n**Approach:** Create a retry decorator or utility function. Use exponential backoff with jitter.\n\n## Implementation Steps\n1. Create retry utility in `src/cub/core/toolsmith/http.py` or similar\n2. Implement retry decorator with configurable attempts, backoff, jitter\n3. Apply to all HTTP-fetching code in source adapters\n4. Add timeout configuration\n5. Log retry attempts\n\n## Acceptance Criteria\n- [ ] Retry utility implements exponential backoff\n- [ ] Default: 3 retries, 1s base delay, 2x multiplier\n- [ ] Jitter added to prevent thundering herd\n- [ ] Retries only on transient errors (5xx, timeout, connection error)\n- [ ] No retry on 4xx errors (permanent failures)\n- [ ] Retry attempts are logged\n- [ ] Configurable via parameters\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/core/toolsmith/http.py` (new)\n- `src/cub/core/toolsmith/sources/*.py` (modify to use retry)\n\n## Notes\n- Consider using `tenacity` library if available, else implement manually\n- httpx has built-in timeout support - use it\n- Add reasonable default timeout (30s)\n- Consider circuit breaker pattern for future",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-q2w",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:36.982869Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2w"
+  }
 }

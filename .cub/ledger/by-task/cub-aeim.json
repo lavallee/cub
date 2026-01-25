@@ -23,5 +23,19 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Debug cost test",
+    "description": "",
+    "type": "task",
+    "priority": 2,
+    "labels": [],
+    "created_at": "2026-01-24T11:27:57.516127-05:00",
+    "captured_at": "2026-01-25T00:39:35.089042Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  }
 }

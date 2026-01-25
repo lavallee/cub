@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Set up Vite + Preact + Tailwind frontend project",
+    "description": "The frontend is a Preact SPA that renders the kanban board. This task sets up the project structure and build tooling.\n\n**Implementation Steps:**\n1. Create `src/cub/dashboard/web/` directory\n2. Initialize with Vite: `npm create vite@latest . -- --template preact-ts`\n3. Install dependencies: `npm install tailwindcss postcss autoprefixer`\n4. Configure Tailwind: `npx tailwindcss init -p`\n5. Create project structure:\n6. Configure Vite to output to `../static/` on build\n7. Create `api/client.ts` with typed fetch wrapper\n8. Create `types/api.ts` matching Python response models\n9. Verify dev server runs: `npm run dev`\n10. Verify production build: `npm run build`\n\n**Files:** `src/cub/dashboard/web/*` (new directory)",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "setup"
+    ],
+    "created_at": "2026-01-23T18:13:28.809620Z",
+    "captured_at": "2026-01-25T00:39:35.658894Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

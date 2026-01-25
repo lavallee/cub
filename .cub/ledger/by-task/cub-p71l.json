@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Enrich dashboard cards with metadata during sync",
+    "description": "Enhance the dashboard to display contextual information on cards by extracting metadata during the sync phase rather than at render time. This allows graceful degradation when data is incomplete.\n\n**Current State:**\nDashboard cards display minimal information (ID, title). Users lack visibility into work readiness and scope.\n\n**Desired Changes:**\n\n1. **SPEC Cards** - Add readiness score and note info\n   - Extract readiness assessment from spec content\n   - Display associated notes/comments\n\n2. **EPIC Cards** - Add task count, priority, and description context\n   - Count associated tasks during resolution phase\n   - Extract priority level from epic metadata\n   - Display brief description excerpt\n\n3. **PLAN Cards** - Add description context and epic count\n   - Extract description from plan content\n   - Count number of EPICs this plan implements\n\n**Implementation Approach:**\n- Extend entity model to include optional metadata fields (readiness_score, task_count, priority, description, etc.)\n- Update parsers (SpecParser, PlanParser, TaskParser) to extract this info during sync\n- Store metadata in database alongside entity records\n- Use graceful fallback (omit field or use default) when data is unavailable\n- Return metadata in API responses for rendering\n\n**Acceptance Criteria:**\n- [ ] Entity models include optional metadata fields\n- [ ] Sync phase extracts and validates metadata from source files\n- [ ] Database schema updated to store metadata\n- [ ] API returns metadata in entity responses\n- [ ] UI displays metadata on cards (or gracefully omits if unavailable)\n- [ ] Tests verify extraction with complete and incomplete data\n- [ ] All tests passing, mypy clean",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:19.389138-05:00",
+    "captured_at": "2026-01-25T00:39:38.432188Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

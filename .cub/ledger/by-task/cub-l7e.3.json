@@ -31,5 +31,25 @@
   "harness_name": "claude",
   "harness_model": "opus",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Create LedgerIntegration layer",
+    "description": "The LedgerIntegration layer coordinates all ledger writes during task execution, providing a clean interface for the run loop.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ledger/integration.py`\n2. Implement `LedgerIntegration` class with: `on_task_start()`, `on_attempt_start()`, `on_attempt_end()`, `on_task_close()`\n3. Add helper `_detect_task_changed()` for drift detection\n4. Coordinate with LedgerWriter for all file operations\n\n**Files:** `src/cub/core/ledger/integration.py`, `src/cub/core/ledger/__init__.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:high",
+      "epic:cub-l7e",
+      "logic",
+      "model:opus",
+      "phase-2"
+    ],
+    "created_at": "2026-01-24T21:12:34.037204Z",
+    "captured_at": "2026-01-25T00:39:36.287782Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-l7e"
+  }
 }

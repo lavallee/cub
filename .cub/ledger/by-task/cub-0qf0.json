@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Group PLANNED specs with their corresponding plans",
+    "description": "Currently, SPEC entities in the PLANNED stage are displayed as separate cards in the Kanban board. They should be grouped together with their corresponding PLAN entities (which implement them) to show the relationship between specification and implementation.\n\n**Context:**\n- PLAN entities have a `plan_id` marker that links them to their SPEC\n- SPEC entities in PLANNED stage represent specifications that have implementation plans\n- Grouping them together improves visualization of spec\u2192plan relationships\n\n**Acceptance Criteria:**\n- [ ] PLANNED specs appear as a sub-group or nested within the same column as their corresponding PLAN entity\n- [ ] The grouping respects the existing `plan_id` relationship marker in PLAN entities\n- [ ] Legacy specs without plans (no corresponding PLAN entity) remain as floating cards in the PLANNED stage\n- [ ] Grouping is configurable via view configuration (`.cub/views/*.yaml`)\n- [ ] Dashboard board API (`/api/board`) returns grouped structure\n- [ ] Web UI renders specs grouped with their plans",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:20.003448-05:00",
+    "captured_at": "2026-01-25T00:39:36.425461Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

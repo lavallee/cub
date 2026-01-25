@@ -24,6 +24,7 @@ class AssessmentGrade(str, Enum):
 class IssueType(str, Enum):
     """Types of issues that can be detected during review."""
 
+    # Ledger-based issues
     VERIFICATION_FAILED = "verification_failed"
     VERIFICATION_PENDING = "verification_pending"
     SPEC_DRIFT_OMISSION = "spec_drift_omission"
@@ -33,6 +34,17 @@ class IssueType(str, Enum):
     TASK_FAILED = "task_failed"
     TASK_ESCALATED = "task_escalated"
     NOT_IN_LEDGER = "not_in_ledger"
+
+    # Structural check issues
+    MISSING_FILE = "missing_file"
+    MISSING_TEST = "missing_test"
+    UNCHECKED_CRITERIA = "unchecked_criteria"
+    TESTS_FAILING = "tests_failing"
+    TYPE_CHECK_FAILING = "type_check_failing"
+
+    # Deep analysis issues
+    IMPLEMENTATION_GAP = "implementation_gap"
+    SPEC_MISMATCH = "spec_mismatch"
 
 
 class IssueSeverity(str, Enum):
@@ -55,6 +67,13 @@ class ReviewIssue(BaseModel):
         return f"[{self.severity.value}] {self.description}"
 
 
+class AcceptanceCriterion(BaseModel):
+    """A single acceptance criterion from task description."""
+
+    text: str
+    checked: bool = False
+
+
 class TaskAssessment(BaseModel):
     """Assessment of a single task's implementation."""
 
@@ -71,6 +90,16 @@ class TaskAssessment(BaseModel):
     escalated: bool = False
     files_changed_count: int = 0
     has_commits: bool = False
+
+    # Structural check results
+    specified_files: list[str] = Field(default_factory=list)
+    missing_files: list[str] = Field(default_factory=list)
+    acceptance_criteria: list[AcceptanceCriterion] = Field(default_factory=list)
+    unchecked_criteria: list[str] = Field(default_factory=list)
+    missing_tests: list[str] = Field(default_factory=list)
+
+    # Deep analysis results (populated with --deep)
+    deep_analysis: str | None = None
 
     @property
     def has_critical_issues(self) -> bool:

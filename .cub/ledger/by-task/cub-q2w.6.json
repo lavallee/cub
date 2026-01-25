@@ -25,5 +25,26 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Achieve 80%+ test coverage on core modules",
+    "description": "## Context\nEnsure production-quality test coverage on core Toolsmith modules. Target 80%+ coverage on models, store, service.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 2h\n**Approach:** Run coverage report, identify gaps, add tests for uncovered paths.\n\n## Implementation Steps\n1. Run coverage: `pytest tests/test_toolsmith/ --cov=src/cub/core/toolsmith --cov-report=html`\n2. Review coverage report for gaps\n3. Add tests for uncovered branches and edge cases\n4. Focus on: error paths, edge cases, boundary conditions\n5. Ensure models, store, service all exceed 80%\n6. Source adapters can have lower coverage (network-dependent)\n\n## Acceptance Criteria\n- [ ] `cub/core/toolsmith/models.py` >= 80% coverage\n- [ ] `cub/core/toolsmith/store.py` >= 80% coverage\n- [ ] `cub/core/toolsmith/service.py` >= 80% coverage\n- [ ] `cub/core/toolsmith/search.py` >= 80% coverage (if separate)\n- [ ] Error handling paths are tested\n- [ ] Edge cases are tested (empty catalog, no results, etc.)\n- [ ] All tests pass: `pytest tests/test_toolsmith/ -v`\n\n## Files Likely Involved\n- `tests/test_toolsmith/*.py` (modify/add)\n\n## Notes\n- Don't chase 100% coverage - focus on meaningful tests\n- Source adapters may have lower coverage due to HTTP mocking complexity\n- Use `# pragma: no cover` sparingly for truly untestable code\n- Consider property-based testing for models (hypothesis)",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "checkpoint",
+      "complexity:medium",
+      "epic:cub-q2w",
+      "model:sonnet",
+      "phase-4",
+      "test"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:34.097827Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2w"
+  }
 }

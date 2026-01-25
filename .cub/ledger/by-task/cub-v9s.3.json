@@ -25,5 +25,26 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Wire CLI commands to service",
+    "description": "## Context\nConnect the CLI stub commands to the real ToolsmithService implementation. Add proper output formatting.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 1.5h\n**Approach:** Replace stubs with service calls. Use Rich for formatted output.\n\n## Implementation Steps\n1. Update `src/cub/cli/toolsmith.py`\n2. Create service instance with default store and all sources\n3. Implement `sync` command:\n   - Call service.sync()\n   - Display progress and results\n4. Implement `search` command:\n   - Call service.search(query, live_fallback=live)\n   - Display results in rich format\n5. Implement `stats` command:\n   - Call service.stats()\n   - Display statistics table\n6. Add `--source` filtering where applicable\n\n## Acceptance Criteria\n- [ ] `cub toolsmith sync` syncs all sources and shows results\n- [ ] `cub toolsmith sync --source smithery` syncs only Smithery\n- [ ] `cub toolsmith search \"browser\"` searches and displays results\n- [ ] `cub toolsmith search \"browser\" --live` forces live search\n- [ ] `cub toolsmith stats` shows catalog statistics\n- [ ] Output uses Rich formatting (tables, colors)\n- [ ] Error messages are user-friendly\n- [ ] mypy passes with strict mode\n\n## Files Likely Involved\n- `src/cub/cli/toolsmith.py` (modify)\n\n## Notes\n- Follow output patterns from other Cub CLI commands\n- Use Rich Table for search results and stats\n- Show progress indicator during sync\n- Include tool count and timing in sync output",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "checkpoint",
+      "cli",
+      "complexity:medium",
+      "epic:cub-v9s",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:38.130995Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-v9s"
+  }
 }

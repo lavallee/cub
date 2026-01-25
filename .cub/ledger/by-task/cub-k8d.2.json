@@ -25,5 +25,24 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": "needs_review",
-  "workflow_stage_updated_at": "2026-01-24T03:31:35.424717+00:00"
+  "workflow_stage_updated_at": "2026-01-24T03:31:35.424717+00:00",
+  "task": {
+    "title": "Create Pydantic models for dashboard entities",
+    "description": "Pydantic models provide type-safe data structures for entities, API responses, and view configurations. These are used throughout the sync layer and API.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/db/models.py`\n2. Implement enums:\n3. Implement `DashboardEntity` model with all fields from architecture\n4. Implement `Relationship` model\n5. Implement `BoardColumn` and `BoardResponse` models for API\n6. Implement `ViewConfig`, `ColumnConfig`, `FilterConfig`, `DisplayConfig` models\n7. Implement `SyncState` and `SyncResult` models\n8. Add model validation tests\n\n**Files:** `src/cub/core/dashboard/db/models.py`, `tests/test_dashboard_models.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "foundation",
+      "model:sonnet",
+      "models"
+    ],
+    "created_at": "2026-01-23T18:13:28.809547Z",
+    "captured_at": "2026-01-25T00:39:39.018547Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

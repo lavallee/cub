@@ -23,5 +23,25 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement task parser via backend abstraction",
+    "description": "Tasks and epics come from the task backend (beads or JSON). Use existing backend abstraction rather than parsing files directly.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/parsers/tasks.py`\n2. Implement `TaskParser` class:\n3. Handle both beads and JSON backends\n4. Add tests with mock backend\n\n**Files:** `src/cub/core/dashboard/sync/parsers/tasks.py`, `tests/test_task_parser.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "backend",
+      "complexity:medium",
+      "model:sonnet",
+      "parser",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809662Z",
+    "captured_at": "2026-01-25T00:39:34.806754Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

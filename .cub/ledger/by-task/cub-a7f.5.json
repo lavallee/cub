@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Add error handling middleware and consistent error responses",
+    "description": "Ensure all API errors return consistent JSON responses with error codes, not stack traces.\n\n**Implementation Steps:**\n1. Update `src/cub/core/dashboard/api/app.py`:\n2. Create error codes:\n3. Log errors with traceback for debugging\n4. Return clean JSON to client\n5. Add tests for error scenarios\n\n**Files:** `src/cub/core/dashboard/api/app.py`, `tests/test_api_errors.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:medium",
+      "error-handling",
+      "model:sonnet"
+    ],
+    "created_at": "2026-01-23T18:13:28.809768Z",
+    "captured_at": "2026-01-25T00:39:34.029108Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a7f"
+  }
 }

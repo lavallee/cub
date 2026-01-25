@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement relationship resolver and stage computation",
+    "description": "The relationship resolver links entities via explicit markers and computes the correct stage for each entity based on multiple signals.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/resolver.py`\n2. Implement `RelationshipResolver` class:\n3. Implement `compute_stage()` function following architecture logic:\n4. Enrich entities with ledger data (cost, tokens, etc.)\n5. Add comprehensive tests for stage computation edge cases\n\n**Files:** `src/cub/core/dashboard/sync/resolver.py`, `tests/test_resolver.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:high",
+      "logic",
+      "model:opus",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809690Z",
+    "captured_at": "2026-01-25T00:39:35.228083Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

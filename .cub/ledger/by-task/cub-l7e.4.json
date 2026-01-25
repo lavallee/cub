@@ -31,5 +31,25 @@
   "harness_name": "claude",
   "harness_model": "sonnet",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Wire LedgerIntegration into run loop",
+    "description": "The run loop needs to call LedgerIntegration at each lifecycle point: task start, attempt start/end, task close.\n\n**Implementation Steps:**\n1. Import LedgerIntegration in `cli/run.py`\n2. Instantiate at run start alongside RunSessionManager\n3. Call lifecycle methods at appropriate points in task execution\n4. Build Lineage from task metadata and collect commit refs from git\n\n**Files:** `src/cub/cli/run.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-l7e",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-24T21:12:34.037213Z",
+    "captured_at": "2026-01-25T00:39:38.503612Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-l7e"
+  }
 }

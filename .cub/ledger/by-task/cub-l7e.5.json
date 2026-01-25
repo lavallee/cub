@@ -31,5 +31,25 @@
   "harness_name": "claude",
   "harness_model": "haiku",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Add tests for ledger entry lifecycle",
+    "description": "Tests ensure the full task lifecycle is correctly recorded in the ledger.\n\n**Implementation Steps:**\n1. Create `tests/test_ledger_integration.py`\n2. Add fixtures for temp ledger directory and LedgerIntegration instance\n3. Test full lifecycle, task_changed detection, multiple attempts, file structure\n\n**Files:** `tests/test_ledger_integration.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "epic:cub-l7e",
+      "model:haiku",
+      "phase-2",
+      "test"
+    ],
+    "created_at": "2026-01-24T21:12:34.037221Z",
+    "captured_at": "2026-01-25T00:39:38.358037Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-l7e"
+  }
 }

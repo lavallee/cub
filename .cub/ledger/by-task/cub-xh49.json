@@ -25,5 +25,19 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Test pipx editable",
+    "description": "",
+    "type": "task",
+    "priority": 2,
+    "labels": [],
+    "created_at": "2026-01-24T11:39:14.461635-05:00",
+    "captured_at": "2026-01-25T00:39:37.850086Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  }
 }

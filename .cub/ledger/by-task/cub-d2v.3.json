@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement ledger parser",
+    "description": "The ledger contains completion records with cost/token metrics. Parse to enrich entities and identify completed work.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/parsers/ledger.py`\n2. Implement `LedgerParser` class:\n3. This returns enrichment data, not entities (tasks come from TaskParser)\n4. Add tests\n\n**Files:** `src/cub/core/dashboard/sync/parsers/ledger.py`, `tests/test_ledger_parser.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "model:haiku",
+      "parser",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809671Z",
+    "captured_at": "2026-01-25T00:39:34.309528Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

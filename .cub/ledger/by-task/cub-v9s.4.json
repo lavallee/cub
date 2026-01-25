@@ -25,5 +25,25 @@
   "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Write integration tests for full workflow",
+    "description": "## Context\nWrite integration tests that verify the complete workflow: sync from sources, search catalog, CLI commands.\n\n## Implementation Hints\n\n**Recommended Model:** sonnet\n**Estimated Duration:** 1.5h\n**Approach:** Use httpx mock or responses library to mock HTTP calls. Test full service flow.\n\n## Implementation Steps\n1. Create `tests/test_toolsmith/test_integration.py`\n2. Create mock responses for each source\n3. Test full sync workflow (all sources)\n4. Test search workflow (local and live fallback)\n5. Test CLI commands with mocked service\n6. Test error handling (source failures)\n\n## Acceptance Criteria\n- [ ] Integration test syncs from mocked sources\n- [ ] Integration test verifies tools appear in catalog after sync\n- [ ] Integration test verifies search finds synced tools\n- [ ] Integration test verifies live fallback works\n- [ ] Integration test verifies partial sync on source failure\n- [ ] CLI command tests verify output format\n- [ ] All tests pass: `pytest tests/test_toolsmith/test_integration.py -v`\n\n## Files Likely Involved\n- `tests/test_toolsmith/test_integration.py` (new)\n- `tests/test_toolsmith/conftest.py` (new, for shared fixtures)\n\n## Notes\n- Use `pytest-httpx` or `respx` for mocking HTTP\n- Create comprehensive fixtures representing real source responses\n- Test both happy path and error cases\n- Consider using `typer.testing.CliRunner` for CLI tests",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-v9s",
+      "model:sonnet",
+      "phase-3",
+      "test"
+    ],
+    "created_at": "2026-01-20T12:27:43.873395-05:00",
+    "captured_at": "2026-01-25T00:39:37.571669Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-v9s"
+  }
 }

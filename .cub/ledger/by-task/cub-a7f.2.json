@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement /api/artifact endpoint with path validation",
+    "description": "The artifact endpoint serves raw file content for viewing specs, plans, etc. Must validate paths to prevent directory traversal attacks.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/api/routes/artifact.py`\n2. Implement `GET /api/artifact`:\n3. Return 400 for invalid paths, 404 for missing files\n4. Add security-focused tests\n\n**Files:** `src/cub/core/dashboard/api/routes/artifact.py`, `tests/test_api_artifact.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "api",
+      "complexity:high",
+      "model:opus",
+      "security"
+    ],
+    "created_at": "2026-01-23T18:13:28.809732Z",
+    "captured_at": "2026-01-25T00:39:35.590160Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a7f"
+  }
 }

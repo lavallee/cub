@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Fix card side panel blocking main board view",
+    "description": "When clicking a card to open the side panel detail view, the main Kanban board becomes completely black instead of remaining visible. The side panel should slide in as an overlay without obscuring the background board.\n\n**Context:**\nThe dashboard uses a side panel for detailed card views. Currently, when the panel opens, it's rendering with a background color or opacity that hides the main board content.\n\n**Acceptance Criteria:**\n- Side panel slides in as an overlay (not pushing/replacing main view)\n- Main board remains visible and readable behind the panel\n- Background board content is not obscured by black overlay or background color\n- Smooth animation when panel opens/closes",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:18.804833-05:00",
+    "captured_at": "2026-01-25T00:39:37.709622Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

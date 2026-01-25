@@ -31,5 +31,25 @@
   "harness_name": "claude",
   "harness_model": "opus",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Wire session manager into cub run",
+    "description": "The run loop needs to create a session on start, update it during execution, and end it on completion. This connects the session infrastructure to the actual execution flow.\n\n**Implementation Steps:**\n1. Import RunSessionManager in `cli/run.py`\n2. At run start: instantiate manager, detect orphans, call `start_session()`\n3. After each task completes: call `update_session()`\n4. At run end: call `end_session()` with appropriate status\n5. Use try/finally to ensure session is ended even on exceptions\n\n**Files:** `src/cub/cli/run.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:high",
+      "epic:cub-r4n",
+      "logic",
+      "model:opus",
+      "phase-1"
+    ],
+    "created_at": "2026-01-24T21:12:34.037144Z",
+    "captured_at": "2026-01-25T00:39:34.666867Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r4n"
+  }
 }

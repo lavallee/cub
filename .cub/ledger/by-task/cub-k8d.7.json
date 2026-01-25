@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement basic KanbanBoard and EntityCard components",
+    "description": "The core UI components that render the kanban board. Start minimal - just columns with cards showing entity titles.\n\n**Implementation Steps:**\n1. Create `src/cub/dashboard/web/src/components/KanbanBoard.tsx`:\n2. Create `src/cub/dashboard/web/src/components/Column.tsx`:\n3. Create `src/cub/dashboard/web/src/components/EntityCard.tsx`:\n4. Create `src/cub/dashboard/web/src/hooks/useBoard.ts`:\n5. Update `App.tsx` to render `KanbanBoard`\n6. Style for 8 columns with horizontal scroll\n\n**Files:** `src/cub/dashboard/web/src/components/KanbanBoard.tsx`, `Column.tsx`, `EntityCard.tsx`, `hooks/useBoard.ts`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809632Z",
+    "captured_at": "2026-01-25T00:39:35.368881Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-k8d"
+  }
 }

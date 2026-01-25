@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement plan parser",
+    "description": "Plans are stored in `.cub/sessions/*/` directories with `session.json` metadata and `plan.jsonl` task definitions. Parse these to show planned work.\n\n**Implementation Steps:**\n1. Create `src/cub/core/dashboard/sync/parsers/plans.py`\n2. Implement `PlanParser` class:\n3. Handle missing/incomplete sessions gracefully\n4. Add tests with fixture session data\n\n**Files:** `src/cub/core/dashboard/sync/parsers/plans.py`, `tests/test_plan_parser.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "model:sonnet",
+      "parser",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809653Z",
+    "captured_at": "2026-01-25T00:39:38.201845Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

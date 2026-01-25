@@ -23,5 +23,23 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Format frontmatter gracefully in dashboard entities",
+    "description": "Currently, the dashboard system parses frontmatter from markdown files but doesn't handle edge cases or malformed YAML gracefully. When frontmatter is missing, incomplete, or invalid, the parser may fail or produce unhelpful errors.\n\n**Context:**\nThe dashboard sync layer parses entity metadata from frontmatter in spec and plan markdown files. This includes critical fields like `id`, `spec_id`, `plan_id`, `epic_id`, and `status`.\n\n**Acceptance Criteria:**\n- [ ] Invalid YAML frontmatter produces clear error messages (not stack traces)\n- [ ] Missing frontmatter markers (e.g., no `---` delimiters) are handled gracefully\n- [ ] Empty or null frontmatter fields don't crash parsers\n- [ ] Sync operation continues with partial results when some files fail\n- [ ] Warnings are logged for malformed files but don't block dashboard functionality\n- [ ] Entity relationship linking (spec_id \u2192 plan_id) degrades gracefully if markers are missing\n\n**Related modules:**\n- `cub.core.dashboard.sync.parsers` - SpecParser, PlanParser\n- `cub.core.dashboard.sync.orchestrator` - SyncOrchestrator\n- Error handling throughout dashboard initialization",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cub-o0f4",
+      "epic:cub-o0f4",
+      "punchlist"
+    ],
+    "created_at": "2026-01-23T18:12:21.548370-05:00",
+    "captured_at": "2026-01-25T00:39:36.563122Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-o0f4"
+  }
 }

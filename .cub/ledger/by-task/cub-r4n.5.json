@@ -31,5 +31,25 @@
   "harness_name": "claude",
   "harness_model": "haiku",
   "workflow_stage": null,
-  "workflow_stage_updated_at": null
+  "workflow_stage_updated_at": null,
+  "task": {
+    "title": "Add tests for session lifecycle",
+    "description": "Tests ensure the session infrastructure works correctly: file creation, symlink management, orphan detection.\n\n**Implementation Steps:**\n1. Create `tests/test_session_manager.py`\n2. Add fixture for temp `.cub/` directory\n3. Test cases: start_session, get_active_session, update_session, end_session, detect_orphans, multiple sessions\n\n**Files:** `tests/test_session_manager.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "epic:cub-r4n",
+      "model:haiku",
+      "phase-1",
+      "test"
+    ],
+    "created_at": "2026-01-24T21:12:34.037168Z",
+    "captured_at": "2026-01-25T00:39:35.795764Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r4n"
+  }
 }

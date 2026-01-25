@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Implement DetailPanel sidebar component",
+    "description": "When clicking an entity card, a sidebar slides in showing full details, relationships, and content.\n\n**Implementation Steps:**\n1. Create `src/cub/dashboard/web/src/components/DetailPanel.tsx`:\n2. Create `src/cub/dashboard/web/src/hooks/useEntity.ts`:\n3. Update `App.tsx`:\n4. Update `EntityCard.tsx`:\n5. Style with Tailwind for professional appearance\n\n**Files:** `src/cub/dashboard/web/src/components/DetailPanel.tsx`, `hooks/useEntity.ts`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "frontend",
+      "model:sonnet",
+      "ui"
+    ],
+    "created_at": "2026-01-23T18:13:28.809776Z",
+    "captured_at": "2026-01-25T00:39:35.728172Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-m3x"
+  }
 }

@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Integrate all parsers into sync orchestrator",
+    "description": "Update the sync orchestrator to use all parsers and the relationship resolver, producing a complete picture of project state.\n\n**Implementation Steps:**\n1. Update `src/cub/core/dashboard/sync/orchestrator.py`:\n2. Add progress logging for each step\n3. Handle partial failures (one parser fails, others continue)\n4. Update sync result with detailed counts\n5. Add integration test with real project structure\n\n**Files:** `src/cub/core/dashboard/sync/orchestrator.py`, `tests/test_sync_integration.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "integration",
+      "model:sonnet",
+      "sync"
+    ],
+    "created_at": "2026-01-23T18:13:28.809713Z",
+    "captured_at": "2026-01-25T00:39:37.423404Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-d2v"
+  }
 }

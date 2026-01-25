@@ -23,5 +23,24 @@
   "verification_status": "pending",
   "verification_notes": [],
   "harness_name": "claude",
-  "harness_model": ""
+  "harness_model": "",
+  "task": {
+    "title": "Final test coverage and CI integration",
+    "description": "Ensure adequate test coverage and CI integration for all new code.\n\n**Implementation Steps:**\n1. Run coverage report: `pytest --cov=src/cub/core/dashboard --cov=src/cub/cli/dashboard`\n2. Add missing unit tests to reach 60%+ coverage (Moderate tier)\n3. Add integration test: full flow from `cub dashboard sync` to API response\n4. Add frontend build to CI if not already present\n5. Update `.cub/STABILITY.md` with dashboard modules and tier\n\n**Files:** `tests/`, `.cub/STABILITY.md`, CI config",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "ci",
+      "complexity:medium",
+      "model:sonnet",
+      "testing"
+    ],
+    "created_at": "2026-01-23T18:13:28.809878Z",
+    "captured_at": "2026-01-25T00:39:36.078084Z"
+  },
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p9w"
+  }
 }
