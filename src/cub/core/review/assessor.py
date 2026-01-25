@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import subprocess
 from pathlib import Path
 
 from cub.core.ledger.models import LedgerEntry
@@ -98,9 +99,17 @@ class TaskAssessor:
         description = entry.task.description if entry.task else ""
         specified_files = self._parse_specified_files(description)
         acceptance_criteria = self._parse_acceptance_criteria(description)
+
+        # Get actual files changed from commits (more reliable than ledger)
+        actual_files = self._get_files_from_commits(entry)
+        if actual_files:
+            logger.debug(f"Found {len(actual_files)} files from commits: {actual_files}")
+
         missing_files = self._check_files_exist(specified_files)
         unchecked_criteria = [c.text for c in acceptance_criteria if not c.checked]
-        missing_tests = self._check_tests_exist(specified_files)
+
+        # Use actual files from commits to verify tests exist
+        missing_tests = self._check_tests_exist(specified_files, actual_files)
 
         # Add structural issues
         issues.extend(self._check_structural(missing_files, unchecked_criteria, missing_tests))
@@ -393,13 +402,67 @@ class TaskAssessor:
 
         return missing
 
-    def _check_tests_exist(self, specified_files: list[str]) -> list[str]:
+    def _get_files_from_commits(self, entry: LedgerEntry) -> list[str]:
+        """Get actual files changed from git commits.
+
+        Uses git show --name-only to get files from each commit in the ledger.
+        This is more reliable than the files_changed field which may be empty.
+
+        Args:
+            entry: Ledger entry with commit references
+
+        Returns:
+            List of file paths that were changed in the commits
+        """
+        files: set[str] = set()
+
+        # Get commits from entry
+        commits = entry.commits if entry.commits else []
+        if entry.outcome and entry.outcome.commits:
+            commits = entry.outcome.commits
+
+        for commit in commits:
+            commit_hash = commit.hash if hasattr(commit, "hash") else str(commit)
+            try:
+                result = subprocess.run(
+                    ["git", "show", "--name-only", "--format=", commit_hash],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    cwd=self.project_root,
+                )
+                if result.returncode == 0:
+                    for line in result.stdout.strip().split("\n"):
+                        if line.strip():
+                            files.add(line.strip())
+            except Exception as e:
+                logger.debug(f"Failed to get files from commit {commit_hash}: {e}")
+
+        return list(files)
+
+    def _check_tests_exist(
+        self, specified_files: list[str], actual_files: list[str] | None = None
+    ) -> list[str]:
         """Check if test files exist for source files.
 
         For files in src/, looks for corresponding test_*.py in tests/.
-        Returns list of source files missing tests.
+        If actual_files from commits are provided, checks if test files
+        were created/modified as part of the task.
+
+        Args:
+            specified_files: Files mentioned in task description
+            actual_files: Actual files changed in commits (optional)
+
+        Returns:
+            List of source files missing tests
         """
         missing_tests: list[str] = []
+        actual_files = actual_files or []
+
+        # Extract test files from actual_files
+        actual_test_files = {
+            f for f in actual_files if "test_" in f and f.endswith(".py")
+        }
 
         for file_path in specified_files:
             # Only check Python source files
@@ -412,16 +475,34 @@ class TaskAssessor:
             if file_path.endswith("__init__.py") or "test_" in file_path:
                 continue
 
-            # Convert src/cub/foo/bar.py -> tests/test_bar.py or tests/foo/test_bar.py
+            # Get the base name for test matching
             path = Path(file_path)
-            filename = path.name
-            test_filename = f"test_{filename}"
+            filename = path.stem  # e.g., "manager" from "manager.py"
 
-            # Check common test locations
+            # Check if test file was in the actual commit files
+            # Match patterns like: test_manager.py, test_session_manager.py
+            test_in_commit = any(
+                f"test_{filename}" in tf or f"test_" in tf and filename in tf
+                for tf in actual_test_files
+            )
+            if test_in_commit:
+                continue
+
+            # Fall back to checking test file existence on disk
+            test_filename = f"test_{path.name}"
+
+            # Check common test locations and patterns
             test_paths = [
                 self.project_root / "tests" / test_filename,
                 self.project_root / "tests" / path.parent.name / test_filename,
             ]
+
+            # Also check for module-prefixed test files
+            # e.g., src/cub/core/session/manager.py -> tests/test_session_manager.py
+            parent_name = path.parent.name
+            if parent_name and parent_name != "cub":
+                module_test = f"test_{parent_name}_{filename}.py"
+                test_paths.append(self.project_root / "tests" / module_test)
 
             found = any(tp.exists() for tp in test_paths)
             if not found:
