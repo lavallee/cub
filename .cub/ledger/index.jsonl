@@ -92,4 +92,5 @@
 {"id": "cub-fail", "title": "Failing task", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": null, "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-x7f.2", "title": "Define ToolResult and adapter config models", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "60f0293", "spec": null, "epic": "cub-x7f", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-x7f.3", "title": "Implement HTTPAdapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "2adcb51", "spec": null, "epic": "cub-x7f", "verification": "pending", "tokens": 0, "workflow_stage": null}
-{"id": "cub-x7f.4", "title": "Implement CLIAdapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-x7f", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-x7f.4", "title": "Implement CLIAdapter", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "d2072b8", "spec": null, "epic": "cub-x7f", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-x7f.5", "title": "Create ExecutionService", "completed": "2026-01-25", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-x7f", "verification": "pending", "tokens": 0, "workflow_stage": null}

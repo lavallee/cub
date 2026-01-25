@@ -19,12 +19,13 @@
   "task_ids": [
     "cub-x7f.3",
     "cub-x7f.2",
+    "cub-x7f.4",
     "cub-x7f.1"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -32,12 +33,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 1483,
-    "avg_duration_seconds": 494,
+    "total_duration_seconds": 1786,
+    "avg_duration_seconds": 446,
     "models_used": [
       "sonnet"
     ],
@@ -45,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T04:43:04.256662Z"
+    "stage_updated_at": "2026-01-25T04:48:09.826474Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T04:18:14.699251Z",
-  "completed_at": "2026-01-25T04:43:04.245307Z",
-  "updated_at": "2026-01-25T04:43:04.256663Z",
+  "completed_at": "2026-01-25T04:48:09.814152Z",
+  "updated_at": "2026-01-25T04:48:09.826475Z",
   "first_commit": {
     "hash": "3aabe2957818f895929d236c83fbeb42e0279c59",
     "message": "task(cub-x7f.1): Define ToolAdapter Protocol and adapter registry",
@@ -58,10 +59,10 @@
     "timestamp": "2026-01-25T04:29:25Z"
   },
   "last_commit": {
-    "hash": "2adcb51ac3dc2f72fb01ef7942bd2c1767d7dd6b",
-    "message": "task(cub-x7f.3): Implement HTTPAdapter",
+    "hash": "d2072b880d8bcc48be65231fabc57540a9765cd8",
+    "message": "task(cub-x7f.4): Implement CLIAdapter",
     "author": "",
-    "timestamp": "2026-01-25T04:42:14Z"
+    "timestamp": "2026-01-25T04:47:34Z"
   },
   "drift": {
     "additions": [],

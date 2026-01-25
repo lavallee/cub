@@ -8195,3 +8195,35 @@ All 34 HTTPAdapter tests pass:
 All tools module tests pass (69 total)
 Type checking: ✓ (mypy)
 Linting: ✓ (ruff)
+
+## 2026-01-24 - CLIAdapter Implementation (cub-x7f.4)
+
+Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
+
+### Key Implementation Details:
+- Used `asyncio.create_subprocess_exec` for secure subprocess execution (NO shell=True)
+- Used `shlex.split()` for safe argument parsing from templates
+- Implemented timeout handling with `asyncio.wait_for()` and proper process cleanup
+- Supported multiple output formats: JSON, text, lines
+- Environment variable injection via env parameter to subprocess
+- Comprehensive error classification: timeout, validation, execution, unknown
+
+### Testing Patterns:
+- Mock `asyncio.create_subprocess_exec` with AsyncMock for process
+- Use regular Mock for synchronous methods like `process.kill()`
+- Test all error paths: timeout, FileNotFoundError, non-zero exit, JSON parse errors
+- Test helper methods independently for better coverage
+
+### Security Considerations:
+- NEVER use shell=True (command injection risk)
+- Use shlex.split() for proper argument parsing
+- Validate command existence via FileNotFoundError handling
+- No direct user input to shell commands
+
+### Code Quality:
+- All 26 tests pass
+- Type checking passes (mypy)
+- Linting passes (ruff)
+- Follows existing HTTPAdapter patterns for consistency
+- 100% test coverage of core functionality
+

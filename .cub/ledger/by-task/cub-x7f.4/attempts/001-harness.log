@@ -1,0 +1,34 @@
+I'll implement the CLIAdapter by first understanding the existing code structure and patterns, then creating a complete implementation.Now let me read the key files to understand the exact patterns:Let me find the correct path:Perfect! Now let me check if there's an existing test for HTTP adapter to understand testing patterns:Now let me check the test file to understand the testing patterns:Perfect! Now I have all the information I need. Let me create the CLIAdapter implementation:Now let me update the __init__.py to export the CLIAdapter:Now let me create comprehensive tests for the CLIAdapter following the patterns from the HTTP adapter tests:Now let's run the feedback loops to ensure everything works correctly:Great! All tests pass. Let's fix the warning about the async mock. The issue is that `process.kill()` is being called without await when it's an AsyncMock. Let me check and fix this:The code is correct - `process.kill()` is a synchronous method on the real asyncio subprocess. The warning is because in the test, we're using AsyncMock which makes everything async. Let's update the test to use a regular Mock for the `kill()` method:Now let's run the tests again to ensure the warning is fixed:Perfect! All tests pass without warnings. Now let's run the full test suite to make sure we didn't break anything:Excellent! All tests pass. Now let's run type checking and linting:Let's fix these linting issues:Now let's run the linting again:Perfect! Now let's run the full test suite to make sure everything still works:Perfect! Now let's verify the adapter is properly registered:The adapter needs to be imported to be registered. Let's check how the HTTP adapter is being imported:Great! The adapter is properly registered when imported. Now let's close the task and commit:Now let's commit our changes:Perfect! Now let me check if there's a progress.txt file and create/update it with learnings:Excellent! Let me check if there are any remaining open tasks:Great! The task cub-x7f.4 has been completed successfully. Let me check which task should be worked on next:Perfect! I have successfully completed task cub-x7f.4: Implement CLIAdapter. 
+
+## Summary
+
+I implemented a complete CLIAdapter with the following features:
+
+### Implementation (`src/cub/core/tools/adapters/cli.py`):
+- **Secure subprocess execution** using `asyncio.create_subprocess_exec` (NO shell=True)
+- **Argument sanitization** using `shlex.split()` for safe parsing
+- **Timeout support** with proper subprocess cleanup via `asyncio.wait_for()`
+- **Multiple output formats**: JSON, text, and lines
+- **Environment variable injection** for tool configuration
+- **Comprehensive error handling**: timeout, command not found, non-zero exit codes, unexpected errors
+- **Error classification**: timeout, validation, execution, unknown
+
+### Security Highlights:
+- NO `shell=True` to prevent command injection attacks
+- `shlex` for safe argument parsing
+- Command validation and proper error messages
+
+### Testing (`tests/test_tools_cli_adapter.py`):
+- **26 comprehensive tests** covering all functionality
+- Tests for all error paths and edge cases
+- Helper method tests for command building, environment setup, output parsing
+- Follows existing HTTPAdapter test patterns
+
+### Quality Assurance:
+✅ All 26 tests pass  
+✅ Type checking passes (mypy)  
+✅ Linting passes (ruff)  
+✅ Follows existing codebase patterns  
+✅ Properly registered in adapter registry  
+
+The CLIAdapter is now ready to execute command-line tools like `gh`, `jq`, `curl`, etc. with proper security, timeout handling, and output parsing.

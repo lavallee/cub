@@ -7,27 +7,43 @@ multiple adapter types (HTTP, CLI, MCP stdio, skill bridge).
 Components:
 - ToolAdapter: Protocol for tool execution backends
 - ToolResult: Structured result from tool execution
+- ExecutionService: Main entry point for tool execution
 - Adapter registry: Decorator-based registration system
 
 Example:
-    from cub.core.tools import get_adapter, ToolResult
+    from cub.core.tools import ExecutionService
 
-    # Get HTTP adapter
-    adapter = get_adapter('http')
+    # Initialize service
+    service = ExecutionService()
 
-    # Execute a tool
-    result = await adapter.execute(
+    # Check readiness
+    readiness = await service.check_readiness(
         tool_id='brave-search',
-        action='search',
-        params={'query': 'Python async patterns'},
-        timeout=10.0
+        adapter_type='http',
+        config={'auth_env_var': 'BRAVE_API_KEY'}
     )
 
-    if result.success:
-        print(f"Found {len(result.output)} results")
+    if readiness.ready:
+        # Execute a tool
+        result = await service.execute(
+            tool_id='brave-search',
+            action='search',
+            adapter_type='http',
+            params={'query': 'Python async patterns'},
+            timeout=10.0
+        )
+
+        if result.success:
+            print(f"Found results: {result.output}")
+            print(f"Artifact saved to: {result.artifact_path}")
+        else:
+            print(f"Error: {result.error}")
     else:
-        print(f"Error: {result.error}")
+        print(f"Missing: {', '.join(readiness.missing)}")
 """
+
+# Import adapters to trigger registration
+from . import adapters as _adapters  # noqa: F401
 
 # Export protocol and models
 from .adapter import (
@@ -37,6 +53,7 @@ from .adapter import (
     list_adapters,
     register_adapter,
 )
+from .execution import ExecutionService, ReadinessCheck
 from .models import (
     AdapterType,
     AuthConfig,
@@ -53,6 +70,9 @@ __all__ = [
     "is_adapter_available",
     "list_adapters",
     "register_adapter",
+    # Execution service
+    "ExecutionService",
+    "ReadinessCheck",
     # Models
     "AdapterType",
     "AuthConfig",
