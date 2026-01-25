@@ -8599,3 +8599,48 @@ The adopt → execute flow is now complete and ready for CLI integration.
 **Lesson:** Always search existing codebase thoroughly before assuming implementation is missing. The task description may be outdated if work was already completed in a previous iteration or by another process.
 
 **Outcome:** Task closed as complete. No changes needed.
+
+## Task cub-p9q.1: Define ToolMetrics model
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Pydantic Model Patterns**: Followed existing patterns in models.py:
+   - Used Field() with descriptive text and validation constraints (ge=0, min_length=1)
+   - Implemented field validators for timezone-aware datetime normalization
+   - Used ConfigDict with populate_by_name=True for flexible field names
+   - Comprehensive docstrings following existing format
+
+2. **Helper Methods Design**: Added three key helper methods:
+   - `success_rate()` and `failure_rate()`: Simple percentage calculations with zero-division protection
+   - `record_execution()`: Mutating method that updates all metrics from a ToolResult
+   - These methods enable the learning loop to track and analyze tool performance
+
+3. **Timestamp Handling**: Reused the timestamp normalization pattern from ToolResult:
+   - Validator handles datetime, ISO strings, and None
+   - Converts naive datetimes to UTC
+   - Handles 'Z' suffix for Python 3.10 compatibility
+   - DRY approach: applied same validator to multiple fields using tuple syntax
+
+4. **Metrics Accumulation Logic**: The record_execution() method implements rolling statistics:
+   - Updates min/max only when new extremes are found
+   - Calculates average by dividing total_duration_ms by invocations
+   - Sets first_used_at only once, updates last_used_at every time
+   - Tracks error_types in a dict with occurrence counts
+
+5. **Test Coverage Best Practices**:
+   - 19 comprehensive tests covering all scenarios
+   - Tests for empty state, partial data, full data
+   - Validation tests for constraints (negative values, empty strings)
+   - Edge case tests (zero invocations, first vs last timestamps)
+   - JSON serialization round-trip tests
+   - Tests follow existing patterns in test_tools_registry_models.py
+
+6. **Model Placement**: Added ToolMetrics between ToolConfig and Registry:
+   - Logical grouping: tool definition → tool metrics → tool registry
+   - Updated module docstring to document the new model
+   - No __all__ export needed (module doesn't use it)
+
+**Outcome:** Successfully implemented ToolMetrics model with full test coverage. All feedback loops passing (mypy, pytest, ruff). Ready for MetricsStore implementation in next task.
+
