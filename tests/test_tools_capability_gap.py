@@ -186,10 +186,15 @@ class TestQueryCapabilityCatalog:
         assert result.adopted_tools[0].id == "npm:brave-search"
         assert len(result.suggestions) == 0
 
-    def test_query_capability_handles_missing_catalog(self, tmp_path: Path) -> None:
+    def test_query_capability_handles_missing_catalog(
+        self, tmp_path: Path, monkeypatch: "pytest.MonkeyPatch"
+    ) -> None:
         """query_capability() works even if catalog doesn't exist."""
         project_store = RegistryStore(tmp_path / "project" / "registry.json")
         service = RegistryService(project_store=project_store)
+
+        # Change to tmp_path so no catalog is found
+        monkeypatch.chdir(tmp_path)
 
         # No catalog exists - should not raise error
         result = service.query_capability("web_search")
