@@ -8644,3 +8644,53 @@ The adopt → execute flow is now complete and ready for CLI integration.
 
 **Outcome:** Successfully implemented ToolMetrics model with full test coverage. All feedback loops passing (mypy, pytest, ruff). Ready for MetricsStore implementation in next task.
 
+
+## Task cub-p9q.2: Implement MetricsStore
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **Store Pattern Consistency**: Followed established patterns from RegistryStore and CaptureStore:
+   - Same atomic write pattern (tempfile → rename)
+   - Same directory creation strategy (mkdir with parents=True, exist_ok=True)
+   - Same classmethod pattern for standard locations (project())
+   - Same graceful degradation (return empty dict when file doesn't exist)
+
+2. **Atomic Write Implementation**: The atomic write pattern prevents file corruption:
+   - Write to temp file in same directory (ensures same filesystem)
+   - Use delete=False and suffix=".tmp" for NamedTemporaryFile
+   - Call flush() before rename to ensure all data is written
+   - Use Path.replace() for atomic rename (replaces existing file)
+
+3. **Type Annotations for Callables**: Python 3.10+ requires collections.abc.Callable:
+   - Use `from collections.abc import Callable` (not typing.Callable in 3.10+)
+   - Syntax: `Callable[[ArgType], ReturnType]`
+   - Don't use lowercase `callable[[Type], Type]` - causes TypeError
+
+4. **Helper Methods Design**: Implemented convenience methods beyond basic CRUD:
+   - `get_or_create()`: Atomic get with fallback to new instance
+   - `record_execution()`: One-shot update from ToolResult (loads, updates, saves)
+   - `filter()`: Query with predicate lambdas for flexible filtering
+   - These reduce boilerplate in calling code
+
+5. **JSON Serialization**: Pydantic's mode='json' handles datetimes:
+   - `model_dump(mode='json')` converts datetime to ISO strings
+   - Allows round-trip serialization without custom encoders
+   - Consistent with RegistryStore approach
+
+6. **Test Organization**: Structured tests by functionality:
+   - Basic operations (create, load, save)
+   - CRUD methods (get, remove, list_all)
+   - Business logic (record_execution, filter)
+   - Edge cases (atomic write, datetime serialization)
+   - 22 tests provide comprehensive coverage
+
+7. **Filter Pattern**: Lambda predicates enable expressive queries:
+   - `filter(lambda m: m.success_rate() < 80.0)` - unreliable tools
+   - `filter(lambda m: m.invocations > 10)` - popular tools
+   - `filter(lambda m: len(m.error_types) > 0)` - tools with errors
+   - More flexible than fixed query methods
+
+**Outcome:** Successfully implemented MetricsStore with full test coverage. Follows established codebase patterns. All feedback loops passing. Ready for integration into ExecutionService.
+
