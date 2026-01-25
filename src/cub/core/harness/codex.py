@@ -533,75 +533,100 @@ class CodexBackend:
 
     def _build_analysis_system_prompt(self, analysis_type: str) -> str:
         """Build system prompt for analysis based on type."""
-        base_prompt = """You are a code review assistant. Your task is to analyze code and provide detailed feedback.
+        base_prompt = """You are a code review assistant providing actionable feedback for follow-up work.
 
 IMPORTANT RULES:
 1. This is a READ-ONLY analysis. Do NOT suggest using any tools to modify files.
 2. Do NOT attempt to run commands, create files, or make changes.
-3. Focus solely on analyzing the provided code and specifications.
-4. Provide your analysis as structured text output only.
+3. Focus on providing ACTIONABLE guidance for whoever will fix these issues.
+4. Distinguish between issues with CLEAR FIXES vs issues that NEED DECISIONS.
 """
 
         type_prompts = {
             "implementation_review": """
-Your goal is to compare implementation against specifications and identify:
-- Missing features or incomplete implementations
-- Deviations from the spec
-- Potential bugs or issues
-- Areas that need improvement
+Your goal is to compare implementation against the spec/plan/task and provide actionable follow-up guidance.
 
-Format your response with these sections:
+For each issue you find, determine:
+1. Is the fix CLEAR from the spec/plan/task? → Provide specific fix instructions
+2. Does this raise a QUESTION that needs human decision? → Flag for clarification
+
+FORMAT YOUR RESPONSE WITH THESE SECTIONS:
+
 ## Summary
-Brief overview of the implementation status.
+Brief overview: what percentage complete, major gaps, overall quality.
 
-## Issues Found
-List specific issues with severity (CRITICAL, WARNING, INFO).
-Format: [SEVERITY] Description - Recommendation
+## Fix Now (Clear Remedies)
+Issues where the correct fix is obvious from the spec/plan/task.
+Format each as:
+[SEVERITY] **Issue**: Description of what's wrong
+**Expected**: What the spec/plan/task specified
+**Fix**: Specific steps to resolve (be concrete - file names, function names, what to add/change)
 
-## Coverage Analysis
-What percentage of the spec appears to be implemented.
+## Needs Decision (Questions to Resolve)
+Issues where implementation differs from spec in ways that might be intentional, or where the spec is ambiguous.
+Format each as:
+[WARNING] **Drift**: Description of the deviation
+**Question**: What needs to be decided
+**Options**: Possible resolutions and their trade-offs
 
-## Recommendations
-Prioritized list of actions to address issues.
+## Verification Checklist
+Concrete checks the follow-up work should pass:
+- [ ] Specific test or validation to perform
+- [ ] File/function that should exist
+- [ ] Behavior that should be observable
 """,
             "code_quality": """
-Your goal is to analyze code quality and identify:
-- Code style and consistency issues
-- Potential bugs or error-prone patterns
-- Performance concerns
-- Security vulnerabilities
-- Test coverage gaps
+Your goal is to analyze code quality and provide actionable improvement guidance.
 
-Format your response with these sections:
+FORMAT YOUR RESPONSE:
+
 ## Summary
-Brief quality assessment.
+Brief quality assessment with specific metrics if observable.
 
-## Issues Found
-List issues with severity (CRITICAL, WARNING, INFO).
+## Fix Now (Clear Issues)
+Issues with obvious fixes. Format:
+[SEVERITY] **Issue**: What's wrong
+**Fix**: Specific remediation steps
 
-## Recommendations
-Prioritized improvements.
+## Consider (Trade-off Decisions)
+Issues that involve trade-offs or architectural choices. Format:
+[INFO] **Observation**: What you noticed
+**Trade-off**: Why this might be intentional vs problematic
+**Recommendation**: Suggested approach if they decide to address it
+
+## Verification Checklist
+- [ ] Specific quality checks to run
+- [ ] Tests to add or verify
 """,
             "spec_gap": """
-Your goal is to find gaps between specification and implementation:
-- Features in spec but not in code
-- Features in code but not in spec
-- Partial implementations
-- Behavioral differences
+Your goal is to find gaps between spec and implementation, categorizing each by actionability.
 
-Format your response with these sections:
+FORMAT YOUR RESPONSE:
+
 ## Summary
-Overview of spec coverage.
+Alignment score (0-100%) and key findings.
 
-## Gaps Found
-List gaps with impact assessment.
+## Missing from Implementation (Fix Required)
+Features in spec but not in code. Format:
+[SEVERITY] **Gap**: What's missing
+**Spec Reference**: Where this was specified
+**Implementation Path**: Suggested approach to add it
 
-## Alignment Score
-Estimate of spec-to-implementation alignment (0-100%).
+## Implementation Drift (Decision Required)
+Features in code but not in spec, or behavioral differences. Format:
+[WARNING] **Drift**: What differs
+**Question**: Keep, remove, or update spec?
+**Impact**: What changes if each option is chosen
+
+## Alignment Checklist
+- [ ] Specific spec requirements to verify
+- [ ] Behaviors to test
 """,
         }
 
-        return base_prompt + type_prompts.get(analysis_type, type_prompts["implementation_review"])
+        return base_prompt + type_prompts.get(
+            analysis_type, type_prompts["implementation_review"]
+        )
 
     def _build_analysis_user_prompt(
         self,
