@@ -8142,3 +8142,56 @@ Implemented comprehensive test coverage for ledger index operations and dashboar
 - tests/test_tools_models.py (new, 24 tests)
 - tests/test_tools_adapter.py (updated for new ToolResult model)
 
+
+## Task: cub-x7f.3 - Implement HTTPAdapter (2026-01-25)
+
+Successfully implemented HTTPAdapter with comprehensive retry logic and error handling.
+
+### Key learnings
+
+1. **pytest-asyncio setup**: Need to install pytest-asyncio (via `uv pip install pytest-asyncio`) and register the 'asyncio' marker in pyproject.toml for async tests
+2. **Retry logic reuse**: The existing `cub.core.toolsmith.http.retry_request()` function provides robust retry logic with exponential backoff that can be reused across adapters
+3. **Error classification**: HTTP status codes map to semantic error types:
+   - 401/403 → "auth"
+   - 429 → "rate_limit"
+   - 400-499 → "validation"
+   - 500-599 → "network"
+4. **Async context managers**: When using `async with httpx.AsyncClient()` in type-checked code, the context variable can be omitted if unused to avoid linting warnings
+5. **Testing async code**: Use `@pytest.mark.asyncio` decorator and `async def test_*()` pattern for async tests
+
+### Design decisions
+
+1. **Configuration via params**: HTTPAdapter accepts `_http_config` in params dict (filtered out from request params) as a temporary solution until registry integration
+2. **Optimistic availability**: `is_available()` returns True by default - will be enhanced when registry is integrated
+3. **Markdown generation**: Generic markdown summary with extensibility for tool-specific formatting
+4. **Error metadata**: Store HTTP status codes and headers in ToolResult.metadata for debugging
+
+### Patterns established
+
+- All HTTP adapters should use `retry_request()` from toolsmith.http for consistent retry behavior
+- Internal parameters (prefixed with `_`) are filtered from HTTP request params
+- Error classification should be semantic (auth, rate_limit, etc.) not just status codes
+- Health checks should be lightweight (e.g., client creation only, no actual requests)
+
+### Files created
+
+- src/cub/core/tools/adapters/__init__.py
+- src/cub/core/tools/adapters/http.py (403 lines)
+- tests/test_tools_http_adapter.py (34 tests, all passing)
+
+### Dependencies updated
+
+- pyproject.toml: Added 'asyncio' marker for pytest-asyncio
+- Environment: Installed pytest-asyncio via `uv pip install`
+
+### Testing
+
+All 34 HTTPAdapter tests pass:
+- 4 adapter property/health tests
+- 11 execute() tests (success, errors, edge cases)
+- 18 helper method tests
+- 1 registration test
+
+All tools module tests pass (69 total)
+Type checking: ✓ (mypy)
+Linting: ✓ (ruff)

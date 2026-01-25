@@ -1,34 +1,34 @@
 {
   "version": 1,
-  "id": "cub-x7f.2",
-  "title": "Define ToolResult and adapter config models",
+  "id": "cub-x7f.3",
+  "title": "Implement HTTPAdapter",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": "cub-x7f"
   },
   "task": {
-    "title": "Define ToolResult and adapter config models",
-    "description": "Unified result structure ensures all adapters return consistent data. Config models (HTTPConfig, CLIConfig, MCPConfig, AuthConfig) define how each adapter type is configured.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/models.py` with Pydantic v2 models:\n2. Add field validators for datetime handling (timezone-aware, Z suffix support)\n3. Use `ConfigDict(populate_by_name=True)` for all models\n\n**Files:** `src/cub/core/tools/models.py`",
+    "title": "Implement HTTPAdapter",
+    "description": "The HTTP adapter handles REST API tools like Brave Search. This migrates and generalizes the existing brave-search logic from `cub.core.toolsmith.execution`.\n\n**Implementation Steps:**\n1. Create `src/cub/core/tools/adapters/` package\n2. Create `src/cub/core/tools/adapters/http.py` with `HTTPAdapter` class:\n3. Handle rate limits with exponential backoff (3 retries)\n4. Map HTTP errors to ToolResult.error_type categories\n5. Generate output_markdown summary from response\n\n**Files:** `src/cub/core/tools/adapters/__init__.py`, `src/cub/core/tools/adapters/http.py`",
     "type": "task",
     "priority": 0,
     "labels": [
       "complexity:medium",
       "epic:cub-x7f",
-      "model",
+      "logic",
       "model:sonnet",
       "phase-1"
     ],
-    "created_at": "2026-01-25T04:16:42.019156Z",
-    "captured_at": "2026-01-25T04:31:03.590321Z"
+    "created_at": "2026-01-25T04:16:42.019166Z",
+    "captured_at": "2026-01-25T04:36:19.764802Z"
   },
   "task_changed": null,
   "attempts": [
     {
       "attempt_number": 1,
       "run_id": "cub-20260124-231814",
-      "started_at": "2026-01-24T23:31:03.593420",
-      "completed_at": "2026-01-25T04:36:17.297933Z",
+      "started_at": "2026-01-24T23:36:19.768443",
+      "completed_at": "2026-01-25T04:43:04.056167Z",
       "harness": "claude",
       "model": "sonnet",
       "success": true,
@@ -41,32 +41,26 @@
         "cache_creation_tokens": 0
       },
       "cost_usd": 0.0,
-      "duration_seconds": 313
+      "duration_seconds": 404
     }
   ],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-25T04:36:17.485102Z",
+    "completed_at": "2026-01-25T04:43:04.245307Z",
     "total_cost_usd": 0.0,
     "total_attempts": 1,
-    "total_duration_seconds": 313,
+    "total_duration_seconds": 404,
     "final_model": "sonnet",
     "escalated": false,
     "escalation_path": [],
     "files_changed": [],
     "commits": [
       {
-        "hash": "60f0293b8713b547828a4e50cca66c723c1d01e3",
-        "message": "docs: Add learnings from task cub-x7f.2 to progress.txt",
+        "hash": "2adcb51ac3dc2f72fb01ef7942bd2c1767d7dd6b",
+        "message": "task(cub-x7f.3): Implement HTTPAdapter",
         "author": "",
-        "timestamp": "2026-01-25T04:35:55Z"
-      },
-      {
-        "hash": "812c2e6b5c834bda08c25d9e0321f354f12f1f18",
-        "message": "task(cub-x7f.2): Define ToolResult and adapter config models",
-        "author": "",
-        "timestamp": "2026-01-25T04:35:38Z"
+        "timestamp": "2026-01-25T04:42:14Z"
       }
     ],
     "approach": null,
@@ -88,24 +82,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T04:36:17.485102Z"
+    "stage_updated_at": "2026-01-25T04:43:04.245307Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T04:31:03.590321Z",
+      "at": "2026-01-25T04:36:19.764802Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T04:36:17.485102Z",
+      "at": "2026-01-25T04:43:04.245307Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-25T04:31:03.590321Z",
-  "completed_at": "2026-01-25T04:36:17.485102Z",
+  "started_at": "2026-01-25T04:36:19.764802Z",
+  "completed_at": "2026-01-25T04:43:04.245307Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -113,7 +107,7 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 313,
+  "duration_seconds": 404,
   "iterations": 1,
   "approach": "",
   "decisions": [],
@@ -121,20 +115,14 @@
   "files_changed": [],
   "commits": [
     {
-      "hash": "60f0293b8713b547828a4e50cca66c723c1d01e3",
-      "message": "docs: Add learnings from task cub-x7f.2 to progress.txt",
+      "hash": "2adcb51ac3dc2f72fb01ef7942bd2c1767d7dd6b",
+      "message": "task(cub-x7f.3): Implement HTTPAdapter",
       "author": "",
-      "timestamp": "2026-01-25T04:35:55Z"
-    },
-    {
-      "hash": "812c2e6b5c834bda08c25d9e0321f354f12f1f18",
-      "message": "task(cub-x7f.2): Define ToolResult and adapter config models",
-      "author": "",
-      "timestamp": "2026-01-25T04:35:38Z"
+      "timestamp": "2026-01-25T04:42:14Z"
     }
   ],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x7f.2",
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-x7f.3",
   "epic_id": "cub-x7f",
   "verification_status": "pending",
   "verification_notes": [],
