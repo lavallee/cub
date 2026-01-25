@@ -17,12 +17,13 @@
     "captured_at": "2026-01-25T06:02:23.392662Z"
   },
   "task_ids": [
-    "cub-r2v.1"
+    "cub-r2v.1",
+    "cub-r2v.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -30,25 +31,26 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 321,
-    "avg_duration_seconds": 321,
+    "total_duration_seconds": 980,
+    "avg_duration_seconds": 490,
     "models_used": [
-      "opus"
+      "opus",
+      "sonnet"
     ],
     "most_common_model": "opus"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T06:02:23.405582Z"
+    "stage_updated_at": "2026-01-25T06:13:24.876450Z"
   },
   "state_history": [],
   "started_at": "2026-01-25T05:57:02.191218Z",
-  "completed_at": "2026-01-25T06:02:23.389827Z",
-  "updated_at": "2026-01-25T06:02:23.405585Z",
+  "completed_at": "2026-01-25T06:13:24.858764Z",
+  "updated_at": "2026-01-25T06:13:24.876451Z",
   "first_commit": {
     "hash": "85c612837b289e43febb867709cff99b39170dc8",
     "message": "task(cub-r2v.1): Implement MCPStdioAdapter",
@@ -56,10 +58,10 @@
     "timestamp": "2026-01-25T06:01:37Z"
   },
   "last_commit": {
-    "hash": "85c612837b289e43febb867709cff99b39170dc8",
-    "message": "task(cub-r2v.1): Implement MCPStdioAdapter",
+    "hash": "1e34a31dbc49de5ff86762b53e7bac999a0e9de1",
+    "message": "docs: Update progress.txt with cub-r2v.2 learnings",
     "author": "",
-    "timestamp": "2026-01-25T06:01:37Z"
+    "timestamp": "2026-01-25T06:12:46Z"
   },
   "drift": {
     "additions": [],
