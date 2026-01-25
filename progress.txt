@@ -8274,3 +8274,60 @@ Successfully implemented CLIAdapter following existing HTTPAdapter patterns:
 
 **Outcome:** Successfully implemented ExecutionService as the main entry point for tool execution. All tests passing (27/27), mypy clean, ready for integration with higher-level tool runtime.
 
+
+## Task cub-m3k.5: Create cub tools CLI subcommand
+
+**Date:** 2026-01-25
+
+**Key Learnings:**
+
+1. **CLI Pattern Reuse**: Followed existing patterns from toolsmith.py for consistency:
+   - Module-level `typer.Typer()` app with descriptive name and help
+   - Global `_debug_mode` flag for error handling verbosity
+   - Unified `handle_error()` function for consistent error display
+   - `setup_logging()` to configure Python logging based on debug flag
+   - Rich formatting throughout (Tables, Panels, styled Text)
+
+2. **Async CLI Commands**: Used `asyncio.run()` pattern for async operations:
+   - Define inner async function `async def _run():`
+   - Call `asyncio.run(_run())` from synchronous command handler
+   - Enables use of `await` with ExecutionService methods
+   - Keeps CLI interface synchronous while using async internals
+
+3. **Rich Output Patterns**:
+   - **Success panels**: Green border with checkmark (✓) in title
+   - **Error panels**: Red border with X (✗) in title
+   - **Info panels**: Yellow border for warnings/no-results
+   - **Tables**: Title, styled columns, border_style parameter
+   - **Text composition**: Build multi-styled Text with append() calls
+
+4. **CLI Registration in Main App**:
+   - Import module in `src/cub/cli/__init__.py`
+   - Register with `app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_ROADMAP)`
+   - Commands automatically appear in `cub --help` with proper grouping
+   - Subcommands inherit global `--debug` flag from parent context
+
+5. **JSON Parameter Parsing**: Used `json.loads()` for `--params` option:
+   - Accept JSON string via CLI option
+   - Parse with proper error handling
+   - Display user-friendly error panel on invalid JSON
+   - Pass parsed dict directly to ExecutionService
+
+6. **Artifact Path Display**: Made paths user-friendly:
+   - Use `artifact_path.relative_to(Path.cwd())` if possible
+   - Fall back to absolute path if not relative to cwd
+   - Helps with readability in terminal output
+
+7. **Command Design Philosophy**:
+   - `list`: Discovery (show what's available)
+   - `check`: Validation (verify readiness before running)
+   - `run`: Execution (actually run a tool)
+   - `artifacts`: History (browse past executions)
+   - Each command is self-contained and focused
+
+8. **Error Exit Codes**: Always use `raise typer.Exit(1)` after errors:
+   - Ensures proper shell exit codes for scripting
+   - Placed after `handle_error()` call
+   - Never use `sys.exit()` in Typer commands
+
+**Outcome:** Successfully implemented `cub tools` CLI with 4 commands (list, check, run, artifacts). All commands follow established patterns, use Rich formatting, and integrate cleanly with ExecutionService. Passed all feedback loops (mypy, ruff, 122 tests).
