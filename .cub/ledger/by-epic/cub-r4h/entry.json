@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-r4h",
+  "title": "cub-r4h",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-r4h",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-26T21:39:37.956313Z",
+    "captured_at": "2026-01-26T21:39:37.956313Z"
+  },
+  "task_ids": [
+    "cub-r4h.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 165,
+    "avg_duration_seconds": 165,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T21:39:37.980009Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-26T21:36:52.039107Z",
+  "completed_at": "2026-01-26T21:39:37.951469Z",
+  "updated_at": "2026-01-26T21:39:37.980020Z",
+  "first_commit": {
+    "hash": "88be8a4426d32a1eabc4b32d35eee9c2b1144e3e",
+    "message": "task(cub-r4h.1): Audit run.py exit paths",
+    "author": "",
+    "timestamp": "2026-01-26T21:39:02Z"
+  },
+  "last_commit": {
+    "hash": "7b36c3589ffd003d79f5868d36bd3f101dfcc9d8",
+    "message": "docs: Append learnings from exit path audit",
+    "author": "",
+    "timestamp": "2026-01-26T21:39:26Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
