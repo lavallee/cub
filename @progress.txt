@@ -1,4 +1,32 @@
 
+## Task cub-j1c.3: Implement pull with conflict detection (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Git Fetch Strategy**: When implementing pull, use `git fetch origin <branch>` (without the local ref) instead of `git fetch origin <branch>:<branch>`. The latter fails with "non-fast-forward" when local has diverged. Fetching to the remote-tracking ref (`origin/<branch>`) allows comparison without conflicts.
+
+2. **JSONL Round-Trip**: Implemented `_parse_tasks_from_jsonl` and `_serialize_tasks_to_jsonl` helpers for bidirectional conversion between JSONL content and task dictionaries keyed by ID. Tasks without IDs are skipped during parsing.
+
+3. **Last-Write-Wins Conflict Resolution**: Implemented timestamp-based conflict resolution:
+   - If both have timestamps: newer wins
+   - If only one has timestamp: the one with timestamp wins
+   - If neither has timestamp: prefer remote (incoming changes)
+   This provides predictable merge behavior without requiring manual conflict resolution.
+
+4. **SyncResult/SyncConflict Models**: The models.py already had SyncResult and SyncConflict dataclasses that fit the requirements. SyncResult captures success/failure, tasks_updated count, conflicts list, and timing. SyncConflict records task_id, both timestamps, resolution strategy, and winner.
+
+5. **Git Plumbing for Reading**: Used `git show <ref>:<path>` to read file content from remote-tracking branch without checkout. This avoids affecting the working tree while fetching remote task state.
+
+6. **Atomic Merge Pattern**: After merging, write to temp file and rename, then commit to sync branch. This ensures partial failures don't corrupt local state.
+
+7. **Test Fixture Design**: The `git_repo_with_remote` fixture creates a bare repo as "remote" and a local clone, enabling realistic push/pull testing without network access.
+
+8. **Conflict Logging**: All conflicts are logged at WARNING level with details about which version won and the timestamps involved. This provides audit trail without blocking the merge.
+
+**Outcome:** Successfully implemented pull() method with comprehensive tests covering: no remote branch, remote-only tasks, conflicts with last-write-wins resolution, keeping newer local versions, preferring remote when no timestamps, identical content detection, and commit creation. All 62 sync tests pass plus full test suite (3583 tests).
+
 ## Task cub-j1a.2: Implement core CRUD methods (2026-01-26)
 
 **Status:** Completed
@@ -150,3 +178,37 @@ Added backend mode detection and validation tooling for "both" mode:
 - `tests/test_tasks_backend.py`: Updated assertions for "jsonl" backend name
 
 All tests pass (127 total), type checking clean, linting fixed.
+
+## Task cub-j1c.2: Implement commit operation (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Git Mktree Path Limitation**: The `git mktree` command does NOT support paths with slashes. For nested paths like `.cub/tasks.jsonl`, you must build the tree hierarchy manually by creating a tree for each directory level from innermost to outermost.
+
+2. **Tree Hierarchy Construction**: For a path like `.cub/tasks.jsonl`:
+   - First create a tree containing `tasks.jsonl` blob (mode 100644)
+   - Then create a tree containing `.cub` directory pointing to that tree (mode 040000)
+   - This produces the correct nested structure in the commit
+
+3. **Git Plumbing Command Sequence**: The complete commit operation uses:
+   - `git hash-object -w --stdin`: Store file content as blob, passing via stdin for flexibility
+   - `git mktree`: Create tree objects (requires tree entry format: `<mode> <type> <sha>\t<name>`)
+   - `git commit-tree`: Create commit object with tree and optional parent
+   - `git update-ref`: Atomically move branch ref to new commit
+
+4. **Change Detection Strategy**: Using SHA-256 hash of file content (stored in SyncState) allows skipping commits when content hasn't changed. The hash comparison happens BEFORE any git operations for efficiency.
+
+5. **Working Tree Preservation**: Git plumbing commands operate on the object database directly without touching the working tree or index. This is critical for the sync branch pattern where we don't want to affect the user's checkout.
+
+6. **Tree Entry Format**: Git tree entries have strict format:
+   - `100644 blob <sha>\t<filename>` for regular files
+   - `040000 tree <sha>\t<dirname>` for subdirectories
+   - Note the TAB character between SHA and name
+
+7. **State File Sync**: The `.cub/.sync-state.json` stores `last_commit_sha`, `last_tasks_hash`, and `last_sync_at` to enable change detection and provide audit trail.
+
+8. **Test Isolation**: Each test creates its own git repo via pytest fixtures (`git_repo`, `git_repo_with_commit`), ensuring tests don't interfere with each other.
+
+**Outcome:** Successfully implemented `commit()` method using git plumbing that creates commits on the sync branch without affecting the working tree. Includes 13 comprehensive tests covering error cases, state updates, change detection, and working tree/branch preservation.
