@@ -9653,3 +9653,37 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 - Line length linting can be auto-fixed but requires manual wrapping for long subprocess calls
 - Documentation should include both conceptual overview and practical examples
 - All 13 tests pass, linting passes, ready for use
+
+## Task cub-j1f.2: Actionable Error Messages and Exit Codes
+
+**Completed:** 2025-01-26
+
+**What was done:**
+- Created standardized error handling module (errors.py) with ExitCode enum and reusable error functions
+- Standardized exit codes: 0=success, 1=general error, 2=user error, 130=SIGINT
+- Updated 6 CLI modules with actionable error messages that include problem + reason + solution
+- Fixed typer.Exit handling in dashboard.py to preserve exit codes through exception handlers
+- Updated 5 test files to expect new exit codes
+
+**Key learnings:**
+1. **typer.Exit is an exception** - Must catch it separately in try-except blocks or it gets re-raised with wrong exit code
+2. **Import organization matters** - Ruff enforces import sorting; new imports should follow existing patterns
+3. **Test validation is critical** - Exit code changes require updating test assertions
+4. **Error message quality varies widely** - Before standardization, some errors had actionable guidance, most didn't
+5. **Consistent formatting helps UX** - Standard "Error: [problem]\n[reason]\n→ Try: [solution]" pattern improves clarity
+
+**Files modified:**
+- NEW: src/cub/cli/errors.py (standardized error handling)
+- src/cub/cli/run.py (harness, flags, docker, tasks)
+- src/cub/cli/task.py (task lookup, status validation)
+- src/cub/cli/sync.py (sync initialization)
+- src/cub/cli/dashboard.py (project root, Exit handler fix)
+- src/cub/cli/workflow.py (stage validation, ledger)
+- src/cub/cli/doctor.py (git and harness hints)
+- tests/ (5 test files updated for new exit codes)
+
+**Technical patterns discovered:**
+- Try-except blocks that catch `Exception` will catch `typer.Exit` - always add `except typer.Exit: raise` first
+- Exit codes should be semantic: 2 for fixable user errors, 1 for general/system errors
+- Error messages should always answer: "What went wrong?", "Why?", "How do I fix it?"
+
