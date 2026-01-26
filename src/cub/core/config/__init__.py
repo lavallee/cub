@@ -13,6 +13,7 @@ from .loader import (
     load_config,
 )
 from .models import (
+    BackendConfig,
     BudgetConfig,
     CubConfig,
     GuardrailsConfig,
@@ -26,6 +27,7 @@ from .models import (
 
 __all__ = [
     # Models
+    "BackendConfig",
     "BudgetConfig",
     "CubConfig",
     "GuardrailsConfig",

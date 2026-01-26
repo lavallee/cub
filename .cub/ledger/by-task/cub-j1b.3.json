@@ -23,8 +23,50 @@
     "captured_at": "2026-01-26T18:19:29.574639Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-130644",
+      "started_at": "2026-01-26T13:19:29.578388",
+      "completed_at": "2026-01-26T18:24:27.465976Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 297
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T18:24:27.669678Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 297,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d372d08a99ccd9af3f64d3db2529d0f4a12026ce",
+        "message": "task(cub-j1b.3): Implement divergence detection and logging",
+        "author": "",
+        "timestamp": "2026-01-26T18:23:19Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T18:19:29.574639Z"
+    "stage_updated_at": "2026-01-26T18:24:27.669678Z"
   },
   "state_history": [
     {
@@ -48,10 +90,16 @@
       "at": "2026-01-26T18:19:29.574639Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:24:27.669678Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-26T18:19:29.574639Z",
-  "completed_at": "2026-01-26T18:19:29.574639Z",
+  "completed_at": "2026-01-26T18:24:27.669678Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -59,20 +107,27 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "duration_seconds": 297,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "d372d08a99ccd9af3f64d3db2529d0f4a12026ce",
+      "message": "task(cub-j1b.3): Implement divergence detection and logging",
+      "author": "",
+      "timestamp": "2026-01-26T18:23:19Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1b.3",
   "epic_id": "cub-j1b",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

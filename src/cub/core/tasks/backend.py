@@ -314,12 +314,14 @@ def get_backend(
 
     If name is not provided, auto-detects based on:
     1. CUB_BACKEND environment variable
-    2. Presence of .beads/ directory (beads backend)
-    3. Presence of prd.json file (json backend)
-    4. Default to json backend
+    2. .cub.json config file backend.mode setting
+    3. Presence of .beads/ directory (beads backend)
+    4. Presence of .cub/tasks.jsonl (jsonl backend)
+    5. Presence of prd.json file (jsonl backend with migration)
+    6. Default to jsonl backend
 
     Args:
-        name: Backend name ('beads', 'json', or None for auto-detect)
+        name: Backend name ('beads', 'jsonl', 'both', or None for auto-detect)
         project_dir: Project directory for auto-detection (defaults to cwd)
 
     Returns:
@@ -332,6 +334,19 @@ def get_backend(
     if name is None:
         name = detect_backend(project_dir)
 
+    # Handle "both" mode specially - instantiate BothBackend with primary and secondary
+    if name == "both":
+        from .beads import BeadsBackend
+        from .both import BothBackend
+        from .jsonl import JsonlBackend
+
+        try:
+            primary = BeadsBackend(project_dir=project_dir)
+            secondary = JsonlBackend(project_dir=project_dir)
+            return BothBackend(primary, secondary)
+        except Exception as e:
+            raise ValueError(f"Failed to initialize 'both' backend: {e}")
+
     # Get backend class from registry
     backend_class = _backends.get(name)
     if backend_class is None:
@@ -339,8 +354,8 @@ def get_backend(
             f"Backend '{name}' not registered. Available backends: {', '.join(_backends.keys())}"
         )
 
-    # Instantiate and return
-    return backend_class()
+    # Instantiate and return (type ignore for project_dir - Protocol doesn't specify __init__)
+    return backend_class(project_dir=project_dir)  # type: ignore[call-arg]
 
 
 def detect_backend(project_dir: Path | None = None) -> str:
@@ -348,23 +363,25 @@ def detect_backend(project_dir: Path | None = None) -> str:
     Auto-detect which task backend to use.
 
     Detection order:
-    1. CUB_BACKEND environment variable (beads, json, or auto)
-    2. Check for .beads/ directory -> beads backend
-    3. Check for prd.json file -> json backend
-    4. Default to json backend
+    1. CUB_BACKEND environment variable (beads, jsonl, both, or auto)
+    2. .cub.json config file backend.mode setting
+    3. Check for .beads/ directory -> beads backend
+    4. Check for .cub/tasks.jsonl -> jsonl backend
+    5. Check for prd.json file -> jsonl backend (with migration)
+    6. Default to jsonl backend
 
     Args:
         project_dir: Project directory to check (defaults to cwd)
 
     Returns:
-        Backend name ('beads' or 'json')
+        Backend name ('beads', 'jsonl', or 'both')
     """
     if project_dir is None:
         project_dir = Path.cwd()
     elif isinstance(project_dir, str):
         project_dir = Path(project_dir)
 
-    # Check for explicit override
+    # Check for explicit environment variable override
     backend_env = os.environ.get("CUB_BACKEND", "").lower()
     if backend_env in ("beads", "bd"):
         # Verify beads is available and initialized
@@ -373,20 +390,60 @@ def detect_backend(project_dir: Path | None = None) -> str:
             return "beads"
         # Fall through to auto-detect if .beads/ not found
 
-    elif backend_env == "json" or backend_env == "prd":
-        return "json"
+    elif backend_env in ("json", "jsonl", "prd"):
+        return "jsonl"
+
+    elif backend_env == "both":
+        # Only use "both" if both backends are available
+        beads_dir = project_dir / ".beads"
+        tasks_file = project_dir / ".cub" / "tasks.jsonl"
+        if beads_dir.exists() and beads_dir.is_dir() and tasks_file.exists():
+            return "both"
+        # Fall through to auto-detect if not both available
+
+    # Check .cub.json configuration file
+    try:
+        from cub.core.config import load_config
+
+        config = load_config(project_dir=project_dir)
+        if config.backend.mode:
+            mode = config.backend.mode.lower()
+            if mode == "both":
+                # Verify both backends are available
+                beads_dir = project_dir / ".beads"
+                tasks_file = project_dir / ".cub" / "tasks.jsonl"
+                if beads_dir.exists() and beads_dir.is_dir() and tasks_file.exists():
+                    return "both"
+            elif mode in ("beads", "bd"):
+                beads_dir = project_dir / ".beads"
+                if beads_dir.exists() and beads_dir.is_dir():
+                    return "beads"
+            elif mode in ("jsonl", "json", "prd"):
+                return "jsonl"
+            # If mode is "auto" or invalid, fall through to auto-detect
+    except Exception:
+        # Config loading failed, fall through to auto-detect
+        pass
 
     # Auto-detect based on directory contents
     beads_dir = project_dir / ".beads"
+    tasks_file = project_dir / ".cub" / "tasks.jsonl"
+
+    # If both exist, default to beads (existing behavior)
     if beads_dir.exists() and beads_dir.is_dir():
         return "beads"
 
+    # Check for JSONL backend
+    if tasks_file.exists() and tasks_file.is_file():
+        return "jsonl"
+
+    # Check for legacy prd.json (will be migrated to JSONL)
     prd_file = project_dir / "prd.json"
     if prd_file.exists() and prd_file.is_file():
-        return "json"
+        return "jsonl"
 
-    # Default to json
-    return "json"
+    # Default to jsonl
+    return "jsonl"
 
 
 def list_backends() -> list[str]:

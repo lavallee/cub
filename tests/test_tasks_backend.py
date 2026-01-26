@@ -25,6 +25,9 @@ class TestBackendRegistry:
 
         @register_backend("test-backend")
         class TestBackend:
+            def __init__(self, project_dir=None):
+                self.project_dir = project_dir
+
             def list_tasks(self, status=None, parent=None, label=None):
                 return []
 
@@ -60,6 +63,9 @@ class TestBackendRegistry:
 
         @register_backend("test-get")
         class TestBackend:
+            def __init__(self, project_dir=None):
+                self.project_dir = project_dir
+
             def list_tasks(self, **kwargs):
                 return []
 
@@ -219,22 +225,22 @@ class TestDetectBackend:
         assert result == "beads"
 
     def test_detect_backend_prd_json(self, tmp_path):
-        """Test detection of json backend when prd.json exists."""
+        """Test detection of jsonl backend when prd.json exists."""
         project_dir = tmp_path / "project"
         project_dir.mkdir()
         prd_file = project_dir / "prd.json"
         prd_file.write_text("{}")
 
         result = detect_backend(project_dir)
-        assert result == "json"
+        assert result == "jsonl"
 
     def test_detect_backend_default_json(self, tmp_path):
-        """Test default to json backend when nothing else found."""
+        """Test default to jsonl backend when nothing else found."""
         project_dir = tmp_path / "project"
         project_dir.mkdir()
 
         result = detect_backend(project_dir)
-        assert result == "json"
+        assert result == "jsonl"
 
     def test_detect_backend_env_variable_beads(self, tmp_path, monkeypatch):
         """Test detection from CUB_BACKEND environment variable (beads)."""
@@ -268,7 +274,7 @@ class TestDetectBackend:
         monkeypatch.setenv("CUB_BACKEND", "json")
 
         result = detect_backend(project_dir)
-        assert result == "json"
+        assert result == "jsonl"
 
     def test_detect_backend_env_variable_prd(self, tmp_path, monkeypatch):
         """Test detection from CUB_BACKEND=prd."""
@@ -278,7 +284,7 @@ class TestDetectBackend:
         monkeypatch.setenv("CUB_BACKEND", "prd")
 
         result = detect_backend(project_dir)
-        assert result == "json"
+        assert result == "jsonl"
 
     def test_detect_backend_beads_priority_over_prd(self, tmp_path):
         """Test beads backend has priority over json when both exist."""
@@ -324,9 +330,9 @@ class TestDetectBackend:
 
         monkeypatch.setenv("CUB_BACKEND", "beads")
 
-        # Should fall back to auto-detect and find json
+        # Should fall back to auto-detect and find jsonl
         result = detect_backend(project_dir)
-        assert result == "json"
+        assert result == "jsonl"
 
 
 class TestGetBackendAutoDetect:

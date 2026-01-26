@@ -250,6 +250,22 @@ class LedgerConfig(BaseModel):
     )
 
 
+class BackendConfig(BaseModel):
+    """
+    Task backend configuration.
+
+    Specifies which task backend to use or enables dual-backend mode.
+    """
+
+    mode: str | None = Field(
+        default=None,
+        description=(
+            "Backend mode: 'auto' (auto-detect), 'beads', 'jsonl', 'both' "
+            "(dual-backend with divergence detection)"
+        ),
+    )
+
+
 class HarnessConfig(BaseModel):
     """
     AI harness configuration.
@@ -286,6 +302,9 @@ class CubConfig(BaseModel):
     """
 
     # Core settings
+    backend: BackendConfig = Field(
+        default_factory=BackendConfig, description="Task backend configuration"
+    )
     harness: HarnessConfig = Field(
         default_factory=HarnessConfig, description="AI harness configuration"
     )
