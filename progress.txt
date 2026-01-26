@@ -9596,3 +9596,60 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 - The --monitor flag requires reconstructing all CLI args, so new flags need to be added there too
 - Config validation uses Pydantic field patterns for clean constraints (like pattern regex)
 
+
+
+## Task cub-j1d.2 - Test auto-sync and document behavior (2026-01-26)
+
+### Implementation Summary
+- Created comprehensive test suite in tests/test_run_sync.py with 13 tests
+- Added detailed "Task State Synchronization" section to README.md
+- Tests cover both unit and integration scenarios using real git operations
+- Documentation explains auto-sync modes, configuration, failure handling, and collaboration workflow
+
+### Test Coverage
+1. Unit tests (9 tests):
+   - Sync service initialization on run start
+   - Commit after task completion
+   - Multiple sequential task syncs
+   - --no-sync flag behavior
+   - Sync failure handling (non-blocking)
+   - Config options for all three auto_sync modes (run/always/never)
+   - Config enabled flag behavior
+
+2. Integration tests (4 tests):
+   - Real sync initialization with git
+   - Real sync commit after task with git operations
+   - Multiple tasks creating multiple commits in cub-sync branch
+   - Sync skipping unchanged tasks (content hash optimization)
+
+### Documentation Added
+- Complete "Task State Synchronization" section with 8 subsections:
+  - How Auto-Sync Works (4-step process explanation)
+  - Auto-Sync Behavior (default and --no-sync flag)
+  - Configuration (global and project-level examples)
+  - Auto-Sync Modes (table with run/always/never)
+  - Sync Commands (manual sync operations)
+  - Failure Handling (non-blocking with examples)
+  - Multi-Task Runs (sequential commits)
+  - Disabling Auto-Sync (temporary and permanent)
+  - Collaboration (team workflow)
+  - Technical Details (implementation specifics)
+
+### Key Design Decisions
+1. Used mock.Mock for unit tests to isolate sync logic from git implementation
+2. Used real subprocess git calls for integration tests to verify actual behavior
+3. Split tests into two classes: TestAutoSyncDuringRun (unit) and TestSyncIntegrationScenarios (integration)
+4. Documentation emphasizes that sync is non-blocking and doesn't affect working tree
+
+### Testing Patterns
+- Mock fixtures set is_initialized to False so initialize() gets tested
+- Integration fixtures create real git repos with subprocess
+- Tests validate both success paths and error handling paths
+- Config validation tests check boolean logic for should_auto_sync
+
+### Learnings
+- Mock fixtures need careful setup - is_initialized should return False by default for init tests
+- Real git operations in tests are valuable for verifying end-to-end behavior
+- Line length linting can be auto-fixed but requires manual wrapping for long subprocess calls
+- Documentation should include both conceptual overview and practical examples
+- All 13 tests pass, linting passes, ready for use
