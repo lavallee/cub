@@ -87,3 +87,66 @@
    - Full test suite: 535 task-related tests pass
 
 **Outcome:** Successfully added manual comparison capabilities to BothBackend while preserving existing automatic divergence detection. The new methods enable validation scripts and CLI commands to check backend sync status.
+
+## Task cub-j1b.4: Backend Detection and Comparison Script (2026-01-26)
+
+### Implementation Summary
+
+Added backend mode detection and validation tooling for "both" mode:
+
+1. **Backend Configuration**:
+   - Added `BackendConfig` model to CubConfig with `mode` field
+   - Supports "auto", "beads", "jsonl", and "both" modes
+   - Configuration can be set in `.cub.json` or via `CUB_BACKEND` env var
+
+2. **Enhanced Detection Logic**:
+   - Updated `detect_backend()` to check config file before auto-detection
+   - Priority: env var > config file > directory detection > default
+   - Validates both backends are available before using "both" mode
+   - Graceful fallback if requested mode isn't available
+
+3. **BothBackend Integration**:
+   - Updated `get_backend()` to instantiate `BothBackend` when mode="both"
+   - Passes project_dir to both primary (beads) and secondary (jsonl) backends
+   - Type ignores for protocol __init__ compatibility
+
+4. **Comparison Script**:
+   - Created `scripts/compare-backends.py` for standalone validation
+   - Uses Rich for colored output and formatted tables
+   - Highlights divergences with field-level detail
+   - Exit codes: 0 (sync), 1 (divergent), 2 (error)
+
+### Key Learnings
+
+1. **Config Cache Management**: Config loading caches results globally, which can
+   interfere with tests that modify config files. Tests that change config must
+   call `clear_cache()` before and after to ensure clean state.
+
+2. **Monkeypatch Import Locations**: When mocking classes that are imported inside
+   functions (like `BeadsBackend` in `get_backend()`), you must patch the module
+   where they're defined, not where they're imported. Use
+   `monkeypatch.setattr("cub.core.tasks.beads.BeadsBackend", Mock)` not
+   `monkeypatch.setattr("cub.core.tasks.backend.BeadsBackend", Mock)`.
+
+3. **Backend __init__ Signatures**: All backends now accept `project_dir` parameter
+   but the Protocol doesn't specify __init__. This requires type: ignore[call-arg]
+   when instantiating backends dynamically.
+
+4. **Test Compatibility**: When changing return values (like "json" -> "jsonl"),
+   grep for all test assertions that check those values to ensure consistency.
+
+5. **Exit Code Conventions**: Comparison scripts should follow Unix conventions:
+   - 0 = success/identical
+   - 1 = detected differences (expected failure case)
+   - 2 = error/exception (unexpected failure)
+
+### Files Modified
+
+- `src/cub/core/config/models.py`: Added BackendConfig
+- `src/cub/core/config/__init__.py`: Exported BackendConfig
+- `src/cub/core/tasks/backend.py`: Enhanced detection, added "both" mode support
+- `scripts/compare-backends.py`: New comparison tool
+- `tests/test_both_backend.py`: Comprehensive test suite (16 tests)
+- `tests/test_tasks_backend.py`: Updated assertions for "jsonl" backend name
+
+All tests pass (127 total), type checking clean, linting fixed.
