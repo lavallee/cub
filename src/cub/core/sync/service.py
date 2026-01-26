@@ -281,3 +281,141 @@ class SyncService:
             Current SyncState object.
         """
         return self._load_state()
+
+    def _create_tree_for_path(self, blob_sha: str, file_path: str) -> str:
+        """
+        Create a tree object hierarchy for a file at the given path.
+
+        Git's mktree command doesn't handle paths with slashes. For nested
+        paths like '.cub/tasks.jsonl', we need to:
+        1. Create a tree for the innermost directory containing the blob
+        2. Create parent trees recursively, each containing the child tree
+        3. Return the root tree SHA
+
+        Args:
+            blob_sha: SHA of the blob to include in the tree.
+            file_path: Relative path like '.cub/tasks.jsonl'.
+
+        Returns:
+            SHA of the root tree containing the nested structure.
+        """
+        from pathlib import PurePosixPath
+
+        path = PurePosixPath(file_path)
+        parts = list(path.parts)
+
+        if len(parts) == 1:
+            # Simple case: file in root directory
+            tree_entry = f"100644 blob {blob_sha}\t{parts[0]}\n"
+            return self._run_git(["mktree"], input_data=tree_entry)
+
+        # Build trees from innermost to outermost
+        # For '.cub/tasks.jsonl': first create tree with tasks.jsonl,
+        # then create tree with .cub pointing to that tree
+
+        # Start with the file itself
+        filename = parts[-1]
+        tree_entry = f"100644 blob {blob_sha}\t{filename}\n"
+        current_tree_sha = self._run_git(["mktree"], input_data=tree_entry)
+
+        # Work backwards through parent directories
+        for dirname in reversed(parts[:-1]):
+            # Create tree entry for directory (mode 040000)
+            tree_entry = f"040000 tree {current_tree_sha}\t{dirname}\n"
+            current_tree_sha = self._run_git(["mktree"], input_data=tree_entry)
+
+        return current_tree_sha
+
+    def commit(self, message: str | None = None) -> str:
+        """
+        Commit current task state to the sync branch.
+
+        Uses git plumbing commands to create a commit without affecting the
+        working tree. The tasks file content is stored as a blob, a tree is
+        created containing that blob, and a commit is created with the tree
+        and the current sync branch tip as parent.
+
+        Args:
+            message: Commit message. Defaults to "Update tasks" if not provided.
+
+        Returns:
+            SHA of the created commit.
+
+        Raises:
+            RuntimeError: If sync branch not initialized or tasks file missing.
+            GitError: If git operations fail.
+        """
+        if not self.is_initialized():
+            raise RuntimeError(
+                f"Sync branch '{self.branch_name}' not initialized. Call initialize() first."
+            )
+
+        # Check tasks file exists
+        if not self.tasks_file_path.exists():
+            raise RuntimeError(
+                f"Tasks file not found: {self.tasks_file_path}. Create the file before committing."
+            )
+
+        # Read tasks file content
+        tasks_content = self.tasks_file_path.read_text()
+
+        # Compute content hash for change detection
+        content_hash = self._hash_file_content(tasks_content)
+
+        # Check if content has changed
+        state = self._load_state()
+        if state.last_tasks_hash == content_hash:
+            logger.info("No changes to commit (content hash unchanged)")
+            # Return the existing commit SHA if no changes
+            if state.last_commit_sha:
+                return state.last_commit_sha
+            # If no previous commit, fall through to create initial commit
+
+        # Use default message if not provided
+        if message is None:
+            message = "Update tasks"
+
+        # Step 1: Store tasks.jsonl content as a blob using git hash-object
+        # We pass content via stdin to handle any file content correctly
+        blob_sha = self._run_git(
+            ["hash-object", "-w", "--stdin"],
+            input_data=tasks_content,
+        )
+        logger.debug("Created blob: %s", blob_sha)
+
+        # Step 2: Create tree hierarchy for the nested path
+        # git mktree doesn't support slashes in paths, so we build the tree
+        # structure manually for paths like '.cub/tasks.jsonl'
+        tree_sha = self._create_tree_for_path(blob_sha, self.tasks_file)
+        logger.debug("Created tree: %s", tree_sha)
+
+        # Step 3: Get parent commit from current sync branch
+        parent_sha = self._get_branch_sha(self.branch_ref)
+
+        # Step 4: Create commit with commit-tree
+        if parent_sha:
+            # Normal commit with parent
+            commit_sha = self._run_git(
+                ["commit-tree", tree_sha, "-p", parent_sha, "-m", message],
+            )
+        else:
+            # Root commit (shouldn't happen if initialized, but handle it)
+            commit_sha = self._run_git(
+                ["commit-tree", tree_sha, "-m", message],
+            )
+        logger.debug("Created commit: %s", commit_sha)
+
+        # Step 5: Update branch ref to point to new commit
+        self._run_git(["update-ref", self.branch_ref, commit_sha])
+        logger.info(
+            "Committed to %s: %s (%s)",
+            self.branch_name,
+            commit_sha[:8],
+            message,
+        )
+
+        # Step 6: Update sync state
+        state.mark_synced(commit_sha, content_hash)
+        self._save_state(state)
+
+        return commit_sha

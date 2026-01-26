@@ -348,3 +348,266 @@ class TestStateFilePersistence:
         # Should return default state, not crash
         state = sync.get_state()
         assert state.initialized is False
+
+
+class TestCommit:
+    """Tests for the commit method."""
+
+    def test_commit_requires_initialization(self, git_repo_with_commit: Path) -> None:
+        """commit raises if sync branch not initialized."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        # Create tasks file but don't initialize
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001", "title": "Test task"}\n')
+
+        with pytest.raises(RuntimeError, match="not initialized"):
+            sync.commit("Test commit")
+
+    def test_commit_requires_tasks_file(self, git_repo_with_commit: Path) -> None:
+        """commit raises if tasks file doesn't exist."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Don't create tasks file
+        with pytest.raises(RuntimeError, match="Tasks file not found"):
+            sync.commit("Test commit")
+
+    def test_commit_creates_commit_on_sync_branch(self, git_repo_with_commit: Path) -> None:
+        """commit creates a git commit on the sync branch."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001", "title": "Test task"}\n')
+
+        # Commit
+        commit_sha = sync.commit("Initial sync")
+
+        # Verify commit exists
+        assert len(commit_sha) == 40  # SHA-1 hash length
+        assert commit_sha.isalnum()
+
+        # Verify sync branch points to new commit
+        branch_sha = subprocess.run(
+            ["git", "rev-parse", "cub-sync"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        assert branch_sha == commit_sha
+
+    def test_commit_stores_tasks_content(self, git_repo_with_commit: Path) -> None:
+        """commit stores the tasks file content in the commit."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file with specific content
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_content = '{"id": "test-001", "title": "My test task"}\n'
+        tasks_path.write_text(tasks_content)
+
+        # Commit
+        commit_sha = sync.commit("Sync tasks")
+
+        # Verify content is in the commit
+        # Use git show to get the file content from the commit
+        result = subprocess.run(
+            ["git", "show", f"{commit_sha}:.cub/tasks.jsonl"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        assert result.stdout == tasks_content
+
+    def test_commit_uses_default_message(self, git_repo_with_commit: Path) -> None:
+        """commit uses 'Update tasks' as default message."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # Commit without message
+        commit_sha = sync.commit()
+
+        # Verify commit message
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s", commit_sha],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        assert result.stdout.strip() == "Update tasks"
+
+    def test_commit_uses_custom_message(self, git_repo_with_commit: Path) -> None:
+        """commit uses provided message."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # Commit with custom message
+        commit_sha = sync.commit("Custom sync message")
+
+        # Verify commit message
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%s", commit_sha],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        assert result.stdout.strip() == "Custom sync message"
+
+    def test_commit_updates_state(self, git_repo_with_commit: Path) -> None:
+        """commit updates sync state with commit SHA and hash."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # Commit
+        commit_sha = sync.commit("Test sync")
+
+        # Verify state was updated
+        state = sync.get_state()
+        assert state.last_commit_sha == commit_sha
+        assert state.last_tasks_hash is not None
+        assert state.last_sync_at is not None
+
+    def test_commit_detects_no_changes(self, git_repo_with_commit: Path) -> None:
+        """commit returns existing SHA when content hasn't changed."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # First commit
+        first_sha = sync.commit("First sync")
+
+        # Second commit with same content
+        second_sha = sync.commit("Second sync")
+
+        # Should return same SHA (no new commit)
+        assert second_sha == first_sha
+
+    def test_commit_creates_new_commit_on_content_change(self, git_repo_with_commit: Path) -> None:
+        """commit creates new commit when content changes."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # First commit
+        first_sha = sync.commit("First sync")
+
+        # Change content
+        tasks_path.write_text('{"id": "test-001"}\n{"id": "test-002"}\n')
+
+        # Second commit
+        second_sha = sync.commit("Second sync")
+
+        # Should be different commits
+        assert second_sha != first_sha
+
+        # Verify parent relationship
+        result = subprocess.run(
+            ["git", "rev-parse", f"{second_sha}^"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert result.stdout.strip() == first_sha
+
+    def test_commit_does_not_affect_working_tree(self, git_repo_with_commit: Path) -> None:
+        """commit doesn't modify files in the working tree."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # Record initial git status
+        initial_status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+        # Commit to sync branch
+        sync.commit("Sync")
+
+        # Verify git status is unchanged (working tree unaffected)
+        final_status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+        assert final_status == initial_status
+
+    def test_commit_preserves_working_branch(self, git_repo_with_commit: Path) -> None:
+        """commit doesn't change the current branch."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+        sync.initialize()
+
+        # Create tasks file
+        tasks_path = git_repo_with_commit / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "test-001"}\n')
+
+        # Record current branch
+        initial_branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        # Commit to sync branch
+        sync.commit("Sync")
+
+        # Verify current branch is unchanged
+        final_branch = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=git_repo_with_commit,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        assert final_branch == initial_branch
