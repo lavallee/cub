@@ -9281,3 +9281,55 @@ Epic **cub-t5w** (unified-tool-ecosystem #5: Lifecycle Integration) is now COMPL
 4. ✓ cub-t5w.4: Add cub tools configure command
 5. ✓ cub-t5w.5: Add integration tests
 
+
+# Task cub-j1a.1 - Create JsonlBackend class with file I/O
+
+## Implementation Summary
+Created a complete JSONL backend for task storage at `src/cub/core/tasks/jsonl.py` following the existing `JsonBackend` patterns. The backend implements the full `TaskBackend` protocol and uses beads-compatible JSONL format (one JSON object per line).
+
+## Key Learnings
+
+### Backend Pattern Understanding
+- All backends must implement the 13-method `TaskBackend` protocol defined in `backend.py`
+- The `@register_backend("name")` decorator automatically registers backends in the global registry
+- Task models use Pydantic with field aliases to support both beads (`dependsOn`, `issue_type`) and Python (`depends_on`, `type`) naming conventions
+
+### File I/O Patterns
+- Atomic writes use `tempfile.mkstemp()` + `os.replace()` to prevent corruption
+- Caching with mtime check avoids re-parsing on every read
+- JSONL format: one complete JSON object per line, no trailing commas
+- Empty lines in JSONL should be skipped during parsing
+
+### Task ID Generation
+- Use project directory name prefix (first 3 chars) for task IDs
+- Format: `{prefix}-{num:03d}` (e.g., "cub-001", "tmp-042")
+- Must check existing IDs to find next available number
+
+### Testing Strategy
+- Type checking with `mypy --strict` catches protocol compliance issues early
+- Existing test suite (228 tests) validates that new backend doesn't break anything
+- Integration tests verify full CRUD lifecycle and persistence
+- Format with `ruff format`, lint with `ruff check`
+
+### Project Structure
+- New backends go in `src/cub/core/tasks/{name}.py`
+- Import in `__init__.py` triggers automatic registration via decorator
+- Tests use temporary directories for isolation
+
+## Technical Decisions
+
+1. **File Location**: `.cub/tasks.jsonl` chosen to match `.cub/` convention and distinguish from beads `.beads/issues.jsonl`
+
+2. **Beads Compatibility**: Used Task model's built-in serialization (`model_dump(by_alias=True)`) to ensure JSON output matches beads schema exactly
+
+3. **Error Handling**: Created specific exception classes (`TasksFileNotFoundError`, `TasksFileCorruptedError`) for clear error messages
+
+4. **Prefix Default**: Default to "cub" if directory name is too short (< 3 chars)
+
+## Validation Results
+- ✓ Type checking passes (mypy --strict)
+- ✓ All 228 existing tests pass
+- ✓ Linting passes (ruff)
+- ✓ Integration tests verify CRUD, dependencies, and persistence
+- ✓ Backend properly registered and available via `get_backend("jsonl")`
+

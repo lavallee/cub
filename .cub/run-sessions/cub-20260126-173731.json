@@ -9,8 +9,8 @@
     "cost_usd": 0.0,
     "cost_limit": 0.0
   },
-  "tasks_completed": 0,
-  "tasks_failed": 0,
+  "tasks_completed": 1,
+  "tasks_failed": -1,
   "current_task": null,
   "status": "running",
   "ended_at": null,

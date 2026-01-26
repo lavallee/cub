@@ -10,6 +10,7 @@ as the TaskBackend protocol for pluggable backend implementations.
 from . import (
     beads,  # noqa: F401
     json,  # noqa: F401
+    jsonl,  # noqa: F401
 )
 from .backend import (
     TaskBackend,
