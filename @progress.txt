@@ -22,3 +22,33 @@
 8. **Test Coverage**: No new tests were needed as the implementation already passes all existing backend tests. The JsonBackend tests serve as a template for how JSONL tests should work.
 
 **Outcome:** Successfully verified all CRUD methods are implemented, registered the backend for discoverability, fixed minor lint issue in unrelated file. All 76 tests passing, type checking clean.
+
+## Task cub-j1a.3: Implement dependency-aware and utility methods (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Implementation Already Complete**: Similar to cub-j1a.2, all dependency-aware and utility methods were already fully implemented in the JsonlBackend class. The methods `get_ready_tasks`, `get_task_counts`, `add_task_note`, and `import_tasks` were all present and working correctly.
+
+2. **Dependency Resolution Algorithm**: The `get_ready_tasks` method implements a two-pass algorithm:
+   - First pass: Build a set of closed task IDs for O(1) lookup
+   - Second pass: Filter open tasks where all dependencies are in the closed set
+   This is more efficient than nested loops for dependency checking.
+
+3. **Priority Sorting**: Ready tasks are sorted using `priority_numeric` computed field (0=highest priority). The sort is stable and consistent across all task backends.
+
+4. **Import with ID Preservation**: The `import_tasks` method correctly preserves explicit task IDs while generating new IDs only for tasks without IDs. This is critical for staging plans where task IDs are pre-defined and dependencies reference specific IDs.
+
+5. **Timestamp in Notes**: The `add_task_note` method automatically prepends timestamps in ISO format to each note, making the notes field act as an audit log. This matches the pattern used in `close_task` when adding reasons.
+
+6. **Task Counts Efficiency**: The `get_task_counts` method iterates raw task dicts rather than parsing into Task models for better performance, since it only needs the status field.
+
+7. **Comprehensive Testing**: All methods were validated with:
+   - Type checking (mypy): no issues
+   - Unit tests (pytest): 493 passed, covering all task backend methods
+   - Manual functional test: verified dependency chains, priority sorting, and ID preservation
+
+8. **Epic Closure Support**: The `try_close_epic` method (also already implemented) checks both parent relationships and label-based associations, providing flexible epic-task organization.
+
+**Outcome:** Successfully verified all dependency-aware and utility methods work correctly with complex dependency graphs, proper priority sorting, and ID preservation. Ready for integration with `cub run`.
