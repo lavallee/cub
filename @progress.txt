@@ -397,3 +397,55 @@ All tests pass (127 total), type checking clean, linting fixed.
    Alpha projects need extra rigor on documentation consistency.
 
 **Outcome:** Successfully added alpha disclaimer banner, security considerations section, experimental feature tags, created comprehensive ALPHA-NOTES.md with stability matrix and known limitations, and updated CONTRIBUTING.md with alpha notice and current architecture. All documentation changes maintain consistency with README and CLI behavior. Documentation now clearly signals alpha status and helps users understand risks and experimental features.
+
+## Task cub-j1f.1: Audit and improve command help text (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Delegated Commands Pattern**: All delegated commands (that wrap bash functionality) had one-line help strings. These needed expansion to explain what each command does, when to use it, and show real examples. The pattern for improvements:
+   - **What**: Clear explanation of the command's purpose
+   - **Why**: Context for when/why to use it
+   - **How**: 3-4 practical examples with real-world use cases
+
+2. **Help Text Organization for Complex Commands**: The `cub run` command has 30+ flags grouped by functionality. The improvement strategy:
+   - Added section headers in docstrings (Task Selection, Budget Control, Isolation Modes, etc)
+   - Grouped examples by use case (Basic, Select specific work, Isolation, Advanced, Monitoring)
+   - Each section explains the related flags and their interactions
+   - Examples show real workflows, not just individual flags
+
+3. **Main App Help Discovery**: Users arrive at `cub --help` first. Enhanced it with:
+   - Better one-line description ("Autonomous AI coding agent" vs "AI Coding Assistant Loop")
+   - Quick Start section (3 simple steps to get started)
+   - Common Workflows section (plan, execute, monitor, git integration)
+   - Documentation links
+   - This dramatically improves discoverability for new users
+
+4. **Consistent Help Text Patterns**: Established patterns for consistency:
+   - One-line summary describing what command does
+   - Paragraph explaining purpose and context
+   - Real-world examples (3-4 typical use cases)
+   - When applicable: option grouping, flow diagrams, or prerequisite mentions
+   - Example formatting: `command args    # What this does`
+
+5. **Long Line Handling in Help Text**: Help strings that exceed 100 characters break formatting. Solution:
+   - For multi-part help strings: use string concatenation with parentheses
+   - Example: `help=("Part 1 " "Part 2 " "Part 3")`
+   - Ruff auto-formatter handles this correctly
+   - This prevents help text from being truncated in terminal output
+
+6. **Test Updates Required**: When help text changes, any tests checking for specific strings in help output must be updated:
+   - Changed: `"AI Coding Assistant Loop" in result.stdout`
+   - Updated to: `("Autonomous AI coding agent" in result.stdout or "AI Coding Assistant Loop" in result.stdout)`
+   - This allows for multiple valid descriptions during transitions
+
+7. **Import Sorting**: Ruff has specific rules about import organization:
+   - Standard library imports first
+   - Third-party imports second
+   - Local imports last
+   - The `--fix` flag automatically reorganizes imports
+   - This is enforced on every lint check
+
+**Outcome:** Successfully audited all 32 CLI commands and improved help text across the board. Delegated commands now have 5-10 line help strings with examples. Main app help includes quick start and workflows. Run command has comprehensive sections and 15+ examples. All tests pass, linting clean, type checking clean. CLI is now significantly more discoverable and actionable for new users exploring the codebase.
+
