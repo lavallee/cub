@@ -27,25 +27,24 @@ AI coding agents in 2026 are powerful. They can operate for hours, produce worki
 
 Cub finds the balance. You invest time *before* code starts flying—breaking work into agent-sized tasks, routing complexity to the right models, reviewing the plan—then step back and let execution happen more seamlessly.
 
-## Two Main Steps: Prep and Run
+## Two Main Steps: Planning and Running
 
-### Step 1. `cub prep`: Go From a Vision to Structured Tasks
+### Step 1. `cub plan`: Go From a Vision to Structured Tasks
 
-Bring your ideas (a sentence, a spec, a whole design doc) and go through a structured interview to generate clear tasks for an LLM:
+Bring your ideas (a sentence, a spec, a whole design doc) and go through structured planning phases to generate clear tasks for an LLM:
 
-1. **Triage** — What are we trying to accomplish? What are the goals?
-2. **Architect** — What makes sense technically? What's the implementation approach?
-3. **Plan** — Break it into agent-sized chunks with clear acceptance criteria
-4. **Bootstrap** — Write tasks to your chosen backend (beads or JSON)
+1. **Orient** — Research and understand the problem space
+2. **Architect** — Design the solution architecture
+3. **Itemize** — Break it into agent-sized chunks with clear acceptance criteria
 
 The goal: observable, reviewable work *before* any code is written. No gaps in understanding slip through.
 
 ```bash
-cub prep                    # Run full pipeline
-cub triage                  # Or run stages individually
-cub architect
-cub plan
-cub bootstrap
+cub plan run                # Run full planning pipeline
+cub plan orient             # Or run phases individually
+cub plan architect
+cub plan itemize
+cub plan list               # List all plans
 ```
 
 ### Step 2: `cub run`: Turn Tasks Into Code
@@ -217,7 +216,7 @@ bd label add cub-abc epic:cub-vd6
 
 - **Python 3.10+** (required)
 - **Harness** (Claude and others):
-  - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Required for `cub prep`, recommended for `cub run`.
+  - [Claude Code CLI](https://github.com/anthropics/claude-code) (`claude`) - Recommended for `cub run` (used by default).
   - [OpenAI Codex CLI](https://github.com/openai/codex) (`codex`)
   - [Google Gemini CLI](https://github.com/google-gemini-cli) (`gemini`)
   - [OpenCode CLI](https://github.com/opencode) (`opencode`)
@@ -280,32 +279,40 @@ cd my-project
 cub init                    # Initialize project
 ```
 
-### Path A: Start with Prep (Recommended)
+### Path A: Start with Planning (Recommended)
 
-When starting new work, use the prep pipeline to turn your ideas into structured tasks:
+When starting new work, use the planning pipeline to turn your ideas into structured tasks:
 
 ```bash
-# Run the full prep interview
-cub prep
+# Run the full planning pipeline
+cub plan run
 
-# Or run stages individually for more control
-cub triage      # Clarify goals and requirements
-cub architect   # Design technical approach
-cub plan        # Break into agent-sized tasks
-cub bootstrap   # Write tasks to backend
+# Or run phases individually for more control
+cub plan orient      # Research the problem space
+cub plan architect   # Design the solution architecture
+cub plan itemize     # Break into agent-sized tasks
+```
+
+After planning, tasks are ready to run. View your plans:
+
+```bash
+cub plan list        # List all plans
+cub plan orient      # Jump back to earlier phases
 ```
 
 ### Path B: Create Tasks Directly
 
-If you already know what needs doing:
+If you already know what needs doing, use task management commands:
 
 ```bash
-# Using beads (recommended)
-bd init
-bd create "Implement user authentication" --type feature --priority 2
-bd create "Add login form" --type task --priority 2
+# Using the task backend (auto-detects JSON or beads)
+cub task create "Implement user authentication" --type feature --priority P1
+cub task create "Add login form" --type task --priority P1
 
-# Or edit prd.json directly (JSON backend)
+# List and manage tasks
+cub task list        # Show all open tasks
+cub task ready       # Show tasks ready to work on
+cub task show <id>   # Show task details
 ```
 
 ### Run the Loop
@@ -322,22 +329,20 @@ cub run --stream        # Watch in real-time
 
 ## Usage
 
-### Prep Commands (Vision → Tasks)
+### Planning Commands (Vision → Tasks)
 
 ```bash
-# Full prep pipeline
-cub prep                    # Run triage → architect → plan → bootstrap
+# Full planning pipeline
+cub plan run                # Run orient → architect → itemize
 
-# Individual stages (for more control)
-cub triage                  # Clarify requirements and goals
-cub architect               # Design technical implementation
-cub plan                    # Break into agent-sized tasks
-cub bootstrap               # Write tasks to backend
+# Individual phases (for more control)
+cub plan orient             # Research and understand the problem space
+cub plan architect          # Design the solution architecture
+cub plan itemize            # Break into agent-sized tasks
 
-# Manage prep sessions
-cub sessions                # List prep sessions
-cub interview <task-id>     # Deep-dive on a specific task
-cub interview --all --auto  # Batch interview all open tasks
+# Manage plans
+cub plan list               # List all plans
+cub interview <task-id>     # Deep-dive on a specific task (after planning)
 ```
 
 ### Run Commands (Tasks → Code)
@@ -345,25 +350,51 @@ cub interview --all --auto  # Batch interview all open tasks
 ```bash
 # Execute the loop
 cub run                     # Run until all tasks complete
-cub run --once              # Single iteration
-cub run --ready             # Show ready (unblocked) tasks
-cub run --plan              # Run planning mode
-cub run --name myname       # Custom session name
+cub run --once              # Single iteration (-1 shorthand)
+cub run --ready             # Show ready (unblocked) tasks (-r shorthand)
+cub run --task <id>         # Run specific task by ID (-t shorthand)
+
+# Session naming
+cub run --name myname       # Custom session name (-n shorthand)
 
 # Filtering
-cub run --epic <id>         # Target tasks within a specific epic
-cub run --label <name>      # Target tasks with a specific label
+cub run --epic <id>         # Target tasks within a specific epic (-e shorthand)
+cub run --label <name>      # Target tasks with a specific label (-l shorthand)
 cub run --epic cub-1gq --label phase-1  # Combine filters
 
 # Harness selection
-cub run --harness claude    # Use Claude Code (default)
+cub run --harness claude    # Use Claude Code (default, -h shorthand)
 cub run --harness codex     # Use OpenAI Codex CLI
 cub run --harness gemini    # Use Google Gemini
 cub run --harness opencode  # Use OpenCode
 
+# Model selection
+cub run --model haiku       # Use Haiku model (-m shorthand)
+cub run --model sonnet      # Use Sonnet model
+cub run --model opus        # Use Opus model
+
+# Budget control
+cub run --budget 10         # Max budget in USD (-b shorthand)
+cub run --budget-tokens 100000  # Max token budget
+
 # Output modes
-cub run --stream            # Stream harness activity in real-time
+cub run --stream            # Stream harness activity in real-time (-s shorthand)
 cub run --debug             # Enable verbose debug logging
+cub run --monitor           # Launch live dashboard in tmux split
+
+# Isolation modes
+cub run --worktree          # Run in isolated git worktree
+cub run --sandbox           # Run in Docker sandbox for isolation
+cub run --parallel 4        # Run 4 tasks in parallel (-p shorthand)
+cub run --direct "task description"  # Run directly with provided task (-d shorthand)
+
+# Git workflow
+cub run --main-ok           # Allow running on main/master branch
+cub run --use-current-branch  # Run in current branch (don't create new)
+cub run --from-branch <ref>  # Base branch for new feature branch
+
+# Sync control
+cub run --no-sync           # Disable auto-sync for this run
 ```
 
 ### Other Commands
@@ -376,18 +407,46 @@ cub init --global           # Set up global config
 # Status and inspection
 cub status                  # Show task progress
 cub status --json           # JSON output for scripting
-cub explain <task-id>       # Show full task details
+cub status -v               # Verbose status with details
+cub explain-task <task-id>  # Show full task details
 cub artifacts               # List task outputs
+cub artifacts <task-id>     # Show specific task artifacts
+
+# Task management (backend-agnostic)
+cub task create "Title"     # Create a new task
+cub task list               # List all tasks
+cub task show <id>          # Show task details
+cub task update <id>        # Update task fields
+cub task close <id>         # Close a task
+cub task ready              # List ready (unblocked) tasks
+cub task counts             # Show task statistics
+cub task dep                # Manage dependencies
 
 # Git workflow
 cub branch <epic-id>        # Create branch bound to epic
 cub branches                # List branch-epic bindings
 cub pr <epic-id>            # Create pull request for epic
 
+# Sync task state to git
+cub sync status             # Check sync status
+cub sync init               # Initialize sync branch
+cub sync -m "msg"           # Commit current task state with message
+cub sync --push             # Push changes to remote after syncing
+cub sync --pull             # Pull remote changes before syncing
+
 # Utilities
-cub validate                # Check beads state and config
 cub doctor                  # Diagnose configuration issues
-cub --migrate-to-beads      # Migrate prd.json to beads
+cub doctor --fix            # Automatically fix issues
+cub version                 # Show cub version
+cub update                  # Update project templates
+cub system-upgrade          # Upgrade cub to newer version
+```
+
+**For a complete command reference**, run:
+
+```bash
+cub --help                  # Show all available commands
+cub <command> --help        # Show help for a specific command
 ```
 
 **Note:** Running `cub` without a subcommand defaults to `cub run`.
@@ -879,27 +938,30 @@ Control auto-sync behavior in your config file:
 |------|----------|
 | `run` | Auto-sync during `cub run` only (default) |
 | `always` | Auto-sync on every task mutation |
-| `never` | Manual sync only (use `cub sync commit`) |
+| `never` | Manual sync only (use `cub sync` with flags) |
 
 ### Sync Commands
 
 Manual sync operations are available via the CLI:
 
 ```bash
-# Initialize sync branch
+# Initialize sync branch (required once)
 cub sync init
-
-# Commit current task state
-cub sync commit -m "Update tasks"
-
-# Push to remote
-cub sync push
-
-# Pull remote changes
-cub sync pull
 
 # Check sync status
 cub sync status
+
+# Commit current task state with custom message
+cub sync -m "Update tasks"
+
+# Push changes to remote after syncing
+cub sync --push
+
+# Pull and merge remote changes before syncing
+cub sync --pull
+
+# Combine operations
+cub sync --pull --push -m "Sync from local"
 ```
 
 ### Failure Handling
@@ -1495,16 +1557,25 @@ cub run --plan
 
 Uses parallel subagents to study code, find TODOs, and document issues.
 
-### Migrating to Beads
+### Task Backend Auto-Detection
 
-Convert existing prd.json to beads format:
+Cub automatically detects your task backend:
+
+1. **Beads** — If `.beads/` directory exists, uses beads CLI
+2. **JSON** — If `prd.json` exists, uses JSON backend
+3. **JSONL** — If `.cub/tasks.jsonl` exists, uses JSONL backend (default)
+
+To switch backends, use the `CUB_BACKEND` environment variable:
 
 ```bash
-# Preview what would happen
-cub --migrate-to-beads-dry-run
+# Explicitly use JSON backend
+CUB_BACKEND=json cub status
 
-# Perform migration
-cub --migrate-to-beads
+# Use beads backend
+CUB_BACKEND=beads cub status
+
+# Auto-detect (default)
+cub status
 ```
 
 ## Tips
@@ -1536,7 +1607,7 @@ cub                      # Restart loop
 
 | Module | Purpose |
 |--------|---------|
-| `src/cub/cli/` | Typer CLI subcommands (run, status, init, prep commands) |
+| `src/cub/cli/` | Typer CLI subcommands (run, status, init, planning commands) |
 | `src/cub/core/config.py` | Configuration loading and merging |
 | `src/cub/core/models.py` | Pydantic data models (Task, Config, etc.) |
 | `src/cub/core/tasks/` | Task backends (beads, JSON) |
