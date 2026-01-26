@@ -9559,3 +9559,40 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 - CLI follows patterns established in existing CLI commands (task.py, status.py, etc.)
 
 **Time spent:** ~1 hour
+
+
+## Task cub-j1d.1 - Add auto-sync after task mutations in run loop (2026-01-26)
+
+### Implementation Summary
+- Added SyncConfig to config models with 'enabled' and 'auto_sync' fields
+- auto_sync supports three modes: 'always' (all mutations), 'run' (only during cub run), 'never' (manual only)
+- Default behavior is 'run' mode with sync enabled
+- SyncService is initialized in run loop when auto_sync is 'run' or 'always'
+- Auto-sync commits task state immediately after successful task closure
+- Added --no-sync flag to disable auto-sync for a single run invocation
+- Sync failures are handled gracefully (logged as warnings, don't stop the run)
+- Sync branch is automatically initialized on first run if not present
+
+### Key Design Decisions
+1. Chose to initialize sync on first use rather than requiring explicit 'cub sync init'
+2. Made sync failures non-fatal to avoid breaking runs due to git issues
+3. Added --no-sync flag for flexibility when users want to avoid sync overhead
+4. Used 'run' as default auto_sync mode to balance automation with user control
+
+### Code Locations
+- Config models: src/cub/core/config/models.py (added SyncConfig class)
+- Run loop integration: src/cub/cli/run.py (initialization + post-task-closure sync)
+- SyncService: src/cub/core/sync/service.py (already existed, no changes needed)
+
+### Testing
+- All config loader tests pass (34/34)
+- Type checking passes (no new errors)
+- Linting passes (only pre-existing E501 warnings remain)
+- Manual verification of config instantiation works correctly
+
+### Learnings
+- The run loop already has good error handling patterns - sync integration followed same pattern
+- SyncService.commit() is already idempotent (returns early if content hasn't changed)
+- The --monitor flag requires reconstructing all CLI args, so new flags need to be added there too
+- Config validation uses Pydantic field patterns for clean constraints (like pattern regex)
+

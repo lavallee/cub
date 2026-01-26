@@ -827,6 +827,143 @@ cub run --require-clean      # Force clean state check
 cub run --no-require-clean   # Disable clean state check
 ```
 
+## Task State Synchronization
+
+Cub automatically syncs task state to a dedicated git branch (`cub-sync`) to ensure task progress persists across git clones and team collaboration. This sync happens independently of your working tree—no checkout required.
+
+### How Auto-Sync Works
+
+When you run `cub run`, the sync service:
+
+1. **Initializes** the `cub-sync` branch (if not already created)
+2. **Commits** task state to the branch after each task completion
+3. **Tracks** changes using git plumbing commands (no working tree impact)
+4. **Persists** `.cub/tasks.jsonl` in git history for recovery
+
+### Auto-Sync Behavior
+
+By default, auto-sync triggers after every task completion during `cub run`:
+
+```bash
+cub run                      # Auto-syncs after each task (default)
+cub run --no-sync            # Disable auto-sync for this run
+```
+
+### Configuration
+
+Control auto-sync behavior in your config file:
+
+**Global config** (`~/.config/cub/config.json`):
+```json
+{
+  "sync": {
+    "enabled": true,
+    "auto_sync": "run"
+  }
+}
+```
+
+**Project override** (`.cub.json`):
+```json
+{
+  "sync": {
+    "enabled": true,
+    "auto_sync": "never"
+  }
+}
+```
+
+### Auto-Sync Modes
+
+| Mode | Behavior |
+|------|----------|
+| `run` | Auto-sync during `cub run` only (default) |
+| `always` | Auto-sync on every task mutation |
+| `never` | Manual sync only (use `cub sync commit`) |
+
+### Sync Commands
+
+Manual sync operations are available via the CLI:
+
+```bash
+# Initialize sync branch
+cub sync init
+
+# Commit current task state
+cub sync commit -m "Update tasks"
+
+# Push to remote
+cub sync push
+
+# Pull remote changes
+cub sync pull
+
+# Check sync status
+cub sync status
+```
+
+### Failure Handling
+
+Auto-sync failures are logged but don't stop task execution:
+
+- **Sync fails**: Warning logged, task still completes
+- **Git unavailable**: Sync disabled for the run
+- **No changes**: Commit skipped (same task state)
+
+Example output:
+```
+✓ Task cub-abc completed
+⚠ Warning: Failed to sync task state: git not found in PATH
+```
+
+### Multi-Task Runs
+
+During multi-task runs, each task completion triggers a sync commit:
+
+```bash
+# Run with 3 tasks
+cub run
+
+# Creates 3 commits on cub-sync branch:
+# - "Task cub-001 completed"
+# - "Task cub-002 completed"
+# - "Task cub-003 completed"
+```
+
+### Disabling Auto-Sync
+
+To run without auto-sync (e.g., for testing):
+
+```bash
+# Temporary disable (this run only)
+cub run --no-sync
+
+# Permanent disable (config)
+# Edit .cub.json:
+{
+  "sync": {
+    "auto_sync": "never"
+  }
+}
+```
+
+### Collaboration
+
+The `cub-sync` branch enables team collaboration on task state:
+
+1. **Push** your local sync branch: `cub sync push`
+2. **Team member pulls**: `cub sync pull`
+3. **Conflicts** resolved using last-write-wins (based on `updated_at`)
+4. **Recovery**: Clone repo, pull sync branch, continue work
+
+### Technical Details
+
+- **Branch**: `cub-sync` (configurable)
+- **File**: `.cub/tasks.jsonl` committed to sync branch
+- **Method**: Git plumbing (`git hash-object`, `git commit-tree`)
+- **Working tree**: Never touched (uses `git update-ref`)
+- **Conflict resolution**: Last-write-wins based on task `updated_at` timestamp
+
 ## Environment Variables
 
 | Variable | Default | Description |
