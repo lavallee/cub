@@ -18,9 +18,11 @@ import hashlib
 import json
 import logging
 import subprocess
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-from cub.core.sync.models import SyncState
+from cub.core.sync.models import SyncConflict, SyncResult, SyncState
 
 logger = logging.getLogger(__name__)
 
@@ -419,3 +421,387 @@ class SyncService:
         self._save_state(state)
 
         return commit_sha
+
+    def _remote_branch_exists(self) -> bool:
+        """
+        Check if the remote sync branch exists.
+
+        Returns:
+            True if the remote branch exists, False otherwise.
+        """
+        state = self._load_state()
+        remote_ref = f"refs/remotes/{state.remote_name}/{self.branch_name}"
+        return self._branch_exists(remote_ref)
+
+    def _fetch_remote_branch(self) -> bool:
+        """
+        Fetch the sync branch from remote to remote-tracking branch.
+
+        Fetches to remotes/origin/cub-sync (or equivalent) to avoid
+        conflicts when local branch has diverged from remote.
+
+        Returns:
+            True if fetch succeeded, False if remote branch doesn't exist.
+
+        Raises:
+            GitError: If git fetch fails for reasons other than missing branch.
+        """
+        state = self._load_state()
+
+        try:
+            # Fetch to remote-tracking branch (not local branch)
+            # This allows us to compare local vs remote without conflicts
+            self._run_git([
+                "fetch",
+                state.remote_name,
+                self.branch_name,
+                "--no-tags",
+            ])
+            return True
+        except GitError as e:
+            # Check if the error is because the remote branch doesn't exist
+            if "couldn't find remote ref" in e.stderr.lower():
+                return False
+            # Re-raise other errors
+            raise
+
+    def _get_file_from_ref(self, ref: str, file_path: str) -> str | None:
+        """
+        Get file content from a git ref (branch/commit).
+
+        Args:
+            ref: Git ref (e.g., "cub-sync", "origin/cub-sync", commit SHA).
+            file_path: Relative path to the file in the tree.
+
+        Returns:
+            File content as string, or None if file doesn't exist in ref.
+        """
+        try:
+            content = self._run_git(["show", f"{ref}:{file_path}"])
+            return content
+        except GitError:
+            return None
+
+    def _parse_tasks_from_jsonl(self, content: str) -> dict[str, dict[str, Any]]:
+        """
+        Parse JSONL content into a dict of tasks keyed by ID.
+
+        Args:
+            content: JSONL content (one JSON object per line).
+
+        Returns:
+            Dict mapping task ID to task dict.
+        """
+        tasks: dict[str, dict[str, Any]] = {}
+
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                task_data = json.loads(line)
+                if isinstance(task_data, dict) and "id" in task_data:
+                    tasks[task_data["id"]] = task_data
+            except json.JSONDecodeError:
+                # Skip invalid lines
+                logger.warning("Skipping invalid JSONL line during pull")
+                continue
+
+        return tasks
+
+    def _serialize_tasks_to_jsonl(self, tasks: dict[str, dict[str, Any]]) -> str:
+        """
+        Serialize tasks dict back to JSONL format.
+
+        Args:
+            tasks: Dict mapping task ID to task dict.
+
+        Returns:
+            JSONL content string.
+        """
+        lines = []
+        for task in tasks.values():
+            lines.append(json.dumps(task, ensure_ascii=False))
+        return "\n".join(lines) + "\n" if lines else ""
+
+    def _get_task_updated_at(self, task: dict[str, Any]) -> datetime | None:
+        """
+        Extract updated_at timestamp from a task dict.
+
+        Args:
+            task: Task dictionary.
+
+        Returns:
+            datetime if updated_at exists and is parseable, None otherwise.
+        """
+        updated_at = task.get("updated_at")
+        if updated_at is None:
+            return None
+
+        if isinstance(updated_at, datetime):
+            return updated_at
+
+        if isinstance(updated_at, str):
+            try:
+                # Try ISO format first
+                return datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
+        return None
+
+    def _merge_tasks(
+        self,
+        local_tasks: dict[str, dict[str, Any]],
+        remote_tasks: dict[str, dict[str, Any]],
+    ) -> tuple[dict[str, dict[str, Any]], list[SyncConflict], int]:
+        """
+        Merge remote tasks into local tasks using last-write-wins strategy.
+
+        For each task:
+        - If only in local: keep local version
+        - If only in remote: add remote version
+        - If in both with same content: no change
+        - If in both with different content: use version with later updated_at
+
+        Args:
+            local_tasks: Local tasks dict (task_id -> task_data).
+            remote_tasks: Remote tasks dict (task_id -> task_data).
+
+        Returns:
+            Tuple of (merged_tasks, conflicts, tasks_updated_count).
+        """
+        merged = dict(local_tasks)  # Start with local tasks
+        conflicts: list[SyncConflict] = []
+        tasks_updated = 0
+
+        for task_id, remote_task in remote_tasks.items():
+            if task_id not in local_tasks:
+                # Task only exists remotely - add it
+                merged[task_id] = remote_task
+                tasks_updated += 1
+                logger.debug("Added task %s from remote", task_id)
+            else:
+                local_task = local_tasks[task_id]
+
+                # Check if tasks are identical
+                if json.dumps(local_task, sort_keys=True) == json.dumps(
+                    remote_task, sort_keys=True
+                ):
+                    # No conflict - same content
+                    continue
+
+                # Different content - resolve using last-write-wins
+                local_updated = self._get_task_updated_at(local_task)
+                remote_updated = self._get_task_updated_at(remote_task)
+
+                # Determine winner
+                winner: str
+                if local_updated is None and remote_updated is None:
+                    # No timestamps - prefer remote (incoming changes)
+                    winner = "remote"
+                elif local_updated is None:
+                    # Only remote has timestamp - prefer remote
+                    winner = "remote"
+                elif remote_updated is None:
+                    # Only local has timestamp - prefer local
+                    winner = "local"
+                elif remote_updated > local_updated:
+                    # Remote is newer
+                    winner = "remote"
+                else:
+                    # Local is newer or same time
+                    winner = "local"
+
+                # Record conflict
+                conflict = SyncConflict(
+                    task_id=task_id,
+                    local_updated_at=local_updated,
+                    remote_updated_at=remote_updated,
+                    resolution="last_write_wins",
+                    winner=winner,
+                )
+                conflicts.append(conflict)
+
+                if winner == "remote":
+                    merged[task_id] = remote_task
+                    tasks_updated += 1
+                    logger.info(
+                        "Conflict on %s: using remote (updated %s vs local %s)",
+                        task_id,
+                        remote_updated,
+                        local_updated,
+                    )
+                else:
+                    logger.info(
+                        "Conflict on %s: keeping local (updated %s vs remote %s)",
+                        task_id,
+                        local_updated,
+                        remote_updated,
+                    )
+
+        return merged, conflicts, tasks_updated
+
+    def pull(self) -> SyncResult:
+        """
+        Pull and merge remote changes into local task state.
+
+        Fetches the sync branch from remote, compares with local tasks,
+        detects conflicts, and applies last-write-wins resolution based
+        on the `updated_at` timestamp. Commits the merged result locally.
+
+        Conflict Resolution:
+        - Same task modified in both local and remote triggers a conflict
+        - The version with the later `updated_at` timestamp wins
+        - If timestamps are missing, remote changes take precedence
+        - All conflicts are logged as warnings
+
+        Returns:
+            SyncResult with success status, conflicts list, and tasks_updated count.
+
+        Raises:
+            RuntimeError: If sync branch not initialized.
+        """
+        started_at = datetime.now()
+
+        # Check initialization
+        if not self.is_initialized():
+            return SyncResult(
+                success=False,
+                operation="pull",
+                message="Sync branch not initialized. Call initialize() first.",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        state = self._load_state()
+        remote_ref = f"{state.remote_name}/{self.branch_name}"
+
+        # Step 1: Fetch remote sync branch
+        logger.info("Fetching remote sync branch: %s", remote_ref)
+        try:
+            fetch_success = self._fetch_remote_branch()
+        except GitError as e:
+            return SyncResult(
+                success=False,
+                operation="pull",
+                message=f"Failed to fetch remote: {e.stderr or str(e)}",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        if not fetch_success:
+            # Remote branch doesn't exist - nothing to pull
+            return SyncResult(
+                success=True,
+                operation="pull",
+                message="No remote sync branch found. Nothing to pull.",
+                tasks_updated=0,
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Step 2: Get remote tasks content
+        remote_content = self._get_file_from_ref(remote_ref, self.tasks_file)
+        if remote_content is None:
+            # Remote branch exists but has no tasks file
+            return SyncResult(
+                success=True,
+                operation="pull",
+                message="Remote sync branch has no tasks file. Nothing to merge.",
+                tasks_updated=0,
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Step 3: Get local tasks content
+        local_content = ""
+        if self.tasks_file_path.exists():
+            local_content = self.tasks_file_path.read_text()
+
+        # Step 4: Parse tasks
+        remote_tasks = self._parse_tasks_from_jsonl(remote_content)
+        local_tasks = self._parse_tasks_from_jsonl(local_content)
+
+        # Step 5: Check if there's anything to merge
+        if not remote_tasks:
+            return SyncResult(
+                success=True,
+                operation="pull",
+                message="Remote has no tasks. Nothing to merge.",
+                tasks_updated=0,
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Step 6: Merge tasks with conflict detection
+        merged_tasks, conflicts, tasks_updated = self._merge_tasks(
+            local_tasks, remote_tasks
+        )
+
+        # Log warnings for conflicts
+        for conflict in conflicts:
+            logger.warning(
+                "Conflict detected for task %s: %s version used (local: %s, remote: %s)",
+                conflict.task_id,
+                conflict.winner,
+                conflict.local_updated_at,
+                conflict.remote_updated_at,
+            )
+
+        # Step 7: Write merged result if there were changes
+        if tasks_updated > 0:
+            merged_content = self._serialize_tasks_to_jsonl(merged_tasks)
+
+            # Ensure .cub directory exists
+            self.tasks_file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Write merged content atomically
+            temp_path = self.tasks_file_path.with_suffix(".tmp")
+            try:
+                temp_path.write_text(merged_content)
+                temp_path.replace(self.tasks_file_path)
+            except OSError:
+                if temp_path.exists():
+                    temp_path.unlink()
+                raise
+
+            # Step 8: Commit merged result
+            commit_message = f"Merge remote changes ({tasks_updated} tasks updated)"
+            if conflicts:
+                commit_message += f" [{len(conflicts)} conflicts resolved]"
+
+            try:
+                commit_sha = self.commit(commit_message)
+            except (RuntimeError, GitError) as e:
+                return SyncResult(
+                    success=False,
+                    operation="pull",
+                    message=f"Merge succeeded but commit failed: {e}",
+                    tasks_updated=tasks_updated,
+                    conflicts=conflicts,
+                    started_at=started_at,
+                    completed_at=datetime.now(),
+                )
+
+            return SyncResult(
+                success=True,
+                operation="pull",
+                commit_sha=commit_sha,
+                message=f"Merged {tasks_updated} tasks from remote",
+                tasks_updated=tasks_updated,
+                conflicts=conflicts,
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # No changes needed
+        return SyncResult(
+            success=True,
+            operation="pull",
+            message="Local tasks are up to date with remote",
+            tasks_updated=0,
+            conflicts=conflicts,
+            started_at=started_at,
+            completed_at=datetime.now(),
+        )

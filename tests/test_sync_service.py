@@ -7,16 +7,19 @@ Tests cover:
 - Branch existence checking
 - Sync branch initialization
 - State management
+- Pull with conflict detection
 """
 
 from __future__ import annotations
 
+import json
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-from cub.core.sync import SyncService, SyncState
+from cub.core.sync import SyncConflict, SyncResult, SyncService, SyncState
 from cub.core.sync.service import GitError
 
 
@@ -611,3 +614,796 @@ class TestCommit:
         ).stdout.strip()
 
         assert final_branch == initial_branch
+
+
+class TestPull:
+    """Tests for the pull method with conflict detection."""
+
+    @pytest.fixture
+    def git_repo_with_remote(self, tmp_path: Path) -> tuple[Path, Path]:
+        """
+        Create a git repo with a remote for testing pull operations.
+
+        Returns:
+            Tuple of (local_repo_path, remote_repo_path).
+        """
+        # Create "remote" bare repo
+        remote_repo = tmp_path / "remote.git"
+        subprocess.run(["git", "init", "--bare", str(remote_repo)], capture_output=True, check=True)
+
+        # Create local repo
+        local_repo = tmp_path / "local"
+        local_repo.mkdir()
+        subprocess.run(["git", "init"], cwd=local_repo, capture_output=True, check=True)
+
+        # Configure git user
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Add remote
+        subprocess.run(
+            ["git", "remote", "add", "origin", str(remote_repo)],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create initial commit on local
+        (local_repo / "README.md").write_text("# Test\n")
+        subprocess.run(["git", "add", "README.md"], cwd=local_repo, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        return local_repo, remote_repo
+
+    def test_pull_fails_when_not_initialized(self, git_repo_with_remote: tuple[Path, Path]) -> None:
+        """pull returns failure when sync branch not initialized."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+
+        result = sync.pull()
+
+        assert result.success is False
+        assert result.operation == "pull"
+        assert "not initialized" in result.message.lower()
+
+    def test_pull_succeeds_when_no_remote_branch(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull succeeds with nothing to do when remote branch doesn't exist."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.operation == "pull"
+        assert result.tasks_updated == 0
+        assert "no remote" in result.message.lower() or "nothing to pull" in result.message.lower()
+
+    def test_pull_adds_remote_only_tasks(self, git_repo_with_remote: tuple[Path, Path]) -> None:
+        """pull adds tasks that exist only on remote."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create local tasks file
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001", "title": "Local task"}\n')
+        sync.commit("Initial local tasks")
+
+        # Push sync branch to remote
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Simulate remote changes by cloning, modifying, and pushing
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Checkout sync branch and add a new task
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text(
+            '{"id": "task-001", "title": "Local task"}\n'
+            '{"id": "task-002", "title": "Remote task"}\n'
+        )
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add remote task"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Now pull from the original local repo
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.tasks_updated == 1
+        assert len(result.conflicts) == 0
+
+        # Verify task was added locally
+        local_content = tasks_path.read_text()
+        assert "task-002" in local_content
+        assert "Remote task" in local_content
+
+    def test_pull_detects_conflict_uses_last_write_wins(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull detects conflicts and uses last-write-wins based on updated_at."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create local task with older timestamp
+        old_time = (datetime.now() - timedelta(hours=1)).isoformat()
+        local_task = {"id": "task-001", "title": "Local version", "updated_at": old_time}
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text(json.dumps(local_task) + "\n")
+        sync.commit("Local task")
+
+        # Push to remote
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create "remote" changes with newer timestamp
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        new_time = datetime.now().isoformat()
+        remote_task = {"id": "task-001", "title": "Remote version", "updated_at": new_time}
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text(json.dumps(remote_task) + "\n")
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Update task remotely"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Pull from local - should use remote (newer) version
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.tasks_updated == 1
+        assert len(result.conflicts) == 1
+
+        conflict = result.conflicts[0]
+        assert conflict.task_id == "task-001"
+        assert conflict.winner == "remote"
+        assert conflict.resolution == "last_write_wins"
+
+        # Verify remote version was used
+        local_content = tasks_path.read_text()
+        assert "Remote version" in local_content
+        assert "Local version" not in local_content
+
+    def test_pull_keeps_local_when_newer(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull keeps local version when it has a newer updated_at timestamp."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # First push an old version to remote
+        old_time = (datetime.now() - timedelta(hours=2)).isoformat()
+        old_task = {"id": "task-001", "title": "Old version", "updated_at": old_time}
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text(json.dumps(old_task) + "\n")
+        sync.commit("Old task")
+
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Now update local with newer timestamp
+        new_time = datetime.now().isoformat()
+        new_task = {"id": "task-001", "title": "New local version", "updated_at": new_time}
+        tasks_path.write_text(json.dumps(new_task) + "\n")
+        sync.commit("Updated local task")
+
+        # Pull should keep local (newer) version
+        result = sync.pull()
+
+        assert result.success is True
+        # tasks_updated should be 0 since local is kept
+        assert result.tasks_updated == 0
+        assert len(result.conflicts) == 1
+
+        conflict = result.conflicts[0]
+        assert conflict.task_id == "task-001"
+        assert conflict.winner == "local"
+
+        # Verify local version was kept
+        local_content = tasks_path.read_text()
+        assert "New local version" in local_content
+
+    def test_pull_prefers_remote_when_no_timestamps(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull prefers remote version when neither has updated_at timestamps."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create local task without timestamp
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001", "title": "Local version"}\n')
+        sync.commit("Local task")
+
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create different remote version without timestamp
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text('{"id": "task-001", "title": "Remote version"}\n')
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Update task remotely"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Pull - should prefer remote when no timestamps
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.tasks_updated == 1
+        assert len(result.conflicts) == 1
+        assert result.conflicts[0].winner == "remote"
+
+        # Verify remote version was used
+        local_content = tasks_path.read_text()
+        assert "Remote version" in local_content
+
+    def test_pull_no_changes_when_identical(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull reports no changes when local and remote are identical."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create local tasks
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001", "title": "Same task"}\n')
+        sync.commit("Local task")
+
+        # Push to remote
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Pull should find no changes
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.tasks_updated == 0
+        assert len(result.conflicts) == 0
+        assert "up to date" in result.message.lower()
+
+    def test_pull_creates_commit_when_changes_merged(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull creates a commit after successfully merging changes."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create local task
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001", "title": "Local"}\n')
+        sync.commit("Local task")
+
+        # Get commit SHA before pull
+        before_sha = subprocess.run(
+            ["git", "rev-parse", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        # Push and add remote task
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text(
+            '{"id": "task-001", "title": "Local"}\n'
+            '{"id": "task-002", "title": "Remote"}\n'
+        )
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add remote task"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Pull
+        result = sync.pull()
+
+        assert result.success is True
+        assert result.commit_sha is not None
+        assert len(result.commit_sha) == 40
+
+        # Verify commit was created
+        after_sha = subprocess.run(
+            ["git", "rev-parse", "cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        assert after_sha != before_sha
+        assert after_sha == result.commit_sha
+
+    def test_pull_returns_sync_result(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """pull returns a SyncResult with all expected fields."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        result = sync.pull()
+
+        assert isinstance(result, SyncResult)
+        assert result.operation == "pull"
+        assert isinstance(result.success, bool)
+        assert isinstance(result.tasks_updated, int)
+        assert isinstance(result.conflicts, list)
+        assert result.started_at is not None
+        assert result.completed_at is not None
+
+
+class TestSyncConflictModel:
+    """Tests for the SyncConflict model."""
+
+    def test_conflict_creation(self) -> None:
+        """SyncConflict can be created with all fields."""
+        now = datetime.now()
+        earlier = now - timedelta(hours=1)
+
+        conflict = SyncConflict(
+            task_id="task-001",
+            local_updated_at=earlier,
+            remote_updated_at=now,
+            resolution="last_write_wins",
+            winner="remote",
+        )
+
+        assert conflict.task_id == "task-001"
+        assert conflict.local_updated_at == earlier
+        assert conflict.remote_updated_at == now
+        assert conflict.resolution == "last_write_wins"
+        assert conflict.winner == "remote"
+
+    def test_conflict_default_values(self) -> None:
+        """SyncConflict has sensible defaults."""
+        conflict = SyncConflict(task_id="task-001")
+
+        assert conflict.task_id == "task-001"
+        assert conflict.local_updated_at is None
+        assert conflict.remote_updated_at is None
+        assert conflict.resolution == "last_write_wins"
+        assert conflict.winner == ""
+
+
+class TestSyncResultModel:
+    """Tests for the SyncResult model."""
+
+    def test_result_creation(self) -> None:
+        """SyncResult can be created with all fields."""
+        now = datetime.now()
+        conflict = SyncConflict(task_id="task-001", winner="remote")
+
+        result = SyncResult(
+            success=True,
+            operation="pull",
+            commit_sha="abc123def456",
+            message="Merged 5 tasks",
+            tasks_updated=5,
+            conflicts=[conflict],
+            started_at=now - timedelta(seconds=2),
+            completed_at=now,
+        )
+
+        assert result.success is True
+        assert result.operation == "pull"
+        assert result.commit_sha == "abc123def456"
+        assert result.tasks_updated == 5
+        assert len(result.conflicts) == 1
+        assert result.duration_seconds is not None
+        assert result.duration_seconds >= 2
+
+    def test_result_summary(self) -> None:
+        """SyncResult.summary() returns human-readable text."""
+        result = SyncResult(
+            success=True,
+            operation="pull",
+            commit_sha="abc123def456",
+            tasks_updated=3,
+            conflicts=[SyncConflict(task_id="t1"), SyncConflict(task_id="t2")],
+        )
+
+        summary = result.summary()
+
+        assert "pull" in summary
+        assert "succeeded" in summary
+        assert "abc123de" in summary  # Short SHA
+        assert "3 tasks updated" in summary
+        assert "2 conflicts resolved" in summary
+
+    def test_result_summary_failure(self) -> None:
+        """SyncResult.summary() handles failure case."""
+        result = SyncResult(
+            success=False,
+            operation="pull",
+            message="Remote not found",
+        )
+
+        summary = result.summary()
+
+        assert "pull" in summary
+        assert "failed" in summary
+        assert "Remote not found" in summary
+
+
+class TestMergeTasks:
+    """Tests for the _merge_tasks helper method."""
+
+    def test_merge_adds_remote_only_tasks(self, git_repo_with_commit: Path) -> None:
+        """_merge_tasks adds tasks that only exist remotely."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        local = {"task-001": {"id": "task-001", "title": "Local"}}
+        remote = {
+            "task-001": {"id": "task-001", "title": "Local"},
+            "task-002": {"id": "task-002", "title": "Remote"},
+        }
+
+        merged, conflicts, updated = sync._merge_tasks(local, remote)
+
+        assert "task-001" in merged
+        assert "task-002" in merged
+        assert len(conflicts) == 0
+        assert updated == 1
+
+    def test_merge_keeps_local_only_tasks(self, git_repo_with_commit: Path) -> None:
+        """_merge_tasks keeps tasks that only exist locally."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        local = {
+            "task-001": {"id": "task-001", "title": "Local"},
+            "task-002": {"id": "task-002", "title": "Local only"},
+        }
+        remote = {"task-001": {"id": "task-001", "title": "Local"}}
+
+        merged, conflicts, updated = sync._merge_tasks(local, remote)
+
+        assert "task-001" in merged
+        assert "task-002" in merged
+        assert merged["task-002"]["title"] == "Local only"
+        assert len(conflicts) == 0
+        assert updated == 0
+
+    def test_merge_detects_conflict(self, git_repo_with_commit: Path) -> None:
+        """_merge_tasks detects conflicts when tasks differ."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        old_time = (datetime.now() - timedelta(hours=1)).isoformat()
+        new_time = datetime.now().isoformat()
+
+        local = {"task-001": {"id": "task-001", "title": "Local", "updated_at": old_time}}
+        remote = {"task-001": {"id": "task-001", "title": "Remote", "updated_at": new_time}}
+
+        merged, conflicts, updated = sync._merge_tasks(local, remote)
+
+        assert len(conflicts) == 1
+        assert conflicts[0].task_id == "task-001"
+        assert conflicts[0].winner == "remote"
+        assert merged["task-001"]["title"] == "Remote"
+        assert updated == 1
+
+    def test_merge_no_conflict_when_identical(self, git_repo_with_commit: Path) -> None:
+        """_merge_tasks doesn't report conflict when tasks are identical."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        task = {"id": "task-001", "title": "Same", "status": "open"}
+        local = {"task-001": task}
+        remote = {"task-001": task.copy()}
+
+        merged, conflicts, updated = sync._merge_tasks(local, remote)
+
+        assert len(conflicts) == 0
+        assert updated == 0
+
+
+class TestParseTasksFromJsonl:
+    """Tests for the _parse_tasks_from_jsonl helper method."""
+
+    def test_parse_valid_jsonl(self, git_repo_with_commit: Path) -> None:
+        """_parse_tasks_from_jsonl parses valid JSONL content."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        content = '{"id": "task-001", "title": "First"}\n{"id": "task-002", "title": "Second"}\n'
+
+        tasks = sync._parse_tasks_from_jsonl(content)
+
+        assert len(tasks) == 2
+        assert "task-001" in tasks
+        assert "task-002" in tasks
+        assert tasks["task-001"]["title"] == "First"
+
+    def test_parse_skips_empty_lines(self, git_repo_with_commit: Path) -> None:
+        """_parse_tasks_from_jsonl skips empty lines."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        content = '{"id": "task-001", "title": "First"}\n\n{"id": "task-002", "title": "Second"}\n'
+
+        tasks = sync._parse_tasks_from_jsonl(content)
+
+        assert len(tasks) == 2
+
+    def test_parse_skips_invalid_json(self, git_repo_with_commit: Path) -> None:
+        """_parse_tasks_from_jsonl skips invalid JSON lines."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        content = '{"id": "task-001", "title": "Valid"}\nnot valid json\n{"id": "task-002"}\n'
+
+        tasks = sync._parse_tasks_from_jsonl(content)
+
+        assert len(tasks) == 2
+        assert "task-001" in tasks
+        assert "task-002" in tasks
+
+    def test_parse_skips_tasks_without_id(self, git_repo_with_commit: Path) -> None:
+        """_parse_tasks_from_jsonl skips tasks without an id field."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        content = '{"id": "task-001", "title": "Has ID"}\n{"title": "No ID"}\n'
+
+        tasks = sync._parse_tasks_from_jsonl(content)
+
+        assert len(tasks) == 1
+        assert "task-001" in tasks
+
+
+class TestSerializeTasksToJsonl:
+    """Tests for the _serialize_tasks_to_jsonl helper method."""
+
+    def test_serialize_produces_valid_jsonl(self, git_repo_with_commit: Path) -> None:
+        """_serialize_tasks_to_jsonl produces valid JSONL output."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        tasks = {
+            "task-001": {"id": "task-001", "title": "First"},
+            "task-002": {"id": "task-002", "title": "Second"},
+        }
+
+        content = sync._serialize_tasks_to_jsonl(tasks)
+
+        # Verify it can be parsed back
+        parsed = sync._parse_tasks_from_jsonl(content)
+        assert len(parsed) == 2
+
+    def test_serialize_empty_dict(self, git_repo_with_commit: Path) -> None:
+        """_serialize_tasks_to_jsonl handles empty dict."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        content = sync._serialize_tasks_to_jsonl({})
+
+        assert content == ""
+
+
+class TestGetTaskUpdatedAt:
+    """Tests for the _get_task_updated_at helper method."""
+
+    def test_parse_iso_timestamp(self, git_repo_with_commit: Path) -> None:
+        """_get_task_updated_at parses ISO format timestamps."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        task = {"updated_at": "2024-01-15T10:30:00"}
+        result = sync._get_task_updated_at(task)
+
+        assert result is not None
+        assert result.year == 2024
+        assert result.month == 1
+        assert result.day == 15
+
+    def test_parse_iso_with_z_suffix(self, git_repo_with_commit: Path) -> None:
+        """_get_task_updated_at handles ISO timestamps with Z suffix."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        task = {"updated_at": "2024-01-15T10:30:00Z"}
+        result = sync._get_task_updated_at(task)
+
+        assert result is not None
+        assert result.year == 2024
+
+    def test_returns_none_when_missing(self, git_repo_with_commit: Path) -> None:
+        """_get_task_updated_at returns None when field is missing."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        task = {"id": "task-001"}
+        result = sync._get_task_updated_at(task)
+
+        assert result is None
+
+    def test_returns_none_for_invalid_format(self, git_repo_with_commit: Path) -> None:
+        """_get_task_updated_at returns None for unparseable timestamps."""
+        sync = SyncService(project_dir=git_repo_with_commit)
+
+        task = {"updated_at": "not a date"}
+        result = sync._get_task_updated_at(task)
+
+        assert result is None
