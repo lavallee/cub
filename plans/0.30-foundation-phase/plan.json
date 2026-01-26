@@ -1,0 +1,13 @@
+{
+  "slug": "0.30-foundation-phase",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "0.30-foundation-phase.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-26T17:14:41.541809+00:00",
+  "updated": "2026-01-26T17:36:15.463520+00:00"
+}
