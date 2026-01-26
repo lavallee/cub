@@ -6427,3 +6427,62 @@ This component is ready for integration with the run loop. Future tasks will:
 3. SessionBudget mirrors BudgetStatus for consistent tracking
 4. Session update happens after status_writer.write() for consistency
 5. Session end happens early in finally block, after async hooks complete
+
+## Session: Reliability Phase - Exit Path Audit (cub-r4h.1)
+
+### Task: Audit run.py exit paths
+- **Status**: COMPLETED
+- **Date**: 2026-01-26
+
+### What was discovered:
+
+1. **Main run loop has excellent artifact preservation**
+   - `finally` block (lines 1893-2012) ensures run.json is always created
+   - Handles 15 different exit conditions including interrupts, budget exhaustion, task failures
+   - Creates comprehensive forensic artifacts: status.json, run.json, prompt.md, harness.log, task.json
+
+2. **Identified 57 total exit paths across 7 categories**
+   - Early validation exits (19 paths) - Flag conflicts, setup failures
+   - Direct mode exits (7 paths) - Single task execution without backend
+   - GH-issue mode exits (6 paths) - GitHub issue-based execution
+   - Main loop exits (16 paths) - Standard task loop execution
+   - Sandbox mode exits (4 paths) - Docker container execution
+   - Parallel mode exits (4 paths) - Multi-worker execution
+   - Signal handler exits (1 path) - Force interrupt handling
+
+3. **Critical gaps in artifact creation**
+   - **Direct mode (`_run_direct`)**: Creates prompt.md and harness.log but NO run.json
+   - **GH-issue mode (`_run_gh_issue`)**: Same gap as direct mode
+   - **Sandbox mode (`_run_in_sandbox`)**: Artifacts created inside container but not on host
+   - **Parallel mode (`_run_parallel`)**: Workers create own artifacts but no unified run.json
+   - **Pre-loop hook failure** (line 1321): Exits before try block, bypasses finally
+   - **Force SIGINT** (line 370): Second Ctrl+C calls sys.exit(130), bypasses finally
+
+4. **Artifact creation patterns**
+   - `StatusWriter` initialized in main loop (line 1247), direct mode (2086), gh-issue (2224)
+   - `write_run_artifact()` only called in main loop's finally block
+   - Per-task artifacts (task.json) created for both success and failure
+   - Cleanup service commits artifacts if configured
+
+5. **Only 26% of exit paths fully covered**
+   - 28 of 57 paths create some artifacts
+   - Only 15 of 57 paths persist final status
+   - Early validation exits intentionally skip artifacts (no work done)
+   - Alternate execution modes need run.json creation
+
+### Learnings:
+
+- **Code structure**: The main `run()` function is ~2600 lines handling multiple execution modes
+- **Error handling**: Well-designed finally block ensures cleanup even on exceptions
+- **Edge cases**: Force SIGINT and pre-loop hook failures are the only unhandled paths in main loop
+- **Testing strategy**: Need to test all execution modes, not just main loop
+- **Documentation**: Comprehensive audit document will guide implementation of E4 (clean exits)
+
+### Next steps for reliability phase:
+
+1. Add run.json creation to direct, gh-issue, sandbox, parallel modes
+2. Move pre-loop hook check inside try block
+3. Add atexit handler or improve SIGINT handling for force interrupts
+4. Write tests validating artifact creation on all exit paths
+5. Implement circuit breaker (E5) and ledger capture for direct sessions (E6)
+
