@@ -9443,3 +9443,39 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 - Task Closed: ✓ bd close cub-j1a.4
 
 ---
+
+## Task cub-j1b.2: Implement delegation for all protocol methods
+
+**Date:** 2026-01-26
+
+**Key Learnings:**
+
+1. **Complete Implementation**: The BothBackend was already fully implemented with all 13 TaskBackend protocol methods delegating to both primary and secondary backends. No additional code was needed.
+
+2. **Delegation Pattern**: The implementation correctly follows the pattern:
+   - Read methods (list_tasks, get_task, get_ready_tasks, get_task_counts): Query both backends, compare results, log divergences
+   - Write methods (create_task, update_task, close_task, add_task_note, import_tasks): Execute on both backends in sequence
+   - All methods return the primary backend's result
+   - Secondary backend exceptions are caught and logged without failing the operation
+
+3. **Divergence Detection**: The implementation includes comprehensive divergence detection:
+   - Helper methods for comparing tasks (_compare_tasks)
+   - Helper methods for comparing task lists (_compare_task_lists)
+   - Helper methods for comparing task counts (_compare_task_counts)
+   - Divergences are logged to .cub/backend-divergence.log as JSONL
+
+4. **Error Handling**: Write methods use try-except blocks to catch secondary backend exceptions:
+   - Primary operation completes successfully even if secondary fails
+   - Exceptions are logged with logger.warning()
+   - This allows graceful degradation when one backend has issues
+
+5. **Verification Process**: When claiming a task is "complete", always verify by:
+   - Reading the actual implementation file
+   - Comparing against the protocol/interface definition
+   - Running type checking (mypy)
+   - Running tests
+   - Running linting (ruff)
+   - Formatting code (ruff format)
+
+**Outcome:** Task was already complete. Verified implementation meets all requirements, ran feedback loops, formatted code, and committed.
+
