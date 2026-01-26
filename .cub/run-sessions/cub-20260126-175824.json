@@ -12,8 +12,8 @@
   "tasks_completed": 0,
   "tasks_failed": 0,
   "current_task": null,
-  "status": "running",
-  "ended_at": null,
+  "status": "completed",
+  "ended_at": "2026-01-26T18:06:32.886030Z",
   "orphaned_at": null,
   "orphaned_reason": null
 }
