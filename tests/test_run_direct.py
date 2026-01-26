@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import typer
 
+from cub.cli.errors import ExitCode
 from cub.cli.run import (
     _read_direct_input,
     generate_direct_task_prompt,
@@ -151,8 +152,8 @@ class TestDirectFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--direct", "Test", "--task", "cub-123"])
 
-        assert result.exit_code == 1
-        assert "--direct cannot be used with --task" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --direct with --task" in result.output
 
     def test_direct_with_epic_fails(self, mock_run_deps):
         """Test --direct cannot be combined with --epic."""
@@ -163,8 +164,8 @@ class TestDirectFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--direct", "Test", "--epic", "epic-1"])
 
-        assert result.exit_code == 1
-        assert "--direct cannot be used with --epic" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --direct with --epic" in result.output
 
     def test_direct_with_label_fails(self, mock_run_deps):
         """Test --direct cannot be combined with --label."""
@@ -175,8 +176,8 @@ class TestDirectFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--direct", "Test", "--label", "urgent"])
 
-        assert result.exit_code == 1
-        assert "--direct cannot be used with --label" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --direct with --label" in result.output
 
     def test_direct_with_ready_fails(self, mock_run_deps):
         """Test --direct cannot be combined with --ready."""
@@ -187,8 +188,8 @@ class TestDirectFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--direct", "Test", "--ready"])
 
-        assert result.exit_code == 1
-        assert "--direct cannot be used with --ready" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --direct with --ready" in result.output
 
     def test_direct_with_parallel_fails(self, mock_run_deps):
         """Test --direct cannot be combined with --parallel."""
@@ -199,8 +200,8 @@ class TestDirectFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--direct", "Test", "--parallel", "3"])
 
-        assert result.exit_code == 1
-        assert "--direct cannot be used with --parallel" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --direct with --parallel" in result.output
 
 
 class TestGhIssueFlagValidation:
@@ -215,8 +216,8 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--task", "cub-123"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --task" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --task" in result.output
 
     def test_gh_issue_with_epic_fails(self):
         """Test --gh-issue cannot be combined with --epic."""
@@ -227,8 +228,8 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--epic", "epic-1"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --epic" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --epic" in result.output
 
     def test_gh_issue_with_label_fails(self):
         """Test --gh-issue cannot be combined with --label."""
@@ -239,8 +240,8 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--label", "urgent"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --label" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --label" in result.output
 
     def test_gh_issue_with_ready_fails(self):
         """Test --gh-issue cannot be combined with --ready."""
@@ -251,8 +252,8 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--ready"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --ready" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --ready" in result.output
 
     def test_gh_issue_with_parallel_fails(self):
         """Test --gh-issue cannot be combined with --parallel."""
@@ -263,8 +264,8 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--parallel", "3"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --parallel" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --parallel" in result.output
 
     def test_gh_issue_with_direct_fails(self):
         """Test --gh-issue cannot be combined with --direct."""
@@ -275,5 +276,5 @@ class TestGhIssueFlagValidation:
         runner = CliRunner()
         result = runner.invoke(app, ["--gh-issue", "123", "--direct", "Test"])
 
-        assert result.exit_code == 1
-        assert "--gh-issue cannot be used with --direct" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "Cannot use --gh-issue with --direct" in result.output
