@@ -130,9 +130,7 @@ class BothBackend:
         except Exception as e:
             logger.warning(f"Failed to log divergence: {e}")
 
-    def _compare_tasks(
-        self, primary_task: Task | None, secondary_task: Task | None
-    ) -> str | None:
+    def _compare_tasks(self, primary_task: Task | None, secondary_task: Task | None) -> str | None:
         """
         Compare two tasks and return a summary of differences.
 
@@ -179,9 +177,7 @@ class BothBackend:
             differences.append(f"assignee: {primary_task.assignee} != {secondary_task.assignee}")
 
         if set(primary_task.labels) != set(secondary_task.labels):
-            differences.append(
-                f"labels: {primary_task.labels} != {secondary_task.labels}"
-            )
+            differences.append(f"labels: {primary_task.labels} != {secondary_task.labels}")
 
         if set(primary_task.depends_on) != set(secondary_task.depends_on):
             differences.append(
@@ -326,9 +322,7 @@ class BothBackend:
 
         return primary_result
 
-    def get_ready_tasks(
-        self, parent: str | None = None, label: str | None = None
-    ) -> list[Task]:
+    def get_ready_tasks(self, parent: str | None = None, label: str | None = None) -> list[Task]:
         """
         Get tasks ready to work on (no dependencies blocking them).
 
@@ -624,9 +618,7 @@ class BothBackend:
         """
         return self.primary.get_agent_instructions(task_id)
 
-    def bind_branch(
-        self, epic_id: str, branch_name: str, base_branch: str = "main"
-    ) -> bool:
+    def bind_branch(self, epic_id: str, branch_name: str, base_branch: str = "main") -> bool:
         """
         Bind a git branch to an epic/task.
 
