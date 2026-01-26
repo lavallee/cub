@@ -8,7 +8,6 @@ import typer
 from rich.console import Console
 
 from cub import __version__
-from cub.core.config.env import load_layered_env
 from cub.cli import (
     audit,
     capture,
@@ -33,13 +32,14 @@ from cub.cli import (
     task,
     tools,
     toolsmith,
-    workbench,
     uninstall,
     update,
     upgrade,
+    workbench,
     workflow,
     worktree,
 )
+from cub.core.config.env import load_layered_env
 
 # Help panel names for command grouping
 PANEL_KEY = "Key Commands"
@@ -54,7 +54,7 @@ PANEL_INSTALL = "Manage Your Cub Installation"
 # Create the main Typer app
 app = typer.Typer(
     name="cub",
-    help="AI Coding Assistant Loop - autonomous task execution with Claude, Codex, and more",
+    help="Autonomous AI coding agent for reliable task execution",
     no_args_is_help=True,
     add_completion=True,
 )
@@ -68,13 +68,49 @@ def main(
     debug: bool = typer.Option(
         False,
         "--debug",
-        help="Enable debug output",
+        help="Enable debug output with detailed logging",
     ),
 ) -> None:
     """
     Cub - AI Coding Assistant Loop.
 
-    A CLI tool that wraps AI coding assistants for autonomous task execution.
+    An autonomous coding agent that executes tasks with Claude, Codex, Gemini,
+    or other AI harnesses. Handles task management, clean state verification,
+    budget tracking, and structured logging.
+
+    Quick Start:
+        1. cub init                  # Initialize your project
+        2. cub task create "Title"   # Create a task
+        3. cub run                   # Start the autonomous loop
+
+    Common Workflows:
+        # Plan new work
+        cub capture "idea"           # Quick capture
+        cub spec                     # Create detailed spec
+        cub plan run                 # Plan implementation
+        cub task create              # Create tasks from plan
+
+        # Execute tasks
+        cub run                      # Pick up tasks automatically
+        cub run --task cub-123       # Work on specific task
+        cub run --epic backend-v2    # Work on an epic
+        cub run --once               # Single iteration
+
+        # Monitor and review
+        cub status                   # Show session status
+        cub monitor                  # Live dashboard
+        cub ledger                   # View completed work
+        cub review                   # Deep review of completion
+
+        # Git integration
+        cub branch cub-123           # Create feature branch
+        cub pr cub-123               # Create pull request
+        cub merge                    # Merge PR
+
+    Documentation:
+        cub --help                   # This message
+        cub <command> --help         # Help for specific command
+        https://github.com/anthropics/cub
     """
     # Load layered env files early so API keys etc. are available to all commands.
     # Precedence: OS env > project .env > user .env

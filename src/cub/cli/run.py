@@ -338,7 +338,7 @@ def _get_epic_title(epic_id: str) -> str | None:
 
 app = typer.Typer(
     name="run",
-    help="Execute autonomous task loop",
+    help="Execute autonomous task loop with AI harness",
     no_args_is_help=False,
 )
 
@@ -567,7 +567,11 @@ def create_run_artifact(status: RunStatus, config: dict[str, Any] | None = None)
         RunArtifact with budget totals and completion info
     """
     # Determine completion time
-    completed_at = datetime.now() if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED] else None
+    completed_at = (
+        datetime.now()
+        if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED]
+        else None
+    )
 
     # Map phase to status string
     status_str = status.phase.value if hasattr(status.phase, "value") else str(status.phase)
@@ -609,7 +613,11 @@ def run(
         None,
         "--harness",
         "-h",
-        help="AI harness to use (claude, claude-sdk, claude-cli, codex, gemini, opencode). 'claude' defaults to 'claude-sdk' (SDK with hooks). Use 'claude-cli' for shell-out.",
+        help=(
+            "AI harness to use (claude, claude-sdk, claude-cli, codex, gemini, "
+            "opencode). 'claude' defaults to 'claude-sdk'. Use 'claude-cli' for "
+            "shell-out."
+        ),
     ),
     once: bool = typer.Option(
         False,
@@ -742,32 +750,67 @@ def run(
     ),
 ) -> None:
     """
-    Execute autonomous task loop.
+    Execute autonomous task loop with AI harness.
 
-    Runs the main cub loop, picking up tasks and executing them with the
-    specified AI harness until stopped or budget is exhausted.
+    Picks up tasks from your task backend and executes them using the specified
+    AI harness (Claude, Codex, Gemini, etc) until stopped, budget exhausted, or
+    no more tasks. By default creates a feature branch from origin/main and
+    auto-syncs task state to the cub-sync branch.
 
-    Branch Protection:
-        By default, cub run will not execute on main/master branch. When
-        --label, --epic, or --gh-issue is specified, a feature branch is
-        automatically created. Use --main-ok to explicitly allow main.
+    Task Selection:
+        By default, picks unblocked tasks with highest priority.
+        Use --task, --epic, or --label to narrow scope.
+        Use --ready to list tasks without executing.
+
+    Budget Control:
+        Set limits with --budget (USD) or --budget-tokens (token count).
+        Useful for testing before running large sessions.
+
+    Isolation Modes:
+        --worktree    Run in isolated git worktree (default)
+        --parallel N  Run N tasks in parallel in separate worktrees
+        --sandbox     Run in Docker container for maximum isolation
+        --direct      Run a single task without task backend
+
+    Branch Management:
+        By default creates feature branch from origin/main (main/master protected).
+        --use-current-branch  Stay in current branch (must not be main/master)
+        --from-branch <name>  Use different base branch
+        --main-ok             Explicitly allow running on main/master (risky)
+
+    Monitoring:
+        --monitor     Live dashboard in tmux (requires tmux)
+        --stream      Stream harness output in real-time
+        --debug       Show detailed logging
 
     Examples:
-        cub run                      # Creates new branch from origin/main
-        cub run --use-current-branch # Run in current branch
-        cub run --harness claude     # Run with Claude
-        cub run --once               # Run one iteration
-        cub run --task cub-123       # Run specific task
-        cub run --budget 5.0         # Set budget to $5
+        # Basic execution
+        cub run                      # Run ready tasks (creates feature branch)
+        cub run --once               # Single iteration and exit
+
+        # Select specific work
+        cub run --task cub-123       # Work on specific task
         cub run --epic backend-v2    # Work on epic
         cub run --label priority     # Work on labeled tasks
-        cub run --gh-issue 123       # Work on GitHub issue
-        cub run --from-branch develop  # Create branch from develop
-        cub run --ready              # List ready tasks
-        cub run --worktree           # Run in isolated worktree
+        cub run --gh-issue 47        # Work on GitHub issue
+
+        # Isolation
         cub run --parallel 3         # Run 3 tasks in parallel
         cub run --sandbox            # Run in Docker sandbox
-        cub run --direct "task"      # Direct task
+        cub run --worktree           # Use isolated worktree
+
+        # Advanced
+        cub run --direct "Add logout button"  # Direct task
+        cub run --budget 5.0         # Limit to $5 spend
+        cub run --from-branch develop  # Branch from develop
+        cub run --use-current-branch # Stay in current branch
+        cub run --harness claude     # Specific harness
+        cub run --model opus         # Specific model
+
+        # Monitoring
+        cub run --monitor            # Live dashboard
+        cub run --stream             # Stream output
+        cub run --ready              # List ready tasks
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
@@ -835,12 +878,8 @@ def run(
         # --use-current-branch: work in current branch (explicit opt-in)
         # Still protect main/master unless --main-ok is set
         if current_branch in ("main", "master") and not main_ok:
-            console.print(
-                f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]"
-            )
-            console.print(
-                "[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]"
-            )
+            console.print(f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]")
+            console.print("[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]")
             console.print("[dim]or add --main-ok to explicitly allow running on main.[/dim]")
             raise typer.Exit(1)
         elif current_branch in ("main", "master"):
@@ -891,9 +930,7 @@ def run(
                 )
         else:
             # On main/master or detached HEAD - create and switch to new branch
-            console.print(
-                f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]"
-            )
+            console.print(f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]")
             if not _create_branch_from_base(auto_branch_name, base_branch, console):
                 raise typer.Exit(1)
 
@@ -948,9 +985,7 @@ def run(
     # Initialize sync service (if enabled and auto_sync is "run" or "always")
     sync_service: SyncService | None = None
     should_auto_sync = (
-        not no_sync
-        and config.sync.enabled
-        and config.sync.auto_sync in ("run", "always")
+        not no_sync and config.sync.enabled and config.sync.auto_sync in ("run", "always")
     )
     if should_auto_sync:
         sync_service = SyncService(project_dir=project_dir)
@@ -961,9 +996,7 @@ def run(
                 if debug:
                     console.print("[dim]Initialized cub-sync branch[/dim]")
             except Exception as e:
-                console.print(
-                    f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]"
-                )
+                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
                 sync_service = None  # Disable auto-sync for this run
 
     # Initialize session manager
@@ -1409,8 +1442,7 @@ def run(
 
                         # Build combined prompt for ledger
                         combined_prompt = (
-                            f"# System Prompt\n\n{system_prompt}\n\n"
-                            f"# Task Prompt\n\n{task_prompt}"
+                            f"# System Prompt\n\n{system_prompt}\n\n# Task Prompt\n\n{task_prompt}"
                         )
 
                         ledger_integration.on_attempt_start(
@@ -1448,6 +1480,7 @@ def run(
 
                         # Convert TokenUsage to LedgerTokenUsage
                         from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+
                         ledger_tokens = LedgerTokenUsage(
                             input_tokens=result.usage.input_tokens,
                             output_tokens=result.usage.output_tokens,
@@ -1474,9 +1507,7 @@ def run(
                             )
                     except Exception as e:
                         if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record attempt end: {e}[/dim]"
-                            )
+                            console.print(f"[dim]Warning: Failed to record attempt end: {e}[/dim]")
 
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
@@ -1586,14 +1617,10 @@ def run(
                         reason="Completed by autonomous execution",
                     )
                     if debug:
-                        console.print(
-                            f"[dim]Closed task {current_task.id} in backend[/dim]"
-                        )
+                        console.print(f"[dim]Closed task {current_task.id} in backend[/dim]")
                 except Exception as e:
                     # Log but don't fail - the work is done even if closure fails
-                    console.print(
-                        f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]"
-                    )
+                    console.print(f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]")
                     status.add_event(
                         f"Failed to close task in backend: {e}",
                         EventLevel.WARNING,
@@ -1607,14 +1634,10 @@ def run(
                             message=f"Task {current_task.id} completed"
                         )
                         if debug:
-                            console.print(
-                                f"[dim]Synced to cub-sync branch: {commit_sha[:7]}[/dim]"
-                            )
+                            console.print(f"[dim]Synced to cub-sync branch: {commit_sha[:7]}[/dim]")
                     except Exception as e:
                         # Log but don't fail - sync is optional
-                        console.print(
-                            f"[yellow]Warning: Failed to sync task state: {e}[/yellow]"
-                        )
+                        console.print(f"[yellow]Warning: Failed to sync task state: {e}[/yellow]")
                         status.add_event(
                             f"Failed to sync task state: {e}",
                             EventLevel.WARNING,
@@ -1640,9 +1663,7 @@ def run(
                                     )
                                 )
                             if debug and task_commits:
-                                console.print(
-                                    f"[dim]Captured {len(task_commits)} commits[/dim]"
-                                )
+                                console.print(f"[dim]Captured {len(task_commits)} commits[/dim]")
 
                         ledger_integration.on_task_close(
                             current_task.id,
