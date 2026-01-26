@@ -19,12 +19,13 @@
   "task_ids": [
     "cub-j1a.2",
     "cub-j1a.3",
+    "cub-j1a.5",
     "cub-j1a.1"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -32,12 +33,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 557,
-    "avg_duration_seconds": 185,
+    "total_duration_seconds": 853,
+    "avg_duration_seconds": 213,
     "models_used": [
       "sonnet"
     ],
@@ -45,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T17:46:55.113424Z"
+    "stage_updated_at": "2026-01-26T17:51:54.080176Z"
   },
   "state_history": [],
   "started_at": "2026-01-26T17:37:31.590030Z",
-  "completed_at": "2026-01-26T17:46:55.094001Z",
-  "updated_at": "2026-01-26T17:46:55.113425Z",
+  "completed_at": "2026-01-26T17:51:54.059645Z",
+  "updated_at": "2026-01-26T17:51:54.080177Z",
   "first_commit": {
     "hash": "fe0df413fd892efc12ff29ac0ee80f826a69087e",
     "message": "task(cub-j1a.1): Create JsonlBackend class with file I/O",
@@ -58,10 +59,10 @@
     "timestamp": "2026-01-26T17:40:47Z"
   },
   "last_commit": {
-    "hash": "11af68f5a907b29ca0d862d834d29d28eea80b86",
-    "message": "docs: Add learnings from cub-j1a.3 to progress.txt",
+    "hash": "4d77f1c972179c712d8218e0059965a8affd5672",
+    "message": "task(cub-j1a.5): Add migration from prd.json and write tests",
     "author": "",
-    "timestamp": "2026-01-26T17:46:39Z"
+    "timestamp": "2026-01-26T17:51:19Z"
   },
   "drift": {
     "additions": [],

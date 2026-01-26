@@ -954,9 +954,190 @@ class TestBackendProtocol:
         assert "tasks.jsonl" in instructions
         assert "status" in instructions
 
-    def test_bind_branch_not_supported(self, temp_dir):
-        """Test that branch binding is not supported."""
+    def test_bind_branch_creates_binding(self, temp_dir):
+        """Test that bind_branch creates a branch binding."""
         backend = JsonlBackend(project_dir=temp_dir)
-        result = backend.bind_branch("epic-001", "feature-branch")
+        result = backend.bind_branch("epic-001", "feature/my-feature")
 
-        assert result is False
+        assert result is True
+
+        # Verify binding was saved
+        branches_file = temp_dir / ".cub" / "branches.yaml"
+        assert branches_file.exists()
+
+        content = branches_file.read_text()
+        assert "epic-001" in content
+        assert "feature/my-feature" in content
+
+    def test_bind_branch_rejects_duplicate_epic(self, temp_dir):
+        """Test that binding the same epic twice fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        # First binding should succeed
+        result1 = backend.bind_branch("epic-001", "feature-1")
+        assert result1 is True
+
+        # Second binding for same epic should fail
+        result2 = backend.bind_branch("epic-001", "feature-2")
+        assert result2 is False
+
+    def test_bind_branch_rejects_duplicate_branch(self, temp_dir):
+        """Test that binding the same branch twice fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        # First binding should succeed
+        result1 = backend.bind_branch("epic-001", "feature-branch")
+        assert result1 is True
+
+        # Second binding for same branch should fail
+        result2 = backend.bind_branch("epic-002", "feature-branch")
+        assert result2 is False
+
+    def test_bind_branch_with_base_branch(self, temp_dir):
+        """Test that bind_branch stores base_branch correctly."""
+        backend = JsonlBackend(project_dir=temp_dir)
+        result = backend.bind_branch("epic-001", "feature-branch", base_branch="develop")
+
+        assert result is True
+
+        # Verify base_branch was saved
+        branches_file = temp_dir / ".cub" / "branches.yaml"
+        content = branches_file.read_text()
+        assert "develop" in content
+
+
+# ==============================================================================
+# Try Close Epic Tests
+# ==============================================================================
+
+
+class TestTryCloseEpic:
+    """Test auto-closing epics when all tasks complete."""
+
+    def test_close_epic_all_tasks_closed(self, temp_dir):
+        """Test that epic is closed when all its tasks are closed."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n'
+            '{"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"}\n'
+            '{"id": "task-002", "title": "Task 2", "parent": "epic-001", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True
+        assert "auto-closed" in message.lower() or "completed" in message.lower()
+
+        # Verify epic is now closed
+        epic = backend.get_task("epic-001")
+        assert epic.status == TaskStatus.CLOSED
+
+    def test_close_epic_with_open_tasks(self, temp_dir):
+        """Test that epic is NOT closed when it has open tasks."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n'
+            '{"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"}\n'
+            '{"id": "task-002", "title": "Task 2", "parent": "epic-001", "status": "open"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "open" in message.lower()
+
+        # Verify epic is still open
+        epic = backend.get_task("epic-001")
+        assert epic.status == TaskStatus.OPEN
+
+    def test_close_epic_with_in_progress_tasks(self, temp_dir):
+        """Test that epic is NOT closed when it has in_progress tasks."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n'
+            '{"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"}\n'
+            '{"id": "task-002", "title": "Task 2", "parent": "epic-001", "status": "in_progress"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "in-progress" in message.lower() or "in_progress" in message.lower()
+
+    def test_close_epic_not_found(self, temp_dir):
+        """Test that closing non-existent epic returns False."""
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("nonexistent")
+
+        assert closed is False
+        assert "not found" in message.lower()
+
+    def test_close_epic_already_closed(self, temp_dir):
+        """Test that closing already-closed epic returns False."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "already closed" in message.lower()
+
+    def test_close_epic_no_tasks(self, temp_dir):
+        """Test that epic with no tasks is not closed."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is False
+        assert "no tasks found" in message.lower()
+
+    def test_close_epic_with_tasks_by_label(self, temp_dir):
+        """Test that tasks with epic ID as label are included."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n'
+            '{"id": "task-001", "title": "Task 1", "labels": ["epic-001"], "status": "closed"}\n'
+            '{"id": "task-002", "title": "Task 2", "labels": ["epic-001", "urgent"], "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True
+        assert "auto-closed" in message.lower() or "completed" in message.lower()
+
+    def test_close_epic_mixed_parent_and_label(self, temp_dir):
+        """Test that both parent and label relationships are included."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "epic-001", "title": "Epic", "issue_type": "epic", "status": "open"}\n'
+            '{"id": "task-001", "title": "Task 1", "parent": "epic-001", "status": "closed"}\n'
+            '{"id": "task-002", "title": "Task 2", "labels": ["epic-001"], "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        closed, message = backend.try_close_epic("epic-001")
+
+        assert closed is True

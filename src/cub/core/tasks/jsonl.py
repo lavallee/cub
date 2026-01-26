@@ -14,6 +14,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+try:
+    import yaml  # type: ignore[import-untyped]
+except ImportError:
+    yaml = None
+
 from .backend import register_backend
 from .models import Task, TaskCounts, TaskStatus
 
@@ -736,10 +741,10 @@ Each line is a complete JSON object:
         base_branch: str = "main",
     ) -> bool:
         """
-        Bind a git branch to an epic.
+        Bind a git branch to an epic using the branch store.
 
-        The JSONL backend doesn't have native branch binding support.
-        This is a no-op that returns False.
+        Creates an association between a git branch and an epic, stored in
+        .cub/branches.yaml. Uses the same format as beads for compatibility.
 
         Args:
             epic_id: Epic ID to bind
@@ -747,11 +752,108 @@ Each line is a complete JSON object:
             base_branch: Base branch for merging
 
         Returns:
-            False (branch binding not supported in JSONL backend)
+            True if binding was created, False if binding already exists
         """
-        # JSONL backend doesn't support branch bindings
-        # Could optionally store in task metadata in the future
-        return False
+        if yaml is None:
+            # YAML support not available - can't create bindings
+            return False
+
+        # Read existing bindings
+        bindings = self._read_branch_bindings()
+
+        # Check if epic or branch is already bound
+        for binding in bindings:
+            if binding.get("epic_id") == epic_id:
+                return False
+            if binding.get("branch_name") == branch_name:
+                return False
+
+        # Create new binding
+        now = datetime.now()
+        new_binding = {
+            "epic_id": epic_id,
+            "branch_name": branch_name,
+            "base_branch": base_branch,
+            "status": "active",
+            "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "pr_number": None,
+            "merged": False,
+        }
+
+        bindings.append(new_binding)
+
+        # Save bindings atomically
+        self._save_branch_bindings(bindings)
+
+        return True
+
+    def _read_branch_bindings(self) -> list[dict[str, Any]]:
+        """
+        Read branch bindings from .cub/branches.yaml.
+
+        Returns:
+            List of branch binding dictionaries
+        """
+        branches_file = self.cub_dir / "branches.yaml"
+
+        if not branches_file.exists():
+            return []
+
+        try:
+            content = branches_file.read_text()
+            data = yaml.safe_load(content) or {}
+            bindings = data.get("bindings", [])
+            if isinstance(bindings, list):
+                return bindings
+            return []
+        except Exception:
+            # If YAML parsing fails, return empty list
+            return []
+
+    def _save_branch_bindings(self, bindings: list[dict[str, Any]]) -> None:
+        """
+        Save branch bindings to .cub/branches.yaml atomically.
+
+        Args:
+            bindings: List of branch binding dictionaries
+        """
+        # Ensure .cub directory exists
+        self.cub_dir.mkdir(parents=True, exist_ok=True)
+
+        branches_file = self.cub_dir / "branches.yaml"
+
+        # Build YAML content
+        header = """# Branch-Epic Bindings
+# Managed by cub - do not edit manually
+# Format: YAML with branch bindings array
+
+"""
+        data = {"bindings": bindings}
+
+        # Use temporary file for atomic write
+        fd, temp_path = tempfile.mkstemp(dir=self.cub_dir, prefix=".branches_", suffix=".yaml.tmp")
+
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(header)
+                yaml_str = yaml.dump(
+                    data,
+                    default_flow_style=False,
+                    sort_keys=False,
+                    allow_unicode=True,
+                )
+                f.write(yaml_str)
+
+            # Atomic rename
+            os.replace(temp_path, branches_file)
+
+        except Exception:
+            # Clean up temp file on error
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
 
     def try_close_epic(self, epic_id: str) -> tuple[bool, str]:
         """
