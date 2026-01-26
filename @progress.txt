@@ -338,3 +338,62 @@ All tests pass (127 total), type checking clean, linting fixed.
    - Tests use the existing `git_repo_with_remote` fixture pattern established in previous tasks
 
 **Outcome:** Successfully implemented both `push()` and `get_status()` methods with full test coverage. All 107 sync-related tests pass, type checking is clean, and linting passes. The methods integrate seamlessly with existing SyncService functionality and follow established patterns.
+
+## Task cub-j1e.3: Add alpha disclaimer and security warnings (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Alpha Release Communication**: For early-stage software, users need prominent, clear messaging about:
+   - Stability status (breaking changes possible)
+   - Known limitations and experimental features
+   - Security considerations and risks
+   - Timeline to stability (alpha → beta → 1.0)
+   This information should be in multiple places (README banner, dedicated doc, feature tags) not just one.
+
+2. **Experimental Feature Markers**: Using `[EXPERIMENTAL]` tags in README helps users understand which features are mature vs in flux. This is more helpful than burying caveats in body text. Tags should appear in:
+   - Feature list (quick visual scan)
+   - Section headers (clear before reading details)
+   - Documentation examples (with stability warnings)
+
+3. **Security Considerations for AI Workflows**: The unique risks of autonomous AI code execution include:
+   - Code execution without per-change approval (agents run in environment)
+   - Repository branch/commit manipulation (agents can push to remotes)
+   - Task state stored in plaintext in git (can leak via history)
+   - Permissions bypassing via CLI flags (--no-verify, --no-gpg-sign)
+   - Sandbox isolation is incomplete (Docker without hardening)
+   These need explicit user education, not assumed knowledge.
+
+4. **Breaking Changes Documentation**: Alpha software should document:
+   - What's likely to change (CLI commands, config formats, backend schemas)
+   - What will have migration support (task backends, file formats)
+   - Expected timeline (alpha→beta→1.0 phases)
+   - Backup/recovery procedures (git history, state recovery)
+   This manages user expectations and reduces frustration.
+
+5. **Known Limitations Matrix**: A table format helps users quickly understand:
+   - Which features are stable vs experimental
+   - Risk level for each feature
+   - Recommended usage pattern
+   This is more useful than narrative descriptions for decision-making.
+
+6. **Architecture Documentation Updates**: Contributing guide needed refresh:
+   - Remove hybrid Python/Bash architecture references (now Python-first)
+   - Show updated architecture diagram with Protocol-based backends
+   - Include new optional features (Planning, Dashboard, Sync, Hooks)
+   - Add experimental feature marking guidance for contributors
+
+7. **Quick Start Validation**: The Quick Start in README was already well-designed:
+   - Path A (planning-first) for new projects
+   - Path B (direct task creation) for experienced users
+   - Backend-agnostic examples
+   - This pattern reduces friction for different user types
+
+8. **Documentation Accuracy is Critical**: Mismatches between README examples and actual CLI behavior cause:
+   - Frustrated new users (commands don't work as documented)
+   - Wasted support time (debugging user errors vs bugs)
+   - Lost confidence in project (if docs are wrong, what else is?)
+   Alpha projects need extra rigor on documentation consistency.
+
+**Outcome:** Successfully added alpha disclaimer banner, security considerations section, experimental feature tags, created comprehensive ALPHA-NOTES.md with stability matrix and known limitations, and updated CONTRIBUTING.md with alpha notice and current architecture. All documentation changes maintain consistency with README and CLI behavior. Documentation now clearly signals alpha status and helps users understand risks and experimental features.

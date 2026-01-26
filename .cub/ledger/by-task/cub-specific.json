@@ -14,14 +14,14 @@
     "priority": 1,
     "labels": [],
     "created_at": null,
-    "captured_at": "2026-01-26T19:04:33.635170Z"
+    "captured_at": "2026-01-26T19:53:27.568409Z"
   },
   "task_changed": null,
   "attempts": [],
   "outcome": {
     "success": true,
     "partial": false,
-    "completed_at": "2026-01-26T19:04:33.652758Z",
+    "completed_at": "2026-01-26T19:53:27.589286Z",
     "total_cost_usd": 0.0,
     "total_attempts": 0,
     "total_duration_seconds": 0,
@@ -49,24 +49,24 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T19:04:33.652758Z"
+    "stage_updated_at": "2026-01-26T19:53:27.589286Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-26T19:04:33.635170Z",
+      "at": "2026-01-26T19:53:27.568409Z",
       "by": "cub-run",
       "reason": "Task execution started"
     },
     {
       "stage": "dev_complete",
-      "at": "2026-01-26T19:04:33.652758Z",
+      "at": "2026-01-26T19:53:27.589286Z",
       "by": "cub-run",
       "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-26T19:04:33.635170Z",
-  "completed_at": "2026-01-26T19:04:33.652758Z",
+  "started_at": "2026-01-26T19:53:27.568409Z",
+  "completed_at": "2026-01-26T19:53:27.589286Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
