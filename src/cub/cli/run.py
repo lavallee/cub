@@ -365,9 +365,10 @@ def _signal_handler(signum: int, frame: object) -> None:
     """Handle SIGINT gracefully."""
     global _interrupted
     if _interrupted:
-        # Second interrupt - force exit
+        # Second interrupt - force exit with exception to allow finally blocks to run
+        # Using raise SystemExit instead of sys.exit() ensures finally blocks execute (E4)
         console.print("\n[bold red]Force exiting...[/bold red]")
-        sys.exit(130)
+        raise SystemExit(130)
     _interrupted = True
     console.print("\n[yellow]Interrupt received. Finishing current task...[/yellow]")
 
@@ -1307,23 +1308,24 @@ def run(
             )
         status_writer.write(status)
 
-    # Run pre-loop hooks (sync - must complete before loop starts)
-    pre_loop_context = HookContext(
-        hook_name="pre-loop",
-        project_dir=project_dir,
-        harness=harness_name,
-        session_id=run_id,
-    )
-    if not run_hooks("pre-loop", pre_loop_context, project_dir):
-        if config.hooks.fail_fast:
-            status.mark_failed("Pre-loop hook failed")
-            console.print("[red]Pre-loop hook failed. Stopping.[/red]")
-            raise typer.Exit(1)
-
     global _interrupted
     budget_warning_fired = False  # Track if budget warning hook has been fired
 
     try:
+        # Run pre-loop hooks (sync - must complete before loop starts)
+        # Moved inside try block to ensure finally block runs on failure (E4)
+        pre_loop_context = HookContext(
+            hook_name="pre-loop",
+            project_dir=project_dir,
+            harness=harness_name,
+            session_id=run_id,
+        )
+        if not run_hooks("pre-loop", pre_loop_context, project_dir):
+            if config.hooks.fail_fast:
+                status.mark_failed("Pre-loop hook failed")
+                console.print("[red]Pre-loop hook failed. Stopping.[/red]")
+                raise typer.Exit(1)
+
         while status.iteration.current < max_iterations:
             # Check for interrupt
             if _interrupted:
@@ -2081,6 +2083,7 @@ def _run_direct(
 
     # Create a session ID for direct mode
     direct_session_id = session_name or f"direct-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    start_time = datetime.now()
 
     # Initialize status writer for log capture
     status_writer = StatusWriter(project_dir, direct_session_id)
@@ -2096,6 +2099,10 @@ def _run_direct(
 
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
+
+    # Track execution state for artifact creation
+    result = None
+    exit_code = 1
 
     try:
         task_input = TaskInput(
@@ -2117,21 +2124,67 @@ def _run_direct(
         harness_log_path = status_writer.get_harness_log_path("direct")
 
         result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
+
+        # Display result
+        console.print()
+        if result.success:
+            console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
+            console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
+            if result.usage.cost_usd:
+                console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+            exit_code = 0
+        else:
+            console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
+            exit_code = result.exit_code if result.exit_code else 1
+
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
-        return 1
+        exit_code = 1
+    finally:
+        # Always create run artifact on exit (E4 requirement)
+        try:
+            from cub.core.status.models import BudgetStatus, RunArtifact
 
-    # Display result
-    console.print()
-    if result.success:
-        console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
-        console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
-        if result.usage.cost_usd:
-            console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
-        return 0
-    else:
-        console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
-        return result.exit_code if result.exit_code else 1
+            completed_at = datetime.now()
+
+            # Build budget status from result if available
+            budget_status = BudgetStatus()
+            if result and result.usage:
+                budget_status.tokens_used = result.usage.total_tokens
+                budget_status.cost_usd = result.usage.cost_usd or 0.0
+                # Apply limits if provided
+                if budget_tokens:
+                    budget_status.tokens_limit = budget_tokens
+                if budget:
+                    budget_status.cost_limit = budget
+
+            # Create run artifact
+            run_artifact = RunArtifact(
+                run_id=direct_session_id,
+                session_name=session_name or "direct",
+                started_at=start_time,
+                completed_at=completed_at,
+                status="completed" if exit_code == 0 else "failed",
+                config={
+                    "harness": harness_name,
+                    "model": task_model,
+                    "mode": "direct",
+                },
+                tasks_completed=1 if exit_code == 0 else 0,
+                tasks_failed=0 if exit_code == 0 else 1,
+                budget=budget_status,
+            )
+
+            status_writer.write_run_artifact(run_artifact)
+
+            if debug:
+                artifact_path = status_writer.run_artifact_path
+                console.print(f"[dim]Run artifact written to {artifact_path}[/dim]")
+        except Exception as e:
+            # Don't let artifact write failure crash the program
+            console.print(f"[yellow]Warning: Failed to write run artifact: {e}[/yellow]")
+
+    return exit_code
 
 
 def _run_gh_issue(
@@ -2219,12 +2272,17 @@ def _run_gh_issue(
 
     # Create a session ID for gh-issue mode
     gh_session_id = session_name or f"gh-{issue_number}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    start_time = datetime.now()
 
     # Initialize status writer for log capture
     status_writer = StatusWriter(project_dir, gh_session_id)
 
     # Invoke harness
     console.print(f"[bold]Running {harness_name}...[/bold]")
+
+    # Track execution state for artifact creation
+    result = None
+    exit_code = 1
 
     try:
         task_input = TaskInput(
@@ -2247,34 +2305,82 @@ def _run_gh_issue(
         harness_log_path = status_writer.get_harness_log_path(issue_task_id)
 
         result = _invoke_harness(harness_backend, task_input, stream, debug, harness_log_path)
+
+        # Display result
+        console.print()
+        if result.success:
+            console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
+            console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
+            if result.usage.cost_usd:
+                console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+
+            # Handle issue completion (post comment, maybe close)
+            console.print()
+            issue_mode.finish()
+
+            if issue_mode.should_close_issue():
+                console.print(f"[green]Issue #{issue_number} closed[/green]")
+            else:
+                branch = issue_mode.client.get_current_branch()
+                console.print(
+                    f"[cyan]Changes on branch '{branch}'. "
+                    f"Issue will close when merged to main.[/cyan]"
+                )
+
+            exit_code = 0
+        else:
+            console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
+            exit_code = result.exit_code if result.exit_code else 1
+
     except Exception as e:
         console.print(f"[red]Harness invocation failed: {e}[/red]")
-        return 1
+        exit_code = 1
+    finally:
+        # Always create run artifact on exit (E4 requirement)
+        try:
+            from cub.core.status.models import BudgetStatus, RunArtifact
 
-    # Display result
-    console.print()
-    if result.success:
-        console.print(f"[green]Completed in {result.duration_seconds:.1f}s[/green]")
-        console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
-        if result.usage.cost_usd:
-            console.print(f"[dim]Cost: ${result.usage.cost_usd:.4f}[/dim]")
+            completed_at = datetime.now()
 
-        # Handle issue completion (post comment, maybe close)
-        console.print()
-        issue_mode.finish()
+            # Build budget status from result if available
+            budget_status = BudgetStatus()
+            if result and result.usage:
+                budget_status.tokens_used = result.usage.total_tokens
+                budget_status.cost_usd = result.usage.cost_usd or 0.0
+                # Apply limits if provided
+                if budget_tokens:
+                    budget_status.tokens_limit = budget_tokens
+                if budget:
+                    budget_status.cost_limit = budget
 
-        if issue_mode.should_close_issue():
-            console.print(f"[green]Issue #{issue_number} closed[/green]")
-        else:
-            branch = issue_mode.client.get_current_branch()
-            console.print(
-                f"[cyan]Changes on branch '{branch}'. Issue will close when merged to main.[/cyan]"
+            # Create run artifact
+            run_artifact = RunArtifact(
+                run_id=gh_session_id,
+                session_name=session_name or f"gh-{issue_number}",
+                started_at=start_time,
+                completed_at=completed_at,
+                status="completed" if exit_code == 0 else "failed",
+                config={
+                    "harness": harness_name,
+                    "model": task_model,
+                    "mode": "gh-issue",
+                    "issue_number": issue_number,
+                },
+                tasks_completed=1 if exit_code == 0 else 0,
+                tasks_failed=0 if exit_code == 0 else 1,
+                budget=budget_status,
             )
 
-        return 0
-    else:
-        console.print(f"[red]Failed: {result.error or 'Unknown error'}[/red]")
-        return result.exit_code if result.exit_code else 1
+            status_writer.write_run_artifact(run_artifact)
+
+            if debug:
+                artifact_path = status_writer.run_artifact_path
+                console.print(f"[dim]Run artifact written to {artifact_path}[/dim]")
+        except Exception as e:
+            # Don't let artifact write failure crash the program
+            console.print(f"[yellow]Warning: Failed to write run artifact: {e}[/yellow]")
+
+    return exit_code
 
 
 def _show_ready_tasks(
@@ -2361,67 +2467,124 @@ def _run_parallel(
         console.print("[red]Invalid task backend[/red]")
         raise typer.Exit(1)
 
-    # Create parallel runner
-    runner = ParallelRunner(
-        project_dir=project_dir,
-        harness=harness,
-        model=model,
-        debug=debug,
-        stream=stream,
-    )
+    # Create session tracking for unified artifact
+    parallel_session_id = f"parallel-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    start_time = datetime.now()
+    status_writer = StatusWriter(project_dir, parallel_session_id)
+    exit_code = 1
 
-    # Find independent tasks
-    console.print(f"[bold]Finding {parallel} independent tasks...[/bold]")
-    tasks = runner.find_independent_tasks(
-        task_backend=task_backend,
-        count=parallel,
-        epic=epic,
-        label=label,
-    )
+    try:
+        # Create parallel runner
+        runner = ParallelRunner(
+            project_dir=project_dir,
+            harness=harness,
+            model=model,
+            debug=debug,
+            stream=stream,
+        )
 
-    if not tasks:
-        console.print("[yellow]No ready tasks found for parallel execution.[/yellow]")
-        counts = task_backend.get_task_counts()
-        if counts.remaining > 0:
+        # Find independent tasks
+        console.print(f"[bold]Finding {parallel} independent tasks...[/bold]")
+        tasks = runner.find_independent_tasks(
+            task_backend=task_backend,
+            count=parallel,
+            epic=epic,
+            label=label,
+        )
+
+        if not tasks:
+            console.print("[yellow]No ready tasks found for parallel execution.[/yellow]")
+            counts = task_backend.get_task_counts()
+            if counts.remaining > 0:
+                console.print(
+                    f"[dim]{counts.remaining} tasks remaining but blocked by dependencies.[/dim]"
+                )
+            exit_code = 0
+            raise typer.Exit(0)
+
+        if len(tasks) < parallel:
             console.print(
-                f"[dim]{counts.remaining} tasks remaining but blocked by dependencies.[/dim]"
+                f"[yellow]Found only {len(tasks)} independent tasks (requested {parallel})[/yellow]"
             )
+
+        # Display tasks to be executed
+        console.print()
+        table = Table(title="Tasks for Parallel Execution", show_header=True)
+        table.add_column("ID", style="cyan")
+        table.add_column("Priority", style="yellow")
+        table.add_column("Title")
+
+        for task in tasks:
+            priority = (
+                task.priority.value if hasattr(task.priority, "value") else str(task.priority)
+            )
+            table.add_row(
+                task.id,
+                priority,
+                task.title[:60] + "..." if len(task.title) > 60 else task.title,
+            )
+
+        console.print(table)
+        console.print()
+
+        # Execute in parallel
+        result = runner.run(tasks, max_workers=len(tasks))
+
+        # Display summary
+        _display_parallel_summary(result)
+
+        # Exit with failure if any tasks failed
+        if result.tasks_failed > 0:
+            exit_code = 1
+            raise typer.Exit(1)
+
+        exit_code = 0
         raise typer.Exit(0)
 
-    if len(tasks) < parallel:
-        console.print(
-            f"[yellow]Found only {len(tasks)} independent tasks (requested {parallel})[/yellow]"
-        )
+    finally:
+        # Always create unified run artifact (E4 requirement)
+        # Workers create their own artifacts in worktrees, but we need unified host tracking
+        try:
+            from cub.core.status.models import BudgetStatus, RunArtifact
 
-    # Display tasks to be executed
-    console.print()
-    table = Table(title="Tasks for Parallel Execution", show_header=True)
-    table.add_column("ID", style="cyan")
-    table.add_column("Priority", style="yellow")
-    table.add_column("Title")
+            completed_at = datetime.now()
 
-    for task in tasks:
-        priority = task.priority.value if hasattr(task.priority, "value") else str(task.priority)
-        table.add_row(
-            task.id,
-            priority,
-            task.title[:60] + "..." if len(task.title) > 60 else task.title,
-        )
+            # Aggregate budget from worker results if available
+            budget_status = BudgetStatus()
+            if 'result' in locals():
+                total_tokens = sum(
+                    worker.tokens_used for worker in result.workers if worker.tokens_used
+                )
+                budget_status.tokens_used = total_tokens
 
-    console.print(table)
-    console.print()
+            # Create unified run artifact
+            run_artifact = RunArtifact(
+                run_id=parallel_session_id,
+                session_name="parallel",
+                started_at=start_time,
+                completed_at=completed_at,
+                status="completed" if exit_code == 0 else "failed",
+                config={
+                    "mode": "parallel",
+                    "harness": harness,
+                    "model": model,
+                    "workers": parallel,
+                    "epic": epic,
+                    "label": label,
+                },
+                tasks_completed=result.tasks_completed if 'result' in locals() else 0,
+                tasks_failed=result.tasks_failed if 'result' in locals() else 0,
+                budget=budget_status,
+            )
 
-    # Execute in parallel
-    result = runner.run(tasks, max_workers=len(tasks))
+            status_writer.write_run_artifact(run_artifact)
 
-    # Display summary
-    _display_parallel_summary(result)
-
-    # Exit with failure if any tasks failed
-    if result.tasks_failed > 0:
-        raise typer.Exit(1)
-
-    raise typer.Exit(0)
+            if debug:
+                artifact_path = status_writer.run_artifact_path
+                console.print(f"[dim]Unified artifact written to {artifact_path}[/dim]")
+        except Exception as e:
+            # Don't let artifact write failure crash cleanup
+            console.print(f"[yellow]Warning: Failed to write unified artifact: {e}[/yellow]")
 
 
 def _display_parallel_summary(result: object) -> None:
@@ -2509,6 +2672,11 @@ def _run_in_sandbox(
     """
     console.print("[bold]Starting cub in Docker sandbox...[/bold]")
 
+    # Create host-side session tracking for artifact creation
+    sandbox_session_id = session_name or f"sandbox-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    start_time = datetime.now()
+    status_writer = StatusWriter(project_dir, sandbox_session_id)
+
     # Build cub run arguments
     cub_args = []
     if harness:
@@ -2553,6 +2721,7 @@ def _run_in_sandbox(
 
     # Start sandbox
     sandbox_id = None
+    exit_code = 1  # Track exit code for artifact creation
     try:
         console.print("[cyan]Creating sandbox...[/cyan]")
         sandbox_id = provider.start(project_dir, sandbox_config)
@@ -2626,8 +2795,6 @@ def _run_in_sandbox(
             console.print(f"[yellow]Sandbox exited with code {status.exit_code}[/yellow]")
             exit_code = status.exit_code or 1
 
-        return exit_code
-
     except KeyboardInterrupt:
         console.print("\n[yellow]Interrupted by user[/yellow]")
         if sandbox_id:
@@ -2637,7 +2804,7 @@ def _run_in_sandbox(
             except Exception as e:
                 if debug:
                     console.print(f"[dim]Failed to stop sandbox: {e}[/dim]")
-        return 130
+        exit_code = 130
 
     except Exception as e:
         console.print(f"[red]Sandbox execution failed: {e}[/red]")
@@ -2645,9 +2812,47 @@ def _run_in_sandbox(
             import traceback
 
             console.print(f"[dim]{traceback.format_exc()}[/dim]")
-        return 1
+        exit_code = 1
 
     finally:
+        # Always create host-side run artifact (E4 requirement)
+        # Sandbox creates its own artifacts inside container, but host needs record too
+        try:
+            from cub.core.status.models import BudgetStatus, RunArtifact
+
+            completed_at = datetime.now()
+
+            # Create run artifact for host-side tracking
+            run_artifact = RunArtifact(
+                run_id=sandbox_session_id,
+                session_name=session_name or "sandbox",
+                started_at=start_time,
+                completed_at=completed_at,
+                status="completed" if exit_code == 0 else "failed",
+                config={
+                    "mode": "sandbox",
+                    "harness": harness,
+                    "model": model,
+                    "sandbox_id": sandbox_id,
+                    "network": not no_network,
+                },
+                tasks_completed=0,  # Sandbox tracks internally
+                tasks_failed=0,
+                budget=BudgetStatus(
+                    tokens_limit=budget_tokens,
+                    cost_limit=budget,
+                ),
+            )
+
+            status_writer.write_run_artifact(run_artifact)
+
+            if debug:
+                artifact_path = status_writer.run_artifact_path
+                console.print(f"[dim]Host artifact written to {artifact_path}[/dim]")
+        except Exception as e:
+            # Don't let artifact write failure crash cleanup
+            console.print(f"[yellow]Warning: Failed to write host artifact: {e}[/yellow]")
+
         # Cleanup sandbox unless --sandbox-keep
         if sandbox_id and not sandbox_keep:
             try:
@@ -2661,6 +2866,8 @@ def _run_in_sandbox(
                 console.print(f"[dim]Sandbox preserved: {sandbox_id}[/dim]")
         elif sandbox_id and sandbox_keep:
             console.print(f"[cyan]Sandbox preserved: {sandbox_id}[/cyan]")
+
+    return exit_code
 
 
 __all__ = ["app"]

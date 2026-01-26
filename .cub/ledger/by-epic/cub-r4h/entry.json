@@ -17,12 +17,13 @@
     "captured_at": "2026-01-26T21:39:37.956313Z"
   },
   "task_ids": [
+    "cub-r4h.2",
     "cub-r4h.1"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -30,12 +31,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 165,
-    "avg_duration_seconds": 165,
+    "total_duration_seconds": 628,
+    "avg_duration_seconds": 314,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T21:39:37.980009Z"
+    "stage_updated_at": "2026-01-26T21:47:23.697549Z"
   },
   "state_history": [],
   "started_at": "2026-01-26T21:36:52.039107Z",
-  "completed_at": "2026-01-26T21:39:37.951469Z",
-  "updated_at": "2026-01-26T21:39:37.980020Z",
+  "completed_at": "2026-01-26T21:47:23.671188Z",
+  "updated_at": "2026-01-26T21:47:23.697550Z",
   "first_commit": {
     "hash": "88be8a4426d32a1eabc4b32d35eee9c2b1144e3e",
     "message": "task(cub-r4h.1): Audit run.py exit paths",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-26T21:39:02Z"
   },
   "last_commit": {
-    "hash": "7b36c3589ffd003d79f5868d36bd3f101dfcc9d8",
-    "message": "docs: Append learnings from exit path audit",
+    "hash": "4cb3f0145db99f18885efaa7bad0ecff57c053f4",
+    "message": "task(cub-r4h.2): Integration tests for exit scenarios",
     "author": "",
-    "timestamp": "2026-01-26T21:39:26Z"
+    "timestamp": "2026-01-26T21:46:51Z"
   },
   "drift": {
     "additions": [],
