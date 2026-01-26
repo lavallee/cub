@@ -271,6 +271,26 @@ class SyncConfig(BaseModel):
     )
 
 
+class CircuitBreakerConfig(BaseModel):
+    """
+    Circuit breaker configuration for stagnation detection.
+
+    Monitors harness activity and stops execution if no progress is detected
+    for the configured timeout period. This prevents infinite hangs where the
+    harness becomes unresponsive but the process continues.
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable circuit breaker stagnation detection",
+    )
+    timeout_minutes: int = Field(
+        default=30,
+        ge=1,
+        description="Stop if no harness activity for this many minutes",
+    )
+
+
 class BackendConfig(BaseModel):
     """
     Task backend configuration.
@@ -354,6 +374,10 @@ class CubConfig(BaseModel):
     )
     sync: SyncConfig = Field(
         default_factory=SyncConfig, description="Task sync settings"
+    )
+    circuit_breaker: CircuitBreakerConfig = Field(
+        default_factory=CircuitBreakerConfig,
+        description="Circuit breaker stagnation detection settings",
     )
 
     model_config = ConfigDict(
