@@ -1,3 +1,69 @@
+## Task cub-r4h.4: Manual testing protocol for E4 (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Testing Documentation as Code**: Manual test protocols should be detailed, procedural, and actionable for non-developers. They serve as both executable checklists AND reference documentation for troubleshooting. Include:
+   - Clear setup instructions (dependencies, environment)
+   - Step-by-step trigger procedures
+   - Expected behavior descriptions
+   - Objective verification steps (commands to run, output to check)
+   - Pass/fail criteria with specific metrics
+   - Recovery procedures for each failure mode
+
+2. **Test Scenario Coverage Strategy**: For complex system behavior (process termination, signal handling, resource exhaustion), manual testing captures:
+   - Happy path (baseline behavior)
+   - Expected error conditions (budget/iteration limits)
+   - Signal handling at different points (SIGINT, SIGTERM, SIGKILL)
+   - Resource constraints and edge cases
+   - Extended duration behavior (overnight runs)
+   This complements automated integration tests which cover deterministic conditions.
+
+3. **Cross-Platform Signal Testing**: Signal handling (SIGINT=2, SIGTERM=15, SIGKILL=9) behaves consistently on Unix/Linux/macOS but may need platform-specific notes. Document:
+   - Standard exit codes for each signal (130=SIGINT, 143=SIGTERM, 137=SIGKILL)
+   - Alternative codes (2 vs 130 for Ctrl+C depending on shell)
+   - How to verify signals reached process (pstree, ps -l)
+   - Differences between foreground/background process handling
+
+4. **Artifact Verification Patterns**: When testing system resilience, verify artifacts at multiple levels:
+   - **File level**: Check existence, modification times, file size (no truncation)
+   - **Format level**: Validate JSON/JSONL structure (jq validation)
+   - **State level**: Check status fields and relationships across files
+   - **Corruption detection**: Use `jq -s` to validate complete dataset
+   This prevents masking subtle data loss or corruption issues.
+
+5. **Mock Harness Configuration**: For reproducible manual testing, document configurable failure modes:
+   - Normal execution (baseline)
+   - Token usage simulation (for budget testing)
+   - Failure modes (at N iterations)
+   - Slow tasks (for timeout/interrupt timing)
+   This enables repeatable test execution without complex harness modifications.
+
+6. **Recovery Procedures are Critical**: Include specific recovery steps for each failure scenario:
+   - Git restore commands for data corruption
+   - `cub doctor` diagnostics for system state
+   - Task reset commands for stuck states
+   - File inspection commands to verify recovery
+   Non-developers need clear "what to do if test fails" guidance.
+
+7. **Troubleshooting Guide Structure**: Most useful when organized by symptom, not by cause:
+   - Symptom: "Exit code is wrong" → solutions
+   - Symptom: "Artifacts missing" → solutions with commands
+   - Symptom: "Process doesn't respond" → diagnostic steps
+   This matches how testers encounter issues (they see symptoms, not root causes).
+
+8. **Actionability for Non-Developers**: Make test procedures runnable without cub codebase knowledge:
+   - Provide exact command copy-paste (don't make them understand bash)
+   - Use simple test data (don't require complex task setup)
+   - Document all file locations (.cub/, .beads/, etc.)
+   - Include expected output examples
+   - Add troubleshooting section with specific commands
+
+**Outcome:** Created comprehensive 869-line manual testing protocol covering 8 test scenarios (normal completion, signal handling, budget/iteration limits, task failures, extended runs). Each scenario includes setup, trigger, expected behavior, verification steps, pass/fail criteria, and recovery procedures. Includes troubleshooting guide for non-developers and sign-off process. Enables Marc and QA team to manually validate exit behavior that automated tests cannot fully capture.
+
+---
+
 ## Task cub-j1f.3: Implement cub docs command and add alpha classifier (2026-01-26)
 
 **Status:** Completed
