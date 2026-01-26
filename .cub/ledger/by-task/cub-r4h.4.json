@@ -24,8 +24,62 @@
     "captured_at": "2026-01-26T21:57:15.215573Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-163651",
+      "started_at": "2026-01-26T16:57:15.221491",
+      "completed_at": "2026-01-26T21:59:50.478667Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 155
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T21:59:50.728550Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 155,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d9a9ff0f709a0d3645e5db8da0d524ef94a54ee4",
+        "message": "chore: Update ledger for cub-r4h.4 completion",
+        "author": "",
+        "timestamp": "2026-01-26T21:59:41Z"
+      },
+      {
+        "hash": "9923c4fbb0f6e127e3d536a3fcee213d3bd943df",
+        "message": "docs(@progress.txt): Add learnings from cub-r4h.4 task",
+        "author": "",
+        "timestamp": "2026-01-26T21:59:14Z"
+      },
+      {
+        "hash": "73ccce5fe3072e0e16bb5c60b36a697ef62eeb09",
+        "message": "task(cub-r4h.4): Manual testing protocol for E4",
+        "author": "",
+        "timestamp": "2026-01-26T21:58:55Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +95,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T21:57:15.215573Z"
+    "stage_updated_at": "2026-01-26T21:59:50.728550Z"
   },
   "state_history": [
     {
@@ -49,10 +103,16 @@
       "at": "2026-01-26T21:57:15.215573Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T21:59:50.728550Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-26T21:57:15.215573Z",
-  "completed_at": "2026-01-26T21:57:15.215573Z",
+  "completed_at": "2026-01-26T21:59:50.728550Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -60,20 +120,39 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "duration_seconds": 155,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "d9a9ff0f709a0d3645e5db8da0d524ef94a54ee4",
+      "message": "chore: Update ledger for cub-r4h.4 completion",
+      "author": "",
+      "timestamp": "2026-01-26T21:59:41Z"
+    },
+    {
+      "hash": "9923c4fbb0f6e127e3d536a3fcee213d3bd943df",
+      "message": "docs(@progress.txt): Add learnings from cub-r4h.4 task",
+      "author": "",
+      "timestamp": "2026-01-26T21:59:14Z"
+    },
+    {
+      "hash": "73ccce5fe3072e0e16bb5c60b36a697ef62eeb09",
+      "message": "task(cub-r4h.4): Manual testing protocol for E4",
+      "author": "",
+      "timestamp": "2026-01-26T21:58:55Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r4h.4",
   "epic_id": "cub-r4h",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "haiku",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
