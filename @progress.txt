@@ -535,3 +535,56 @@ All tests pass (127 total), type checking clean, linting fixed.
 
 **Outcome:** Successfully audited all 32 CLI commands and improved help text across the board. Delegated commands now have 5-10 line help strings with examples. Main app help includes quick start and workflows. Run command has comprehensive sections and 15+ examples. All tests pass, linting clean, type checking clean. CLI is now significantly more discoverable and actionable for new users exploring the codebase.
 
+
+## Task cub-r5c.1: Add CircuitBreakerConfig (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Configuration Pattern Consistency**: The cub config system follows a clear precedence chain: env vars > project config > user config > defaults. Adding a new config section requires:
+   - Pydantic BaseModel in `models.py` with Field definitions, defaults, and validators
+   - Export in `__init__.py` and `__all__` list
+   - Environment variable handling in `apply_env_overrides()` 
+   - Documentation in CONFIG.md with examples and troubleshooting
+
+2. **Field Validation in Pydantic v2**: Using `ge=1` constraint on timeout_minutes field automatically validates minimum value at model instantiation. The constraint is checked both in direct instantiation and when deserializing from JSON/env vars.
+
+3. **Environment Variable Parsing Strategy**: For boolean env vars, use falsy check: `strict_value = var.lower() not in ("false", "0", "")`. For integers, parse then validate range before setting. Both should print warnings on invalid input rather than silently failing.
+
+4. **Error Message Line Length**: When error messages exceed 100 chars (ruff limit), break them into multi-line strings using parentheses rather than concatenation or escaping.
+
+5. **Integration Testing Pattern**: For config loading, test the full precedence chain: defaults → user config → project config → env vars. Each level should override previous values, and env vars should win over all file-based config.
+
+6. **Documentation Structure**: Configuration docs should include:
+   - Precedence explanation (foundation for understanding)
+   - Per-section documentation with field descriptions
+   - Practical examples (tight monitoring, cost control, overnight runs)
+   - Environment variable reference table
+   - Troubleshooting section with actual error messages and fixes
+
+7. **Import Optimization**: The `from typing import Iterable` can be replaced with `from collections.abc import Iterable` in Python 3.9+. Ruff automatically flags this as an upgrade opportunity (UP035).
+
+8. **Test Coverage**: Configuration changes need comprehensive tests:
+   - Unit tests for each env var override (valid + invalid cases)
+   - Integration tests with load_config() covering all precedence levels
+   - Constraint validation tests (min/max values)
+   - Edge case tests (zero, negative, empty strings)
+
+**Files Modified:**
+- `src/cub/core/config/models.py`: Added CircuitBreakerConfig class
+- `src/cub/core/config/loader.py`: Added env var handling (CUB_CIRCUIT_BREAKER_*)
+- `src/cub/core/config/__init__.py`: Exported CircuitBreakerConfig
+- `src/cub/core/config/env.py`: Fixed import (collections.abc.Iterable)
+- `tests/test_config_loader.py`: Added 10 new tests covering env vars and integration
+- `docs/CONFIG.md`: New comprehensive configuration guide
+
+**Test Results:**
+- All 44 config loader tests passing
+- Type checking clean (mypy --strict src/cub/core/config)
+- Linting passes (ruff check)
+- No pre-existing tests broken
+
+**Outcome:** Successfully implemented CircuitBreakerConfig as the foundation for circuit breaker feature. Configuration is fully tested, documented, and integrated with the existing config precedence system. Ready for CircuitBreaker implementation (cub-r5c.2).
+
+---
