@@ -9367,3 +9367,79 @@ Successfully implemented prd.json migration and comprehensive test suite for Jso
 3. After migration, must continue loading (not return empty list)
 4. Test coverage easily achieved by testing all backend protocol methods
 5. JSONL format naturally handles line-oriented operations cleanly
+
+## 2026-01-26 - cub-j1a.4: Implement agent instructions and branch binding
+
+### Task Completed
+Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `get_agent_instructions`, `bind_branch`, and enhanced `try_close_epic` with comprehensive test coverage.
+
+### Key Learnings
+
+**1. Branch Binding Implementation**
+- JSONL backend stores branch bindings in `.cub/branches.yaml` (not `.beads/branches.yaml`)
+- Atomic writes using temp file + rename pattern consistent with task storage
+- YAML serialization with headers for clarity
+- Graceful degradation: returns False if yaml module unavailable
+- Duplicate detection prevents same epic/branch from being bound multiple times
+
+**2. Protocol Method Completeness**
+- `backend_name` property: Simple string identifier for the backend
+- `get_agent_instructions(task_id)`: Backend-specific guidance for AI agents
+- `bind_branch()`: Creates git-epic associations with atomic persistence
+- `try_close_epic()`: Auto-closes epics when all child tasks complete
+- All methods support beads-compatible schema for data portability
+
+**3. Epic Closure Logic**
+- Checks both `parent` relationships and label-based relationships
+- Returns tuple `(closed: bool, message: str)` for detailed feedback
+- Validates all tasks are CLOSED (not just in_progress)
+- Prevents duplicate closure and provides helpful status messages
+- Implemented in both JSON and JSONL backends for consistency
+
+**4. Testing Strategy**
+- Added 11 new test cases covering edge cases:
+  - Branch binding with duplicate detection
+  - Epic closure with mixed parent/label relationships
+  - Status messages for all scenarios
+- Existing implementation already passed 54 tests before enhancements
+- Final: 65 tests all passing
+
+**5. Type Safety & Code Quality**
+- Mypy strict mode compliance without any type errors
+- Ruff linter passes all checks
+- Fixed deprecation warning: `datetime.utcnow()` → `datetime.now()`
+- Type annotations handle Optional yaml import gracefully
+
+**6. Optional Dependencies**
+- YAML support is optional (installed via pyyaml)
+- Code handles missing yaml gracefully: `if yaml is None: return False`
+- No hard dependency added to project
+- Type checker satisfied with type: ignore[import-untyped] on yaml import
+
+### Implementation Notes
+
+**Branch Store Architecture:**
+- Simpler than BranchStore from beads (which requires .beads/ directory)
+- Follows same YAML format for compatibility
+- Atomic writes prevent corruption on failures
+- Can be extended later with read/update/delete methods
+
+**Integration Points:**
+- Shares same Task model and TaskStatus enums with other backends
+- Compatible with existing cub project structure
+- No changes needed to backend registry or auto-detection
+- Agent instructions mirror other backends for consistency
+
+**Future Enhancement Opportunities:**
+1. Add read methods to branch store (get_binding, etc.)
+2. Extend with branch status tracking (active/merged/closed)
+3. Add PR number tracking for GitHub integration
+4. Migrate BranchStore to support .cub/ as primary location
+
+### Build & Testing Status
+- Tests: ✓ 65/65 passing
+- Type Check: ✓ Mypy strict mode passes
+- Lint: ✓ Ruff passes all checks
+- Task Closed: ✓ bd close cub-j1a.4
+
+---
