@@ -8,6 +8,7 @@ CRUD operations with atomic file writes.
 
 import json
 import os
+import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -78,9 +79,15 @@ class JsonlBackend:
         """
         # Check if file exists
         if not self.tasks_file.exists():
-            # Create empty tasks.jsonl if it doesn't exist
-            self._create_empty_tasks_file()
-            return []
+            # Check for prd.json to migrate
+            prd_file = self.project_dir / "prd.json"
+            if prd_file.exists():
+                self._migrate_from_prd_json(prd_file)
+                # After migration, file should exist, so continue loading
+            else:
+                # Create empty tasks.jsonl if it doesn't exist
+                self._create_empty_tasks_file()
+                return []
 
         # Check cache validity
         current_mtime = os.path.getmtime(self.tasks_file)
@@ -114,6 +121,62 @@ class JsonlBackend:
         self._cache_mtime = current_mtime
 
         return tasks
+
+    def _migrate_from_prd_json(self, prd_file: Path) -> None:
+        """
+        Migrate tasks from old prd.json format to tasks.jsonl.
+
+        Reads the JSON array format from prd.json, converts field names
+        to match the beads-compatible schema, and writes to tasks.jsonl.
+        Creates a backup of the original prd.json as prd.json.bak.
+
+        Args:
+            prd_file: Path to prd.json file to migrate
+
+        Raises:
+            TasksFileCorruptedError: If prd.json is invalid
+        """
+        try:
+            with open(prd_file, encoding="utf-8") as f:
+                prd_data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise TasksFileCorruptedError(f"Failed to parse {prd_file}: {e}") from e
+        except OSError as e:
+            raise TasksFileNotFoundError(f"Failed to read {prd_file}: {e}") from e
+
+        if not isinstance(prd_data, dict):
+            raise TasksFileCorruptedError("prd.json must be a JSON object")
+
+        # Extract tasks array
+        tasks_array = prd_data.get("tasks", [])
+
+        # Convert tasks to JSONL format
+        migrated_tasks = []
+        for task_data in tasks_array:
+            if not isinstance(task_data, dict):
+                continue
+
+            # Create a copy to avoid mutating the original
+            converted_task = dict(task_data)
+
+            # Map old field names to new ones
+            # - "type" -> "issue_type" (handled by Pydantic alias)
+            # - "dependsOn" -> "depends_on" (handled by Pydantic alias)
+            # Note: The Task model already handles these aliases via populate_by_name=True
+            # So we can keep the original field names and they'll be parsed correctly
+
+            migrated_tasks.append(converted_task)
+
+        # Backup original prd.json
+        backup_file = prd_file.parent / f"{prd_file.name}.bak"
+        try:
+            shutil.copy2(prd_file, backup_file)
+        except OSError:
+            # If backup fails, continue anyway
+            pass
+
+        # Save to tasks.jsonl
+        self._save_tasks(migrated_tasks)
 
     def _create_empty_tasks_file(self) -> None:
         """Create an empty tasks.jsonl file with .cub directory."""

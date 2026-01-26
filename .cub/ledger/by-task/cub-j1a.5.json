@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "cub-j1a.5",
+  "title": "Add migration from prd.json and write tests",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1a"
+  },
+  "task": {
+    "title": "Add migration from prd.json and write tests",
+    "description": "Existing users have `prd.json` files. The backend should auto-migrate on first access. Tests ensure the backend works correctly.\n\n**Implementation Steps:**\n1. Add `_migrate_from_prd_json()` method detecting old format\n2. Convert JSON array format to JSONL (one task per line)\n3. Map old field names: `type` -> `issue_type`, `dependsOn` -> `dependencies` array\n4. Backup original as `prd.json.bak`\n5. Call migration automatically in `_load_tasks()` if `.cub/tasks.jsonl` missing but `prd.json` exists\n6. Write unit tests for all CRUD operations\n7. Write test for migration path\n8. Target 80%+ coverage\n\n**Files:** `src/cub/core/tasks/jsonl.py`, `tests/test_jsonl_backend.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "checkpoint",
+      "complexity:medium",
+      "epic:cub-j1a",
+      "model:sonnet",
+      "phase-1",
+      "test"
+    ],
+    "created_at": "2026-01-26T17:36:13.718198Z",
+    "captured_at": "2026-01-26T17:46:57.437610Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T17:46:57.437610Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T17:46:57.437610Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-26T17:46:57.437610Z",
+  "completed_at": "2026-01-26T17:46:57.437610Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1a.5",
+  "epic_id": "cub-j1a",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
