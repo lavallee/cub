@@ -9522,3 +9522,40 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 - mypy errors for missing stubs (yaml, requests) - not related to this task
 - ruff lint errors in existing files - not related to this task
 
+
+## Task cub-j1c.5: Create cub sync CLI command and write tests
+
+**What was accomplished:**
+- Created fully functional `cub sync` CLI command with three subcommands: default sync, status, and init
+- Implemented callback pattern (invoke_without_command=True) to allow default behavior when no subcommand is specified
+- Used Typer's callback mechanism to support options (--pull, --push, --message) alongside subcommands
+- Registered sync command in main CLI under "Work with Tasks" panel
+- Created comprehensive test suite with 28 tests covering all functionality
+
+**Key design decisions:**
+1. Used `@app.callback(invoke_without_command=True)` pattern to handle default sync behavior while still supporting subcommands
+2. Split functionality into three commands:
+   - Default (callback): Main sync operation with --pull and --push options
+   - `status`: Show sync status (up-to-date, ahead, behind, diverged, etc.)
+   - `init`: Initialize sync branch
+3. Exit codes: Used exit code 1 for errors and when branch already initialized (consistent with CLI conventions)
+4. Rich formatting: Consistent use of console.print with color coding and icons
+
+**Testing approach:**
+- Integration tests using real git repositories created with subprocess
+- Mocked tests using unittest.mock for complex scenarios (pull conflicts, push failures)
+- Offline scenario tests to ensure sync works without remote
+- Error handling tests for git errors and runtime errors
+
+**Learnings:**
+- Typer's `callback(invoke_without_command=True)` is the correct way to provide default behavior + subcommands
+- Must check `ctx.invoked_subcommand is not None` to avoid running callback when subcommand is used
+- Setting `no_args_is_help=False` is required for callback pattern to work
+- Test fixtures can create real git repos for integration testing, which is better than heavy mocking
+- Git operations without remotes will fail with specific error messages that should be tested
+
+**Dependencies on other tasks:**
+- Built on top of SyncService from cub-j1c.1-4
+- CLI follows patterns established in existing CLI commands (task.py, status.py, etc.)
+
+**Time spent:** ~1 hour
