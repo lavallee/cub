@@ -17,12 +17,13 @@
     "captured_at": "2026-01-26T19:22:53.281884Z"
   },
   "task_ids": [
-    "cub-j1d.1"
+    "cub-j1d.1",
+    "cub-j1d.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
@@ -30,12 +31,12 @@
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 286,
-    "avg_duration_seconds": 286,
+    "total_duration_seconds": 718,
+    "avg_duration_seconds": 359,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T19:22:53.299796Z"
+    "stage_updated_at": "2026-01-26T19:30:08.713287Z"
   },
   "state_history": [],
   "started_at": "2026-01-26T19:18:06.205552Z",
-  "completed_at": "2026-01-26T19:22:53.277951Z",
-  "updated_at": "2026-01-26T19:22:53.299799Z",
+  "completed_at": "2026-01-26T19:30:08.693876Z",
+  "updated_at": "2026-01-26T19:30:08.713288Z",
   "first_commit": {
     "hash": "c8a3ed2999f32abbcecda16be7a0ab42f04d6b71",
     "message": "task(cub-j1d.1): Add auto-sync after task mutations in run loop",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-26T19:22:20Z"
   },
   "last_commit": {
-    "hash": "c8a3ed2999f32abbcecda16be7a0ab42f04d6b71",
-    "message": "task(cub-j1d.1): Add auto-sync after task mutations in run loop",
+    "hash": "3f364f17ccbdabafcfab2bfad4be7a6e2233ff9c",
+    "message": "task(cub-j1d.2): Test auto-sync and document behavior",
     "author": "",
-    "timestamp": "2026-01-26T19:22:20Z"
+    "timestamp": "2026-01-26T19:29:12Z"
   },
   "drift": {
     "additions": [],

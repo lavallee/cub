@@ -25,8 +25,50 @@
     "captured_at": "2026-01-26T19:22:55.605682Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-141805",
+      "started_at": "2026-01-26T14:22:55.617229",
+      "completed_at": "2026-01-26T19:30:08.496802Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 432
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T19:30:08.693876Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 432,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "3f364f17ccbdabafcfab2bfad4be7a6e2233ff9c",
+        "message": "task(cub-j1d.2): Test auto-sync and document behavior",
+        "author": "",
+        "timestamp": "2026-01-26T19:29:12Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -42,7 +84,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T19:22:55.605682Z"
+    "stage_updated_at": "2026-01-26T19:30:08.693876Z"
   },
   "state_history": [
     {
@@ -50,10 +92,16 @@
       "at": "2026-01-26T19:22:55.605682Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T19:30:08.693876Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-26T19:22:55.605682Z",
-  "completed_at": "2026-01-26T19:22:55.605682Z",
+  "completed_at": "2026-01-26T19:30:08.693876Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -61,20 +109,27 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "duration_seconds": 432,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "3f364f17ccbdabafcfab2bfad4be7a6e2233ff9c",
+      "message": "task(cub-j1d.2): Test auto-sync and document behavior",
+      "author": "",
+      "timestamp": "2026-01-26T19:29:12Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1d.2",
   "epic_id": "cub-j1d",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
