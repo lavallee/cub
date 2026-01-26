@@ -1,3 +1,38 @@
+## Task cub-j1e.2: Walk through Quick Start and fix gaps (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Git Init Requirement**: Beads backend requires a git repository to be initialized first. The Quick Start needs to include `git init` as a first step before `cub init`. Without this, beads initialization fails with a cryptic error about "not a git repository".
+
+2. **Priority Format Issue**: The README examples were using `--priority P1` (beads-style P0-P4 notation) but the CLI actually expects numeric values 0-4. The `cub task create` command interprets the priority flag as an integer, not a string. This caused confusion for users following the Quick Start.
+
+3. **Default Backend Strategy**: The bash init script was defaulting to beads if available, but the Python runtime detection (in `detect_backend()`) defaults to JSONL. This creates a mismatch - the init command would create beads, but users without beads would fall back to JSONL. Solution: Changed bash init to default to JSONL consistently with Python runtime.
+
+4. **JSONL Backend Initialization**: The JSONL backend doesn't need explicit initialization like beads does. It simply creates `.cub/tasks.jsonl` when the first task is created. This is elegant and dependency-free - perfect for new users.
+
+5. **Status Command Exit Code Bug**: The `cub status` command was returning exit code 1 (failure) even on success. Root cause: the exception handler was too broad (`except Exception`) and caught `typer.Exit(0)` exceptions, which are control flow signals not errors. These should never be caught. Fixed by adding explicit `except typer.Exit` handler that re-raises before the generic Exception handler.
+
+6. **Exit Code Behavior of typer.Exit**: `typer.Exit` is NOT a subclass of `Exception` in terms of where it's caught. Actually, testing showed it IS caught by `except Exception`, which means it's a real exception being used for control flow. The fix is to explicitly catch and re-raise it before any other exception handling.
+
+7. **Command Documentation Accuracy**: The README needs to stay synchronized with actual CLI behavior:
+   - Priority field accepts integers (0-4), not string literals (P0-P4)
+   - Task creation comment should mention JSONL as the default backend
+   - Backend selection is backend-agnostic via `cub task` commands
+   - The `--backend` flag for `cub init` should be documented as optional
+
+8. **Quick Start Workflow Validation**: Following the Quick Start exactly (with fixes) works end-to-end:
+   ```bash
+   git init                              # Initialize git (required)
+   cub init                              # Initialize JSONL backend
+   cub task create "Title" --priority 0  # Create task with numeric priority
+   cub task list                         # List tasks (works with JSONL)
+   cub status                            # Show status (now with correct exit code)
+   ```
+
+**Outcome:** Successfully walked through Quick Start, identified and fixed 4 issues: added git init requirement to README, corrected priority format examples, changed default backend to JSONL for consistency, and fixed status command exit code bug. Quick Start now works end-to-end for new users without external dependencies.
+
 ## Task cub-j1e.1: Audit and update README command reference (2026-01-26)
 
 **Status:** Completed
