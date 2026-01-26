@@ -1,5 +1,7 @@
 # Cub
 
+> ⚠️ **Status: Alpha** - This is an early-stage release with breaking changes possible. See [ALPHA-NOTES.md](docs/ALPHA-NOTES.md) for known limitations and stability considerations.
+
 **Work ahead of your AI coding agents, then let them run.**
 
 Cub is for developers who are already running AI coding CLIs (Claude Code, Codex, OpenCode) in autonomous mode and want more structure. If you're juggling multiple agent sessions, manually routing work to different models, or finding that fully hands-off agents tend to run amok—Cub helps you work *ahead* of execution so you can be more hands-off *during* execution.
@@ -112,11 +114,13 @@ Building outside any single harness means the core loop—task selection, succes
 - **Structured Logging**: JSONL logs with timestamps, durations, git SHAs
 - **Dual Task Backend**: Use [beads](https://github.com/steveyegge/beads) CLI or simple JSON file
 - **Streaming Output**: Watch agent activity in real-time
-- **Dashboard**: Unified Kanban board visualization of project state across 8 columns
+- **Dashboard** `[EXPERIMENTAL]`: Unified Kanban board visualization of project state across 8 columns
+- **Task State Sync** `[EXPERIMENTAL]`: Git-based sync of task state to `cub-sync` branch for persistence across clones
+- **Planning Pipeline** `[EXPERIMENTAL]`: Orient → Architect → Itemize phases for structured task generation
 
-## Dashboard
+## Dashboard `[EXPERIMENTAL]`
 
-Cub includes an integrated dashboard that provides a unified Kanban view of your entire project state—from initial ideas through release.
+Cub includes an integrated dashboard that provides a unified Kanban view of your entire project state—from initial ideas through release. This feature is experimental and the API may change.
 
 ### 8-Column Kanban Workflow
 
@@ -211,6 +215,22 @@ Created automatically by bootstrap, or add `epic_id` label:
 ```bash
 bd label add cub-abc epic:cub-vd6
 ```
+
+## ⚠️ Security Considerations
+
+**For Alpha users, be aware:**
+
+1. **Permissions Skipping** — Cub includes `--no-verify` and `--no-gpg-sign` flags that bypass git safety hooks. Use these carefully in production environments as they can skip important validation and signing checks.
+
+2. **AI Code Execution** — Cub runs AI-generated code in your environment without manual approval of each change. Only use in projects where automated execution is acceptable, with proper git history and recovery procedures in place.
+
+3. **Repository Access** — When running multi-task sessions, cub modifies git branches, commits code, and can sync state to remote branches. Ensure your credentials and repository access are properly secured.
+
+4. **Task State Persistence** — Task state is stored in `.cub/tasks.jsonl` and synced to the `cub-sync` git branch. Don't store sensitive credentials or secrets in task descriptions.
+
+5. **Sandbox Recommendations** — For untrusted or experimental code generation workflows, consider using `cub run --sandbox` to isolate execution in Docker.
+
+For details on all known limitations and stability issues, see [ALPHA-NOTES.md](docs/ALPHA-NOTES.md).
 
 ## Prerequisites
 
@@ -334,7 +354,9 @@ cub run --stream        # Watch in real-time
 
 ## Usage
 
-### Planning Commands (Vision → Tasks)
+### Planning Commands (Vision → Tasks) `[EXPERIMENTAL]`
+
+The planning pipeline is experimental. Command names and outputs may change in future releases.
 
 ```bash
 # Full planning pipeline
@@ -891,9 +913,9 @@ cub run --require-clean      # Force clean state check
 cub run --no-require-clean   # Disable clean state check
 ```
 
-## Task State Synchronization
+## Task State Synchronization `[EXPERIMENTAL]`
 
-Cub automatically syncs task state to a dedicated git branch (`cub-sync`) to ensure task progress persists across git clones and team collaboration. This sync happens independently of your working tree—no checkout required.
+Cub automatically syncs task state to a dedicated git branch (`cub-sync`) to ensure task progress persists across git clones and team collaboration. This sync happens independently of your working tree—no checkout required. This feature is experimental and the sync mechanism may change.
 
 ### How Auto-Sync Works
 
