@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "cub-j1b",
+  "title": "cub-j1b",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-j1b",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-26T18:19:27.291259Z",
+    "captured_at": "2026-01-26T18:19:27.291259Z"
+  },
+  "task_ids": [
+    "cub-j1b.1",
+    "cub-j1b.2"
+  ],
+  "aggregates": {
+    "total_tasks": 2,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 1,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 2,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 761,
+    "avg_duration_seconds": 380,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T18:19:27.306219Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-26T17:58:24.481802Z",
+  "completed_at": "2026-01-26T18:19:27.288016Z",
+  "updated_at": "2026-01-26T18:19:27.306224Z",
+  "first_commit": {
+    "hash": "4897faa56db5853e7bbc440774a44635d5a98838",
+    "message": "task(cub-j1b.2): Implement delegation for all protocol methods",
+    "author": "",
+    "timestamp": "2026-01-26T18:17:45Z"
+  },
+  "last_commit": {
+    "hash": "c00aee87b43ff2539dbdc91bbf7ef761c3085835",
+    "message": "docs: Add learnings from task cub-j1b.2",
+    "author": "",
+    "timestamp": "2026-01-26T18:18:27Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

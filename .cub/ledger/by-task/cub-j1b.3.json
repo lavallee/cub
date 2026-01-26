@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-j1b.3",
+  "title": "Implement divergence detection and logging",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1b"
+  },
+  "task": {
+    "title": "Implement divergence detection and logging",
+    "description": "When backends return different results, we need to detect and log the divergence. This helps validate the JSONL backend matches beads behavior.\n\n**Implementation Steps:**\n1. Implement `_compare_tasks(primary_task, secondary_task) -> list[TaskDivergence]`\n2. Compare all fields: id, title, status, priority, labels, dependencies, etc.\n3. Implement `_log_divergence(divergences: list[TaskDivergence])`\n4. Write to divergence log with timestamp and full context\n5. Add `compare_all_tasks() -> list[TaskDivergence]` for full comparison\n6. Add `get_divergence_count() -> int` for quick check\n\n**Files:** `src/cub/core/tasks/both.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-j1b",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T17:36:13.718233Z",
+    "captured_at": "2026-01-26T18:19:29.574639Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T18:19:29.574639Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:19:29.574639Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-26T18:19:29.574639Z",
+  "completed_at": "2026-01-26T18:19:29.574639Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1b.3",
+  "epic_id": "cub-j1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

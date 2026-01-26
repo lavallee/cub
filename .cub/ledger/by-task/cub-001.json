@@ -16,7 +16,7 @@
       "model:haiku"
     ],
     "created_at": null,
-    "captured_at": "2026-01-26T17:45:29.978795Z"
+    "captured_at": "2026-01-26T18:22:35.951621Z"
   },
   "task_changed": null,
   "attempts": [],
@@ -36,18 +36,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T17:45:29.978795Z"
+    "stage_updated_at": "2026-01-26T18:22:35.951621Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-26T17:45:29.978795Z",
+      "at": "2026-01-26T18:22:35.951621Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-26T17:45:29.978795Z",
-  "completed_at": "2026-01-26T17:45:29.978795Z",
+  "started_at": "2026-01-26T18:22:35.951621Z",
+  "completed_at": "2026-01-26T18:22:35.951621Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,

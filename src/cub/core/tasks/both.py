@@ -673,3 +673,103 @@ class BothBackend:
             logger.warning(f"Secondary backend try_close_epic failed: {e}")
 
         return primary_result
+
+    def compare_all_tasks(self) -> list[TaskDivergence]:
+        """
+        Compare all tasks between primary and secondary backends.
+
+        This method performs a full comparison of all tasks in both backends,
+        identifying any divergences. Useful for validating backend sync or
+        debugging issues.
+
+        Returns:
+            List of TaskDivergence objects for any differences found
+        """
+        divergences: list[TaskDivergence] = []
+
+        # Get all tasks from both backends
+        try:
+            primary_tasks = self.primary.list_tasks()
+            secondary_tasks = self.secondary.list_tasks()
+        except Exception as e:
+            # If we can't fetch tasks, log it as a divergence
+            divergence = TaskDivergence(
+                timestamp=datetime.now(),
+                operation="compare_all_tasks",
+                task_id=None,
+                primary_result=None,
+                secondary_result=None,
+                difference_summary=f"Failed to fetch tasks: {e}",
+            )
+            divergences.append(divergence)
+            return divergences
+
+        # Create maps for quick lookup
+        primary_map = {task.id: task for task in primary_tasks}
+        secondary_map = {task.id: task for task in secondary_tasks}
+
+        # Find tasks only in primary
+        primary_only = set(primary_map.keys()) - set(secondary_map.keys())
+        for task_id in primary_only:
+            divergence = TaskDivergence(
+                timestamp=datetime.now(),
+                operation="compare_all_tasks",
+                task_id=task_id,
+                primary_result=primary_map[task_id],
+                secondary_result=None,
+                difference_summary=f"Task {task_id} exists only in primary backend",
+            )
+            divergences.append(divergence)
+
+        # Find tasks only in secondary
+        secondary_only = set(secondary_map.keys()) - set(primary_map.keys())
+        for task_id in secondary_only:
+            divergence = TaskDivergence(
+                timestamp=datetime.now(),
+                operation="compare_all_tasks",
+                task_id=task_id,
+                primary_result=None,
+                secondary_result=secondary_map[task_id],
+                difference_summary=f"Task {task_id} exists only in secondary backend",
+            )
+            divergences.append(divergence)
+
+        # Compare tasks that exist in both
+        common_ids = set(primary_map.keys()) & set(secondary_map.keys())
+        for task_id in common_ids:
+            primary_task = primary_map[task_id]
+            secondary_task = secondary_map[task_id]
+
+            diff = self._compare_tasks(primary_task, secondary_task)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="compare_all_tasks",
+                    task_id=task_id,
+                    primary_result=primary_task,
+                    secondary_result=secondary_task,
+                    difference_summary=diff,
+                )
+                divergences.append(divergence)
+
+        return divergences
+
+    def get_divergence_count(self) -> int:
+        """
+        Get the count of divergences logged to the divergence log file.
+
+        This reads the divergence log and counts the number of entries,
+        providing a quick way to check if backends are staying in sync.
+
+        Returns:
+            Number of divergences logged since the log was last cleared
+        """
+        if not self.divergence_log.exists():
+            return 0
+
+        try:
+            with open(self.divergence_log, encoding="utf-8") as f:
+                return sum(1 for line in f if line.strip())
+        except Exception as e:
+            logger.warning(f"Failed to read divergence log: {e}")
+            return 0
