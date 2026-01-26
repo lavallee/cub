@@ -276,8 +276,11 @@ Add the PATH export to your `~/.bashrc` or `~/.zshrc`.
 
 ```bash
 cd my-project
+git init                    # Initialize git repo (required)
 cub init                    # Initialize project
 ```
+
+Cub uses a JSONL-based task backend by default (`.cub/tasks.jsonl`). This persists task state as JSON lines without external dependencies. If you prefer beads CLI for advanced task management, ensure it's installed and run `cub init --backend beads`.
 
 ### Path A: Start with Planning (Recommended)
 
@@ -305,15 +308,17 @@ cub plan orient      # Jump back to earlier phases
 If you already know what needs doing, use task management commands:
 
 ```bash
-# Using the task backend (auto-detects JSON or beads)
-cub task create "Implement user authentication" --type feature --priority P1
-cub task create "Add login form" --type task --priority P1
+# Create tasks (auto-detects JSONL, beads, or JSON backend)
+cub task create "Implement user authentication" --type feature --priority 0
+cub task create "Add login form" --type task --priority 0
 
 # List and manage tasks
 cub task list        # Show all open tasks
 cub task ready       # Show tasks ready to work on
 cub task show <id>   # Show task details
 ```
+
+**Priority levels:** 0 (highest) → 4 (backlog)
 
 ### Run the Loop
 

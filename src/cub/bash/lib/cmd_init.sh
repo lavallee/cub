@@ -386,17 +386,20 @@ EOF
             json|prd)
                 selected_backend="json"
                 ;;
+            jsonl)
+                selected_backend="jsonl"
+                ;;
             auto)
-                # Auto-detect: prefer beads if available
+                # Auto-detect: prefer beads if available, otherwise jsonl
                 if command -v bd >/dev/null 2>&1; then
                     selected_backend="beads"
                 else
-                    selected_backend="json"
+                    selected_backend="jsonl"
                 fi
                 ;;
             *)
                 _log_error_console "Invalid backend: $backend"
-                _log_error_console "Supported backends: beads, json, auto"
+                _log_error_console "Supported backends: beads, jsonl, json, auto"
                 return 1
                 ;;
         esac
@@ -409,27 +412,26 @@ EOF
             json|prd)
                 selected_backend="json"
                 ;;
+            jsonl)
+                selected_backend="jsonl"
+                ;;
             auto)
-                # Auto-detect: prefer beads if available
+                # Auto-detect: prefer beads if available, otherwise jsonl
                 if command -v bd >/dev/null 2>&1; then
                     selected_backend="beads"
                 else
-                    selected_backend="json"
+                    selected_backend="jsonl"
                 fi
                 ;;
             *)
                 _log_error_console "Invalid CUB_BACKEND: $CUB_BACKEND"
-                _log_error_console "Supported backends: beads, json, auto"
+                _log_error_console "Supported backends: beads, jsonl, json, auto"
                 return 1
                 ;;
         esac
     else
-        # No explicit backend specified - auto-detect sensible default
-        if command -v bd >/dev/null 2>&1; then
-            selected_backend="beads"
-        else
-            selected_backend="json"
-        fi
+        # No explicit backend specified - default to JSONL (Python runtime will choose beads if .beads/ exists)
+        selected_backend="jsonl"
     fi
 
     log_info "Using task backend: ${selected_backend}"
@@ -494,9 +496,9 @@ EOF
                 -e 's|(either `bd close` or prd.json update)|(`bd close <task-id>`)|g' \
                 "${CUB_DIR}/templates/PROMPT.md" > "$prompt_file"
         else
-            # JSON backend: use prd.json
-            sed -e 's|bd close vs prd.json update|prd.json update|g' \
-                -e 's|(either `bd close` or prd.json update)|(update task status in prd.json)|g' \
+            # JSON/JSONL backend: use cub task close or task status update
+            sed -e 's|bd close vs prd.json update|cub task close|g' \
+                -e 's|(either `bd close` or prd.json update)|(use `cub task close <task-id>` to close tasks)|g' \
                 "${CUB_DIR}/templates/PROMPT.md" > "$prompt_file"
         fi
         log_success "Created $(basename "$prompt_file") (${selected_backend} backend)"
@@ -623,6 +625,11 @@ EOF
             _log_error_console "Error: Failed to initialize beads backend"
             return 1
         fi
+    elif [[ "$selected_backend" == "jsonl" ]]; then
+        # JSONL backend doesn't need explicit initialization
+        # It will be created in .cub/tasks.jsonl when first task is created
+        mkdir -p .cub
+        log_success "Initialized JSONL task backend (ready for first task)"
     fi
     # json backend already initialized via prd.json creation above
 
