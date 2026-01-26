@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "cub-r4h.4",
+  "title": "Manual testing protocol for E4",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r4h"
+  },
+  "task": {
+    "title": "Manual testing protocol for E4",
+    "description": "Automated tests can't catch everything. Create a checklist for Marc to manually validate exit behavior.\n\n**Implementation Steps:**\n1. Create manual test checklist in `plans/reliability-phase/e4-manual-tests.md`\n2. Include scenarios: overnight run, Ctrl+C at various points, kill -9, budget warning then exhaustion\n3. Document expected behavior and what to check (files created, messages shown)\n4. Include recovery steps if something goes wrong\n\n**Files:** plans/reliability-phase/e4-manual-tests.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "checkpoint",
+      "complexity:low",
+      "docs",
+      "epic:cub-r4h",
+      "model:haiku",
+      "phase-1"
+    ],
+    "created_at": "2026-01-26T21:35:36.234174Z",
+    "captured_at": "2026-01-26T21:57:15.215573Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T21:57:15.215573Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T21:57:15.215573Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-26T21:57:15.215573Z",
+  "completed_at": "2026-01-26T21:57:15.215573Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r4h.4",
+  "epic_id": "cub-r4h",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
