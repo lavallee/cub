@@ -1,3 +1,23 @@
+## Task cub-j1f.3: Implement cub docs command and add alpha classifier (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Single Function Registration Pattern**: For simple commands that don't need subcommands, Typer allows direct function registration using `app.command(name="docs")(docs.docs)` pattern instead of creating an app instance. This is used for utility commands like `version` and `docs`.
+
+2. **Package Classifiers for Alpha Status**: The "Development Status :: 3 - Alpha" classifier in pyproject.toml properly marks the package as alpha on PyPI. Additional classifiers like Environment, Intended Audience, and Topic help with discoverability and set expectations.
+
+3. **CLI Help Panel Organization**: Commands are grouped into semantic panels (`PANEL_INSTALL`, `PANEL_STATUS`, etc.) defined in __init__.py. The `docs` command fits naturally in "Manage Your Cub Installation" alongside `version`, `doctor`, `update`, and `upgrade`.
+
+4. **Webbrowser Module Behavior**: Python's `webbrowser.open()` returns True if successful but doesn't guarantee the browser opened (e.g., on headless systems). Proper handling requires both a return-code check AND fallback messaging with the URL for manual opening.
+
+5. **Path Resolution in CLI Modules**: Use `Path(__file__).parent.parent.parent.parent` to navigate from `src/cub/cli/docs.py` to project root, then append relative paths like `/docs/index.html`. This is consistent with how other CLI commands resolve project structure.
+
+6. **Formatting with Ruff**: After writing code, always run `ruff format src/cub/cli/docs.py` to ensure formatting matches project standards. Ruff made small adjustments to line breaks and spacing.
+
+**Outcome:** Successfully created `cub docs` command with both online (GitHub) and local documentation support. Added alpha classifier to package metadata. All tests passing, code properly formatted and type-checked. Command integrated into CLI and available in help system.
+
 ## Task cub-j1e.2: Walk through Quick Start and fix gaps (2026-01-26)
 
 **Status:** Completed
