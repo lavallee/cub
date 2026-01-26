@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
+from cub.cli.errors import ExitCode
 from cub.cli.run import (
     _show_ready_tasks,
     _signal_handler,
@@ -585,15 +586,15 @@ class TestFlagValidation:
         """Test --no-network requires --sandbox flag."""
         result = runner.invoke(app, ["--no-network"])
 
-        assert result.exit_code == 1
-        assert "--no-network requires --sandbox" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "--no-network" in result.output and "--sandbox" in result.output
 
     def test_sandbox_keep_requires_sandbox(self, runner):
         """Test --sandbox-keep requires --sandbox flag."""
         result = runner.invoke(app, ["--sandbox-keep"])
 
-        assert result.exit_code == 1
-        assert "--sandbox-keep requires --sandbox" in result.output
+        assert result.exit_code == ExitCode.USER_ERROR
+        assert "--sandbox-keep" in result.output and "--sandbox" in result.output
 
     def test_worktree_keep_allowed_with_worktree(self, runner):
         """Test --worktree-keep is allowed with --worktree."""
@@ -741,7 +742,7 @@ class TestRunLoopIntegration:
         result = runner.invoke(app, ["--once"])
 
         assert result.exit_code == 1
-        assert "No harness available" in result.output
+        assert "No AI harness available" in result.output
 
     def test_run_harness_not_installed(self, runner, mock_run_dependencies):
         """Test error when specified harness is not installed."""
@@ -1504,8 +1505,8 @@ class TestBranchCreation:
 
             result = runner.invoke(app, ["--use-current-branch", "--once"])
 
-            assert result.exit_code == 1
-            assert "Cannot run on 'main' branch without --main-ok" in result.output
+            assert result.exit_code == ExitCode.USER_ERROR
+            assert "Cannot run on 'main' branch" in result.output
 
     def test_use_current_branch_on_main_with_main_ok_succeeds(self, runner):
         """Test --use-current-branch on main with --main-ok succeeds."""
@@ -1527,7 +1528,7 @@ class TestBranchCreation:
             )
 
             # Should fail for no harness, not branch protection
-            assert "No harness available" in result.output
+            assert "No AI harness available" in result.output
             assert "Cannot run on 'main'" not in result.output
 
     def test_use_current_branch_on_feature_branch_succeeds(self, runner):
@@ -1548,7 +1549,7 @@ class TestBranchCreation:
             result = runner.invoke(app, ["--use-current-branch", "--once"])
 
             # Should fail for no harness, not branch protection
-            assert "No harness available" in result.output
+            assert "No AI harness available" in result.output
             assert "Cannot run on" not in result.output
 
     def test_default_creates_branch_from_origin_main(self, runner):
@@ -1618,7 +1619,7 @@ class TestBranchCreation:
             # Should NOT create a branch
             mock_create.assert_not_called()
             # Should fail for no harness, not branch issues
-            assert "No harness available" in result.output
+            assert "No AI harness available" in result.output
 
     def test_on_feature_branch_reuses_existing(self, runner):
         """Test running on existing feature branch reuses it (no new branch)."""
@@ -1641,7 +1642,7 @@ class TestBranchCreation:
             # Should NOT create a new branch when already on a feature branch
             mock_create.assert_not_called()
             # Should fail for no harness, not branch issues
-            assert "No harness available" in result.output
+            assert "No AI harness available" in result.output
 
     def test_task_specific_branch_name(self, runner):
         """Test --task creates branch with task ID in name."""
@@ -1719,8 +1720,8 @@ class TestBranchCreation:
 
             result = runner.invoke(app, ["--use-current-branch", "--once"])
 
-            assert result.exit_code == 1
-            assert "Cannot run on 'master' branch without --main-ok" in result.output
+            assert result.exit_code == ExitCode.USER_ERROR
+            assert "Cannot run on 'master' branch" in result.output
 
 
 # ==============================================================================

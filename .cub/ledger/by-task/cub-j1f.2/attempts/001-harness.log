@@ -1,0 +1,67 @@
+I'll complete this task by auditing error paths, adding actionable error messages, and standardizing exit codes across the CLI.
+
+Let me start by understanding the current task status and then exploring the codebase.Let me read the main CLI entry point and some key files to understand the current error handling patterns:Let me search for common error scenarios mentioned in the task description:Now let me search for error handling patterns and read more of the run.py file to understand the harness setup errors:Now let me look for common error scenarios related to git, tasks, and backends:Excellent! Now I have a comprehensive understanding of the error handling patterns. Let me create a standardized error handling system and update the common error paths. I'll start by creating an error utilities module:Now let me update the most critical files to use the standardized error handling. I'll start with `run.py`:Now let me find and update the flag validation errors in run.py:Now let me find and update the sandbox/docker error handling and the no tasks error:Now let me find and update the "no tasks found" error:Now let's update other key CLI files. Let me update task.py:Now let me update sync.py and dashboard.py for common project initialization errors:Now let me update doctor.py for the git check:Now let me update workflow.py for its error messages:Now let's run the type checker and tests to make sure our changes work:I need to check what variable names are used in that function:I see the issue - `task_type` is not a parameter in the `list_tasks` function. Let me fix that:Now let's run type checking again:Great! Now let's run the full test suite to make sure everything works:Good! Tests are passing. Let me run more tests to ensure everything is working:Let me find what CLI tests exist:Good! Most tests pass, but a few tests need to be updated to expect the new exit code `ExitCode.USER_ERROR` (2) instead of 1. Let me fix these test failures:Now let me find the dashboard test failures:The test is looking for "not in a project" but our new error message says "Not in a Cub project directory". The exit code also changed to 2. Let me read and update these tests:Now let's run the tests again to confirm they pass:Hmm, there's still an issue. The exit code is still 1 from somewhere. Let me check if there are other places in dashboard.py that raise typer.Exit:I see there are try-except blocks that catch typer.Exit and re-raise with exit code 1. Let me check the dashboard function structure:I see! The `try` block at line 104 catches the typer.Exit from `_get_project_paths()`. Let me check if there's an except clause that's re-raising with exit code 1:I see the issue now! The try-except block at line 104-198 has a generic `except Exception` that catches all exceptions (including typer.Exit since it's an exception), and re-raises with exit code 1. The typer.Exit needs to be excepted separately. Let me fix this:Now let me check if there are similar patterns in other command functions:I see that some of them already have `except typer.Exit: raise`, but the `sync` function doesn't. Let me fix that one too:Now let's run the tests again:Excellent! All tests are passing now. Let's run the linter to make sure the code follows style guidelines:Let me fix the import ordering issues:Let me fix those line length issues:Now let's run the linter again:Perfect! Now let's run type checking one more time to ensure everything is correct:Great! Let's run the full test suite one more time to make sure we haven't broken anything:Perfect! All tests pass. Now let's close the task and commit the changes:Now let's commit the changes:Excellent! Now let's append learnings to progress.txt:Perfect! Let me check if there are any more tasks to complete:Great! The task is complete. Let me check if all tasks in the epic are closed:There's still one more task in the epic (cub-j1f.3), but my current task (cub-j1f.2) is complete. Let me verify that my changes are working correctly by doing a quick manual test:Perfect! The error module is working correctly. Let me create a summary of what was accomplished:
+
+## Task Complete: cub-j1f.2
+
+I have successfully completed task **cub-j1f.2: Add actionable error messages and standardize exit codes**.
+
+### Summary of Changes
+
+**1. Created Error Handling Module (`src/cub/cli/errors.py`)**
+- Defined standardized exit codes using `ExitCode` enum:
+  - `SUCCESS = 0`
+  - `GENERAL_ERROR = 1` 
+  - `USER_ERROR = 2` (for actionable user errors)
+  - `SIGINT = 130` (standard Unix convention)
+- Implemented reusable error message functions with consistent format:
+  - Problem statement
+  - Reason (why it happened)
+  - Solution (how to fix it)
+  - Optional documentation URL
+
+**2. Updated Error Messages Across 6 CLI Modules**
+- **run.py**: Harness errors, flag validation, Docker dependency, no tasks available
+- **task.py**: Task not found, no tasks matching criteria, invalid status
+- **sync.py**: Sync branch not initialized
+- **dashboard.py**: Not in project directory, plus fixed Exit code preservation
+- **workflow.py**: Invalid workflow stage, no ledger, task not in ledger
+- **doctor.py**: Added installation hints for git and harnesses
+
+**3. Fixed Critical Bug in dashboard.py**
+- Exception handlers were catching `typer.Exit` and re-raising with wrong exit code
+- Added `except typer.Exit: raise` before generic exception handlers to preserve exit codes
+
+**4. Updated Tests**
+- Modified 5 test files to expect new exit codes (ExitCode.USER_ERROR = 2)
+- All 85 tests passing
+
+**5. Quality Checks**
+- ✅ Type checking (mypy): All files pass
+- ✅ Linting (ruff): All checks pass
+- ✅ Tests: 85 tests passing
+- ✅ Import organization fixed
+- ✅ Line length compliance
+
+### Key Improvements for Users
+
+**Before:**
+```
+Error: No harness available. Install claude, codex, or another supported harness.
+Exit code: 1
+```
+
+**After:**
+```
+Error: No AI harness available
+Cub requires Claude, Codex, Gemini, or another supported harness to execute tasks
+→ Try: pip install anthropic-claude  # or another harness
+Docs: https://docs.anthropic.com/claude-code
+Exit code: 2 (USER_ERROR - actionable by user)
+```
+
+### Technical Learning
+
+The most important discovery was that `typer.Exit` is an exception, and generic `except Exception` handlers will catch it. This was causing exit codes to be reset to 1 instead of preserving the intended exit code. The solution is to always add `except typer.Exit: raise` before generic exception handlers.
+
+All feedback loops passed successfully. The implementation is complete, tested, and ready for use.

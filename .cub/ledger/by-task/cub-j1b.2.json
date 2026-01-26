@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-j1b.2",
+  "title": "Implement delegation for all protocol methods",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1b"
+  },
+  "task": {
+    "title": "Implement delegation for all protocol methods",
+    "description": "Every `TaskBackend` method must delegate to both backends. Write operations go to both; read operations query both and compare.\n\n**Implementation Steps:**\n1. Implement all 13 protocol methods with delegation\n2. For write methods (create, update, close, add_note, import): execute on both\n3. For read methods (list, get, get_ready, get_counts): query both and compare\n4. Return primary backend's result in all cases\n5. Catch exceptions from secondary (log but don't fail)\n6. Handle case where secondary doesn't have a task that primary does\n\n**Files:** `src/cub/core/tasks/both.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-j1b",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T17:36:13.718223Z",
+    "captured_at": "2026-01-26T18:06:45.159670Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-130644",
+      "started_at": "2026-01-26T13:06:45.166217",
+      "completed_at": "2026-01-26T18:19:27.105780Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 761
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T18:19:27.288016Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 761,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c00aee87b43ff2539dbdc91bbf7ef761c3085835",
+        "message": "docs: Add learnings from task cub-j1b.2",
+        "author": "",
+        "timestamp": "2026-01-26T18:18:27Z"
+      },
+      {
+        "hash": "4897faa56db5853e7bbc440774a44635d5a98838",
+        "message": "task(cub-j1b.2): Implement delegation for all protocol methods",
+        "author": "",
+        "timestamp": "2026-01-26T18:17:45Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T18:19:27.288016Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:06:45.159670Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:19:27.288016Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T18:06:45.159670Z",
+  "completed_at": "2026-01-26T18:19:27.288016Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 761,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "c00aee87b43ff2539dbdc91bbf7ef761c3085835",
+      "message": "docs: Add learnings from task cub-j1b.2",
+      "author": "",
+      "timestamp": "2026-01-26T18:18:27Z"
+    },
+    {
+      "hash": "4897faa56db5853e7bbc440774a44635d5a98838",
+      "message": "task(cub-j1b.2): Implement delegation for all protocol methods",
+      "author": "",
+      "timestamp": "2026-01-26T18:17:45Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1b.2",
+  "epic_id": "cub-j1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

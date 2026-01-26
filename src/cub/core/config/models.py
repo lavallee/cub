@@ -250,6 +250,43 @@ class LedgerConfig(BaseModel):
     )
 
 
+class SyncConfig(BaseModel):
+    """
+    Task sync configuration.
+
+    Controls automatic synchronization of task state to the cub-sync branch.
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable sync functionality (if False, sync commands will fail)",
+    )
+    auto_sync: str = Field(
+        default="run",
+        pattern="^(always|run|never)$",
+        description=(
+            "When to auto-sync: 'always' (after every task mutation), "
+            "'run' (only during cub run), 'never' (manual sync only)"
+        ),
+    )
+
+
+class BackendConfig(BaseModel):
+    """
+    Task backend configuration.
+
+    Specifies which task backend to use or enables dual-backend mode.
+    """
+
+    mode: str | None = Field(
+        default=None,
+        description=(
+            "Backend mode: 'auto' (auto-detect), 'beads', 'jsonl', 'both' "
+            "(dual-backend with divergence detection)"
+        ),
+    )
+
+
 class HarnessConfig(BaseModel):
     """
     AI harness configuration.
@@ -286,6 +323,9 @@ class CubConfig(BaseModel):
     """
 
     # Core settings
+    backend: BackendConfig = Field(
+        default_factory=BackendConfig, description="Task backend configuration"
+    )
     harness: HarnessConfig = Field(
         default_factory=HarnessConfig, description="AI harness configuration"
     )
@@ -311,6 +351,9 @@ class CubConfig(BaseModel):
     )
     ledger: LedgerConfig = Field(
         default_factory=LedgerConfig, description="Ledger (completed work tracking) settings"
+    )
+    sync: SyncConfig = Field(
+        default_factory=SyncConfig, description="Task sync settings"
     )
 
     model_config = ConfigDict(

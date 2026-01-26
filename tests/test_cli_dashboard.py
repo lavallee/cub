@@ -73,15 +73,15 @@ class TestDashboardNoProject:
         """Test launching dashboard when not in a project directory."""
         with runner.isolated_filesystem():
             result = runner.invoke(app, ["dashboard", "--no-browser", "--no-sync"])
-            assert result.exit_code == 1
-            assert "not in a project" in result.output.lower()
+            assert result.exit_code == 2  # ExitCode.USER_ERROR
+            assert "cub project directory" in result.output.lower()
 
     def test_dashboard_sync_no_project_root(self) -> None:
         """Test sync subcommand when not in a project directory."""
         with runner.isolated_filesystem():
             result = runner.invoke(app, ["dashboard", "sync"])
-            assert result.exit_code == 1
-            assert "not in a project" in result.output.lower()
+            assert result.exit_code == 2  # ExitCode.USER_ERROR
+            assert "cub project directory" in result.output.lower()
 
 
 class TestDashboardSync:
@@ -299,8 +299,8 @@ class TestDashboardExport:
         """Test export subcommand when not in a project directory."""
         with runner.isolated_filesystem():
             result = runner.invoke(app, ["dashboard", "export"])
-            assert result.exit_code == 1
-            assert "not in a project" in result.output.lower()
+            assert result.exit_code == 2  # ExitCode.USER_ERROR
+            assert "cub project directory" in result.output.lower()
 
     def test_export_no_database(self) -> None:
         """Test export when database doesn't exist."""
@@ -558,8 +558,8 @@ class TestDashboardInit:
         """Test init subcommand when not in a project directory."""
         with runner.isolated_filesystem():
             result = runner.invoke(app, ["dashboard", "init"])
-            assert result.exit_code == 1
-            assert "not in a project" in result.output.lower()
+            assert result.exit_code == 2  # ExitCode.USER_ERROR
+            assert "cub project directory" in result.output.lower()
 
     def test_init_copies_files(self) -> None:
         """Test init copies example view files."""

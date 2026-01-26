@@ -2,30 +2,37 @@
 
 This guide explains how to extend cub with new AI harnesses, task backends, and other features.
 
+## ⚠️ Alpha Notice
+
+Cub is in alpha development. Contribution guidelines, architecture, and APIs may change. Please open issues for feature discussions before starting major work.
+
 ## Architecture Overview
 
-Cub uses a hybrid Python/Bash architecture to enable gradual migration while maintaining backwards compatibility. Core commands are implemented in Python, with advanced features still in Bash.
+Cub is a Python CLI built on Typer with pluggable backends for tasks and AI harnesses. The core loop is deterministic Python, while harness operations are delegated to external CLIs.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           cub (Python CLI)                               │
-│                             Typer app                                    │
-├─────────────────────────┬───────────────────────────────────────────────┤
-│   Native Commands       │   Delegated Commands                          │
-│   (Python)              │   (Bash via bash_delegate.py)                 │
-├─────────────────────────┼───────────────────────────────────────────────┤
-│ run, status, init       │ prep, triage, architect, plan                 │
-│ monitor                 │ branch, branches, pr, checkpoints             │
-│                         │ interview, doctor, upgrade                     │
-├─────────────────────────┴───────────────────────────────────────────────┤
-│                           Core Modules (Python)                          │
-├──────────────────┬─────────────────┬────────────────────────────────────┤
-│  cub.core.tasks  │  cub.core.harness │  cub.core.config                 │
-│  (Protocol-based │  (Protocol-based  │  (Pydantic models)               │
-│   backends)      │   backends)       │                                  │
-├──────────────────┼─────────────────┼────────────────────────────────────┤
-│ beads │   json   │ claude │  codex  │  gemini │ opencode               │
-└──────────────────┴─────────────────┴────────────────────────────────────┘
+│                        Typer CLI Application                             │
+├──────────────────────────────────────────────────────────────────────────┤
+│                        Core Modules (Python)                              │
+├──────────────────┬─────────────────┬───────────────────────────────────┤
+│  cub.core.tasks  │ cub.core.harness │  cub.core.config                  │
+│  (Backend        │ (Harness         │  (Configuration)                  │
+│   Protocol)      │  Protocol)       │                                   │
+├──────────────────┼─────────────────┼───────────────────────────────────┤
+│ beads │jsonl    │ claude │ codex   │  gemini │ opencode               │
+│ json  │         │                  │                                    │
+└──────────────────┴─────────────────┴───────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     Optional Features (Experimental)                      │
+├──────────────────────────────────────────────────────────────────────────┤
+│ - Planning Pipeline (orient, architect, itemize)                         │
+│ - Dashboard (Kanban visualization)                                       │
+│ - Task State Sync (cub-sync branch persistence)                          │
+│ - Hooks System (lifecycle events)                                        │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Development Setup
@@ -377,24 +384,33 @@ Templates support backend-specific customization via sed substitution during ini
 
 ## Pull Request Guidelines
 
-1. Run all checks before submitting:
+1. **Run all checks before submitting:**
    ```bash
    pytest tests/ -v
    mypy src/cub
    ruff check src/ tests/
-   bats tests/
    ```
 
-2. Update documentation:
-   - CLAUDE.md for architectural changes
-   - README.md for user-facing features
+2. **Update documentation:**
+   - `CONTRIBUTING.md` for architecture changes
+   - `README.md` for user-facing features
+   - `docs/ALPHA-NOTES.md` if adding experimental features
    - Docstrings for new functions/classes
 
-3. Add tests:
+3. **Add tests:**
    - pytest for Python code
-   - bats for Bash code
+   - Include test coverage for new backends/harnesses
 
-4. Keep PRs focused on a single feature or fix
+4. **Mark experimental features:**
+   - Use `[EXPERIMENTAL]` tags in README.md
+   - Document in `docs/ALPHA-NOTES.md`
+   - Include clear stability warnings
+
+5. **Maintain backwards compatibility:**
+   - Existing task/harness backends must continue working
+   - Deprecate features gradually with warnings
+
+6. **Keep PRs focused:** One feature or fix per PR
 
 ## Questions?
 

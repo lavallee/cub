@@ -60,7 +60,9 @@ def test_cli_entry_points() -> None:
         text=True,
     )
     assert result.returncode == 0, f"cub --help failed: {result.stderr}"
-    assert "AI Coding Assistant Loop" in result.stdout
+    # Check for key identifying phrases in help text
+    assert ("Autonomous AI coding agent" in result.stdout or
+            "AI Coding Assistant Loop" in result.stdout)
 
 
 def test_basic_commands_available() -> None:

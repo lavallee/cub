@@ -14,6 +14,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from cub.cli.errors import ExitCode, print_not_project_root_error
 from cub.utils.project import find_project_root
 
 app = typer.Typer(
@@ -39,12 +40,8 @@ def _get_project_paths() -> tuple[Path, Path, Path]:
     """
     project_root = find_project_root()
     if project_root is None:
-        console.print(
-            "[red]Error:[/red] Not in a project directory. "
-            "Could not find .beads/, .cub/, .cub.json, or .git/"
-        )
-        console.print("[dim]Run 'cub init' to initialize a project.[/dim]")
-        raise typer.Exit(1)
+        print_not_project_root_error()
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     # Ensure .cub directory exists
     cub_dir = project_root / ".cub"
@@ -189,6 +186,9 @@ def dashboard(
             log_level="info" if debug else "warning",
         )
 
+    except typer.Exit:
+        # Re-raise typer.Exit with its original exit code
+        raise
     except KeyboardInterrupt:
         console.print("\n[yellow]Dashboard stopped[/yellow]")
         raise typer.Exit(0)
@@ -303,6 +303,9 @@ def sync(
                 console.print(f"  • {error}")
             raise typer.Exit(1)
 
+    except typer.Exit:
+        # Re-raise typer.Exit with its original exit code
+        raise
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         if debug:

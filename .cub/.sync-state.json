@@ -1,0 +1,11 @@
+{
+  "branch_name": "cub-sync",
+  "tasks_file": ".cub/tasks.jsonl",
+  "last_commit_sha": null,
+  "last_sync_at": null,
+  "last_tasks_hash": null,
+  "remote_name": "origin",
+  "last_push_sha": null,
+  "last_push_at": null,
+  "initialized": true
+}

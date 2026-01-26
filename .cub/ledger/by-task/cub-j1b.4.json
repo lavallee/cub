@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "cub-j1b.4",
+  "title": "Update backend detection and add comparison script",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1b"
+  },
+  "task": {
+    "title": "Update backend detection and add comparison script",
+    "description": "Backend auto-detection needs to recognize when to use `both` mode. A comparison script helps manual validation.\n\n**Implementation Steps:**\n1. Update `detect_backend()` in `backend.py` to check config for `mode = \"both\"`\n2. If `.beads/` exists AND config says `both`, instantiate `BothBackend`\n3. Create `scripts/compare-backends.py` standalone script\n4. Script loads both backends and runs `compare_all_tasks()`\n5. Pretty-print differences with color coding\n6. Exit code 0 if identical, 1 if divergent\n7. Write tests for both mode detection\n\n**Files:** `src/cub/core/tasks/backend.py`, `src/cub/core/tasks/both.py`, `scripts/compare-backends.py`, `tests/test_both_backend.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "checkpoint",
+      "complexity:medium",
+      "epic:cub-j1b",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T17:36:13.718243Z",
+    "captured_at": "2026-01-26T18:24:29.959461Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-130644",
+      "started_at": "2026-01-26T13:24:29.963266",
+      "completed_at": "2026-01-26T18:30:14.699460Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 344
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T18:30:14.883427Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 344,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6ee5c29de444c8df3f76315ee3888d08dbdb1947",
+        "message": "docs: Update progress.txt with task cub-j1b.4 learnings",
+        "author": "",
+        "timestamp": "2026-01-26T18:29:57Z"
+      },
+      {
+        "hash": "9bb02514694f51e9532cb28d7927ae5d1582b558",
+        "message": "task(cub-j1b.4): Update backend detection and add comparison script",
+        "author": "",
+        "timestamp": "2026-01-26T18:29:33Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T18:30:14.883427Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:24:29.959461Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:30:14.883427Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T18:24:29.959461Z",
+  "completed_at": "2026-01-26T18:30:14.883427Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 344,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "6ee5c29de444c8df3f76315ee3888d08dbdb1947",
+      "message": "docs: Update progress.txt with task cub-j1b.4 learnings",
+      "author": "",
+      "timestamp": "2026-01-26T18:29:57Z"
+    },
+    {
+      "hash": "9bb02514694f51e9532cb28d7927ae5d1582b558",
+      "message": "task(cub-j1b.4): Update backend detection and add comparison script",
+      "author": "",
+      "timestamp": "2026-01-26T18:29:33Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1b.4",
+  "epic_id": "cub-j1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

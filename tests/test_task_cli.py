@@ -189,8 +189,8 @@ class TestTaskList:
         with patch("cub.cli.task.get_backend", return_value=mock_backend):
             result = runner.invoke(app, ["list", "--status", "invalid"])
 
-        assert result.exit_code == 1
-        assert "Invalid status" in result.stdout
+        assert result.exit_code == 2  # ExitCode.USER_ERROR
+        assert "Invalid option" in result.stdout
 
 
 class TestTaskUpdate:
@@ -223,7 +223,7 @@ class TestTaskUpdate:
         with patch("cub.cli.task.get_backend", return_value=mock_backend):
             result = runner.invoke(app, ["update", "cub-999", "--status", "closed"])
 
-        assert result.exit_code == 1
+        assert result.exit_code == 2  # ExitCode.USER_ERROR
         assert "not found" in result.stdout.lower()
 
 

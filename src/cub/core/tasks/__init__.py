@@ -9,7 +9,9 @@ as the TaskBackend protocol for pluggable backend implementations.
 # Import backend implementations to trigger registration
 from . import (
     beads,  # noqa: F401
+    both,  # noqa: F401
     json,  # noqa: F401
+    jsonl,  # noqa: F401
 )
 from .backend import (
     TaskBackend,

@@ -251,6 +251,9 @@ def status(
 
         raise typer.Exit(0)
 
+    except typer.Exit:
+        # Re-raise exit signals without modification
+        raise
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         if debug:

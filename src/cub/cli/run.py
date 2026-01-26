@@ -23,6 +23,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from cub.cli.errors import (
+    ExitCode,
+    print_harness_not_found_error,
+    print_harness_not_installed_error,
+    print_incompatible_flags_error,
+    print_main_branch_error,
+    print_missing_dependency_error,
+)
 from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
@@ -31,7 +39,6 @@ from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import CommitRef
 from cub.core.ledger.writer import LedgerWriter
-from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -53,12 +60,14 @@ from cub.core.status.models import (
     TaskArtifact,
 )
 from cub.core.status.writer import StatusWriter
+from cub.core.sync.service import SyncService
 from cub.core.tasks.backend import TaskBackend
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
+from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
 from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
 
 
@@ -111,9 +120,7 @@ def _setup_harness(
     # so that tests can mock them properly
     harness_name = harness or detect_async_harness(priority_list)
     if not harness_name:
-        console.print(
-            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
-        )
+        print_harness_not_found_error()
         return None
 
     try:
@@ -123,7 +130,7 @@ def _setup_harness(
         return None
 
     if not harness_backend.is_available():
-        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
+        print_harness_not_installed_error(harness_name)
         return None
 
     if debug:
@@ -337,7 +344,7 @@ def _get_epic_title(epic_id: str) -> str | None:
 
 app = typer.Typer(
     name="run",
-    help="Execute autonomous task loop",
+    help="Execute autonomous task loop with AI harness",
     no_args_is_help=False,
 )
 
@@ -566,7 +573,11 @@ def create_run_artifact(status: RunStatus, config: dict[str, Any] | None = None)
         RunArtifact with budget totals and completion info
     """
     # Determine completion time
-    completed_at = datetime.now() if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED] else None
+    completed_at = (
+        datetime.now()
+        if status.phase in [RunPhase.COMPLETED, RunPhase.FAILED, RunPhase.STOPPED]
+        else None
+    )
 
     # Map phase to status string
     status_str = status.phase.value if hasattr(status.phase, "value") else str(status.phase)
@@ -608,7 +619,11 @@ def run(
         None,
         "--harness",
         "-h",
-        help="AI harness to use (claude, claude-sdk, claude-cli, codex, gemini, opencode). 'claude' defaults to 'claude-sdk' (SDK with hooks). Use 'claude-cli' for shell-out.",
+        help=(
+            "AI harness to use (claude, claude-sdk, claude-cli, codex, gemini, "
+            "opencode). 'claude' defaults to 'claude-sdk'. Use 'claude-cli' for "
+            "shell-out."
+        ),
     ),
     once: bool = typer.Option(
         False,
@@ -734,85 +749,164 @@ def run(
         help="Base branch for new feature branch (default: origin/main). "
         "Ignored with --use-current-branch.",
     ),
+    no_sync: bool = typer.Option(
+        False,
+        "--no-sync",
+        help="Disable auto-sync for this run (overrides config)",
+    ),
 ) -> None:
     """
-    Execute autonomous task loop.
+    Execute autonomous task loop with AI harness.
 
-    Runs the main cub loop, picking up tasks and executing them with the
-    specified AI harness until stopped or budget is exhausted.
+    Picks up tasks from your task backend and executes them using the specified
+    AI harness (Claude, Codex, Gemini, etc) until stopped, budget exhausted, or
+    no more tasks. By default creates a feature branch from origin/main and
+    auto-syncs task state to the cub-sync branch.
 
-    Branch Protection:
-        By default, cub run will not execute on main/master branch. When
-        --label, --epic, or --gh-issue is specified, a feature branch is
-        automatically created. Use --main-ok to explicitly allow main.
+    Task Selection:
+        By default, picks unblocked tasks with highest priority.
+        Use --task, --epic, or --label to narrow scope.
+        Use --ready to list tasks without executing.
+
+    Budget Control:
+        Set limits with --budget (USD) or --budget-tokens (token count).
+        Useful for testing before running large sessions.
+
+    Isolation Modes:
+        --worktree    Run in isolated git worktree (default)
+        --parallel N  Run N tasks in parallel in separate worktrees
+        --sandbox     Run in Docker container for maximum isolation
+        --direct      Run a single task without task backend
+
+    Branch Management:
+        By default creates feature branch from origin/main (main/master protected).
+        --use-current-branch  Stay in current branch (must not be main/master)
+        --from-branch <name>  Use different base branch
+        --main-ok             Explicitly allow running on main/master (risky)
+
+    Monitoring:
+        --monitor     Live dashboard in tmux (requires tmux)
+        --stream      Stream harness output in real-time
+        --debug       Show detailed logging
 
     Examples:
-        cub run                      # Creates new branch from origin/main
-        cub run --use-current-branch # Run in current branch
-        cub run --harness claude     # Run with Claude
-        cub run --once               # Run one iteration
-        cub run --task cub-123       # Run specific task
-        cub run --budget 5.0         # Set budget to $5
+        # Basic execution
+        cub run                      # Run ready tasks (creates feature branch)
+        cub run --once               # Single iteration and exit
+
+        # Select specific work
+        cub run --task cub-123       # Work on specific task
         cub run --epic backend-v2    # Work on epic
         cub run --label priority     # Work on labeled tasks
-        cub run --gh-issue 123       # Work on GitHub issue
-        cub run --from-branch develop  # Create branch from develop
-        cub run --ready              # List ready tasks
-        cub run --worktree           # Run in isolated worktree
+        cub run --gh-issue 47        # Work on GitHub issue
+
+        # Isolation
         cub run --parallel 3         # Run 3 tasks in parallel
         cub run --sandbox            # Run in Docker sandbox
-        cub run --direct "task"      # Direct task
+        cub run --worktree           # Use isolated worktree
+
+        # Advanced
+        cub run --direct "Add logout button"  # Direct task
+        cub run --budget 5.0         # Limit to $5 spend
+        cub run --from-branch develop  # Branch from develop
+        cub run --use-current-branch # Stay in current branch
+        cub run --harness claude     # Specific harness
+        cub run --model opus         # Specific model
+
+        # Monitoring
+        cub run --monitor            # Live dashboard
+        cub run --stream             # Stream output
+        cub run --ready              # List ready tasks
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_dir = Path.cwd()
 
     # Validate flags
     if no_network and not sandbox:
-        console.print("[red]--no-network requires --sandbox[/red]")
-        raise typer.Exit(1)
+        print_incompatible_flags_error(
+            "--no-network", "--sandbox",
+            reason="Network isolation is only available in sandbox mode"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     if sandbox_keep and not sandbox:
-        console.print("[red]--sandbox-keep requires --sandbox[/red]")
-        raise typer.Exit(1)
+        print_incompatible_flags_error(
+            "--sandbox-keep", "--sandbox",
+            reason="Can only preserve sandboxes when sandbox mode is enabled"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     if direct:
         # --direct is incompatible with task management flags
         if task_id:
-            console.print("[red]--direct cannot be used with --task[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--task",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
-            console.print("[red]--direct cannot be used with --epic[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--epic",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if label:
-            console.print("[red]--direct cannot be used with --label[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--label",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
-            console.print("[red]--direct cannot be used with --ready[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--ready",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
-            console.print("[red]--direct cannot be used with --parallel[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--parallel",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     if gh_issue is not None:
         # --gh-issue is incompatible with task management flags
         if task_id:
-            console.print("[red]--gh-issue cannot be used with --task[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--task",
+                reason="GitHub issue mode uses issues for input, not tasks"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
-            console.print("[red]--gh-issue cannot be used with --epic[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--epic",
+                reason="GitHub issue mode uses issues for input, not epics"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if label:
-            console.print("[red]--gh-issue cannot be used with --label[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--label",
+                reason="GitHub issue mode uses issues for input"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
-            console.print("[red]--gh-issue cannot be used with --ready[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--ready",
+                reason="GitHub issue mode uses issues for input"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
-            console.print("[red]--gh-issue cannot be used with --parallel[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--parallel",
+                reason="GitHub issue mode processes one issue at a time"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if direct:
-            console.print("[red]--gh-issue cannot be used with --direct[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--direct",
+                reason="Choose either GitHub issue mode or direct mode, not both"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     # ==========================================================================
     # Branch protection and auto-branch creation
@@ -829,14 +923,8 @@ def run(
         # --use-current-branch: work in current branch (explicit opt-in)
         # Still protect main/master unless --main-ok is set
         if current_branch in ("main", "master") and not main_ok:
-            console.print(
-                f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]"
-            )
-            console.print(
-                "[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]"
-            )
-            console.print("[dim]or add --main-ok to explicitly allow running on main.[/dim]")
-            raise typer.Exit(1)
+            print_main_branch_error(current_branch)
+            raise typer.Exit(ExitCode.USER_ERROR)
         elif current_branch in ("main", "master"):
             # --main-ok was set, warn but continue
             console.print(
@@ -885,9 +973,7 @@ def run(
                 )
         else:
             # On main/master or detached HEAD - create and switch to new branch
-            console.print(
-                f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]"
-            )
+            console.print(f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]")
             if not _create_branch_from_base(auto_branch_name, base_branch, console):
                 raise typer.Exit(1)
 
@@ -910,12 +996,12 @@ def run(
     if sandbox:
         # Check if Docker is available
         if not is_provider_available("docker"):
-            console.print(
-                "[red]Docker is not available. "
-                "Please install Docker and ensure the daemon is running.[/red]"
+            print_missing_dependency_error(
+                "docker",
+                install_url="https://docs.docker.com/get-docker/",
+                install_cmd="Follow platform-specific instructions at the docs link"
             )
-            console.print("[dim]Install: https://docs.docker.com/get-docker/[/dim]")
-            raise typer.Exit(1)
+            raise typer.Exit(ExitCode.USER_ERROR)
 
         # Delegate to sandbox execution
         exit_code = _run_in_sandbox(
@@ -938,6 +1024,23 @@ def run(
 
     # Load configuration
     config = load_config(project_dir)
+
+    # Initialize sync service (if enabled and auto_sync is "run" or "always")
+    sync_service: SyncService | None = None
+    should_auto_sync = (
+        not no_sync and config.sync.enabled and config.sync.auto_sync in ("run", "always")
+    )
+    if should_auto_sync:
+        sync_service = SyncService(project_dir=project_dir)
+        # Initialize sync branch if not already initialized
+        if not sync_service.is_initialized():
+            try:
+                sync_service.initialize()
+                if debug:
+                    console.print("[dim]Initialized cub-sync branch[/dim]")
+            except Exception as e:
+                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
+                sync_service = None  # Disable auto-sync for this run
 
     # Initialize session manager
     session_manager = RunSessionManager(project_dir / ".cub")
@@ -1027,6 +1130,8 @@ def run(
             run_args.append("--sandbox-keep")
         if no_network:
             run_args.append("--no-network")
+        if no_sync:
+            run_args.append("--no-sync")
         if debug:
             run_args.append("--debug")
 
@@ -1274,9 +1379,15 @@ def run(
                         status.mark_completed()
                         break
                     else:
-                        console.print(
-                            f"[yellow]No ready tasks, but {counts.remaining} tasks "
-                            "remaining. Check dependencies.[/yellow]"
+                        from cub.cli.errors import print_error
+
+                        print_error(
+                            "No ready tasks available",
+                            reason=f"{counts.remaining} tasks remaining but all have "
+                            "unmet dependencies",
+                            solution="cub task list --status blocked  # to see blocked tasks\n"
+                            "       [cyan]→ Or:[/cyan] Check task dependencies with "
+                            "'cub task show <task-id>'",
                         )
                         status.mark_completed()
                         break
@@ -1380,8 +1491,7 @@ def run(
 
                         # Build combined prompt for ledger
                         combined_prompt = (
-                            f"# System Prompt\n\n{system_prompt}\n\n"
-                            f"# Task Prompt\n\n{task_prompt}"
+                            f"# System Prompt\n\n{system_prompt}\n\n# Task Prompt\n\n{task_prompt}"
                         )
 
                         ledger_integration.on_attempt_start(
@@ -1419,6 +1529,7 @@ def run(
 
                         # Convert TokenUsage to LedgerTokenUsage
                         from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
+
                         ledger_tokens = LedgerTokenUsage(
                             input_tokens=result.usage.input_tokens,
                             output_tokens=result.usage.output_tokens,
@@ -1445,9 +1556,7 @@ def run(
                             )
                     except Exception as e:
                         if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record attempt end: {e}[/dim]"
-                            )
+                            console.print(f"[dim]Warning: Failed to record attempt end: {e}[/dim]")
 
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
@@ -1557,19 +1666,32 @@ def run(
                         reason="Completed by autonomous execution",
                     )
                     if debug:
-                        console.print(
-                            f"[dim]Closed task {current_task.id} in backend[/dim]"
-                        )
+                        console.print(f"[dim]Closed task {current_task.id} in backend[/dim]")
                 except Exception as e:
                     # Log but don't fail - the work is done even if closure fails
-                    console.print(
-                        f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]"
-                    )
+                    console.print(f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]")
                     status.add_event(
                         f"Failed to close task in backend: {e}",
                         EventLevel.WARNING,
                         task_id=current_task.id,
                     )
+
+                # Auto-sync task state to cub-sync branch (if enabled)
+                if sync_service is not None:
+                    try:
+                        commit_sha = sync_service.commit(
+                            message=f"Task {current_task.id} completed"
+                        )
+                        if debug:
+                            console.print(f"[dim]Synced to cub-sync branch: {commit_sha[:7]}[/dim]")
+                    except Exception as e:
+                        # Log but don't fail - sync is optional
+                        console.print(f"[yellow]Warning: Failed to sync task state: {e}[/yellow]")
+                        status.add_event(
+                            f"Failed to sync task state: {e}",
+                            EventLevel.WARNING,
+                            task_id=current_task.id,
+                        )
 
                 # Finalize ledger entry after successful task completion
                 if config.ledger.enabled:
@@ -1590,9 +1712,7 @@ def run(
                                     )
                                 )
                             if debug and task_commits:
-                                console.print(
-                                    f"[dim]Captured {len(task_commits)} commits[/dim]"
-                                )
+                                console.print(f"[dim]Captured {len(task_commits)} commits[/dim]")
 
                         ledger_integration.on_task_close(
                             current_task.id,

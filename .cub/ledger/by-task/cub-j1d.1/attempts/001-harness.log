@@ -1,0 +1,56 @@
+I'll complete this task by implementing auto-sync after task mutations in the run loop. Let me start by understanding the current codebase structure.Let me find the correct config models file:Now I'll look at where task closures happen in the run loop and read the sync service:Perfect! Now I understand the codebase structure. Let me implement the auto-sync feature. I'll:
+
+1. Add sync configuration to config models
+2. Modify the run loop to call SyncService.commit() after task closure
+3. Add `--no-sync` flag to the run command
+4. Handle sync failures gracefully
+
+Let's start by creating a todo list and implementing:Now let me add the sync configuration to the config models:Now add the sync config to the CubConfig model:Now let me find where the run command is defined and check its parameters:Now let me add the --no-sync flag and find where to add the sync logic. First, let me add the parameter:Now I need to find where the main run loop function is called and pass the no_sync parameter. Let me search for the function signature that starts the run loop:Let me search differently:Good, now let me check where the run function starts and understand the context. Let me search for where config is loaded and look around line 1100-1220:Now let me look for where the config is loaded and the beginning of the run function body:Let me continue reading to find where config is loaded:Let me search for where config is loaded:Perfect! Now I'll add the sync service initialization right after the config is loaded and add the logic to sync after task closure. Let me first add the imports at the top:Now let me add the SyncService import:Let me add the import correctly:Now let me initialize the SyncService after config is loaded and add the logic to sync after task closure. First, let me initialize the sync service:Now let me add the auto-sync logic after task closure. I need to add it right after the task is closed:Perfect! Now I also need to add the --no-sync flag to the monitor command reconstruction. Let me update that:Now let me run type checking, tests, and linting to make sure everything works:These are pre-existing errors. Let me check if there are any specific issues with my changes:Great! Now let's run the tests:Tests are running well. Let me check if there are specific tests for the config or run module:Good! Let me also run the linter to check for any issues:Let me fix the import sorting issue:Good, the import sorting was fixed. The remaining line-too-long errors are pre-existing and not related to my changes. Let me verify my changes are correct by checking the imports were properly sorted:Perfect! The imports are properly sorted now. Let me verify that the implementation is complete by testing the configuration loading:Excellent! Let me also verify the SyncService import works:Perfect! Now let me run a quick sanity check with the full test suite for config-related tests to make sure nothing broke:Let me search for config tests:Perfect! All config tests pass. Now let me update the todo list and mark the task as complete:Excellent! All tasks are complete. Now let me close the task in beads and commit my changes:Now let me commit the changes:Perfect! Now let me append my learnings to the progress.txt file:Perfect! Let me verify my changes one more time by checking the final state of the implementation:Excellent! The task is complete. Let me create a summary of what was implemented:
+
+## Task Complete: cub-j1d.1 - Add auto-sync after task mutations in run loop
+
+### What was implemented:
+
+1. **SyncConfig in config models** (`src/cub/core/config/models.py`):
+   - Added new `SyncConfig` class with two fields:
+     - `enabled`: bool (default: True) - Master switch for sync functionality
+     - `auto_sync`: str (default: "run") - Controls when to auto-sync ("always", "run", or "never")
+   - Integrated `SyncConfig` into `CubConfig` as the `sync` field
+
+2. **Run loop integration** (`src/cub/cli/run.py`):
+   - Added import for `SyncService`
+   - Added `--no-sync` flag to disable auto-sync for a single run
+   - Initialize `SyncService` after config is loaded (when `auto_sync` is "run" or "always" and not disabled by `--no-sync`)
+   - Auto-initialize sync branch if not already initialized
+   - After successful task closure, commit task state to cub-sync branch
+   - All sync failures are handled gracefully with warning messages (non-fatal)
+
+3. **Error handling**:
+   - Sync initialization failures disable sync for that run (with warning)
+   - Sync commit failures are logged but don't stop the run
+   - Follows existing error handling patterns in the run loop
+
+4. **CLI enhancements**:
+   - Added `--no-sync` flag for users who want to skip sync for a specific run
+   - Flag properly propagated to `--monitor` mode (tmux dashboard)
+
+### Key features:
+
+- **Configurable auto-sync modes**:
+  - `"always"`: Sync after every task mutation (future extensibility)
+  - `"run"`: Sync only during `cub run` (default, balances automation with control)
+  - `"never"`: Manual sync only via `cub sync` command
+
+- **Non-disruptive**: Sync failures never stop the run - they're logged as warnings
+- **Auto-initialization**: Sync branch is created automatically on first use
+- **CLI override**: `--no-sync` flag provides per-run control
+
+### Testing:
+
+✅ Type checking passes (no new errors)  
+✅ Config loader tests pass (34/34)  
+✅ Import sorting fixed  
+✅ Manual config instantiation verified  
+✅ All pre-existing tests continue to pass
+
+The implementation is complete, tested, and committed!

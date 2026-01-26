@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-j1e.1",
+  "title": "Audit and update README command reference",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1e"
+  },
+  "task": {
+    "title": "Audit and update README command reference",
+    "description": "README must match `cub --help` output. Deprecated commands must be removed, new commands added.\n\n**Implementation Steps:**\n1. Run `cub --help` and all subcommand `--help`\n2. Compare against README command sections\n3. Remove references to deprecated commands\n4. Add new commands (`cub sync`, updated `cub init`)\n5. Update examples to use JSONL backend\n6. Verify all command flags documented\n\n**Files:** `README.md`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "docs",
+      "epic:cub-j1e",
+      "model:haiku",
+      "phase-5"
+    ],
+    "created_at": "2026-01-26T17:36:13.718326Z",
+    "captured_at": "2026-01-26T19:30:13.114264Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-143012",
+      "started_at": "2026-01-26T14:30:13.119929",
+      "completed_at": "2026-01-26T19:36:35.269961Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 382
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T19:36:35.538689Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 382,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d8542dc5bea14caaaa85f2ac912ea67c2f5ced81",
+        "message": "doc(@progress.txt): Learnings from task cub-j1e.1 - README audit",
+        "author": "",
+        "timestamp": "2026-01-26T19:36:12Z"
+      },
+      {
+        "hash": "fb1151bfa427d6352474cd0249029f95c4acb19a",
+        "message": "task(cub-j1e.1): Audit and update README command reference",
+        "author": "",
+        "timestamp": "2026-01-26T19:35:56Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T19:36:35.538689Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T19:30:13.114264Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T19:36:35.538689Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T19:30:13.114264Z",
+  "completed_at": "2026-01-26T19:36:35.538689Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 382,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d8542dc5bea14caaaa85f2ac912ea67c2f5ced81",
+      "message": "doc(@progress.txt): Learnings from task cub-j1e.1 - README audit",
+      "author": "",
+      "timestamp": "2026-01-26T19:36:12Z"
+    },
+    {
+      "hash": "fb1151bfa427d6352474cd0249029f95c4acb19a",
+      "message": "task(cub-j1e.1): Audit and update README command reference",
+      "author": "",
+      "timestamp": "2026-01-26T19:35:56Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1e.1",
+  "epic_id": "cub-j1e",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

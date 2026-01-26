@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "cub-j1c",
+  "title": "cub-j1c",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-j1c",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-26T18:45:25.853357Z",
+    "captured_at": "2026-01-26T18:45:25.853357Z"
+  },
+  "task_ids": [
+    "cub-j1c.3",
+    "cub-j1c.2",
+    "cub-j1c.5",
+    "cub-j1c.4",
+    "cub-j1c.1"
+  ],
+  "aggregates": {
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 5,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 2850,
+    "avg_duration_seconds": 570,
+    "models_used": [
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "opus"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T19:18:01.365108Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-26T18:30:19.496157Z",
+  "completed_at": "2026-01-26T19:18:01.346078Z",
+  "updated_at": "2026-01-26T19:18:01.365109Z",
+  "first_commit": {
+    "hash": "0529ce2079b0346766779acac5cdb334718c689d",
+    "message": "task(cub-j1c.1): Create SyncService with git plumbing foundation",
+    "author": "",
+    "timestamp": "2026-01-26T18:44:36Z"
+  },
+  "last_commit": {
+    "hash": "6218e267c67f49ffd687809508ee3a57a67c4427",
+    "message": "task(cub-j1c.5): Create cub sync CLI command and write tests",
+    "author": "",
+    "timestamp": "2026-01-26T19:17:32Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-j1b.3",
+  "title": "Implement divergence detection and logging",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1b"
+  },
+  "task": {
+    "title": "Implement divergence detection and logging",
+    "description": "When backends return different results, we need to detect and log the divergence. This helps validate the JSONL backend matches beads behavior.\n\n**Implementation Steps:**\n1. Implement `_compare_tasks(primary_task, secondary_task) -> list[TaskDivergence]`\n2. Compare all fields: id, title, status, priority, labels, dependencies, etc.\n3. Implement `_log_divergence(divergences: list[TaskDivergence])`\n4. Write to divergence log with timestamp and full context\n5. Add `compare_all_tasks() -> list[TaskDivergence]` for full comparison\n6. Add `get_divergence_count() -> int` for quick check\n\n**Files:** `src/cub/core/tasks/both.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-j1b",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T17:36:13.718233Z",
+    "captured_at": "2026-01-26T18:19:29.574639Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-130644",
+      "started_at": "2026-01-26T13:19:29.578388",
+      "completed_at": "2026-01-26T18:24:27.465976Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 297
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T18:24:27.669678Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 297,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d372d08a99ccd9af3f64d3db2529d0f4a12026ce",
+        "message": "task(cub-j1b.3): Implement divergence detection and logging",
+        "author": "",
+        "timestamp": "2026-01-26T18:23:19Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T18:24:27.669678Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:19:29.574639Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T18:24:27.669678Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T18:19:29.574639Z",
+  "completed_at": "2026-01-26T18:24:27.669678Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 297,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d372d08a99ccd9af3f64d3db2529d0f4a12026ce",
+      "message": "task(cub-j1b.3): Implement divergence detection and logging",
+      "author": "",
+      "timestamp": "2026-01-26T18:23:19Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1b.3",
+  "epic_id": "cub-j1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
