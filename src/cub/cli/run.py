@@ -31,7 +31,6 @@ from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import CommitRef
 from cub.core.ledger.writer import LedgerWriter
-from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -53,12 +52,14 @@ from cub.core.status.models import (
     TaskArtifact,
 )
 from cub.core.status.writer import StatusWriter
+from cub.core.sync.service import SyncService
 from cub.core.tasks.backend import TaskBackend
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.core.tasks.models import Task, TaskStatus
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
+from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
 from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
 
 
@@ -734,6 +735,11 @@ def run(
         help="Base branch for new feature branch (default: origin/main). "
         "Ignored with --use-current-branch.",
     ),
+    no_sync: bool = typer.Option(
+        False,
+        "--no-sync",
+        help="Disable auto-sync for this run (overrides config)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop.
@@ -939,6 +945,27 @@ def run(
     # Load configuration
     config = load_config(project_dir)
 
+    # Initialize sync service (if enabled and auto_sync is "run" or "always")
+    sync_service: SyncService | None = None
+    should_auto_sync = (
+        not no_sync
+        and config.sync.enabled
+        and config.sync.auto_sync in ("run", "always")
+    )
+    if should_auto_sync:
+        sync_service = SyncService(project_dir=project_dir)
+        # Initialize sync branch if not already initialized
+        if not sync_service.is_initialized():
+            try:
+                sync_service.initialize()
+                if debug:
+                    console.print("[dim]Initialized cub-sync branch[/dim]")
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]"
+                )
+                sync_service = None  # Disable auto-sync for this run
+
     # Initialize session manager
     session_manager = RunSessionManager(project_dir / ".cub")
 
@@ -1027,6 +1054,8 @@ def run(
             run_args.append("--sandbox-keep")
         if no_network:
             run_args.append("--no-network")
+        if no_sync:
+            run_args.append("--no-sync")
         if debug:
             run_args.append("--debug")
 
@@ -1570,6 +1599,27 @@ def run(
                         EventLevel.WARNING,
                         task_id=current_task.id,
                     )
+
+                # Auto-sync task state to cub-sync branch (if enabled)
+                if sync_service is not None:
+                    try:
+                        commit_sha = sync_service.commit(
+                            message=f"Task {current_task.id} completed"
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Synced to cub-sync branch: {commit_sha[:7]}[/dim]"
+                            )
+                    except Exception as e:
+                        # Log but don't fail - sync is optional
+                        console.print(
+                            f"[yellow]Warning: Failed to sync task state: {e}[/yellow]"
+                        )
+                        status.add_event(
+                            f"Failed to sync task state: {e}",
+                            EventLevel.WARNING,
+                            task_id=current_task.id,
+                        )
 
                 # Finalize ledger entry after successful task completion
                 if config.ledger.enabled:
