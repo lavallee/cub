@@ -23,8 +23,50 @@
     "captured_at": "2026-01-26T20:06:45.123415Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-145441",
+      "started_at": "2026-01-26T15:06:45.129662",
+      "completed_at": "2026-01-26T20:16:46.738839Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 601
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T20:16:46.968745Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 601,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "0ef3b1174a5483e53aaea2fc269bcfa845395cb4",
+        "message": "task(cub-j1f.2): Add actionable error messages and standardize exit codes",
+        "author": "",
+        "timestamp": "2026-01-26T20:15:51Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T20:06:45.123415Z"
+    "stage_updated_at": "2026-01-26T20:16:46.968745Z"
   },
   "state_history": [
     {
@@ -48,10 +90,16 @@
       "at": "2026-01-26T20:06:45.123415Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T20:16:46.968745Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-26T20:06:45.123415Z",
-  "completed_at": "2026-01-26T20:06:45.123415Z",
+  "completed_at": "2026-01-26T20:16:46.968745Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -59,20 +107,27 @@
     "cache_creation_tokens": 0
   },
   "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "duration_seconds": 601,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "0ef3b1174a5483e53aaea2fc269bcfa845395cb4",
+      "message": "task(cub-j1f.2): Add actionable error messages and standardize exit codes",
+      "author": "",
+      "timestamp": "2026-01-26T20:15:51Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1f.2",
   "epic_id": "cub-j1f",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
