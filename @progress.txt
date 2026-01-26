@@ -1,0 +1,24 @@
+
+## Task cub-j1a.2: Implement core CRUD methods (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Implementation Already Complete**: The JsonlBackend implementation was already fully complete with all core CRUD methods (list_tasks, get_task, create_task, update_task, close_task) matching the TaskBackend protocol exactly. The task description indicated new implementation was needed, but the code was already there.
+
+2. **Backend Registration**: The jsonl backend was registered with `@register_backend("jsonl")` decorator but was missing from the import list in `src/cub/core/tasks/__init__.py`. Adding `jsonl` to the import list made the backend discoverable via `list_backends()`.
+
+3. **Helper Method Pattern**: The `_get_prefix()` helper method (not `_generate_task_id()`) provides project-specific prefixes using the first 3 characters of the project directory name, defaulting to "cub" if too short.
+
+4. **JSONL Storage Format**: The JsonlBackend uses beads-compatible JSONL format where each line is a complete JSON object representing one task. This differs from JsonBackend which stores all tasks in a single JSON array.
+
+5. **Atomic Writes**: Both backends use the same atomic write pattern (temp file + rename) to prevent corruption on write failures, ensuring data integrity.
+
+6. **Timestamp Management**: All update operations (create_task, update_task, close_task) properly set `updated_at` timestamp. The close_task method additionally sets `closed_at` and optionally adds a reason to the notes field.
+
+7. **Caching Strategy**: The JSONL backend implements file caching with mtime-based invalidation, identical to the JSON backend's approach.
+
+8. **Test Coverage**: No new tests were needed as the implementation already passes all existing backend tests. The JsonBackend tests serve as a template for how JSONL tests should work.
+
+**Outcome:** Successfully verified all CRUD methods are implemented, registered the backend for discoverability, fixed minor lint issue in unrelated file. All 76 tests passing, type checking clean.

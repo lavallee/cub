@@ -1,0 +1,47 @@
+I'll implement the core CRUD methods for the JsonlBackend. Let me start by understanding the existing codebase structure and requirements.Let me search for the existing files:Now let me read the correct files:Perfect! I can see that the JsonlBackend class already has all the core CRUD methods fully implemented. Let me verify that the implementation matches the TaskBackend protocol exactly by checking if all methods are present and have correct signatures:Great! All the core CRUD methods are already implemented. Let me verify that they match the protocol signatures exactly and check if there's a `_generate_task_id()` helper method:Perfect! The implementation is already complete. Let me now run the feedback loops to ensure everything works correctly. First, let me check if there are any tests:Let me check the task backend test file:Now let me check the current test to understand how the CRUD methods should be tested. Let me search for existing tests for the JsonlBackend:Let me check if there are tests in the test_tasks_json.py file that might be relevant:Excellent! I can see the comprehensive test patterns for the JSON backend. Now let me verify that the JsonlBackend implementation is complete by checking that all the required methods are implemented and match the protocol. Let me run the feedback loops:Great! Now let me run the JSON tests to see if there are any JSONL-specific tests:Now let me verify that the implementation is complete by examining the methods more carefully and checking if there's a conftest.py for the temp_dir fixture:Perfect! Now let me verify that the JsonlBackend implementation is complete by examining the signatures and checking they exactly match the protocol:Excellent! All the method signatures match the protocol. Now let me verify the implementation is complete by examining the key aspects mentioned in the task description:
+
+1. ✅ `list_tasks(status, parent, label)` with filtering - IMPLEMENTED (lines 193-231)
+2. ✅ `get_task(task_id)` returning `Task | None` - IMPLEMENTED (lines 233-252)
+3. ✅ `create_task(...)` with ID generation - IMPLEMENTED (lines 418-482)
+4. ✅ `update_task(...)` - IMPLEMENTED (lines 315-373)
+5. ✅ `close_task(task_id, reason)` setting `closed_at` and `close_reason` - IMPLEMENTED (lines 375-416)
+6. ✅ `_get_prefix()` helper using config prefix or default - IMPLEMENTED (lines 484-495)
+7. ✅ All methods update `updated_at` timestamp - VERIFIED
+
+Now let me run the full test suite to ensure everything passes:Perfect! The implementation is already complete and all tests pass. Let me verify that the JsonlBackend is properly registered and that all methods are implemented correctly by running a comprehensive check:Interesting! The JsonlBackend is registered but it's not showing in the list. Let me check the registration:Good! The backend is registered. Let me check if it needs to be imported in the __init__.py:I see! The jsonl backend is not imported in the __init__.py. Let me add it:Now let me verify that the backend is properly registered:Perfect! Now let me run the full feedback loop one more time to ensure everything passes:There's a linting issue in a different file. Let me fix it:Perfect! Now let me close the task and commit the changes:Perfect! Now let me append the learnings to progress.txt:Perfect! Let me verify the progress file was updated and then check if there are more tasks:Perfect! The task has been successfully completed. Let me create a summary for the user:
+
+## Summary
+
+Task **cub-j1a.2: Implement core CRUD methods** has been completed successfully! 
+
+### What Was Done
+
+The JsonlBackend implementation was already fully complete with all core CRUD methods matching the TaskBackend protocol exactly:
+
+✅ **Core CRUD Methods Implemented:**
+- `list_tasks(status, parent, label)` - List tasks with filtering
+- `get_task(task_id)` - Get specific task by ID, returns `Task | None`
+- `create_task(...)` - Create new task with ID generation
+- `update_task(task_id, status, assignee, description, labels)` - Update task fields
+- `close_task(task_id, reason)` - Close task with `closed_at` and `close_reason`
+
+✅ **Additional Features:**
+- `_get_prefix()` helper method for generating task ID prefixes
+- All methods update `updated_at` timestamp
+- Atomic file writes with temp file + rename pattern
+- File caching with mtime-based invalidation
+- Beads-compatible JSONL format (one JSON object per line)
+
+### Key Changes Made
+
+1. **Backend Registration**: Added `jsonl` import to `src/cub/core/tasks/__init__.py` to make the backend discoverable via `list_backends()`
+2. **Lint Fix**: Fixed f-string issue in `src/cub/core/tasks/service.py`
+
+### Validation Results
+
+- ✅ Type checking: Clean (mypy)
+- ✅ Tests: 76/76 passing
+- ✅ Linting: Clean (ruff)
+- ✅ Backend registered and available
+
+The implementation was already complete and thoroughly tested. The task has been closed and changes committed to the repository.

@@ -12,9 +12,11 @@
     "description": "",
     "type": "task",
     "priority": 1,
-    "labels": [],
+    "labels": [
+      "model:haiku"
+    ],
     "created_at": null,
-    "captured_at": "2026-01-25T06:11:34.134375Z"
+    "captured_at": "2026-01-26T17:45:29.978795Z"
   },
   "task_changed": null,
   "attempts": [],
@@ -34,18 +36,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-25T06:11:34.134375Z"
+    "stage_updated_at": "2026-01-26T17:45:29.978795Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-25T06:11:34.134375Z",
+      "at": "2026-01-26T17:45:29.978795Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-25T06:11:34.134375Z",
-  "completed_at": "2026-01-25T06:11:34.134375Z",
+  "started_at": "2026-01-26T17:45:29.978795Z",
+  "completed_at": "2026-01-26T17:45:29.978795Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
