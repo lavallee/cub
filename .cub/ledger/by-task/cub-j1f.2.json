@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-j1f.2",
+  "title": "Add actionable error messages and standardize exit codes",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-j1f"
+  },
+  "task": {
+    "title": "Add actionable error messages and standardize exit codes",
+    "description": "Errors should tell users how to fix the problem. Exit codes should be consistent (0=success, 1=error, 2=user error).\n\n**Implementation Steps:**\n1. Audit common error paths (no harness, no git, no tasks)\n2. Add actionable suggestions to each error\n3. Standardize exit codes: 0=success, 1=error, 2=user error\n4. Create error message templates with consistent format\n5. Test error scenarios manually\n\n**Files:** `src/cub/cli/*.py`",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-j1f",
+      "model:sonnet",
+      "phase-6"
+    ],
+    "created_at": "2026-01-26T17:36:13.718363Z",
+    "captured_at": "2026-01-26T20:06:45.123415Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T20:06:45.123415Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T20:06:45.123415Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-26T20:06:45.123415Z",
+  "completed_at": "2026-01-26T20:06:45.123415Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-j1f.2",
+  "epic_id": "cub-j1f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

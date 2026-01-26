@@ -9,6 +9,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.cli.errors import ExitCode, print_sync_not_initialized_error
 from cub.core.sync import SyncService, SyncStatus
 from cub.core.sync.service import GitError
 
@@ -62,9 +63,8 @@ def sync(
 
         # Check if initialized
         if not sync_service.is_initialized():
-            console.print("[yellow]Sync branch not initialized.[/yellow]")
-            console.print("Run [bold]cub sync init[/bold] first.")
-            raise typer.Exit(1)
+            print_sync_not_initialized_error()
+            raise typer.Exit(ExitCode.USER_ERROR)
 
         # Pull if requested
         if pull:

@@ -9,6 +9,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.cli.errors import ExitCode, print_error, print_invalid_option_error
 from cub.core.ledger.models import WorkflowStage
 from cub.core.ledger.reader import LedgerReader
 from cub.core.ledger.writer import LedgerWriter
@@ -67,31 +68,38 @@ def set_stage(
     try:
         workflow_stage = WorkflowStage(stage)
     except ValueError:
-        console.print(f"[red]Error:[/red] Invalid stage: {stage}")
-        console.print("Valid stages: needs_review, validated, released")
-        raise typer.Exit(1)
+        print_invalid_option_error(stage, [s.value for s in WorkflowStage])
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     reader, writer = _get_ledger_paths()
 
     if not reader.exists():
-        console.print(
-            "[red]Error:[/red] No ledger found. "
-            "Tasks must be completed before setting workflow stage."
+        print_error(
+            "No ledger found",
+            reason="Tasks must be completed before setting workflow stage",
+            solution="cub run  # to complete tasks first"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     # Check if task exists in ledger
     entry = reader.get_task(task_id)
     if not entry:
-        console.print(f"[red]Error:[/red] Task '{task_id}' not found in ledger")
-        console.print("Tasks must be completed (in ledger) before setting workflow stage.")
-        raise typer.Exit(1)
+        print_error(
+            f"Task '{task_id}' not found in ledger",
+            reason="Only completed tasks appear in the ledger",
+            solution="cub ledger  # to see completed tasks"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     # Update workflow stage
     success = writer.update_workflow_stage(task_id, workflow_stage)
     if not success:
-        console.print(f"[red]Error:[/red] Failed to update workflow stage for '{task_id}'")
-        raise typer.Exit(1)
+        print_error(
+            f"Failed to update workflow stage for '{task_id}'",
+            reason="The ledger file may be corrupted or inaccessible",
+            solution="Check .cub/ledger.jsonl permissions"
+        )
+        raise typer.Exit(ExitCode.GENERAL_ERROR)
 
     console.print(
         f"[green]Updated[/green] {task_id} workflow stage to "

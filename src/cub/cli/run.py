@@ -23,6 +23,14 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from cub.cli.errors import (
+    ExitCode,
+    print_harness_not_found_error,
+    print_harness_not_installed_error,
+    print_incompatible_flags_error,
+    print_main_branch_error,
+    print_missing_dependency_error,
+)
 from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
@@ -112,9 +120,7 @@ def _setup_harness(
     # so that tests can mock them properly
     harness_name = harness or detect_async_harness(priority_list)
     if not harness_name:
-        console.print(
-            "[red]No harness available. Install claude, codex, or another supported harness.[/red]"
-        )
+        print_harness_not_found_error()
         return None
 
     try:
@@ -124,7 +130,7 @@ def _setup_harness(
         return None
 
     if not harness_backend.is_available():
-        console.print(f"[red]Harness '{harness_name}' is not available. Is it installed?[/red]")
+        print_harness_not_installed_error(harness_name)
         return None
 
     if debug:
@@ -817,51 +823,90 @@ def run(
 
     # Validate flags
     if no_network and not sandbox:
-        console.print("[red]--no-network requires --sandbox[/red]")
-        raise typer.Exit(1)
+        print_incompatible_flags_error(
+            "--no-network", "--sandbox",
+            reason="Network isolation is only available in sandbox mode"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     if sandbox_keep and not sandbox:
-        console.print("[red]--sandbox-keep requires --sandbox[/red]")
-        raise typer.Exit(1)
+        print_incompatible_flags_error(
+            "--sandbox-keep", "--sandbox",
+            reason="Can only preserve sandboxes when sandbox mode is enabled"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     if direct:
         # --direct is incompatible with task management flags
         if task_id:
-            console.print("[red]--direct cannot be used with --task[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--task",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
-            console.print("[red]--direct cannot be used with --epic[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--epic",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if label:
-            console.print("[red]--direct cannot be used with --label[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--label",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
-            console.print("[red]--direct cannot be used with --ready[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--ready",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
-            console.print("[red]--direct cannot be used with --parallel[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--direct", "--parallel",
+                reason="Direct mode runs without task management"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     if gh_issue is not None:
         # --gh-issue is incompatible with task management flags
         if task_id:
-            console.print("[red]--gh-issue cannot be used with --task[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--task",
+                reason="GitHub issue mode uses issues for input, not tasks"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
-            console.print("[red]--gh-issue cannot be used with --epic[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--epic",
+                reason="GitHub issue mode uses issues for input, not epics"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if label:
-            console.print("[red]--gh-issue cannot be used with --label[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--label",
+                reason="GitHub issue mode uses issues for input"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
-            console.print("[red]--gh-issue cannot be used with --ready[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--ready",
+                reason="GitHub issue mode uses issues for input"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
-            console.print("[red]--gh-issue cannot be used with --parallel[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--parallel",
+                reason="GitHub issue mode processes one issue at a time"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
         if direct:
-            console.print("[red]--gh-issue cannot be used with --direct[/red]")
-            raise typer.Exit(1)
+            print_incompatible_flags_error(
+                "--gh-issue", "--direct",
+                reason="Choose either GitHub issue mode or direct mode, not both"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     # ==========================================================================
     # Branch protection and auto-branch creation
@@ -878,10 +923,8 @@ def run(
         # --use-current-branch: work in current branch (explicit opt-in)
         # Still protect main/master unless --main-ok is set
         if current_branch in ("main", "master") and not main_ok:
-            console.print(f"[red]Cannot run on '{current_branch}' branch without --main-ok[/red]")
-            console.print("[dim]Remove --use-current-branch to auto-create a feature branch,[/dim]")
-            console.print("[dim]or add --main-ok to explicitly allow running on main.[/dim]")
-            raise typer.Exit(1)
+            print_main_branch_error(current_branch)
+            raise typer.Exit(ExitCode.USER_ERROR)
         elif current_branch in ("main", "master"):
             # --main-ok was set, warn but continue
             console.print(
@@ -953,12 +996,12 @@ def run(
     if sandbox:
         # Check if Docker is available
         if not is_provider_available("docker"):
-            console.print(
-                "[red]Docker is not available. "
-                "Please install Docker and ensure the daemon is running.[/red]"
+            print_missing_dependency_error(
+                "docker",
+                install_url="https://docs.docker.com/get-docker/",
+                install_cmd="Follow platform-specific instructions at the docs link"
             )
-            console.print("[dim]Install: https://docs.docker.com/get-docker/[/dim]")
-            raise typer.Exit(1)
+            raise typer.Exit(ExitCode.USER_ERROR)
 
         # Delegate to sandbox execution
         exit_code = _run_in_sandbox(
@@ -1336,9 +1379,15 @@ def run(
                         status.mark_completed()
                         break
                     else:
-                        console.print(
-                            f"[yellow]No ready tasks, but {counts.remaining} tasks "
-                            "remaining. Check dependencies.[/yellow]"
+                        from cub.cli.errors import print_error
+
+                        print_error(
+                            "No ready tasks available",
+                            reason=f"{counts.remaining} tasks remaining but all have "
+                            "unmet dependencies",
+                            solution="cub task list --status blocked  # to see blocked tasks\n"
+                            "       [cyan]→ Or:[/cyan] Check task dependencies with "
+                            "'cub task show <task-id>'",
                         )
                         status.mark_completed()
                         break

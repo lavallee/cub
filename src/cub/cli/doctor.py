@@ -138,6 +138,7 @@ def check_environment() -> int:
         console.print(f"[green]✓[/green] git {version}")
     else:
         console.print("[red]✗[/red] git not installed (required)")
+        console.print("[dim]→ Install: https://git-scm.com/downloads[/dim]")
         issues += 1
 
     # Check for at least one harness
@@ -155,6 +156,8 @@ def check_environment() -> int:
         console.print(
             "[red]✗[/red] No AI harness found (need claude, codex, gemini, or opencode)"
         )
+        console.print("[dim]→ Install: pip install anthropic-claude  # or another harness[/dim]")
+        console.print("[dim]  Docs: https://docs.anthropic.com/claude-code[/dim]")
         issues += 1
 
     # Check beads (optional)

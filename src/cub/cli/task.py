@@ -11,6 +11,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.cli.errors import (
+    ExitCode,
+    print_invalid_option_error,
+    print_no_tasks_found_error,
+    print_task_not_found_error,
+)
 from cub.core.tasks.backend import get_backend
 from cub.core.tasks.models import TaskStatus
 
@@ -187,9 +193,11 @@ def list_tasks(
         try:
             task_status = TaskStatus(status.lower())
         except ValueError:
-            console.print(f"[red]Error:[/red] Invalid status: {status}")
-            console.print("Valid statuses: open, in_progress, closed")
-            raise typer.Exit(1)
+            print_invalid_option_error(
+                status,
+                [s.value for s in TaskStatus]
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     tasks = backend.list_tasks(status=task_status, parent=parent, label=label)
 
@@ -199,7 +207,15 @@ def list_tasks(
         return
 
     if not tasks:
-        console.print("[yellow]No tasks found matching criteria.[/yellow]")
+        criteria_parts = []
+        if status:
+            criteria_parts.append(f"status={status}")
+        if parent:
+            criteria_parts.append(f"parent={parent}")
+        if label:
+            criteria_parts.append(f"label={label}")
+        criteria_str = " ".join(criteria_parts) if criteria_parts else None
+        print_no_tasks_found_error(criteria_str)
         return
 
     table = Table(show_header=True, header_style="bold cyan")
@@ -266,8 +282,8 @@ def update(
     # First get the task to check if it exists and get current labels
     task = backend.get_task(task_id)
     if task is None:
-        console.print(f"[red]Error:[/red] Task not found: {task_id}")
-        raise typer.Exit(1)
+        print_task_not_found_error(task_id)
+        raise typer.Exit(ExitCode.USER_ERROR)
 
     # Convert status string to TaskStatus
     task_status: TaskStatus | None = None
@@ -275,9 +291,11 @@ def update(
         try:
             task_status = TaskStatus(status.lower())
         except ValueError:
-            console.print(f"[red]Error:[/red] Invalid status: {status}")
-            console.print("Valid statuses: open, in_progress, closed")
-            raise typer.Exit(1)
+            print_invalid_option_error(
+                status,
+                [s.value for s in TaskStatus]
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
 
     # Handle label additions
     new_labels: list[str] | None = None

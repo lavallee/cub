@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-j1f",
+  "title": "cub-j1f",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-j1f",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-26T20:06:42.831781Z",
+    "captured_at": "2026-01-26T20:06:42.831781Z"
+  },
+  "task_ids": [
+    "cub-j1f.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 721,
+    "avg_duration_seconds": 721,
+    "models_used": [
+      "haiku"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T20:06:42.848478Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-26T19:54:41.421924Z",
+  "completed_at": "2026-01-26T20:06:42.828185Z",
+  "updated_at": "2026-01-26T20:06:42.848481Z",
+  "first_commit": {
+    "hash": "e499db80749b637d5ed7f97dc1659cb669bdaa78",
+    "message": "task(cub-j1f.1): Audit and improve command help text",
+    "author": "",
+    "timestamp": "2026-01-26T20:05:50Z"
+  },
+  "last_commit": {
+    "hash": "7fff68e441c6295a0c39962923298d156e9daa05",
+    "message": "docs: Append learnings from cub-j1f.1 task",
+    "author": "",
+    "timestamp": "2026-01-26T20:06:16Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
