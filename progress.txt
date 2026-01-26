@@ -9736,3 +9736,37 @@ Successfully implemented comprehensive integration tests for all exit scenarios 
 - Integration tests complement unit tests in test_run_core.py
 
 All tests pass, typecheck passes, lint passes.
+
+## Task cub-r4h.3: Ensure artifacts on all exits (2026-01-26)
+
+**What was accomplished:**
+- Fixed all exit paths in run.py to ensure artifacts are preserved on all exits
+- Added try/finally blocks to _run_direct, _run_gh_issue, _run_in_sandbox, and _run_parallel
+- Fixed signal handler to use raise SystemExit instead of sys.exit to preserve finally blocks
+- Moved pre-loop hook check inside try block to ensure finally block runs on failure
+- All alternate execution modes now create run.json artifacts for forensic tracking
+
+**Key insights:**
+1. **sys.exit() bypasses finally blocks** - Must use `raise SystemExit(code)` to allow cleanup
+2. **Try block placement matters** - Pre-loop code must be inside try block for finally to run
+3. **Artifact creation resilience** - Always wrap artifact writes in try/except to prevent cascading failures
+4. **Alternate modes need artifacts too** - Direct, gh-issue, sandbox, and parallel modes all need unified tracking
+5. **Host vs container artifacts** - Sandbox mode creates artifacts inside container, host needs separate tracking
+
+**Code patterns established:**
+- Track execution state (exit_code, result) at function scope for finally block access
+- Create StatusWriter early, even before main execution begins
+- Always use try/finally for run artifact creation with defensive error handling
+- Use `artifact_path = status_writer.run_artifact_path` to avoid line length issues
+
+**Testing validation:**
+- All 8 integration tests in test_run_exits.py pass
+- No type errors introduced
+- All linter warnings resolved
+- Existing functionality preserved
+
+**Files modified:**
+- src/cub/cli/run.py: +411/-123 lines (comprehensive artifact preservation)
+
+**Next steps:**
+This completes the core E4 deliverable. All exit paths now preserve artifacts.
