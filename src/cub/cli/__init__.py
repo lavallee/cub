@@ -14,6 +14,7 @@ from cub.cli import (
     captures,
     dashboard,
     delegated,
+    docs,
     doctor,
     ledger,
     merge,
@@ -212,6 +213,7 @@ def version() -> None:
     raise typer.Exit(0)
 
 
+app.command(name="docs", rich_help_panel=PANEL_INSTALL)(docs.docs)
 app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
