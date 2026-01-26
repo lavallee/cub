@@ -9479,3 +9479,46 @@ Implemented the remaining protocol methods for JsonlBackend: `backend_name`, `ge
 
 **Outcome:** Task was already complete. Verified implementation meets all requirements, ran feedback loops, formatted code, and committed.
 
+
+## Task cub-j1c.1: Create SyncService with git plumbing foundation
+
+**Completed:** 2026-01-26
+
+**Implementation:**
+1. Created `src/cub/core/sync/` module with three files:
+   - `__init__.py` - Module exports (SyncService, SyncState)
+   - `models.py` - Pydantic models (SyncState, SyncStatus, SyncResult, SyncConflict)
+   - `service.py` - SyncService class with git plumbing operations
+
+2. Key SyncService methods implemented:
+   - `__init__(project_dir, branch_name, tasks_file)` - Configuration
+   - `_run_git(args)` - Subprocess wrapper with error handling and timeout
+   - `is_initialized()` - Check if sync branch exists via `git show-ref`
+   - `initialize()` - Create branch from HEAD or empty tree using `git update-ref`
+   - `get_state()` - Load/return SyncState from `.cub/.sync-state.json`
+
+3. SyncState model includes:
+   - Branch and file configuration
+   - Last commit/push tracking with SHAs and timestamps
+   - Content hash for change detection
+   - Helper methods: `has_unpushed_changes()`, `mark_synced()`, `mark_pushed()`
+
+4. Tests added (23 total):
+   - TestSyncServiceInit (4 tests) - Configuration and paths
+   - TestGitCommandExecution (3 tests) - Git helper behavior
+   - TestIsInitialized (3 tests) - Branch detection
+   - TestInitialize (5 tests) - Branch creation from HEAD/empty tree
+   - TestSyncState (5 tests) - Model behavior
+   - TestStateFilePersistence (3 tests) - File I/O
+
+**Key patterns followed:**
+- Pydantic v2 models with `model_validate_json()` / `model_dump_json()`
+- Atomic file writes via temp file + rename
+- Subprocess with timeout (60s) and proper error handling
+- GitError exception class with command and stderr info
+- Fixtures using `tmp_path` for test isolation
+
+**Pre-existing issues noted:**
+- mypy errors for missing stubs (yaml, requests) - not related to this task
+- ruff lint errors in existing files - not related to this task
+

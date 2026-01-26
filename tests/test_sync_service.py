@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from cub.core.sync import SyncConflict, SyncResult, SyncService, SyncState
+from cub.core.sync import SyncConflict, SyncResult, SyncService, SyncState, SyncStatus
 from cub.core.sync.service import GitError
 
 
@@ -1407,3 +1407,494 @@ class TestGetTaskUpdatedAt:
         result = sync._get_task_updated_at(task)
 
         assert result is None
+
+
+class TestPush:
+    """Tests for the push method."""
+
+    @pytest.fixture
+    def git_repo_with_remote(self, tmp_path: Path) -> tuple[Path, Path]:
+        """
+        Create a git repo with a remote for testing push operations.
+
+        Returns:
+            Tuple of (local_repo_path, remote_repo_path).
+        """
+        # Create "remote" bare repo
+        remote_repo = tmp_path / "remote.git"
+        subprocess.run(["git", "init", "--bare", str(remote_repo)], capture_output=True, check=True)
+
+        # Create local repo
+        local_repo = tmp_path / "local"
+        local_repo.mkdir()
+        subprocess.run(["git", "init"], cwd=local_repo, capture_output=True, check=True)
+
+        # Configure git user
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Add remote
+        subprocess.run(
+            ["git", "remote", "add", "origin", str(remote_repo)],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create initial commit on local
+        (local_repo / "README.md").write_text("# Test\n")
+        subprocess.run(["git", "add", "README.md"], cwd=local_repo, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        return local_repo, remote_repo
+
+    def test_push_requires_initialization(self, git_repo_with_remote: tuple[Path, Path]) -> None:
+        """push raises if sync branch not initialized."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+
+        with pytest.raises(RuntimeError, match="not initialized"):
+            sync.push()
+
+    def test_push_succeeds_when_remote_branch_doesnt_exist(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """push creates remote branch if it doesn't exist."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks file and commit
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001", "title": "Test task"}\n')
+        sync.commit("Initial sync")
+
+        # Push should succeed and create remote branch
+        result = sync.push()
+
+        assert result is True
+
+        # Verify remote branch exists
+        remote_branches = subprocess.run(
+            ["git", "branch", "-r"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+        assert "origin/cub-sync" in remote_branches
+
+    def test_push_updates_state(self, git_repo_with_remote: tuple[Path, Path]) -> None:
+        """push updates sync state with push SHA and timestamp."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks file and commit
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        commit_sha = sync.commit("Test sync")
+
+        # Push
+        result = sync.push()
+
+        assert result is True
+
+        # Verify state was updated
+        state = sync.get_state()
+        assert state.last_push_sha == commit_sha
+        assert state.last_push_at is not None
+
+    def test_push_handles_failure_gracefully(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """push returns False when push fails."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Remove the remote to cause push to fail
+        subprocess.run(
+            ["git", "remote", "remove", "origin"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Push should fail but not raise
+        result = sync.push()
+
+        assert result is False
+
+    def test_push_updates_existing_remote_branch(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """push updates remote branch when it already exists."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create and push first commit
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("First sync")
+        sync.push()
+
+        # Get remote SHA
+        first_remote_sha = subprocess.run(
+            ["git", "rev-parse", "origin/cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        # Create and push second commit
+        tasks_path.write_text('{"id": "task-001"}\n{"id": "task-002"}\n')
+        sync.commit("Second sync")
+        sync.push()
+
+        # Get new remote SHA
+        second_remote_sha = subprocess.run(
+            ["git", "rev-parse", "origin/cub-sync"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+
+        # Should be different
+        assert second_remote_sha != first_remote_sha
+
+    def test_push_does_not_affect_working_tree(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """push doesn't modify files in the working tree."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks file and commit
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("Test sync")
+
+        # Record initial git status
+        initial_status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+        # Push
+        sync.push()
+
+        # Verify git status is unchanged
+        final_status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=local_repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+        assert final_status == initial_status
+
+
+class TestGetStatus:
+    """Tests for the get_status method."""
+
+    @pytest.fixture
+    def git_repo_with_remote(self, tmp_path: Path) -> tuple[Path, Path]:
+        """
+        Create a git repo with a remote for testing status operations.
+
+        Returns:
+            Tuple of (local_repo_path, remote_repo_path).
+        """
+        # Create "remote" bare repo
+        remote_repo = tmp_path / "remote.git"
+        subprocess.run(["git", "init", "--bare", str(remote_repo)], capture_output=True, check=True)
+
+        # Create local repo
+        local_repo = tmp_path / "local"
+        local_repo.mkdir()
+        subprocess.run(["git", "init"], cwd=local_repo, capture_output=True, check=True)
+
+        # Configure git user
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Add remote
+        subprocess.run(
+            ["git", "remote", "add", "origin", str(remote_repo)],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Create initial commit on local
+        (local_repo / "README.md").write_text("# Test\n")
+        subprocess.run(["git", "add", "README.md"], cwd=local_repo, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Initial commit"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        return local_repo, remote_repo
+
+    def test_status_returns_uninitialized_when_not_initialized(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns UNINITIALIZED when sync branch doesn't exist."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+
+        status = sync.get_status()
+
+        assert status == SyncStatus.UNINITIALIZED
+
+    def test_status_returns_no_remote_when_remote_branch_doesnt_exist(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns NO_REMOTE when remote branch doesn't exist."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        status = sync.get_status()
+
+        assert status == SyncStatus.NO_REMOTE
+
+    def test_status_returns_up_to_date_when_branches_match(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns UP_TO_DATE when local and remote are identical."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks and push
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("Initial sync")
+        sync.push()
+
+        # Status should be up to date
+        status = sync.get_status()
+
+        assert status == SyncStatus.UP_TO_DATE
+
+    def test_status_returns_ahead_when_local_has_new_commits(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns AHEAD when local has commits not pushed."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks and push
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("Initial sync")
+        sync.push()
+
+        # Add another commit locally
+        tasks_path.write_text('{"id": "task-001"}\n{"id": "task-002"}\n')
+        sync.commit("Second sync")
+
+        # Status should be ahead
+        status = sync.get_status()
+
+        assert status == SyncStatus.AHEAD
+
+    def test_status_returns_behind_when_remote_has_new_commits(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns BEHIND when remote has commits not pulled."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create tasks and push
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("Initial sync")
+        sync.push()
+
+        # Simulate remote changes by cloning, modifying, and pushing
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text(
+            '{"id": "task-001"}\n'
+            '{"id": "task-002"}\n'
+        )
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Add remote task"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Status should be behind
+        status = sync.get_status()
+
+        assert status == SyncStatus.BEHIND
+
+    def test_status_returns_diverged_when_branches_diverged(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status returns DIVERGED when local and remote have diverged."""
+        local_repo, remote_repo = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Create initial tasks and push
+        tasks_path = local_repo / ".cub" / "tasks.jsonl"
+        tasks_path.parent.mkdir(parents=True, exist_ok=True)
+        tasks_path.write_text('{"id": "task-001"}\n')
+        sync.commit("Initial sync")
+        sync.push()
+
+        # Create local change
+        tasks_path.write_text('{"id": "task-001"}\n{"id": "task-002"}\n')
+        sync.commit("Local change")
+
+        # Create different remote change
+        second_clone = local_repo.parent / "second_clone"
+        subprocess.run(
+            ["git", "clone", str(remote_repo), str(second_clone)],
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.com"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test User"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        subprocess.run(
+            ["git", "checkout", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        tasks_in_clone = second_clone / ".cub" / "tasks.jsonl"
+        tasks_in_clone.write_text(
+            '{"id": "task-001"}\n'
+            '{"id": "task-003"}\n'
+        )
+        subprocess.run(["git", "add", "."], cwd=second_clone, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "Remote change"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "push", "origin", "cub-sync"],
+            cwd=second_clone,
+            capture_output=True,
+            check=True,
+        )
+
+        # Status should be diverged
+        status = sync.get_status()
+
+        assert status == SyncStatus.DIVERGED
+
+    def test_status_handles_fetch_failure_gracefully(
+        self, git_repo_with_remote: tuple[Path, Path]
+    ) -> None:
+        """get_status handles fetch failures gracefully."""
+        local_repo, _ = git_repo_with_remote
+        sync = SyncService(project_dir=local_repo)
+        sync.initialize()
+
+        # Remove remote to cause fetch to fail
+        subprocess.run(
+            ["git", "remote", "remove", "origin"],
+            cwd=local_repo,
+            capture_output=True,
+            check=True,
+        )
+
+        # Should handle gracefully
+        status = sync.get_status()
+
+        assert status == SyncStatus.NO_REMOTE

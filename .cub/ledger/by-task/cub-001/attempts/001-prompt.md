@@ -1,9 +1,9 @@
 ---
 attempt: 1
 harness: claude
-model: haiku
-run_id: cub-20260126-132235
-started_at: '2026-01-26T18:22:35.955317+00:00'
+model: sonnet
+run_id: cub-20260126-140434
+started_at: '2026-01-26T19:04:34.184995+00:00'
 ---
 
 # System Prompt

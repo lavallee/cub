@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from cub.core.sync.models import SyncConflict, SyncResult, SyncState
+from cub.core.sync.models import SyncConflict, SyncResult, SyncState, SyncStatus
 
 logger = logging.getLogger(__name__)
 
@@ -805,3 +805,102 @@ class SyncService:
             started_at=started_at,
             completed_at=datetime.now(),
         )
+
+    def push(self) -> bool:
+        """
+        Push local sync branch to remote.
+
+        Pushes the sync branch to the configured remote (default: origin).
+        If the remote branch doesn't exist, it will be created automatically.
+
+        Returns:
+            True if push succeeded, False otherwise.
+
+        Raises:
+            RuntimeError: If sync branch not initialized.
+        """
+        if not self.is_initialized():
+            raise RuntimeError(
+                f"Sync branch '{self.branch_name}' not initialized. Call initialize() first."
+            )
+
+        state = self._load_state()
+
+        try:
+            # Push sync branch to remote
+            # Use --set-upstream to create remote branch if it doesn't exist
+            self._run_git([
+                "push",
+                "--set-upstream",
+                state.remote_name,
+                self.branch_name,
+            ])
+
+            # Update state with successful push
+            state.mark_pushed()
+            self._save_state(state)
+
+            logger.info("Pushed sync branch to %s/%s", state.remote_name, self.branch_name)
+            return True
+
+        except GitError as e:
+            logger.error("Failed to push sync branch: %s", e.stderr or str(e))
+            return False
+
+    def get_status(self) -> SyncStatus:
+        """
+        Get sync status comparing local and remote branches.
+
+        Compares the local sync branch with the remote tracking branch to
+        determine if local is up-to-date, ahead, behind, or diverged.
+
+        Returns:
+            SyncStatus enum indicating the relationship between local and remote.
+        """
+        # Check if sync branch is initialized
+        if not self.is_initialized():
+            return SyncStatus.UNINITIALIZED
+
+        state = self._load_state()
+        remote_ref = f"{state.remote_name}/{self.branch_name}"
+
+        # Try to fetch remote branch
+        try:
+            fetch_success = self._fetch_remote_branch()
+        except GitError as e:
+            logger.warning("Failed to fetch remote: %s", e.stderr or str(e))
+            return SyncStatus.NO_REMOTE
+
+        if not fetch_success:
+            # Remote branch doesn't exist
+            return SyncStatus.NO_REMOTE
+
+        # Get local and remote commit SHAs
+        local_sha = self._get_branch_sha(self.branch_ref)
+        remote_sha = self._get_branch_sha(f"refs/remotes/{remote_ref}")
+
+        if local_sha is None or remote_sha is None:
+            return SyncStatus.NO_REMOTE
+
+        # Check if they're the same
+        if local_sha == remote_sha:
+            return SyncStatus.UP_TO_DATE
+
+        # Use git merge-base to determine relationship
+        try:
+            # Get common ancestor
+            merge_base = self._run_git(["merge-base", local_sha, remote_sha])
+
+            if merge_base == local_sha:
+                # Local is ancestor of remote - we're behind
+                return SyncStatus.BEHIND
+            elif merge_base == remote_sha:
+                # Remote is ancestor of local - we're ahead
+                return SyncStatus.AHEAD
+            else:
+                # Branches have diverged
+                return SyncStatus.DIVERGED
+
+        except GitError:
+            # merge-base failed - branches likely have no common history
+            return SyncStatus.DIVERGED
