@@ -1,3 +1,59 @@
+## Task cub-j1e.1: Audit and update README command reference (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Deprecated Command Audit**: Found several deprecated commands still referenced in README:
+   - `cub prep` (replaced by `cub plan run`)
+   - `cub triage`, `cub architect`, `cub bootstrap` (now subcommands of `cub plan`)
+   - `cub validate` (doesn't exist - use `cub doctor`)
+   - `cub sessions` (doesn't exist)
+   - `cub --migrate-to-beads` and `cub --migrate-to-beads-dry-run` (don't exist)
+
+2. **Planning Pipeline Restructuring**: The v0.30 release completely restructured the planning flow:
+   - Old: `cub prep` → `cub triage` → `cub architect` → `cub plan` → `cub bootstrap`
+   - New: `cub plan run` → phases: `cub plan orient`, `cub plan architect`, `cub plan itemize`
+   - New subcommands: `cub plan list`, `cub plan run` (full pipeline)
+
+3. **Sync Command Implementation**: The sync command exists but was documented incorrectly:
+   - Actual subcommands: `cub sync status`, `cub sync init`
+   - Flags: `cub sync -m "msg"` (commit), `--push` (push after), `--pull` (pull before)
+   - No subcommands for commit/push/pull - they're parent flags
+
+4. **Task Management Unification**: New `cub task` command group provides backend-agnostic interface:
+   - `cub task create`, `cub task list`, `cub task show`, `cub task update`, `cub task close`
+   - `cub task ready` (show unblocked tasks), `cub task counts` (stats), `cub task dep` (dependencies)
+   - This abstracts away whether backend is beads, JSON, or JSONL
+
+5. **Backend Auto-Detection**: The system now auto-detects task backend:
+   - Beads: if `.beads/` directory exists
+   - JSON: if `prd.json` exists
+   - JSONL: if `.cub/tasks.jsonl` exists (default)
+   - This is a major shift from requiring beads as a dependency
+
+6. **Run Command Expansion**: The `cub run` command has many new flags not previously documented:
+   - Isolation: `--worktree`, `--sandbox`, `--parallel N`
+   - Advanced: `--direct "task"`, `--gh-issue <num>`
+   - Git: `--main-ok`, `--use-current-branch`, `--from-branch`
+   - Budget: `--budget` (USD), `--budget-tokens` (tokens)
+   - Model: `--model` (haiku/sonnet/opus)
+   - Monitoring: `--monitor` (tmux dashboard)
+
+7. **Quick Start Pattern**: The README's Quick Start section is well-designed:
+   - Path A emphasizes `cub plan` for new work
+   - Path B uses backend-agnostic `cub task` commands for existing projects
+   - Both paths converge on `cub run` for execution
+   - This pattern helps new users regardless of backend preference
+
+8. **Command Help Coverage**: The `cub --help` output is comprehensive and well-organized into groups:
+   - Key Commands (init, run)
+   - See What a Run is Doing (artifacts, status, monitor, ledger, review, dashboard)
+   - Work with Tasks (interview, explain-task, close-task, verify-task, task, sync)
+   - Manage Epics (branch, branches, pr, merge, worktree, checkpoints)
+   - And more (guardrails, audit, capture, spec, import, tools, toolsmith, plan, stage, doctor, version, update, system-upgrade, uninstall)
+
+**Outcome:** Successfully audited README against all `cub --help` outputs and current CLI. Removed all deprecated command references, updated planning pipeline documentation, corrected sync command examples, and verified all command examples are accurate. README now matches current CLI behavior and emphasizes backend-agnostic task management.
 
 ## Task cub-j1c.3: Implement pull with conflict detection (2026-01-26)
 
