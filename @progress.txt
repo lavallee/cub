@@ -212,3 +212,38 @@ All tests pass (127 total), type checking clean, linting fixed.
 8. **Test Isolation**: Each test creates its own git repo via pytest fixtures (`git_repo`, `git_repo_with_commit`), ensuring tests don't interfere with each other.
 
 **Outcome:** Successfully implemented `commit()` method using git plumbing that creates commits on the sync branch without affecting the working tree. Includes 13 comprehensive tests covering error cases, state updates, change detection, and working tree/branch preservation.
+
+## Task cub-j1c.4: Implement push and status operations (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Git Push with --set-upstream**: Using `git push --set-upstream <remote> <branch>` automatically creates the remote branch if it doesn't exist, eliminating the need for separate existence checks. This simplifies the push operation and handles both initial push and subsequent updates.
+
+2. **Git Merge-Base for Branch Comparison**: The `git merge-base` command is the standard way to determine the relationship between two branches:
+   - If merge-base equals local SHA → local is behind (remote is ahead)
+   - If merge-base equals remote SHA → local is ahead (remote is behind)
+   - If merge-base differs from both → branches have diverged
+   - This provides accurate status without complex commit walking
+
+3. **SyncStatus Enum Already Existed**: The `SyncStatus` enum with all needed values (UP_TO_DATE, AHEAD, BEHIND, DIVERGED, NO_REMOTE, UNINITIALIZED) was already defined in models.py. This demonstrates good planning from previous tasks where the data model anticipated future needs.
+
+4. **Boolean Return for Push**: Decided to return `bool` from `push()` rather than `SyncResult` to keep the API simple and consistent with typical push operations. Success/failure is logged, and state is updated on success. This makes the method easier to use in conditional logic.
+
+5. **Graceful Fetch Failure Handling**: The `get_status()` method handles fetch failures gracefully by catching `GitError` and returning `SyncStatus.NO_REMOTE`. This prevents the method from crashing when network is unavailable or remote doesn't exist.
+
+6. **Remote-Tracking Branch Reference Format**: Git stores remote-tracking branches as `refs/remotes/<remote>/<branch>`. Using the correct ref format (`refs/remotes/origin/cub-sync`) is critical for comparing local and remote SHAs.
+
+7. **State Management Pattern**: Both methods follow the established pattern:
+   - Load state at the start
+   - Perform git operations
+   - Update and save state on success
+   - This ensures state file always reflects the last successful operation
+
+8. **Comprehensive Test Coverage**: Added 13 new tests covering:
+   - Push: initialization requirement, creating remote branch, state updates, failure handling, updating existing branch, working tree preservation
+   - Status: all six status values, fetch failure handling
+   - Tests use the existing `git_repo_with_remote` fixture pattern established in previous tasks
+
+**Outcome:** Successfully implemented both `push()` and `get_status()` methods with full test coverage. All 107 sync-related tests pass, type checking is clean, and linting passes. The methods integrate seamlessly with existing SyncService functionality and follow established patterns.
