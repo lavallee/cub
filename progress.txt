@@ -9793,3 +9793,38 @@ This completes the core E4 deliverable. All exit paths now preserve artifacts.
 - All integration exit tests pass (8 tests)
 - Total: 67 critical tests passing
 
+
+## 2026-01-27 - Task cub-r6s.1: Direct Session CLI Commands
+
+### Implementation Details
+- Created `src/cub/cli/session.py` with three commands:
+  - `cub session log <message>`: Timestamped logging to .cub/session.log
+  - `cub session done <task-id>`: Complete task + create ledger entry
+  - `cub session wip <task-id>`: Mark task in-progress
+- All commands follow existing CLI patterns (Typer, Rich console, error handling)
+- Registered in `src/cub/cli/__init__.py` under PANEL_TASKS
+
+### Key Design Decisions
+- Ledger entries from `cub session done` use "direct-session" as harness/model identifier
+- Created minimal but complete LedgerEntry with all required fields (Attempt, Outcome, etc.)
+- Session log format: `[YYYY-MM-DD HH:MM:SS UTC] message` for easy parsing
+- `done` command supports --file flags for tracking changed files
+- `done` command handles both new entries and updating existing entries gracefully
+
+### Integration Points
+- Uses `LedgerWriter` and `LedgerIntegration` from core.ledger
+- Uses `get_backend()` for task backend operations
+- Follows TaskStatus enum for status transitions
+- Creates complete ledger entries matching schema from `cub run`
+
+### Testing Notes
+- Manual testing confirmed all commands work correctly
+- CLI help text is clear and includes examples
+- Linting passed (fixed unused import, line length issue)
+- All imports successful, no type errors
+
+### Lessons Learned
+- The ledger system requires complete data structures even for simple operations
+- Important to handle both create and update cases for ledger entries
+- Session log provides lightweight audit trail separate from full ledger
+- Direct session commands enable incremental adoption of cub workflow
