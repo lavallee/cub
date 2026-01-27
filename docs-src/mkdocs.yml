@@ -222,6 +222,7 @@ nav:
       - cub run: cli/run.md
       - cub prep: cli/prep.md
       - cub init: cli/init.md
+      - cub new: cli/new.md
     - Status Commands:
       - cub status: cli/status.md
       - cub monitor: cli/monitor.md

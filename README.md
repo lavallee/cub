@@ -295,9 +295,12 @@ Add the PATH export to your `~/.bashrc` or `~/.zshrc`.
 ## Quick Start
 
 ```bash
+# Option A: Create a new project from scratch
+cub new my-project          # Creates directory, git init, cub init
+
+# Option B: Initialize an existing project
 cd my-project
-git init                    # Initialize git repo (required)
-cub init                    # Initialize project
+cub init                    # Initialize cub in current directory
 ```
 
 Cub uses a JSONL-based task backend by default (`.cub/tasks.jsonl`). This persists task state as JSON lines without external dependencies. If you prefer beads CLI for advanced task management, ensure it's installed and run `cub init --backend beads`.
@@ -429,6 +432,7 @@ cub run --no-circuit-breaker  # Disable circuit breaker timeout (for long operat
 
 ```bash
 # Setup
+cub new my-project          # Create new project (mkdir + git init + cub init)
 cub init                    # Initialize current project
 cub init --global           # Set up global config
 

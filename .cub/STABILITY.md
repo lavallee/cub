@@ -85,6 +85,7 @@ Newer features, less stable APIs, and modules still under active development. Br
 | `core/ledger/extractor.py` | LLM-based insight extraction | — | New module |
 | `core/tools/` | Tool execution runtime | — | New module |
 | `cli/session.py` | Direct session CLI commands | — | New module |
+| `cli/new.py` | New project bootstrapping | — | New module |
 
 ### UI/Delegated (No Coverage Threshold)
 

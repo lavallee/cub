@@ -47,7 +47,10 @@ cub run --harness claude
 # Global setup for first-time users
 cub init --global
 
-# Initialize a project
+# Create a new project from scratch
+cub new my-project
+
+# Initialize an existing project
 cub init
 ```
 
@@ -187,6 +190,7 @@ These commands have been migrated to Python and execute directly without bash:
 - **`run`** - Execute tasks with AI harnesses (main loop)
 - **`status`** - Show task progress and statistics
 - **`init`** - Initialize cub configuration (global or project-level)
+- **`new`** - Create a new project directory (mkdir + git init + cub init)
 - **`monitor`** - Live dashboard for task execution monitoring
 - **`doctor`** - Diagnose and fix configuration issues
 - **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`, `update`, `export`, `gc`)
@@ -197,6 +201,7 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
 - `status.py` - Status reporting
 - `init_cmd.py` - Configuration setup
+- `new.py` - New project bootstrapping
 - `monitor.py` - Live dashboard via Rich
 - `doctor.py` - Configuration diagnostics
 - `ledger.py` - Task completion ledger
