@@ -1,3 +1,35 @@
+## Task cub-r5c.5: Add "giving up" escape hatch to prompts (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Escape Hatch Design for Autonomous Agents**: When agents signal they're stuck, it should be:
+   - **Clear and unambiguous**: Use XML tags (`<stuck>REASON</stuck>`) that are easy to detect and parse
+   - **Self-aware distinction**: The escape hatch is agent-side active signaling (agent says "I'm blocked"), different from circuit breaker (infrastructure-side timeout detection)
+   - **Well-documented with examples**: Include clear examples of what "stuck" means vs. what it doesn't (hard problem vs. actual blocker)
+
+2. **Complementary Detection Strategies**: The escape hatch complements (doesn't replace) the time-based circuit breaker:
+   - **Circuit breaker (E5)**: Detects subprocess inactivity (no output for N minutes)
+   - **Escape hatch (E5+)**: Detects agent self-awareness of being blocked
+   - Both prevent wasted time/budget, but from different angles
+
+3. **Clear Blocker Criteria for Agents**: When documenting when agents should signal "stuck", be specific about what counts as a genuine blocker:
+   - Missing files/dependencies after exhaustive search
+   - Environment issues that can't be resolved
+   - Unclear/conflicting requirements
+   - NOT: hard problem, confusion about how something works, time spent
+
+4. **Template as Communication Channel**: The PROMPT.md template is read by agents before each task. Adding sections here is how you:
+   - Set expectations for agent behavior
+   - Provide escape routes for edge cases
+   - Document system design decisions (like "why time-based circuit breaker")
+   - This is a lightweight but powerful way to guide autonomous behavior
+
+**Outcome:** Successfully added comprehensive escape hatch documentation to templates/PROMPT.md with clear examples, definitions of when to use it, and cross-references to the complementary circuit breaker mechanism. This enables agents to signal genuine blockers to the system without ambiguity.
+
+---
+
 ## Task cub-r4h.4: Manual testing protocol for E4 (2026-01-26)
 
 **Status:** Completed
@@ -588,3 +620,67 @@ All tests pass (127 total), type checking clean, linting fixed.
 **Outcome:** Successfully implemented CircuitBreakerConfig as the foundation for circuit breaker feature. Configuration is fully tested, documented, and integrated with the existing config precedence system. Ready for CircuitBreaker implementation (cub-r5c.2).
 
 ---
+
+## Task cub-r5c.4: Add --no-circuit-breaker CLI flag documentation (2026-01-26)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Implementation Already Complete**: The `--no-circuit-breaker` flag was fully implemented in src/cub/cli/run.py:
+   - Line 797-800: Flag definition with typer.Option
+   - Line 1180: Used to pass flag to monitor/dashboard
+   - Line 1268: Used to override config.circuit_breaker.enabled setting
+   - The flag correctly implements override semantics: CLI flag overrides config file
+
+2. **CircuitBreakerConfig Structure**: The configuration model supports:
+   - `enabled: bool = True` — Enable/disable stagnation detection
+   - `timeout_minutes: int = 30` — Timeout period with `ge=1` constraint
+   - Both can be overridden via config file (`.cub.json`, `~/.config/cub/config.json`) or CLI flag
+
+3. **Flag Semantics**: The logic `circuit_breaker_enabled = config.circuit_breaker.enabled and not no_circuit_breaker` implements correct precedence:
+   - Config file sets default state
+   - CLI flag `--no-circuit-breaker` disables regardless of config
+   - This is the standard pattern for CLI override flags
+
+4. **README Documentation Structure**: Added comprehensive Circuit Breaker section in Guardrails area that covers:
+   - **What it does**: Detects stagnation (no activity for N minutes)
+   - **Behavior when tripped**: Clear error, task marked failed, artifacts captured
+   - **When to disable**: Legitimately long operations (model training, dataset processing)
+   - **How to disable**: Both CLI flag (`--no-circuit-breaker`) and config file approach
+   - **Configuration options**: Timeout duration override example
+
+5. **Documentation Placement Strategy**: The Circuit Breaker section fits naturally in the Guardrails section after Iteration Limits and before Secret Redaction. This organizes safety features logically:
+   - Iteration Limits: Stop at N iterations
+   - Circuit Breaker: Stop on N minutes inactivity (NEW)
+   - Secret Redaction: Protect sensitive data
+   This signals that circuit breaker is a safety mechanism, not a feature
+
+6. **Command Examples in README**: Added to the "Sync control" section of CLI examples:
+   - `cub run --no-circuit-breaker    # Disable circuit breaker timeout (for long operations)`
+   - This groups it logically with other disable flags (--no-sync, --no-require-clean)
+
+7. **Test Coverage Already Exists**: The CircuitBreaker class has comprehensive test coverage (19 tests) in tests/test_circuit_breaker.py:
+   - Tests for exception messaging
+   - Tests for enable/disable logic
+   - Tests for actual timeout behavior (real 60-second waits)
+   - Tests for error propagation
+   - Tests for reusability across multiple executions
+   - All tests passing (took ~2 minutes to run due to timeout tests)
+
+8. **Help Text Accuracy**: The `cub run --help` output already shows:
+   - `--no-circuit-breaker: Disable circuit breaker timeout protection (overrides config)`
+   - This is clear, concise, and accurate
+   - Flag is shown in help with proper formatting
+
+**Files Modified:**
+- `README.md`: Added Circuit Breaker documentation section and CLI example
+
+**Test Results:**
+- All 19 circuit breaker tests passing
+- Type checking clean
+- No new implementation code needed (feature already complete)
+- All integration verified with `python -m cub run --help`
+
+**Outcome:** Successfully documented the `--no-circuit-breaker` flag with comprehensive README section explaining circuit breaker mechanism, when to disable it, and how to configure timeout duration. Flag was already implemented and working correctly. Documentation enables users to understand and properly use the feature for legitimately long operations while maintaining protection against harness stagnation.
+

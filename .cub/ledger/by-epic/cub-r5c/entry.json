@@ -17,38 +17,43 @@
     "captured_at": "2026-01-26T22:07:45.005289Z"
   },
   "task_ids": [
-    "cub-r5c.1"
+    "cub-r5c.1",
+    "cub-r5c.3",
+    "cub-r5c.2",
+    "cub-r5c.5",
+    "cub-r5c.4"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
-    "tasks_failed": 0,
+    "total_tasks": 5,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 1,
     "total_cost_usd": 0.0,
     "avg_cost_per_task": 0.0,
     "min_cost_usd": 0.0,
     "max_cost_usd": 0.0,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
     "total_tokens": 0,
     "avg_tokens_per_task": 0,
-    "total_duration_seconds": 468,
-    "avg_duration_seconds": 468,
+    "total_duration_seconds": 2319,
+    "avg_duration_seconds": 463,
     "models_used": [
-      "haiku"
+      "haiku",
+      "sonnet"
     ],
     "most_common_model": "haiku"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T22:07:45.026808Z"
+    "stage_updated_at": "2026-01-27T01:35:58.962185Z"
   },
   "state_history": [],
   "started_at": "2026-01-26T21:59:56.491401Z",
-  "completed_at": "2026-01-26T22:07:45.000515Z",
-  "updated_at": "2026-01-26T22:07:45.026813Z",
+  "completed_at": "2026-01-27T01:35:58.931585Z",
+  "updated_at": "2026-01-27T01:35:58.962186Z",
   "first_commit": {
     "hash": "3ecb8b6b53525a18b0d2180cf79a754b26b4b01f",
     "message": "task(cub-r5c.1): Add CircuitBreakerConfig",
@@ -56,10 +61,10 @@
     "timestamp": "2026-01-26T22:06:59Z"
   },
   "last_commit": {
-    "hash": "8897425245f665bbed1bc117e8c9ec505c4cda8d",
-    "message": "docs: Append cub-r5c.1 completion to progress.txt",
+    "hash": "9b4dfcf632e92fda449fd9c3a32103ef4716e1c5",
+    "message": "task(cub-r5c.4): Add --no-circuit-breaker CLI flag documentation",
     "author": "",
-    "timestamp": "2026-01-26T22:07:17Z"
+    "timestamp": "2026-01-27T01:35:06Z"
   },
   "drift": {
     "additions": [],
