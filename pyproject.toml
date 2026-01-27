@@ -85,6 +85,7 @@ addopts = "-v --strict-markers"
 markers = [
     "asyncio: mark test as an async test",
     "timeout: mark test with a timeout",
+    "slow: marks tests that take >10s (deselect with '-m \"not slow\"')",
 ]
 
 [tool.ruff]

@@ -271,10 +271,12 @@ class TestErrorHandling:
         for idx, original_method in original_methods:
             sources[idx].fetch_tools = original_method
 
+    @patch("cub.core.toolsmith.http.time.sleep")
     @patch("httpx.get")
     def test_search_handles_source_errors_gracefully(
         self,
         mock_get: Mock,
+        mock_sleep: Mock,
         temp_store: ToolsmithStore,
     ) -> None:
         """Test that search continues when a source fails."""
