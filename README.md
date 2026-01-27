@@ -422,6 +422,7 @@ cub run --from-branch <ref>  # Base branch for new feature branch
 
 # Sync control
 cub run --no-sync           # Disable auto-sync for this run
+cub run --no-circuit-breaker  # Disable circuit breaker timeout (for long operations)
 ```
 
 ### Other Commands
@@ -781,6 +782,54 @@ Cub includes safety guardrails to prevent runaway loops and protect sensitive in
 
 When a task exceeds `max_task_iterations`, it's marked as failed and skipped.
 When a run exceeds `max_run_iterations`, the entire run stops.
+
+### Circuit Breaker: Stagnation Detection
+
+Cub includes a circuit breaker to detect and prevent infinite hangs when the AI harness becomes unresponsive. If no activity is detected for the configured timeout period, the run stops with a clear error message.
+
+```json
+{
+  "circuit_breaker": {
+    "enabled": true,
+    "timeout_minutes": 30
+  }
+}
+```
+
+**When the circuit breaker trips:**
+- Run stops immediately
+- Clear error message indicating stagnation detected
+- Task marked as failed
+- Artifacts captured for debugging
+
+**Disable for long operations:**
+
+If you're running legitimately long operations (e.g., model training, large dataset processing), disable the circuit breaker:
+
+```bash
+cub run --no-circuit-breaker    # Disable timeout protection for this run
+```
+
+Or configure in your project's `.cub.json`:
+
+```json
+{
+  "circuit_breaker": {
+    "enabled": false
+  }
+}
+```
+
+**Default timeout:** 30 minutes of inactivity. Override in config:
+
+```json
+{
+  "circuit_breaker": {
+    "enabled": true,
+    "timeout_minutes": 60
+  }
+}
+```
 
 ### Secret Redaction
 
