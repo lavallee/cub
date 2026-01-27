@@ -19,6 +19,7 @@ from cub.cli import (
     ledger,
     merge,
     monitor,
+    new,
     organize_captures,
     plan,
     pr,
@@ -127,6 +128,7 @@ def main(
 # =============================================================================
 
 app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
+app.command(name="new", rich_help_panel=PANEL_KEY)(new.new)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 
 
