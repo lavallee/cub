@@ -9828,3 +9828,84 @@ This completes the core E4 deliverable. All exit paths now preserve artifacts.
 - Important to handle both create and update cases for ledger entries
 - Session log provides lightweight audit trail separate from full ledger
 - Direct session commands enable incremental adoption of cub workflow
+
+## 2026-01-26: Task cub-r6s.4 - Research Claude Code Hooks
+
+**Completed:** Comprehensive research on Claude Code's hook system for artifact capture in direct sessions.
+
+**Key Findings:**
+
+1. **Hook Events Available:**
+   - 12 lifecycle hook events covering full agent execution cycle
+   - SessionStart/SessionEnd for session boundaries
+   - PreToolUse/PostToolUse for tool call interception
+   - Stop/SubagentStop for iteration tracking
+   - UserPromptSubmit for prompt augmentation
+   - Some hooks CLI-only (Setup), others SDK-only (SessionStart/End in TypeScript)
+
+2. **Hook Configuration Methods:**
+   - Settings files (JSON): User/project/local settings hierarchy
+   - Plugin hooks: Auto-merged from enabled plugins
+   - Component-scoped: Skills/agents frontmatter (PreToolUse, PostToolUse, Stop only)
+   - Two types: "command" (bash) and "prompt" (LLM-based)
+
+3. **Input/Output Protocol:**
+   - Input via stdin: JSON with common fields (session_id, transcript_path, cwd, permission_mode) + event-specific
+   - Output via exit codes: 0 (success), 2 (blocking error), other (non-blocking)
+   - Advanced output via JSON stdout: Permission decisions, input modification, context injection
+   - All hooks receive transcript_path → Can parse JSONL for full context
+
+4. **Artifact Capture Capabilities:**
+   - ✅ Can detect session start/end (SessionStart/SessionEnd hooks)
+   - ✅ Can capture tool usage (PreToolUse/PostToolUse with full I/O)
+   - ✅ Can access transcript (transcript_path in all hook inputs)
+   - ⚠️ Cannot directly capture plan content (no plan-specific hook, but can detect via permission_mode: "plan")
+   - ✅ Can inject context (SessionStart, UserPromptSubmit hooks add to conversation)
+
+5. **Environment Variables:**
+   - CLAUDE_PROJECT_DIR: Project root (all hooks)
+   - CLAUDE_CODE_REMOTE: Remote/local detection (all hooks)
+   - CLAUDE_ENV_FILE: Persist env vars (SessionStart/Setup only)
+
+6. **Security Model:**
+   - Direct edits don't take effect immediately
+   - Requires review in /hooks menu
+   - Snapshot captured at startup
+   - 60s default timeout per hook
+
+**Implementation Strategy for Cub:**
+
+Hybrid approach:
+- `cub run`: Continue using existing cub workflow hooks
+- Direct sessions: Install Claude Code hooks via `cub init`
+  - Generate `.claude/settings.json` with hook configuration
+  - Create `.claude/hooks/*.sh` scripts calling `cub hooks` commands
+  - Hook handlers: session-start, tool-capture, stop, session-end
+
+**Next Steps:**
+- Task cub-r6s.5: Implement hook handlers (`cub hooks` subcommands)
+- Design ledger format alignment between `cub run` and direct sessions
+- Update `cub init` to generate `.claude/` configuration
+
+**Documentation Created:**
+- `.cub/docs/claude-code-hooks.md` (688 lines): Comprehensive reference including:
+  - All 12 hook events with payload structures
+  - Configuration methods (settings, plugins, components)
+  - Input/output protocol examples
+  - CLI vs SDK differences
+  - Prompt-based hooks
+  - MCP tool integration
+  - Security considerations
+  - Proposed hook handler architecture for cub
+
+**Sources:**
+- Official Claude Code Hooks Reference: https://code.claude.com/docs/en/hooks
+- Claude Agent SDK Hooks: https://platform.claude.com/docs/en/agent-sdk/hooks
+- Community guides and examples
+
+**Build/Test Notes:**
+- No code changes, only documentation
+- Pre-existing mypy errors (6 issues, unrelated to task)
+- Pre-existing ruff linting issues (29 issues, unrelated to task)
+- Tests passing (verified with test_api_board.py)
+

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "cub-r6s",
+  "title": "cub-r6s",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-r6s",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-27T01:44:52.496847Z",
+    "captured_at": "2026-01-27T01:44:52.496847Z"
+  },
+  "task_ids": [
+    "cub-r6s.1",
+    "cub-r6s.2",
+    "cub-r6s.4"
+  ],
+  "aggregates": {
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.0,
+    "avg_cost_per_task": 0.0,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 0.0,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 3,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 0,
+    "avg_tokens_per_task": 0,
+    "total_duration_seconds": 1639,
+    "avg_duration_seconds": 546,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T02:03:30.552467Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-27T01:36:04.578466Z",
+  "completed_at": "2026-01-27T02:03:30.526090Z",
+  "updated_at": "2026-01-27T02:03:30.552468Z",
+  "first_commit": {
+    "hash": "7cb1e219719a19918ac6c51c5b99ebf98696774f",
+    "message": "task(cub-r6s.1): Create direct session CLI commands",
+    "author": "",
+    "timestamp": "2026-01-27T01:44:13Z"
+  },
+  "last_commit": {
+    "hash": "74d94733a1a5f97ac8e6f433f543030947bb4c90",
+    "message": "task(cub-r6s.4): Research Claude Code hooks",
+    "author": "",
+    "timestamp": "2026-01-27T02:02:11Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

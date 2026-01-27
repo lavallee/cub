@@ -516,15 +516,22 @@ EOF
         log_warn "$(basename "$agent_file") already exists, skipping"
     fi
 
-    # Create AGENTS.md symlink for Codex compatibility
-    # Codex CLI looks for AGENTS.md in the project root
-    if [[ ! -f "AGENTS.md" && ! -L "AGENTS.md" ]]; then
-        ln -s .cub/agent.md AGENTS.md
-        log_success "Created AGENTS.md symlink (for Codex compatibility)"
-    elif [[ -L "AGENTS.md" ]]; then
-        log_warn "AGENTS.md symlink already exists, skipping"
+    # Generate AGENTS.md and CLAUDE.md using Python instruction generator
+    # These files provide workflow instructions for direct harness sessions
+    if command -v python3 >/dev/null 2>&1; then
+        log_info "Generating AGENTS.md and CLAUDE.md..."
+        local gen_output
+        gen_output=$(python3 -m cub.cli.init_cmd . 2>&1)
+        if echo "$gen_output" | grep -q "Created"; then
+            log_success "Generated instruction files (AGENTS.md, CLAUDE.md)"
+        elif echo "$gen_output" | grep -q "already exists"; then
+            log_warn "Instruction files already exist, skipping"
+        else
+            log_warn "Instruction file generation encountered issues"
+        fi
     else
-        log_warn "AGENTS.md already exists as file, skipping symlink"
+        log_warn "Python3 not found, skipping AGENTS.md/CLAUDE.md generation"
+        log_warn "These files provide workflow instructions for direct harness use"
     fi
 
     # Create progress.txt in layout root

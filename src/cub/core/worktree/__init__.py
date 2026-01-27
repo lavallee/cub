@@ -22,7 +22,7 @@ from .manager import (
     WorktreeManager,
     WorktreeNotFoundError,
 )
-from .parallel import ParallelRunResult, ParallelRunner, WorkerResult
+from .parallel import ParallelRunner, ParallelRunResult, WorkerResult
 
 __all__ = [
     "WorktreeManager",
