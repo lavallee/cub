@@ -7,6 +7,7 @@ on:
     paths:
       - 'docs/**'
       - 'docs-src/**'
+      - 'scripts/install.sh'
       - '.github/workflows/docs.yml'
   pull_request:
     branches:
@@ -14,6 +15,7 @@ on:
     paths:
       - 'docs/**'
       - 'docs-src/**'
+      - 'scripts/install.sh'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -57,7 +59,7 @@ jobs:
           mkdir -p deploy
           # Copy landing page assets (from docs/)
           cp docs/index.html deploy/
-          cp docs/install.sh deploy/
+          cp scripts/install.sh deploy/
           cp docs/CNAME deploy/
           cp -r docs/assets deploy/
           # Copy built MkDocs site to /docs/ path (from docs-src/)
