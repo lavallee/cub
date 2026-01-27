@@ -64,7 +64,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-cub = ["bash/**/*"]
+cub = ["bash/**/*", "templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
