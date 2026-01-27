@@ -684,3 +684,29 @@ All tests pass (127 total), type checking clean, linting fixed.
 
 **Outcome:** Successfully documented the `--no-circuit-breaker` flag with comprehensive README section explaining circuit breaker mechanism, when to disable it, and how to configure timeout duration. Flag was already implemented and working correctly. Documentation enables users to understand and properly use the feature for legitimately long operations while maintaining protection against harness stagnation.
 
+
+## Task cub-r6s.2: Implement InstructionGenerator
+
+**Date:** 2026-01-27
+
+**Key Learnings:**
+
+1. **Multi-line String Formatting**: When defining long multi-line strings for markdown content, need to be mindful of line length limits (100 chars). Breaking strings at natural boundaries (sentence endings, logical breaks) improves readability without breaking meaning.
+
+2. **Harness-agnostic Design**: AGENTS.md is designed as the canonical reference with complete workflow instructions, while CLAUDE.md is Claude-specific and delegates to AGENTS.md for core workflow. This pattern allows cross-harness compatibility while enabling tool-specific enhancements.
+
+3. **Configuration Integration**: The instruction generator reads from CubConfig (specifically circuit_breaker.timeout_minutes) to provide accurate, context-aware guidance. This ensures generated instructions match actual runtime behavior.
+
+4. **Escape Hatch Language from E5**: The escape hatch section from the reliability phase spec provides agents with a clear signal mechanism (`<stuck>`) to indicate genuine blockers. This complements the time-based circuit breaker by allowing agent-side active signaling.
+
+5. **Test Coverage Strategy**: Comprehensive testing at multiple levels:
+   - Content validation (markdown headers, sections present)
+   - Configuration propagation (timeout values appear in output)
+   - Integration tests (both files can be written, have different content)
+   - Behavioral tests (CLAUDE.md is shorter, references AGENTS.md)
+
+6. **DRY Principle for Shared Content**: The ESCAPE_HATCH_SECTION constant is defined once and reused in generated content, ensuring consistency and making future updates easier.
+
+7. **Documentation as Code**: Comprehensive module docstrings following the established pattern (Purpose, Key Functions, Architecture, Usage, Dependencies) improve discoverability and maintainability.
+
+**Outcome:** Successfully implemented InstructionGenerator with generate_agents_md() and generate_claude_md() functions. All tests passing (25 tests), mypy clean, ruff formatted. Ready for integration with cub init command.
