@@ -1,13 +1,22 @@
 """Tests for run session manager."""
 
-import time
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Iterator
+from unittest.mock import patch
 
 import pytest
 
 from cub.core.session.manager import RunSessionError, RunSessionManager
 from cub.core.session.models import RunSession, SessionBudget, SessionStatus
+
+
+def _make_run_id_factory() -> Iterator[str]:
+    """Yield unique run_id values without sleeping."""
+    counter = 0
+    while True:
+        counter += 1
+        yield f"cub-20260127-{counter:06d}"
 
 
 @pytest.fixture
@@ -19,9 +28,14 @@ def cub_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def manager(cub_dir: Path) -> RunSessionManager:
-    """Create a RunSessionManager instance."""
-    return RunSessionManager(cub_dir)
+def manager(cub_dir: Path) -> Iterator[RunSessionManager]:
+    """Create a RunSessionManager with deterministic run IDs."""
+    factory = _make_run_id_factory()
+    with patch(
+        "cub.core.session.manager.generate_run_id",
+        side_effect=lambda: next(factory),
+    ):
+        yield RunSessionManager(cub_dir)
 
 
 def test_init_creates_sessions_dir(manager: RunSessionManager) -> None:
@@ -220,9 +234,6 @@ def test_detect_orphans_finds_abandoned_session(manager: RunSessionManager) -> N
     session1 = manager.start_session("claude")
     run_id1 = session1.run_id
 
-    # Sleep to ensure different run_id timestamp
-    time.sleep(1.1)
-
     # Create second session (simulates new run)
     manager.start_session("claude")
 
@@ -240,9 +251,6 @@ def test_detect_orphans_marks_session_file(manager: RunSessionManager) -> None:
     # Create first session
     session1 = manager.start_session("claude")
     run_id1 = session1.run_id
-
-    # Sleep to ensure different run_id timestamp
-    time.sleep(1.1)
 
     # Create second session
     manager.start_session("claude")
@@ -274,9 +282,6 @@ def test_detect_orphans_ignores_already_orphaned(manager: RunSessionManager) -> 
     """Test detect_orphans doesn't re-mark already orphaned sessions."""
     # Create first session
     manager.start_session("claude")
-
-    # Sleep to ensure different run_id timestamp
-    time.sleep(1.1)
 
     # Create second session (orphans first)
     manager.start_session("claude")
@@ -332,9 +337,6 @@ def test_multiple_sessions_in_sequence(manager: RunSessionManager) -> None:
     session1 = manager.start_session("claude")
     manager.update_session(session1.run_id, tasks_completed=5)
     manager.end_session(session1.run_id)
-
-    # Sleep to ensure different run_id timestamp
-    time.sleep(1.1)
 
     # Session 2
     session2 = manager.start_session("codex")

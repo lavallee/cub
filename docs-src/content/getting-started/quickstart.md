@@ -26,9 +26,14 @@ claude --version   # or codex, gemini, opencode
 
 ## Step 1: Initialize Your Project
 
-Navigate to your project and run the initialization:
+Create a new project or initialize an existing one:
 
 ```bash
+# Option A: Create a new project from scratch
+cub new my-project
+cd my-project
+
+# Option B: Initialize an existing project
 cd my-project
 cub init
 ```
@@ -192,7 +197,8 @@ cub artifacts
 
 | Command | Description |
 |---------|-------------|
-| `cub init` | Initialize project |
+| `cub new <dir>` | Create new project directory |
+| `cub init` | Initialize existing project |
 | `cub init --global` | Set up global config |
 | `cub prep` | Run prep pipeline (vision to tasks) |
 | `cub status` | Show task progress |

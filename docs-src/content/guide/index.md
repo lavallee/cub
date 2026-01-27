@@ -95,7 +95,7 @@ The User Guide provides comprehensive documentation for using Cub effectively. W
 ### Starting a New Project
 
 1. Initialize Cub globally: `cub init --global`
-2. Create project config: `cub init` in your project
+2. Create a new project: `cub new my-project` (or `cub init` in an existing project)
 3. Prepare tasks: `cub prep` to run the vision-to-tasks pipeline
 4. Execute: `cub run` to start autonomous execution
 

@@ -10,7 +10,6 @@ import os
 import signal
 import sys
 import time
-from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -167,11 +166,15 @@ async def _invoke_harness_async(
         sys.stdout.flush()
 
         collected = ""
-        # stream_task returns AsyncIterator[str] directly (async generator)
-        stream_iter: AsyncIterator[str] = harness_backend.stream_task(task_input, debug=debug)  # type: ignore[assignment]
-        async for chunk in stream_iter:
-            _stream_callback(chunk)
-            collected += chunk
+        usage = TokenUsage()
+        # stream_task yields str chunks and optionally a final TokenUsage sentinel
+        stream_it = harness_backend.stream_task(task_input, debug=debug)
+        async for chunk in stream_it:  # type: ignore[attr-defined]
+            if isinstance(chunk, TokenUsage):
+                usage = chunk
+            else:
+                _stream_callback(chunk)
+                collected += chunk
 
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -186,7 +189,7 @@ async def _invoke_harness_async(
 
         return HarnessResult(
             output=collected,
-            usage=TokenUsage(),  # Usage tracking TBD for streaming
+            usage=usage,
             duration_seconds=time.time() - start_time,
             exit_code=0,
         )

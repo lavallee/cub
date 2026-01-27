@@ -23,7 +23,7 @@ def docs(
     """
     Open cub documentation in your web browser.
 
-    By default, opens the GitHub README. Use --local to view local docs.
+    By default, opens https://docs.cub.tools. Use --local to view local docs.
 
     Examples:
         cub docs                    # Open online docs
@@ -37,34 +37,28 @@ def docs(
         # Check if docs/index.html exists (built docs)
         if docs_path.exists():
             docs_url = docs_path.as_uri()
-            console.print(f"Opening local docs: {docs_path}")
             if webbrowser.open(docs_url):
-                raise typer.Exit(0)
+                console.print(f"Opened local docs: {docs_path}")
             else:
-                console.print("[yellow]Warning: Could not open browser automatically.[/yellow]")
-                console.print(f"Open this file manually: {docs_url}")
-                raise typer.Exit(1)
+                console.print(f"Open this file: [bold]{docs_url}[/bold]")
+            raise typer.Exit(0)
 
         # Fall back to README
         if readme_path.exists():
             readme_url = readme_path.as_uri()
-            console.print(f"Opening local README: {readme_path}")
             if webbrowser.open(readme_url):
-                raise typer.Exit(0)
+                console.print(f"Opened local README: {readme_path}")
             else:
-                console.print("[yellow]Warning: Could not open browser automatically.[/yellow]")
-                console.print(f"Open this file manually: {readme_url}")
-                raise typer.Exit(1)
+                console.print(f"Open this file: [bold]{readme_url}[/bold]")
+            raise typer.Exit(0)
 
         console.print("[red]Error: No local documentation found.[/red]")
         raise typer.Exit(1)
     else:
-        # Open online docs (GitHub README)
-        docs_url = "https://github.com/anthropics/cub#readme"
-        console.print(f"Opening documentation: {docs_url}")
+        # Open online docs
+        docs_url = "https://docs.cub.tools"
         if webbrowser.open(docs_url):
-            raise typer.Exit(0)
+            console.print(f"Opened documentation: {docs_url}")
         else:
-            console.print("[yellow]Warning: Could not open browser automatically.[/yellow]")
-            console.print(f"Open this URL in your browser: {docs_url}")
-            raise typer.Exit(1)
+            console.print(f"Visit: [bold]{docs_url}[/bold]")
+        raise typer.Exit(0)

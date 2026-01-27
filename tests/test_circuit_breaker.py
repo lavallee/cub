@@ -82,16 +82,15 @@ class TestCircuitBreakerExecute:
     @pytest.mark.asyncio
     async def test_execute_timeout_trips_breaker(self) -> None:
         """Test that timeout causes CircuitBreakerTrippedError."""
-        # Use very short timeout for testing (1 minute = 60 seconds)
-        # We'll simulate a task that takes longer
-        breaker = CircuitBreaker(timeout_minutes=1)
+        breaker = CircuitBreaker(
+            timeout_minutes=1,
+            _timeout_seconds_override=0.1,
+        )
 
         async def slow_task() -> str:
-            # Sleep for 90 seconds (longer than 60 second timeout)
-            await asyncio.sleep(90)
+            await asyncio.sleep(5)
             return "should not reach here"
 
-        # Should trip after 60 seconds
         with pytest.raises(CircuitBreakerTrippedError) as exc_info:
             await breaker.execute(slow_task())
 
@@ -166,21 +165,20 @@ class TestCircuitBreakerRealTimeout:
     """
     Tests that actually wait for timeout to occur.
 
-    These tests use very short timeouts to test actual timeout behavior
-    without making tests too slow. We use fractional minutes (which get
-    converted to seconds) to keep tests fast.
+    Uses _timeout_seconds_override to keep tests fast while still
+    exercising the real timeout path.
     """
 
     @pytest.mark.asyncio
     async def test_actual_timeout_behavior(self) -> None:
         """Test that timeout actually occurs after expected time."""
-        # Use 1 minute = 60 seconds
-        # We'll test with a task that takes slightly longer
-        breaker = CircuitBreaker(timeout_minutes=1)
+        breaker = CircuitBreaker(
+            timeout_minutes=1,
+            _timeout_seconds_override=0.5,
+        )
 
-        # This would take 2 minutes, should timeout at 1 minute
         async def very_slow_task() -> str:
-            await asyncio.sleep(120)
+            await asyncio.sleep(10)
             return "should not complete"
 
         start_time = asyncio.get_event_loop().time()
@@ -190,9 +188,8 @@ class TestCircuitBreakerRealTimeout:
 
         elapsed = asyncio.get_event_loop().time() - start_time
 
-        # Should have timed out around 60 seconds (allow some margin)
-        # We don't assert exact time due to test execution overhead
-        assert 55 < elapsed < 65, f"Expected ~60s timeout, got {elapsed}s"
+        # Should have timed out around 0.5 seconds (allow some margin)
+        assert 0.3 < elapsed < 2.0, f"Expected ~0.5s timeout, got {elapsed}s"
 
 
 class TestCircuitBreakerEdgeCases:

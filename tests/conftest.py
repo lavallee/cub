@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -207,6 +207,25 @@ def sample_config_dict():
 # ==============================================================================
 # Mock Fixtures
 # ==============================================================================
+
+
+@pytest.fixture
+def _no_claude() -> object:
+    """Prevent real Claude CLI invocations in plan stage tests.
+
+    Patches invoke_claude_command in all three plan stage modules so that
+    stages fall back to template-based generation instead of calling the
+    real Claude CLI.  Apply via ``pytestmark = pytest.mark.usefixtures("_no_claude")``.
+    """
+    from cub.core.plan.claude import ClaudeNotFoundError
+
+    err = ClaudeNotFoundError("mocked: claude not installed")
+    with (
+        patch("cub.core.plan.orient.invoke_claude_command", side_effect=err),
+        patch("cub.core.plan.architect.invoke_claude_command", side_effect=err),
+        patch("cub.core.plan.itemize.invoke_claude_command", side_effect=err),
+    ):
+        yield
 
 
 @pytest.fixture

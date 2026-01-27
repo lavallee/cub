@@ -3,11 +3,17 @@ Unit tests for orient stage implementation.
 
 Tests the PlanContext class and OrientStage functionality including
 validation, context gathering, and orientation.md generation.
+
+All stage tests mock out invoke_claude_command so stages use
+their template fallback instead of calling the real Claude CLI.
 """
 
 from pathlib import Path
 
 import pytest
+
+# Use template fallback instead of real Claude CLI.
+pytestmark = pytest.mark.usefixtures("_no_claude")
 
 from cub.core.plan.context import (
     OrientDepth,

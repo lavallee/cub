@@ -24,3 +24,6 @@ build/
 
 # node modules
 src/cub/dashboard/web/node_modules/
+
+# Vim
+*.swp
