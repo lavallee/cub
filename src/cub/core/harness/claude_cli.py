@@ -453,19 +453,20 @@ class ClaudeCLIBackend:
         self,
         task_input: TaskInput,
         debug: bool = False,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | TokenUsage]:
         """
         Execute task with streaming output (async generator).
 
         Wraps sync invoke_streaming() method with asyncio.to_thread()
-        and yields chunks via queue.
+        and yields chunks via queue. The final yielded value is a
+        TokenUsage object with usage data for the session.
 
         Args:
             task_input: Task parameters
             debug: Enable debug logging
 
         Yields:
-            Output chunks as strings
+            Output chunks as strings, and a final TokenUsage sentinel
 
         Raises:
             RuntimeError: If harness invocation fails
@@ -491,6 +492,10 @@ class ClaudeCLIBackend:
 
         if result.error:
             raise RuntimeError(f"Harness invocation failed: {result.error}")
+
+        # Yield usage data as final sentinel
+        if result.usage:
+            yield result.usage
 
     def register_hook(
         self,

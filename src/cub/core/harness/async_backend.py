@@ -10,7 +10,7 @@ import os
 from collections.abc import AsyncIterator, Callable
 from typing import Protocol, TypeVar, runtime_checkable
 
-from .models import HarnessCapabilities, HarnessFeature, TaskInput, TaskResult
+from .models import HarnessCapabilities, HarnessFeature, TaskInput, TaskResult, TokenUsage
 
 # Type variable for the backend class
 _T = TypeVar("_T")
@@ -99,19 +99,21 @@ class AsyncHarnessBackend(Protocol):
         self,
         task_input: TaskInput,
         debug: bool = False,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | TokenUsage]:
         """
         Execute task with streaming output (async generator).
 
         Streams output chunks as they're generated. Yields strings
-        incrementally until task completes.
+        incrementally until task completes. The final yielded value
+        may be a TokenUsage object containing usage data for the
+        entire streaming session.
 
         Args:
             task_input: Task parameters
             debug: Enable debug logging
 
         Yields:
-            Output chunks as strings
+            Output chunks as strings, and optionally a final TokenUsage
 
         Raises:
             RuntimeError: If harness invocation fails
