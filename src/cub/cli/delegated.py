@@ -351,7 +351,7 @@ def init(
 
     result = subprocess.run(cmd, env=env, check=False)
 
-    # Fire post-init hook on success
+    # Fire post-init hook and install statusline on success
     if result.returncode == 0:
         project_dir = Path.cwd()
         init_type = "global" if global_ else "project"
@@ -361,6 +361,13 @@ def init(
             init_type=init_type,
         )
         run_hooks("post-init", context, project_dir)
+
+        # Install Claude Code statusline for project-level init
+        if not global_:
+            from cub.cli.statusline import install_statusline
+
+            if install_statusline(project_dir):
+                console.print("[green]✓[/green] Installed Claude Code statusline")
 
     raise typer.Exit(result.returncode)
 

@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "python3 scripts/statusline.py",
+    "command": "python3 .cub/scripts/statusline.py",
     "padding": 0
   }
 }
