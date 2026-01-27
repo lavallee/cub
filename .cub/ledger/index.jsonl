@@ -141,3 +141,4 @@
 {"id": "cub-r4h.4", "title": "Manual testing protocol for E4", "completed": "2026-01-26", "cost_usd": 0.0, "files": [], "commit": "d9a9ff0", "spec": null, "epic": "cub-r4h", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r5c.1", "title": "Add CircuitBreakerConfig", "completed": "2026-01-26", "cost_usd": 0.0, "files": [], "commit": "8897425", "spec": null, "epic": "cub-r5c", "verification": "pending", "tokens": 0, "workflow_stage": null}
 {"id": "cub-r5c.2", "title": "Implement CircuitBreaker class", "completed": "2026-01-26", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r5c", "verification": "pending", "tokens": 0, "workflow_stage": null}
+{"id": "cub-r5c.3", "title": "Integrate circuit breaker into run.py", "completed": "2026-01-26", "cost_usd": 0.0, "files": [], "commit": "", "spec": null, "epic": "cub-r5c", "verification": "pending", "tokens": 0, "workflow_stage": null}

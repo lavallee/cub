@@ -31,6 +31,7 @@ from cub.cli.errors import (
     print_main_branch_error,
     print_missing_dependency_error,
 )
+from cub.core.circuit_breaker import CircuitBreaker, CircuitBreakerTrippedError
 from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
@@ -139,7 +140,7 @@ def _setup_harness(
     return harness_name, harness_backend
 
 
-def _invoke_harness(
+async def _invoke_harness_async(
     harness_backend: AsyncHarnessBackend,
     task_input: TaskInput,
     stream: bool,
@@ -147,9 +148,7 @@ def _invoke_harness(
     harness_log_path: Path | None = None,
 ) -> HarnessResult:
     """
-    Invoke harness with unified streaming/blocking execution.
-
-    Centralizes harness invocation logic used by main run loop, --direct, and --gh-issue.
+    Async harness invocation (used for circuit breaker wrapping).
 
     Args:
         harness_backend: The harness backend to use
@@ -167,37 +166,33 @@ def _invoke_harness(
         # Stream execution with tee-like behavior (output to console AND file)
         sys.stdout.flush()
 
-        async def _stream_and_collect() -> str:
-            """Stream output and collect for result."""
-            collected = ""
-            # stream_task returns AsyncIterator[str] directly (async generator)
-            stream_iter: AsyncIterator[str] = harness_backend.stream_task(task_input, debug=debug)  # type: ignore[assignment]
-            async for chunk in stream_iter:
-                _stream_callback(chunk)
-                collected += chunk
-            return collected
+        collected = ""
+        # stream_task returns AsyncIterator[str] directly (async generator)
+        stream_iter: AsyncIterator[str] = harness_backend.stream_task(task_input, debug=debug)  # type: ignore[assignment]
+        async for chunk in stream_iter:
+            _stream_callback(chunk)
+            collected += chunk
 
-        result_output = _run_async(_stream_and_collect)
         sys.stdout.write("\n")
         sys.stdout.flush()
 
         # Write collected output to harness.log if path provided
         if harness_log_path is not None:
             try:
-                harness_log_path.write_text(result_output, encoding="utf-8")
+                harness_log_path.write_text(collected, encoding="utf-8")
             except Exception as e:
                 if debug:
                     console.print(f"[dim]Warning: Failed to write harness.log: {e}[/dim]")
 
         return HarnessResult(
-            output=result_output,
+            output=collected,
             usage=TokenUsage(),  # Usage tracking TBD for streaming
             duration_seconds=time.time() - start_time,
             exit_code=0,
         )
     else:
         # Blocking execution with async backend
-        task_result = _run_async(harness_backend.run_task, task_input, debug)
+        task_result = await harness_backend.run_task(task_input, debug)
 
         # Write output to harness.log if path provided
         if harness_log_path is not None:
@@ -215,6 +210,44 @@ def _invoke_harness(
             error=task_result.error,
             timestamp=task_result.timestamp,
         )
+
+
+def _invoke_harness(
+    harness_backend: AsyncHarnessBackend,
+    task_input: TaskInput,
+    stream: bool,
+    debug: bool,
+    harness_log_path: Path | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
+) -> HarnessResult:
+    """
+    Invoke harness with unified streaming/blocking execution.
+
+    Centralizes harness invocation logic used by main run loop, --direct, and --gh-issue.
+
+    Args:
+        harness_backend: The harness backend to use
+        task_input: Task parameters (prompt, system_prompt, model, etc.)
+        stream: Whether to stream output
+        debug: Enable debug logging
+        harness_log_path: Optional path to write raw harness output
+        circuit_breaker: Optional circuit breaker for timeout protection
+
+    Returns:
+        HarnessResult with output, usage, and timing
+
+    Raises:
+        CircuitBreakerTrippedError: If circuit breaker timeout is exceeded
+    """
+    # Create async invocation coroutine
+    coro = _invoke_harness_async(harness_backend, task_input, stream, debug, harness_log_path)
+
+    # Wrap with circuit breaker if provided
+    if circuit_breaker is not None:
+        coro = circuit_breaker.execute(coro)
+
+    # Execute the coroutine
+    return _run_async(lambda: coro)
 
 
 def _slugify(text: str, max_length: int = 40) -> str:
@@ -755,6 +788,11 @@ def run(
         "--no-sync",
         help="Disable auto-sync for this run (overrides config)",
     ),
+    no_circuit_breaker: bool = typer.Option(
+        False,
+        "--no-circuit-breaker",
+        help="Disable circuit breaker timeout protection (overrides config)",
+    ),
 ) -> None:
     """
     Execute autonomous task loop with AI harness.
@@ -1133,6 +1171,8 @@ def run(
             run_args.append("--no-network")
         if no_sync:
             run_args.append("--no-sync")
+        if no_circuit_breaker:
+            run_args.append("--no-circuit-breaker")
         if debug:
             run_args.append("--debug")
 
@@ -1217,6 +1257,19 @@ def run(
     if harness_result is None:
         raise typer.Exit(1)
     harness_name, harness_backend = harness_result
+
+    # Initialize circuit breaker for stagnation detection
+    circuit_breaker_enabled = config.circuit_breaker.enabled and not no_circuit_breaker
+    circuit_breaker = CircuitBreaker(
+        timeout_minutes=config.circuit_breaker.timeout_minutes,
+        enabled=circuit_breaker_enabled,
+    )
+    if debug and circuit_breaker_enabled:
+        console.print(
+            f"[dim]Circuit breaker enabled: {config.circuit_breaker.timeout_minutes} minute timeout[/dim]"
+        )
+    elif debug:
+        console.print("[dim]Circuit breaker disabled[/dim]")
 
     # Set up signal handler for graceful interrupts
     signal.signal(signal.SIGINT, _signal_handler)
@@ -1518,7 +1571,7 @@ def run(
                 harness_log_path = status_writer.get_harness_log_path(current_task.id)
 
                 result = _invoke_harness(
-                    harness_backend, task_input, stream, debug, harness_log_path
+                    harness_backend, task_input, stream, debug, harness_log_path, circuit_breaker
                 )
 
                 # Record attempt end in ledger
@@ -1559,6 +1612,43 @@ def run(
                     except Exception as e:
                         if debug:
                             console.print(f"[dim]Warning: Failed to record attempt end: {e}[/dim]")
+
+            except CircuitBreakerTrippedError as e:
+                # Circuit breaker timeout - harness appears hung
+                console.print(f"[red]Circuit breaker tripped: {e.message}[/red]")
+                status.add_event(
+                    f"Circuit breaker tripped after {e.timeout_minutes} minutes",
+                    EventLevel.ERROR,
+                    task_id=current_task.id,
+                )
+
+                # Record stagnation in ledger
+                if config.ledger.enabled:
+                    try:
+                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
+                        ledger_integration.on_attempt_end(
+                            current_task.id,
+                            attempt_number,
+                            log_content="",
+                            run_id=run_id,
+                            success=False,
+                            harness=harness_name,
+                            model=task_model or "",
+                            error_category="circuit_breaker_timeout",
+                            error_summary=e.message,
+                            started_at=attempt_start_time,
+                        )
+                    except Exception as ledger_error:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record circuit breaker event: "
+                                f"{ledger_error}[/dim]"
+                            )
+
+                # Circuit breaker trip is a fatal error - stop the run
+                status.mark_failed(e.message)
+                status_writer.write(status)
+                break
 
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
