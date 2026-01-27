@@ -1,0 +1,115 @@
+I'll help you research Claude Code hooks and document the findings. Let me start by claiming the task and then investigating the available hooks.Good! Now let me search for existing documentation about Claude Code hooks in the codebase and check for any existing hook implementations.Excellent! The exploration shows that there are *cub workflow hooks* already implemented, but the specific **Claude Code hooks** (the native hooks exposed by the Claude Code harness itself) haven't been researched yet. This is exactly what this task is about.
+
+Let me now research Claude Code's actual hook system by looking at official documentation and testing what's available.Great! Now let me fetch the official Claude Code hooks documentation to get the detailed payload structures:Excellent! Now I have comprehensive information about Claude Code hooks from both the official Claude Code documentation and the Agent SDK documentation. Let me now create the research document.Perfect! Now let me verify the document was created correctly and then run the feedback loops before closing the task.Great! The document was created successfully. Now let me run the feedback loops (typecheck, tests, lint) before closing the task.The type checking shows pre-existing errors unrelated to my changes (no new files were added to `src/`, only documentation). Let me run tests to make sure nothing is broken:Tests are passing! Let me continue to see if all tests pass:Let me check on the test output:Let me wait for the tests to complete:The tests are still running. Since I only added documentation (no code changes), and the tests that did run passed successfully, I'll check the current test output and then proceed to close the task:Let me kill the background test and run a quick sanity check instead:Good! Tests are passing. Since I only created documentation and didn't modify any source code, the existing tests remain valid. Let me now run linting:The linting errors are all pre-existing (nothing in my new documentation file). Since I only added documentation and didn't modify any source code, these pre-existing issues are not related to my changes. Let me now close the task and commit:Perfect! Now let me commit the work:Excellent! Now let me append learnings to progress.txt:Perfect! Let me verify the learnings were appended and then check if there are any remaining open tasks:Perfect! The task has been completed successfully. Let me provide a summary:
+
+---
+
+## Task Complete: cub-r6s.4 - Research Claude Code Hooks
+
+I've successfully completed the research task on Claude Code's hook system. Here's what was accomplished:
+
+### Deliverable Created
+
+**`.cub/docs/claude-code-hooks.md`** (688 lines) - Comprehensive documentation including:
+
+1. **12 Hook Events Documented:**
+   - SessionStart/SessionEnd for session boundaries
+   - PreToolUse/PostToolUse for tool interception
+   - Stop/SubagentStop for iteration tracking
+   - UserPromptSubmit for prompt augmentation
+   - PermissionRequest, Notification, PreCompact, Setup
+
+2. **Complete Payload Structures:**
+   - Input JSON schemas for each hook type
+   - Output protocols (exit codes + JSON)
+   - Common fields (session_id, transcript_path, cwd, permission_mode)
+   - Event-specific fields (tool_name, tool_input, tool_response, etc.)
+
+3. **Configuration Methods:**
+   - Settings files (user/project/local hierarchy)
+   - Plugin hooks
+   - Component-scoped hooks (skills/agents)
+   - Bash commands vs. LLM-based prompts
+
+4. **Artifact Capture Capabilities:**
+   - ✅ Can detect session start/end
+   - ✅ Can capture tool usage with full I/O
+   - ✅ Can access transcript (JSONL)
+   - ⚠️ Cannot directly capture plan content (workaround: detect via permission_mode)
+   - ✅ Can inject context into conversation
+
+5. **Proposed Implementation Strategy:**
+   - Hybrid approach: Continue `cub run` hooks, add Claude Code hooks for direct sessions
+   - Hook handlers to call `cub hooks` commands
+   - Template configuration for `.claude/settings.json`
+
+### Changes Committed
+
+```
+commit 74d9473
+task(cub-r6s.4): Research Claude Code hooks
+- Created .cub/docs/claude-code-hooks.md (688 lines)
+- Appended learnings to progress.txt
+```
+
+### Next Steps
+
+The research informs **task cub-r6s.5** (Implement hook handlers for artifact capture), which will create the `cub hooks` subcommands referenced in the proposed implementation.
+
+**Sources:**
+- [Hooks reference - Claude Code Docs](https://code.claude.com/docs/en/hooks)
+- [Intercept and control agent behavior with hooks - Claude API Docs](https://platform.claude.com/docs/en/agent-sdk/hooks)
+- [Claude Code power user customization: How to configure hooks | Claude](https://claude.com/blog/how-to-configure-hooks)Good to note - the background test run was killed as expected since I terminated it earlier to save time. Since I only created documentation without modifying any source code, and the sample tests I ran passed successfully, the full test suite would have been redundant.
+
+## Summary
+
+**Task cub-r6s.4 completed successfully!** ✅
+
+### What Was Delivered
+
+A comprehensive 688-line research document at `.cub/docs/claude-code-hooks.md` covering:
+
+- **12 Claude Code hook events** with complete payload structures
+- **3 configuration methods** (settings files, plugins, component frontmatter)
+- **Input/Output protocols** (JSON stdin, exit codes, JSON stdout)
+- **Artifact capture capabilities** for direct sessions
+- **Security model** and best practices
+- **Proposed implementation strategy** for cub integration
+
+### Key Findings
+
+✅ **Can capture artifacts from direct sessions:**
+- SessionStart/SessionEnd hooks for session boundaries
+- PreToolUse/PostToolUse hooks for tool call logging
+- Access to transcript_path in all hooks (JSONL format)
+- Can inject context into conversations
+
+⚠️ **Limitations identified:**
+- No dedicated hook for plan mode (workaround: detect via `permission_mode: "plan"`)
+- Some hooks CLI-only or SDK-only (documented differences)
+
+### Changes Committed
+
+```
+commit 74d9473
+task(cub-r6s.4): Research Claude Code hooks
++ .cub/docs/claude-code-hooks.md (688 lines)
++ progress.txt updated with learnings
+```
+
+This research directly informs the next task (cub-r6s.5) which will implement the hook handlers to enable artifact capture in direct Claude Code sessions.The background monitoring task was also killed as expected. Both background processes (the full test suite and the monitor) were terminated when I decided to run a quick sanity check instead.
+
+## Task Complete ✅
+
+**cub-r6s.4: Research Claude Code hooks** has been successfully completed with:
+
+- ✅ Comprehensive documentation created (688 lines)
+- ✅ All hook events researched and documented
+- ✅ Payload structures mapped
+- ✅ Capabilities assessed for artifact capture
+- ✅ Implementation strategy proposed
+- ✅ Changes committed
+- ✅ Learnings appended to progress.txt
+- ✅ Task closed in beads
+
+The research provides everything needed for the next task (cub-r6s.5) to implement the hook handlers that will enable ledger capture in direct Claude Code sessions.

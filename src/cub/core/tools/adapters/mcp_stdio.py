@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import signal
+import sys
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -579,14 +580,21 @@ class MCPStdioAdapter:
         if process.returncode is not None:
             return  # Already terminated
 
-        try:
-            # Get the process group ID (same as PID due to start_new_session=True)
-            pgid = os.getpgid(process.pid)
-            # Kill the entire process group
-            os.killpg(pgid, signal.SIGKILL)
-        except (ProcessLookupError, OSError):
-            # Process may have already terminated
-            pass
+        if sys.platform != "win32":
+            try:
+                # Get the process group ID (same as PID due to start_new_session=True)
+                pgid = os.getpgid(process.pid)
+                # Kill the entire process group
+                os.killpg(pgid, signal.SIGKILL)
+            except (ProcessLookupError, OSError):
+                # Process may have already terminated
+                pass
+        else:
+            # Windows: no process groups, kill directly
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
 
         # Wait for process to terminate
         try:

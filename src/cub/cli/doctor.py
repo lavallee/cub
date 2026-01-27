@@ -238,7 +238,7 @@ def doctor(
         cub doctor --fix        # Auto-fix detected issues
         cub doctor --verbose    # Show detailed diagnostic info
     """
-    debug = ctx.obj.get("debug", False)
+    debug = ctx.obj.get("debug", False) if ctx.obj else False
 
     if debug:
         console.print("[dim]Debug mode enabled[/dim]")

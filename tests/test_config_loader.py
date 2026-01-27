@@ -162,6 +162,79 @@ class TestApplyEnvOverrides:
         result = apply_env_overrides(config)
         assert result == config
 
+    def test_circuit_breaker_enabled_true(self, monkeypatch):
+        """Test CUB_CIRCUIT_BREAKER_ENABLED=true sets circuit_breaker.enabled."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_ENABLED", "true")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert result["circuit_breaker"]["enabled"] is True
+
+    def test_circuit_breaker_enabled_false(self, monkeypatch):
+        """Test CUB_CIRCUIT_BREAKER_ENABLED=false sets circuit_breaker.enabled to false."""
+        for value in ["false", "0"]:
+            monkeypatch.setenv("CUB_CIRCUIT_BREAKER_ENABLED", value)
+            config = {}
+
+            result = apply_env_overrides(config)
+            assert result["circuit_breaker"]["enabled"] is False
+
+    def test_circuit_breaker_timeout_valid(self, monkeypatch):
+        """Test CUB_CIRCUIT_BREAKER_TIMEOUT sets timeout_minutes."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "60")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert result["circuit_breaker"]["timeout_minutes"] == 60
+
+    def test_circuit_breaker_timeout_invalid_zero(self, monkeypatch, capsys):
+        """Test CUB_CIRCUIT_BREAKER_TIMEOUT=0 is rejected with warning."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "0")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert "circuit_breaker" not in result
+
+        # Check warning
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "CUB_CIRCUIT_BREAKER_TIMEOUT" in captured.out
+
+    def test_circuit_breaker_timeout_invalid_negative(self, monkeypatch, capsys):
+        """Test CUB_CIRCUIT_BREAKER_TIMEOUT with negative value is rejected."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "-5")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert "circuit_breaker" not in result
+
+        # Check warning
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+
+    def test_circuit_breaker_timeout_invalid_non_integer(self, monkeypatch, capsys):
+        """Test CUB_CIRCUIT_BREAKER_TIMEOUT with non-integer is ignored."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "not-a-number")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert "circuit_breaker" not in result
+
+        # Check warning
+        captured = capsys.readouterr()
+        assert "Warning" in captured.out
+        assert "CUB_CIRCUIT_BREAKER_TIMEOUT" in captured.out
+
+    def test_circuit_breaker_combined_overrides(self, monkeypatch):
+        """Test both circuit breaker env vars together."""
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_ENABLED", "true")
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "45")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert result["circuit_breaker"]["enabled"] is True
+        assert result["circuit_breaker"]["timeout_minutes"] == 45
+
 
 class TestGetDefaultConfig:
     """Test default configuration generation."""
@@ -475,3 +548,60 @@ class TestLoadConfig:
         assert config.review.plan_strict is False
         # - iteration_warning_threshold: default (0.8) remains
         assert config.guardrails.iteration_warning_threshold == 0.8
+
+    def test_load_config_circuit_breaker_defaults(self, tmp_path, monkeypatch):
+        """Test circuit breaker config loads with defaults."""
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        # Should have circuit breaker with defaults
+        assert config.circuit_breaker.enabled is True
+        assert config.circuit_breaker.timeout_minutes == 30
+
+    def test_load_config_circuit_breaker_project_override(self, tmp_path, monkeypatch):
+        """Test circuit breaker config can be overridden in project config."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config_file = project_dir / ".cub.json"
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "circuit_breaker": {
+                        "enabled": False,
+                        "timeout_minutes": 60,
+                    }
+                }
+            )
+        )
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        assert config.circuit_breaker.enabled is False
+        assert config.circuit_breaker.timeout_minutes == 60
+
+    def test_load_config_circuit_breaker_env_override(self, tmp_path, monkeypatch):
+        """Test circuit breaker env vars override config files."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config_file = project_dir / ".cub.json"
+        project_config_file.write_text(
+            json.dumps({"circuit_breaker": {"timeout_minutes": 60}})
+        )
+
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_ENABLED", "false")
+        monkeypatch.setenv("CUB_CIRCUIT_BREAKER_TIMEOUT", "90")
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        # Env vars override project config
+        assert config.circuit_breaker.enabled is False
+        assert config.circuit_breaker.timeout_minutes == 90

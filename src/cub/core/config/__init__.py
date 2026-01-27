@@ -15,6 +15,7 @@ from .loader import (
 from .models import (
     BackendConfig,
     BudgetConfig,
+    CircuitBreakerConfig,
     CubConfig,
     GuardrailsConfig,
     HarnessConfig,
@@ -29,6 +30,7 @@ __all__ = [
     # Models
     "BackendConfig",
     "BudgetConfig",
+    "CircuitBreakerConfig",
     "CubConfig",
     "GuardrailsConfig",
     "HarnessConfig",

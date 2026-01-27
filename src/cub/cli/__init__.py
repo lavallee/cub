@@ -26,6 +26,7 @@ from cub.cli import (
     review,
     run,
     sandbox,
+    session,
     spec,
     stage,
     status,
@@ -150,6 +151,7 @@ app.add_typer(task.app, name="task", rich_help_panel=PANEL_TASKS)
 app.add_typer(punchlist.app, name="punchlist", rich_help_panel=PANEL_TASKS)
 app.add_typer(workflow.app, name="workflow", rich_help_panel=PANEL_TASKS)
 app.add_typer(sync.app, name="sync", rich_help_panel=PANEL_TASKS)
+app.add_typer(session.app, name="session", rich_help_panel=PANEL_TASKS)
 app.command(name="interview", rich_help_panel=PANEL_TASKS)(delegated.interview)
 app.command(name="explain-task", rich_help_panel=PANEL_TASKS)(delegated.explain_task)
 app.command(name="close-task", rich_help_panel=PANEL_TASKS)(delegated.close_task)

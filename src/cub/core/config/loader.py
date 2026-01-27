@@ -123,6 +123,8 @@ def apply_env_overrides(config_dict: dict[str, Any]) -> dict[str, Any]:
     Supported env vars:
         CUB_BUDGET - overrides budget.default
         CUB_REVIEW_STRICT - overrides review.plan_strict
+        CUB_CIRCUIT_BREAKER_ENABLED - overrides circuit_breaker.enabled
+        CUB_CIRCUIT_BREAKER_TIMEOUT - overrides circuit_breaker.timeout_minutes
 
     Args:
         config_dict: Configuration dictionary to override
@@ -148,6 +150,32 @@ def apply_env_overrides(config_dict: dict[str, Any]) -> dict[str, Any]:
         if "review" not in result:
             result["review"] = {}
         result["review"]["plan_strict"] = strict_value
+
+    # CUB_CIRCUIT_BREAKER_ENABLED overrides circuit_breaker.enabled
+    if cb_enabled_str := os.environ.get("CUB_CIRCUIT_BREAKER_ENABLED"):
+        cb_enabled = cb_enabled_str.lower() not in ("false", "0", "")
+        if "circuit_breaker" not in result:
+            result["circuit_breaker"] = {}
+        result["circuit_breaker"]["enabled"] = cb_enabled
+
+    # CUB_CIRCUIT_BREAKER_TIMEOUT overrides circuit_breaker.timeout_minutes
+    if cb_timeout_str := os.environ.get("CUB_CIRCUIT_BREAKER_TIMEOUT"):
+        try:
+            cb_timeout = int(cb_timeout_str)
+            if cb_timeout < 1:
+                print(
+                    f"Warning: CUB_CIRCUIT_BREAKER_TIMEOUT must be >= 1, got {cb_timeout}, ignoring"
+                )
+            else:
+                if "circuit_breaker" not in result:
+                    result["circuit_breaker"] = {}
+                result["circuit_breaker"]["timeout_minutes"] = cb_timeout
+        except ValueError:
+            msg = (
+                f"Warning: Invalid CUB_CIRCUIT_BREAKER_TIMEOUT "
+                f"value '{cb_timeout_str}', ignoring"
+            )
+            print(msg)
 
     return result
 

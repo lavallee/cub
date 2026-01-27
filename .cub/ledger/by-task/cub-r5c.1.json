@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-r5c.1",
+  "title": "Add CircuitBreakerConfig",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r5c"
+  },
+  "task": {
+    "title": "Add CircuitBreakerConfig",
+    "description": "Configuration must exist before we can implement the circuit breaker. This adds the config model and wires it into CubConfig.\n\n**Implementation Steps:**\n1. Add `CircuitBreakerConfig` class to `src/cub/core/config/models.py`\n2. Fields: `enabled: bool = True`, `timeout_minutes: int = 30`\n3. Add `circuit_breaker: CircuitBreakerConfig` field to `CubConfig`\n4. Add environment variable support: `CUB_CIRCUIT_BREAKER_ENABLED`, `CUB_CIRCUIT_BREAKER_TIMEOUT`\n5. Update config documentation\n\n**Files:** src/cub/core/config/models.py, docs/CONFIG.md",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:low",
+      "config",
+      "epic:cub-r5c",
+      "model:haiku",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T21:35:36.234190Z",
+    "captured_at": "2026-01-26T21:59:56.491401Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-165956",
+      "started_at": "2026-01-26T16:59:56.498104",
+      "completed_at": "2026-01-26T22:07:44.757062Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 468
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T22:07:45.000515Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 468,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "8897425245f665bbed1bc117e8c9ec505c4cda8d",
+        "message": "docs: Append cub-r5c.1 completion to progress.txt",
+        "author": "",
+        "timestamp": "2026-01-26T22:07:17Z"
+      },
+      {
+        "hash": "3ecb8b6b53525a18b0d2180cf79a754b26b4b01f",
+        "message": "task(cub-r5c.1): Add CircuitBreakerConfig",
+        "author": "",
+        "timestamp": "2026-01-26T22:06:59Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T22:07:45.000515Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T21:59:56.491401Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T22:07:45.000515Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T21:59:56.491401Z",
+  "completed_at": "2026-01-26T22:07:45.000515Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 468,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "8897425245f665bbed1bc117e8c9ec505c4cda8d",
+      "message": "docs: Append cub-r5c.1 completion to progress.txt",
+      "author": "",
+      "timestamp": "2026-01-26T22:07:17Z"
+    },
+    {
+      "hash": "3ecb8b6b53525a18b0d2180cf79a754b26b4b01f",
+      "message": "task(cub-r5c.1): Add CircuitBreakerConfig",
+      "author": "",
+      "timestamp": "2026-01-26T22:06:59Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r5c.1",
+  "epic_id": "cub-r5c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

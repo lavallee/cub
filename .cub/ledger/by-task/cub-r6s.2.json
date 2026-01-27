@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-r6s.2",
+  "title": "Implement InstructionGenerator",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r6s"
+  },
+  "task": {
+    "title": "Implement InstructionGenerator",
+    "description": "Generate CLAUDE.md and AGENTS.md with workflow instructions that guide agents to use cub commands.\n\n**Implementation Steps:**\n1. Create `src/cub/core/instructions.py`\n2. Implement `generate_agents_md(project_dir, config)` - harness-agnostic instructions\n3. Implement `generate_claude_md(project_dir, config)` - Claude-specific additions\n4. Include sections: finding tasks (`cub status`), claiming work (`cub wip`), completing (`cub done`), logging (`cub log`)\n5. Include escape hatch language from E5\n6. Make output customizable via config (future: templates)\n\n**Files:** src/cub/core/instructions.py, tests/unit/test_instructions.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r6s",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-26T21:35:36.234258Z",
+    "captured_at": "2026-01-27T01:44:54.883044Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-203604",
+      "started_at": "2026-01-26T20:44:54.892318",
+      "completed_at": "2026-01-27T01:50:34.196840Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 339
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-27T01:50:34.441987Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 339,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "12bdd039ce3ec876bcd92d469b07b85849e40dfd",
+        "message": "chore: update progress.txt with cub-r6s.2 learnings",
+        "author": "",
+        "timestamp": "2026-01-27T01:50:22Z"
+      },
+      {
+        "hash": "c73dd9e325049a41b1d273ac90a266255087d724",
+        "message": "task(cub-r6s.2): Implement InstructionGenerator",
+        "author": "",
+        "timestamp": "2026-01-27T01:49:57Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T01:50:34.441987Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T01:44:54.883044Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T01:50:34.441987Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-27T01:44:54.883044Z",
+  "completed_at": "2026-01-27T01:50:34.441987Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 339,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "12bdd039ce3ec876bcd92d469b07b85849e40dfd",
+      "message": "chore: update progress.txt with cub-r6s.2 learnings",
+      "author": "",
+      "timestamp": "2026-01-27T01:50:22Z"
+    },
+    {
+      "hash": "c73dd9e325049a41b1d273ac90a266255087d724",
+      "message": "task(cub-r6s.2): Implement InstructionGenerator",
+      "author": "",
+      "timestamp": "2026-01-27T01:49:57Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r6s.2",
+  "epic_id": "cub-r6s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

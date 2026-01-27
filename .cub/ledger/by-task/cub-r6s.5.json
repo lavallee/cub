@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-r6s.5",
+  "title": "Implement hook handlers for artifact capture",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r6s"
+  },
+  "task": {
+    "title": "Implement hook handlers for artifact capture",
+    "description": "Based on hook research, implement handlers to auto-capture artifacts when possible.\n\n**Implementation Steps:**\n1. Create `src/cub/core/harness/hooks.py`\n2. Implement `handle_hook_event(event_type, payload)` dispatcher\n3. For PostToolUse/Write: detect writes to plans/, log to ledger\n4. For Stop: capture session end, finalize any open ledger entries\n5. Parse payloads defensively (malformed \u2192 skip, don't crash)\n6. Create hook scripts for `.cub/hooks/` that call these handlers\n\n**Files:** src/cub/core/harness/hooks.py, .cub/hooks/",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-r6s",
+      "hooks",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-26T21:35:36.234290Z",
+    "captured_at": "2026-01-27T02:10:52.676890Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-203604",
+      "started_at": "2026-01-26T21:10:52.682935",
+      "completed_at": "2026-01-27T02:17:20.299428Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 387
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-27T02:17:20.551679Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 387,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "677f7c9f93ee6601ae4c7638e10476d6ba129e6e",
+        "message": "docs: Add learnings for hook handlers implementation",
+        "author": "",
+        "timestamp": "2026-01-27T02:17:02Z"
+      },
+      {
+        "hash": "4082e7b4b23e69179f120e1469a72d40ef56e966",
+        "message": "task(cub-r6s.5): Implement hook handlers for artifact capture",
+        "author": "",
+        "timestamp": "2026-01-27T02:16:43Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T02:17:20.551679Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:10:52.676890Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:17:20.551679Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-27T02:10:52.676890Z",
+  "completed_at": "2026-01-27T02:17:20.551679Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 387,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "677f7c9f93ee6601ae4c7638e10476d6ba129e6e",
+      "message": "docs: Add learnings for hook handlers implementation",
+      "author": "",
+      "timestamp": "2026-01-27T02:17:02Z"
+    },
+    {
+      "hash": "4082e7b4b23e69179f120e1469a72d40ef56e966",
+      "message": "task(cub-r6s.5): Implement hook handlers for artifact capture",
+      "author": "",
+      "timestamp": "2026-01-27T02:16:43Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r6s.5",
+  "epic_id": "cub-r6s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

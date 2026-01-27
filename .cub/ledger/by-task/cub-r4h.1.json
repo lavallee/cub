@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-r4h.1",
+  "title": "Audit run.py exit paths",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r4h"
+  },
+  "task": {
+    "title": "Audit run.py exit paths",
+    "description": "Before adding tests, we need to document current behavior. This audit identifies all exit paths and their current artifact-preservation status.\n\n**Implementation Steps:**\n1. Read through `src/cub/cli/run.py` and identify all exit points (return statements, sys.exit, exceptions)\n2. For each exit path, document: trigger condition, whether `write_run_artifact()` is called, whether status is persisted\n3. Identify gaps where artifacts might not be created\n4. Create a markdown document in `.cub/docs/` summarizing findings\n\n**Files:** src/cub/cli/run.py, .cub/docs/run-exit-paths.md",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "audit",
+      "complexity:medium",
+      "epic:cub-r4h",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-26T21:35:36.234065Z",
+    "captured_at": "2026-01-26T21:36:52.039107Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-163651",
+      "started_at": "2026-01-26T16:36:52.047288",
+      "completed_at": "2026-01-26T21:39:37.688315Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 165
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-26T21:39:37.951469Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 165,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "7b36c3589ffd003d79f5868d36bd3f101dfcc9d8",
+        "message": "docs: Append learnings from exit path audit",
+        "author": "",
+        "timestamp": "2026-01-26T21:39:26Z"
+      },
+      {
+        "hash": "88be8a4426d32a1eabc4b32d35eee9c2b1144e3e",
+        "message": "task(cub-r4h.1): Audit run.py exit paths",
+        "author": "",
+        "timestamp": "2026-01-26T21:39:02Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T21:39:37.951469Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T21:36:52.039107Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T21:39:37.951469Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-26T21:36:52.039107Z",
+  "completed_at": "2026-01-26T21:39:37.951469Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 165,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "7b36c3589ffd003d79f5868d36bd3f101dfcc9d8",
+      "message": "docs: Append learnings from exit path audit",
+      "author": "",
+      "timestamp": "2026-01-26T21:39:26Z"
+    },
+    {
+      "hash": "88be8a4426d32a1eabc4b32d35eee9c2b1144e3e",
+      "message": "task(cub-r4h.1): Audit run.py exit paths",
+      "author": "",
+      "timestamp": "2026-01-26T21:39:02Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r4h.1",
+  "epic_id": "cub-r4h",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

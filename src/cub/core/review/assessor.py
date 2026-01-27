@@ -482,7 +482,7 @@ class TaskAssessor:
             # Check if test file was in the actual commit files
             # Match patterns like: test_manager.py, test_session_manager.py
             test_in_commit = any(
-                f"test_{filename}" in tf or f"test_" in tf and filename in tf
+                f"test_{filename}" in tf or "test_" in tf and filename in tf
                 for tf in actual_test_files
             )
             if test_in_commit:

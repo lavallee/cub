@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r6s.3",
+  "title": "Update cub init for AGENTS.md",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r6s"
+  },
+  "task": {
+    "title": "Update cub init for AGENTS.md",
+    "description": "`cub init` should create AGENTS.md at project root for cross-harness compatibility.\n\n**Implementation Steps:**\n1. Update `src/cub/cli/init_cmd.py` to call InstructionGenerator\n2. Generate AGENTS.md at project root (not in .cub/)\n3. Generate/update CLAUDE.md at project root\n4. Don't overwrite if files exist (or prompt user)\n5. Add success message mentioning the files created\n\n**Files:** src/cub/cli/init_cmd.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cli",
+      "complexity:low",
+      "epic:cub-r6s",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-26T21:35:36.234270Z",
+    "captured_at": "2026-01-27T02:03:32.883445Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-203604",
+      "started_at": "2026-01-26T21:03:32.890099",
+      "completed_at": "2026-01-27T02:07:53.303372Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 260
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-27T02:07:53.555673Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 260,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "748ad9d837f6953677163826a994e3f629ddc0a9",
+        "message": "task(cub-r6s.3): Update cub init for AGENTS.md",
+        "author": "",
+        "timestamp": "2026-01-27T02:07:19Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T02:07:53.555673Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:03:32.883445Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:07:53.555673Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-27T02:03:32.883445Z",
+  "completed_at": "2026-01-27T02:07:53.555673Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 260,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "748ad9d837f6953677163826a994e3f629ddc0a9",
+      "message": "task(cub-r6s.3): Update cub init for AGENTS.md",
+      "author": "",
+      "timestamp": "2026-01-27T02:07:19Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r6s.3",
+  "epic_id": "cub-r6s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

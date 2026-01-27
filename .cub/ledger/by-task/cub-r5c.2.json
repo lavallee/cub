@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-r5c.2",
+  "title": "Implement CircuitBreaker class",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r5c"
+  },
+  "task": {
+    "title": "Implement CircuitBreaker class",
+    "description": "The core circuit breaker logic. Uses asyncio timeout to detect hung harness execution.\n\n**Implementation Steps:**\n1. Create `src/cub/core/circuit_breaker.py`\n2. Implement `CircuitBreaker` class with:\n3. On timeout: raise `CircuitBreakerTripped` exception with clear message\n4. Handle graceful cancellation of the wrapped coroutine\n5. Write unit tests\n\n**Files:** src/cub/core/circuit_breaker.py, tests/unit/test_circuit_breaker.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r5c",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T21:35:36.234204Z",
+    "captured_at": "2026-01-26T22:07:47.356185Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-26T22:07:47.356185Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-26T22:07:47.356185Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-26T22:07:47.356185Z",
+  "completed_at": "2026-01-26T22:07:47.356185Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r5c.2",
+  "epic_id": "cub-r5c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

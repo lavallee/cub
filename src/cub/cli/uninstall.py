@@ -113,7 +113,7 @@ def run_pipx_uninstall() -> bool:
         if result.returncode == 0:
             return True
 
-        console.print(f"[red]pipx uninstall failed:[/red]")
+        console.print("[red]pipx uninstall failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -143,7 +143,7 @@ def run_pip_uninstall() -> bool:
         if result.returncode == 0:
             return True
 
-        console.print(f"[red]pip uninstall failed:[/red]")
+        console.print("[red]pip uninstall failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False

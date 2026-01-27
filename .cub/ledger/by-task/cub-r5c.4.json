@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r5c.4",
+  "title": "Add --no-circuit-breaker CLI flag",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r5c"
+  },
+  "task": {
+    "title": "Add --no-circuit-breaker CLI flag",
+    "description": "Users need ability to disable circuit breaker for legitimately long operations.\n\n**Implementation Steps:**\n1. Add `--no-circuit-breaker` flag to `cub run` command\n2. Flag sets `config.circuit_breaker.enabled = False`\n3. Document flag in `cub run --help`\n4. Add example to README showing when to use it\n\n**Files:** src/cub/cli/run.py, README.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cli",
+      "complexity:low",
+      "epic:cub-r5c",
+      "model:haiku",
+      "phase-2"
+    ],
+    "created_at": "2026-01-26T21:35:36.234230Z",
+    "captured_at": "2026-01-27T01:31:45.383781Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-200501",
+      "started_at": "2026-01-26T20:31:45.389374",
+      "completed_at": "2026-01-27T01:35:58.642119Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 253
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-27T01:35:58.931585Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 253,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9b4dfcf632e92fda449fd9c3a32103ef4716e1c5",
+        "message": "task(cub-r5c.4): Add --no-circuit-breaker CLI flag documentation",
+        "author": "",
+        "timestamp": "2026-01-27T01:35:06Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T01:35:58.931585Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T01:31:45.383781Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T01:35:58.931585Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-27T01:31:45.383781Z",
+  "completed_at": "2026-01-27T01:35:58.931585Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 253,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "9b4dfcf632e92fda449fd9c3a32103ef4716e1c5",
+      "message": "task(cub-r5c.4): Add --no-circuit-breaker CLI flag documentation",
+      "author": "",
+      "timestamp": "2026-01-27T01:35:06Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r5c.4",
+  "epic_id": "cub-r5c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

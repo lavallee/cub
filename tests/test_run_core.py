@@ -135,6 +135,16 @@ def mock_config():
     config.guardrails.max_task_iterations = 3
     config.guardrails.iteration_warning_threshold = 0.8
     config.hooks.fail_fast = True
+    # Circuit breaker configuration (required by run.py)
+    config.circuit_breaker.enabled = False
+    config.circuit_breaker.timeout_minutes = 30
+    # Sync configuration
+    config.sync.enabled = False
+    config.sync.auto_sync = "never"
+    # Ledger configuration
+    config.ledger.enabled = False
+    # Cleanup configuration
+    config.cleanup.enabled = False
     return config
 
 

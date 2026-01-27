@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r6s.4",
+  "title": "Research Claude Code hooks",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r6s"
+  },
+  "task": {
+    "title": "Research Claude Code hooks",
+    "description": "Understand what hooks Claude Code exposes for artifact capture. This informs whether we can auto-capture or must rely on instructions.\n\n**Implementation Steps:**\n1. Review Claude Code documentation for hooks system\n2. Test available hook events: PreToolUse, PostToolUse, Stop, PermissionRequest\n3. Document payload structure for each relevant event\n4. Identify: can we detect session start/end? Can we capture plan content?\n5. Write findings to `.cub/docs/claude-code-hooks.md`\n\n**Files:** .cub/docs/claude-code-hooks.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-r6s",
+      "model:sonnet",
+      "phase-3",
+      "research"
+    ],
+    "created_at": "2026-01-26T21:35:36.234279Z",
+    "captured_at": "2026-01-27T01:50:36.806074Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260126-203604",
+      "started_at": "2026-01-26T20:50:36.811394",
+      "completed_at": "2026-01-27T02:03:30.253601Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 773
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-27T02:03:30.526090Z",
+    "total_cost_usd": 0.0,
+    "total_attempts": 1,
+    "total_duration_seconds": 773,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "74d94733a1a5f97ac8e6f433f543030947bb4c90",
+        "message": "task(cub-r6s.4): Research Claude Code hooks",
+        "author": "",
+        "timestamp": "2026-01-27T02:02:11Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T02:03:30.526090Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T01:50:36.806074Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:03:30.526090Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-27T01:50:36.806074Z",
+  "completed_at": "2026-01-27T02:03:30.526090Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 773,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "74d94733a1a5f97ac8e6f433f543030947bb4c90",
+      "message": "task(cub-r6s.4): Research Claude Code hooks",
+      "author": "",
+      "timestamp": "2026-01-27T02:02:11Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r6s.4",
+  "epic_id": "cub-r6s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
