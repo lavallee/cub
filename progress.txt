@@ -10018,3 +10018,54 @@ Created comprehensive manual testing protocol for E6 (Symbiotic Workflow) to val
 - **cub-r6s.5** (PENDING): Implement hook handlers → Will enhance automatic artifact capture
 - **cub-r6s** (EPIC): Reliability phase #3: Symbiotic Workflow → E6 is part of this epic
 
+
+## 2026-01-26: Hook Handlers for Artifact Capture (cub-r6s.5)
+
+Implemented comprehensive hook system for auto-capturing artifacts during direct harness sessions.
+
+### What Was Implemented
+
+1. **Hook Event Handler Module** (`src/cub/core/harness/hooks.py`)
+   - `HookEventPayload`: Defensive JSON parsing from stdin
+   - `HookEventResult`: Proper Claude Code hook response formatting
+   - Event handlers for PostToolUse, Stop, SessionStart, SessionEnd
+   - Forensic logging to `.cub/ledger/forensics/{session_id}.jsonl`
+
+2. **Hook Scripts** (`.cub/hooks/`)
+   - Bash scripts for Claude Code integration
+   - Check for cub installation and project config before running
+   - Call Python handlers via `python3 -m cub.core.harness.hooks`
+   - Non-blocking, defensive error handling
+
+3. **Forensic Log Format**
+   - JSONL format for easy processing
+   - Events: session_start, plan_write, session_finalize
+   - Timestamps, file paths, transcript paths captured
+
+### Key Design Decisions
+
+1. **Defensive Parsing**: Malformed hook inputs are skipped, not crashed
+2. **Non-Blocking**: Hooks always return exit code 0 (never block Claude)
+3. **Conditional Activation**: Only run if cub is installed and `.cub/config.json` exists
+4. **JSONL Forensics**: Simple append-only format for session reconstruction
+
+### Testing
+
+- Created 20 comprehensive tests for hook handlers
+- All tests passing
+- Manual testing with hook scripts confirmed working
+- Verified forensic logs are created correctly
+
+### Learnings
+
+1. **Config File Flexibility**: Need to check for both `.cub/config.json` and `.cub/config.yml`
+2. **Hook Protocol**: Claude Code hooks use JSON stdin/stdout with specific exit codes
+3. **Forensic Capture**: Can reconstruct work from direct sessions via hook events
+4. **Tool Name Detection**: Write, Edit, NotebookEdit all need separate handling
+5. **Path Detection**: Can filter by path patterns (e.g., `plans/`) to capture relevant files
+
+### Next Steps
+
+- Integrate forensic logs with ledger reconstruction
+- Add `cub ledger reconstruct` command to process forensic logs
+- Document hook installation in AGENTS.md for cross-harness compatibility
