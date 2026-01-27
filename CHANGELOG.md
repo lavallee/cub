@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.28.0] - 2026-01-27
+
+### Added
+
+- Add unified tracking model plan + fix itemize skill
+- Invoke Claude Code for plan stages instead of template generation
+- Add build-plan.sh script for running epics from staged plans
+
+### Changed
+
+- Scooping up run sessions;
+- Feature/reliability-phase (#63)
+- Staged reliability work
+- Ran reliability phase planning
+- Feature/0.30-foundation-phase (#62)
+- Sketches/0.30-epics.md
+- Cowork-developed high-level plans for 0.30a1 and beyond
+- Public alpha notes
+- Sketch docs
+- Cleaned up transcript
+- Features
+- Feature/unified-tool-ecosystem (#61)
+- Plans and specs for unified tool ecosystem
+- Fixed stage stomping on prompt.md
+- Feature/unified-tracking-model (#60)
+- Unified tracking model plan
+- New unified tracking spec
+- Feature/toolsmith (#58)
+- Reformatted itemized plan for toolsmith
+- Added plan.json for toolsmith
+- Renaming plan.md to new itemized-plan.md format
+- Moving toolsmith plan into new canonical location
+- Added exclusion for node_modules
+- Feature/project-kanban-dashboard (#57)
+- Retrofitted plan.json
+- Beads cleanup
+- Moving beads sync branch off main
+- Beads issues jsonl
+- Added kanban spec and planning docs
+- Update webpage for v0.27.1
+
+### Fixed
+
+- Reconcile epic-task association approach across codebase
+- Capture cost_usd and harness_model in ledger entries (#59)
+- Build-plan.sh use --label for epic task filtering
+- Build-plan.sh title extraction for both epic formats
+- Build-plan.sh now handles both epic header formats
+- Use --parent flag for get_ready_tasks instead of label filtering
+- Correct blocks dependency direction in beads import
+- Preserve explicit IDs in import_tasks for both backends
+
+---
+
 ## [0.27.1] - 2026-01-23
 
 ### Breaking Changes
