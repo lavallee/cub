@@ -3,12 +3,18 @@ Unit tests for architect stage implementation.
 
 Tests the ArchitectStage class functionality including validation,
 context gathering, tech stack inference, and architecture.md generation.
+
+All stage tests mock out invoke_claude_command so stages use
+their template fallback instead of calling the real Claude CLI.
 """
 
 import json
 from pathlib import Path
 
 import pytest
+
+# Use template fallback instead of real Claude CLI.
+pytestmark = pytest.mark.usefixtures("_no_claude")
 
 from cub.core.plan.architect import (
     ArchitectInputError,
