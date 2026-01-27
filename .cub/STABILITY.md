@@ -50,6 +50,12 @@ Primary implementations and main execution paths. These modules coordinate betwe
 | `utils/hooks.py` | Hook execution system | 81% | Above threshold |
 | `core/github/client.py` | GitHub API client | 51% | **Needs improvement** |
 | `core/pr/service.py` | PR creation service | 39% | **Needs improvement** |
+| `core/circuit_breaker.py` | Stagnation detection for run loop | — | New module |
+| `core/instructions.py` | Instruction file generation | — | New module |
+| `core/harness/hooks.py` | Hook handlers for artifact capture | — | New module |
+| `core/ledger/models.py` | Ledger data models | — | New module |
+| `core/ledger/reader.py` | Ledger query interface | — | New module |
+| `core/ledger/writer.py` | Ledger persistence | — | New module |
 | `core/dashboard/db/` | Dashboard database layer | 93% | Above threshold |
 | `core/dashboard/api/` | Dashboard FastAPI routes | 84% | Above threshold |
 | `core/dashboard/sync/` | Dashboard sync orchestrator | 60% | At threshold |
@@ -76,6 +82,9 @@ Newer features, less stable APIs, and modules still under active development. Br
 | `core/worktree/parallel.py` | Parallel worktree ops | 76% | Above threshold |
 | `cli/captures.py` | Captures CLI | 79% | Above threshold |
 | `cli/organize_captures.py` | Capture organization | 64% | Above threshold |
+| `core/ledger/extractor.py` | LLM-based insight extraction | — | New module |
+| `core/tools/` | Tool execution runtime | — | New module |
+| `cli/session.py` | Direct session CLI commands | — | New module |
 
 ### UI/Delegated (No Coverage Threshold)
 

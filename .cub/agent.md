@@ -92,7 +92,23 @@ ruff format src/ tests/
 │   │   │   ├── claude.py     # Claude Code harness
 │   │   │   ├── codex.py      # OpenAI Codex harness
 │   │   │   ├── gemini.py     # Google Gemini harness
-│   │   │   └── opencode.py   # OpenCode harness
+│   │   │   ├── opencode.py   # OpenCode harness
+│   │   │   └── hooks.py      # Hook handlers for artifact capture
+│   │   ├── tools/        # Tool execution runtime
+│   │   │   ├── adapter.py    # ToolAdapter protocol and registry
+│   │   │   ├── models.py     # Tool models (ToolResult, ToolConfig, etc.)
+│   │   │   ├── execution.py  # ExecutionService orchestrator
+│   │   │   ├── registry.py   # RegistryService and RegistryStore
+│   │   │   ├── metrics.py    # MetricsStore for execution statistics
+│   │   │   ├── approvals.py  # ApprovalService and freedom dial
+│   │   │   └── adapters/     # HTTP, CLI, MCP stdio adapters
+│   │   ├── ledger/       # Task completion ledger
+│   │   │   ├── models.py     # Ledger data models
+│   │   │   ├── reader.py     # Query interface
+│   │   │   ├── writer.py     # Persistence layer
+│   │   │   └── extractor.py  # LLM-powered insight extraction
+│   │   ├── circuit_breaker.py # Stagnation detection for run loop
+│   │   ├── instructions.py   # Instruction file generation
 │   │   ├── logger.py     # JSONL structured logging
 │   │   └── git_utils.py  # Git operations
 │   ├── utils/            # Utilities
@@ -125,6 +141,12 @@ ruff format src/ tests/
 - `cub.core.harness.backend` - Abstract harness interface
 - `cub.utils.hooks` - Hook execution system
 - `cub.core.bash_delegate` - Delegates unported commands to bash cub
+- `cub.core.tools` - Tool execution runtime with pluggable adapters
+- `cub.core.tools.execution` - ExecutionService for tool orchestration
+- `cub.core.tools.registry` - Tool registry and approval management
+- `cub.core.ledger` - Task completion ledger (models, reader, writer, extractor)
+- `cub.core.circuit_breaker` - Stagnation detection for the run loop
+- `cub.core.instructions` - Instruction file generation for harness sessions
 
 ## Module Stability Tiers
 
@@ -169,6 +191,7 @@ These commands have been migrated to Python and execute directly without bash:
 - **`doctor`** - Diagnose and fix configuration issues
 - **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`, `update`, `export`, `gc`)
 - **`review`** - Assess task implementations against requirements
+- **`session`** - Track work in direct harness sessions (subcommands: `log`, `done`, `wip`)
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
@@ -178,6 +201,7 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `doctor.py` - Configuration diagnostics
 - `ledger.py` - Task completion ledger
 - `review.py` - Task/epic/plan assessment and deep analysis
+- `session.py` - Direct session workflow commands
 
 ### Delegated Commands (Bash-Implemented)
 
