@@ -6486,3 +6486,36 @@ This component is ready for integration with the run loop. Future tasks will:
 4. Write tests validating artifact creation on all exit paths
 5. Implement circuit breaker (E5) and ledger capture for direct sessions (E6)
 
+
+## Task cub-r6s.3: Update cub init for AGENTS.md (2026-01-26)
+
+### What was done:
+
+- Created `src/cub/cli/init_cmd.py` Python module for generating AGENTS.md and CLAUDE.md
+- Updated bash init script (`cmd_init.sh`) to call Python instruction generator
+- AGENTS.md and CLAUDE.md now generated at project root (not as symlinks)
+- Files use `InstructionGenerator` functions from `cub.core.instructions`
+- Added comprehensive tests in `tests/test_cli_init_cmd.py`
+- Proper handling of existing files (skip without `--force` flag)
+
+### Technical details:
+
+- Bash script calls: `python3 -m cub.cli.init_cmd .`
+- Python module uses `generate_agents_md()` and `generate_claude_md()` from `cub.core.instructions`
+- Falls back to default config if project config cannot be loaded
+- Success/warning messages properly formatted for Rich console output
+- Integration works seamlessly with existing bash init flow
+
+### Learnings:
+
+- **Mixed language integration**: Python and bash integration works well using module execution (`python3 -m`)
+- **Error handling**: Graceful fallback to default config ensures files are generated even in new projects
+- **File generation**: Instruction files provide workflow guidance for direct harness sessions (Claude Code, Codex, OpenCode)
+- **Testing strategy**: Tests cover both module functionality and file skip/overwrite behavior
+- **Cross-harness compatibility**: AGENTS.md is harness-agnostic, CLAUDE.md has Claude-specific additions
+
+### Files modified:
+
+- `src/cub/cli/init_cmd.py` (new)
+- `src/cub/bash/lib/cmd_init.sh` (updated)
+- `tests/test_cli_init_cmd.py` (new)

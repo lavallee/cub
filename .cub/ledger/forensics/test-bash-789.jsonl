@@ -1,0 +1,2 @@
+{"event": "plan_write", "file_path": "plans/bash-test.md", "timestamp": "2026-01-27T02:16:20.601333+00:00"}
+{"event": "session_finalize", "transcript_path": "/path/to/transcript.jsonl", "timestamp": "2026-01-27T02:16:21.101009+00:00"}

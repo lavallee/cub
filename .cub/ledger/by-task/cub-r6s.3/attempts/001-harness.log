@@ -1,0 +1,46 @@
+I'll complete this task by updating `cub init` to generate AGENTS.md at the project root for cross-harness compatibility.
+
+Let me start by marking the task as in progress and understanding the current implementation:Let me find the init command and understand the current structure:Great! I found the instruction generation functions. Now let me search for existing CLI commands to understand the pattern:Let me search for an `init` command in the cub directory:Let me check the documentation and the main CLI entry point:Now let me check the delegated.init function:I see! The `init` command is currently delegated to a bash script. Let me check if there's a bash script for it:Let me search for where bash_cub is located:Let me check the cmd_init.sh file to understand what it currently does:Perfect! I can see that the current bash implementation creates an `AGENTS.md` symlink to `.cub/agent.md` (lines 519-528). However, the requirements state that we should generate `AGENTS.md` at the project root (not as a symlink) using the `InstructionGenerator`. 
+
+Let me now create a Python implementation of the `init` command. First, let me check if there's already a Python implementation started:Now, I need to understand the task better. Looking at the spec and documentation, the current implementation creates a symlink to `.cub/agent.md`, but the requirements say we should:
+
+1. Generate `AGENTS.md` at project root (not in .cub/)
+2. Generate/update `CLAUDE.md` at project root  
+3. Use the `InstructionGenerator` functions from `cub.core.instructions`
+
+Let me modify the bash script to call Python code for generating these files. First, let me create a Python module that can be called from the bash script:Now I need to update the bash script to call this Python module. Let me modify the relevant section:Now let me test if this works by running a test to verify the module can be imported and the functions work correctly:Great! Now let me test the actual generation in a temporary directory:Perfect! Let me verify the generated files look correct:Excellent! The files are being generated correctly. Now let me verify the bash script integration works by checking if it runs without errors. But first, let me clean up the test directory:Now let me check if there are any tests for the init command that I should update:Let me search for tests that might test the instruction generation:Let me check the test_instructions.py file:Great! The tests already exist for the instruction generation. Now let me write a simple test for the init_cmd module to ensure it works correctly:Now let me run the tests to verify everything works:Excellent! All tests pass. Now let me also run the existing instruction tests to make sure I didn't break anything:Perfect! All tests pass. Now let me test the full integration by running a simulated `cub init` command in a test directory to ensure the bash script properly calls our Python module:I see the output says "Instruction files may already exist or generation encountered issues". Let me check if the files were created:Perfect! The files were created successfully. The warning message is just because the Python output doesn't match the exact format the grep is looking for. Let me update the bash script to improve the success detection:Good! Now let me test it again in a fresh directory:Perfect! Now let me verify the files and their content:Excellent! Everything is working correctly. Now let me run the full test suite to ensure I didn't break anything:Perfect! All tests pass. Now let me run type checking and linting to ensure code quality:I need to fix the type error in my code. Let me check the HarnessConfig definition:I see. The field is called `name`, not `default`. Let me fix the init_cmd.py file:Now let me run type checking again on just my file:Great! No type errors in my file. Now let me run linting:Let me fix the linting issues:Good! Linting issues are fixed. Now let me run the tests again to make sure everything still works:Perfect! Now let me test one more time end-to-end to ensure the integration works properly:Excellent! Now let me verify the files exist and look good:Perfect! Everything looks great. Now let me clean up the test directory and run the full test suite to make sure everything works:Perfect! All tests pass. Now let me close the task and commit the changes:Now let me commit the changes:Perfect! Now let me append learnings to the progress.txt file:Perfect! Let me verify the task is properly closed and check the remaining tasks:Excellent! Task cub-r6s.3 is now closed. Let me create a summary of what was accomplished:
+
+## Summary
+
+I successfully completed task **cub-r6s.3: Update cub init for AGENTS.md** with the following accomplishments:
+
+### What Was Implemented
+
+1. **Created `src/cub/cli/init_cmd.py`**: A Python module that generates AGENTS.md and CLAUDE.md instruction files using the existing `InstructionGenerator` functions from `cub.core.instructions`.
+
+2. **Updated bash init script**: Modified `src/cub/bash/lib/cmd_init.sh` to call the Python module instead of creating a symlink for AGENTS.md.
+
+3. **Generated files at project root**: Both AGENTS.md and CLAUDE.md are now created as standalone files at the project root (not as symlinks to .cub/agent.md).
+
+4. **Proper file handling**: The implementation:
+   - Skips existing files by default (shows warning)
+   - Supports `--force` flag to overwrite existing files
+   - Shows clear success messages when files are created
+
+5. **Added comprehensive tests**: Created `tests/test_cli_init_cmd.py` with 6 test cases covering all functionality.
+
+### Technical Details
+
+- The bash script calls: `python3 -m cub.cli.init_cmd .`
+- Python module uses `generate_agents_md()` and `generate_claude_md()` from `cub.core.instructions`
+- Gracefully handles missing config by falling back to default configuration
+- All 31 related tests pass (6 new + 25 existing instruction tests)
+- Code passes type checking and linting
+
+### Files Modified
+
+- `src/cub/cli/init_cmd.py` (new)
+- `src/cub/bash/lib/cmd_init.sh` (updated)
+- `tests/test_cli_init_cmd.py` (new)
+
+The implementation is complete, tested, and ready for use. Running `cub init` now generates both AGENTS.md and CLAUDE.md at the project root for cross-harness compatibility.

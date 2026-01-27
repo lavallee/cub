@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-r6s.5",
+  "title": "Implement hook handlers for artifact capture",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r6s"
+  },
+  "task": {
+    "title": "Implement hook handlers for artifact capture",
+    "description": "Based on hook research, implement handlers to auto-capture artifacts when possible.\n\n**Implementation Steps:**\n1. Create `src/cub/core/harness/hooks.py`\n2. Implement `handle_hook_event(event_type, payload)` dispatcher\n3. For PostToolUse/Write: detect writes to plans/, log to ledger\n4. For Stop: capture session end, finalize any open ledger entries\n5. Parse payloads defensively (malformed \u2192 skip, don't crash)\n6. Create hook scripts for `.cub/hooks/` that call these handlers\n\n**Files:** src/cub/core/harness/hooks.py, .cub/hooks/",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-r6s",
+      "hooks",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-26T21:35:36.234290Z",
+    "captured_at": "2026-01-27T02:10:52.676890Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-27T02:10:52.676890Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-27T02:10:52.676890Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-27T02:10:52.676890Z",
+  "completed_at": "2026-01-27T02:10:52.676890Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-r6s.5",
+  "epic_id": "cub-r6s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
