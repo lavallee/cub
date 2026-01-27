@@ -118,6 +118,45 @@ Study these files to understand the project:
 - Use SINGLE sequential execution for: build, test, typecheck
 - Before making changes, always search first using subagents
 
+## Escape Hatch: Signal When Stuck
+
+If you get stuck and cannot make progress despite a genuine attempt to solve the task, signal your state to the autonomous loop so it can stop gracefully instead of consuming time and budget on a blocked task.
+
+**How to signal "stuck":**
+
+Output this XML tag with your reason:
+
+```
+<stuck>REASON FOR BEING STUCK</stuck>
+```
+
+**Example:**
+```
+<stuck>Cannot find the required configuration file after exhaustive search. The file may not exist in this repository, preventing further progress on dependency injection setup.</stuck>
+```
+
+**What "stuck" means:**
+
+- You have genuinely attempted to solve the task (multiple approaches, searched codebase, read docs)
+- An external blocker prevents progress (missing file, dependency not found, environment issue, unclear requirements)
+- Continuing to work on this task will waste time and money without producing value
+- The blocker cannot be resolved within the scope of this task
+
+**What "stuck" does NOT mean:**
+
+- "This task is hard" — Keep working
+- "I'm confused about how something works" — Search docs, read code, ask in a follow-up task
+- "I've spent 30 minutes" — Time spent is not a blocker; genuine blockers are
+
+**Effect of signaling "stuck":**
+
+- The autonomous loop detects this signal and stops the run gracefully
+- Your work so far is captured in artifacts and the ledger
+- The task is marked with context for manual review
+- This complements the time-based circuit breaker (E5) which trips after inactivity timeout
+
+**Important:** This is not a replacement for the time-based circuit breaker. The circuit breaker monitors subprocess activity. This escape hatch is your active signal that you, the agent, are genuinely blocked and should stop.
+
 ## When You're Done
 
 After successfully completing the task and all checks pass:
