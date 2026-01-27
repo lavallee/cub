@@ -643,6 +643,12 @@ def display_summary(status: RunStatus) -> None:
         table.add_row("Cost", f"${status.budget.cost_usd:.4f}")
     table.add_row("Final Phase", status.phase.value)
 
+    # Circuit breaker status
+    if status.circuit_breaker_enabled:
+        table.add_row("Circuit Breaker", f"Enabled ({status.circuit_breaker_timeout}min timeout)")
+    else:
+        table.add_row("Circuit Breaker", "Disabled")
+
     console.print(table)
 
 
@@ -1285,6 +1291,8 @@ def run(
         epic=epic,
         label=label,
         branch=current_branch,
+        circuit_breaker_enabled=circuit_breaker_enabled,
+        circuit_breaker_timeout=config.circuit_breaker.timeout_minutes,
         iteration=IterationInfo(
             current=0,
             max=max_iterations,

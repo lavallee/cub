@@ -265,6 +265,12 @@ class RunStatus(BaseModel):
     epic: str | None = Field(default=None, description="Epic filter for this run")
     label: str | None = Field(default=None, description="Label filter for this run")
     branch: str | None = Field(default=None, description="Git branch for this run")
+    circuit_breaker_enabled: bool = Field(
+        default=True, description="Whether circuit breaker is enabled"
+    )
+    circuit_breaker_timeout: int = Field(
+        default=30, description="Circuit breaker timeout in minutes"
+    )
 
     # Current state
     phase: RunPhase = Field(default=RunPhase.INITIALIZING, description="Current run phase")
