@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "id": "cub-v8n.4",
+  "title": "Refactor cub session done to use SessionLedgerIntegration",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-v8n"
+  },
+  "task": {
+    "title": "Refactor cub session done to use SessionLedgerIntegration",
+    "description": "`cub session done` currently creates ledger entries with ad-hoc code that duplicates the LedgerEntry construction logic. Refactor to use `SessionLedgerIntegration` for a single code path.\n\n**Implementation Steps:**\n1. Refactor `session.py` `done` command to instantiate `SessionLedgerIntegration`\n2. Create a synthetic session: call `on_session_start`, `on_task_claim`, `on_task_close`, `on_session_end`\n3. Remove the existing inline LedgerEntry construction code\n4. Ensure backward compatibility: same CLI interface, same output messages, same ledger entry format\n\n**Files:** src/cub/cli/session.py, tests/test_session.py",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cli",
+      "complexity:low",
+      "epic:cub-v8n",
+      "model:sonnet",
+      "phase-2",
+      "refactor"
+    ],
+    "created_at": "2026-01-28T03:37:44.364178Z",
+    "captured_at": "2026-01-28T06:40:10.102825Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-061736",
+      "started_at": "2026-01-28T06:40:10.114841",
+      "completed_at": "2026-01-28T06:45:33.053771Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 3903,
+        "output_tokens": 8892,
+        "cache_read_tokens": 1498449,
+        "cache_creation_tokens": 43092
+      },
+      "cost_usd": 1.127592,
+      "duration_seconds": 322
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:45:33.254405Z",
+    "total_cost_usd": 1.127592,
+    "total_attempts": 1,
+    "total_duration_seconds": 322,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "04715a546111f9f8cde223ca0c57ec15748121a6",
+        "message": "task(cub-v8n.4): Refactor cub session done to use SessionLedgerIntegration",
+        "author": "",
+        "timestamp": "2026-01-28T06:45:09Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:45:33.254405Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:40:10.102825Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:45:33.254405Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T06:40:10.102825Z",
+  "completed_at": "2026-01-28T06:45:33.254405Z",
+  "tokens": {
+    "input_tokens": 3903,
+    "output_tokens": 8892,
+    "cache_read_tokens": 1498449,
+    "cache_creation_tokens": 43092
+  },
+  "cost_usd": 1.127592,
+  "duration_seconds": 322,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "04715a546111f9f8cde223ca0c57ec15748121a6",
+      "message": "task(cub-v8n.4): Refactor cub session done to use SessionLedgerIntegration",
+      "author": "",
+      "timestamp": "2026-01-28T06:45:09Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-v8n.4",
+  "epic_id": "cub-v8n",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

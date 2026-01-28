@@ -24,8 +24,56 @@
     "captured_at": "2026-01-28T06:30:56.164771Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-061736",
+      "started_at": "2026-01-28T06:30:56.174354",
+      "completed_at": "2026-01-28T06:40:07.582481Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 15879,
+        "output_tokens": 21829,
+        "cache_read_tokens": 3304007,
+        "cache_creation_tokens": 93246
+      },
+      "cost_usd": 2.1107681000000005,
+      "duration_seconds": 551
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:40:07.745869Z",
+    "total_cost_usd": 2.1107681000000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 551,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "81ad911b430015c469a470d5e0fa9da93e1bba50",
+        "message": "docs: Update progress log for cub-v8n.3",
+        "author": "",
+        "timestamp": "2026-01-28T06:39:47Z"
+      },
+      {
+        "hash": "f9f5d3dcb84c646fde6d65e1d722b2c6a9b5bec2",
+        "message": "task(cub-v8n.3): Implement transcript parsing for enrichment",
+        "author": "",
+        "timestamp": "2026-01-28T06:39:00Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +89,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:30:56.164771Z"
+    "stage_updated_at": "2026-01-28T06:40:07.745869Z"
   },
   "state_history": [
     {
@@ -49,31 +97,50 @@
       "at": "2026-01-28T06:30:56.164771Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:40:07.745869Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T06:30:56.164771Z",
-  "completed_at": "2026-01-28T06:30:56.164771Z",
+  "completed_at": "2026-01-28T06:40:07.745869Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 15879,
+    "output_tokens": 21829,
+    "cache_read_tokens": 3304007,
+    "cache_creation_tokens": 93246
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.1107681000000005,
+  "duration_seconds": 551,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "81ad911b430015c469a470d5e0fa9da93e1bba50",
+      "message": "docs: Update progress log for cub-v8n.3",
+      "author": "",
+      "timestamp": "2026-01-28T06:39:47Z"
+    },
+    {
+      "hash": "f9f5d3dcb84c646fde6d65e1d722b2c6a9b5bec2",
+      "message": "task(cub-v8n.3): Implement transcript parsing for enrichment",
+      "author": "",
+      "timestamp": "2026-01-28T06:39:00Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-v8n.3",
   "epic_id": "cub-v8n",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

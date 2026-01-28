@@ -1000,3 +1000,42 @@ Successfully refactored the instruction generation system to produce condensed m
 
 ---
 
+
+## Task cub-v8n.4: Refactor cub session done to use SessionLedgerIntegration
+
+Successfully refactored `cub session done` to eliminate code duplication by using 
+`SessionLedgerIntegration` instead of manually constructing `LedgerEntry` objects.
+
+### Key Implementation Details:
+1. Created synthetic forensics file with sequential events:
+   - session_start
+   - task_claim
+   - file_write (for any --file arguments)
+   - task_close
+   - session_end
+
+2. Used `SessionLedgerIntegration.on_session_end()` to synthesize the ledger entry 
+   from the forensics log, ensuring consistency with hook-based session tracking.
+
+3. Maintained full backward compatibility:
+   - Same CLI interface (--reason, --file flags)
+   - Same console output messages
+   - Same ledger entry format and structure
+
+### Benefits:
+- Eliminated ~150 lines of duplicate entry construction logic
+- Single code path for ledger entry creation (via SessionLedgerIntegration)
+- Better maintainability and consistency
+- Forensics audit trail for `cub done` commands
+
+### Testing:
+- All type checks passed (mypy)
+- All session-related tests passed (35 tests)
+- Linting passed (ruff)
+- Manual CLI testing confirmed interface compatibility
+
+### Lesson Learned:
+When refactoring to use existing integration classes, creating synthetic event 
+streams (forensics) is an elegant way to reuse stateless integration logic without 
+duplicating construction code.
+

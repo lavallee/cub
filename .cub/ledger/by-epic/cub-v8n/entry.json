@@ -18,25 +18,27 @@
   },
   "task_ids": [
     "cub-v8n.1",
-    "cub-v8n.2"
+    "cub-v8n.4",
+    "cub-v8n.2",
+    "cub-v8n.3"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
-    "total_cost_usd": 3.2051420000000013,
-    "avg_cost_per_task": 1.6025710000000006,
-    "min_cost_usd": 1.4715147500000008,
-    "max_cost_usd": 1.7336272500000005,
+    "total_cost_usd": 6.443502100000002,
+    "avg_cost_per_task": 1.6108755250000004,
+    "min_cost_usd": 1.127592,
+    "max_cost_usd": 2.1107681000000005,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 5311347,
-    "avg_tokens_per_task": 2655673,
-    "total_duration_seconds": 794,
-    "avg_duration_seconds": 397,
+    "total_tokens": 10300644,
+    "avg_tokens_per_task": 2575161,
+    "total_duration_seconds": 1667,
+    "avg_duration_seconds": 416,
     "models_used": [
       "sonnet"
     ],
@@ -44,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:30:53.950932Z"
+    "stage_updated_at": "2026-01-28T06:45:33.281302Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T06:17:36.839942Z",
-  "completed_at": "2026-01-28T06:30:53.925381Z",
-  "updated_at": "2026-01-28T06:30:53.950933Z",
+  "completed_at": "2026-01-28T06:45:33.254405Z",
+  "updated_at": "2026-01-28T06:45:33.281303Z",
   "first_commit": {
     "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
     "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
@@ -57,10 +59,10 @@
     "timestamp": "2026-01-28T06:23:51Z"
   },
   "last_commit": {
-    "hash": "41f5016757ad4a61c14cdace0fde3c317fa8f023",
-    "message": "task(cub-v8n.2): Connect hook handlers to SessionLedgerIntegration",
+    "hash": "04715a546111f9f8cde223ca0c57ec15748121a6",
+    "message": "task(cub-v8n.4): Refactor cub session done to use SessionLedgerIntegration",
     "author": "",
-    "timestamp": "2026-01-28T06:30:06Z"
+    "timestamp": "2026-01-28T06:45:09Z"
   },
   "drift": {
     "additions": [],
