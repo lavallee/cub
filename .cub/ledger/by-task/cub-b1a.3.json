@@ -25,8 +25,57 @@
     "captured_at": "2026-01-28T18:39:44.158435Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-183943",
+      "started_at": "2026-01-28T18:39:44.176243",
+      "completed_at": "2026-01-28T18:41:42.421683Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 19541,
+        "output_tokens": 3980,
+        "cache_read_tokens": 1109825,
+        "cache_creation_tokens": 79796
+      },
+      "cost_usd": 1.2705524999999998,
+      "duration_seconds": 118
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T18:41:42.874318Z",
+    "total_cost_usd": 1.2705524999999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 118,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "934289c2b4dbb2edb67350de1d6085ce8235a203",
+        "message": "task(cub-b1a.3): Extract loop state machine to core/run/loop.py",
+        "author": "",
+        "timestamp": "2026-01-28T18:41:29Z"
+      }
+    ],
+    "approach": "Verified that task cub-b1a.3 had already been completed in a previous session. Conducted systematic validation by reading key files (`loop.py`, `models.py`, `cli/run.py`, `test_run_loop.py`) to confirm all implementation steps were in place, then ran the full test suite and type checker to ensure quality gates passed.",
+    "decisions": [
+      "Did not re-implement already-completed code; instead verified each implementation step against the task requirements to confirm full completion",
+      "Closed the task after validation rather than attempting redundant work"
+    ],
+    "lessons_learned": [
+      "Check `.beads/issues.jsonl` and task descriptions carefully before starting work \u2014 tasks marked \"open\" may have been completed in previous sessions but not yet closed",
+      "When resuming work on a branch with existing commits, always verify the current state of related files before assuming work remains to be done",
+      "The pattern of \"parse args \u2192 create config object \u2192 iterate generator \u2192 render events\" is effective for decoupling CLI concerns from business logic \u2014 worth applying to other commands"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -42,7 +91,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T18:39:44.158435Z"
+    "stage_updated_at": "2026-01-28T18:41:42.874318Z"
   },
   "state_history": [
     {
@@ -50,31 +99,51 @@
       "at": "2026-01-28T18:39:44.158435Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T18:41:42.874318Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T18:39:44.158435Z",
-  "completed_at": "2026-01-28T18:39:44.158435Z",
+  "completed_at": "2026-01-28T18:41:42.874318Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 19541,
+    "output_tokens": 3980,
+    "cache_read_tokens": 1109825,
+    "cache_creation_tokens": 79796
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.2705524999999998,
+  "duration_seconds": 118,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Verified that task cub-b1a.3 had already been completed in a previous session. Conducted systematic validation by reading key files (`loop.py`, `models.py`, `cli/run.py`, `test_run_loop.py`) to confirm all implementation steps were in place, then ran the full test suite and type checker to ensure quality gates passed.",
+  "decisions": [
+    "Did not re-implement already-completed code; instead verified each implementation step against the task requirements to confirm full completion",
+    "Closed the task after validation rather than attempting redundant work"
+  ],
+  "lessons_learned": [
+    "Check `.beads/issues.jsonl` and task descriptions carefully before starting work \u2014 tasks marked \"open\" may have been completed in previous sessions but not yet closed",
+    "When resuming work on a branch with existing commits, always verify the current state of related files before assuming work remains to be done",
+    "The pattern of \"parse args \u2192 create config object \u2192 iterate generator \u2192 render events\" is effective for decoupling CLI concerns from business logic \u2014 worth applying to other commands"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "934289c2b4dbb2edb67350de1d6085ce8235a203",
+      "message": "task(cub-b1a.3): Extract loop state machine to core/run/loop.py",
+      "author": "",
+      "timestamp": "2026-01-28T18:41:29Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1a.3",
   "epic_id": "cub-b1a",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "opus",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

@@ -38,6 +38,7 @@ from cub.core.harness.async_backend import detect_async_harness, get_async_backe
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.writer import LedgerWriter
+from cub.core.run.interrupt import InterruptHandler
 from cub.core.run.loop import RunLoop
 from cub.core.run.models import RunConfig, RunEvent, RunEventType
 
@@ -393,12 +394,18 @@ def _stream_callback(text: str) -> None:
     sys.stdout.flush()
 
 
-# Global flag for interrupt handling
+# Global flag for interrupt handling (DEPRECATED - use InterruptHandler instead)
+# Kept for backward compatibility during migration
 _interrupted = False
 
 
 def _signal_handler(signum: int, frame: object) -> None:
-    """Handle SIGINT gracefully."""
+    """
+    Handle SIGINT gracefully (DEPRECATED).
+
+    This function is deprecated and will be removed once all code paths
+    use InterruptHandler. It's kept for backward compatibility.
+    """
     global _interrupted
     if _interrupted:
         # Second interrupt - force exit with exception to allow finally blocks to run
@@ -1174,8 +1181,16 @@ def run(
     elif debug:
         console.print("[dim]Circuit breaker disabled[/dim]")
 
-    # Set up signal handler for graceful interrupts
-    signal.signal(signal.SIGINT, _signal_handler)
+    # Set up interrupt handler for graceful interrupts
+    interrupt_handler = InterruptHandler()
+
+    # Add callback for Rich console output on interrupt
+    def _on_interrupt_callback() -> None:
+        """Display interrupt message using Rich console."""
+        console.print("\n[yellow]Interrupt received. Finishing current task...[/yellow]")
+
+    interrupt_handler.on_interrupt(_on_interrupt_callback)
+    interrupt_handler.register()
 
     # Initialize run status
     run_id = session_name or f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -1263,8 +1278,6 @@ def run(
             )
         status_writer.write(status)
 
-    global _interrupted
-
     # Build RunConfig from CLI args and loaded config
     run_config = RunConfig(
         once=once,
@@ -1292,7 +1305,7 @@ def run(
         project_dir=str(project_dir),
     )
 
-    # Create RunLoop
+    # Create RunLoop with interrupt handler
     run_loop = RunLoop(
         config=run_config,
         task_backend=task_backend,
@@ -1301,14 +1314,13 @@ def run(
         sync_service=sync_service,
         status_writer=status_writer,
         run_id=run_id,
+        interrupt_handler=interrupt_handler,
     )
 
     try:
         # Execute the loop and render events
         for event in run_loop.execute():
-            # Forward interrupt flag to loop
-            if _interrupted:
-                run_loop.interrupted = True
+            # No need to forward interrupt flag - RunLoop checks interrupt_handler directly
 
             # Render event based on type
             _render_run_event(
@@ -1421,6 +1433,12 @@ def run(
                     import traceback
 
                     console.print(f"[dim]{traceback.format_exc()}[/dim]")
+
+        # Unregister interrupt handler
+        try:
+            interrupt_handler.unregister()
+        except Exception:
+            pass  # Non-fatal
 
         # Cleanup worktree if requested
         if worktree and worktree_path and not worktree_keep:

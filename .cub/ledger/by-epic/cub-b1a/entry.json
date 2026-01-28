@@ -17,26 +17,27 @@
     "captured_at": "2026-01-28T18:04:12.911658Z"
   },
   "task_ids": [
+    "cub-b1a.3",
     "cub-b1a.1",
     "cub-b1a.2"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
-    "total_cost_usd": 3.635415649999999,
-    "avg_cost_per_task": 1.8177078249999996,
+    "total_cost_usd": 4.905968149999999,
+    "avg_cost_per_task": 1.6353227166666662,
     "min_cost_usd": 0.9653311000000001,
     "max_cost_usd": 2.670084549999999,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 4485826,
-    "avg_tokens_per_task": 2242913,
-    "total_duration_seconds": 781,
-    "avg_duration_seconds": 390,
+    "total_tokens": 5698968,
+    "avg_tokens_per_task": 1899656,
+    "total_duration_seconds": 899,
+    "avg_duration_seconds": 299,
     "models_used": [
       "opus",
       "sonnet"
@@ -45,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T18:09:25.100911Z"
+    "stage_updated_at": "2026-01-28T18:41:49.846622Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T17:56:01.929769Z",
-  "completed_at": "2026-01-28T18:09:17.165521Z",
-  "updated_at": "2026-01-28T18:09:25.100914Z",
+  "completed_at": "2026-01-28T18:41:42.874318Z",
+  "updated_at": "2026-01-28T18:41:49.846641Z",
   "first_commit": {
     "hash": "6d2089c53d457f743336366d2b5dcb03a7a97de3",
     "message": "task(cub-b1a.1): Create core/run package with prompt builder extraction",
@@ -58,10 +59,10 @@
     "timestamp": "2026-01-28T18:03:46Z"
   },
   "last_commit": {
-    "hash": "4bd09af716d1eaa9b19b7f26d59e75d81fcde5e2",
-    "message": "task(cub-b1a.2): Extract budget tracking to core/run/budget.py",
+    "hash": "934289c2b4dbb2edb67350de1d6085ce8235a203",
+    "message": "task(cub-b1a.3): Extract loop state machine to core/run/loop.py",
     "author": "",
-    "timestamp": "2026-01-28T18:08:55Z"
+    "timestamp": "2026-01-28T18:41:29Z"
   },
   "drift": {
     "additions": [],

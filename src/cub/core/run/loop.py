@@ -35,6 +35,7 @@ from cub.core.circuit_breaker import CircuitBreaker, CircuitBreakerTrippedError
 from cub.core.harness.models import HarnessResult, TaskInput
 from cub.core.ledger.models import CommitRef
 from cub.core.run.budget import BudgetConfig, BudgetManager
+from cub.core.run.interrupt import InterruptHandler
 from cub.core.run.models import RunConfig, RunEvent, RunEventType, RunResult
 from cub.core.run.prompt_builder import (
     generate_system_prompt,
@@ -80,7 +81,9 @@ class RunLoop:
         config: Run configuration (immutable).
         task_backend: Task selection and management.
         harness_backend: AI harness for task execution.
-        interrupted: Set to True externally to trigger graceful shutdown.
+        interrupt_handler: Optional interrupt handler for signal management.
+        interrupted: Set to True externally to trigger graceful shutdown (deprecated,
+                    use interrupt_handler instead).
     """
 
     def __init__(
@@ -93,6 +96,7 @@ class RunLoop:
         sync_service: SyncService | None = None,
         status_writer: StatusWriter | None = None,
         run_id: str | None = None,
+        interrupt_handler: InterruptHandler | None = None,
     ) -> None:
         """
         Initialize the run loop.
@@ -105,6 +109,7 @@ class RunLoop:
             sync_service: Optional sync service for auto-syncing state.
             status_writer: Optional status writer for prompt/log persistence.
             run_id: Explicit run ID (auto-generated if None).
+            interrupt_handler: Optional interrupt handler for signal management.
         """
         self.config = config
         self.task_backend = task_backend
@@ -118,7 +123,10 @@ class RunLoop:
             f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
         )
 
-        # External interrupt flag - set by signal handler in CLI
+        # Interrupt handling
+        self.interrupt_handler = interrupt_handler
+        # External interrupt flag - set by signal handler in CLI (for backward compatibility)
+        # When interrupt_handler is provided, we check that instead
         self.interrupted = False
 
         # Initialize budget manager
@@ -219,8 +227,13 @@ class RunLoop:
 
             # Main loop
             while self._iteration < self.config.max_iterations:
-                # Check interrupt
-                if self.interrupted:
+                # Check interrupt (prefer interrupt_handler if available)
+                is_interrupted = (
+                    self.interrupt_handler.interrupted
+                    if self.interrupt_handler
+                    else self.interrupted
+                )
+                if is_interrupted:
                     yield self._make_event(
                         RunEventType.INTERRUPT_RECEIVED,
                         "Stopping due to interrupt",
