@@ -10,7 +10,7 @@
     "cost_limit": 0.0
   },
   "tasks_completed": 1,
-  "tasks_failed": -1,
+  "tasks_failed": 0,
   "current_task": null,
   "status": "orphaned",
   "ended_at": "2026-01-28T05:30:24.859057Z",

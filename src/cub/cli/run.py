@@ -2145,7 +2145,7 @@ def run(
                 session_manager.update_session(
                     run_session.run_id,
                     tasks_completed=status.budget.tasks_completed,
-                    tasks_failed=status.tasks_closed - status.budget.tasks_completed,
+                    tasks_failed=max(0, status.tasks_closed - status.budget.tasks_completed),
                     current_task=None,  # Task just finished
                     budget=session_budget,
                 )
