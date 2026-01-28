@@ -23,8 +23,56 @@
     "captured_at": "2026-01-28T05:21:06.931857Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T05:21:06.942471",
+      "completed_at": "2026-01-28T05:26:54.193863Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 6163,
+        "output_tokens": 17287,
+        "cache_read_tokens": 1808639,
+        "cache_creation_tokens": 63938
+      },
+      "cost_usd": 1.2787799500000003,
+      "duration_seconds": 347
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:26:54.446054Z",
+    "total_cost_usd": 1.2787799500000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 347,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a545d85ed60ee3c1e56fcd1465217e89def6d816",
+        "message": "docs: Update progress log with cub-r1c.4 learnings",
+        "author": "",
+        "timestamp": "2026-01-28T05:26:42Z"
+      },
+      {
+        "hash": "065998bbefbe74839756a444884b252ebfc1f59a",
+        "message": "task(cub-r1c.4): Implement cub map CLI command and wire into init/update",
+        "author": "",
+        "timestamp": "2026-01-28T05:26:04Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +88,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T05:21:06.931857Z"
+    "stage_updated_at": "2026-01-28T05:26:54.446054Z"
   },
   "state_history": [
     {
@@ -48,31 +96,50 @@
       "at": "2026-01-28T05:21:06.931857Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:26:54.446054Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T05:21:06.931857Z",
-  "completed_at": "2026-01-28T05:21:06.931857Z",
+  "completed_at": "2026-01-28T05:26:54.446054Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 6163,
+    "output_tokens": 17287,
+    "cache_read_tokens": 1808639,
+    "cache_creation_tokens": 63938
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.2787799500000003,
+  "duration_seconds": 347,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "a545d85ed60ee3c1e56fcd1465217e89def6d816",
+      "message": "docs: Update progress log with cub-r1c.4 learnings",
+      "author": "",
+      "timestamp": "2026-01-28T05:26:42Z"
+    },
+    {
+      "hash": "065998bbefbe74839756a444884b252ebfc1f59a",
+      "message": "task(cub-r1c.4): Implement cub map CLI command and wire into init/update",
+      "author": "",
+      "timestamp": "2026-01-28T05:26:04Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.4",
   "epic_id": "cub-r1c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
