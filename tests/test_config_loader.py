@@ -605,3 +605,113 @@ class TestLoadConfig:
         # Env vars override project config
         assert config.circuit_breaker.enabled is False
         assert config.circuit_breaker.timeout_minutes == 90
+
+    def test_load_config_map_defaults(self, tmp_path, monkeypatch):
+        """Test map config loads with defaults."""
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        # Should have map config with defaults
+        assert config.map.token_budget == 1500
+        assert config.map.max_depth == 4
+        assert config.map.include_code_intel is True
+        assert config.map.include_ledger_stats is True
+        assert "node_modules/**" in config.map.exclude_patterns
+        assert ".git/**" in config.map.exclude_patterns
+
+    def test_load_config_map_project_override(self, tmp_path, monkeypatch):
+        """Test map config can be overridden in project config."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config_file = project_dir / ".cub.json"
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "map": {
+                        "token_budget": 3000,
+                        "max_depth": 6,
+                        "include_code_intel": False,
+                        "include_ledger_stats": False,
+                        "exclude_patterns": ["custom/**"],
+                    }
+                }
+            )
+        )
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        assert config.map.token_budget == 3000
+        assert config.map.max_depth == 6
+        assert config.map.include_code_intel is False
+        assert config.map.include_ledger_stats is False
+        assert config.map.exclude_patterns == ["custom/**"]
+
+    def test_load_config_map_validation(self, tmp_path, monkeypatch):
+        """Test map config validation for invalid values."""
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config_file = project_dir / ".cub.json"
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "map": {
+                        "token_budget": 0,  # Invalid: must be >= 1
+                    }
+                }
+            )
+        )
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        with pytest.raises(ValidationError):
+            load_config(project_dir=project_dir)
+
+    def test_load_config_map_deep_merge(self, tmp_path, monkeypatch):
+        """Test map config deep merges with user config."""
+        # User config sets some map settings
+        user_config_dir = tmp_path / "config" / "cub"
+        user_config_dir.mkdir(parents=True)
+        user_config_file = user_config_dir / "config.json"
+        user_config_file.write_text(
+            json.dumps(
+                {
+                    "map": {
+                        "token_budget": 2000,
+                        "max_depth": 5,
+                    }
+                }
+            )
+        )
+
+        # Project config sets different map settings
+        project_dir = tmp_path / "project"
+        project_dir.mkdir()
+        project_config_file = project_dir / ".cub.json"
+        project_config_file.write_text(
+            json.dumps(
+                {
+                    "map": {
+                        "include_code_intel": False,
+                    }
+                }
+            )
+        )
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        config = load_config(project_dir=project_dir)
+
+        # User config should be merged with project config
+        assert config.map.token_budget == 2000  # from user
+        assert config.map.max_depth == 5  # from user
+        assert config.map.include_code_intel is False  # from project
+        assert config.map.include_ledger_stats is True  # default

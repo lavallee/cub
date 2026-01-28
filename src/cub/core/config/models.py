@@ -288,6 +288,58 @@ class CircuitBreakerConfig(BaseModel):
     )
 
 
+class MapConfig(BaseModel):
+    """
+    Configuration for cub map command.
+
+    Controls how the codebase map is generated, including token budgets,
+    traversal depth, and what metadata to include.
+    """
+
+    token_budget: int = Field(
+        default=1500,
+        ge=1,
+        description="Maximum tokens to allocate for the map output",
+    )
+    max_depth: int = Field(
+        default=4,
+        ge=1,
+        description="Maximum directory depth to traverse",
+    )
+    include_code_intel: bool = Field(
+        default=True,
+        description="Include code intelligence (imports, exports, key functions)",
+    )
+    include_ledger_stats: bool = Field(
+        default=True,
+        description="Include statistics from the ledger (completed work)",
+    )
+    exclude_patterns: list[str] = Field(
+        default_factory=lambda: [
+            "node_modules/**",
+            ".git/**",
+            ".venv/**",
+            "venv/**",
+            "__pycache__/**",
+            "*.pyc",
+            ".mypy_cache/**",
+            ".pytest_cache/**",
+            ".ruff_cache/**",
+            "build/**",
+            "dist/**",
+            "*.egg-info/**",
+            ".tox/**",
+            "coverage/**",
+            ".coverage",
+            "htmlcov/**",
+            ".DS_Store",
+            "*.min.js",
+            "*.min.css",
+        ],
+        description="Glob patterns to exclude from the map",
+    )
+
+
 class BackendConfig(BaseModel):
     """
     Task backend configuration.
@@ -375,6 +427,10 @@ class CubConfig(BaseModel):
     circuit_breaker: CircuitBreakerConfig = Field(
         default_factory=CircuitBreakerConfig,
         description="Circuit breaker stagnation detection settings",
+    )
+    map: MapConfig = Field(
+        default_factory=MapConfig,
+        description="Codebase map generation settings",
     )
 
     model_config = ConfigDict(
