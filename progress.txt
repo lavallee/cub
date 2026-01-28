@@ -1,0 +1,42 @@
+# Progress Log
+
+## Task cub-r1b.4 - Update cub init and cub update for new context stack
+
+### Key Implementation Details
+
+1. **Managed Section Integration**: Successfully integrated the upsert_managed_section() 
+   engine into both init_cmd.py and update.py. This enables non-destructive updates to 
+   AGENTS.md and CLAUDE.md files, preserving user content outside the managed sections.
+
+2. **Constitution Management**: Added ensure_constitution() calls to both init and update 
+   commands. The constitution is now properly managed as part of the context stack.
+
+3. **Runloop Template**: Implemented runloop.md copying in both init and update. The update 
+   command checks for modifications and warns users if their runloop has diverged from the 
+   template.
+
+4. **System Prompt Lookup Order**: Updated generate_system_prompt() in run.py to follow 
+   the new priority: .cub/runloop.md → PROMPT.md → templates/PROMPT.md → templates/runloop.md → fallback
+
+5. **Test Updates**: Modified test_cli_init_cmd.py to work with managed sections. Tests 
+   now verify the presence of managed section markers instead of expecting plain content.
+
+### Learnings
+
+- The managed section engine (upsert_managed_section) is robust and handles edge cases 
+  well (missing files, partial markers, content modifications)
+- Import organization matters: ruff auto-fixed import ordering (shutil comes after pathlib)
+- F-string linter warnings: Avoid f-strings without placeholders (use plain strings instead)
+- Line length limits: Break long strings across multiple lines for readability
+
+### Files Modified
+- src/cub/cli/init_cmd.py
+- src/cub/cli/update.py  
+- src/cub/cli/run.py
+- tests/test_cli_init_cmd.py
+
+### Test Results
+- All 79 instruction tests pass
+- All 6 init command tests pass
+- Total: 3958 tests passed across full test suite
+- Linting: All checks pass
