@@ -1842,6 +1842,59 @@ def run(
                 status_writer.write(status)
                 break
 
+            except KeyboardInterrupt:
+                # User interrupted execution (Ctrl-C) - record partial attempt
+                console.print("\n[yellow]Task interrupted by user[/yellow]")
+                status.add_event(
+                    "Task interrupted by user (Ctrl-C)",
+                    EventLevel.WARNING,
+                    task_id=current_task.id,
+                )
+
+                # Record interrupted attempt in ledger with partial progress
+                if config.ledger.enabled:
+                    try:
+                        # Capture whatever log content exists
+                        log_content = ""
+                        if harness_log_path and harness_log_path.exists():
+                            try:
+                                log_content = harness_log_path.read_text(encoding="utf-8")
+                            except Exception:
+                                log_content = "(Log file exists but could not be read)"
+
+                        # Calculate duration up to interruption
+                        duration = int((datetime.now() - attempt_start_time).total_seconds())
+
+                        ledger_integration.on_attempt_end(
+                            current_task.id,
+                            attempt_number,
+                            log_content,
+                            run_id=run_id,
+                            success=False,
+                            harness=harness_name,
+                            model=task_model or "",
+                            error_category="user_interrupted",
+                            error_summary="User interrupted execution (Ctrl-C) - partial work may exist",
+                            started_at=attempt_start_time,
+                            duration_seconds=duration,
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Recorded interrupted attempt in ledger "
+                                f"(duration: {duration}s, log: {len(log_content)} chars)[/dim]"
+                            )
+                    except Exception as ledger_error:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record interrupted attempt: "
+                                f"{ledger_error}[/dim]"
+                            )
+
+                # Set interrupted flag and re-raise to propagate interrupt
+                global _interrupted
+                _interrupted = True
+                raise
+
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
                 status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
