@@ -24,8 +24,60 @@
     "captured_at": "2026-01-28T19:50:09.540951Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-192025",
+      "started_at": "2026-01-28T19:50:09.552221",
+      "completed_at": "2026-01-28T19:58:57.475574Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2126,
+        "output_tokens": 24791,
+        "cache_read_tokens": 4615254,
+        "cache_creation_tokens": 87470
+      },
+      "cost_usd": 2.456238400000001,
+      "duration_seconds": 527
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:58:57.916767Z",
+    "total_cost_usd": 2.456238400000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 527,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "4be2883c538ca500897264d7237abf0f82f1c70b",
+        "message": "task(cub-b1c.4): Enhance TaskService with ready(), stale_epics(), and claims",
+        "author": "",
+        "timestamp": "2026-01-28T19:58:46Z"
+      }
+    ],
+    "approach": "Started by analyzing the existing TaskService and backend structure to understand the current implementation. Implemented the four required methods by delegating to backend APIs where possible, then wrote comprehensive unit tests with mocked backends followed by integration tests with real JSONL and Beads backends. Fixed discovered issues (like beads only returning matching status in list queries) by adjusting the implementation to make separate queries when needed.",
+    "decisions": [
+      "**Delegated to backend methods** - Used existing backend APIs (`get_ready_tasks()`, `close_task()`) rather than re-implementing logic, reducing code duplication and maintaining consistency with backend behavior.",
+      "**Multiple status queries for stale_epics** - Rather than filtering in Python, made separate backend queries for OPEN, IN_PROGRESS, and CLOSED children because beads CLI only returns tasks matching the requested status, and knowing the breakdown is necessary to identify truly stale epics.",
+      "**Validation before claim/close** - Added checks to prevent claiming already in-progress/closed tasks and to validate task existence, catching errors early rather than letting them propagate to the backend.",
+      "**Separate integration test file** - Created dedicated integration tests alongside unit tests to verify both JSONL and Beads backends work correctly, catching backend-specific quirks (like parent field missing from beads list output)."
+    ],
+    "lessons_learned": [
+      "**Backend filtering quirks matter** - Different backends filter differently (beads filters by status by default, JSONL returns everything). Integration tests are essential to catch these behavioral differences that unit tests with mocks miss.",
+      "**Separate queries are sometimes necessary** - While it seems inefficient, making separate queries per status was the correct approach because the backend's filtering is a feature we need to respect, not a limitation to work around.",
+      "**Mock test expectations must match actual behavior** - When implementation makes multiple backend calls, mock expectations need to reflect that, or tests pass but integration tests fail. The test-driven discovery process revealed this.",
+      "**Compute properties from raw data carefully** - \"Stale epics\" required understanding both the filter capabilities of each backend AND the shape of data they return (parent field present in show but not list), not just the logical definition of the property."
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +93,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:50:09.540951Z"
+    "stage_updated_at": "2026-01-28T19:58:57.916767Z"
   },
   "state_history": [
     {
@@ -49,31 +101,54 @@
       "at": "2026-01-28T19:50:09.540951Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:58:57.916767Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T19:50:09.540951Z",
-  "completed_at": "2026-01-28T19:50:09.540951Z",
+  "completed_at": "2026-01-28T19:58:57.916767Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 2126,
+    "output_tokens": 24791,
+    "cache_read_tokens": 4615254,
+    "cache_creation_tokens": 87470
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.456238400000001,
+  "duration_seconds": 527,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Started by analyzing the existing TaskService and backend structure to understand the current implementation. Implemented the four required methods by delegating to backend APIs where possible, then wrote comprehensive unit tests with mocked backends followed by integration tests with real JSONL and Beads backends. Fixed discovered issues (like beads only returning matching status in list queries) by adjusting the implementation to make separate queries when needed.",
+  "decisions": [
+    "**Delegated to backend methods** - Used existing backend APIs (`get_ready_tasks()`, `close_task()`) rather than re-implementing logic, reducing code duplication and maintaining consistency with backend behavior.",
+    "**Multiple status queries for stale_epics** - Rather than filtering in Python, made separate backend queries for OPEN, IN_PROGRESS, and CLOSED children because beads CLI only returns tasks matching the requested status, and knowing the breakdown is necessary to identify truly stale epics.",
+    "**Validation before claim/close** - Added checks to prevent claiming already in-progress/closed tasks and to validate task existence, catching errors early rather than letting them propagate to the backend.",
+    "**Separate integration test file** - Created dedicated integration tests alongside unit tests to verify both JSONL and Beads backends work correctly, catching backend-specific quirks (like parent field missing from beads list output)."
+  ],
+  "lessons_learned": [
+    "**Backend filtering quirks matter** - Different backends filter differently (beads filters by status by default, JSONL returns everything). Integration tests are essential to catch these behavioral differences that unit tests with mocks miss.",
+    "**Separate queries are sometimes necessary** - While it seems inefficient, making separate queries per status was the correct approach because the backend's filtering is a feature we need to respect, not a limitation to work around.",
+    "**Mock test expectations must match actual behavior** - When implementation makes multiple backend calls, mock expectations need to reflect that, or tests pass but integration tests fail. The test-driven discovery process revealed this.",
+    "**Compute properties from raw data carefully** - \"Stale epics\" required understanding both the filter capabilities of each backend AND the shape of data they return (parent field present in show but not list), not just the logical definition of the property."
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "4be2883c538ca500897264d7237abf0f82f1c70b",
+      "message": "task(cub-b1c.4): Enhance TaskService with ready(), stale_epics(), and claims",
+      "author": "",
+      "timestamp": "2026-01-28T19:58:46Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1c.4",
   "epic_id": "cub-b1c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

@@ -17,27 +17,28 @@
     "captured_at": "2026-01-28T19:30:41.842264Z"
   },
   "task_ids": [
+    "cub-b1c.4",
     "cub-b1c.2",
     "cub-b1c.3",
     "cub-b1c.1"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
-    "total_cost_usd": 8.299245399999998,
-    "avg_cost_per_task": 2.7664151333333327,
+    "total_cost_usd": 10.7554838,
+    "avg_cost_per_task": 2.68887095,
     "min_cost_usd": 1.5228130000000002,
     "max_cost_usd": 4.0648421,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 12447334,
-    "avg_tokens_per_task": 4149111,
-    "total_duration_seconds": 1745,
-    "avg_duration_seconds": 581,
+    "total_tokens": 17176975,
+    "avg_tokens_per_task": 4294243,
+    "total_duration_seconds": 2272,
+    "avg_duration_seconds": 568,
     "models_used": [
       "opus",
       "sonnet"
@@ -46,12 +47,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:50:07.176814Z"
+    "stage_updated_at": "2026-01-28T19:59:07.031347Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T19:20:25.594610Z",
-  "completed_at": "2026-01-28T19:49:58.440740Z",
-  "updated_at": "2026-01-28T19:50:07.176815Z",
+  "completed_at": "2026-01-28T19:58:57.916767Z",
+  "updated_at": "2026-01-28T19:59:07.031349Z",
   "first_commit": {
     "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
     "message": "task(cub-b1c.1): Create service layer foundation and RunService",
@@ -59,10 +60,10 @@
     "timestamp": "2026-01-28T19:30:14Z"
   },
   "last_commit": {
-    "hash": "199660b176459580f7a6b779887869a7ea1fc5f6",
-    "message": "task(cub-b1c.3): Create LaunchService for environment detection and harness launch",
+    "hash": "4be2883c538ca500897264d7237abf0f82f1c70b",
+    "message": "task(cub-b1c.4): Enhance TaskService with ready(), stale_epics(), and claims",
     "author": "",
-    "timestamp": "2026-01-28T19:49:32Z"
+    "timestamp": "2026-01-28T19:58:46Z"
   },
   "drift": {
     "additions": [],
