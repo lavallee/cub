@@ -135,6 +135,10 @@ class ClaudeCLIBackend:
         if extra_flags:
             flags.extend(extra_flags.split())
 
+        # Set up subprocess environment with CUB_RUN_ACTIVE to prevent hook double-tracking
+        subprocess_env = os.environ.copy()
+        subprocess_env["CUB_RUN_ACTIVE"] = "1"
+
         # Run command
         try:
             result = subprocess.run(
@@ -143,6 +147,7 @@ class ClaudeCLIBackend:
                 text=True,
                 capture_output=True,
                 check=False,
+                env=subprocess_env,
             )
 
             duration = time.time() - start_time
@@ -246,6 +251,10 @@ class ClaudeCLIBackend:
         if extra_flags:
             flags.extend(extra_flags.split())
 
+        # Set up subprocess environment with CUB_RUN_ACTIVE to prevent hook double-tracking
+        subprocess_env = os.environ.copy()
+        subprocess_env["CUB_RUN_ACTIVE"] = "1"
+
         # Run command with streaming
         try:
             process = subprocess.Popen(
@@ -255,6 +264,7 @@ class ClaudeCLIBackend:
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,  # Line buffered
+                env=subprocess_env,
             )
 
             # Send task prompt

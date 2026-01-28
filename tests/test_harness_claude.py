@@ -3,6 +3,7 @@ Tests for Claude CLI harness backend.
 """
 
 import json
+import os
 from unittest.mock import MagicMock, Mock, patch
 
 from cub.core.harness import get_backend, is_backend_available
@@ -211,6 +212,49 @@ class TestClaudeCLIBackend:
         version = backend.get_version()
 
         assert version == "unknown"
+
+    @patch("subprocess.run")
+    def test_invoke_sets_cub_run_active_env_var(self, mock_run):
+        """Test invoke sets CUB_RUN_ACTIVE=1 in subprocess environment."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({"result": "output", "usage": {}})
+        mock_result.stderr = ""
+        mock_run.return_value = mock_result
+
+        backend = self._create_backend()
+        backend.invoke(
+            system_prompt="System",
+            task_prompt="Task",
+        )
+
+        # Verify subprocess.run was called with env parameter
+        assert mock_run.called
+        call_kwargs = mock_run.call_args[1]
+        assert "env" in call_kwargs
+        assert call_kwargs["env"]["CUB_RUN_ACTIVE"] == "1"
+
+    @patch("subprocess.Popen")
+    def test_invoke_streaming_sets_cub_run_active_env_var(self, mock_popen):
+        """Test invoke_streaming sets CUB_RUN_ACTIVE=1 in subprocess environment."""
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdout = []
+        mock_process.stderr = MagicMock()
+        mock_process.returncode = 0
+        mock_popen.return_value = mock_process
+
+        backend = self._create_backend()
+        backend.invoke_streaming(
+            system_prompt="System",
+            task_prompt="Task",
+        )
+
+        # Verify Popen was called with env parameter
+        assert mock_popen.called
+        call_kwargs = mock_popen.call_args[1]
+        assert "env" in call_kwargs
+        assert call_kwargs["env"]["CUB_RUN_ACTIVE"] == "1"
 
 
 class TestClaudeCLIBackendRegistry:
