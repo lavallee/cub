@@ -1,0 +1,13 @@
+{
+  "slug": "symbiotic-workflow",
+  "project": "cub",
+  "status": "planned",
+  "spec_file": "symbiotic-workflow.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-28T00:00:00.000000+00:00",
+  "updated": "2026-01-28T00:00:00.000000+00:00"
+}
