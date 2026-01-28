@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-b1c",
+  "title": "cub-b1c",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-b1c",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T19:30:41.842264Z",
+    "captured_at": "2026-01-28T19:30:41.842264Z"
+  },
+  "task_ids": [
+    "cub-b1c.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 4.0648421,
+    "avg_cost_per_task": 4.0648421,
+    "min_cost_usd": 4.0648421,
+    "max_cost_usd": 4.0648421,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 5237971,
+    "avg_tokens_per_task": 5237971,
+    "total_duration_seconds": 607,
+    "avg_duration_seconds": 607,
+    "models_used": [
+      "opus"
+    ],
+    "most_common_model": "opus"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:30:41.874931Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T19:20:25.594610Z",
+  "completed_at": "2026-01-28T19:30:33.054598Z",
+  "updated_at": "2026-01-28T19:30:41.874940Z",
+  "first_commit": {
+    "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
+    "message": "task(cub-b1c.1): Create service layer foundation and RunService",
+    "author": "",
+    "timestamp": "2026-01-28T19:30:14Z"
+  },
+  "last_commit": {
+    "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
+    "message": "task(cub-b1c.1): Create service layer foundation and RunService",
+    "author": "",
+    "timestamp": "2026-01-28T19:30:14Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

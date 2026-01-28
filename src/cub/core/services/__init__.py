@@ -13,10 +13,34 @@ Design principles:
 
 Modules:
     run: RunService wraps core/run/ to provide run loop orchestration.
+    ledger: LedgerService provides ledger queries and stats.
+    status: StatusService aggregates project state from multiple sources.
+    models: Data models used across services (ProjectStats, EpicProgress, etc.)
 """
 
+from cub.core.services.ledger import (
+    LedgerQuery,
+    LedgerService,
+    LedgerServiceError,
+    StatsQuery,
+)
+from cub.core.services.models import EpicProgress, LedgerStats, ProjectStats
 from cub.core.services.run import RunService
+from cub.core.services.status import StatusService, StatusServiceError
 
 __all__ = [
+    # Run service
     "RunService",
+    # Ledger service
+    "LedgerService",
+    "LedgerServiceError",
+    "LedgerQuery",
+    "StatsQuery",
+    # Status service
+    "StatusService",
+    "StatusServiceError",
+    # Models
+    "ProjectStats",
+    "EpicProgress",
+    "LedgerStats",
 ]

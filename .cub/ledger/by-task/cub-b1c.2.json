@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "cub-b1c.2",
+  "title": "Create StatusService and LedgerService",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1c"
+  },
+  "task": {
+    "title": "Create StatusService and LedgerService",
+    "description": "StatusService aggregates project state from multiple sources. LedgerService wraps ledger reader/writer. Both are needed by the suggestion engine.\n\n**Implementation Steps:**\n1. Create `src/cub/core/services/status.py` with `StatusService`\n2. `summary() -> ProjectStats` \u2014 aggregate from tasks, ledger, git\n3. `progress(epic_id) -> EpicProgress` \u2014 epic-level progress\n4. Create `src/cub/core/services/ledger.py` with `LedgerService`\n5. `query(filters) -> list[LedgerEntry]`, `recent(n) -> list[LedgerEntry]`, `stats(period) -> LedgerStats`\n6. Define `ProjectStats`, `EpicProgress`, `LedgerStats` models\n7. Refactor `cli/status.py` and `cli/ledger.py` to use services\n\n**Files:** src/cub/core/services/status.py, src/cub/core/services/ledger.py, src/cub/core/services/models.py, src/cub/cli/status.py, src/cub/cli/ledger.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "architecture",
+      "complexity:medium",
+      "core",
+      "epic:cub-b1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T17:54:44.409472Z",
+    "captured_at": "2026-01-28T19:30:44.117977Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:30:44.117977Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:30:44.117977Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T19:30:44.117977Z",
+  "completed_at": "2026-01-28T19:30:44.117977Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1c.2",
+  "epic_id": "cub-b1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

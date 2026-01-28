@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.core.services.status import StatusService
 from cub.core.status.writer import StatusWriter, get_latest_status
 from cub.core.tasks.backend import get_backend
 from cub.utils.project import get_project_root
@@ -99,21 +100,13 @@ def status(
             if run_status:
                 writer = StatusWriter(project_dir, run_status.run_id)
 
-        # Get the task backend (auto-detects beads or json)
+        # Use StatusService for project-level metrics
+        status_service = StatusService.from_project_dir(project_dir)
+        project_stats = status_service.summary()
+
+        # Get the task backend for ready tasks list
         backend = get_backend()
-
-        # Get task counts
-        counts = backend.get_task_counts()
-
-        # Get ready and blocked tasks
         ready_tasks = backend.get_ready_tasks()
-        all_tasks = backend.list_tasks()
-
-        # Count blocked tasks (tasks that are open but have unmet dependencies)
-        blocked_count = 0
-        for task in all_tasks:
-            if task.status.value == "open" and len(task.depends_on) > 0:
-                blocked_count += 1
 
         # Load cost data from persisted artifacts if available
         total_cost = 0.0
@@ -152,18 +145,28 @@ def status(
             # Output machine-readable JSON
             output = {
                 "task_counts": {
-                    "total": counts.total,
-                    "open": counts.open,
-                    "in_progress": counts.in_progress,
-                    "closed": counts.closed,
-                    "completion_percentage": counts.completion_percentage,
+                    "total": project_stats.total_tasks,
+                    "open": project_stats.open_tasks,
+                    "in_progress": project_stats.in_progress_tasks,
+                    "closed": project_stats.closed_tasks,
+                    "completion_percentage": project_stats.completion_percentage,
                 },
-                "ready_tasks": len(ready_tasks),
-                "blocked_tasks": blocked_count,
+                "ready_tasks": project_stats.ready_tasks,
+                "blocked_tasks": project_stats.blocked_tasks,
                 "budget": {
                     "total_cost_usd": total_cost,
                     "total_tokens": total_tokens,
                     "tasks_with_cost": len(task_costs),
+                },
+                "ledger": {
+                    "total_cost_usd": project_stats.total_cost_usd,
+                    "total_tokens": project_stats.total_tokens,
+                    "tasks_in_ledger": project_stats.tasks_in_ledger,
+                },
+                "git": {
+                    "current_branch": project_stats.current_branch,
+                    "has_uncommitted_changes": project_stats.has_uncommitted_changes,
+                    "commits_since_main": project_stats.commits_since_main,
                 },
                 "task_costs": task_costs if verbose else None,
             }
@@ -176,11 +179,12 @@ def status(
         summary_table.add_column("Label", style="cyan")
         summary_table.add_column("Count", style="green", justify="right")
 
-        summary_table.add_row("Total Tasks", str(counts.total))
-        summary_table.add_row("Closed", f"[green]{counts.closed}[/green]")
-        summary_table.add_row("In Progress", f"[yellow]{counts.in_progress}[/yellow]")
-        summary_table.add_row("Open", str(counts.open))
-        summary_table.add_row("Completion", f"[cyan]{counts.completion_percentage:.1f}%[/cyan]")
+        summary_table.add_row("Total Tasks", str(project_stats.total_tasks))
+        summary_table.add_row("Closed", f"[green]{project_stats.closed_tasks}[/green]")
+        summary_table.add_row("In Progress", f"[yellow]{project_stats.in_progress_tasks}[/yellow]")
+        summary_table.add_row("Open", str(project_stats.open_tasks))
+        completion_pct = f"[cyan]{project_stats.completion_percentage:.1f}%[/cyan]"
+        summary_table.add_row("Completion", completion_pct)
 
         console.print(summary_table)
         console.print()
@@ -190,8 +194,8 @@ def status(
         availability_table.add_column("Status", style="cyan")
         availability_table.add_column("Count", style="green", justify="right")
 
-        availability_table.add_row("Ready to work", f"[green]{len(ready_tasks)}[/green]")
-        availability_table.add_row("Blocked by dependencies", str(blocked_count))
+        availability_table.add_row("Ready to work", f"[green]{project_stats.ready_tasks}[/green]")
+        availability_table.add_row("Blocked by dependencies", str(project_stats.blocked_tasks))
 
         console.print(availability_table)
         console.print()
