@@ -873,3 +873,48 @@
 - Type checking: No errors in hooks.py
 - Linting: All checks passed
 
+
+## 2026-01-28: End-to-end integration tests for symbiotic workflow (cub-r9d.3)
+
+### Implementation Summary
+Created comprehensive e2e integration tests in `tests/integration/test_symbiotic_workflow.py` to validate
+that direct Claude Code sessions produce structurally equivalent ledger entries to `cub run` sessions.
+
+### Key Learnings
+
+1. **Hook Event Behavior**: The `handle_stop` hook writes a `session_end` forensics event, which means
+   tests need to account for this extra event in their assertions.
+
+2. **File Categorization**: The `_categorize_file()` function in hooks.py only tracks files in specific
+   directories (plans/, specs/, captures/, src/, lib/, app/, tests/). Files like README.md at the root
+   are not categorized and thus not included in forensics or ledger entries.
+
+3. **Test Patterns**: The existing test patterns in `test_harness_hooks_integration.py` and
+   `test_session_ledger_integration.py` provide excellent examples of how to simulate hook events
+   and verify forensics/ledger output.
+
+4. **Parity Validation**: The ledger entry structure from symbiotic workflow matches `cub run` output
+   in all required fields: id, title, attempts, outcome, lineage, workflow, verification, state_history.
+
+5. **Edge Cases Handled**:
+   - Session with no task claimed → No ledger entry, forensics only
+   - Multiple task claims → Last task wins
+   - Session interrupted → No ledger entry, forensics recoverable
+   - Task claimed but not closed → Ledger entry with success=False
+   - Malformed forensics lines → Skipped gracefully
+
+### Test Coverage
+Implemented 11 comprehensive tests covering:
+- Complete successful workflow
+- No task claimed scenarios
+- Multiple task claims
+- Interrupted sessions
+- Unclosed tasks
+- Redundant synthesis triggers (Stop + SessionEnd)
+- Ledger entry parity validation
+- Files changed tracking
+- Lineage extraction
+- Forensics recovery
+- Malformed data handling
+
+All tests pass and validate the symbiotic workflow implementation.

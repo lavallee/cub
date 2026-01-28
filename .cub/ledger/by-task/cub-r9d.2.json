@@ -23,8 +23,56 @@
     "captured_at": "2026-01-28T07:19:48.036198Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-071231",
+      "started_at": "2026-01-28T07:19:48.054891",
+      "completed_at": "2026-01-28T07:23:59.082672Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 63,
+        "output_tokens": 11692,
+        "cache_read_tokens": 3225840,
+        "cache_creation_tokens": 88022
+      },
+      "cost_usd": 0.5472605000000004,
+      "duration_seconds": 251
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T07:23:59.245347Z",
+    "total_cost_usd": 0.5472605000000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 251,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "53bfc4aa4b1aac405e64607f8035641489f7b894",
+        "message": "chore: update task status for cub-r9d.2",
+        "author": "",
+        "timestamp": "2026-01-28T07:23:47Z"
+      },
+      {
+        "hash": "680420b7b08fb0b44eb4aa717a775e721947b8c6",
+        "message": "task(cub-r9d.2): Add hook validation to cub doctor",
+        "author": "",
+        "timestamp": "2026-01-28T07:23:38Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +88,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T07:19:48.036198Z"
+    "stage_updated_at": "2026-01-28T07:23:59.245347Z"
   },
   "state_history": [
     {
@@ -48,31 +96,50 @@
       "at": "2026-01-28T07:19:48.036198Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T07:23:59.245347Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T07:19:48.036198Z",
-  "completed_at": "2026-01-28T07:19:48.036198Z",
+  "completed_at": "2026-01-28T07:23:59.245347Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 63,
+    "output_tokens": 11692,
+    "cache_read_tokens": 3225840,
+    "cache_creation_tokens": 88022
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.5472605000000004,
+  "duration_seconds": 251,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "53bfc4aa4b1aac405e64607f8035641489f7b894",
+      "message": "chore: update task status for cub-r9d.2",
+      "author": "",
+      "timestamp": "2026-01-28T07:23:47Z"
+    },
+    {
+      "hash": "680420b7b08fb0b44eb4aa717a775e721947b8c6",
+      "message": "task(cub-r9d.2): Add hook validation to cub doctor",
+      "author": "",
+      "timestamp": "2026-01-28T07:23:38Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r9d.2",
   "epic_id": "cub-r9d",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "haiku",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
