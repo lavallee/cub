@@ -19,26 +19,27 @@
   "task_ids": [
     "cub-w3f.3",
     "cub-w3f.1",
+    "cub-w3f.5",
     "cub-w3f.4",
     "cub-w3f.2"
   ],
   "aggregates": {
-    "total_tasks": 4,
-    "tasks_completed": 4,
-    "tasks_successful": 4,
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
     "tasks_failed": 0,
-    "total_cost_usd": 4.43114715,
-    "avg_cost_per_task": 1.1077867875,
+    "total_cost_usd": 5.78660015,
+    "avg_cost_per_task": 1.15732003,
     "min_cost_usd": 0.7655057499999999,
     "max_cost_usd": 1.7208158,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 4,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 11338648,
-    "avg_tokens_per_task": 2834662,
-    "total_duration_seconds": 1398,
-    "avg_duration_seconds": 349,
+    "total_tokens": 13683483,
+    "avg_tokens_per_task": 2736696,
+    "total_duration_seconds": 1713,
+    "avg_duration_seconds": 342,
     "models_used": [
       "haiku",
       "sonnet"
@@ -47,12 +48,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:12:12.030428Z"
+    "stage_updated_at": "2026-01-28T06:17:30.438303Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T05:48:44.054925Z",
-  "completed_at": "2026-01-28T06:12:11.936344Z",
-  "updated_at": "2026-01-28T06:12:12.030430Z",
+  "completed_at": "2026-01-28T06:17:30.356636Z",
+  "updated_at": "2026-01-28T06:17:30.438306Z",
   "first_commit": {
     "hash": "5a17f13495c2018fef5f5fefab0104c70a7c2e62",
     "message": "task(cub-w3f.1): Implement shell hook filter script",
@@ -60,10 +61,10 @@
     "timestamp": "2026-01-28T05:52:39Z"
   },
   "last_commit": {
-    "hash": "400210b1690f02d8ae61ae672e717dbb81328532",
-    "message": "task(cub-w3f.4): Implement hook configuration installer",
+    "hash": "b002a80e7237edccbfbb1f66b172d304d8e24018",
+    "message": "epic(cub-w3f): Close symbiotic-workflow #1: Hook Pipeline and Session Forensics",
     "author": "",
-    "timestamp": "2026-01-28T06:11:23Z"
+    "timestamp": "2026-01-28T06:17:11Z"
   },
   "drift": {
     "additions": [],

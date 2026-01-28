@@ -24,8 +24,62 @@
     "captured_at": "2026-01-28T06:12:14.245366Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-054843",
+      "started_at": "2026-01-28T06:12:14.253877",
+      "completed_at": "2026-01-28T06:17:30.170585Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 1225,
+        "output_tokens": 14699,
+        "cache_read_tokens": 2262865,
+        "cache_creation_tokens": 66046
+      },
+      "cost_usd": 1.3554530000000005,
+      "duration_seconds": 315
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:17:30.356636Z",
+    "total_cost_usd": 1.3554530000000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 315,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b002a80e7237edccbfbb1f66b172d304d8e24018",
+        "message": "epic(cub-w3f): Close symbiotic-workflow #1: Hook Pipeline and Session Forensics",
+        "author": "",
+        "timestamp": "2026-01-28T06:17:11Z"
+      },
+      {
+        "hash": "37d78a4205d95a966897c00ea534234b1ec932df",
+        "message": "docs: Add learnings from task cub-w3f.5 to progress.txt",
+        "author": "",
+        "timestamp": "2026-01-28T06:16:50Z"
+      },
+      {
+        "hash": "bf6b9f822375b4b63730f811a90439b44827e7cd",
+        "message": "task(cub-w3f.5): Integrate hook installation into cub init and cub doctor",
+        "author": "",
+        "timestamp": "2026-01-28T06:16:20Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +95,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:12:14.245366Z"
+    "stage_updated_at": "2026-01-28T06:17:30.356636Z"
   },
   "state_history": [
     {
@@ -49,31 +103,56 @@
       "at": "2026-01-28T06:12:14.245366Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:17:30.356636Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T06:12:14.245366Z",
-  "completed_at": "2026-01-28T06:12:14.245366Z",
+  "completed_at": "2026-01-28T06:17:30.356636Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 1225,
+    "output_tokens": 14699,
+    "cache_read_tokens": 2262865,
+    "cache_creation_tokens": 66046
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.3554530000000005,
+  "duration_seconds": 315,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "b002a80e7237edccbfbb1f66b172d304d8e24018",
+      "message": "epic(cub-w3f): Close symbiotic-workflow #1: Hook Pipeline and Session Forensics",
+      "author": "",
+      "timestamp": "2026-01-28T06:17:11Z"
+    },
+    {
+      "hash": "37d78a4205d95a966897c00ea534234b1ec932df",
+      "message": "docs: Add learnings from task cub-w3f.5 to progress.txt",
+      "author": "",
+      "timestamp": "2026-01-28T06:16:50Z"
+    },
+    {
+      "hash": "bf6b9f822375b4b63730f811a90439b44827e7cd",
+      "message": "task(cub-w3f.5): Integrate hook installation into cub init and cub doctor",
+      "author": "",
+      "timestamp": "2026-01-28T06:16:20Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-w3f.5",
   "epic_id": "cub-w3f",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
