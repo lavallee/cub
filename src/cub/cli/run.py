@@ -1249,23 +1249,6 @@ def run(
     # Load configuration
     config = load_config(project_dir)
 
-    # Initialize sync service (if enabled and auto_sync is "run" or "always")
-    sync_service: SyncService | None = None
-    should_auto_sync = (
-        not no_sync and config.sync.enabled and config.sync.auto_sync in ("run", "always")
-    )
-    if should_auto_sync:
-        sync_service = SyncService(project_dir=project_dir)
-        # Initialize sync branch if not already initialized
-        if not sync_service.is_initialized():
-            try:
-                sync_service.initialize()
-                if debug:
-                    console.print("[dim]Initialized cub-sync branch[/dim]")
-            except Exception as e:
-                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
-                sync_service = None  # Disable auto-sync for this run
-
     # Initialize session manager
     session_manager = RunSessionManager(project_dir / ".cub")
 
@@ -1414,6 +1397,27 @@ def run(
 
     if debug:
         console.print(f"[dim]Task backend: {backend_name}[/dim]")
+
+    # Initialize sync service (if enabled and backend supports it)
+    # Only initialize for backends that use .cub/tasks.jsonl (jsonl or both mode)
+    sync_service: SyncService | None = None
+    should_auto_sync = (
+        not no_sync
+        and config.sync.enabled
+        and config.sync.auto_sync in ("run", "always")
+        and ("jsonl" in backend_name or "both" in backend_name)
+    )
+    if should_auto_sync:
+        sync_service = SyncService(project_dir=project_dir)
+        # Initialize sync branch if not already initialized
+        if not sync_service.is_initialized():
+            try:
+                sync_service.initialize()
+                if debug:
+                    console.print("[dim]Initialized cub-sync branch[/dim]")
+            except Exception as e:
+                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
+                sync_service = None  # Disable auto-sync for this run
 
     # Handle --ready flag: just list ready tasks
     if ready:
