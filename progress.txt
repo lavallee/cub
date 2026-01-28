@@ -698,3 +698,86 @@
 - Mypy type checking: Clean (no errors in modified files)
 - Ruff linting: All checks passed
 
+## Task cub-v8n.3 - Implement transcript parsing for enrichment
+
+**Date:** 2026-01-28
+
+**Key Implementation Details:**
+
+1. **Transcript Parser Module**: Created `transcript_parser.py` with comprehensive parsing logic:
+   - Parses Claude Code transcript JSONL format (one message per line)
+   - Extracts token usage from API responses (input, output, cache read/creation)
+   - Calculates cost using current pricing tables (Opus, Sonnet, Haiku variants)
+   - Normalizes model names to short form (sonnet, opus, haiku)
+   - Handles malformed/missing transcripts gracefully (returns defaults, never crashes)
+
+2. **Pricing Tables**: Implemented comprehensive pricing data for all current models:
+   - Opus 4.5: $15/M input, $75/M output, $1.50/M cache read, $18.75/M cache creation
+   - Sonnet 4.5/4/3.7/3.5: $3/M input, $15/M output, $0.30/M cache read, $3.75/M cache creation
+   - Haiku 3.5: $1/M input, $5/M output, $0.10/M cache read, $1.25/M cache creation
+   - Haiku 3: $0.25/M input, $1.25/M output, $0.03/M cache read, $0.30/M cache creation
+   - Falls back to Sonnet pricing for unknown models
+
+3. **Transcript Format**: Parses JSONL with structure:
+   - Each line is JSON object with type: "input" (user) or "output" (assistant)
+   - Output lines contain model, usage, timestamp
+   - Usage has input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens
+   - Aggregates across all output turns in the session
+
+4. **SessionLedgerIntegration Enhancement**: Added `enrich_from_transcript()` method:
+   - Best-effort enrichment of existing ledger entries
+   - Updates Attempt with tokens, model name, cost
+   - Updates Outcome with final model and total cost
+   - Updates legacy fields for backward compatibility
+   - Persists changes to storage
+   - Returns entry unchanged on errors (missing transcript, parse failures)
+
+5. **Stop Handler Integration**: Modified `handle_stop()` to call enrichment:
+   - Calls `enrich_from_transcript()` after ledger entry creation
+   - Logs enrichment results (tokens, cost) at debug level
+   - Defensive error handling (logs but doesn't fail hook)
+   - Only enriches if transcript_path is available in payload
+
+6. **Test Coverage**: Comprehensive tests (28 new tests):
+   - Model normalization tests (sonnet/opus/haiku variants)
+   - Cost calculation tests (all model tiers, cache tokens)
+   - Transcript parsing tests (single/multiple turns, edge cases)
+   - Empty/malformed transcript handling
+   - Enrichment integration tests
+   - Persistence verification
+
+### Learnings
+
+- **Claude API Response Format**: The Claude API returns usage data in a structured format with input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens. The transcript contains full API responses for each turn.
+
+- **Cost Calculation**: Total cost = (input_tokens × input_price + output_tokens × output_price + cache_read_tokens × cache_read_price + cache_creation_tokens × cache_creation_price) / 1,000,000. Cache read is 90% cheaper than regular input.
+
+- **Model Name Normalization**: Full model identifiers like "claude-sonnet-4-5-20250929" need normalization to short names like "sonnet" for display. Simple substring matching works well.
+
+- **JSONL Parsing Pattern**: Line-by-line reading with try/except around json.loads() is robust. Skip empty lines and malformed JSON rather than failing entire parse.
+
+- **Best-Effort Enrichment**: Enrichment should be defensive - return entry unchanged on any error rather than crashing. This ensures ledger entries are always created even if transcript parsing fails.
+
+- **Transcript Availability**: Transcripts are only available after session end. The Stop handler runs at session end, so transcript_path will be populated. Earlier hooks won't have transcript data.
+
+- **Import Organization**: Ruff auto-fixes import sorting. Remove unused imports (typing.Any was imported but not used).
+
+- **Line Length**: Cost calculation expressions can get long with multiple terms. Break into multiple lines for readability.
+
+### Files Created
+- src/cub/core/ledger/transcript_parser.py (360 lines)
+- tests/test_transcript_parser.py (480 lines, 23 tests)
+
+### Files Modified
+- src/cub/core/ledger/session_integration.py (added enrich_from_transcript method)
+- src/cub/core/harness/hooks.py (integrated enrichment into handle_stop)
+- tests/test_session_ledger_integration.py (added 5 enrichment tests)
+
+### Test Results
+- All 23 new transcript parser tests pass
+- All 5 new enrichment tests pass
+- All 30 existing session ledger tests pass
+- Total: 58 related tests passed
+- Mypy type checking: Clean (no errors in new files)
+- Ruff linting: All checks passed
+
