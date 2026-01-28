@@ -11,6 +11,7 @@ Direct session commands:
 - cub wip <task-id>: Mark task as in-progress
 """
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,18 +19,7 @@ import typer
 from rich.console import Console
 
 from cub.core.config.loader import load_config
-from cub.core.ledger.integration import LedgerIntegration
-from cub.core.ledger.models import (
-    Attempt,
-    LedgerEntry,
-    Lineage,
-    Outcome,
-    StateTransition,
-    TaskSnapshot,
-    TokenUsage,
-    Verification,
-    WorkflowState,
-)
+from cub.core.ledger.session_integration import SessionLedgerIntegration
 from cub.core.ledger.writer import LedgerWriter
 from cub.core.tasks.backend import get_backend
 from cub.core.tasks.models import TaskStatus
@@ -129,129 +119,83 @@ def done(
         # Close task in backend
         backend.close_task(task_id, reason=reason)
 
-        # Create ledger entry
+        # Create synthetic session using SessionLedgerIntegration
         ledger_dir = _get_ledger_dir()
         writer = LedgerWriter(ledger_dir)
-        integration = LedgerIntegration(writer)
+        integration = SessionLedgerIntegration(writer)
 
         now = datetime.now(timezone.utc)
+        session_id = f"cub-done-{task_id}-{int(now.timestamp())}"
 
-        # Check if entry already exists
-        existing_entry = writer.get_entry(task_id)
-        if existing_entry:
-            # Update existing entry
-            console.print(f"[yellow]Note:[/yellow] Updating existing ledger entry for {task_id}")
+        # Create temporary forensics file with synthetic events
+        forensics_dir = ledger_dir / "forensics"
+        forensics_dir.mkdir(parents=True, exist_ok=True)
+        forensics_path = forensics_dir / f"{session_id}.jsonl"
 
-            # Finalize the entry
-            integration.on_task_close(
-                task_id,
-                success=True,
-                partial=False,
-                final_model="direct-session",
-                files_changed=files or [],
-                commits=[],
-                approach=reason,
-                decisions=[],
-                lessons_learned=[],
-                verification=Verification(status="pending", notes=[]),
-                current_task=task,
-            )
-        else:
-            # Create new entry from scratch
-            # Create task snapshot
-            task_snapshot = TaskSnapshot(
-                title=task.title,
-                description=task.description,
-                type=task.type.value if hasattr(task.type, "value") else str(task.type),
-                priority=task.priority_numeric,
-                labels=list(task.labels),
-                created_at=task.created_at,
-                captured_at=now,
-            )
+        # Write synthetic forensics events
+        with forensics_path.open("w", encoding="utf-8") as f:
+            # Session start event
+            session_start = {
+                "event_type": "session_start",
+                "timestamp": now.isoformat(),
+                "session_id": session_id,
+                "cwd": str(Path.cwd()),
+            }
+            f.write(json.dumps(session_start) + "\n")
 
-            # Create lineage
-            lineage = Lineage(
-                epic_id=task.parent,
-            )
+            # Task claim event
+            task_claim = {
+                "event_type": "task_claim",
+                "timestamp": now.isoformat(),
+                "session_id": session_id,
+                "task_id": task_id,
+                "command": f"cub done {task_id}",
+            }
+            f.write(json.dumps(task_claim) + "\n")
 
-            # Create workflow state
-            workflow = WorkflowState(
-                stage="dev_complete",
-                stage_updated_at=now,
-            )
+            # File write events for any specified files
+            if files:
+                for file_path in files:
+                    file_write = {
+                        "event_type": "file_write",
+                        "timestamp": now.isoformat(),
+                        "session_id": session_id,
+                        "file_path": file_path,
+                        "tool_name": "direct-session",
+                        "file_category": "source",
+                    }
+                    f.write(json.dumps(file_write) + "\n")
 
-            # Create state history
-            state_history = [
-                StateTransition(
-                    stage="dev_complete",
-                    at=now,
-                    by="direct-session",
-                    reason=reason or "Task completed in direct session",
-                )
-            ]
+            # Task close event
+            task_close = {
+                "event_type": "task_close",
+                "timestamp": now.isoformat(),
+                "session_id": session_id,
+                "task_id": task_id,
+                "command": f"cub done {task_id}",
+                "reason": reason,
+            }
+            f.write(json.dumps(task_close) + "\n")
 
-            # Create a single attempt representing the direct session work
-            attempt = Attempt(
-                attempt_number=1,
-                run_id="direct-session",
-                started_at=now,
-                completed_at=now,
-                harness="direct-session",
-                model="direct-session",
-                success=True,
-                tokens=TokenUsage(),
-                cost_usd=0.0,
-                duration_seconds=0,
-            )
+            # Session end event
+            session_end = {
+                "event_type": "session_end",
+                "timestamp": now.isoformat(),
+                "session_id": session_id,
+            }
+            f.write(json.dumps(session_end) + "\n")
 
-            # Create outcome
-            outcome = Outcome(
-                success=True,
-                partial=False,
-                completed_at=now,
-                total_cost_usd=0.0,
-                total_attempts=1,
-                total_duration_seconds=0,
-                final_model="direct-session",
-                escalated=False,
-                escalation_path=[],
-                files_changed=files or [],
-                commits=[],
-                approach=reason,
-                decisions=[],
-                lessons_learned=[],
-            )
+        # Use SessionLedgerIntegration to create ledger entry
+        entry = integration.on_session_end(
+            session_id=session_id,
+            forensics_path=forensics_path,
+            task=task,
+        )
 
-            # Create ledger entry
-            entry = LedgerEntry(
-                id=task.id,
-                title=task.title,
-                lineage=lineage,
-                task=task_snapshot,
-                attempts=[attempt],
-                outcome=outcome,
-                started_at=now,
-                completed_at=now,
-                workflow=workflow,
-                state_history=state_history,
-                verification=Verification(status="pending", notes=[]),
-                # Legacy fields
-                epic_id=task.parent,
-                run_log_path=str(ledger_dir / "by-task" / task.id),
-                tokens=TokenUsage(),
-                cost_usd=0.0,
-                duration_seconds=0,
-                iterations=1,
-                harness_name="direct-session",
-                harness_model="direct-session",
-                files_changed=files or [],
-                commits=[],
-                approach=reason or "",
-                decisions=[],
-                lessons_learned=[],
-            )
-
-            writer.create_entry(entry)
+        # Update outcome approach field if reason was provided
+        if entry and reason and entry.outcome:
+            entry.outcome.approach = reason
+            writer.update_entry(entry)
 
         console.print(f"[green]✓[/green] Task {task_id} marked as complete")
         if reason:
