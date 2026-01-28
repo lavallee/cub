@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-q2j.2",
+  "title": "Add cub task CLI subcommand",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2j"
+  },
+  "task": {
+    "title": "Add cub task CLI subcommand",
+    "description": "Direct sessions need lightweight task commands callable from Bash tool use. `cub task ready`, `cub task claim`, `cub task close`, `cub task create`. These wrap the task backend protocol and work identically with JSON or beads.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/task.py` with Typer app and subcommands:\n2. Register as `app.add_typer(task.app, name=\"task\")` in `src/cub/cli/__init__.py`\n3. Output concise for machine consumption; use `--json` flag for structured output\n\n**Files:** src/cub/cli/task.py, src/cub/cli/__init__.py, tests/test_task_cli.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-q2j",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:37:44.364206Z",
+    "captured_at": "2026-01-28T06:52:38.203393Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:52:38.203393Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:52:38.203393Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T06:52:38.203393Z",
+  "completed_at": "2026-01-28T06:52:38.203393Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-q2j.2",
+  "epic_id": "cub-q2j",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

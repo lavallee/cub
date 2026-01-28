@@ -4,7 +4,6 @@ Unit tests for the task CLI command.
 Tests the unified task interface CLI commands.
 """
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -262,6 +261,73 @@ class TestTaskClose:
         mock_backend.close_task.assert_called_once_with(
             "cub-001", reason="Completed in PR #123"
         )
+
+
+class TestTaskClaim:
+    """Test cub task claim command."""
+
+    def test_claim_task(self, mock_backend: MagicMock) -> None:
+        """Test claiming a task."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.update_task.return_value = Task(
+            id="cub-001",
+            title="Test",
+            status=TaskStatus.IN_PROGRESS,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["claim", "cub-001"])
+
+        assert result.exit_code == 0
+        assert "Claimed" in result.stdout
+        mock_backend.update_task.assert_called_once_with(
+            task_id="cub-001", status=TaskStatus.IN_PROGRESS
+        )
+
+    def test_claim_already_in_progress(self, mock_backend: MagicMock) -> None:
+        """Test claiming a task that is already in progress."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test",
+            status=TaskStatus.IN_PROGRESS,
+            assignee="someone",
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["claim", "cub-001"])
+
+        assert result.exit_code == 0
+        assert "already in progress" in result.stdout.lower()
+        mock_backend.update_task.assert_not_called()
+
+    def test_claim_already_closed(self, mock_backend: MagicMock) -> None:
+        """Test claiming a task that is already closed."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test",
+            status=TaskStatus.CLOSED,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["claim", "cub-001"])
+
+        assert result.exit_code == 0
+        assert "already closed" in result.stdout.lower()
+        mock_backend.update_task.assert_not_called()
+
+    def test_claim_not_found(self, mock_backend: MagicMock) -> None:
+        """Test claiming non-existent task."""
+        mock_backend.get_task.return_value = None
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["claim", "cub-999"])
+
+        assert result.exit_code == 2  # ExitCode.USER_ERROR
+        assert "not found" in result.stdout.lower()
 
 
 class TestTaskReady:

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-q2j",
+  "title": "cub-q2j",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-q2j",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T06:52:35.850240Z",
+    "captured_at": "2026-01-28T06:52:35.850240Z"
+  },
+  "task_ids": [
+    "cub-q2j.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 1.7986507000000005,
+    "avg_cost_per_task": 1.7986507000000005,
+    "min_cost_usd": 1.7986507000000005,
+    "max_cost_usd": 1.7986507000000005,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 3260460,
+    "avg_tokens_per_task": 3260460,
+    "total_duration_seconds": 416,
+    "avg_duration_seconds": 416,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:52:35.868560Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T06:45:39.513425Z",
+  "completed_at": "2026-01-28T06:52:35.842902Z",
+  "updated_at": "2026-01-28T06:52:35.868566Z",
+  "first_commit": {
+    "hash": "35afbd4ff9d3d8a418040d12fb5f104afb64d517",
+    "message": "task(cub-q2j.1): Add branch binding to JSON task backend",
+    "author": "",
+    "timestamp": "2026-01-28T06:51:50Z"
+  },
+  "last_commit": {
+    "hash": "49b33cac1052d291c1244ceb098a4354e1badf5f",
+    "message": "docs: Add learnings from cub-q2j.1 implementation",
+    "author": "",
+    "timestamp": "2026-01-28T06:52:11Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
