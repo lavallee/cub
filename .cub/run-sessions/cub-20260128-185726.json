@@ -4,16 +4,16 @@
   "project_dir": "/home/lavallee/clawdbot/cub",
   "harness": "claude",
   "budget": {
-    "tokens_used": 62089,
+    "tokens_used": 79153,
     "tokens_limit": 0,
-    "cost_usd": 3.439880700000001,
+    "cost_usd": 4.504740150000001,
     "cost_limit": 0.0
   },
-  "tasks_completed": 2,
+  "tasks_completed": 5,
   "tasks_failed": 0,
   "current_task": null,
-  "status": "running",
-  "ended_at": null,
-  "orphaned_at": null,
-  "orphaned_reason": null
+  "status": "completed",
+  "ended_at": "2026-01-28T19:20:21.509583Z",
+  "orphaned_at": "2026-01-28T19:17:38.891190Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
 }

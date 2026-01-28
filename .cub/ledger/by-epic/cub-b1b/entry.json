@@ -18,38 +18,42 @@
   },
   "task_ids": [
     "cub-b1b.1",
-    "cub-b1b.2"
+    "cub-b1b.2",
+    "cub-b1b.5",
+    "cub-b1b.3",
+    "cub-b1b.4"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
     "tasks_failed": 0,
-    "total_cost_usd": 3.439880700000001,
-    "avg_cost_per_task": 1.7199403500000006,
-    "min_cost_usd": 0.8478977500000003,
+    "total_cost_usd": 4.504740150000001,
+    "avg_cost_per_task": 0.9009480300000001,
+    "min_cost_usd": 0.15020840000000002,
     "max_cost_usd": 2.5919829500000007,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 7119662,
-    "avg_tokens_per_task": 3559831,
-    "total_duration_seconds": 910,
-    "avg_duration_seconds": 455,
+    "total_tokens": 9906640,
+    "avg_tokens_per_task": 1981328,
+    "total_duration_seconds": 1319,
+    "avg_duration_seconds": 263,
     "models_used": [
+      "haiku",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:12:58.673049Z"
+    "stage_updated_at": "2026-01-28T19:20:19.382337Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T18:57:26.712523Z",
-  "completed_at": "2026-01-28T19:12:49.916312Z",
-  "updated_at": "2026-01-28T19:12:58.673052Z",
+  "completed_at": "2026-01-28T19:20:10.927335Z",
+  "updated_at": "2026-01-28T19:20:19.382339Z",
   "first_commit": {
     "hash": "1474130d5b6669a350e03b693cf7e2fb433e3c12",
     "message": "task(cub-b1b.1): Move review reporter rendering to CLI layer",
@@ -57,10 +61,10 @@
     "timestamp": "2026-01-28T19:02:00Z"
   },
   "last_commit": {
-    "hash": "a4af72b309c7a1d7fb409ae1b0c4990a93cac261",
-    "message": "task(cub-b1b.2): Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+    "hash": "e9aa126d4a39bae23914c30d75e32b4b420a3185",
+    "message": "task(cub-b1b.5): Verify zero Rich imports in core and add CI gate",
     "author": "",
-    "timestamp": "2026-01-28T19:12:37Z"
+    "timestamp": "2026-01-28T19:20:01Z"
   },
   "drift": {
     "additions": [],

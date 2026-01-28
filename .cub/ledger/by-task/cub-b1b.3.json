@@ -24,8 +24,60 @@
     "captured_at": "2026-01-28T19:13:01.016880Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-185726",
+      "started_at": "2026-01-28T19:13:01.024120",
+      "completed_at": "2026-01-28T19:16:59.557401Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 341,
+        "output_tokens": 6841,
+        "cache_read_tokens": 1327204,
+        "cache_creation_tokens": 33979
+      },
+      "cost_usd": 0.7370938999999995,
+      "duration_seconds": 238
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:16:59.955498Z",
+    "total_cost_usd": 0.7370938999999995,
+    "total_attempts": 1,
+    "total_duration_seconds": 238,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "1f994d51c8a8bedce3f5b33da51ebfa47989b43f",
+        "message": "task(cub-b1b.3): Move bash_delegate to CLI layer",
+        "author": "",
+        "timestamp": "2026-01-28T19:16:42Z"
+      }
+    ],
+    "approach": "Converted `cli/delegated.py` from a module to a package to avoid namespace collision while moving `core/bash_delegate.py` to `cli/delegated/runner.py`. This preserved the existing CLI command interface while cleanly separating the bash delegation logic into the CLI layer, removing Rich and sys.exit dependencies from the core.",
+    "decisions": [
+      "Convert `delegated.py` to a package (`delegated/__init__.py`) rather than renaming the existing module, to maintain backward compatibility with existing imports in `cli/__init__.py`",
+      "Place bash delegation logic in `cli/delegated/runner.py` as a separate submodule within the package, keeping concerns separated",
+      "Update all test patches to reference the new module path (`cub.cli.delegated.runner`) to maintain test coverage",
+      "Verify no Rich or sys.exit remain in any core modules post-migration to ensure architectural separation"
+    ],
+    "lessons_learned": [
+      "Python namespace collisions between modules and packages with the same name require converting the module to a package rather than attempting parallel structures",
+      "When moving code between layers, systematically check all test files for patched imports, as test mocks must match the new import paths",
+      "Verify architectural constraints (no Rich in core, sys.exit only at CLI boundaries) through grep searches before and after refactoring to catch violations early",
+      "Running the full test suite after structural changes catches import/namespace issues immediately rather than discovering them later in production"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +93,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:13:01.016880Z"
+    "stage_updated_at": "2026-01-28T19:16:59.955498Z"
   },
   "state_history": [
     {
@@ -49,31 +101,54 @@
       "at": "2026-01-28T19:13:01.016880Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:16:59.955498Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T19:13:01.016880Z",
-  "completed_at": "2026-01-28T19:13:01.016880Z",
+  "completed_at": "2026-01-28T19:16:59.955498Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 341,
+    "output_tokens": 6841,
+    "cache_read_tokens": 1327204,
+    "cache_creation_tokens": 33979
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.7370938999999995,
+  "duration_seconds": 238,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Converted `cli/delegated.py` from a module to a package to avoid namespace collision while moving `core/bash_delegate.py` to `cli/delegated/runner.py`. This preserved the existing CLI command interface while cleanly separating the bash delegation logic into the CLI layer, removing Rich and sys.exit dependencies from the core.",
+  "decisions": [
+    "Convert `delegated.py` to a package (`delegated/__init__.py`) rather than renaming the existing module, to maintain backward compatibility with existing imports in `cli/__init__.py`",
+    "Place bash delegation logic in `cli/delegated/runner.py` as a separate submodule within the package, keeping concerns separated",
+    "Update all test patches to reference the new module path (`cub.cli.delegated.runner`) to maintain test coverage",
+    "Verify no Rich or sys.exit remain in any core modules post-migration to ensure architectural separation"
+  ],
+  "lessons_learned": [
+    "Python namespace collisions between modules and packages with the same name require converting the module to a package rather than attempting parallel structures",
+    "When moving code between layers, systematically check all test files for patched imports, as test mocks must match the new import paths",
+    "Verify architectural constraints (no Rich in core, sys.exit only at CLI boundaries) through grep searches before and after refactoring to catch violations early",
+    "Running the full test suite after structural changes catches import/namespace issues immediately rather than discovering them later in production"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "1f994d51c8a8bedce3f5b33da51ebfa47989b43f",
+      "message": "task(cub-b1b.3): Move bash_delegate to CLI layer",
+      "author": "",
+      "timestamp": "2026-01-28T19:16:42Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1b.3",
   "epic_id": "cub-b1b",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
