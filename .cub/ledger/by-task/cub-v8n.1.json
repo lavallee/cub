@@ -24,8 +24,50 @@
     "captured_at": "2026-01-28T06:17:36.839942Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-061736",
+      "started_at": "2026-01-28T06:17:36.858486",
+      "completed_at": "2026-01-28T06:24:50.012724Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 12464,
+        "output_tokens": 22206,
+        "cache_read_tokens": 2298325,
+        "cache_creation_tokens": 80786
+      },
+      "cost_usd": 1.7336272500000005,
+      "duration_seconds": 433
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:24:50.176392Z",
+    "total_cost_usd": 1.7336272500000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 433,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
+        "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
+        "author": "",
+        "timestamp": "2026-01-28T06:23:51Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +83,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:17:36.839942Z"
+    "stage_updated_at": "2026-01-28T06:24:50.176392Z"
   },
   "state_history": [
     {
@@ -49,31 +91,44 @@
       "at": "2026-01-28T06:17:36.839942Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:24:50.176392Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T06:17:36.839942Z",
-  "completed_at": "2026-01-28T06:17:36.839942Z",
+  "completed_at": "2026-01-28T06:24:50.176392Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 12464,
+    "output_tokens": 22206,
+    "cache_read_tokens": 2298325,
+    "cache_creation_tokens": 80786
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.7336272500000005,
+  "duration_seconds": 433,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
+      "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
+      "author": "",
+      "timestamp": "2026-01-28T06:23:51Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-v8n.1",
   "epic_id": "cub-v8n",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

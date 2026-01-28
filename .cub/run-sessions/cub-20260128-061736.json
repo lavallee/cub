@@ -4,13 +4,13 @@
   "project_dir": "/home/lavallee/clawdbot/cub",
   "harness": "claude",
   "budget": {
-    "tokens_used": 0,
+    "tokens_used": 34670,
     "tokens_limit": 0,
-    "cost_usd": 0.0,
+    "cost_usd": 1.7336272500000005,
     "cost_limit": 0.0
   },
-  "tasks_completed": 0,
-  "tasks_failed": 0,
+  "tasks_completed": 1,
+  "tasks_failed": -1,
   "current_task": null,
   "status": "running",
   "ended_at": null,

@@ -586,3 +586,59 @@
 - Mypy type checking: Clean (pre-existing yaml stub warnings in other files)
 - Ruff linting: All checks passed
 
+## Task cub-v8n.1 - Implement SessionLedgerIntegration
+
+**Date:** 2026-01-28
+
+**Key Implementation Details:**
+
+1. **SessionState Model**: Created `SessionState` class to reconstruct session state from forensics JSONL. Tracks session_id, timestamps, task_id, files_written, git_commits, etc. Includes computed properties like `has_task` and `duration_seconds`.
+
+2. **Stateless Processing**: Unlike `LedgerIntegration` which maintains state in memory across the run loop, `SessionLedgerIntegration` reads forensics JSONL on each call. This matches the hook execution model where each invocation is a separate process.
+
+3. **Forensics Parsing**: `read_forensics()` method reads JSONL line-by-line, parsing events into `SessionState`. Gracefully handles malformed JSON (skips bad lines), missing files (raises FileNotFoundError), and missing fields (uses None defaults).
+
+4. **Event Processing**: `_process_event()` method handles 7 event types: session_start, session_end, task_claim, task_close, file_write, git_commit, session_checkpoint. Categorizes files by type (plan/spec) and accumulates changes.
+
+5. **Ledger Entry Synthesis**: `on_session_end()` synthesizes a `LedgerEntry` from forensics if a task was claimed. Creates single `Attempt` representing entire session, populates `Outcome` with files_changed, detects success based on task_close event.
+
+6. **No Task Handling**: If no task was claimed during session, `on_session_end()` returns None (no ledger entry). `finalize_forensics()` provides way to just read state without creating entry.
+
+7. **Existing Entry Handling**: If ledger entry already exists (e.g., from run loop), checks if it's finalized (has outcome). Finalized entries aren't overwritten, unfinalized entries get session attempt appended.
+
+8. **Lineage Extraction**: Extracts spec_file and plan_file from file_write events with those categories. Gets epic_id from task.parent if task object provided.
+
+9. **Default Values**: Creates default Verification (status="pending"), WorkflowState (stage="dev_complete"), and empty TokenUsage/CommitRef lists since transcript parsing isn't implemented yet.
+
+### Learnings
+
+- **Stateless vs Stateful Design**: The key difference between `LedgerIntegration` (stateful, maintains _active_entries dict) and `SessionLedgerIntegration` (stateless, reads forensics each time) is driven by execution model. Run loop has single Python process, hooks have separate processes per invocation.
+
+- **Type Annotations for Dicts**: When using `dict` in type annotations, need to specify key and value types like `dict[str, Any]`. Plain `dict` without type params triggers mypy error in strict mode.
+
+- **JSONL Parsing Pattern**: Read file line-by-line, strip whitespace, skip empty lines, try/except json.loads() to handle malformed lines gracefully. This is more robust than loading entire file as JSON array.
+
+- **Pydantic model_dump()**: Use `event.model_dump(exclude_none=True)` to skip None fields when serializing to JSON. This keeps JSONL files clean and avoids "null" values for optional fields.
+
+- **Datetime Parsing**: Use `datetime.fromisoformat()` to parse ISO 8601 timestamps. Wrap in try/except to handle invalid formats gracefully (set timestamp=None rather than crash).
+
+- **Git Commit Extraction**: Forensics log doesn't include full git commit info (hash, author, timestamp). Only has command and message preview. Full CommitRef objects would need git log parsing in a follow-up.
+
+- **Line Length Linting**: Long lines with multiple attribute accesses like `existing_entry.tokens.cache_read_tokens + attempt.tokens.cache_read_tokens` exceed 100 chars. Break into multiple lines with parentheses for continuation.
+
+- **Import Cleanup**: Ruff auto-fix removes unused imports. If you import `TokenUsage` in tests but only use it indirectly (e.g., through model instantiation), ruff will flag it as unused.
+
+### Files Created
+- src/cub/core/ledger/session_integration.py (450 lines)
+- tests/test_session_ledger_integration.py (800 lines, 30 tests)
+
+### Files Modified
+- src/cub/core/ledger/__init__.py (added SessionLedgerIntegration and SessionState exports)
+
+### Test Results
+- All 30 new session ledger integration tests pass
+- All 324 existing ledger tests still pass
+- Total: 354 ledger tests passed
+- Mypy type checking: Clean (only pre-existing yaml stub warnings)
+- Ruff linting: All checks passed
+

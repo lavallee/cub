@@ -295,11 +295,20 @@ class SessionLedgerIntegration:
 
         # Create single attempt representing the entire session
         # Note: tokens/cost require transcript parsing (not implemented here)
+        started_at = state.task_claimed_at or state.started_at or now
+        completed_at = state.task_closed_at or state.ended_at or now
+
+        # Calculate duration from attempt timestamps (not session duration)
+        duration = int((completed_at - started_at).total_seconds())
+        # Ensure duration is non-negative
+        if duration < 0:
+            duration = 0
+
         attempt = Attempt(
             attempt_number=1,
             run_id=session_id,
-            started_at=state.task_claimed_at or state.started_at or now,
-            completed_at=state.task_closed_at or state.ended_at or now,
+            started_at=started_at,
+            completed_at=completed_at,
             harness="claude",  # TODO: Extract from session metadata
             model="",  # TODO: Extract from transcript
             success=state.task_closed_at is not None,  # Closed = successful
@@ -307,7 +316,7 @@ class SessionLedgerIntegration:
             error_summary=None,
             tokens=TokenUsage(),  # TODO: Parse from transcript
             cost_usd=0.0,  # TODO: Calculate from transcript
-            duration_seconds=state.duration_seconds,
+            duration_seconds=duration,
         )
 
         # Parse git commits into CommitRef objects

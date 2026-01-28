@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "cub-v8n.2",
+  "title": "Connect hook handlers to SessionLedgerIntegration",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-v8n"
+  },
+  "task": {
+    "title": "Connect hook handlers to SessionLedgerIntegration",
+    "description": "Hook handlers currently write raw forensics. They need to also drive the `SessionLedgerIntegration` so events flow through to the ledger on session end.\n\n**Implementation Steps:**\n1. In `handle_session_start`: instantiate `SessionLedgerIntegration`, call `on_session_start()`\n2. In `handle_post_tool_use`: after writing forensics, call `on_file_write()`, `on_task_close()`, or `on_git_commit()` as appropriate\n3. In `handle_stop`: call `on_session_end()` which reconstructs state from forensics and synthesizes ledger entry\n4. Each hook invocation is a separate process -- `SessionLedgerIntegration` reconstructs from forensics JSONL each time\n5. Ensure `LedgerWriter` is properly initialized with project directory from hook payload `cwd`\n\n**Files:** src/cub/core/harness/hooks.py, tests/test_harness_hooks_integration.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-v8n",
+      "hooks",
+      "ledger",
+      "logic",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-28T03:37:44.364147Z",
+    "captured_at": "2026-01-28T06:24:52.427575Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:24:52.427575Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:24:52.427575Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T06:24:52.427575Z",
+  "completed_at": "2026-01-28T06:24:52.427575Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-v8n.2",
+  "epic_id": "cub-v8n",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -29,7 +29,33 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from cub.core.ledger.session_integration import SessionLedgerIntegration
+from cub.core.ledger.writer import LedgerWriter
+
 logger = logging.getLogger(__name__)
+
+
+def _get_ledger_integration(cwd: str | None) -> SessionLedgerIntegration | None:
+    """
+    Create SessionLedgerIntegration from project directory.
+
+    Args:
+        cwd: Current working directory from hook payload
+
+    Returns:
+        SessionLedgerIntegration instance or None if cwd is invalid
+    """
+    if not cwd:
+        return None
+
+    project_dir = Path(cwd)
+    ledger_dir = project_dir / ".cub" / "ledger"
+
+    # Ensure ledger directory exists
+    ledger_dir.mkdir(parents=True, exist_ok=True)
+
+    writer = LedgerWriter(ledger_dir)
+    return SessionLedgerIntegration(writer)
 
 
 # ===== Forensics Event Models =====
@@ -308,7 +334,7 @@ async def handle_stop(payload: HookEventPayload) -> HookEventResult:
 
     When Claude finishes responding, we finalize any open ledger entries
     for the session and capture final artifacts. Writes a session_end event
-    with transcript path.
+    with transcript path, then synthesizes ledger entry from forensics.
 
     Args:
         payload: Parsed hook event payload
@@ -328,6 +354,39 @@ async def handle_stop(payload: HookEventPayload) -> HookEventResult:
             session_id=payload.session_id, transcript_path=payload.transcript_path
         )
         await _write_forensic_event(event, payload.cwd)
+
+        # Synthesize ledger entry from forensics
+        integration = _get_ledger_integration(payload.cwd)
+        if integration and payload.session_id and payload.cwd:
+            forensics_path = (
+                Path(payload.cwd) / ".cub" / "ledger" / "forensics" / f"{payload.session_id}.jsonl"
+            )
+
+            try:
+                # Let SessionLedgerIntegration reconstruct state and create entry
+                # Note: Task object not available here, ledger entry uses task_id only
+                entry = integration.on_session_end(
+                    payload.session_id,
+                    forensics_path,
+                    task=None,  # TODO: Could load task from backend if task_id is in forensics
+                )
+
+                if entry:
+                    logger.info(
+                        f"Ledger entry created for session {payload.session_id}: {entry.id}",
+                        extra={"session_id": payload.session_id, "task_id": entry.id},
+                    )
+                else:
+                    logger.debug(
+                        f"No ledger entry created for session {payload.session_id} "
+                        "(no task associated)",
+                        extra={"session_id": payload.session_id},
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to synthesize ledger entry from forensics: {e}",
+                    extra={"session_id": payload.session_id},
+                )
 
         logger.info(
             f"Session stopped: {payload.session_id}",
@@ -361,6 +420,14 @@ async def handle_session_start(payload: HookEventPayload) -> HookEventResult:
         event = SessionStartEvent(session_id=payload.session_id, cwd=payload.cwd)
         await _write_forensic_event(event, payload.cwd)
 
+        # Initialize SessionLedgerIntegration (stateless, just ensures setup)
+        integration = _get_ledger_integration(payload.cwd)
+        if integration:
+            logger.debug(
+                f"SessionLedgerIntegration initialized for session: {payload.session_id}",
+                extra={"session_id": payload.session_id},
+            )
+
         logger.info(
             f"Session started: {payload.session_id}",
             extra={"session_id": payload.session_id, "cwd": payload.cwd},
@@ -379,7 +446,8 @@ async def handle_session_end(payload: HookEventPayload) -> HookEventResult:
     Handle SessionEnd events to finalize session.
 
     Ensures all artifacts are captured and ledger entries are closed.
-    Writes a session_end event with transcript path.
+    Writes a session_end event with transcript path, then synthesizes
+    ledger entry from forensics.
 
     Args:
         payload: Parsed hook event payload
@@ -392,6 +460,38 @@ async def handle_session_end(payload: HookEventPayload) -> HookEventResult:
             session_id=payload.session_id, transcript_path=payload.transcript_path
         )
         await _write_forensic_event(event, payload.cwd)
+
+        # Synthesize ledger entry from forensics
+        integration = _get_ledger_integration(payload.cwd)
+        if integration and payload.session_id and payload.cwd:
+            forensics_path = (
+                Path(payload.cwd) / ".cub" / "ledger" / "forensics" / f"{payload.session_id}.jsonl"
+            )
+
+            try:
+                # Let SessionLedgerIntegration reconstruct state and create entry
+                entry = integration.on_session_end(
+                    payload.session_id,
+                    forensics_path,
+                    task=None,  # TODO: Could load task from backend if task_id is in forensics
+                )
+
+                if entry:
+                    logger.info(
+                        f"Ledger entry created for session {payload.session_id}: {entry.id}",
+                        extra={"session_id": payload.session_id, "task_id": entry.id},
+                    )
+                else:
+                    logger.debug(
+                        f"No ledger entry created for session {payload.session_id} "
+                        "(no task associated)",
+                        extra={"session_id": payload.session_id},
+                    )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to synthesize ledger entry from forensics: {e}",
+                    extra={"session_id": payload.session_id},
+                )
 
         logger.info(
             f"Session ended: {payload.session_id}",
