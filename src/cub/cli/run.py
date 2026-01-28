@@ -30,15 +30,16 @@ from cub.cli.errors import (
     print_main_branch_error,
     print_missing_dependency_error,
 )
-from cub.core.circuit_breaker import CircuitBreaker, CircuitBreakerTrippedError
+from cub.core.circuit_breaker import CircuitBreaker
 from cub.core.cleanup.service import CleanupService
 from cub.core.config.loader import load_config
 from cub.core.config.models import CubConfig
 from cub.core.harness.async_backend import detect_async_harness, get_async_backend
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
-from cub.core.ledger.models import CommitRef
 from cub.core.ledger.writer import LedgerWriter
+from cub.core.run.loop import RunLoop
+from cub.core.run.models import RunConfig, RunEvent, RunEventType
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -63,12 +64,11 @@ from cub.core.status.writer import StatusWriter
 from cub.core.sync.service import SyncService
 from cub.core.tasks.backend import TaskBackend
 from cub.core.tasks.backend import get_backend as get_task_backend
-from cub.core.tasks.models import Task, TaskStatus
+from cub.core.tasks.models import Task
 from cub.core.worktree.manager import WorktreeError, WorktreeManager
 from cub.core.worktree.parallel import ParallelRunner
 from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
-from cub.utils.git import get_commits_between, get_current_commit, parse_commit_timestamp
-from cub.utils.hooks import HookContext, run_hooks, run_hooks_async, wait_async_hooks
+from cub.utils.hooks import HookContext, run_hooks_async, wait_async_hooks
 
 
 def _run_async(func: Any, *args: Any) -> Any:
@@ -1168,10 +1168,6 @@ def run(
 
     # Initialize circuit breaker for stagnation detection
     circuit_breaker_enabled = config.circuit_breaker.enabled and not no_circuit_breaker
-    circuit_breaker = CircuitBreaker(
-        timeout_minutes=config.circuit_breaker.timeout_minutes,
-        enabled=circuit_breaker_enabled,
-    )
     if debug and circuit_breaker_enabled:
         timeout = config.circuit_breaker.timeout_minutes
         console.print(f"[dim]Circuit breaker enabled: {timeout} minute timeout[/dim]")
@@ -1238,9 +1234,6 @@ def run(
     console.print(f"Max iterations: {max_iterations}")
     console.print()
 
-    # Generate system prompt
-    system_prompt = generate_system_prompt(project_dir)
-
     # Start run session tracking
     session_budget = SessionBudget(
         tokens_limit=status.budget.tokens_limit or 0,
@@ -1271,674 +1264,66 @@ def run(
         status_writer.write(status)
 
     global _interrupted
-    budget_warning_fired = False  # Track if budget warning hook has been fired
+
+    # Build RunConfig from CLI args and loaded config
+    run_config = RunConfig(
+        once=once,
+        task_id=task_id,
+        epic=epic,
+        label=label,
+        model=model or config.harness.model,
+        harness_name=harness_name,
+        session_name=session_name,
+        stream=stream,
+        debug=debug,
+        max_iterations=max_iterations,
+        max_task_iterations=config.guardrails.max_task_iterations,
+        on_task_failure=config.loop.on_task_failure,
+        budget_tokens=budget_tokens or config.budget.max_tokens_per_task,
+        budget_cost=budget or config.budget.max_total_cost,
+        budget_tasks=config.budget.max_tasks_per_session,
+        circuit_breaker_enabled=circuit_breaker_enabled,
+        circuit_breaker_timeout_minutes=config.circuit_breaker.timeout_minutes,
+        ledger_enabled=config.ledger.enabled,
+        hooks_enabled=config.hooks.enabled,
+        hooks_fail_fast=config.hooks.fail_fast,
+        sync_enabled=sync_service is not None,
+        iteration_warning_threshold=config.guardrails.iteration_warning_threshold,
+        project_dir=str(project_dir),
+    )
+
+    # Create RunLoop
+    run_loop = RunLoop(
+        config=run_config,
+        task_backend=task_backend,
+        harness_backend=harness_backend,
+        ledger_integration=ledger_integration,
+        sync_service=sync_service,
+        status_writer=status_writer,
+        run_id=run_id,
+    )
 
     try:
-        # Run pre-loop hooks (sync - must complete before loop starts)
-        # Moved inside try block to ensure finally block runs on failure (E4)
-        pre_loop_context = HookContext(
-            hook_name="pre-loop",
-            project_dir=project_dir,
-            harness=harness_name,
-            session_id=run_id,
-        )
-        if not run_hooks("pre-loop", pre_loop_context, project_dir):
-            if config.hooks.fail_fast:
-                status.mark_failed("Pre-loop hook failed")
-                console.print("[red]Pre-loop hook failed. Stopping.[/red]")
-                raise typer.Exit(1)
-
-        while status.iteration.current < max_iterations:
-            # Check for interrupt
+        # Execute the loop and render events
+        for event in run_loop.execute():
+            # Forward interrupt flag to loop
             if _interrupted:
-                console.print("[yellow]Stopping due to interrupt...[/yellow]")
-                status.mark_stopped()
-                break
+                run_loop.interrupted = True
 
-            # Check budget
-            if status.budget.is_over_budget:
-                console.print("[yellow]Budget exhausted. Stopping.[/yellow]")
-                status.add_event("Budget exhausted", EventLevel.WARNING)
-                status.mark_completed()
-                break
-
-            # Increment iteration
-            status.iteration.current += 1
-
-            if debug:
-                iter_info = f"{status.iteration.current}/{max_iterations}"
-                console.print(f"[dim]=== Iteration {iter_info} ===[/dim]")
-
-            # Get task to work on
-            current_task: Task | None = None
-
-            if task_id:
-                # Specific task requested
-                current_task = task_backend.get_task(task_id)
-                if not current_task:
-                    console.print(f"[red]Task {task_id} not found[/red]")
-                    status.mark_failed(f"Task {task_id} not found")
-                    break
-                if current_task.status == TaskStatus.CLOSED:
-                    console.print(f"[yellow]Task {task_id} is already closed[/yellow]")
-                    status.mark_completed()
-                    break
-            else:
-                # Get next ready task
-                ready_tasks = task_backend.get_ready_tasks(parent=epic, label=label)
-
-                if not ready_tasks:
-                    # Check if all done or blocked
-                    counts = task_backend.get_task_counts()
-                    if counts.remaining == 0:
-                        console.print("[green]All tasks complete![/green]")
-                        # Fire on-all-tasks-complete hook (async)
-                        complete_context = HookContext(
-                            hook_name="on-all-tasks-complete",
-                            project_dir=project_dir,
-                            harness=harness_name,
-                            session_id=run_id,
-                        )
-                        run_hooks_async("on-all-tasks-complete", complete_context, project_dir)
-                        status.mark_completed()
-                        break
-                    else:
-                        from cub.cli.errors import print_error
-
-                        print_error(
-                            "No ready tasks available",
-                            reason=f"{counts.remaining} tasks remaining but all have "
-                            "unmet dependencies",
-                            solution="cub task list --status blocked  # to see blocked tasks\n"
-                            "       [cyan]→ Or:[/cyan] Check task dependencies with "
-                            "'cub task show <task-id>'",
-                        )
-                        status.mark_completed()
-                        break
-
-                current_task = ready_tasks[0]
-
-            # Display task info
-            display_task_info(current_task, status.iteration.current, max_iterations)
-
-            # Update status
-            status.current_task_id = current_task.id
-            status.current_task_title = current_task.title
-            status.start_task_entry(current_task.id)  # Mark task as DOING in Kanban
-            status.add_event(
-                f"Starting task: {current_task.title}", EventLevel.INFO, task_id=current_task.id
-            )
-            status_writer.write(status)
-
-            # Run pre-task hooks (sync - must complete before task runs)
-            pre_task_context = HookContext(
-                hook_name="pre-task",
+            # Render event based on type
+            _render_run_event(
+                event,
+                status=status,
+                status_writer=status_writer,
+                task_backend=task_backend,
+                session_manager=session_manager,
+                run_session=run_session,
+                config=config,
+                harness_name=harness_name,
+                run_id=run_id,
                 project_dir=project_dir,
-                task_id=current_task.id,
-                task_title=current_task.title,
-                harness=harness_name,
-                session_id=run_id,
+                debug=debug,
             )
-            if not run_hooks("pre-task", pre_task_context, project_dir):
-                if config.hooks.fail_fast:
-                    status.mark_failed(f"Pre-task hook failed for {current_task.id}")
-                    console.print("[red]Pre-task hook failed. Stopping.[/red]")
-                    break
-
-            # Claim task (mark as in_progress)
-            try:
-                task_backend.update_task(
-                    current_task.id, status=TaskStatus.IN_PROGRESS, assignee=run_id
-                )
-            except Exception as e:
-                if debug:
-                    console.print(f"[dim]Failed to claim task: {e}[/dim]")
-
-            # Capture git state at task start for commit tracking
-            task_start_commit = get_current_commit()
-            if debug and task_start_commit:
-                console.print(f"[dim]Starting commit: {task_start_commit[:7]}[/dim]")
-
-            # Create ledger entry for task start
-            if config.ledger.enabled:
-                try:
-                    ledger_integration.on_task_start(
-                        current_task,
-                        run_id=run_id,
-                        epic_id=epic,
-                    )
-                    if debug:
-                        console.print(
-                            f"[dim]Created ledger entry for task start: {current_task.id}[/dim]"
-                        )
-                except Exception as e:
-                    if debug:
-                        console.print(f"[dim]Warning: Failed to create ledger entry: {e}[/dim]")
-
-            # Generate task prompt
-            task_prompt = generate_task_prompt(
-                current_task, task_backend, ledger_integration if config.ledger.enabled else None
-            )
-
-            if debug:
-                console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")
-                console.print(f"[dim]Task prompt: {len(task_prompt)} chars[/dim]")
-
-            # Get model from task label or CLI arg or config
-            task_model = model or current_task.model_label or config.harness.model
-
-            # Invoke harness
-            console.print(f"[bold]Running {harness_name}...[/bold]")
-
-            # Track attempt start time
-            attempt_start_time = datetime.now()
-
-            try:
-                task_input = TaskInput(
-                    prompt=task_prompt,
-                    system_prompt=system_prompt,
-                    model=task_model,
-                    working_dir=str(project_dir),
-                    auto_approve=True,  # Auto-approve for unattended execution
-                )
-
-                # Write prompt before harness invocation (audit trail, even if harness fails)
-                try:
-                    status_writer.write_prompt(current_task.id, system_prompt, task_prompt)
-                except Exception as e:
-                    if debug:
-                        console.print(f"[dim]Warning: Failed to write prompt.md: {e}[/dim]")
-
-                # Record attempt start in ledger
-                if config.ledger.enabled:
-                    try:
-                        # Get attempt number (1-based)
-                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
-
-                        # Build combined prompt for ledger
-                        combined_prompt = (
-                            f"# System Prompt\n\n{system_prompt}\n\n# Task Prompt\n\n{task_prompt}"
-                        )
-
-                        ledger_integration.on_attempt_start(
-                            current_task.id,
-                            attempt_number,
-                            combined_prompt,
-                            run_id=run_id,
-                            harness=harness_name,
-                            model=task_model or "",
-                        )
-                        if debug:
-                            console.print(
-                                f"[dim]Recorded attempt {attempt_number} start in ledger[/dim]"
-                            )
-                    except Exception as e:
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record attempt start: {e}[/dim]"
-                            )
-
-                # Get harness log path for this task
-                harness_log_path = status_writer.get_harness_log_path(current_task.id)
-
-                result = _invoke_harness(
-                    harness_backend, task_input, stream, debug, harness_log_path, circuit_breaker
-                )
-
-                # Record attempt end in ledger
-                if config.ledger.enabled:
-                    try:
-                        # Read harness log content
-                        log_content = ""
-                        if harness_log_path and harness_log_path.exists():
-                            log_content = harness_log_path.read_text(encoding="utf-8")
-
-                        # Convert TokenUsage to LedgerTokenUsage
-                        from cub.core.ledger.models import TokenUsage as LedgerTokenUsage
-
-                        ledger_tokens = LedgerTokenUsage(
-                            input_tokens=result.usage.input_tokens,
-                            output_tokens=result.usage.output_tokens,
-                            cache_read_tokens=result.usage.cache_read_tokens,
-                            cache_creation_tokens=result.usage.cache_creation_tokens,
-                        )
-
-                        ledger_integration.on_attempt_end(
-                            current_task.id,
-                            attempt_number,
-                            log_content,
-                            run_id=run_id,
-                            success=result.success,
-                            harness=harness_name,
-                            model=task_model or "",
-                            tokens=ledger_tokens,
-                            cost_usd=result.usage.cost_usd or 0.0,
-                            duration_seconds=int(result.duration_seconds),
-                            started_at=attempt_start_time,
-                        )
-                        if debug:
-                            console.print(
-                                f"[dim]Recorded attempt {attempt_number} end in ledger[/dim]"
-                            )
-                    except Exception as e:
-                        if debug:
-                            console.print(f"[dim]Warning: Failed to record attempt end: {e}[/dim]")
-
-            except CircuitBreakerTrippedError as e:
-                # Circuit breaker timeout - harness appears hung
-                console.print(f"[red]Circuit breaker tripped: {e.message}[/red]")
-                status.add_event(
-                    f"Circuit breaker tripped after {e.timeout_minutes} minutes",
-                    EventLevel.ERROR,
-                    task_id=current_task.id,
-                )
-
-                # Record stagnation in ledger
-                if config.ledger.enabled:
-                    try:
-                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
-                        ledger_integration.on_attempt_end(
-                            current_task.id,
-                            attempt_number,
-                            log_content="",
-                            run_id=run_id,
-                            success=False,
-                            harness=harness_name,
-                            model=task_model or "",
-                            error_category="circuit_breaker_timeout",
-                            error_summary=e.message,
-                            started_at=attempt_start_time,
-                        )
-                    except Exception as ledger_error:
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record circuit breaker event: "
-                                f"{ledger_error}[/dim]"
-                            )
-
-                # Circuit breaker trip is a fatal error - stop the run
-                status.mark_failed(e.message)
-                status_writer.write(status)
-                break
-
-            except KeyboardInterrupt:
-                # User interrupted execution (Ctrl-C) - record partial attempt
-                console.print("\n[yellow]Task interrupted by user[/yellow]")
-                status.add_event(
-                    "Task interrupted by user (Ctrl-C)",
-                    EventLevel.WARNING,
-                    task_id=current_task.id,
-                )
-
-                # Record interrupted attempt in ledger with partial progress
-                if config.ledger.enabled:
-                    try:
-                        # Capture whatever log content exists
-                        log_content = ""
-                        if harness_log_path and harness_log_path.exists():
-                            try:
-                                log_content = harness_log_path.read_text(encoding="utf-8")
-                            except Exception:
-                                log_content = "(Log file exists but could not be read)"
-
-                        # Calculate duration up to interruption
-                        duration = int((datetime.now() - attempt_start_time).total_seconds())
-
-                        ledger_integration.on_attempt_end(
-                            current_task.id,
-                            attempt_number,
-                            log_content,
-                            run_id=run_id,
-                            success=False,
-                            harness=harness_name,
-                            model=task_model or "",
-                            error_category="user_interrupted",
-                            error_summary="User interrupted execution (Ctrl-C) - partial work may exist",
-                            started_at=attempt_start_time,
-                            duration_seconds=duration,
-                        )
-                        if debug:
-                            console.print(
-                                f"[dim]Recorded interrupted attempt in ledger "
-                                f"(duration: {duration}s, log: {len(log_content)} chars)[/dim]"
-                            )
-                    except Exception as ledger_error:
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record interrupted attempt: "
-                                f"{ledger_error}[/dim]"
-                            )
-
-                # Set interrupted flag and re-raise to propagate interrupt
-                _interrupted = True
-                raise
-
-            except Exception as e:
-                console.print(f"[red]Harness invocation failed: {e}[/red]")
-                status.add_event(f"Harness failed: {e}", EventLevel.ERROR, task_id=current_task.id)
-
-                # Record failed attempt in ledger
-                if config.ledger.enabled:
-                    try:
-                        attempt_number = ledger_integration.get_attempt_count(current_task.id) + 1
-                        ledger_integration.on_attempt_end(
-                            current_task.id,
-                            attempt_number,
-                            log_content="",
-                            run_id=run_id,
-                            success=False,
-                            harness=harness_name,
-                            model=task_model or "",
-                            error_category="harness_failure",
-                            error_summary=str(e),
-                            started_at=attempt_start_time,
-                        )
-                    except Exception as ledger_error:
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to record failed attempt: "
-                                f"{ledger_error}[/dim]"
-                            )
-
-                if config.loop.on_task_failure == "stop":
-                    status.mark_failed(str(e))
-                    break
-                continue
-
-            duration = result.duration_seconds
-
-            # Update budget tracking
-            status.budget.tokens_used += result.usage.total_tokens
-            if result.usage.cost_usd:
-                status.budget.cost_usd += result.usage.cost_usd
-
-            # Check for budget warning (fire once when crossing threshold)
-            budget_pct = status.budget.tokens_percentage or status.budget.cost_percentage
-            warning_threshold = config.guardrails.iteration_warning_threshold * 100
-            if budget_pct and budget_pct >= warning_threshold and not budget_warning_fired:
-                budget_warning_fired = True
-                console.print(
-                    f"[yellow]Budget warning: {budget_pct:.1f}% used "
-                    f"(threshold: {warning_threshold:.0f}%)[/yellow]"
-                )
-                status.add_event(f"Budget warning: {budget_pct:.1f}% used", EventLevel.WARNING)
-                # Fire on-budget-warning hook (async)
-                budget_context = HookContext(
-                    hook_name="on-budget-warning",
-                    project_dir=project_dir,
-                    harness=harness_name,
-                    session_id=run_id,
-                    budget_percentage=budget_pct,
-                    budget_used=status.budget.tokens_used,
-                    budget_limit=status.budget.tokens_limit,
-                )
-                run_hooks_async("on-budget-warning", budget_context, project_dir)
-
-            # Log result
-            if result.success:
-                console.print(f"[green]Task completed in {duration:.1f}s[/green]")
-                console.print(f"[dim]Tokens: {result.usage.total_tokens:,}[/dim]")
-                status.budget.tasks_completed += 1
-                status.complete_task_entry(current_task.id)  # Mark task as DONE in Kanban
-                status.add_event(
-                    f"Task completed: {current_task.title}",
-                    EventLevel.INFO,
-                    task_id=current_task.id,
-                    duration=duration,
-                    tokens=result.usage.total_tokens,
-                )
-
-                # Persist task artifact with token usage
-                priority_str = (
-                    current_task.priority.value
-                    if hasattr(current_task.priority, "value")
-                    else str(current_task.priority)
-                )
-                task_artifact = TaskArtifact(
-                    task_id=current_task.id,
-                    title=current_task.title,
-                    priority=priority_str,
-                    status="completed",
-                    started_at=datetime.now(),  # TODO: Track actual start time
-                    completed_at=datetime.now(),
-                    iterations=1,  # TODO: Track actual iterations if task retries
-                    exit_code=result.exit_code,
-                    usage=result.usage,
-                    duration_seconds=duration,
-                )
-                try:
-                    status_writer.write_task_artifact(current_task.id, task_artifact)
-                    if debug:
-                        console.print("[dim]Persisted task artifact to task.json[/dim]")
-                except Exception as e:
-                    if debug:
-                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
-
-                # Close the task in the backend so it won't be picked up again
-                try:
-                    task_backend.close_task(
-                        current_task.id,
-                        reason="Completed by autonomous execution",
-                    )
-                    if debug:
-                        console.print(f"[dim]Closed task {current_task.id} in backend[/dim]")
-                except Exception as e:
-                    # Log but don't fail - the work is done even if closure fails
-                    console.print(f"[yellow]Warning: Failed to close task in backend: {e}[/yellow]")
-                    status.add_event(
-                        f"Failed to close task in backend: {e}",
-                        EventLevel.WARNING,
-                        task_id=current_task.id,
-                    )
-
-                # Auto-sync task state to cub-sync branch (if enabled)
-                if sync_service is not None:
-                    try:
-                        commit_sha = sync_service.commit(
-                            message=f"Task {current_task.id} completed"
-                        )
-                        if debug:
-                            console.print(f"[dim]Synced to cub-sync branch: {commit_sha[:7]}[/dim]")
-                    except Exception as e:
-                        # Log but don't fail - sync is optional
-                        console.print(f"[yellow]Warning: Failed to sync task state: {e}[/yellow]")
-                        status.add_event(
-                            f"Failed to sync task state: {e}",
-                            EventLevel.WARNING,
-                            task_id=current_task.id,
-                        )
-
-                # Finalize ledger entry after successful task completion
-                if config.ledger.enabled:
-                    try:
-                        # Get current task state for drift detection
-                        current_task_state = task_backend.get_task(current_task.id)
-
-                        # Collect commits made during task execution
-                        task_commits: list[CommitRef] = []
-                        if task_start_commit:
-                            raw_commits = get_commits_between(task_start_commit)
-                            for rc in raw_commits:
-                                task_commits.append(
-                                    CommitRef(
-                                        hash=rc["hash"],
-                                        message=rc["message"],
-                                        timestamp=parse_commit_timestamp(rc["timestamp"]),
-                                    )
-                                )
-                            if debug and task_commits:
-                                console.print(f"[dim]Captured {len(task_commits)} commits[/dim]")
-
-                        ledger_integration.on_task_close(
-                            current_task.id,
-                            success=True,
-                            partial=False,
-                            final_model=task_model or "",
-                            commits=task_commits,
-                            current_task=current_task_state,
-                        )
-                        if debug:
-                            console.print(
-                                f"[dim]Finalized ledger entry for {current_task.id}[/dim]"
-                            )
-                    except Exception as e:
-                        # Log but don't fail - ledger is informational
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to finalize ledger entry: {e}[/dim]"
-                            )
-                        status.add_event(
-                            f"Failed to finalize ledger entry: {e}",
-                            EventLevel.WARNING,
-                            task_id=current_task.id,
-                        )
-
-                # Run post-task hooks (async - fire and forget for notifications)
-                post_task_context = HookContext(
-                    hook_name="post-task",
-                    project_dir=project_dir,
-                    task_id=current_task.id,
-                    task_title=current_task.title,
-                    exit_code=0,
-                    harness=harness_name,
-                    session_id=run_id,
-                )
-                run_hooks_async("post-task", post_task_context, project_dir)
-            else:
-                console.print(f"[red]Task failed: {result.error or 'Unknown error'}[/red]")
-                status.add_event(
-                    f"Task failed: {result.error}",
-                    EventLevel.ERROR,
-                    task_id=current_task.id,
-                    exit_code=result.exit_code,
-                )
-
-                # Persist task artifact with token usage even on failure
-                priority_str = (
-                    current_task.priority.value
-                    if hasattr(current_task.priority, "value")
-                    else str(current_task.priority)
-                )
-                task_artifact = TaskArtifact(
-                    task_id=current_task.id,
-                    title=current_task.title,
-                    priority=priority_str,
-                    status="failed",
-                    started_at=datetime.now(),  # TODO: Track actual start time
-                    completed_at=datetime.now(),
-                    iterations=1,  # TODO: Track actual iterations if task retries
-                    exit_code=result.exit_code,
-                    usage=result.usage,
-                    duration_seconds=duration,
-                )
-                try:
-                    status_writer.write_task_artifact(current_task.id, task_artifact)
-                    if debug:
-                        console.print("[dim]Persisted task artifact to task.json[/dim]")
-                except Exception as e:
-                    if debug:
-                        console.print(f"[dim]Warning: Failed to write task artifact: {e}[/dim]")
-
-                # Finalize ledger entry after failed task
-                if config.ledger.enabled:
-                    try:
-                        current_task_state = task_backend.get_task(current_task.id)
-
-                        # Collect commits made during task execution (even on failure)
-                        task_commits_fail: list[CommitRef] = []
-                        if task_start_commit:
-                            raw_commits = get_commits_between(task_start_commit)
-                            for rc in raw_commits:
-                                task_commits_fail.append(
-                                    CommitRef(
-                                        hash=rc["hash"],
-                                        message=rc["message"],
-                                        timestamp=parse_commit_timestamp(rc["timestamp"]),
-                                    )
-                                )
-
-                        ledger_integration.on_task_close(
-                            current_task.id,
-                            success=False,
-                            partial=True,
-                            final_model=task_model or "",
-                            commits=task_commits_fail,
-                            current_task=current_task_state,
-                        )
-                        if debug:
-                            console.print(
-                                f"[dim]Finalized ledger entry for failed task "
-                                f"{current_task.id}[/dim]"
-                            )
-                    except Exception as e:
-                        if debug:
-                            console.print(
-                                f"[dim]Warning: Failed to finalize ledger entry: {e}[/dim]"
-                            )
-
-                # Run on-error hooks (async - fire and forget for error notifications)
-                on_error_context = HookContext(
-                    hook_name="on-error",
-                    project_dir=project_dir,
-                    task_id=current_task.id,
-                    task_title=current_task.title,
-                    exit_code=result.exit_code or 1,
-                    harness=harness_name,
-                    session_id=run_id,
-                )
-                run_hooks_async("on-error", on_error_context, project_dir)
-
-                if config.loop.on_task_failure == "stop":
-                    status.mark_failed(result.error or "Task execution failed")
-                    break
-
-            # Clear current task
-            status.current_task_id = None
-            status.current_task_title = None
-
-            # Update task counts
-            counts = task_backend.get_task_counts()
-            status.tasks_open = counts.open
-            status.tasks_in_progress = counts.in_progress
-            status.tasks_closed = counts.closed
-
-            # Write status
-            status_writer.write(status)
-
-            # Update run session with progress
-            try:
-                session_budget = SessionBudget(
-                    tokens_used=status.budget.tokens_used,
-                    tokens_limit=status.budget.tokens_limit or 0,
-                    cost_usd=status.budget.cost_usd,
-                    cost_limit=status.budget.cost_limit or 0.0,
-                )
-                session_manager.update_session(
-                    run_session.run_id,
-                    tasks_completed=status.budget.tasks_completed,
-                    tasks_failed=max(0, status.tasks_closed - status.budget.tasks_completed),
-                    current_task=None,  # Task just finished
-                    budget=session_budget,
-                )
-            except Exception as e:
-                if debug:
-                    console.print(f"[dim]Warning: Failed to update run session: {e}[/dim]")
-
-            # If running specific task, exit after one iteration
-            if task_id:
-                if result.success:
-                    status.mark_completed()
-                break
-
-            # Brief pause between iterations
-            if not once and status.iteration.current < max_iterations:
-                time.sleep(2)
-
-        else:
-            # Loop completed all iterations
-            console.print(f"[yellow]Reached max iterations ({max_iterations})[/yellow]")
-            status.add_event("Reached max iterations", EventLevel.WARNING)
-            status.mark_stopped()
 
     except Exception as e:
         console.print(f"[red]Unexpected error: {e}[/red]")
@@ -1946,14 +1331,8 @@ def run(
         raise
 
     finally:
-        # Run post-loop hooks (sync - must complete before session ends)
-        post_loop_context = HookContext(
-            hook_name="post-loop",
-            project_dir=project_dir,
-            harness=harness_name,
-            session_id=run_id,
-        )
-        run_hooks("post-loop", post_loop_context, project_dir)
+        # Note: pre/post-loop hooks and async hook waiting are now handled
+        # inside RunLoop.execute(). We only handle session/cleanup here.
 
         # Wait for all async hooks to complete (post-task, on-error)
         wait_async_hooks()
@@ -2065,6 +1444,305 @@ def run(
     if status.phase == RunPhase.FAILED:
         raise typer.Exit(1)
     raise typer.Exit(0)
+
+
+def _render_run_event(
+    event: RunEvent,
+    *,
+    status: RunStatus,
+    status_writer: StatusWriter,
+    task_backend: TaskBackend,
+    session_manager: RunSessionManager,
+    run_session: object,
+    config: CubConfig,
+    harness_name: str,
+    run_id: str,
+    project_dir: Path,
+    debug: bool,
+) -> None:
+    """
+    Render a RunEvent from the core loop into Rich CLI output and status updates.
+
+    This is the bridge between the pure RunLoop state machine and the CLI
+    rendering layer. It handles:
+    - Rich console output (colors, panels, tables)
+    - RunStatus updates for the status file
+    - Session manager updates
+    - Task artifact persistence
+
+    Args:
+        event: The RunEvent to render.
+        status: Mutable RunStatus to update.
+        status_writer: For persisting status and artifacts.
+        task_backend: For task count queries.
+        session_manager: For session progress updates.
+        run_session: Current session object.
+        config: Loaded CubConfig.
+        harness_name: Harness name for display.
+        run_id: Run ID for session tracking.
+        project_dir: Project directory.
+        debug: Debug mode flag.
+    """
+    et = event.event_type
+
+    if et == RunEventType.RUN_STARTED:
+        # Already displayed by the setup code above
+        pass
+
+    elif et == RunEventType.ITERATION_STARTED:
+        if debug:
+            console.print(
+                f"[dim]=== Iteration {event.iteration}/{event.max_iterations} ===[/dim]"
+            )
+
+    elif et == RunEventType.TASK_SELECTED:
+        # Display task info panel
+        if event.task_id:
+            task = task_backend.get_task(event.task_id)
+            if task:
+                display_task_info(task, event.iteration, event.max_iterations)
+
+            # Update status
+            status.current_task_id = event.task_id
+            status.current_task_title = event.task_title
+            status.iteration.current = event.iteration
+            status.start_task_entry(event.task_id)
+            status.add_event(
+                f"Starting task: {event.task_title}",
+                EventLevel.INFO,
+                task_id=event.task_id,
+            )
+            status_writer.write(status)
+
+    elif et == RunEventType.TASK_STARTED:
+        console.print(f"[bold]Running {harness_name}...[/bold]")
+
+    elif et == RunEventType.TASK_COMPLETED:
+        console.print(f"[green]Task completed in {event.duration_seconds:.1f}s[/green]")
+        console.print(f"[dim]Tokens: {event.tokens_used:,}[/dim]")
+
+        status.budget.tasks_completed += 1
+        if event.task_id:
+            status.complete_task_entry(event.task_id)
+        status.add_event(
+            f"Task completed: {event.task_title}",
+            EventLevel.INFO,
+            task_id=event.task_id,
+            duration=event.duration_seconds,
+            tokens=event.tokens_used,
+        )
+
+        # Persist task artifact
+        if event.task_id:
+            task = task_backend.get_task(event.task_id)
+            if task:
+                priority_str = (
+                    task.priority.value if hasattr(task.priority, "value") else str(task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=event.task_id,
+                    title=event.task_title or "",
+                    priority=priority_str,
+                    status="completed",
+                    started_at=datetime.now(),
+                    completed_at=datetime.now(),
+                    iterations=1,
+                    exit_code=event.exit_code,
+                    duration_seconds=event.duration_seconds,
+                )
+                try:
+                    status_writer.write_task_artifact(event.task_id, task_artifact)
+                except Exception:
+                    pass
+
+        # Clear current task and update counts
+        _update_status_after_task(
+            status, status_writer, task_backend, session_manager, run_session, debug
+        )
+
+    elif et == RunEventType.TASK_FAILED:
+        console.print(f"[red]Task failed: {event.error or 'Unknown error'}[/red]")
+        status.add_event(
+            f"Task failed: {event.error}",
+            EventLevel.ERROR,
+            task_id=event.task_id,
+            exit_code=event.exit_code,
+        )
+
+        # Persist task artifact for failed task
+        if event.task_id:
+            task = task_backend.get_task(event.task_id)
+            if task:
+                priority_str = (
+                    task.priority.value if hasattr(task.priority, "value") else str(task.priority)
+                )
+                task_artifact = TaskArtifact(
+                    task_id=event.task_id,
+                    title=event.task_title or "",
+                    priority=priority_str,
+                    status="failed",
+                    started_at=datetime.now(),
+                    completed_at=datetime.now(),
+                    iterations=1,
+                    exit_code=event.exit_code,
+                    duration_seconds=event.duration_seconds,
+                )
+                try:
+                    status_writer.write_task_artifact(event.task_id, task_artifact)
+                except Exception:
+                    pass
+
+        # Update status
+        _update_status_after_task(
+            status, status_writer, task_backend, session_manager, run_session, debug
+        )
+
+        if config.loop.on_task_failure == "stop":
+            status.mark_failed(event.error or "Task execution failed")
+
+    elif et == RunEventType.BUDGET_UPDATED:
+        # Update budget in status
+        status.budget.tokens_used = event.total_tokens_used
+        status.budget.cost_usd = event.total_cost_usd
+
+    elif et == RunEventType.BUDGET_WARNING:
+        pct = event.budget_percentage or 0.0
+        threshold = config.guardrails.iteration_warning_threshold * 100
+        console.print(
+            f"[yellow]Budget warning: {pct:.1f}% used "
+            f"(threshold: {threshold:.0f}%)[/yellow]"
+        )
+        status.add_event(f"Budget warning: {pct:.1f}% used", EventLevel.WARNING)
+
+        # Fire on-budget-warning hook (async)
+        budget_context = HookContext(
+            hook_name="on-budget-warning",
+            project_dir=project_dir,
+            harness=harness_name,
+            session_id=run_id,
+            budget_percentage=pct,
+            budget_used=status.budget.tokens_used,
+            budget_limit=status.budget.tokens_limit,
+        )
+        run_hooks_async("on-budget-warning", budget_context, project_dir)
+
+    elif et == RunEventType.BUDGET_EXHAUSTED:
+        console.print("[yellow]Budget exhausted. Stopping.[/yellow]")
+        status.add_event("Budget exhausted", EventLevel.WARNING)
+        status.mark_completed()
+
+    elif et == RunEventType.ALL_TASKS_COMPLETE:
+        console.print("[green]All tasks complete![/green]")
+        # Fire on-all-tasks-complete hook (async)
+        complete_context = HookContext(
+            hook_name="on-all-tasks-complete",
+            project_dir=project_dir,
+            harness=harness_name,
+            session_id=run_id,
+        )
+        run_hooks_async("on-all-tasks-complete", complete_context, project_dir)
+        status.mark_completed()
+
+    elif et == RunEventType.NO_TASKS_AVAILABLE:
+        from cub.cli.errors import print_error
+
+        remaining = event.data.get("remaining", 0) if event.data else 0
+        print_error(
+            "No ready tasks available",
+            reason=f"{remaining} tasks remaining but all have unmet dependencies",
+            solution="cub task list --status blocked  # to see blocked tasks\n"
+            "       [cyan]→ Or:[/cyan] Check task dependencies with 'cub task show <task-id>'",
+        )
+        status.mark_completed()
+
+    elif et == RunEventType.MAX_ITERATIONS_REACHED:
+        console.print(f"[yellow]Reached max iterations ({event.max_iterations})[/yellow]")
+        status.add_event("Reached max iterations", EventLevel.WARNING)
+        status.mark_stopped()
+
+    elif et == RunEventType.CIRCUIT_BREAKER_TRIPPED:
+        console.print(f"[red]Circuit breaker tripped: {event.error}[/red]")
+        status.add_event(
+            f"Circuit breaker tripped: {event.error}",
+            EventLevel.ERROR,
+            task_id=event.task_id,
+        )
+        status.mark_failed(event.error or "Circuit breaker tripped")
+        status_writer.write(status)
+
+    elif et == RunEventType.HARNESS_ERROR:
+        console.print(f"[red]Harness invocation failed: {event.error}[/red]")
+        status.add_event(
+            f"Harness failed: {event.error}",
+            EventLevel.ERROR,
+            task_id=event.task_id,
+        )
+
+    elif et == RunEventType.HOOK_FAILED:
+        console.print(f"[red]{event.message}[/red]")
+        status.mark_failed(event.error or "Hook failed")
+
+    elif et == RunEventType.INTERRUPT_RECEIVED:
+        console.print("[yellow]Stopping due to interrupt...[/yellow]")
+        status.mark_stopped()
+
+    elif et == RunEventType.RUN_COMPLETED:
+        if not status.is_finished:
+            status.mark_completed()
+
+    elif et == RunEventType.RUN_FAILED:
+        if not status.is_finished:
+            status.mark_failed(event.error or "Run failed")
+
+    elif et == RunEventType.RUN_STOPPED:
+        if not status.is_finished:
+            status.mark_stopped()
+
+    elif et == RunEventType.DEBUG_INFO:
+        if debug:
+            console.print(f"[dim]{event.message}[/dim]")
+
+
+def _update_status_after_task(
+    status: RunStatus,
+    status_writer: StatusWriter,
+    task_backend: TaskBackend,
+    session_manager: RunSessionManager,
+    run_session: object,
+    debug: bool,
+) -> None:
+    """Update status, task counts, and session after task completion/failure."""
+    # Clear current task
+    status.current_task_id = None
+    status.current_task_title = None
+
+    # Update task counts
+    counts = task_backend.get_task_counts()
+    status.tasks_open = counts.open
+    status.tasks_in_progress = counts.in_progress
+    status.tasks_closed = counts.closed
+
+    # Write status
+    status_writer.write(status)
+
+    # Update run session with progress
+    try:
+        session_budget = SessionBudget(
+            tokens_used=status.budget.tokens_used,
+            tokens_limit=status.budget.tokens_limit or 0,
+            cost_usd=status.budget.cost_usd,
+            cost_limit=status.budget.cost_limit or 0.0,
+        )
+        session_manager.update_session(
+            run_session.run_id,  # type: ignore[attr-defined]
+            tasks_completed=status.budget.tasks_completed,
+            tasks_failed=max(0, status.tasks_closed - status.budget.tasks_completed),
+            current_task=None,
+            budget=session_budget,
+        )
+    except Exception as e:
+        if debug:
+            console.print(f"[dim]Warning: Failed to update run session: {e}[/dim]")
 
 
 def _run_direct(

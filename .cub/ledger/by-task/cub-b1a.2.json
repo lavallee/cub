@@ -24,8 +24,62 @@
     "captured_at": "2026-01-28T18:04:15.311689Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-175601",
+      "started_at": "2026-01-28T18:04:15.322462",
+      "completed_at": "2026-01-28T18:09:16.955675Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 8029,
+        "output_tokens": 17327,
+        "cache_read_tokens": 1351687,
+        "cache_creation_tokens": 65460
+      },
+      "cost_usd": 0.9653311000000001,
+      "duration_seconds": 301
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T18:09:17.165521Z",
+    "total_cost_usd": 0.9653311000000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 301,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "4bd09af716d1eaa9b19b7f26d59e75d81fcde5e2",
+        "message": "task(cub-b1a.2): Extract budget tracking to core/run/budget.py",
+        "author": "",
+        "timestamp": "2026-01-28T18:08:55Z"
+      }
+    ],
+    "approach": "Created a dedicated budget tracking module by extracting business logic from the CLI layer into the core domain layer. Designed the module with clear data models (BudgetConfig, BudgetState, BudgetCheckResult) and a BudgetManager class that encapsulates all budget operations, then validated the implementation with comprehensive tests before demonstrating integration patterns.",
+    "decisions": [
+      "Used immutable Pydantic models for BudgetConfig and immutable BudgetCheckResult to ensure thread-safe, predictable behavior",
+      "Made BudgetState mutable (with model_validate_assignment=True) to support in-place usage tracking during task execution",
+      "Implemented percentage-based calculations and warning thresholds as separate methods rather than bundling in check_limit() for clarity and composability",
+      "Provided migration guide in docstring with concrete before/after examples rather than performing full refactoring of cli/run.py, recognizing that full refactoring would be complex and risky",
+      "Created utility method has_any_limit() to enable callers to short-circuit budget checks when no limits are configured"
+    ],
+    "lessons_learned": [
+      "Separating mutable state (BudgetState) from immutable configuration (BudgetConfig) makes it easier to reason about side effects and pass state through layers",
+      "Using return types like BudgetCheckResult instead of boolean returns provides richer context (reason for stopping) that improves debuggability and user experience",
+      "Adding comprehensive docstrings with migration examples upfront significantly reduces friction when later integrating extracted modules into existing code",
+      "Comprehensive test coverage (64 tests for a single module) is essential for business logic layers since they're often reused across multiple interfaces and require high confidence",
+      "Testing edge cases explicitly (zero limits, None values, boundaries) catches subtle bugs early that would otherwise manifest in production"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +95,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T18:04:15.311689Z"
+    "stage_updated_at": "2026-01-28T18:09:17.165521Z"
   },
   "state_history": [
     {
@@ -49,31 +103,56 @@
       "at": "2026-01-28T18:04:15.311689Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T18:09:17.165521Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T18:04:15.311689Z",
-  "completed_at": "2026-01-28T18:04:15.311689Z",
+  "completed_at": "2026-01-28T18:09:17.165521Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 8029,
+    "output_tokens": 17327,
+    "cache_read_tokens": 1351687,
+    "cache_creation_tokens": 65460
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.9653311000000001,
+  "duration_seconds": 301,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Created a dedicated budget tracking module by extracting business logic from the CLI layer into the core domain layer. Designed the module with clear data models (BudgetConfig, BudgetState, BudgetCheckResult) and a BudgetManager class that encapsulates all budget operations, then validated the implementation with comprehensive tests before demonstrating integration patterns.",
+  "decisions": [
+    "Used immutable Pydantic models for BudgetConfig and immutable BudgetCheckResult to ensure thread-safe, predictable behavior",
+    "Made BudgetState mutable (with model_validate_assignment=True) to support in-place usage tracking during task execution",
+    "Implemented percentage-based calculations and warning thresholds as separate methods rather than bundling in check_limit() for clarity and composability",
+    "Provided migration guide in docstring with concrete before/after examples rather than performing full refactoring of cli/run.py, recognizing that full refactoring would be complex and risky",
+    "Created utility method has_any_limit() to enable callers to short-circuit budget checks when no limits are configured"
+  ],
+  "lessons_learned": [
+    "Separating mutable state (BudgetState) from immutable configuration (BudgetConfig) makes it easier to reason about side effects and pass state through layers",
+    "Using return types like BudgetCheckResult instead of boolean returns provides richer context (reason for stopping) that improves debuggability and user experience",
+    "Adding comprehensive docstrings with migration examples upfront significantly reduces friction when later integrating extracted modules into existing code",
+    "Comprehensive test coverage (64 tests for a single module) is essential for business logic layers since they're often reused across multiple interfaces and require high confidence",
+    "Testing edge cases explicitly (zero limits, None values, boundaries) catches subtle bugs early that would otherwise manifest in production"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "4bd09af716d1eaa9b19b7f26d59e75d81fcde5e2",
+      "message": "task(cub-b1a.2): Extract budget tracking to core/run/budget.py",
+      "author": "",
+      "timestamp": "2026-01-28T18:08:55Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1a.2",
   "epic_id": "cub-b1a",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

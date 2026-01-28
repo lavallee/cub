@@ -1,9 +1,9 @@
 {
   "branch_name": "cub-sync",
   "tasks_file": ".cub/tasks.jsonl",
-  "last_commit_sha": "5c0f3d068e4d85b2c382cc9c85e602fcd584f9cd",
-  "last_sync_at": "2026-01-28T18:04:02.263992",
-  "last_tasks_hash": "02c267396c56d7713faa7087c564e1a9a3bb13e16dfb12988b29359a141d1d8c",
+  "last_commit_sha": "2eb9b9451f330acf318cb08d89b696039a72ea9d",
+  "last_sync_at": "2026-01-28T18:09:17.099015",
+  "last_tasks_hash": "9d653c22371994d127aa4e6212ec4c735739cc9bd9235a0c399f406aa2dcfa33",
   "remote_name": "origin",
   "last_push_sha": null,
   "last_push_at": null,
