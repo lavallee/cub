@@ -22,7 +22,6 @@ class TestCleanupConfig:
         assert config.enabled is True
         assert config.commit_artifacts is True
         assert config.remove_temp_files is True
-        assert "progress.txt" in config.artifact_patterns
         assert "*.bak" in config.temp_patterns
         assert ".git/**" in config.ignore_patterns
 

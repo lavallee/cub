@@ -20,7 +20,7 @@
       "phase-1"
     ],
     "created_at": "2026-01-28T03:34:52.364860Z",
-    "captured_at": "2026-01-28T03:59:58.437860Z"
+    "captured_at": "2026-01-28T04:11:25.403824Z"
   },
   "task_changed": null,
   "attempts": [],
@@ -40,18 +40,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T03:59:58.437860Z"
+    "stage_updated_at": "2026-01-28T04:11:25.403824Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-28T03:59:58.437860Z",
+      "at": "2026-01-28T04:11:25.403824Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-28T03:59:58.437860Z",
-  "completed_at": "2026-01-28T03:59:58.437860Z",
+  "started_at": "2026-01-28T04:11:25.403824Z",
+  "completed_at": "2026-01-28T04:11:25.403824Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
