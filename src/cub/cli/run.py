@@ -610,13 +610,109 @@ def generate_epic_context(task: Task, task_backend: TaskBackend) -> str | None:
     return "\n".join(context_parts)
 
 
-def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
+def generate_retry_context(
+    task: Task, ledger_integration: LedgerIntegration, log_tail_lines: int = 50
+) -> str | None:
+    """
+    Generate retry context for a task with previous failed attempts.
+
+    When a task is retried after failure, this provides context about what
+    went wrong in previous attempts. This helps the agent avoid repeating
+    the same mistakes and understand the failure patterns.
+
+    Args:
+        task: Task to generate retry context for
+        ledger_integration: The ledger integration instance
+        log_tail_lines: Number of lines to extract from the end of the last log (default: 50)
+
+    Returns:
+        Retry context string, or None if task has no previous attempts
+    """
+    # Get the ledger entry for this task
+    entry = ledger_integration.writer.get_entry(task.id)
+    if not entry or not entry.attempts:
+        return None
+
+    # Filter to failed attempts only
+    failed_attempts = [a for a in entry.attempts if not a.success]
+    if not failed_attempts:
+        return None
+
+    # Build retry context
+    context_parts = []
+    context_parts.append("## Retry Context\n")
+    context_parts.append(
+        f"This task has been attempted {len(entry.attempts)} time(s) before with "
+        f"{len(failed_attempts)} failure(s).\n"
+    )
+
+    # Add summary of all failed attempts
+    context_parts.append("Previous Failed Attempts:")
+    for attempt in failed_attempts:
+        duration_str = f"{attempt.duration_seconds}s"
+        if attempt.duration_seconds >= 60:
+            duration_str = f"{attempt.duration_minutes:.1f}m"
+
+        parts = [f"- Attempt #{attempt.attempt_number}:"]
+        parts.append(f"Model: {attempt.model or 'unknown'}")
+        parts.append(f"Duration: {duration_str}")
+
+        if attempt.error_category:
+            parts.append(f"Error: {attempt.error_category}")
+        if attempt.error_summary:
+            parts.append(f"Summary: {attempt.error_summary}")
+
+        context_parts.append(" | ".join(parts))
+
+    context_parts.append("")
+
+    # Add log tail from the most recent failed attempt
+    last_failed = failed_attempts[-1]
+    log_path = (
+        ledger_integration.writer.by_task_dir
+        / task.id
+        / "attempts"
+        / f"{last_failed.attempt_number:03d}-harness.log"
+    )
+
+    if log_path.exists():
+        try:
+            log_content = log_path.read_text(encoding="utf-8")
+            lines = log_content.splitlines()
+
+            if lines:
+                # Get the tail of the log
+                tail_lines = lines[-log_tail_lines:] if len(lines) > log_tail_lines else lines
+                context_parts.append(
+                    f"Last {len(tail_lines)} lines from most recent failure "
+                    f"(attempt #{last_failed.attempt_number}):"
+                )
+                context_parts.append("```")
+                context_parts.extend(tail_lines)
+                context_parts.append("```")
+                context_parts.append("")
+        except (OSError, UnicodeDecodeError) as e:
+            # Log file exists but couldn't be read - gracefully skip
+            error_msg = (
+                f"(Log file for attempt #{last_failed.attempt_number} "
+                f"exists but could not be read: {e})"
+            )
+            context_parts.append(error_msg)
+            context_parts.append("")
+
+    return "\n".join(context_parts)
+
+
+def generate_task_prompt(
+    task: Task, task_backend: TaskBackend, ledger_integration: LedgerIntegration | None = None
+) -> str:
     """
     Generate the task prompt for a specific task.
 
     Args:
         task: Task to generate prompt for
         task_backend: The task backend instance
+        ledger_integration: Optional ledger integration for retry context
 
     Returns:
         Task prompt string
@@ -646,6 +742,12 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     epic_context = generate_epic_context(task, task_backend)
     if epic_context:
         prompt_parts.append(epic_context)
+
+    # Add retry context if available
+    if ledger_integration:
+        retry_context = generate_retry_context(task, ledger_integration)
+        if retry_context:
+            prompt_parts.append(retry_context)
 
     # Add backend-specific task management instructions
     prompt_parts.append("## Task Management\n")
@@ -1598,7 +1700,9 @@ def run(
                         console.print(f"[dim]Warning: Failed to create ledger entry: {e}[/dim]")
 
             # Generate task prompt
-            task_prompt = generate_task_prompt(current_task, task_backend)
+            task_prompt = generate_task_prompt(
+                current_task, task_backend, ledger_integration if config.ledger.enabled else None
+            )
 
             if debug:
                 console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")

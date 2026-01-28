@@ -328,3 +328,64 @@
 - Mypy type checking: Success (some pre-existing errors in other files)
 - Ruff linting: All checks passed
 
+## Task cub-r1d.1 - Implement epic context generation for task prompts
+
+### Key Implementation Details
+
+1. **Epic Context Function**: Added `generate_epic_context(task, task_backend)` to
+   src/cub/cli/run.py that enriches task prompts with epic awareness. Returns None
+   if task has no parent or epic not found, otherwise returns formatted context.
+
+2. **Epic Information Display**: Shows epic ID, title, and truncated description
+   (~200 words max). This prevents epic context from bloating the prompt while
+   giving agents enough context about the bigger picture.
+
+3. **Sibling Task Awareness**: Fetches all sibling tasks (tasks with same parent)
+   and separates them into:
+   - Completed tasks (✓ icon): Shows what's already done to prevent repeated work
+   - Remaining tasks (○ for open, ◐ for in-progress): Shows what's left to help
+     agents avoid painting themselves into a corner
+
+4. **Integration**: Epic context is injected into `generate_task_prompt()` after
+   acceptance criteria but before task management instructions. This placement
+   ensures agents see the big picture before diving into task-specific details.
+
+5. **Word Truncation Logic**: Simple word-based truncation using `split()` and
+   `join()`. Takes first 200 words and appends "..." if longer. Avoids token
+   counting complexity while being conservative enough for most epics.
+
+### Learnings
+
+- **TaskBackend Protocol**: The protocol provides `list_tasks(parent=epic_id)` for
+  fetching sibling tasks and `get_task(epic_id)` for epic details. Both methods
+  are sufficient for epic context generation without needing custom queries.
+
+- **Test Assertion Patterns**: When testing truncation, avoid brittle word counting
+  (e.g., checking `len(words) == 201` when "..." is appended). Instead, verify
+  presence of truncation marker and absence of later content (e.g., "word199..."
+  present but "word200" absent).
+
+- **Optional Context Sections**: Following the pattern of acceptance_criteria,
+  epic context is optional. `generate_epic_context()` returns `str | None`, and
+  the caller checks `if epic_context:` before appending. This keeps prompts clean
+  for tasks without epics.
+
+- **Status Icons in Tests**: Use the actual status icons (✓, ○, ◐) in tests
+  rather than string representations. This ensures the visual formatting matches
+  what agents will see and catches icon encoding issues early.
+
+- **Backend Mock Pattern**: Tests use `MagicMock()` for task backend with
+  `.get_task.return_value` and `.list_tasks.return_value`. This avoids needing
+  a real backend while testing the function logic.
+
+### Files Modified
+- src/cub/cli/run.py (added generate_epic_context, integrated into generate_task_prompt)
+- tests/test_run_core.py (added 8 epic context tests + 2 integration tests)
+
+### Test Results
+- All 8 new epic context tests pass
+- All 2 new integration tests pass (epic context in full prompt)
+- All 86 existing run_core tests still pass
+- Total: 4113 tests passed across full test suite
+- Ruff linting: All checks passed (fixed one line-too-long error)
+

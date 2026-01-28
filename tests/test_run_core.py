@@ -564,6 +564,429 @@ class TestGenerateEpicContext:
 
 
 # ==============================================================================
+# Tests for generate_retry_context
+# ==============================================================================
+
+
+class TestGenerateRetryContext:
+    """Tests for generate_retry_context function."""
+
+    def test_returns_none_when_no_entry(self, mock_task, tmp_path):
+        """Test that None is returned when task has no ledger entry."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger integration with empty ledger
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_returns_none_when_no_attempts(self, mock_task, tmp_path):
+        """Test that None is returned when entry exists but has no attempts."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with entry but no attempts
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[],  # No attempts
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_returns_none_when_only_successful_attempts(self, mock_task, tmp_path):
+        """Test that None is returned when all attempts succeeded."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with successful attempts only
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=True,
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_basic_retry_context_structure(self, mock_task, tmp_path):
+        """Test basic retry context contains required sections."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with one failed attempt
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="timeout",
+                    error_summary="Task timed out after 10 minutes",
+                    duration_seconds=600,
+                    cost_usd=0.10,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "## Retry Context" in result
+        assert "attempted 1 time(s) before" in result
+        assert "1 failure(s)" in result
+        assert "Previous Failed Attempts:" in result
+        assert "Attempt #1:" in result
+        assert "Model: haiku" in result
+        assert "Duration: 10.0m" in result
+        assert "Error: timeout" in result
+        assert "Summary: Task timed out after 10 minutes" in result
+
+    def test_shows_multiple_failed_attempts(self, mock_task, tmp_path):
+        """Test retry context shows all failed attempts."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed with 3 errors",
+                    duration_seconds=45,
+                    cost_usd=0.05,
+                ),
+                Attempt(
+                    attempt_number=2,
+                    run_id="run-2",
+                    harness="claude",
+                    model="sonnet",
+                    success=False,
+                    error_category="syntax_error",
+                    error_summary="Invalid Python syntax in module.py",
+                    duration_seconds=30,
+                    cost_usd=0.15,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "attempted 2 time(s) before" in result
+        assert "2 failure(s)" in result
+        assert "Attempt #1:" in result
+        assert "Model: haiku" in result
+        assert "test_failure" in result
+        assert "Attempt #2:" in result
+        assert "Model: sonnet" in result
+        assert "syntax_error" in result
+
+    def test_includes_log_tail_when_available(self, mock_task, tmp_path):
+        """Test retry context includes log tail from most recent failure."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed",
+                    duration_seconds=45,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Write a log file
+        log_content = "\n".join([f"Log line {i}" for i in range(1, 101)])
+        writer.write_harness_log(mock_task.id, 1, log_content)
+
+        result = generate_retry_context(mock_task, integration, log_tail_lines=10)
+
+        assert result is not None
+        assert "Last 10 lines from most recent failure" in result
+        assert "attempt #1" in result
+        assert "```" in result
+        # Should contain the last 10 lines
+        assert "Log line 91" in result
+        assert "Log line 100" in result
+        # Should not contain earlier lines (check with boundaries to avoid substring matches)
+        lines_in_result = result.split("\n")
+        assert "Log line 1" not in lines_in_result
+        assert "Log line 50" not in lines_in_result
+
+    def test_handles_missing_log_file_gracefully(self, mock_task, tmp_path):
+        """Test retry context handles missing log file gracefully."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="harness_crash",
+                    error_summary="Harness crashed before writing log",
+                    duration_seconds=5,
+                    cost_usd=0.01,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Don't write a log file - simulate missing log
+
+        result = generate_retry_context(mock_task, integration)
+
+        # Should still return valid context, just without log tail
+        assert result is not None
+        assert "## Retry Context" in result
+        assert "Attempt #1:" in result
+        assert "harness_crash" in result
+        # Should not crash or include log section
+
+    def test_shows_duration_in_seconds_for_short_tasks(self, mock_task, tmp_path):
+        """Test retry context shows duration in seconds for tasks under 1 minute."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="quick_failure",
+                    error_summary="Failed immediately",
+                    duration_seconds=45,  # Under 60 seconds
+                    cost_usd=0.02,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "Duration: 45s" in result
+
+    def test_mixed_success_and_failure_attempts(self, mock_task, tmp_path):
+        """Test retry context only shows failed attempts when there are mixed results."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed",
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+                Attempt(
+                    attempt_number=2,
+                    run_id="run-2",
+                    harness="claude",
+                    model="haiku",
+                    success=True,  # This one succeeded
+                    duration_seconds=45,
+                    cost_usd=0.06,
+                ),
+                Attempt(
+                    attempt_number=3,
+                    run_id="run-3",
+                    harness="claude",
+                    model="sonnet",
+                    success=False,
+                    error_category="timeout",
+                    error_summary="Timed out",
+                    duration_seconds=600,
+                    cost_usd=0.20,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "attempted 3 time(s) before" in result
+        assert "2 failure(s)" in result  # Only 2 failures
+        # Should show failed attempts
+        assert "Attempt #1:" in result
+        assert "test_failure" in result
+        assert "Attempt #3:" in result
+        assert "timeout" in result
+
+    def test_custom_log_tail_lines(self, mock_task, tmp_path):
+        """Test retry context respects custom log_tail_lines parameter."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="error",
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Write a log with 100 lines
+        log_content = "\n".join([f"Line {i}" for i in range(1, 101)])
+        writer.write_harness_log(mock_task.id, 1, log_content)
+
+        # Request only 5 lines
+        result = generate_retry_context(mock_task, integration, log_tail_lines=5)
+
+        assert result is not None
+        assert "Last 5 lines" in result
+        assert "Line 96" in result
+        assert "Line 100" in result
+        assert "Line 95" not in result
+
+
+# ==============================================================================
 # Tests for generate_task_prompt
 # ==============================================================================
 

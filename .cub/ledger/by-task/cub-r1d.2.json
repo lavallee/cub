@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-r1d.2",
+  "title": "Implement retry context injection from ledger",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1d"
+  },
+  "task": {
+    "title": "Implement retry context injection from ledger",
+    "description": "When a task is retried after failure, the agent should know what\nwent wrong last time. The ledger already stores `error_category`,\n`error_summary`, and the full harness log. We extract structured fields plus\nthe tail of the log.\n\n**Implementation Steps:**\n1. Add `generate_retry_context(task, ledger_reader, log_tail_lines=50)` function alongside `generate_epic_context()`\n2. Implementation:\n3. Handle missing log files gracefully (log may not exist if harness crashed)\n4. Integrate into task prompt pipeline: call after epic context, append if non-None\n5. Write tests: task with failed attempt, task with no attempts, task with successful-only attempts, missing log file\n\n**Files:** src/cub/cli/run.py (or src/cub/core/prompt.py), tests/test_run.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r1d",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T03:34:52.365178Z",
+    "captured_at": "2026-01-28T05:33:52.660684Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:33:52.660684Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:33:52.660684Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T05:33:52.660684Z",
+  "completed_at": "2026-01-28T05:33:52.660684Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1d.2",
+  "epic_id": "cub-r1d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
