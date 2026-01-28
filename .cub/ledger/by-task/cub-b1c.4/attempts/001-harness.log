@@ -1,0 +1,53 @@
+I'll start by claiming this task, then search the codebase to understand the existing TaskService implementation and backend structure.Excellent! Now I have a complete understanding of the existing codebase. Let me read the current TaskService implementation to see what's already there:Now let me read more of the models file to see computed properties and understand the Epic model:Now I'll check if there's an Epic model or if epics are just tasks with type=EPIC:Good! I now understand that epics are just tasks with `type=TaskType.EPIC`. Now let me implement the required methods in TaskService. I'll add:
+
+1. `ready() -> list[Task]` - delegate to backend's `get_ready_tasks()`
+2. `stale_epics() -> list[Task]` - get epics where all child tasks are closed but epic is open
+3. `claim(task_id, session_id) -> Task` - update task to IN_PROGRESS with assignee
+4. `close(task_id, reason) -> Task` - close task with reason
+
+Let me start implementing:Great! Now I need to write comprehensive tests for these new methods. Let me check the existing test structure first:Perfect! Now I'll add comprehensive tests for the new methods. I'll add them at the end of the file:Now let's run the tests to make sure everything works:Good! There's one failing test. The issue is that my `stale_epics()` implementation filters in Python, but then also calls `list_tasks` for each epic to get children. The test expects only one call when there are no open epics. Let me fix the test to match the actual behavior:Actually, wait - let me re-read my implementation. The issue is that the first call returns mixed tasks (closed epic and open task), but my code filters for open tasks. Let me trace through the logic:
+
+1. `list_tasks(status=TaskStatus.OPEN)` - should only return OPEN tasks
+2. Then I filter for `type == TaskType.EPIC`
+
+So if the backend returns a CLOSED epic and an OPEN task when I request OPEN tasks, that's wrong. Let me fix the test to properly mock this:Perfect! Now let's run all the tests for the test_task_service.py to make sure nothing broke:Excellent! All tests are passing. Now I need to verify that these methods work with both backends. Let me write integration tests that actually use the real backends. First, let me check how the existing backend tests are structured:Now let me check if there are integration tests that test TaskService with real backends:It looks like only the mocked tests exist. Since the task description says "Ensure methods work with both beads and JSONL backends" and "Write tests for each method with both backends", I should add integration tests. Let me create a new test file for integration tests with real backends:Now let's run the integration tests to verify they work with the JSONL backend:Perfect! Now let's test the beads backend integration tests. First let me check if bd is available:Great! Now let's run the beads backend integration tests:The issue is that beads generates a different ID than expected. The task IDs are generated dynamically. Let me fix the test to capture the created task ID and use it:Great! Now let's run all the beads backend integration tests:Let me debug this to see what's happening. The issue might be that beads automatically closes the epic when all children are closed. Let me check:Good! The epic is still open. Now let me check if the beads backend properly loads child tasks using the parent field:Let me check how list_tasks filters by parent:I see - `bd list` only returns open tasks and the children are closed! Let me check with status filter:I don't see a "parent" field in the list output! Let me check how the beads backend extracts parent relationships. I need to look at the _transform_beads_task method:So the parent field is expected to be in the beads output. Let me check if bd show includes it:Great! The parent field IS included in `bd show` output. Now let me check if `bd list` with --parent filter works:That's the problem - `bd list --parent` doesn't show closed tasks! Now let me check if we can combine status and parent:Perfect! But note that these don't include the "parent" field in the list output. Let me check the beads backend's list_tasks method to see how it handles parent filtering:I see the issue now. The beads backend calls `bd list --parent` but the parent field isn't included in the list output (only in show output). However, the bd CLI does filter correctly. The issue is that in the task data returned by `bd list`, the parent field is missing even though the filter works. Let me verify this is not a bug in _transform_beads_task by checking if parent field comes through when it exists:Ah! The parent field is NOT included in the `bd create` or `bd list` JSON output! It's only in `bd show`. This means that when we call `list_tasks(parent=epic_id)`, the backend filters correctly but the Task objects don't have their parent field set because it's missing from the list output.
+
+The issue with the stale_epics test is that my `stale_epics()` implementation calls `list_tasks(parent=epic.id)`, but the returned tasks don't have `parent` set (because bd list doesn't include it). However, we're checking `task.status`, which should work fine.
+
+Wait, let me re-read my stale_epics implementation more carefully. I call `list_tasks(parent=epic.id)` to get children, and then check if all children are closed. That should work even without the parent field being set on the children.
+
+Let me add debug output to see what's happening:AH-HA! That's the problem! When you do `bd list --parent X`, it only shows OPEN tasks by default. Once all children are closed, `bd list --parent X` returns empty!
+
+So my `stale_epics()` implementation calls `list_tasks(parent=epic.id)` which translates to `bd list --parent epic.id` which only returns open children. If all children are closed, it returns an empty list, and then my code sees "no children" and skips the epic (thinking it's a new epic with no tasks yet).
+
+I need to fix this by explicitly passing `status=None` or by getting all children regardless of status. Let me check what parameters list_tasks accepts and modify my implementation:Now let's run the beads integration test again:Excellent! Now let's run all the beads backend integration tests:Perfect! Now let's run all integration tests to make sure both backends work:Excellent! Now I need to also update the unit tests for stale_epics to match the new implementation that makes multiple calls:Now let's run the unit tests to make sure they all pass:Perfect! Now let's run all the task service tests to make sure everything passes:Excellent! All tests pass. Now let's run the full test suite including integration tests and typecheck:Excellent! All tests pass and typecheck is clean. Now let's run linting:Let me fix these linting errors:Now let's run linting again:Perfect! Now let's run linting one more time to verify:Excellent! Now let's run all the tests one final time to make sure everything works:Perfect! All tests pass. Now let's close the task and commit our changes:Perfect! The task is complete. Let me provide a summary:
+
+## Task Complete ✅
+
+I have successfully enhanced the TaskService with the required methods:
+
+### Implementation
+
+1. **`ready() -> list[Task]`** - Returns tasks that are ready to work on (no blockers), sorted by priority (P0 first). Delegates to the backend's `get_ready_tasks()` method.
+
+2. **`stale_epics() -> list[Task]`** - Finds epics where all child tasks are closed but the epic itself is open. These are candidates for auto-closure. The implementation queries children in all three statuses (OPEN, IN_PROGRESS, CLOSED) separately to handle backends that filter by status (like beads).
+
+3. **`claim(task_id, session_id) -> Task`** - Claims a task by marking it as IN_PROGRESS and setting the assignee to the session ID. Includes validation to prevent claiming already in-progress or closed tasks.
+
+4. **`close(task_id, reason) -> Task`** - Closes a task with an optional reason. Delegates to the backend's `close_task()` method.
+
+### Testing
+
+- **99 unit tests** with mocked backends (added 20 new tests)
+- **10 integration tests** with real backends (6 for JSONL, 4 for Beads)
+- All tests pass ✅
+- Type checking passes ✅
+- Linting passes ✅
+
+### Backend Compatibility
+
+All methods work correctly with both:
+- **JSONL backend** - Direct file-based storage
+- **Beads backend** - CLI-based task management
+
+The implementation handles backend-specific quirks (like beads only returning matching status in list queries) by making separate queries for each status when needed.
