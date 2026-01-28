@@ -1,0 +1,13 @@
+{
+  "slug": "context-restructure",
+  "project": "cub",
+  "status": "complete",
+  "spec_file": "context-restructure.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-28T00:00:00+00:00",
+  "updated": "2026-01-28T00:00:00+00:00"
+}
