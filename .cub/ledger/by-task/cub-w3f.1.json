@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "cub-w3f.1",
+  "title": "Implement shell hook filter script",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-w3f"
+  },
+  "task": {
+    "title": "Implement shell hook filter script",
+    "description": "The shell script is the fast-path gate for all hook events. It must parse stdin JSON quickly, check relevance, and only invoke Python when needed. This keeps latency under 50ms for the 90%+ of tool uses that aren't relevant.\n\n**Implementation Steps:**\n1. Create template at `src/cub/templates/scripts/cub-hook.sh`\n2. Accept hook event name as `$1`\n3. Read stdin into a variable; save for potential passthrough\n4. Check `CUB_RUN_ACTIVE` env var -- if set, exit 0 immediately\n5. For PostToolUse: extract `tool_name` from JSON; if not Write/Edit/Bash, exit 0\n6. For Write/Edit PostToolUse: extract `file_path` from `tool_input`; check if path contains `plans/`, `specs/`, `captures/`, `src/`, or `.cub/`\n7. For Bash PostToolUse: extract `command` from `tool_input`; check for `cub `, `git commit`, `git add` patterns\n8. For SessionStart/Stop/PreCompact/UserPromptSubmit: always pass through\n9. If relevant: pipe saved stdin to `python -m cub.core.harness.hooks \"$1\"`\n10. Use `jq` if available, fall back to grep/sed for JSON extraction\n\n**Files:** src/cub/templates/scripts/cub-hook.sh, tests/test_hook_filter.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-w3f",
+      "hooks",
+      "model:sonnet",
+      "phase-1",
+      "risk:medium"
+    ],
+    "created_at": "2026-01-28T03:37:44.363989Z",
+    "captured_at": "2026-01-28T05:48:44.054925Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-054843",
+      "started_at": "2026-01-28T05:48:44.068796",
+      "completed_at": "2026-01-28T05:53:29.455648Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 99,
+        "output_tokens": 11008,
+        "cache_read_tokens": 1109665,
+        "cache_creation_tokens": 58567
+      },
+      "cost_usd": 0.7655057499999999,
+      "duration_seconds": 285
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:53:29.614663Z",
+    "total_cost_usd": 0.7655057499999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 285,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "0969dc62605fd52d11f925520a88d99063a91311",
+        "message": "docs: Update progress.txt with learnings from cub-w3f.1",
+        "author": "",
+        "timestamp": "2026-01-28T05:53:16Z"
+      },
+      {
+        "hash": "5a17f13495c2018fef5f5fefab0104c70a7c2e62",
+        "message": "task(cub-w3f.1): Implement shell hook filter script",
+        "author": "",
+        "timestamp": "2026-01-28T05:52:39Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:53:29.614663Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:48:44.054925Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:53:29.614663Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T05:48:44.054925Z",
+  "completed_at": "2026-01-28T05:53:29.614663Z",
+  "tokens": {
+    "input_tokens": 99,
+    "output_tokens": 11008,
+    "cache_read_tokens": 1109665,
+    "cache_creation_tokens": 58567
+  },
+  "cost_usd": 0.7655057499999999,
+  "duration_seconds": 285,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "0969dc62605fd52d11f925520a88d99063a91311",
+      "message": "docs: Update progress.txt with learnings from cub-w3f.1",
+      "author": "",
+      "timestamp": "2026-01-28T05:53:16Z"
+    },
+    {
+      "hash": "5a17f13495c2018fef5f5fefab0104c70a7c2e62",
+      "message": "task(cub-w3f.1): Implement shell hook filter script",
+      "author": "",
+      "timestamp": "2026-01-28T05:52:39Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-w3f.1",
+  "epic_id": "cub-w3f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
