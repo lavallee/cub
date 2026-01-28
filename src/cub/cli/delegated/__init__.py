@@ -8,7 +8,7 @@ bash cub script with proper argument passing.
 import typer
 from rich.console import Console
 
-from cub.core.bash_delegate import delegate_to_bash
+from cub.cli.delegated.runner import delegate_to_bash
 
 console = Console()
 

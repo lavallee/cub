@@ -175,8 +175,8 @@ class TestDelegatedCommandsErrorHandling:
         """Test that missing bash script shows helpful error."""
         monkeypatch.delenv("CUB_BASH_PATH", raising=False)
 
-        with patch("cub.core.bash_delegate.find_bash_cub") as mock_find:
-            from cub.core.bash_delegate import BashCubNotFoundError
+        with patch("cub.cli.delegated.runner.find_bash_cub") as mock_find:
+            from cub.cli.delegated.runner import BashCubNotFoundError
 
             mock_find.side_effect = BashCubNotFoundError("Not found")
 

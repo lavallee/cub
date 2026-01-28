@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from cub.core.bash_delegate import (
+from cub.cli.delegated.runner import (
     BashCubNotFoundError,
     delegate_to_bash,
     find_bash_cub,
@@ -49,7 +49,7 @@ class TestFindBashCub:
         bash_script = bash_dir / "cub"
         bash_script.write_text("#!/usr/bin/env bash\n")
 
-        with patch("cub.core.bash_delegate.__file__", str(mock_file)):
+        with patch("cub.cli.delegated.runner.__file__", str(mock_file)):
             result = find_bash_cub()
             assert result == bash_script
 
@@ -66,7 +66,7 @@ class TestFindBashCub:
         fake_file = tmp_path / "other" / "location" / "bash_delegate.py"
         fake_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with patch("cub.core.bash_delegate.__file__", str(fake_file)):
+        with patch("cub.cli.delegated.runner.__file__", str(fake_file)):
             with patch("shutil.which", return_value=str(bash_script)):
                 result = find_bash_cub()
                 assert result == bash_script.resolve()
@@ -79,7 +79,7 @@ class TestFindBashCub:
         fake_file = tmp_path / "other" / "location" / "bash_delegate.py"
         fake_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with patch("cub.core.bash_delegate.__file__", str(fake_file)):
+        with patch("cub.cli.delegated.runner.__file__", str(fake_file)):
             with patch("shutil.which", return_value=None):
                 with pytest.raises(BashCubNotFoundError, match="Could not locate"):
                     find_bash_cub()
@@ -204,7 +204,7 @@ class TestDelegateToBash:
         """Test handling when bash cub cannot be located."""
         monkeypatch.delenv("CUB_BASH_PATH", raising=False)
 
-        with patch("cub.core.bash_delegate.find_bash_cub") as mock_find:
+        with patch("cub.cli.delegated.runner.find_bash_cub") as mock_find:
             mock_find.side_effect = BashCubNotFoundError("Not found")
 
             with pytest.raises(SystemExit) as exc_info:

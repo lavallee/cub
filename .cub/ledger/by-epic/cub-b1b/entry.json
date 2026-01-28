@@ -17,25 +17,26 @@
     "captured_at": "2026-01-28T19:02:29.066324Z"
   },
   "task_ids": [
-    "cub-b1b.1"
+    "cub-b1b.1",
+    "cub-b1b.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 0.8478977500000003,
-    "avg_cost_per_task": 0.8478977500000003,
+    "total_cost_usd": 3.439880700000001,
+    "avg_cost_per_task": 1.7199403500000006,
     "min_cost_usd": 0.8478977500000003,
-    "max_cost_usd": 0.8478977500000003,
+    "max_cost_usd": 2.5919829500000007,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 1415656,
-    "avg_tokens_per_task": 1415656,
-    "total_duration_seconds": 293,
-    "avg_duration_seconds": 293,
+    "total_tokens": 7119662,
+    "avg_tokens_per_task": 3559831,
+    "total_duration_seconds": 910,
+    "avg_duration_seconds": 455,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:02:29.089305Z"
+    "stage_updated_at": "2026-01-28T19:12:58.673049Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T18:57:26.712523Z",
-  "completed_at": "2026-01-28T19:02:20.755254Z",
-  "updated_at": "2026-01-28T19:02:29.089312Z",
+  "completed_at": "2026-01-28T19:12:49.916312Z",
+  "updated_at": "2026-01-28T19:12:58.673052Z",
   "first_commit": {
     "hash": "1474130d5b6669a350e03b693cf7e2fb433e3c12",
     "message": "task(cub-b1b.1): Move review reporter rendering to CLI layer",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-28T19:02:00Z"
   },
   "last_commit": {
-    "hash": "1474130d5b6669a350e03b693cf7e2fb433e3c12",
-    "message": "task(cub-b1b.1): Move review reporter rendering to CLI layer",
+    "hash": "a4af72b309c7a1d7fb409ae1b0c4990a93cac261",
+    "message": "task(cub-b1b.2): Remove Rich from core/pr/service.py and core/worktree/parallel.py",
     "author": "",
-    "timestamp": "2026-01-28T19:02:00Z"
+    "timestamp": "2026-01-28T19:12:37Z"
   },
   "drift": {
     "additions": [],
