@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260128-071231",
+  "started_at": "2026-01-28T07:12:31.975457Z",
+  "project_dir": "/home/lavallee/clawdbot/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": 0,
+    "cost_usd": 0.0,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 0,
+  "tasks_failed": 0,
+  "current_task": null,
+  "status": "running",
+  "ended_at": null,
+  "orphaned_at": null,
+  "orphaned_reason": null
+}

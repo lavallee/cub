@@ -27,6 +27,7 @@ from cub.cli import (
     plan,
     pr,
     punchlist,
+    reconcile,
     review,
     run,
     sandbox,
@@ -145,6 +146,7 @@ app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
 app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
 app.add_typer(ledger.app, name="ledger", rich_help_panel=PANEL_STATUS)
+app.add_typer(reconcile.app, name="reconcile", rich_help_panel=PANEL_STATUS)
 app.add_typer(review.app, name="review", rich_help_panel=PANEL_STATUS)
 app.add_typer(dashboard.app, name="dashboard", rich_help_panel=PANEL_STATUS)
 app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
