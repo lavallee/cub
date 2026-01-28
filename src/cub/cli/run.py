@@ -1891,7 +1891,6 @@ def run(
                             )
 
                 # Set interrupted flag and re-raise to propagate interrupt
-                global _interrupted
                 _interrupted = True
                 raise
 

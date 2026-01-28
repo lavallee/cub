@@ -208,7 +208,7 @@ def _get_command_version(cmd: str, args: list[str]) -> str:
         return "unknown"
 
 
-def check_hooks(project_dir: Path) -> int:
+def check_hooks(project_dir: Path, fix: bool = False) -> int:
     """
     Check Claude Code hooks configuration.
 
@@ -220,6 +220,7 @@ def check_hooks(project_dir: Path) -> int:
 
     Args:
         project_dir: Project directory path
+        fix: If True, auto-install hooks when issues are found
 
     Returns:
         Number of issues found
@@ -232,7 +233,7 @@ def check_hooks(project_dir: Path) -> int:
         console.print("[red]✗[/red] Hooks installed: No")
         console.print("[dim]  .claude/ directory not found[/dim]")
         console.print(
-            "[dim]→ Run 'cub init --hooks' to install Claude Code hooks[/dim]"
+            "[dim]→ Run 'cub hooks install' to install Claude Code hooks[/dim]"
         )
         return 0
 
@@ -246,7 +247,7 @@ def check_hooks(project_dir: Path) -> int:
         console.print("[red]✗[/red] Hooks installed: No")
         console.print("[dim]  settings.json not found in .claude/[/dim]")
         console.print(
-            "[dim]→ Run 'cub init --hooks' to install Claude Code hooks[/dim]"
+            "[dim]→ Run 'cub hooks install' to install Claude Code hooks[/dim]"
         )
         return 0
 
@@ -293,7 +294,7 @@ def check_hooks(project_dir: Path) -> int:
             # Provide specific fix command
             if "script" in issue.message.lower():
                 console.print(
-                    "[dim]    → Run 'cub init --hooks --force' to reinstall script[/dim]"
+                    "[dim]    → Run 'cub hooks install --force' to reinstall script[/dim]"
                 )
             elif "handler" in issue.message.lower():
                 console.print(
@@ -308,7 +309,7 @@ def check_hooks(project_dir: Path) -> int:
             if issue.file_path:
                 console.print(f"    [dim]File: {issue.file_path}[/dim]")
             console.print(
-                "[dim]    → Run 'cub init --hooks --force' to fix[/dim]"
+                "[dim]    → Run 'cub hooks install --force' to fix[/dim]"
             )
 
     # Report infos (unconfigured events)
@@ -317,14 +318,32 @@ def check_hooks(project_dir: Path) -> int:
         for issue in infos:
             console.print(f"  [dim]ℹ[/dim] {issue.message}")
         console.print(
-            "[dim]  → Run 'cub init --hooks --force' to configure all events[/dim]"
+            "[dim]  → Run 'cub hooks install --force' to configure all events[/dim]"
         )
 
-    # Overall fix suggestion
+    # Overall fix suggestion or auto-fix
     if errors or warnings:
-        console.print(
-            "\n[dim]→ Run 'cub init --hooks --force' to reinstall hooks[/dim]"
-        )
+        if fix:
+            from cub.core.hooks.installer import install_hooks
+
+            console.print("\n[blue]Attempting to auto-fix hook issues...[/blue]")
+            result = install_hooks(project_dir, force=True)
+
+            if result.success:
+                console.print(f"[green]✓[/green] {result.message}")
+                if result.hooks_installed:
+                    console.print(f"  Installed hooks: {', '.join(result.hooks_installed)}")
+                return 0  # Fixed successfully, no issues remaining
+            else:
+                console.print(f"[red]✗[/red] Auto-fix failed: {result.message}")
+                for issue in result.issues:
+                    if issue.severity == "error":
+                        console.print(f"  [red]Error:[/red] {issue.message}")
+                return len(errors) + len(warnings)
+        else:
+            console.print(
+                "\n[dim]→ Run 'cub hooks install --force' to reinstall hooks[/dim]"
+            )
 
     return len(errors) + len(warnings)
 
@@ -380,7 +399,7 @@ def doctor(
         total_issues += check_environment()
 
         # Check hooks
-        total_issues += check_hooks(project_dir)
+        total_issues += check_hooks(project_dir, fix=fix)
 
         # Check stale epics
         console.print("\n[bold]Stale Epics:[/bold]")

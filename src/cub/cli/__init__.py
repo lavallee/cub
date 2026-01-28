@@ -18,6 +18,7 @@ from cub.cli import (
     delegated,
     docs,
     doctor,
+    hooks,
     ledger,
     map,
     merge,
@@ -230,6 +231,7 @@ app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.add_typer(doctor.app, name="doctor", rich_help_panel=PANEL_INSTALL)
+app.add_typer(hooks.app, name="hooks", rich_help_panel=PANEL_INSTALL)
 
 
 # =============================================================================
