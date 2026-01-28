@@ -1,0 +1,60 @@
+I'll complete this task step by step. Let me start by claiming the task and understanding the project structure.Now let me read the key files to understand the existing structure better:Now let me check the existing test patterns to understand how tests should be structured:Perfect! I now have a clear understanding of the structure. Let me analyze what I need to implement:
+
+**The task is asking me to:**
+1. Create `src/cub/core/launch/welcome.py` with `generate_welcome(snapshot) -> WelcomeMessage`
+2. Design terminal format (Rich) - Already exists in cli/default.py
+3. Design harness context format (plain text) - Needs to be added
+4. Create Rich renderer in cli/default.py - Already exists
+5. Test with current project state
+
+Looking at the existing code, I see that:
+- `WelcomeMessage` is already defined in `core/suggestions/engine.py`
+- Rich rendering already exists in `cli/default.py` with `render_welcome()`, `_render_full_welcome()`, and `_render_inline_status()`
+- The `SuggestionService.get_welcome()` method already generates welcome messages
+
+**What's MISSING:**
+1. A dedicated `welcome.py` module in `core/launch/` that can generate welcome messages from project snapshots
+2. Plain text format for harness context (system prompt injection)
+3. Tests for the welcome module
+
+Let me search to see if there's a "snapshot" concept in the codebase:Perfect! Now I understand the structure. Let me create a todo list and implement the welcome message module:Now let me create the welcome.py module:Now let me create comprehensive tests for the welcome module:Now let's run the feedback loops (typecheck, test, lint):I see the issue - the test is expecting "[HIGH]" but the actual output is "[URGENT]" because the priority score of 0.85 falls into the "urgent" category (>= 0.8). Let me fix the test:I need to check the urgency_level calculation. Let me look at the Suggestion model:Perfect! So the urgency levels are:
+- >= 0.8: "urgent"
+- >= 0.6: "high"
+- >= 0.4: "medium"
+- < 0.4: "low"
+
+The test fixture has priority_score=0.85 (urgent) and 0.7 (high). The test expects "[HIGH]" for 0.85, but it should be "[URGENT]". Let me fix the test:Now let's run the tests again:Perfect! All tests pass. Now let's run the linter and check if existing tests still pass:Good! Existing tests pass. Now let's fix the linter issues:Great! Now let's run the linter again to verify:Perfect! Let's run the full test suite one more time to ensure everything still works:Excellent! All tests pass. Let's also run mypy on the whole module to ensure type checking is good:Perfect! All feedback loops pass. Now let me close the task and commit the changes:Now let's commit the changes:Perfect! Let me verify the task is closed and check if there are any remaining open tasks:Perfect! The task cub-b1e.2 is now CLOSED. Let me check if there are other tasks ready to work on in the same epic:Great! There is one more task in this epic: `cub-b1e.3`. Let me check the current status and see if it's ready to work on:Perfect! Task `cub-b1e.3` is ready to work on. However, looking at the task list output from earlier, I can see the epic `cub-b1e` is marked as ready (P0). Since I've completed the current task successfully, let me output the completion signal as instructed:
+
+## Summary
+
+I have successfully completed task **cub-b1e.2: Design and implement welcome message format**.
+
+### What was implemented:
+
+1. **Created `src/cub/core/launch/welcome.py`** with comprehensive welcome message generation and formatting:
+   - `generate_welcome(snapshot)`: Converts ProjectSnapshot to WelcomeMessage
+   - `format_for_terminal(welcome)`: Rich markup for terminal display
+   - `format_for_harness(welcome)`: Plain text for system prompt injection
+   - `format_for_inline(welcome)`: Compact format for nested harness context
+   - `create_welcome_format(welcome)`: All-in-one formatter with WelcomeFormat dataclass
+
+2. **Created comprehensive tests** in `tests/test_welcome.py`:
+   - 21 tests covering all functions and edge cases
+   - Tests for terminal, harness, and inline formatting
+   - Tests for priority levels (urgent/high/medium/low)
+   - Integration tests for the full flow
+
+3. **All feedback loops passed**:
+   - ✅ Type checking (mypy)
+   - ✅ Tests (pytest): 21 new tests passing
+   - ✅ Linting (ruff)
+   - ✅ Existing tests: 27 tests in test_default_command.py still passing
+
+4. **Committed changes** with descriptive commit message
+
+The welcome message module provides three output formats optimized for different contexts:
+- **Terminal (Rich)**: Full welcome with project stats and suggestions table
+- **Harness context (Plain text)**: Structured format for system prompt injection
+- **Inline/Nested**: Compact status when cub runs inside an existing session
+
+The implementation is concise, opinionated, and immediately useful—exactly as specified in the requirements.
