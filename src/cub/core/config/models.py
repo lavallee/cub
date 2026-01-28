@@ -179,8 +179,6 @@ class CleanupConfig(BaseModel):
     # Patterns for files to commit (useful artifacts)
     artifact_patterns: list[str] = Field(
         default_factory=lambda: [
-            "fix_plan.md",
-            "AGENT.md",
             ".cub/status.json",
             ".cub/prompt.md",
             ".cub/agent.md",

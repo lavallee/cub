@@ -58,7 +58,7 @@ class TestCleanupResult:
     def test_summary_with_commits(self):
         """Summary should report committed files."""
         result = CleanupResult(
-            committed_files=["progress.txt", "AGENT.md", "fix_plan.md"],
+            committed_files=[".cub/prompt.md", ".cub/agent.md", "status.log"],
             is_clean=True,
         )
 

@@ -36,14 +36,14 @@ teardown() {
 # git_categorize_file tests
 # ============================================================================
 
-@test "git_categorize_file returns 'session' for progress.txt" {
-    run git_categorize_file "progress.txt"
+@test "git_categorize_file returns 'session' for .cub/prompt.md" {
+    run git_categorize_file ".cub/prompt.md"
     [[ $status -eq 0 ]]
     [[ "$output" == "session" ]]
 }
 
-@test "git_categorize_file returns 'session' for fix_plan.md" {
-    run git_categorize_file "fix_plan.md"
+@test "git_categorize_file returns 'session' for .cub/agent.md" {
+    run git_categorize_file ".cub/agent.md"
     [[ $status -eq 0 ]]
     [[ "$output" == "session" ]]
 }
@@ -133,7 +133,8 @@ teardown() {
 }
 
 @test "git_categorize_changes categorizes session files correctly" {
-    echo "test" > progress.txt
+    mkdir -p .cub
+    echo "test" > .cub/prompt.md
 
     run git_categorize_changes
     [[ $status -eq 0 ]]
@@ -144,7 +145,7 @@ teardown() {
 
     local first_file
     first_file=$(echo "$output" | jq -r '.session[0]')
-    [[ "$first_file" == "progress.txt" ]]
+    [[ "$first_file" == ".cub/prompt.md" ]]
 }
 
 @test "git_categorize_changes categorizes source files correctly" {
@@ -180,8 +181,8 @@ teardown() {
 
 @test "git_categorize_changes handles multiple files in different categories" {
     # Create files in different categories
-    echo "progress" > progress.txt
-    mkdir -p src
+    mkdir -p .cub src
+    echo "prompt" > .cub/prompt.md
     echo "code" > src/main.py
     touch .DS_Store
 

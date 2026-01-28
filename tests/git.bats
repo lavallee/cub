@@ -1307,24 +1307,26 @@ Line 3"
 }
 
 @test "git_commit_session_files returns 0 when session files are unchanged" {
-    # Create progress.txt and commit it
-    echo "initial progress" > progress.txt
-    git add progress.txt
-    git commit -q -m "Add progress.txt"
+    # Create .cub/prompt.md and commit it
+    mkdir -p .cub
+    echo "initial prompt" > .cub/prompt.md
+    git add .cub/prompt.md
+    git commit -q -m "Add .cub/prompt.md"
 
     # No changes to commit
     run git_commit_session_files
     [[ $status -eq 0 ]]
 }
 
-@test "git_commit_session_files commits modified progress.txt" {
-    # Create and commit progress.txt
-    echo "initial" > progress.txt
-    git add progress.txt
-    git commit -q -m "Initial progress"
+@test "git_commit_session_files commits modified .cub/prompt.md" {
+    # Create and commit .cub/prompt.md
+    mkdir -p .cub
+    echo "initial" > .cub/prompt.md
+    git add .cub/prompt.md
+    git commit -q -m "Initial prompt"
 
-    # Modify progress.txt
-    echo "modified progress" > progress.txt
+    # Modify .cub/prompt.md
+    echo "modified prompt" > .cub/prompt.md
 
     # Should commit the changes
     run git_commit_session_files "test-001"
@@ -1338,17 +1340,18 @@ Line 3"
     local last_msg
     last_msg=$(git log -1 --pretty=%B)
     [[ "$last_msg" =~ "chore(test-001): update session files" ]]
-    [[ "$last_msg" =~ "progress.txt" ]]
+    [[ "$last_msg" =~ ".cub/prompt.md" ]]
 }
 
-@test "git_commit_session_files commits modified fix_plan.md" {
-    # Create and commit fix_plan.md
-    echo "# Plan" > fix_plan.md
-    git add fix_plan.md
-    git commit -q -m "Initial plan"
+@test "git_commit_session_files commits modified .cub/agent.md" {
+    # Create and commit .cub/agent.md
+    mkdir -p .cub
+    echo "# Agent" > .cub/agent.md
+    git add .cub/agent.md
+    git commit -q -m "Initial agent"
 
-    # Modify fix_plan.md
-    echo "# Updated Plan" > fix_plan.md
+    # Modify .cub/agent.md
+    echo "# Updated Agent" > .cub/agent.md
 
     # Should commit the changes
     run git_commit_session_files
@@ -1359,9 +1362,10 @@ Line 3"
     [[ $status -eq 0 ]]
 }
 
-@test "git_commit_session_files commits untracked progress.txt" {
-    # Create progress.txt but don't add it
-    echo "new progress" > progress.txt
+@test "git_commit_session_files commits untracked .cub/prompt.md" {
+    # Create .cub/prompt.md but don't add it
+    mkdir -p .cub
+    echo "new prompt" > .cub/prompt.md
 
     # Should add and commit
     run git_commit_session_files "test-002"
@@ -1372,13 +1376,14 @@ Line 3"
     [[ $status -eq 0 ]]
 
     # File should be tracked
-    git ls-files progress.txt | grep -q progress.txt
+    git ls-files .cub/prompt.md | grep -q .cub/prompt.md
 }
 
 @test "git_commit_session_files commits multiple session files" {
     # Create both session files
-    echo "progress notes" > progress.txt
-    echo "fix plan notes" > fix_plan.md
+    mkdir -p .cub
+    echo "prompt notes" > .cub/prompt.md
+    echo "agent notes" > .cub/agent.md
 
     # Should commit both
     run git_commit_session_files "test-003"
@@ -1391,8 +1396,8 @@ Line 3"
     # Verify both files in commit message
     local last_msg
     last_msg=$(git log -1 --pretty=%B)
-    [[ "$last_msg" =~ "progress.txt" ]]
-    [[ "$last_msg" =~ "fix_plan.md" ]]
+    [[ "$last_msg" =~ ".cub/prompt.md" ]]
+    [[ "$last_msg" =~ ".cub/agent.md" ]]
 }
 
 @test "git_commit_session_files ignores non-session files" {
@@ -1410,7 +1415,8 @@ Line 3"
 }
 
 @test "git_commit_session_files works without task_id" {
-    echo "progress" > progress.txt
+    mkdir -p .cub
+    echo "prompt" > .cub/prompt.md
 
     run git_commit_session_files
     [[ $status -eq 0 ]]
@@ -1422,13 +1428,14 @@ Line 3"
 }
 
 @test "ACCEPTANCE: Session files left behind by agent are auto-committed" {
-    # Simulate agent modifying progress.txt but not committing
-    echo "Session 1 notes" > progress.txt
-    git add progress.txt
+    # Simulate agent modifying .cub/prompt.md but not committing
+    mkdir -p .cub
+    echo "Session 1 notes" > .cub/prompt.md
+    git add .cub/prompt.md
     git commit -q -m "Agent work on task"
 
     # Agent modifies again but forgets to commit
-    echo "Session 2 notes" >> progress.txt
+    echo "Session 2 notes" >> .cub/prompt.md
 
     # git_commit_session_files should handle this
     git_commit_session_files "cub-042"

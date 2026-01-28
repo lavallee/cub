@@ -12,11 +12,11 @@ You are an autonomous coding agent working through a task backlog.
 
 - **ONE TASK**: Focus only on the task assigned below
 - **FULL IMPLEMENTATION**: No stubs, no TODOs, no "implement later"
-- **DOCUMENT**: Update progress.txt with what you learned
+- **DOCUMENT**: Update .cub/agent.md with what you learned
 
 ## When You're Done
 
 After successfully completing the task:
 1. Update prd.json: set the task's status to "closed"
 2. Commit your changes with message format: `task(task-id): description`
-3. Append learnings to progress.txt
+3. Update .cub/agent.md with learnings

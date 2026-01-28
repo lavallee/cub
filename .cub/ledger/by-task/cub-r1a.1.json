@@ -23,8 +23,50 @@
     "captured_at": "2026-01-28T04:11:25.403824Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-041125",
+      "started_at": "2026-01-28T04:11:25.413696",
+      "completed_at": "2026-01-28T04:15:59.525493Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 4773,
+        "output_tokens": 5282,
+        "cache_read_tokens": 996621,
+        "cache_creation_tokens": 34743
+      },
+      "cost_usd": 0.5646165500000002,
+      "duration_seconds": 274
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T04:15:59.733640Z",
+    "total_cost_usd": 0.5646165500000002,
+    "total_attempts": 1,
+    "total_duration_seconds": 274,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d4b7f4a9b2f895b063c19976f18564cab7a10828",
+        "message": "task(cub-r1a.1): Remove progress.txt references from templates and prompts",
+        "author": "",
+        "timestamp": "2026-01-28T04:15:26Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T04:11:25.403824Z"
+    "stage_updated_at": "2026-01-28T04:15:59.733640Z"
   },
   "state_history": [
     {
@@ -48,31 +90,44 @@
       "at": "2026-01-28T04:11:25.403824Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:15:59.733640Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T04:11:25.403824Z",
-  "completed_at": "2026-01-28T04:11:25.403824Z",
+  "completed_at": "2026-01-28T04:15:59.733640Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 4773,
+    "output_tokens": 5282,
+    "cache_read_tokens": 996621,
+    "cache_creation_tokens": 34743
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.5646165500000002,
+  "duration_seconds": 274,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "d4b7f4a9b2f895b063c19976f18564cab7a10828",
+      "message": "task(cub-r1a.1): Remove progress.txt references from templates and prompts",
+      "author": "",
+      "timestamp": "2026-01-28T04:15:26Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1a.1",
   "epic_id": "cub-r1a",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

@@ -178,12 +178,12 @@ class TestGenerateClaudeMd:
         assert "Best Practices" in content or "Before Starting Work" in content
 
     def test_includes_reference_to_agent_md(self, tmp_path: Path) -> None:
-        """Test that AGENT.md is referenced for build instructions."""
+        """Test that .cub/agent.md is referenced for build instructions."""
         config = CubConfig()
         content = generate_claude_md(tmp_path, config)
 
-        # Should reference AGENT.md (build/test instructions)
-        assert "AGENT.md" in content
+        # Should reference .cub/agent.md (build/test instructions)
+        assert ".cub/agent.md" in content
 
     def test_shorter_than_agents_md(self, tmp_path: Path) -> None:
         """Test that CLAUDE.md is shorter since it references AGENTS.md."""
@@ -260,7 +260,7 @@ class TestInstructionIntegration:
         content = generate_agents_md(tmp_path, config)
 
         # Should have complete workflow without requiring other files
-        # (though it may reference AGENT.md for build instructions)
+        # (though it may reference .cub/agent.md for build instructions)
         assert "bd ready" in content
         assert "bd close" in content
         assert "Escape Hatch" in content
@@ -273,7 +273,7 @@ class TestInstructionIntegration:
 
         # Should reference other documentation files
         assert "AGENTS.md" in content
-        assert "AGENT.md" in content
+        assert ".cub/agent.md" in content
 
     def test_custom_circuit_breaker_timeout_propagates(self, tmp_path: Path) -> None:
         """Test that custom circuit breaker timeout appears in AGENTS.md."""

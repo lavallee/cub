@@ -150,7 +150,7 @@ git_commit_cub_artifacts() {
 
 # Default session files that should be auto-committed if modified
 # These are files that agents are expected to modify during runs
-_GIT_SESSION_FILES=("fix_plan.md")
+_GIT_SESSION_FILES=(".cub/prompt.md" ".cub/agent.md")
 
 # Commit all remaining uncommitted changes after successful task completion
 # This handles cases where the agent completes work but forgets to commit.
@@ -218,7 +218,7 @@ Auto-committed by cub: agent completed successfully but did not commit changes."
     return 0
 }
 
-# Commit session files (fix_plan.md, etc.) if they have uncommitted changes
+# Commit session files (.cub/prompt.md, .cub/agent.md, etc.) if they have uncommitted changes
 # These are files that agents are expected to modify during task execution.
 # If the agent forgets to commit them, cub will do it to maintain clean state.
 #
@@ -691,7 +691,7 @@ git_push_branch() {
 # =============================================================================
 
 # Patterns for categorizing uncommitted files
-_GIT_SESSION_PATTERNS=("fix_plan.md")
+_GIT_SESSION_PATTERNS=(".cub/prompt.md" ".cub/agent.md")
 _GIT_CRUFT_PATTERNS=(
     "*.bak"
     "*.tmp"
@@ -805,7 +805,7 @@ git_categorize_file() {
 # Usage: git_categorize_changes
 # Output: JSON object with categorized files
 # {
-#   "session": ["fix_plan.md"],
+#   "session": [".cub/prompt.md", ".cub/agent.md"],
 #   "source": ["src/foo.ts"],
 #   "cruft": [".DS_Store"],
 #   "config": [".env"],
