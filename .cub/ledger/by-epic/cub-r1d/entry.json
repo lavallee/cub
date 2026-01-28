@@ -17,26 +17,27 @@
     "captured_at": "2026-01-28T05:33:50.409310Z"
   },
   "task_ids": [
+    "cub-r1d.3",
     "cub-r1d.2",
     "cub-r1d.1"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
-    "total_cost_usd": 2.4812365000000005,
-    "avg_cost_per_task": 1.2406182500000003,
+    "total_cost_usd": 3.6393518,
+    "avg_cost_per_task": 1.2131172666666667,
     "min_cost_usd": 1.0524901500000001,
     "max_cost_usd": 1.4287463500000004,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 4086168,
-    "avg_tokens_per_task": 2043084,
-    "total_duration_seconds": 803,
-    "avg_duration_seconds": 401,
+    "total_tokens": 6537101,
+    "avg_tokens_per_task": 2179033,
+    "total_duration_seconds": 1290,
+    "avg_duration_seconds": 430,
     "models_used": [
       "sonnet"
     ],
@@ -44,12 +45,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T05:40:27.492292Z"
+    "stage_updated_at": "2026-01-28T05:48:37.572332Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T05:27:00.427383Z",
-  "completed_at": "2026-01-28T05:40:27.467900Z",
-  "updated_at": "2026-01-28T05:40:27.492294Z",
+  "completed_at": "2026-01-28T05:48:37.544505Z",
+  "updated_at": "2026-01-28T05:48:37.572333Z",
   "first_commit": {
     "hash": "1ca58bf16bfaf763cd4a351cd8913d8e93dc9f52",
     "message": "task(cub-r1d.1): Implement epic context generation for task prompts",
@@ -57,10 +58,10 @@
     "timestamp": "2026-01-28T05:33:03Z"
   },
   "last_commit": {
-    "hash": "37e9a9ee8b5d346631df408e9b63429772b01132",
-    "message": "task(cub-r1d.2): Implement retry context injection from ledger",
+    "hash": "b0292fc4ee8f54a510629caeea332d350feaee56",
+    "message": "chore: Document learnings for task cub-r1d.3",
     "author": "",
-    "timestamp": "2026-01-28T05:39:31Z"
+    "timestamp": "2026-01-28T05:48:01Z"
   },
   "drift": {
     "additions": [],

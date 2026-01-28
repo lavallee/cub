@@ -23,8 +23,56 @@
     "captured_at": "2026-01-28T05:40:29.746212Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-052700",
+      "started_at": "2026-01-28T05:40:29.756836",
+      "completed_at": "2026-01-28T05:48:37.382409Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5096,
+        "output_tokens": 12277,
+        "cache_read_tokens": 2382246,
+        "cache_creation_tokens": 51314
+      },
+      "cost_usd": 1.1581152999999997,
+      "duration_seconds": 487
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:48:37.544505Z",
+    "total_cost_usd": 1.1581152999999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 487,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b0292fc4ee8f54a510629caeea332d350feaee56",
+        "message": "chore: Document learnings for task cub-r1d.3",
+        "author": "",
+        "timestamp": "2026-01-28T05:48:01Z"
+      },
+      {
+        "hash": "820235b96de08d1f1805d7c2a2ade33397da3ea1",
+        "message": "task(cub-r1d.3): Update system prompt and document context composition",
+        "author": "",
+        "timestamp": "2026-01-28T05:47:26Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +88,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T05:40:29.746212Z"
+    "stage_updated_at": "2026-01-28T05:48:37.544505Z"
   },
   "state_history": [
     {
@@ -48,31 +96,50 @@
       "at": "2026-01-28T05:40:29.746212Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:48:37.544505Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T05:40:29.746212Z",
-  "completed_at": "2026-01-28T05:40:29.746212Z",
+  "completed_at": "2026-01-28T05:48:37.544505Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 5096,
+    "output_tokens": 12277,
+    "cache_read_tokens": 2382246,
+    "cache_creation_tokens": 51314
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.1581152999999997,
+  "duration_seconds": 487,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "b0292fc4ee8f54a510629caeea332d350feaee56",
+      "message": "chore: Document learnings for task cub-r1d.3",
+      "author": "",
+      "timestamp": "2026-01-28T05:48:01Z"
+    },
+    {
+      "hash": "820235b96de08d1f1805d7c2a2ade33397da3ea1",
+      "message": "task(cub-r1d.3): Update system prompt and document context composition",
+      "author": "",
+      "timestamp": "2026-01-28T05:47:26Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1d.3",
   "epic_id": "cub-r1d",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
