@@ -59,12 +59,23 @@
       {
         "hash": "efbf79b0862169c8a5bd7f4e513a5fc7b0e017ba",
         "message": "task(cub-c5i.2): Add ledger update command",
+        "author": "",
         "timestamp": "2026-01-24T17:18:20-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Updated the existing `update_workflow_stage()` method in LedgerWriter to work with the new workflow state tracking structure (using `workflow` and `state_history` fields instead of deprecated enum fields), then added a corresponding CLI command with stage validation and audit trail support via reason parameters.",
+    "decisions": [
+      "Used string values for stage parameters instead of the WorkflowStage enum to allow flexibility and reduce coupling between CLI and models",
+      "Added `reason` and `by` parameters to the update method for audit trail tracking, enabling traceability of who made changes and why",
+      "Implemented stage validation as a simple set check rather than enum validation, making it easier to maintain and document valid stages",
+      "Placed the new `update` subcommand after the `show` command in the CLI for logical grouping within the ledger command hierarchy"
+    ],
+    "lessons_learned": [
+      "When refactoring data models, existing utility methods may need significant updates to work with new field structures; audit the codebase for all uses of deprecated fields",
+      "String-based validation can be cleaner than enum enforcement when the CLI layer needs flexibility (e.g., user-friendly error messages for invalid inputs)",
+      "Adding audit metadata (`by`, `reason`, timestamps via StateTransition) to data mutations is crucial for compliance and debugging in systems that track task state changes",
+      "Manual testing of edge cases (invalid stages, missing tasks, confirmation output) is important before considering a feature complete, even when automated tests pass"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +119,25 @@
   "cost_usd": 0.0,
   "duration_seconds": 364,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Updated the existing `update_workflow_stage()` method in LedgerWriter to work with the new workflow state tracking structure (using `workflow` and `state_history` fields instead of deprecated enum fields), then added a corresponding CLI command with stage validation and audit trail support via reason parameters.",
+  "decisions": [
+    "Used string values for stage parameters instead of the WorkflowStage enum to allow flexibility and reduce coupling between CLI and models",
+    "Added `reason` and `by` parameters to the update method for audit trail tracking, enabling traceability of who made changes and why",
+    "Implemented stage validation as a simple set check rather than enum validation, making it easier to maintain and document valid stages",
+    "Placed the new `update` subcommand after the `show` command in the CLI for logical grouping within the ledger command hierarchy"
+  ],
+  "lessons_learned": [
+    "When refactoring data models, existing utility methods may need significant updates to work with new field structures; audit the codebase for all uses of deprecated fields",
+    "String-based validation can be cleaner than enum enforcement when the CLI layer needs flexibility (e.g., user-friendly error messages for invalid inputs)",
+    "Adding audit metadata (`by`, `reason`, timestamps via StateTransition) to data mutations is crucial for compliance and debugging in systems that track task state changes",
+    "Manual testing of edge cases (invalid stages, missing tasks, confirmation output) is important before considering a feature complete, even when automated tests pass"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "efbf79b0862169c8a5bd7f4e513a5fc7b0e017ba",
       "message": "task(cub-c5i.2): Add ledger update command",
+      "author": "",
       "timestamp": "2026-01-24T17:18:20-05:00"
     }
   ],

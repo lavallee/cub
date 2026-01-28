@@ -59,12 +59,23 @@
       {
         "hash": "04c6cd6fff8b0c251dd4ca4647ef6d1497f9d065",
         "message": "task(cub-e2p.2): Implement epic CRUD and aggregation updates",
+        "author": "",
         "timestamp": "2026-01-24T17:01:52-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Implemented epic CRUD operations and aggregation logic by first understanding the existing ledger structure, then adding new methods to LedgerWriter for creating/updating epic entries, and finally integrating automatic epic aggregate updates into the task closure workflow. The implementation follows the existing patterns in the codebase for data persistence and computation.",
+    "decisions": [
+      "Computed epic workflow stage using \"least-progressed\" logic (epic stage = minimum of child task stages) rather than majority-based or most-progressed approaches, providing conservative workflow tracking",
+      "Auto-created epic entries on first task closure rather than requiring explicit epic creation, reducing ceremony for users",
+      "Aggregated cost, duration, and tokens across all child tasks with temporal bounds tracking for comprehensive epic-level metrics",
+      "Placed `_update_or_create_epic()` as a helper method in LedgerIntegration rather than LedgerWriter to keep writer methods pure data operations"
+    ],
+    "lessons_learned": [
+      "Pre-existing mypy issues with yaml stubs don't block new development; verify type errors are specific to your code changes rather than inherited linting problems",
+      "Following existing code patterns (like the `_detect_task_changed()` helper approach) improves code consistency and maintainability",
+      "Automatic aggregation triggered on task closure is more reliable than requiring manual sync operations; it keeps epic state in sync with task reality",
+      "Testing the entire test suite confirms no regressions; running individual test files provides faster feedback during development"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +119,25 @@
   "cost_usd": 0.0,
   "duration_seconds": 213,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Implemented epic CRUD operations and aggregation logic by first understanding the existing ledger structure, then adding new methods to LedgerWriter for creating/updating epic entries, and finally integrating automatic epic aggregate updates into the task closure workflow. The implementation follows the existing patterns in the codebase for data persistence and computation.",
+  "decisions": [
+    "Computed epic workflow stage using \"least-progressed\" logic (epic stage = minimum of child task stages) rather than majority-based or most-progressed approaches, providing conservative workflow tracking",
+    "Auto-created epic entries on first task closure rather than requiring explicit epic creation, reducing ceremony for users",
+    "Aggregated cost, duration, and tokens across all child tasks with temporal bounds tracking for comprehensive epic-level metrics",
+    "Placed `_update_or_create_epic()` as a helper method in LedgerIntegration rather than LedgerWriter to keep writer methods pure data operations"
+  ],
+  "lessons_learned": [
+    "Pre-existing mypy issues with yaml stubs don't block new development; verify type errors are specific to your code changes rather than inherited linting problems",
+    "Following existing code patterns (like the `_detect_task_changed()` helper approach) improves code consistency and maintainability",
+    "Automatic aggregation triggered on task closure is more reliable than requiring manual sync operations; it keeps epic state in sync with task reality",
+    "Testing the entire test suite confirms no regressions; running individual test files provides faster feedback during development"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "04c6cd6fff8b0c251dd4ca4647ef6d1497f9d065",
       "message": "task(cub-e2p.2): Implement epic CRUD and aggregation updates",
+      "author": "",
       "timestamp": "2026-01-24T17:01:52-05:00"
     }
   ],

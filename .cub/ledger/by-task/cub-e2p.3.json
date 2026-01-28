@@ -59,12 +59,24 @@
       {
         "hash": "c138ee735c4347a8b6adc07539549a37e7327efa",
         "message": "task(cub-e2p.3): Add tests for epic aggregation",
+        "author": "",
         "timestamp": "2026-01-24T17:07:58-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Analyzed the epic aggregation implementation by exploring ledger models, task service, and ledger integration modules to understand the aggregation logic. Created a comprehensive test suite with 15 tests organized into 5 test classes covering auto-creation, aggregates computation, escalation rates, stage computation, and multi-task scenarios. Iteratively fixed test failures by understanding the actual implementation behavior (e.g., tasks_completed only counts successful tasks) and adjusted assertions accordingly.",
+    "decisions": [
+      "Organized tests into 5 focused test classes by aggregation concern (auto-creation, aggregates, escalation, stage, multi-task) rather than a single monolithic test class for better maintainability and clarity",
+      "Used fixture factories (make_task_entry, make_ledger_entry) to reduce test boilerplate and ensure consistent test data across all 15 tests",
+      "Implemented escalation rate tests with three scenarios (0%, partial, 100%) to cover the full range of the escalation_rate computation logic",
+      "Created separate test for \"least-progressed\" stage computation logic to verify that epic stage is determined by the least-advanced child task, not the most advanced"
+    ],
+    "lessons_learned": [
+      "TokenUsage model doesn't have a total_tokens parameter\u2014it's a computed property. Tests must provide input_tokens, output_tokens, cache_read_tokens, and cache_creation_tokens separately",
+      "tasks_completed in epic aggregation counts only successful tasks (success=True), not all finished tasks\u2014this is a critical distinction that affects test assertions",
+      "Epic stage computation uses \"least-progressed wins\" logic: the epic's stage is the least-advanced stage among its child tasks, which is important for workflow semantics",
+      "Import organization matters in test files: use __init__.py exports (from cub.core.ledger import ...) rather than direct module imports to avoid mypy errors, even though direct imports work functionally",
+      "When test failures occur during initial runs, understanding the actual implementation behavior (via exploring source code) is more efficient than guessing expected values"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +120,26 @@
   "cost_usd": 0.0,
   "duration_seconds": 380,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Analyzed the epic aggregation implementation by exploring ledger models, task service, and ledger integration modules to understand the aggregation logic. Created a comprehensive test suite with 15 tests organized into 5 test classes covering auto-creation, aggregates computation, escalation rates, stage computation, and multi-task scenarios. Iteratively fixed test failures by understanding the actual implementation behavior (e.g., tasks_completed only counts successful tasks) and adjusted assertions accordingly.",
+  "decisions": [
+    "Organized tests into 5 focused test classes by aggregation concern (auto-creation, aggregates, escalation, stage, multi-task) rather than a single monolithic test class for better maintainability and clarity",
+    "Used fixture factories (make_task_entry, make_ledger_entry) to reduce test boilerplate and ensure consistent test data across all 15 tests",
+    "Implemented escalation rate tests with three scenarios (0%, partial, 100%) to cover the full range of the escalation_rate computation logic",
+    "Created separate test for \"least-progressed\" stage computation logic to verify that epic stage is determined by the least-advanced child task, not the most advanced"
+  ],
+  "lessons_learned": [
+    "TokenUsage model doesn't have a total_tokens parameter\u2014it's a computed property. Tests must provide input_tokens, output_tokens, cache_read_tokens, and cache_creation_tokens separately",
+    "tasks_completed in epic aggregation counts only successful tasks (success=True), not all finished tasks\u2014this is a critical distinction that affects test assertions",
+    "Epic stage computation uses \"least-progressed wins\" logic: the epic's stage is the least-advanced stage among its child tasks, which is important for workflow semantics",
+    "Import organization matters in test files: use __init__.py exports (from cub.core.ledger import ...) rather than direct module imports to avoid mypy errors, even though direct imports work functionally",
+    "When test failures occur during initial runs, understanding the actual implementation behavior (via exploring source code) is more efficient than guessing expected values"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "c138ee735c4347a8b6adc07539549a37e7327efa",
       "message": "task(cub-e2p.3): Add tests for epic aggregation",
+      "author": "",
       "timestamp": "2026-01-24T17:07:58-05:00"
     }
   ],

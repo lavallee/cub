@@ -59,12 +59,23 @@
       {
         "hash": "cc1e3b9bb0a44db18afc920894a7f730074a4459",
         "message": "task(cub-c5i.3): Add ledger export command",
+        "author": "",
         "timestamp": "2026-01-24T17:20:29-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "The implementation followed a methodical pattern: first understanding the existing LedgerReader and data models by reading relevant source files, then implementing the export command with support for multiple formats (JSON/CSV) and filtering options (epic, date), and finally validating through comprehensive testing of both formats, filters, and output modes before committing.",
+    "decisions": [
+      "**CSV flattening strategy**: Opted to flatten nested LedgerEntry fields into 27 columns for spreadsheet compatibility rather than preserving nested structure, prioritizing usability for external analysis tools",
+      "**Filter combination approach**: Designed filters to be composable, allowing both `--epic` and `--since` to be used together for flexible querying without forcing users into predefined combinations",
+      "**Output defaults to stdout**: Made file output optional with `--output` flag, defaulting to stdout to enable Unix pipe-friendly usage patterns",
+      "**DateTime serialization in JSON**: Used ISO format serialization for datetime fields in JSON export to ensure portability and standardization across different analysis tools"
+    ],
+    "lessons_learned": [
+      "**Test-driven validation beats manual assumption**: Manually testing both export formats with real ledger entries caught potential issues with field handling that wouldn't have been obvious from code review alone",
+      "**CSV export requires careful field selection**: Not all fields are meaningful in CSV format\u2014selecting the 27 most useful columns (metrics, outcomes, workflow stage) required understanding downstream use cases",
+      "**Filtering at the reader level is efficient**: Leveraging LedgerReader's native filtering capabilities (`by_epic`, `by_completion_since`) keeps the export command simple and maintains consistency with other ledger subcommands",
+      "**Learnings documentation is as important as code**: Recording insights in progress.txt creates institutional memory that helps future implementations avoid similar decisions"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +119,25 @@
   "cost_usd": 0.0,
   "duration_seconds": 136,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "The implementation followed a methodical pattern: first understanding the existing LedgerReader and data models by reading relevant source files, then implementing the export command with support for multiple formats (JSON/CSV) and filtering options (epic, date), and finally validating through comprehensive testing of both formats, filters, and output modes before committing.",
+  "decisions": [
+    "**CSV flattening strategy**: Opted to flatten nested LedgerEntry fields into 27 columns for spreadsheet compatibility rather than preserving nested structure, prioritizing usability for external analysis tools",
+    "**Filter combination approach**: Designed filters to be composable, allowing both `--epic` and `--since` to be used together for flexible querying without forcing users into predefined combinations",
+    "**Output defaults to stdout**: Made file output optional with `--output` flag, defaulting to stdout to enable Unix pipe-friendly usage patterns",
+    "**DateTime serialization in JSON**: Used ISO format serialization for datetime fields in JSON export to ensure portability and standardization across different analysis tools"
+  ],
+  "lessons_learned": [
+    "**Test-driven validation beats manual assumption**: Manually testing both export formats with real ledger entries caught potential issues with field handling that wouldn't have been obvious from code review alone",
+    "**CSV export requires careful field selection**: Not all fields are meaningful in CSV format\u2014selecting the 27 most useful columns (metrics, outcomes, workflow stage) required understanding downstream use cases",
+    "**Filtering at the reader level is efficient**: Leveraging LedgerReader's native filtering capabilities (`by_epic`, `by_completion_since`) keeps the export command simple and maintains consistency with other ledger subcommands",
+    "**Learnings documentation is as important as code**: Recording insights in progress.txt creates institutional memory that helps future implementations avoid similar decisions"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "cc1e3b9bb0a44db18afc920894a7f730074a4459",
       "message": "task(cub-c5i.3): Add ledger export command",
+      "author": "",
       "timestamp": "2026-01-24T17:20:29-05:00"
     }
   ],

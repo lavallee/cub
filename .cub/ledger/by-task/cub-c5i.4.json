@@ -59,12 +59,24 @@
       {
         "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
         "message": "task(cub-c5i.4): Add ledger gc stub command",
+        "author": "",
         "timestamp": "2026-01-24T17:22:47-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Systematically explored the codebase structure to understand the ledger organization, then implemented a gc command that scans task directories for attempt files, calculates retention-based deletions, and displays formatted output. Validated through manual testing and the existing test suite before committing.",
+    "decisions": [
+      "Used `--keep-latest` (default 5) as the retention parameter rather than a fixed policy, allowing flexibility for different retention needs per invocation",
+      "Made `--dry-run` always true as specified, establishing the pattern for future actual deletion functionality without requiring conditional logic now",
+      "Chose a per-task table display in output rather than flat file listing, making it easier to understand retention impact across tasks",
+      "Sorted attempt files by modification time and kept the newest N files, following the intuitive pattern of \"keep recent attempts\"",
+      "Used Rich's `Table` for formatted output consistency with other cub CLI commands"
+    ],
+    "lessons_learned": [
+      "Thoroughly exploring file structure upfront (checking `.cub/ledger/by-task`, examining actual attempt files) prevented implementation rework and informed better design decisions",
+      "Type checking (mypy) caught issues early\u2014fixing Path type mismatches before testing saved debugging time later",
+      "Testing the command with multiple scenarios (`--keep-latest 5` vs lower values) revealed edge cases like \"no files to delete\" that needed graceful handling",
+      "Short options (`-k`) should be added alongside long options (`--keep-latest`) for CLI usability parity with common patterns"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +120,26 @@
   "cost_usd": 0.0,
   "duration_seconds": 138,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Systematically explored the codebase structure to understand the ledger organization, then implemented a gc command that scans task directories for attempt files, calculates retention-based deletions, and displays formatted output. Validated through manual testing and the existing test suite before committing.",
+  "decisions": [
+    "Used `--keep-latest` (default 5) as the retention parameter rather than a fixed policy, allowing flexibility for different retention needs per invocation",
+    "Made `--dry-run` always true as specified, establishing the pattern for future actual deletion functionality without requiring conditional logic now",
+    "Chose a per-task table display in output rather than flat file listing, making it easier to understand retention impact across tasks",
+    "Sorted attempt files by modification time and kept the newest N files, following the intuitive pattern of \"keep recent attempts\"",
+    "Used Rich's `Table` for formatted output consistency with other cub CLI commands"
+  ],
+  "lessons_learned": [
+    "Thoroughly exploring file structure upfront (checking `.cub/ledger/by-task`, examining actual attempt files) prevented implementation rework and informed better design decisions",
+    "Type checking (mypy) caught issues early\u2014fixing Path type mismatches before testing saved debugging time later",
+    "Testing the command with multiple scenarios (`--keep-latest 5` vs lower values) revealed edge cases like \"no files to delete\" that needed graceful handling",
+    "Short options (`-k`) should be added alongside long options (`--keep-latest`) for CLI usability parity with common patterns"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "c0fd1b10ce343e62260f00117ef32f7ad53089e0",
       "message": "task(cub-c5i.4): Add ledger gc stub command",
+      "author": "",
       "timestamp": "2026-01-24T17:22:47-05:00"
     }
   ],
