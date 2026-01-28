@@ -6,11 +6,13 @@ analyzing tasks, git history, ledger entries, and milestones to recommend
 specific actions with rationale.
 """
 
+from cub.core.suggestions.engine import SuggestionEngine, WelcomeMessage
 from cub.core.suggestions.models import (
     ProjectSnapshot,
     Suggestion,
     SuggestionCategory,
 )
+from cub.core.suggestions.ranking import rank_suggestions
 from cub.core.suggestions.sources import (
     GitSource,
     LedgerSource,
@@ -30,4 +32,9 @@ __all__ = [
     "GitSource",
     "LedgerSource",
     "MilestoneSource",
+    # Ranking
+    "rank_suggestions",
+    # Engine
+    "SuggestionEngine",
+    "WelcomeMessage",
 ]
