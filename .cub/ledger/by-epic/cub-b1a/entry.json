@@ -18,40 +18,42 @@
   },
   "task_ids": [
     "cub-b1a.3",
+    "cub-b1a.5",
     "cub-b1a.1",
+    "cub-b1a.4",
     "cub-b1a.2"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
     "tasks_failed": 0,
-    "total_cost_usd": 4.905968149999999,
-    "avg_cost_per_task": 1.6353227166666662,
+    "total_cost_usd": 8.6124945,
+    "avg_cost_per_task": 1.7224989000000002,
     "min_cost_usd": 0.9653311000000001,
     "max_cost_usd": 2.670084549999999,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 5698968,
-    "avg_tokens_per_task": 1899656,
-    "total_duration_seconds": 899,
-    "avg_duration_seconds": 299,
+    "total_tokens": 12899532,
+    "avg_tokens_per_task": 2579906,
+    "total_duration_seconds": 1805,
+    "avg_duration_seconds": 361,
     "models_used": [
       "opus",
       "sonnet"
     ],
-    "most_common_model": "opus"
+    "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T18:41:49.846622Z"
+    "stage_updated_at": "2026-01-28T18:57:20.449086Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T17:56:01.929769Z",
-  "completed_at": "2026-01-28T18:41:42.874318Z",
-  "updated_at": "2026-01-28T18:41:49.846641Z",
+  "completed_at": "2026-01-28T18:57:10.898299Z",
+  "updated_at": "2026-01-28T18:57:20.449088Z",
   "first_commit": {
     "hash": "6d2089c53d457f743336366d2b5dcb03a7a97de3",
     "message": "task(cub-b1a.1): Create core/run package with prompt builder extraction",
@@ -59,10 +61,10 @@
     "timestamp": "2026-01-28T18:03:46Z"
   },
   "last_commit": {
-    "hash": "934289c2b4dbb2edb67350de1d6085ce8235a203",
-    "message": "task(cub-b1a.3): Extract loop state machine to core/run/loop.py",
+    "hash": "a7ba9c4a52d0be8a019456fe9eeaf34a9ad118ec",
+    "message": "task(cub-b1a.5): Extract git operations to core/run/git_ops.py",
     "author": "",
-    "timestamp": "2026-01-28T18:41:29Z"
+    "timestamp": "2026-01-28T18:56:56Z"
   },
   "drift": {
     "additions": [],
