@@ -17,38 +17,40 @@
     "captured_at": "2026-01-28T20:31:36.618019Z"
   },
   "task_ids": [
-    "cub-b1e.1"
+    "cub-b1e.1",
+    "cub-b1e.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 2.4596682000000007,
-    "avg_cost_per_task": 2.4596682000000007,
-    "min_cost_usd": 2.4596682000000007,
+    "total_cost_usd": 3.2985508500000007,
+    "avg_cost_per_task": 1.6492754250000004,
+    "min_cost_usd": 0.8388826500000002,
     "max_cost_usd": 2.4596682000000007,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 2652049,
-    "avg_tokens_per_task": 2652049,
-    "total_duration_seconds": 520,
-    "avg_duration_seconds": 520,
+    "total_tokens": 3987437,
+    "avg_tokens_per_task": 1993718,
+    "total_duration_seconds": 852,
+    "avg_duration_seconds": 426,
     "models_used": [
-      "opus"
+      "opus",
+      "sonnet"
     ],
     "most_common_model": "opus"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T20:31:36.644888Z"
+    "stage_updated_at": "2026-01-28T20:37:21.866001Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T20:22:46.116120Z",
-  "completed_at": "2026-01-28T20:31:26.556691Z",
-  "updated_at": "2026-01-28T20:31:36.644897Z",
+  "completed_at": "2026-01-28T20:37:12.048422Z",
+  "updated_at": "2026-01-28T20:37:21.866002Z",
   "first_commit": {
     "hash": "6b4b3d0be46921672d0eac5628186e14d50d690e",
     "message": "task(cub-b1e.1): Implement bare cub default command handler",
@@ -56,10 +58,10 @@
     "timestamp": "2026-01-28T20:31:00Z"
   },
   "last_commit": {
-    "hash": "6b4b3d0be46921672d0eac5628186e14d50d690e",
-    "message": "task(cub-b1e.1): Implement bare cub default command handler",
+    "hash": "c96dcd63f6048c45f251a9ff443835cb114a8117",
+    "message": "task(cub-b1e.2): Design and implement welcome message format",
     "author": "",
-    "timestamp": "2026-01-28T20:31:00Z"
+    "timestamp": "2026-01-28T20:36:22Z"
   },
   "drift": {
     "additions": [],

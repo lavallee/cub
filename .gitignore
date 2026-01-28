@@ -32,3 +32,7 @@ src/cub/dashboard/web/node_modules/
 
 # Vim
 *.swp
+# cub
+.cub/ledger/forensics/
+.cub/dashboard.db
+.cub/map.md

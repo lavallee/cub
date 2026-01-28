@@ -44,8 +44,7 @@ WHAT IT CREATES:
   .cub/
     ├── README.md        Quick reference guide (editable)
     ├── prompt.md        System prompt template
-    ├── agent.md         Build/run instructions (customized by project type)
-    └── fix_plan.md      Issue tracking (auto-updated)
+    └── README.md        Quick reference guide (editable)
   .gitignore            With cub patterns
 
 SUPPORTED PROJECT TYPES:
@@ -505,16 +504,6 @@ EOF
         log_warn "$(basename "$prompt_file") already exists, skipping"
     fi
 
-    # Create agent.md in layout root from template
-    local agent_file
-    agent_file=$(get_agent_file ".")
-    if [[ ! -f "$agent_file" ]]; then
-        cp "${CUB_DIR}/templates/AGENT.md" "$agent_file"
-        log_success "Created $(basename "$agent_file")"
-    else
-        log_warn "$(basename "$agent_file") already exists, skipping"
-    fi
-
     # Generate AGENTS.md and CLAUDE.md using Python instruction generator
     # These files provide workflow instructions for direct harness sessions
     if command -v python3 >/dev/null 2>&1; then
@@ -531,26 +520,6 @@ EOF
     else
         log_warn "Python3 not found, skipping AGENTS.md/CLAUDE.md generation"
         log_warn "These files provide workflow instructions for direct harness use"
-    fi
-
-    # Create fix_plan.md in layout root
-    local fix_plan_file
-    fix_plan_file=$(get_fix_plan_file ".")
-    if [[ ! -f "$fix_plan_file" ]]; then
-        cp "${CUB_DIR}/templates/fix_plan.md" "$fix_plan_file"
-        log_success "Created $(basename "$fix_plan_file")"
-    else
-        log_warn "$(basename "$fix_plan_file") already exists, skipping"
-    fi
-
-    # Create guardrails.md in layout root
-    local guardrails_file
-    guardrails_file="${layout_root}/guardrails.md"
-    if [[ ! -f "$guardrails_file" ]]; then
-        cp "${CUB_DIR}/templates/guardrails.md" "$guardrails_file"
-        log_success "Created $(basename "$guardrails_file")"
-    else
-        log_warn "$(basename "$guardrails_file") already exists, skipping"
     fi
 
     # Create README.md in layout root

@@ -113,17 +113,6 @@ get_agent_file() {
     echo "${layout_root}/agent.md"
 }
 
-# Get the path to fix_plan.md
-# Parameters:
-#   $1 - project directory (defaults to current directory)
-# Echoes: absolute path to fix_plan.md
-get_fix_plan_file() {
-    local project_dir="${1:-.}"
-    local layout_root
-    layout_root=$(get_layout_root "$project_dir")
-    echo "${layout_root}/fix_plan.md"
-}
-
 # Check if project uses new layout
 # Parameters:
 #   $1 - project directory (defaults to current directory)

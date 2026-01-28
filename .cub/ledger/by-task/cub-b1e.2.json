@@ -24,8 +24,62 @@
     "captured_at": "2026-01-28T20:31:38.906054Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-202245",
+      "started_at": "2026-01-28T20:31:38.915167",
+      "completed_at": "2026-01-28T20:37:11.748115Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 154,
+        "output_tokens": 13016,
+        "cache_read_tokens": 1279833,
+        "cache_creation_tokens": 42385
+      },
+      "cost_usd": 0.8388826500000002,
+      "duration_seconds": 332
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T20:37:12.048422Z",
+    "total_cost_usd": 0.8388826500000002,
+    "total_attempts": 1,
+    "total_duration_seconds": 332,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c96dcd63f6048c45f251a9ff443835cb114a8117",
+        "message": "task(cub-b1e.2): Design and implement welcome message format",
+        "author": "",
+        "timestamp": "2026-01-28T20:36:22Z"
+      }
+    ],
+    "approach": "The task was completed by creating a dedicated welcome message module that generates and formats project status information for different contexts (terminal, harness, inline). The implementation reused existing WelcomeMessage and Suggestion data models, added formatting functions for each context, and validated the implementation through comprehensive tests covering all output formats and edge cases.",
+    "decisions": [
+      "**Reuse existing data models** rather than create new ones: Leveraged WelcomeMessage and Suggestion from the existing codebase (core/suggestions/engine.py) to maintain consistency and avoid duplication",
+      "**Create a WelcomeFormat dataclass** to encapsulate all three output formats (terminal, harness, inline) in a single return type, making the API easier to use and more extensible",
+      "**Plain text for harness context** rather than Rich markup: Used simple structured text (newlines, brackets, dashes) for system prompt injection to ensure compatibility across different harness implementations that may not support Rich formatting",
+      "**Map urgency scores to categorical labels** (urgent/high/medium/low) based on thresholds (0.8+, 0.6+, 0.4+, <0.4) to provide human-readable priority indicators",
+      "**Comprehensive test coverage with edge cases**: Created 21 tests including empty suggestions, single task, max suggestions (3), and priority level boundaries to ensure robustness"
+    ],
+    "lessons_learned": [
+      "**Priority thresholds matter**: The urgency level calculation uses >= 0.8 for \"urgent\", not > 0.8, which affects test expectations. Always verify boundary conditions in scoring systems",
+      "**Multiple output formats require dedicated functions**: Rather than adding parameters to a single function, creating separate formatting functions (format_for_terminal, format_for_harness, format_for_inline) makes the code more maintainable and testable",
+      "**Test fixtures must match actual data ranges**: The test fixture used priority_score=0.85 which fell into \"urgent\" category (>= 0.8), not \"high\" (>= 0.6), revealing the importance of aligning test data with implementation logic",
+      "**ProjectSnapshot is the canonical data source**: Using ProjectSnapshot.from_beads() as the input to generate_welcome() ensures the welcome message stays in sync with actual project state rather than stale cached data",
+      "**Structured plain text is better than unstructured**: For system prompt injection to harnesses, using consistent formatting (brackets for urgency, dashes for separators) makes parsing and understanding easier than free-form text"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +95,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T20:31:38.906054Z"
+    "stage_updated_at": "2026-01-28T20:37:12.048422Z"
   },
   "state_history": [
     {
@@ -49,31 +103,56 @@
       "at": "2026-01-28T20:31:38.906054Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:37:12.048422Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T20:31:38.906054Z",
-  "completed_at": "2026-01-28T20:31:38.906054Z",
+  "completed_at": "2026-01-28T20:37:12.048422Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 154,
+    "output_tokens": 13016,
+    "cache_read_tokens": 1279833,
+    "cache_creation_tokens": 42385
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.8388826500000002,
+  "duration_seconds": 332,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "The task was completed by creating a dedicated welcome message module that generates and formats project status information for different contexts (terminal, harness, inline). The implementation reused existing WelcomeMessage and Suggestion data models, added formatting functions for each context, and validated the implementation through comprehensive tests covering all output formats and edge cases.",
+  "decisions": [
+    "**Reuse existing data models** rather than create new ones: Leveraged WelcomeMessage and Suggestion from the existing codebase (core/suggestions/engine.py) to maintain consistency and avoid duplication",
+    "**Create a WelcomeFormat dataclass** to encapsulate all three output formats (terminal, harness, inline) in a single return type, making the API easier to use and more extensible",
+    "**Plain text for harness context** rather than Rich markup: Used simple structured text (newlines, brackets, dashes) for system prompt injection to ensure compatibility across different harness implementations that may not support Rich formatting",
+    "**Map urgency scores to categorical labels** (urgent/high/medium/low) based on thresholds (0.8+, 0.6+, 0.4+, <0.4) to provide human-readable priority indicators",
+    "**Comprehensive test coverage with edge cases**: Created 21 tests including empty suggestions, single task, max suggestions (3), and priority level boundaries to ensure robustness"
+  ],
+  "lessons_learned": [
+    "**Priority thresholds matter**: The urgency level calculation uses >= 0.8 for \"urgent\", not > 0.8, which affects test expectations. Always verify boundary conditions in scoring systems",
+    "**Multiple output formats require dedicated functions**: Rather than adding parameters to a single function, creating separate formatting functions (format_for_terminal, format_for_harness, format_for_inline) makes the code more maintainable and testable",
+    "**Test fixtures must match actual data ranges**: The test fixture used priority_score=0.85 which fell into \"urgent\" category (>= 0.8), not \"high\" (>= 0.6), revealing the importance of aligning test data with implementation logic",
+    "**ProjectSnapshot is the canonical data source**: Using ProjectSnapshot.from_beads() as the input to generate_welcome() ensures the welcome message stays in sync with actual project state rather than stale cached data",
+    "**Structured plain text is better than unstructured**: For system prompt injection to harnesses, using consistent formatting (brackets for urgency, dashes for separators) makes parsing and understanding easier than free-form text"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "c96dcd63f6048c45f251a9ff443835cb114a8117",
+      "message": "task(cub-b1e.2): Design and implement welcome message format",
+      "author": "",
+      "timestamp": "2026-01-28T20:36:22Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1e.2",
   "epic_id": "cub-b1e",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

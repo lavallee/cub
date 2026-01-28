@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (224 files) (entry: __init__.py)
+- **cub**: `src/cub` (252 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -59,6 +59,10 @@
     │   │   └── cub:triage.md
     │   └── settings.json
     ├── .cub/
+    │   ├── cache/
+    │   │   └── code_intel/
+    │   │       ├── 68/
+    │   │       └── cache.db
     │   ├── docs/
     │   │   ├── claude-code-hooks.md
     │   │   └── run-exit-paths.md
@@ -70,6 +74,11 @@
     │   │   └── stop.sh
     │   ├── ledger/
     │   │   ├── by-epic/
+    │   │   │   ├── cub-b1a/
+    │   │   │   ├── cub-b1b/
+    │   │   │   ├── cub-b1c/
+    │   │   │   ├── cub-b1d/
+    │   │   │   ├── cub-b1e/
     │   │   │   ├── cub-c5i/
     │   │   │   ├── cub-d8b/
     │   │   │   ├── cub-j1a/
@@ -97,6 +106,26 @@
     │   │   │   └── cub-x7f/
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
+    │   │   │   ├── cub-b1a.1/
+    │   │   │   ├── cub-b1a.2/
+    │   │   │   ├── cub-b1a.3/
+    │   │   │   ├── cub-b1a.4/
+    │   │   │   ├── cub-b1a.5/
+    │   │   │   ├── cub-b1b.1/
+    │   │   │   ├── cub-b1b.2/
+    │   │   │   ├── cub-b1b.3/
+    │   │   │   ├── cub-b1b.4/
+    │   │   │   ├── cub-b1b.5/
+    │   │   │   ├── cub-b1c.1/
+    │   │   │   ├── cub-b1c.2/
+    │   │   │   ├── cub-b1c.3/
+    │   │   │   ├── cub-b1c.4/
+    │   │   │   ├── cub-b1d.1/
+    │   │   │   ├── cub-b1d.2/
+    │   │   │   ├── cub-b1d.3/
+    │   │   │   ├── cub-b1e.1/
+    │   │   │   ├── cub-b1e.2/
+    │   │   │   ├── cub-b1e.3/
     │   │   │   ├── cub-c5i.1/
     │   │   │   ├── cub-c5i.2/
     │   │   │   ├── cub-c5i.3/
@@ -147,6 +176,7 @@
     │   │   │   ├── cub-q2j.3/
     │   │   │   ├── cub-q2j.4/
     │   │   │   ├── cub-q2j.5/
+    │   │   │   ├── cub-r1a/
     │   │   │   ├── cub-r1a.1/
     │   │   │   ├── cub-r1a.2/
     │   │   │   ├── cub-r1a.3/
@@ -220,6 +250,26 @@
     │   │   │   ├── cub-a7f.4.json
     │   │   │   ├── cub-a7f.5.json
     │   │   │   ├── cub-aeim.json
+    │   │   │   ├── cub-b1a.1.json
+    │   │   │   ├── cub-b1a.2.json
+    │   │   │   ├── cub-b1a.3.json
+    │   │   │   ├── cub-b1a.4.json
+    │   │   │   ├── cub-b1a.5.json
+    │   │   │   ├── cub-b1b.1.json
+    │   │   │   ├── cub-b1b.2.json
+    │   │   │   ├── cub-b1b.3.json
+    │   │   │   ├── cub-b1b.4.json
+    │   │   │   ├── cub-b1b.5.json
+    │   │   │   ├── cub-b1c.1.json
+    │   │   │   ├── cub-b1c.2.json
+    │   │   │   ├── cub-b1c.3.json
+    │   │   │   ├── cub-b1c.4.json
+    │   │   │   ├── cub-b1d.1.json
+    │   │   │   ├── cub-b1d.2.json
+    │   │   │   ├── cub-b1d.3.json
+    │   │   │   ├── cub-b1e.1.json
+    │   │   │   ├── cub-b1e.2.json
+    │   │   │   ├── cub-b1e.3.json
     │   │   │   ├── cub-c5i.1.json
     │   │   │   ├── cub-c5i.2.json
     │   │   │   ├── cub-c5i.3.json
@@ -265,58 +315,6 @@
     │   │   │   ├── cub-j1e.3.json
     │   │   │   ├── cub-j1f.1.json
     │   │   │   ├── cub-j1f.2.json
-    │   │   │   ├── cub-j1f.3.json
-    │   │   │   ├── cub-k3p.1.json
-    │   │   │   ├── cub-k3p.2.json
-    │   │   │   ├── cub-k3p.3.json
-    │   │   │   ├── cub-k3p.4.json
-    │   │   │   ├── cub-k3p.5.json
-    │   │   │   ├── cub-k3p.6.json
-    │   │   │   ├── cub-k8d.1.json
-    │   │   │   ├── cub-k8d.2.json
-    │   │   │   ├── cub-k8d.3.json
-    │   │   │   ├── cub-k8d.4.json
-    │   │   │   ├── cub-k8d.5.json
-    │   │   │   ├── cub-k8d.6.json
-    │   │   │   ├── cub-k8d.7.json
-    │   │   │   ├── cub-k8d.8.json
-    │   │   │   ├── cub-l7e.1.json
-    │   │   │   ├── cub-l7e.2.json
-    │   │   │   ├── cub-l7e.3.json
-    │   │   │   ├── cub-l7e.4.json
-    │   │   │   ├── cub-l7e.5.json
-    │   │   │   ├── cub-m3k.1.json
-    │   │   │   ├── cub-m3k.2.json
-    │   │   │   ├── cub-m3k.3.json
-    │   │   │   ├── cub-m3k.4.json
-    │   │   │   ├── cub-m3k.5.json
-    │   │   │   ├── cub-m3k.6.json
-    │   │   │   ├── cub-m3k.7.json
-    │   │   │   ├── cub-m3x.1.json
-    │   │   │   ├── cub-m3x.2.json
-    │   │   │   ├── cub-m3x.3.json
-    │   │   │   ├── cub-m3x.4.json
-    │   │   │   ├── cub-m3x.5.json
-    │   │   │   ├── cub-m3x.6.json
-    │   │   │   ├── cub-p71l.json
-    │   │   │   ├── cub-p9q.1.json
-    │   │   │   ├── cub-p9q.3.json
-    │   │   │   ├── cub-p9q.4.json
-    │   │   │   ├── cub-p9q.5.json
-    │   │   │   ├── cub-p9w.1.json
-    │   │   │   ├── cub-p9w.2.json
-    │   │   │   ├── cub-p9w.4.json
-    │   │   │   ├── cub-p9w.5.json
-    │   │   │   ├── cub-p9w.6.json
-    │   │   │   ├── cub-q2j.1.json
-    │   │   │   ├── cub-q2j.2.json
-    │   │   │   ├── cub-q2j.3.json
-    │   │   │   ├── cub-q2j.4.json
-    │   │   │   ├── cub-q2j.5.json
-    │   │   │   ├── cub-q2w.1.json
-    │   │   │   ├── cub-q2w.2.json
-    │   │   │   ├── cub-q2w.3.json
-    │   │   │   ├── cub-q2w.4.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -326,265 +324,267 @@ Symbols ranked by importance (PageRank score):
 
 ### scripts/check_coverage_tiers.py
 
-- **FileResult** (def, line 91, score: 0.0029)
-- **check_coverage** (def, line 123, score: 0.0029)
-- **get_tier** (def, line 101, score: 0.0029)
-- **main** (def, line 205, score: 0.0029)
-- **print_results** (def, line 157, score: 0.0029)
+- **FileResult** (def, line 91, score: 0.0026)
+- **check_coverage** (def, line 123, score: 0.0026)
+- **get_tier** (def, line 101, score: 0.0026)
+- **main** (def, line 205, score: 0.0026)
+- **print_results** (def, line 157, score: 0.0026)
 
 ### scripts/compare-backends.py
 
-- **format_divergence_summary** (def, line 43, score: 0.0029)
-- **main** (def, line 93, score: 0.0029)
-- **print_divergences** (def, line 66, score: 0.0029)
+- **format_divergence_summary** (def, line 43, score: 0.0026)
+- **main** (def, line 93, score: 0.0026)
+- **print_divergences** (def, line 66, score: 0.0026)
 
 ### scripts/generate_changelog.py
 
-- **ChangelogEntry** (def, line 40, score: 0.0029)
-- **Commit** (def, line 27, score: 0.0029)
-- **format_changelog_section** (def, line 237, score: 0.0029)
-- **format_commit_line** (def, line 132, score: 0.0029)
-- **generate_changelog_entry** (def, line 198, score: 0.0029)
-- **get_commit_message** (def, line 85, score: 0.0029)
-- **get_commits_since_tag** (def, line 66, score: 0.0029)
-- **get_previous_tag** (def, line 52, score: 0.0029)
-- **main** (def, line 320, score: 0.0029)
-- **parse_conventional_commit** (def, line 96, score: 0.0029)
-- **prepend_to_changelog** (def, line 286, score: 0.0029)
-- **should_skip_commit** (def, line 147, score: 0.0029)
+- **ChangelogEntry** (def, line 40, score: 0.0026)
+- **Commit** (def, line 27, score: 0.0026)
+- **format_changelog_section** (def, line 237, score: 0.0026)
+- **format_commit_line** (def, line 132, score: 0.0026)
+- **generate_changelog_entry** (def, line 198, score: 0.0026)
+- **get_commit_message** (def, line 85, score: 0.0026)
+- **get_commits_since_tag** (def, line 66, score: 0.0026)
+- **get_previous_tag** (def, line 52, score: 0.0026)
+- **main** (def, line 320, score: 0.0026)
+- **parse_conventional_commit** (def, line 96, score: 0.0026)
+- **prepend_to_changelog** (def, line 286, score: 0.0026)
+- **should_skip_commit** (def, line 147, score: 0.0026)
 
 ### scripts/move_specs_released.py
 
-- **main** (def, line 23, score: 0.0029)
+- **main** (def, line 23, score: 0.0026)
 
 ### scripts/update_webpage_changelog.py
 
-- **Release** (def, line 22, score: 0.0029)
-- **extract_description** (def, line 91, score: 0.0029)
-- **extract_highlights** (def, line 152, score: 0.0029)
-- **extract_title** (def, line 71, score: 0.0029)
-- **generate_html** (def, line 180, score: 0.0029)
-- **main** (def, line 266, score: 0.0029)
-- **parse_changelog** (def, line 32, score: 0.0029)
-- **update_version_badge** (def, line 243, score: 0.0029)
-- **update_webpage** (def, line 205, score: 0.0029)
+- **Release** (def, line 22, score: 0.0026)
+- **extract_description** (def, line 91, score: 0.0026)
+- **extract_highlights** (def, line 152, score: 0.0026)
+- **extract_title** (def, line 71, score: 0.0026)
+- **generate_html** (def, line 180, score: 0.0026)
+- **main** (def, line 266, score: 0.0026)
+- **parse_changelog** (def, line 32, score: 0.0026)
+- **update_version_badge** (def, line 243, score: 0.0026)
+- **update_webpage** (def, line 205, score: 0.0026)
 
 ### src/cub/audit/coverage.py
 
-- **CoverageFile** (def, line 17, score: 0.0029)
-- **CoverageReport** (def, line 26, score: 0.0029)
-- **UncoveredLine** (def, line 46, score: 0.0029)
-- **format_coverage_report** (def, line 240, score: 0.0029)
-- **get_uncovered_lines** (def, line 205, score: 0.0029)
-- **has_low_coverage** (def, line 40, score: 0.0029)
-- **identify_low_coverage** (def, line 186, score: 0.0029)
-- **parse_coverage_report** (def, line 116, score: 0.0029)
-- **run_coverage** (def, line 53, score: 0.0029)
+- **CoverageFile** (def, line 17, score: 0.0026)
+- **CoverageReport** (def, line 26, score: 0.0026)
+- **UncoveredLine** (def, line 46, score: 0.0026)
+- **format_coverage_report** (def, line 240, score: 0.0026)
+- **get_uncovered_lines** (def, line 205, score: 0.0026)
+- **has_low_coverage** (def, line 40, score: 0.0026)
+- **identify_low_coverage** (def, line 186, score: 0.0026)
+- **parse_coverage_report** (def, line 116, score: 0.0026)
+- **run_coverage** (def, line 53, score: 0.0026)
 
 ### src/cub/audit/dead_code.py
 
-- **ASTDefinitionVisitor** (def, line 27, score: 0.0029)
-- **ASTReferenceVisitor** (def, line 140, score: 0.0029)
-- **BashDefinition** (def, line 339, score: 0.0029)
-- **Definition** (def, line 18, score: 0.0029)
-- **__init__** (def, line 147, score: 0.0029)
-- **__init__** (def, line 38, score: 0.0029)
-- **_is_in_function_scope** (def, line 132, score: 0.0029)
-- **detect_unused** (def, line 264, score: 0.0029)
-- **detect_unused_bash** (def, line 566, score: 0.0029)
-- **find_bash_calls** (def, line 402, score: 0.0029)
-- **find_bash_functions** (def, line 347, score: 0.0029)
-- **find_python_definitions** (def, line 164, score: 0.0029)
-- **find_python_references** (def, line 186, score: 0.0029)
-- **get_module_exports** (def, line 208, score: 0.0029)
-- **run_shellcheck** (def, line 540, score: 0.0029)
-- **should_exclude_definition** (def, line 236, score: 0.0029)
-- **visit_Assign** (def, line 115, score: 0.0029)
-- **visit_AsyncFunctionDef** (def, line 87, score: 0.0029)
-- **visit_Attribute** (def, line 156, score: 0.0029)
-- **visit_ClassDef** (def, line 100, score: 0.0029)
-- **visit_FunctionDef** (def, line 74, score: 0.0029)
-- **visit_Import** (def, line 43, score: 0.0029)
-- **visit_ImportFrom** (def, line 57, score: 0.0029)
-- **visit_Name** (def, line 150, score: 0.0029)
+- **ASTDefinitionVisitor** (def, line 27, score: 0.0026)
+- **ASTReferenceVisitor** (def, line 140, score: 0.0026)
+- **BashDefinition** (def, line 339, score: 0.0026)
+- **Definition** (def, line 18, score: 0.0026)
+- **__init__** (def, line 147, score: 0.0026)
+- **__init__** (def, line 38, score: 0.0026)
+- **_is_in_function_scope** (def, line 132, score: 0.0026)
+- **detect_unused** (def, line 264, score: 0.0026)
+- **detect_unused_bash** (def, line 566, score: 0.0026)
+- **find_bash_calls** (def, line 402, score: 0.0026)
+- **find_bash_functions** (def, line 347, score: 0.0026)
+- **find_python_definitions** (def, line 164, score: 0.0026)
+- **find_python_references** (def, line 186, score: 0.0026)
+- **get_module_exports** (def, line 208, score: 0.0026)
+- **run_shellcheck** (def, line 540, score: 0.0026)
+- **should_exclude_definition** (def, line 236, score: 0.0026)
+- **visit_Assign** (def, line 115, score: 0.0026)
+- **visit_AsyncFunctionDef** (def, line 87, score: 0.0026)
+- **visit_Attribute** (def, line 156, score: 0.0026)
+- **visit_ClassDef** (def, line 100, score: 0.0026)
+- **visit_FunctionDef** (def, line 74, score: 0.0026)
+- **visit_Import** (def, line 43, score: 0.0026)
+- **visit_ImportFrom** (def, line 57, score: 0.0026)
+- **visit_Name** (def, line 150, score: 0.0026)
 
 ### src/cub/audit/docs.py
 
-- **CodeBlock** (def, line 31, score: 0.0029)
-- **Link** (def, line 23, score: 0.0029)
-- **check_links** (def, line 139, score: 0.0029)
-- **extract_code_blocks** (def, line 87, score: 0.0029)
-- **extract_links** (def, line 40, score: 0.0029)
-- **validate_code** (def, line 284, score: 0.0029)
-- **validate_docs** (def, line 370, score: 0.0029)
+- **CodeBlock** (def, line 31, score: 0.0026)
+- **Link** (def, line 23, score: 0.0026)
+- **check_links** (def, line 139, score: 0.0026)
+- **extract_code_blocks** (def, line 87, score: 0.0026)
+- **extract_links** (def, line 40, score: 0.0026)
+- **validate_code** (def, line 284, score: 0.0026)
+- **validate_docs** (def, line 370, score: 0.0026)
 
 ### src/cub/audit/models.py
 
-- **AuditReport** (def, line 120, score: 0.0029)
-- **CategoryScore** (def, line 112, score: 0.0029)
-- **CodeBlockFinding** (def, line 73, score: 0.0029)
-- **DeadCodeFinding** (def, line 17, score: 0.0029)
-- **DeadCodeReport** (def, line 34, score: 0.0029)
-- **DocsReport** (def, line 85, score: 0.0029)
-- **LinkFinding** (def, line 59, score: 0.0029)
-- **findings_by_kind** (def, line 51, score: 0.0029)
-- **has_failures** (def, line 161, score: 0.0029)
-- **has_findings** (def, line 99, score: 0.0029)
-- **has_findings** (def, line 46, score: 0.0029)
-- **total_issues** (def, line 104, score: 0.0029)
-- **total_issues** (def, line 151, score: 0.0029)
+- **AuditReport** (def, line 120, score: 0.0026)
+- **CategoryScore** (def, line 112, score: 0.0026)
+- **CodeBlockFinding** (def, line 73, score: 0.0026)
+- **DeadCodeFinding** (def, line 17, score: 0.0026)
+- **DeadCodeReport** (def, line 34, score: 0.0026)
+- **DocsReport** (def, line 85, score: 0.0026)
+- **LinkFinding** (def, line 59, score: 0.0026)
+- **findings_by_kind** (def, line 51, score: 0.0026)
+- **has_failures** (def, line 161, score: 0.0026)
+- **has_findings** (def, line 99, score: 0.0026)
+- **has_findings** (def, line 46, score: 0.0026)
+- **total_issues** (def, line 104, score: 0.0026)
+- **total_issues** (def, line 151, score: 0.0026)
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 250, score: 0.0029)
-- **main** (def, line 77, score: 0.0029)
-- **version** (def, line 224, score: 0.0029)
+- **cli_main** (def, line 285, score: 0.0026)
+- **main** (def, line 79, score: 0.0026)
+- **version** (def, line 259, score: 0.0026)
 
 ### src/cub/cli/argv.py
 
-- **_hoist_global_flags** (def, line 51, score: 0.0029)
-- **_rewrite_help** (def, line 36, score: 0.0029)
-- **preprocess_argv** (def, line 13, score: 0.0029)
+- **_hoist_global_flags** (def, line 51, score: 0.0026)
+- **_rewrite_help** (def, line 36, score: 0.0026)
+- **preprocess_argv** (def, line 13, score: 0.0026)
 
 ### src/cub/cli/audit.py
 
-- **calculate_grade** (def, line 54, score: 0.0029)
-- **calculate_overall_grade** (def, line 142, score: 0.0029)
-- **format_detailed_findings** (def, line 270, score: 0.0029)
-- **format_summary_report** (def, line 189, score: 0.0029)
-- **get_grade_color** (def, line 213, score: 0.0029)
-- **grade_coverage** (def, line 119, score: 0.0029)
-- **grade_dead_code** (def, line 70, score: 0.0029)
-- **grade_documentation** (def, line 94, score: 0.0029)
-- **run** (def, line 331, score: 0.0029)
+- **calculate_grade** (def, line 54, score: 0.0026)
+- **calculate_overall_grade** (def, line 142, score: 0.0026)
+- **format_detailed_findings** (def, line 270, score: 0.0026)
+- **format_summary_report** (def, line 189, score: 0.0026)
+- **get_grade_color** (def, line 213, score: 0.0026)
+- **grade_coverage** (def, line 119, score: 0.0026)
+- **grade_dead_code** (def, line 70, score: 0.0026)
+- **grade_documentation** (def, line 94, score: 0.0026)
+- **run** (def, line 331, score: 0.0026)
 
 ### src/cub/cli/capture.py
 
-- **capture** (def, line 23, score: 0.0029)
+- **capture** (def, line 23, score: 0.0026)
 
 ### src/cub/cli/captures.py
 
-- **_display_capture_table** (def, line 251, score: 0.0029)
-- **_find_capture** (def, line 297, score: 0.0029)
-- **_format_date** (def, line 564, score: 0.0029)
-- **_parse_since** (def, line 527, score: 0.0029)
-- **archive** (def, line 482, score: 0.0029)
-- **edit** (def, line 376, score: 0.0029)
-- **filter_captures** (def, line 123, score: 0.0029)
-- **import_capture** (def, line 416, score: 0.0029)
-- **list_captures** (def, line 30, score: 0.0029)
-- **show** (def, line 329, score: 0.0029)
+- **_display_capture_table** (def, line 251, score: 0.0026)
+- **_find_capture** (def, line 297, score: 0.0026)
+- **_format_date** (def, line 564, score: 0.0026)
+- **_parse_since** (def, line 527, score: 0.0026)
+- **archive** (def, line 482, score: 0.0026)
+- **edit** (def, line 376, score: 0.0026)
+- **filter_captures** (def, line 123, score: 0.0026)
+- **import_capture** (def, line 416, score: 0.0026)
+- **list_captures** (def, line 30, score: 0.0026)
+- **show** (def, line 329, score: 0.0026)
 
 ### src/cub/cli/dashboard.py
 
-- **_get_examples_dir** (def, line 424, score: 0.0029)
-- **_get_project_paths** (def, line 31, score: 0.0029)
-- **dashboard** (def, line 57, score: 0.0029)
-- **export** (def, line 318, score: 0.0029)
-- **init** (def, line 532, score: 0.0029)
-- **open_browser** (def, line 172, score: 0.0029)
-- **sync** (def, line 204, score: 0.0029)
-- **views** (def, line 433, score: 0.0029)
+- **_get_examples_dir** (def, line 424, score: 0.0026)
+- **_get_project_paths** (def, line 31, score: 0.0026)
+- **dashboard** (def, line 57, score: 0.0026)
+- **export** (def, line 318, score: 0.0026)
+- **init** (def, line 532, score: 0.0026)
+- **open_browser** (def, line 172, score: 0.0026)
+- **sync** (def, line 204, score: 0.0026)
+- **views** (def, line 433, score: 0.0026)
 
-### src/cub/cli/delegated.py
+### src/cub/cli/default.py
 
-- **_delegate** (def, line 16, score: 0.0029)
-- **architect** (def, line 56, score: 0.0029)
-- **artifacts** (def, line 164, score: 0.0029)
-- **bootstrap** (def, line 116, score: 0.0029)
-- **branch** (def, line 198, score: 0.0029)
-- **branches** (def, line 214, score: 0.0029)
-- **checkpoints** (def, line 231, score: 0.0029)
-- **close_task** (def, line 322, score: 0.0029)
-- **explain_task** (def, line 149, score: 0.0029)
-- **guardrails** (def, line 282, score: 0.0029)
-- **import_cmd** (def, line 266, score: 0.0029)
-- **interview** (def, line 250, score: 0.0029)
-- **plan** (def, line 71, score: 0.0029)
-- **prep** (def, line 36, score: 0.0029)
-- **sessions** (def, line 131, score: 0.0029)
-- **spec** (def, line 101, score: 0.0029)
-- **stage** (def, line 85, score: 0.0029)
-- **triage** (def, line 41, score: 0.0029)
-- **update** (def, line 298, score: 0.0029)
-- **validate** (def, line 179, score: 0.0029)
-- **verify_task** (def, line 337, score: 0.0029)
+- **_get_welcome_message** (def, line 146, score: 0.0026)
+- **_handle_no_project** (def, line 250, score: 0.0026)
+- **_render_full_welcome** (def, line 81, score: 0.0026)
+- **_render_inline_status** (def, line 43, score: 0.0026)
+- **default_command** (def, line 172, score: 0.0026)
+- **render_welcome** (def, line 29, score: 0.0026)
+
+### src/cub/cli/delegated/__init__.py
+
+- **_delegate** (def, line 16, score: 0.0026)
+- **architect** (def, line 56, score: 0.0026)
+- **artifacts** (def, line 164, score: 0.0026)
+- **bootstrap** (def, line 116, score: 0.0026)
+- **branch** (def, line 198, score: 0.0026)
+- **branches** (def, line 214, score: 0.0026)
+- **checkpoints** (def, line 231, score: 0.0026)
+- **close_task** (def, line 322, score: 0.0026)
+- **explain_task** (def, line 149, score: 0.0026)
+- **guardrails** (def, line 282, score: 0.0026)
+- **import_cmd** (def, line 266, score: 0.0026)
+- **interview** (def, line 250, score: 0.0026)
+- **plan** (def, line 71, score: 0.0026)
+- **prep** (def, line 36, score: 0.0026)
+- **sessions** (def, line 131, score: 0.0026)
+- **spec** (def, line 101, score: 0.0026)
+- **stage** (def, line 85, score: 0.0026)
+- **triage** (def, line 41, score: 0.0026)
+- **update** (def, line 298, score: 0.0026)
+- **validate** (def, line 179, score: 0.0026)
+- **verify_task** (def, line 337, score: 0.0026)
+
+### src/cub/cli/delegated/runner.py
+
+- **BashCubNotFoundError** (def, line 24, score: 0.0026)
+- **delegate_to_bash** (def, line 117, score: 0.0026)
+- **find_bash_cub** (def, line 30, score: 0.0026)
+- **is_bash_command** (def, line 79, score: 0.0026)
 
 ### src/cub/cli/docs.py
 
-- **docs** (def, line 16, score: 0.0029)
+- **docs** (def, line 16, score: 0.0026)
 
 ### src/cub/cli/doctor.py
 
-- **_check_command** (def, line 175, score: 0.0029)
-- **_get_command_version** (def, line 189, score: 0.0029)
-- **check_environment** (def, line 125, score: 0.0029)
-- **check_hooks** (def, line 211, score: 0.0029)
-- **check_stale_epics** (def, line 28, score: 0.0029)
-- **doctor** (def, line 352, score: 0.0029)
+- **_check_command** (def, line 175, score: 0.0026)
+- **_get_command_version** (def, line 189, score: 0.0026)
+- **check_environment** (def, line 125, score: 0.0026)
+- **check_hooks** (def, line 211, score: 0.0026)
+- **check_stale_epics** (def, line 28, score: 0.0026)
+- **doctor** (def, line 352, score: 0.0026)
 
 ### src/cub/cli/errors.py
 
-- **ExitCode** (def, line 15, score: 0.0029)
-- **print_backend_not_initialized_error** (def, line 144, score: 0.0029)
-- **print_dirty_working_tree_error** (def, line 153, score: 0.0029)
-- **print_error** (def, line 31, score: 0.0029)
-- **print_harness_not_found_error** (def, line 67, score: 0.0029)
-- **print_harness_not_installed_error** (def, line 77, score: 0.0029)
-- **print_incompatible_flags_error** (def, line 162, score: 0.0029)
-- **print_invalid_option_error** (def, line 194, score: 0.0029)
-- **print_main_branch_error** (def, line 184, score: 0.0029)
-- **print_missing_dependency_error** (def, line 172, score: 0.0029)
-- **print_no_tasks_found_error** (def, line 113, score: 0.0029)
-- **print_not_git_repo_error** (def, line 95, score: 0.0029)
-- **print_not_project_root_error** (def, line 104, score: 0.0029)
-- **print_sync_not_initialized_error** (def, line 135, score: 0.0029)
-- **print_task_not_found_error** (def, line 126, score: 0.0029)
+- **ExitCode** (def, line 15, score: 0.0026)
+- **print_backend_not_initialized_error** (def, line 144, score: 0.0026)
+- **print_dirty_working_tree_error** (def, line 153, score: 0.0026)
+- **print_error** (def, line 31, score: 0.0026)
+- **print_harness_not_found_error** (def, line 67, score: 0.0026)
+- **print_harness_not_installed_error** (def, line 77, score: 0.0026)
+- **print_incompatible_flags_error** (def, line 162, score: 0.0026)
+- **print_invalid_option_error** (def, line 194, score: 0.0026)
+- **print_main_branch_error** (def, line 184, score: 0.0026)
+- **print_missing_dependency_error** (def, line 172, score: 0.0026)
+- **print_no_tasks_found_error** (def, line 113, score: 0.0026)
+- **print_not_git_repo_error** (def, line 95, score: 0.0026)
+- **print_not_project_root_error** (def, line 104, score: 0.0026)
+- **print_sync_not_initialized_error** (def, line 135, score: 0.0026)
+- **print_task_not_found_error** (def, line 126, score: 0.0026)
 
 ### src/cub/cli/hooks.py
 
-- **check** (def, line 136, score: 0.0029)
-- **install** (def, line 26, score: 0.0029)
-- **uninstall** (def, line 101, score: 0.0029)
+- **check** (def, line 136, score: 0.0026)
+- **install** (def, line 26, score: 0.0026)
+- **uninstall** (def, line 101, score: 0.0026)
 
 ### src/cub/cli/init_cmd.py
 
-- **_detect_dev_mode** (def, line 83, score: 0.0029)
-- **_ensure_cub_json** (def, line 331, score: 0.0029)
-- **_ensure_dev_mode_config** (def, line 107, score: 0.0029)
-- **_ensure_prompt_md** (def, line 261, score: 0.0029)
-- **_ensure_runloop** (def, line 152, score: 0.0029)
-- **_ensure_specs_dir** (def, line 325, score: 0.0029)
-- **_get_templates_dir** (def, line 136, score: 0.0029)
-- **_init_backend** (def, line 232, score: 0.0029)
-- **_init_global** (def, line 348, score: 0.0029)
-- **_install_claude_commands** (def, line 290, score: 0.0029)
-- **_load_project_config** (def, line 52, score: 0.0029)
-- **_save_project_config** (def, line 65, score: 0.0029)
-- **_update_gitignore** (def, line 310, score: 0.0029)
-- **detect_backend** (def, line 213, score: 0.0029)
-- **detect_project_type** (def, line 172, score: 0.0029)
-- **generate_instruction_files** (def, line 390, score: 0.0029)
-- **init_project** (def, line 517, score: 0.0029)
-- **main** (def, line 609, score: 0.0029)
+- **_detect_dev_mode** (def, line 83, score: 0.0026)
+- **_ensure_cub_json** (def, line 331, score: 0.0026)
+- **_ensure_dev_mode_config** (def, line 107, score: 0.0026)
+- **_ensure_prompt_md** (def, line 261, score: 0.0026)
+- **_ensure_runloop** (def, line 152, score: 0.0026)
+- **_ensure_specs_dir** (def, line 325, score: 0.0026)
+- **_get_templates_dir** (def, line 136, score: 0.0026)
+- **_init_backend** (def, line 232, score: 0.0026)
+- **_init_global** (def, line 348, score: 0.0026)
+- **_install_claude_commands** (def, line 290, score: 0.0026)
+- **_load_project_config** (def, line 52, score: 0.0026)
+- **_save_project_config** (def, line 65, score: 0.0026)
+- **_update_gitignore** (def, line 310, score: 0.0026)
+- **detect_backend** (def, line 213, score: 0.0026)
+- **detect_project_type** (def, line 172, score: 0.0026)
+- **generate_instruction_files** (def, line 390, score: 0.0026)
+- **init_project** (def, line 517, score: 0.0026)
+- **main** (def, line 609, score: 0.0026)
 
 ### src/cub/cli/investigate.py
 
-- **CaptureCategory** (def, line 28, score: 0.0029)
-- **_ensure_investigations_dir** (def, line 196, score: 0.0029)
-- **_extract_body_content** (def, line 202, score: 0.0029)
-- **categorize_capture** (def, line 39, score: 0.0029)
-- **investigate** (def, line 710, score: 0.0029)
-- **process_audit** (def, line 246, score: 0.0029)
-- **process_design** (def, line 478, score: 0.0029)
-- **process_quick_fix** (def, line 212, score: 0.0029)
-- **process_research** (def, line 389, score: 0.0029)
-- **process_spike** (def, line 595, score: 0.0029)
-- **process_unclear** (def, line 632, score: 0.0029)
+- **CaptureCategory** (def, line 28, score: 0.0026)
+- **_ensure_investigations_dir** (def, line 196, score: 0.0026)
 
-### src/cub/cli/ledger.py
-
-- **_export_csv** (def, line 873, score: 0.0029)
-- **_export_json** (def, line 860, score: 0.0029)
-
-... (215 more symbols omitted to fit budget)
+... (216 more symbols omitted to fit budget)
