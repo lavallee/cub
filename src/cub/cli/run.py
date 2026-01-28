@@ -39,8 +39,7 @@ from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.writer import LedgerWriter
 from cub.core.run.git_ops import create_run_branch, get_epic_context, get_issue_context, slugify
 from cub.core.run.interrupt import InterruptHandler
-from cub.core.run.loop import RunLoop
-from cub.core.run.models import RunConfig, RunEvent, RunEventType
+from cub.core.run.models import RunEvent, RunEventType
 
 # TODO: Restore when plan module is implemented
 # from cub.core.plan.context import PlanContext
@@ -48,6 +47,7 @@ from cub.core.run.models import RunConfig, RunEvent, RunEventType
 from cub.core.sandbox.models import SandboxConfig, SandboxState
 from cub.core.sandbox.provider import get_provider, is_provider_available
 from cub.core.sandbox.state import clear_sandbox_state, save_sandbox_state
+from cub.core.services.run import RunService
 from cub.core.session import RunSessionManager, SessionBudget
 
 # TODO: Restore when specs module is implemented
@@ -1115,7 +1115,6 @@ def run(
         console.print("\n[yellow]Interrupt received. Finishing current task...[/yellow]")
 
     interrupt_handler.on_interrupt(_on_interrupt_callback)
-    interrupt_handler.register()
 
     # Initialize run status
     run_id = session_name or f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -1203,48 +1202,39 @@ def run(
             )
         status_writer.write(status)
 
-    # Build RunConfig from CLI args and loaded config
-    run_config = RunConfig(
-        once=once,
-        task_id=task_id,
-        epic=epic,
-        label=label,
-        model=model or config.harness.model,
-        harness_name=harness_name,
-        session_name=session_name,
-        stream=stream,
-        debug=debug,
-        max_iterations=max_iterations,
-        max_task_iterations=config.guardrails.max_task_iterations,
-        on_task_failure=config.loop.on_task_failure,
-        budget_tokens=budget_tokens or config.budget.max_tokens_per_task,
-        budget_cost=budget or config.budget.max_total_cost,
-        budget_tasks=config.budget.max_tasks_per_session,
-        circuit_breaker_enabled=circuit_breaker_enabled,
-        circuit_breaker_timeout_minutes=config.circuit_breaker.timeout_minutes,
-        ledger_enabled=config.ledger.enabled,
-        hooks_enabled=config.hooks.enabled,
-        hooks_fail_fast=config.hooks.fail_fast,
-        sync_enabled=sync_service is not None,
-        iteration_warning_threshold=config.guardrails.iteration_warning_threshold,
-        project_dir=str(project_dir),
-    )
-
-    # Create RunLoop with interrupt handler
-    run_loop = RunLoop(
-        config=run_config,
+    # Build RunService with pre-wired dependencies
+    run_service = RunService(
+        config=config,
+        project_dir=project_dir,
         task_backend=task_backend,
+        harness_name=harness_name,
         harness_backend=harness_backend,
         ledger_integration=ledger_integration,
         sync_service=sync_service,
         status_writer=status_writer,
-        run_id=run_id,
         interrupt_handler=interrupt_handler,
     )
 
+    # Build RunConfig from CLI args and loaded config
+    run_config = run_service.build_run_config(
+        once=once,
+        task_id=task_id,
+        epic=epic,
+        label=label,
+        model=model,
+        session_name=session_name,
+        stream=stream,
+        debug=debug,
+        max_iterations=max_iterations,
+        budget_tokens=budget_tokens,
+        budget_cost=budget,
+        no_circuit_breaker=no_circuit_breaker,
+        no_sync=no_sync,
+    )
+
     try:
-        # Execute the loop and render events
-        for event in run_loop.execute():
+        # Execute the loop via RunService and render events
+        for event in run_service.execute(run_config, run_id=run_id):
             # No need to forward interrupt flag - RunLoop checks interrupt_handler directly
 
             # Render event based on type
