@@ -12,7 +12,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
 
+
+@pytest.mark.slow
 def test_installation_from_source() -> None:
     """Test installing cub from source in a clean venv."""
     # Create a temporary directory for the venv

@@ -3,12 +3,18 @@ Unit tests for itemize stage implementation.
 
 Tests the ItemizeStage class functionality including validation,
 context extraction, task generation, and itemized-plan.md generation.
+
+All stage tests mock out invoke_claude_command so stages use
+their template fallback instead of calling the real Claude CLI.
 """
 
 import json
 from pathlib import Path
 
 import pytest
+
+# Use template fallback instead of real Claude CLI.
+pytestmark = pytest.mark.usefixtures("_no_claude")
 
 from cub.core.plan.context import PlanContext
 from cub.core.plan.itemize import (

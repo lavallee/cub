@@ -332,6 +332,7 @@ claude
 
 ## Related Commands
 
+- [`cub new`](new.md) - Create a new project directory (combines mkdir + git init + cub init)
 - [`cub doctor`](doctor.md) - Diagnose configuration issues
 - [`cub prep`](prep.md) - Run the prep pipeline
 - [`cub run`](run.md) - Execute the task loop

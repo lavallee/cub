@@ -167,6 +167,24 @@ def update(
             else:
                 skipped.append((str(target_path), "unchanged"))
 
+    # Update scripts
+    if not skills_only:
+        scripts_source = templates_dir / "scripts"
+        scripts_target = Path(".cub") / "scripts"
+        if scripts_source.is_dir():
+            scripts_target.mkdir(parents=True, exist_ok=True)
+            for script_file in scripts_source.glob("*.py"):
+                target_path = scripts_target / script_file.name
+                if not target_path.exists():
+                    updates.append((str(script_file), str(target_path), "new"))
+                elif files_differ(script_file, target_path):
+                    if force:
+                        updates.append((str(script_file), str(target_path), "update"))
+                    else:
+                        skipped.append((str(target_path), "modified"))
+                else:
+                    skipped.append((str(target_path), "unchanged"))
+
     # Update Claude Code skills
     if not templates_only:
         skills_source = templates_dir / "commands"
@@ -208,6 +226,9 @@ def update(
                 target_path = Path(target)
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_bytes(source_path.read_bytes())
+                # Set executable for scripts
+                if target_path.suffix == ".py" and "scripts" in target_path.parts:
+                    target_path.chmod(0o755)
 
             console.print()
             console.print(f"[green]Updated {len(updates)} file(s)[/green]")

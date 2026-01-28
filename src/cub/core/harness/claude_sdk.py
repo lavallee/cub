@@ -622,12 +622,13 @@ class ClaudeSDKBackend:
         self,
         task_input: TaskInput,
         debug: bool = False,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | TokenUsage]:
         """
         Execute task with streaming output (async generator).
 
         Uses the SDK's query() function with real-time text extraction.
-        Yields text chunks as they're generated.
+        Yields text chunks as they're generated. The final yielded
+        value is a TokenUsage object with usage data for the session.
 
         Hook execution points:
         - PRE_TASK: Before task execution (can block task)
@@ -641,7 +642,7 @@ class ClaudeSDKBackend:
             debug: Enable debug logging
 
         Yields:
-            Output chunks as strings
+            Output chunks as strings, and a final TokenUsage sentinel
 
         Raises:
             RuntimeError: If SDK is not available, invocation fails,
@@ -673,12 +674,18 @@ class ClaudeSDKBackend:
 
         options = _build_options(task_input)
 
+        usage: TokenUsage | None = None
         try:
             async for sdk_message in query(prompt=task_input.prompt, options=options):
                 # Extract and yield text chunks
                 text = _extract_text_from_message(sdk_message)
                 if text:
                     yield text
+
+                # Capture usage from ResultMessage
+                msg_usage = _extract_usage(sdk_message)
+                if msg_usage is not None:
+                    usage = msg_usage
 
         except CLINotFoundError as e:
             # Execute ON_ERROR hooks
@@ -709,6 +716,10 @@ class ClaudeSDKBackend:
             )
             await self._execute_hooks(HookEvent.ON_ERROR, error_context)
             raise RuntimeError(f"Claude Code process failed: {e}") from e
+
+        # Yield usage as final sentinel
+        if usage is not None:
+            yield usage
 
     def get_version(self) -> str:
         """

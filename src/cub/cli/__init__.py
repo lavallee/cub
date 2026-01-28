@@ -4,6 +4,8 @@ Cub CLI - Main application entry point.
 This module sets up the Typer CLI application with all subcommands.
 """
 
+import sys
+
 import typer
 from rich.console import Console
 
@@ -19,6 +21,7 @@ from cub.cli import (
     ledger,
     merge,
     monitor,
+    new,
     organize_captures,
     plan,
     pr,
@@ -41,6 +44,7 @@ from cub.cli import (
     workflow,
     worktree,
 )
+from cub.cli.argv import preprocess_argv
 from cub.core.config.env import load_layered_env
 
 # Help panel names for command grouping
@@ -59,6 +63,7 @@ app = typer.Typer(
     help="Autonomous AI coding agent for reliable task execution",
     no_args_is_help=True,
     add_completion=True,
+    context_settings={"help_option_names": ["--help", "-h"]},
 )
 
 console = Console()
@@ -127,6 +132,7 @@ def main(
 # =============================================================================
 
 app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
+app.command(name="new", rich_help_panel=PANEL_KEY)(new.new)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 
 
@@ -240,7 +246,12 @@ def cli_main() -> None:
 
     All commands (including bash-delegated ones) are now registered
     in the Typer app, so we just invoke it directly.
+
+    The argv preprocessor normalizes common patterns before Typer
+    parses them (e.g. ``cub --version``, ``cub help run``,
+    ``cub run --debug``).
     """
+    sys.argv[1:] = preprocess_argv(sys.argv[1:])
     app()
 
 

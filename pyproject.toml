@@ -50,6 +50,18 @@ dev = [
     "types-requests>=2.31.0",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.12.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-timeout>=2.2.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+    "types-requests>=2.31.0",
+]
+
 [project.scripts]
 cub = "cub.cli:cli_main"
 
@@ -64,7 +76,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-cub = ["bash/**/*"]
+cub = ["bash/**/*", "templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -73,6 +85,7 @@ addopts = "-v --strict-markers"
 markers = [
     "asyncio: mark test as an async test",
     "timeout: mark test with a timeout",
+    "slow: marks tests that take >10s (deselect with '-m \"not slow\"')",
 ]
 
 [tool.ruff]

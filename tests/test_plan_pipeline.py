@@ -3,6 +3,8 @@ Unit tests for pipeline orchestration.
 
 Tests the PlanPipeline class that runs orient -> architect -> itemize
 in sequence with spec lifecycle management.
+
+All stages fall back to template-based generation (no real LLM calls).
 """
 
 import json
@@ -20,6 +22,11 @@ from cub.core.plan.pipeline import (
     continue_pipeline,
     run_pipeline,
 )
+
+# All pipeline tests mock out invoke_claude_command so stages use
+# their template fallback instead of calling the real Claude CLI.
+pytestmark = pytest.mark.usefixtures("_no_claude")
+
 
 # ==============================================================================
 # Test Fixtures

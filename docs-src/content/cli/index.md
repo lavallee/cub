@@ -22,6 +22,7 @@ The primary commands for everyday use:
 | [`cub run`](run.md) | Execute the autonomous task loop |
 | [`cub prep`](prep.md) | Run the vision-to-tasks pipeline |
 | [`cub init`](init.md) | Initialize cub in a project |
+| [`cub new`](new.md) | Create a new project directory |
 
 ### Status Commands
 

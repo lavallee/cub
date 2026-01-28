@@ -89,13 +89,19 @@ class CircuitBreaker:
         done
     """
 
-    def __init__(self, timeout_minutes: int, enabled: bool = True) -> None:
+    def __init__(
+        self,
+        timeout_minutes: int,
+        enabled: bool = True,
+        _timeout_seconds_override: float | None = None,
+    ) -> None:
         """
         Initialize a circuit breaker.
 
         Args:
             timeout_minutes: Maximum minutes to wait before tripping (must be >= 1)
             enabled: Whether to enforce timeout (default: True)
+            _timeout_seconds_override: Override timeout in seconds (for testing only)
 
         Raises:
             ValueError: If timeout_minutes < 1
@@ -105,6 +111,7 @@ class CircuitBreaker:
 
         self.timeout_minutes = timeout_minutes
         self.enabled = enabled
+        self._timeout_seconds_override = _timeout_seconds_override
 
     async def execute(self, coro: Coroutine[None, None, T]) -> T:
         """
@@ -138,7 +145,11 @@ class CircuitBreaker:
             # Circuit breaker disabled - execute without timeout
             return await coro
 
-        timeout_seconds = self.timeout_minutes * 60
+        timeout_seconds = (
+            self._timeout_seconds_override
+            if self._timeout_seconds_override is not None
+            else self.timeout_minutes * 60
+        )
 
         try:
             # Use asyncio.wait_for to enforce timeout
