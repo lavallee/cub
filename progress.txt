@@ -538,3 +538,51 @@
 - Manual smoke tests confirm correct filtering behavior
 - Total test suite: 3977 tests passed
 
+## Task cub-w3f.5 - Integrate hook installation into cub init and cub doctor
+
+**Date:** 2026-01-28
+
+**Key Implementation Details:**
+
+1. **Init Command Integration**: Added `--hooks` flag to `cub init` for explicit opt-in hook installation. The flag integrates with `install_hooks()` from the installer module and reports installation results via Rich output.
+
+2. **Doctor Command Integration**: Added `check_hooks()` function to `cub doctor` that validates hook configuration using `validate_hooks()`. Reports errors, warnings, and info messages with actionable suggestions like "Run 'cub init --hooks --force' to reinstall hooks".
+
+3. **User Experience Design**: Hook installation is opt-in via `--hooks` flag rather than automatic. Doctor provides informational message when hooks aren't configured, not an error. This respects users who don't need/want hooks.
+
+4. **Error Handling Pattern**: Hook installation failures don't block `cub init` from succeeding. Hook validation errors don't prevent other doctor checks from running. Graceful degradation throughout.
+
+5. **Result Variable Naming**: When multiple results of different types are captured in the same function, use descriptive names like `hook_result` instead of reusing `result` to avoid mypy assignment errors.
+
+6. **Test Coverage**: Added 4 tests for init (hook installation, skip when flag not set, failure handling, warning reporting) and 5 tests for doctor (not installed, properly configured, errors, warnings, info messages).
+
+7. **Mock Patterns**: Tests mock `install_hooks()` and `validate_hooks()` to avoid actual file operations. Use `patch()` context manager with return values that match the actual model types (`HookInstallResult`, `HookIssue`).
+
+### Learnings
+
+- **Variable Shadowing**: When using `result` as a variable name in the same function for different types (e.g., `UpsertResult` and `HookInstallResult`), mypy will complain about incompatible types. Use descriptive names like `hook_result` to avoid this.
+
+- **Opt-in vs Opt-out**: For features that require user setup (like hooks), opt-in with explicit flags is better UX than auto-installing. Users appreciate being asked rather than being surprised.
+
+- **Graceful Degradation**: Non-critical features like hook installation should not block core functionality. Use try/except and continue on errors.
+
+- **Actionable Suggestions**: When doctor reports issues, always provide the command to fix it (e.g., "Run 'cub init --hooks --force'"). This reduces friction and helps users self-serve.
+
+- **Test Organization**: When adding tests to existing test files, add them at the end in their own test class. This keeps the file organized and makes it clear which tests are new.
+
+- **Line Length Linting**: When creating mock objects with many parameters, break them across multiple lines to stay under 100 characters. Ruff will complain otherwise.
+
+### Files Modified
+- src/cub/cli/init_cmd.py (added --hooks flag, install_hooks integration)
+- src/cub/cli/doctor.py (added check_hooks function, integrated into doctor)
+- tests/test_cli_init_cmd.py (added 4 new tests)
+- tests/test_cli_doctor.py (added TestDoctorHooksCheck class with 5 tests)
+
+### Test Results
+- All 10 init tests pass (6 existing + 4 new)
+- All 15 doctor tests pass (10 existing + 5 new)
+- All 25 hook installer tests pass
+- Total: 50 related tests passed
+- Mypy type checking: Clean (pre-existing yaml stub warnings in other files)
+- Ruff linting: All checks passed
+
