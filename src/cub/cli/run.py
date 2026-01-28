@@ -7,7 +7,6 @@ Execute autonomous task loop with specified harness.
 from __future__ import annotations
 
 import os
-import signal
 import sys
 import time
 from datetime import datetime
@@ -38,6 +37,7 @@ from cub.core.harness.async_backend import detect_async_harness, get_async_backe
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.writer import LedgerWriter
+from cub.core.run.git_ops import create_run_branch, get_epic_context, get_issue_context, slugify
 from cub.core.run.interrupt import InterruptHandler
 from cub.core.run.loop import RunLoop
 from cub.core.run.models import RunConfig, RunEvent, RunEventType
@@ -254,129 +254,6 @@ def _invoke_harness(
     return _run_async(lambda: coro)
 
 
-def _slugify(text: str, max_length: int = 40) -> str:
-    """Convert text to a URL/branch-friendly slug."""
-    import re
-
-    # Convert to lowercase
-    slug = text.lower()
-    # Replace spaces and underscores with hyphens
-    slug = re.sub(r"[\s_]+", "-", slug)
-    # Remove non-alphanumeric characters (except hyphens)
-    slug = re.sub(r"[^a-z0-9-]", "", slug)
-    # Collapse multiple hyphens
-    slug = re.sub(r"-+", "-", slug)
-    # Strip leading/trailing hyphens
-    slug = slug.strip("-")
-    # Truncate to max length (at word boundary if possible)
-    if len(slug) > max_length:
-        slug = slug[:max_length].rsplit("-", 1)[0]
-    return slug
-
-
-def _create_branch_from_base(
-    branch_name: str,
-    base_branch: str,
-    console: Console,
-) -> bool:
-    """
-    Create a new git branch from a base branch.
-
-    Args:
-        branch_name: Name for the new branch
-        base_branch: Branch to create from
-        console: Rich console for output
-
-    Returns:
-        True if branch was created successfully
-    """
-    import subprocess
-
-    from cub.core.branches.store import BranchStore
-
-    # Check if branch already exists
-    if BranchStore.git_branch_exists(branch_name):
-        console.print(f"[yellow]Branch '{branch_name}' already exists[/yellow]")
-        # Switch to it
-        result = subprocess.run(
-            ["git", "checkout", branch_name],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode != 0:
-            console.print(f"[red]Failed to switch to branch: {result.stderr}[/red]")
-            return False
-        console.print(f"[green]Switched to existing branch '{branch_name}'[/green]")
-        return True
-
-    # Verify base branch exists
-    if not BranchStore.git_branch_exists(base_branch):
-        # Try with origin/ prefix
-        remote_base = f"origin/{base_branch}"
-        if BranchStore.git_branch_exists(remote_base):
-            base_branch = remote_base
-        else:
-            console.print(f"[red]Base branch '{base_branch}' does not exist[/red]")
-            return False
-
-    # Create and checkout new branch from base
-    result = subprocess.run(
-        ["git", "checkout", "-b", branch_name, base_branch],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        console.print(f"[red]Failed to create branch: {result.stderr}[/red]")
-        return False
-
-    console.print(f"[green]Created branch '{branch_name}' from '{base_branch}'[/green]")
-    return True
-
-
-def _get_gh_issue_title(issue_number: int) -> str | None:
-    """Get the title of a GitHub issue."""
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["gh", "issue", "view", str(issue_number), "--json", "title", "-q", ".title"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-        return None
-    except (OSError, FileNotFoundError):
-        return None
-
-
-def _get_epic_title(epic_id: str) -> str | None:
-    """Get the title of an epic from beads."""
-    import json
-    import subprocess
-
-    try:
-        result = subprocess.run(
-            ["bd", "show", epic_id, "--json"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            # bd show returns a list with one element
-            if isinstance(data, list) and len(data) > 0:
-                data = data[0]
-            if isinstance(data, dict):
-                title = data.get("title")
-                if isinstance(title, str):
-                    return title
-        return None
-    except (OSError, FileNotFoundError, json.JSONDecodeError):
-        return None
 
 
 app = typer.Typer(
@@ -889,26 +766,26 @@ def run(
 
         if label:
             # --label foo → feature/foo
-            auto_branch_name = f"feature/{_slugify(label)}"
+            auto_branch_name = f"feature/{slugify(label)}"
         elif epic:
             # --epic cub-xyz → feature/[epic-slug]
-            epic_title = _get_epic_title(epic)
-            if epic_title:
-                auto_branch_name = f"feature/{_slugify(epic_title)}"
+            epic_context = get_epic_context(epic)
+            if epic_context.title:
+                auto_branch_name = f"feature/{slugify(epic_context.title)}"
             else:
                 # Fallback to epic ID
-                auto_branch_name = f"feature/{_slugify(epic)}"
+                auto_branch_name = f"feature/{slugify(epic)}"
         elif gh_issue is not None:
             # --gh-issue 47 → fix/[issue-slug]
-            issue_title = _get_gh_issue_title(gh_issue)
-            if issue_title:
-                auto_branch_name = f"fix/{_slugify(issue_title)}"
+            issue_context = get_issue_context(gh_issue)
+            if issue_context.title:
+                auto_branch_name = f"fix/{slugify(issue_context.title)}"
             else:
                 # Fallback to issue number
                 auto_branch_name = f"fix/issue-{gh_issue}"
         elif task_id:
             # --task cub-123 → task/cub-123
-            auto_branch_name = f"task/{_slugify(task_id)}"
+            auto_branch_name = f"task/{slugify(task_id)}"
         else:
             # No specific context - generate timestamp-based branch
             auto_branch_name = f"cub/run-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -924,8 +801,18 @@ def run(
         else:
             # On main/master or detached HEAD - create and switch to new branch
             console.print(f"[cyan]Creating branch '{auto_branch_name}' from '{base_branch}'[/cyan]")
-            if not _create_branch_from_base(auto_branch_name, base_branch, console):
+            result = create_run_branch(auto_branch_name, base_branch)
+            if not result.success:
+                console.print(f"[red]{result.error}[/red]")
                 raise typer.Exit(1)
+            # Print user-friendly messages
+            if result.created:
+                console.print(
+                    f"[green]Created branch '{result.branch_name}' from '{base_branch}'[/green]"
+                )
+            else:
+                console.print(f"[yellow]Branch '{result.branch_name}' already exists[/yellow]")
+                console.print(f"[green]Switched to existing branch '{result.branch_name}'[/green]")
 
             # Bind branch to epic if --epic was specified
             if epic:
