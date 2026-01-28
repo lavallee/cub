@@ -23,8 +23,50 @@
     "captured_at": "2026-01-28T04:51:03.270684Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T04:51:03.280553",
+      "completed_at": "2026-01-28T05:00:25.238861Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5429,
+        "output_tokens": 26517,
+        "cache_read_tokens": 3141140,
+        "cache_creation_tokens": 59997
+      },
+      "cost_usd": 1.7281066000000005,
+      "duration_seconds": 561
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:00:25.429690Z",
+    "total_cost_usd": 1.7281066000000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 561,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "556ea0bf2a5f363252e05630dd03d8e06b08a3a9",
+        "message": "task(cub-r1c.1): Implement structure analyzer module",
+        "author": "",
+        "timestamp": "2026-01-28T04:59:43Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T04:51:03.270684Z"
+    "stage_updated_at": "2026-01-28T05:00:25.429690Z"
   },
   "state_history": [
     {
@@ -48,31 +90,44 @@
       "at": "2026-01-28T04:51:03.270684Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:00:25.429690Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T04:51:03.270684Z",
-  "completed_at": "2026-01-28T04:51:03.270684Z",
+  "completed_at": "2026-01-28T05:00:25.429690Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 5429,
+    "output_tokens": 26517,
+    "cache_read_tokens": 3141140,
+    "cache_creation_tokens": 59997
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.7281066000000005,
+  "duration_seconds": 561,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "556ea0bf2a5f363252e05630dd03d8e06b08a3a9",
+      "message": "task(cub-r1c.1): Implement structure analyzer module",
+      "author": "",
+      "timestamp": "2026-01-28T04:59:43Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.1",
   "epic_id": "cub-r1c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

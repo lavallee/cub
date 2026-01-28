@@ -10,6 +10,7 @@ Main entry points:
     - analyze_structure(): Project structure analysis
     - extract_tags(): Tree-sitter symbol extraction
     - rank_symbols(): PageRank-based symbol ranking
+    - render_map(): Combine structure and symbols into markdown with token budgeting
 
 Example:
     >>> from cub.core.map import analyze_structure
@@ -19,9 +20,10 @@ Example:
     >>> len(structure.build_commands)
     5
 
-    >>> from cub.core.map import extract_tags, rank_symbols
+    >>> from cub.core.map import extract_tags, rank_symbols, render_map
     >>> tags = extract_tags(Path("/path/to/project"))
     >>> ranked = rank_symbols(tags, token_budget=2048)
+    >>> map_markdown = render_map(structure, ranked, token_budget=4096)
 """
 
 from cub.core.map.code_intel import (
@@ -39,6 +41,7 @@ from cub.core.map.models import (
     ProjectStructure,
     TechStack,
 )
+from cub.core.map.renderer import estimate_tokens, render_map
 from cub.core.map.structure import analyze_structure
 
 __all__ = [
@@ -47,6 +50,9 @@ __all__ = [
     # Code intelligence
     "extract_tags",
     "rank_symbols",
+    # Rendering
+    "render_map",
+    "estimate_tokens",
     # Structure models
     "BuildCommand",
     "DirectoryNode",

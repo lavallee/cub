@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "cub-r1c.2",
+  "title": "Implement code intelligence module with tree-sitter",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1c"
+  },
+  "task": {
+    "title": "Implement code intelligence module with tree-sitter",
+    "description": "This is the tree-sitter + PageRank pipeline adapted from Aider's\nrepo map approach. Uses `grep-ast` for tag extraction and `networkx` for\nranking. This is the highest-risk task \u2014 it involves external library\nintegration and must degrade gracefully.\n\n**Implementation Steps:**\n1. Add dependencies to `pyproject.toml`: `grep-ast>=0.9.0`, `networkx>=3.2.0`, `tree-sitter-language-pack>=0.13.0`, `diskcache>=5.6.0`, `pathspec>=0.12.0`\n2. Create `src/cub/core/map/code_intel.py`\n3. Implement `SymbolTag` and `RankedSymbol` Pydantic models\n4. Implement `extract_tags(project_dir, files)`:\n5. Implement `rank_symbols(tags, token_budget)`:\n6. Implement `diskcache`-based caching: cache parsed tags per file keyed by `(file_path, mtime, file_size)` \u2014 invalidate on any change\n7. Implement graceful fallback: if `grep-ast` or `tree-sitter-language-pack` import fails, `extract_tags()` returns empty list with a logged warning\n8. Write tests: mock `grep-ast` output for unit tests; integration test against the cub repo itself\n\n**Files:** src/cub/core/map/code_intel.py, pyproject.toml, tests/test_map_code_intel.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:high",
+      "core",
+      "epic:cub-r1c",
+      "model:opus",
+      "phase-3",
+      "risk:medium"
+    ],
+    "created_at": "2026-01-28T03:34:52.365104Z",
+    "captured_at": "2026-01-28T05:00:27.823422Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T05:00:27.842089",
+      "completed_at": "2026-01-28T05:13:07.862537Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 94,
+        "output_tokens": 36613,
+        "cache_read_tokens": 5262555,
+        "cache_creation_tokens": 97114
+      },
+      "cost_usd": 4.6732068500000015,
+      "duration_seconds": 760
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:13:08.080371Z",
+    "total_cost_usd": 4.6732068500000015,
+    "total_attempts": 1,
+    "total_duration_seconds": 760,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6e7abe7b4e7d66711efa029435bee38b758b5801",
+        "message": "docs: Add progress log for task cub-r1c.2",
+        "author": "",
+        "timestamp": "2026-01-28T05:12:49Z"
+      },
+      {
+        "hash": "a6529458baf6492b4685314e2fa89c75b3c8415a",
+        "message": "task(cub-r1c.2): Implement code intelligence module with tree-sitter",
+        "author": "",
+        "timestamp": "2026-01-28T05:12:17Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:13:08.080371Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:00:27.823422Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:13:08.080371Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T05:00:27.823422Z",
+  "completed_at": "2026-01-28T05:13:08.080371Z",
+  "tokens": {
+    "input_tokens": 94,
+    "output_tokens": 36613,
+    "cache_read_tokens": 5262555,
+    "cache_creation_tokens": 97114
+  },
+  "cost_usd": 4.6732068500000015,
+  "duration_seconds": 760,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "6e7abe7b4e7d66711efa029435bee38b758b5801",
+      "message": "docs: Add progress log for task cub-r1c.2",
+      "author": "",
+      "timestamp": "2026-01-28T05:12:49Z"
+    },
+    {
+      "hash": "a6529458baf6492b4685314e2fa89c75b3c8415a",
+      "message": "task(cub-r1c.2): Implement code intelligence module with tree-sitter",
+      "author": "",
+      "timestamp": "2026-01-28T05:12:17Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.2",
+  "epic_id": "cub-r1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "opus",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-r1c.3",
+  "title": "Implement map renderer with token budgeting",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1c"
+  },
+  "task": {
+    "title": "Implement map renderer with token budgeting",
+    "description": "The renderer combines structural analysis and ranked symbols into\na single markdown document within a token budget. It needs to prioritize\nstructural information (always useful) and fill remaining budget with ranked\nsymbols (valuable but cuttable).\n\n**Implementation Steps:**\n1. Create `src/cub/core/map/renderer.py`\n2. Implement `render_map(structure, ranked_symbols, token_budget, include_ledger_stats, ledger_reader)`:\n3. Implement token estimation: `estimate_tokens(text)` using word count heuristic (words / 0.75 \u2248 tokens). This is model-agnostic and avoids a tiktoken dependency.\n4. Implement budget allocation: structural sections get up to 40% of budget, symbols get remaining 60%, ledger stats capped at 10%\n5. Write tests with fixture data: verify budget is respected, verify section ordering, verify graceful handling of empty symbols list\n\n**Files:** src/cub/core/map/renderer.py, tests/test_map_renderer.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:34:52.365118Z",
+    "captured_at": "2026-01-28T05:13:10.420452Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:13:10.420452Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:13:10.420452Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T05:13:10.420452Z",
+  "completed_at": "2026-01-28T05:13:10.420452Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.3",
+  "epic_id": "cub-r1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
