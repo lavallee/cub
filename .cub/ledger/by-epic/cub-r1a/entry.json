@@ -17,38 +17,41 @@
     "captured_at": "2026-01-28T04:15:59.739001Z"
   },
   "task_ids": [
+    "cub-r1a.2",
+    "cub-r1a.3",
     "cub-r1a.1"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
-    "total_cost_usd": 0.5646165500000002,
-    "avg_cost_per_task": 0.5646165500000002,
-    "min_cost_usd": 0.5646165500000002,
-    "max_cost_usd": 0.5646165500000002,
+    "total_cost_usd": 2.3212651500000003,
+    "avg_cost_per_task": 0.7737550500000001,
+    "min_cost_usd": 0.2537753,
+    "max_cost_usd": 1.5028733,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 1041419,
-    "avg_tokens_per_task": 1041419,
-    "total_duration_seconds": 274,
-    "avg_duration_seconds": 274,
+    "total_tokens": 5395209,
+    "avg_tokens_per_task": 1798403,
+    "total_duration_seconds": 791,
+    "avg_duration_seconds": 263,
     "models_used": [
+      "haiku",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T04:15:59.751309Z"
+    "stage_updated_at": "2026-01-28T04:24:42.743588Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T04:11:25.403824Z",
-  "completed_at": "2026-01-28T04:15:59.733640Z",
-  "updated_at": "2026-01-28T04:15:59.751314Z",
+  "completed_at": "2026-01-28T04:24:42.720728Z",
+  "updated_at": "2026-01-28T04:24:42.743589Z",
   "first_commit": {
     "hash": "d4b7f4a9b2f895b063c19976f18564cab7a10828",
     "message": "task(cub-r1a.1): Remove progress.txt references from templates and prompts",
@@ -56,10 +59,10 @@
     "timestamp": "2026-01-28T04:15:26Z"
   },
   "last_commit": {
-    "hash": "d4b7f4a9b2f895b063c19976f18564cab7a10828",
-    "message": "task(cub-r1a.1): Remove progress.txt references from templates and prompts",
+    "hash": "1d5d0d870490d12f2ef75f099e1c94c9f81f654f",
+    "message": "task(cub-r1a.3): Delete stale progress and guardrails files from cub repo",
     "author": "",
-    "timestamp": "2026-01-28T04:15:26Z"
+    "timestamp": "2026-01-28T04:24:26Z"
   },
   "drift": {
     "additions": [],
