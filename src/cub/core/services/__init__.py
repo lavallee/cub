@@ -16,6 +16,7 @@ Modules:
     launch: LaunchService handles environment detection and harness launching.
     ledger: LedgerService provides ledger queries and stats.
     status: StatusService aggregates project state from multiple sources.
+    suggestions: SuggestionService provides smart recommendations for next actions.
     models: Data models used across services (ProjectStats, EpicProgress, etc.)
 """
 
@@ -33,6 +34,7 @@ from cub.core.services.ledger import (
 from cub.core.services.models import EpicProgress, LedgerStats, ProjectStats
 from cub.core.services.run import RunService
 from cub.core.services.status import StatusService, StatusServiceError
+from cub.core.services.suggestions import SuggestionService, SuggestionServiceError
 
 __all__ = [
     # Run service
@@ -49,6 +51,9 @@ __all__ = [
     # Status service
     "StatusService",
     "StatusServiceError",
+    # Suggestion service
+    "SuggestionService",
+    "SuggestionServiceError",
     # Models
     "ProjectStats",
     "EpicProgress",
