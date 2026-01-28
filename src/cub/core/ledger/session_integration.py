@@ -268,6 +268,11 @@ class SessionLedgerIntegration:
             # Entry already finalized - don't overwrite
             return existing_entry
 
+        # Determine attempt number based on existing attempts
+        attempt_number = 1
+        if existing_entry:
+            attempt_number = len(existing_entry.attempts) + 1
+
         now = datetime.now(timezone.utc)
 
         # Create task snapshot if we have task context
@@ -306,7 +311,7 @@ class SessionLedgerIntegration:
             duration = 0
 
         attempt = Attempt(
-            attempt_number=1,
+            attempt_number=attempt_number,
             run_id=session_id,
             started_at=started_at,
             completed_at=completed_at,
@@ -328,14 +333,24 @@ class SessionLedgerIntegration:
             # This would need to be enriched from actual git log
             pass  # Skip for now - requires git log parsing
 
+        # Calculate cumulative totals from all attempts
+        cumulative_cost = attempt.cost_usd
+        cumulative_duration = attempt.duration_seconds
+        if existing_entry:
+            # Add costs/durations from previous attempts
+            cumulative_cost += existing_entry.outcome.total_cost_usd if existing_entry.outcome else 0.0
+            cumulative_duration += (
+                existing_entry.outcome.total_duration_seconds if existing_entry.outcome else 0
+            )
+
         # Create outcome
         outcome = Outcome(
             success=attempt.success,
             partial=False,
             completed_at=attempt.completed_at or now,
-            total_cost_usd=attempt.cost_usd,
-            total_attempts=1,
-            total_duration_seconds=attempt.duration_seconds,
+            total_cost_usd=cumulative_cost,
+            total_attempts=attempt_number,
+            total_duration_seconds=cumulative_duration,
             final_model=attempt.model,
             escalated=False,
             escalation_path=[],
