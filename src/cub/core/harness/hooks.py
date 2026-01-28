@@ -453,19 +453,89 @@ async def handle_stop(payload: HookEventPayload) -> HookEventResult:
     )
 
 
+def _build_project_context(project_dir: Path) -> str | None:
+    """
+    Build project context string with tasks and metadata.
+
+    Loads available tasks from the project's task backend and formats
+    a concise context summary for injection into Claude Code session.
+
+    Args:
+        project_dir: Path to project directory
+
+    Returns:
+        Context string (under 500 tokens) or None if unavailable
+    """
+    try:
+        from cub.core.tasks.backend import get_backend
+        from cub.core.tasks.models import TaskStatus
+
+        # Load task backend from project config
+        backend = get_backend(project_dir=project_dir)
+
+        # Query ready tasks (top 10 by priority)
+        ready_tasks = backend.get_ready_tasks()[:10]
+
+        # Query in-progress tasks for resumed session awareness
+        in_progress_tasks = backend.list_tasks(status=TaskStatus.IN_PROGRESS)
+
+        # Get project name from directory
+        project_name = project_dir.name
+
+        # Build concise context string
+        context_parts = [f"**Project:** {project_name}"]
+
+        # Add ready tasks section
+        if ready_tasks:
+            context_parts.append("\n**Ready Tasks:**")
+            for task in ready_tasks:
+                priority_str = f"[{task.priority.value}]" if task.priority else ""
+                context_parts.append(f"- {task.id}: {task.title} {priority_str}")
+        else:
+            context_parts.append("\n**Ready Tasks:** None")
+
+        # Add in-progress tasks section
+        if in_progress_tasks:
+            context_parts.append("\n**In Progress:**")
+            for task in in_progress_tasks:
+                context_parts.append(f"- {task.id}: {task.title}")
+
+        # Join all parts
+        context = "\n".join(context_parts)
+
+        # Ensure we're under 500 tokens (rough estimate: 1 token ≈ 4 chars)
+        max_chars = 500 * 4
+        if len(context) > max_chars:
+            context = context[:max_chars] + "..."
+
+        logger.debug(
+            f"Built project context: {len(ready_tasks)} ready, {len(in_progress_tasks)} in progress"
+        )
+
+        return context
+
+    except Exception as e:
+        # Don't fail session start if context building fails
+        logger.debug(f"Failed to build project context: {e}")
+        return None
+
+
 async def handle_session_start(payload: HookEventPayload) -> HookEventResult:
     """
     Handle SessionStart events to initialize session tracking.
 
     Creates initial ledger entry for the session if it doesn't exist.
     Writes a session_start forensic event with cwd and timestamp.
+    Injects available tasks and project context as additionalContext.
 
     Args:
         payload: Parsed hook event payload
 
     Returns:
-        Hook result allowing execution to continue
+        Hook result allowing execution to continue with injected context
     """
+    additional_context = None
+
     try:
         # Create and write session_start event
         event = SessionStartEvent(session_id=payload.session_id, cwd=payload.cwd)
@@ -479,6 +549,11 @@ async def handle_session_start(payload: HookEventPayload) -> HookEventResult:
                 extra={"session_id": payload.session_id},
             )
 
+        # Load task backend and inject project context
+        if payload.cwd:
+            project_dir = Path(payload.cwd)
+            additional_context = _build_project_context(project_dir)
+
         logger.info(
             f"Session started: {payload.session_id}",
             extra={"session_id": payload.session_id, "cwd": payload.cwd},
@@ -486,9 +561,14 @@ async def handle_session_start(payload: HookEventPayload) -> HookEventResult:
     except Exception as e:
         logger.warning(f"Failed to initialize session in start hook: {e}")
 
+    # Return result with additional context if available
+    hook_specific = {"hookEventName": "SessionStart"}
+    if additional_context:
+        hook_specific["additionalContext"] = additional_context
+
     return HookEventResult(
         continue_execution=True,
-        hook_specific={"hookEventName": "SessionStart"},
+        hook_specific=hook_specific,
     )
 
 

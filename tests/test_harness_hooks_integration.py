@@ -106,6 +106,109 @@ class TestSessionStartIntegration:
         assert events[0]["event_type"] == "session_start"
         assert events[0]["session_id"] == session_id
 
+    @pytest.mark.asyncio
+    async def test_session_start_injects_project_context(
+        self,
+        project_dir: Path,
+        forensics_dir: Path,
+    ) -> None:
+        """Test that session_start injects project context with tasks."""
+        # Set up a task backend with some tasks
+        tasks_dir = project_dir / ".cub"
+        tasks_dir.mkdir(parents=True, exist_ok=True)
+        tasks_file = tasks_dir / "tasks.jsonl"
+
+        # Create some test tasks
+        test_tasks = [
+            {
+                "id": "cub-001",
+                "title": "Implement feature A",
+                "status": "open",
+                "priority": "P0",
+                "type": "task",
+            },
+            {
+                "id": "cub-002",
+                "title": "Fix bug B",
+                "status": "open",
+                "priority": "P1",
+                "type": "bug",
+                "depends_on": [],
+            },
+            {
+                "id": "cub-003",
+                "title": "Working on feature C",
+                "status": "in_progress",
+                "priority": "P2",
+                "type": "task",
+            },
+        ]
+
+        # Write tasks to jsonl file
+        with tasks_file.open("w", encoding="utf-8") as f:
+            for task in test_tasks:
+                json.dump(task, f)
+                f.write("\n")
+
+        session_id = "test-session-context"
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "SessionStart",
+                "session_id": session_id,
+                "cwd": str(project_dir),
+            }
+        )
+
+        result = await handle_session_start(payload)
+
+        assert result.continue_execution is True
+        assert result.hook_specific is not None
+        assert "additionalContext" in result.hook_specific
+
+        context = result.hook_specific["additionalContext"]
+        assert context is not None
+
+        # Verify context includes project name
+        assert project_dir.name in context
+
+        # Verify context includes ready tasks
+        assert "Ready Tasks:" in context
+        assert "cub-001" in context
+        assert "Implement feature A" in context
+        assert "[P0]" in context
+
+        # Verify context includes in-progress tasks
+        assert "In Progress:" in context
+        assert "cub-003" in context
+        assert "Working on feature C" in context
+
+    @pytest.mark.asyncio
+    async def test_session_start_handles_missing_tasks(
+        self,
+        project_dir: Path,
+        forensics_dir: Path,
+    ) -> None:
+        """Test that session_start handles projects without tasks gracefully."""
+        session_id = "test-session-no-tasks"
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "SessionStart",
+                "session_id": session_id,
+                "cwd": str(project_dir),
+            }
+        )
+
+        result = await handle_session_start(payload)
+
+        assert result.continue_execution is True
+
+        # May or may not have context, depending on backend availability
+        # The important thing is it doesn't crash
+        if result.hook_specific and "additionalContext" in result.hook_specific:
+            context = result.hook_specific["additionalContext"]
+            # Should mention project name
+            assert project_dir.name in context
+
 
 class TestPostToolUseIntegration:
     """Tests for handle_post_tool_use integration."""
