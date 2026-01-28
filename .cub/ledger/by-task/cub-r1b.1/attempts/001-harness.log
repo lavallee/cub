@@ -1,0 +1,44 @@
+
+
+I'll start by claiming the task and understanding the codebase structure.Now I have a clear picture. Let me implement the managed section engine. I'll add the models and functions to `instructions.py` and write comprehensive tests.Now let me implement the managed section engine. I'll add the new models and functions to `instructions.py`:Now update the `__all__` export:Now let me write the comprehensive tests:Now append the new test classes:Now run the feedback loops:All 65 tests pass. Now run mypy and ruff:The mypy error is pre-existing (yaml stubs in a different file). Let me fix the ruff error:Let me also verify the mypy issue is only the pre-existing yaml stubs one and not related to my changes:All checks pass. Let me also run the full test suite quickly to make sure nothing is broken:Now close the task and commit:Now let me update progress.txt and check for remaining tasks:There are more open tasks, but my task (cub-r1b.1) is closed. Let me commit the progress file:<promise>COMPLETE</promise>
+
+## Summary
+
+Successfully implemented the managed section detection and upsert engine for task **cub-r1b.1**. Here's what was built:
+
+### New Components in `src/cub/core/instructions.py`:
+
+**Pydantic Models:**
+- `SectionInfo` — Detection result with version, line range, content hash, tamper detection
+- `UpsertResult` — Operation result with action type, hashes, warnings
+- `UpsertAction` — Enum (CREATED, APPENDED, REPLACED)
+
+**Core Functions:**
+- `detect_managed_section(file_path)` — Regex-based marker detection, returns `SectionInfo` with version, line range, content hash, and manual edit detection
+- `upsert_managed_section(file_path, content, version)` — Non-destructive insert/update handling all cases:
+  - File doesn't exist → create
+  - File exists, no markers → append
+  - Markers present → replace (preserving surrounding content)
+  - Partial markers → error recovery with warnings
+  - Tampered content → warn but proceed
+
+**Marker Format:**
+```
+<!-- BEGIN CUB MANAGED SECTION v1 -->
+<!-- sha256:abc123... -->
+(content)
+<!-- END CUB MANAGED SECTION -->
+```
+
+### Tests: 65 total (40 new)
+- 4 hash helper tests
+- 6 format block tests  
+- 2 model tests
+- 2 enum tests
+- 10 detect tests (empty, no markers, complete, version, tampered, partial markers, multiline, surrounding content)
+- 16 upsert tests (create, append, replace, tamper warning, partial recovery, version upgrade, idempotency, roundtrip, multiline)
+
+### Validation: All passing
+- ✅ pytest: 65/65 passed
+- ✅ mypy: clean (pre-existing yaml stubs issue in unrelated file)
+- ✅ ruff: all checks passed

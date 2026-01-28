@@ -6,11 +6,21 @@ This updates project files, not cub itself. For upgrading cub, use `cub system-u
 """
 
 import hashlib
+import shutil
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
+
+from cub.core.config.loader import load_config
+from cub.core.constitution import ensure_constitution
+from cub.core.instructions import (
+    detect_managed_section,
+    generate_agents_md,
+    generate_claude_md,
+    upsert_managed_section,
+)
 
 app = typer.Typer(
     name="update",
@@ -67,6 +77,132 @@ def get_layout_root() -> Path:
         return Path(".cub")
     # Default to .cub
     return Path(".cub")
+
+
+def _refresh_managed_sections(
+    project_dir: Path, force: bool = False, debug: bool = False
+) -> list[str]:
+    """
+    Refresh managed sections in AGENTS.md and CLAUDE.md.
+
+    Args:
+        project_dir: Path to the project root directory
+        force: If True, update even if content hasn't changed
+        debug: Show debug output
+
+    Returns:
+        List of status messages for updated files
+    """
+    from cub.core.config.models import (
+        CircuitBreakerConfig,
+        CubConfig,
+        HarnessConfig,
+    )
+
+    messages = []
+
+    # Load config or use defaults
+    try:
+        config = load_config(project_dir)
+    except Exception:
+        config = CubConfig(
+            harness=HarnessConfig(name="auto", priority=["claude", "codex"]),
+            circuit_breaker=CircuitBreakerConfig(timeout_minutes=30, enabled=True),
+        )
+
+    # Update AGENTS.md
+    agents_path = project_dir / "AGENTS.md"
+    if agents_path.exists():
+        try:
+            # Detect current section
+            section_info = detect_managed_section(agents_path)
+
+            if section_info.found:
+                # Generate new content
+                new_content = generate_agents_md(project_dir, config)
+
+                # Check if update needed
+                if force or section_info.content_modified:
+                    result = upsert_managed_section(agents_path, new_content, version=1)
+                    messages.append("[green]✓[/green] Updated AGENTS.md managed section")
+                    if result.warnings:
+                        for warning in result.warnings:
+                            messages.append(f"[yellow]  Warning: {warning}[/yellow]")
+                elif debug:
+                    messages.append("[dim]AGENTS.md managed section unchanged[/dim]")
+            elif debug:
+                messages.append("[dim]AGENTS.md has no managed section[/dim]")
+        except Exception as e:
+            messages.append(f"[red]Error updating AGENTS.md: {e}[/red]")
+
+    # Update CLAUDE.md
+    claude_path = project_dir / "CLAUDE.md"
+    if claude_path.exists():
+        try:
+            # Detect current section
+            section_info = detect_managed_section(claude_path)
+
+            if section_info.found:
+                # Generate new content
+                new_content = generate_claude_md(project_dir, config)
+
+                # Check if update needed
+                if force or section_info.content_modified:
+                    result = upsert_managed_section(claude_path, new_content, version=1)
+                    messages.append("[green]✓[/green] Updated CLAUDE.md managed section")
+                    if result.warnings:
+                        for warning in result.warnings:
+                            messages.append(f"[yellow]  Warning: {warning}[/yellow]")
+                elif debug:
+                    messages.append("[dim]CLAUDE.md managed section unchanged[/dim]")
+            elif debug:
+                messages.append("[dim]CLAUDE.md has no managed section[/dim]")
+        except Exception as e:
+            messages.append(f"[red]Error updating CLAUDE.md: {e}[/red]")
+
+    return messages
+
+
+def _ensure_runloop(project_dir: Path, templates_dir: Path, force: bool = False) -> str | None:
+    """
+    Ensure runloop.md exists in .cub directory.
+
+    Copies from templates if missing. Warns if modified from template.
+
+    Args:
+        project_dir: Path to the project root directory
+        templates_dir: Path to templates directory
+        force: If True, overwrite existing file
+
+    Returns:
+        Status message or None if no action taken
+    """
+    cub_dir = project_dir / ".cub"
+    cub_dir.mkdir(exist_ok=True)
+
+    target_path = cub_dir / "runloop.md"
+    source_path = templates_dir / "runloop.md"
+
+    if not source_path.exists():
+        return f"[yellow]Warning: Template not found: {source_path}[/yellow]"
+
+    if not target_path.exists():
+        shutil.copy2(source_path, target_path)
+        return "[green]✓[/green] Created .cub/runloop.md"
+    elif force:
+        shutil.copy2(source_path, target_path)
+        return "[green]✓[/green] Updated .cub/runloop.md"
+    else:
+        # Check if modified from template
+        source_hash = hashlib.md5(source_path.read_bytes()).hexdigest()
+        target_hash = hashlib.md5(target_path.read_bytes()).hexdigest()
+        if source_hash != target_hash:
+            return (
+                "[yellow]Warning: .cub/runloop.md modified from template "
+                "(use --force to overwrite)[/yellow]"
+            )
+
+    return None
 
 
 @app.callback(invoke_without_command=True)
@@ -130,6 +266,31 @@ def update(
 
     if debug:
         console.print(f"[dim]Templates directory: {templates_dir}[/dim]")
+
+    # Get project directory
+    project_dir = Path.cwd()
+
+    # Ensure constitution exists (don't overwrite unless force=True)
+    if not skills_only:
+        try:
+            ensure_constitution(project_dir, force=force)
+            if not dry_run:
+                console.print("[green]✓[/green] Constitution ready")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not ensure constitution: {e}[/yellow]")
+
+    # Refresh runloop
+    if not skills_only:
+        runloop_msg = _ensure_runloop(project_dir, templates_dir, force=force)
+        if runloop_msg and not dry_run:
+            console.print(runloop_msg)
+
+    # Refresh managed sections in AGENTS.md and CLAUDE.md
+    if not skills_only:
+        managed_messages = _refresh_managed_sections(project_dir, force=force, debug=debug)
+        if managed_messages and not dry_run:
+            for msg in managed_messages:
+                console.print(msg)
 
     # Track updates
     updates: list[tuple[str, str, str]] = []  # (source, target, status)

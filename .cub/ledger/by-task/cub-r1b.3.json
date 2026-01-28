@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r1b.3",
+  "title": "Create runloop.md and constitution manager",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1b"
+  },
+  "task": {
+    "title": "Create runloop.md and constitution manager",
+    "description": "Two new files need to exist before init/update can reference them.\nThe runloop prompt is a stripped-down version of PROMPT.md with pure ralph-loop\nbehavior. The constitution manager copies the default template to `.cub/` and\nprovides a read API.\n\n**Implementation Steps:**\n1. Create `templates/runloop.md` by extracting from `templates/PROMPT.md`: keep ralph-loop workflow, escape hatch, COMPLETE signal, feedback loop instructions. Remove: `@AGENT.md` and `@specs/*` references, progress.txt references, generic coding advice (search before writing, no placeholders), the lengthy HTML comment header. Target ~40 lines.\n2. Create `src/cub/core/constitution.py` with `ensure_constitution(project_dir, force)` and `read_constitution(project_dir)`\n3. `ensure_constitution()`: check if `.cub/constitution.md` exists; if not, copy from `templates/constitution.md`; if force=True, overwrite; return Path\n4. `read_constitution()`: read and return content, or None if not present\n5. Write tests for constitution manager: creates when missing, skips when exists, overwrites with force\n6. Write tests for runloop.md: verify it contains escape hatch, COMPLETE signal, does NOT contain progress.txt references\n\n**Files:** templates/runloop.md, src/cub/core/constitution.py, templates/constitution.md, tests/test_constitution.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r1b",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-28T03:34:52.365042Z",
+    "captured_at": "2026-01-28T04:36:20.664011Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-042448",
+      "started_at": "2026-01-28T04:36:20.671907",
+      "completed_at": "2026-01-28T04:38:59.111422Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 203,
+        "output_tokens": 6239,
+        "cache_read_tokens": 587620,
+        "cache_creation_tokens": 21772
+      },
+      "cost_usd": 0.37534800000000007,
+      "duration_seconds": 158
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T04:38:59.262171Z",
+    "total_cost_usd": 0.37534800000000007,
+    "total_attempts": 1,
+    "total_duration_seconds": 158,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "03fb527f3d1b119df0c35d8c1e521efdeb05cc05",
+        "message": "task(cub-r1b.3): Create runloop.md and constitution manager",
+        "author": "",
+        "timestamp": "2026-01-28T04:38:39Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T04:38:59.262171Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:36:20.664011Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:38:59.262171Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T04:36:20.664011Z",
+  "completed_at": "2026-01-28T04:38:59.262171Z",
+  "tokens": {
+    "input_tokens": 203,
+    "output_tokens": 6239,
+    "cache_read_tokens": 587620,
+    "cache_creation_tokens": 21772
+  },
+  "cost_usd": 0.37534800000000007,
+  "duration_seconds": 158,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "03fb527f3d1b119df0c35d8c1e521efdeb05cc05",
+      "message": "task(cub-r1b.3): Create runloop.md and constitution manager",
+      "author": "",
+      "timestamp": "2026-01-28T04:38:39Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1b.3",
+  "epic_id": "cub-r1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -438,12 +438,25 @@ def generate_system_prompt(project_dir: Path) -> str:
     """
     Generate the system prompt for the harness.
 
-    Reads from PROMPT.md in the project directory or templates.
+    New lookup order:
+    1. .cub/runloop.md (new context stack runloop)
+    2. PROMPT.md (project-specific legacy prompt)
+    3. templates/PROMPT.md (project templates)
+    4. templates/runloop.md (package template)
+    5. Fallback minimal prompt
+
+    Args:
+        project_dir: Path to the project root directory
+
+    Returns:
+        System prompt content
     """
-    # Check for project-specific prompt
+    # Check for prompts in priority order
     prompt_files = [
+        project_dir / ".cub" / "runloop.md",
         project_dir / "PROMPT.md",
         project_dir / "templates" / "PROMPT.md",
+        Path(__file__).parent.parent.parent.parent / "templates" / "runloop.md",
         Path(__file__).parent.parent.parent.parent / "templates" / "PROMPT.md",
     ]
 

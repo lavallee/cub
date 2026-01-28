@@ -730,3 +730,36 @@ All tests pass (127 total), type checking clean, linting fixed.
 7. **`from __future__ import annotations`**: Required for `int | None` union type syntax to work with Python 3.10 in type annotations without runtime errors.
 
 **Outcome:** Successfully implemented managed section engine with detect_managed_section() and upsert_managed_section(). 65 total tests (40 new), mypy clean, ruff clean. Foundation ready for non-destructive CLAUDE.md/AGENTS.md updates.
+
+## Task cub-r1b.2: Refactor instruction generators for managed section content
+
+**Completed:** 2026-01-28
+
+**Summary:**
+Successfully refactored the instruction generation system to produce condensed managed section content (~20-25 lines) instead of full-file content (90+ lines). Created a new `generate_managed_section()` function that serves as the core generator, with `generate_agents_md()` and `generate_claude_md()` acting as thin wrappers for backward compatibility.
+
+**Key Changes:**
+- Created `generate_managed_section(project_dir, config, harness="generic"|"claude")` function
+- Condensed instructions now reference external context files:
+  * `@.cub/map.md` for codebase context
+  * `@.cub/constitution.md` for development principles
+  * `@.cub/agent.md` for build/test instructions
+- Generic version (AGENTS.md): ~20 lines with core workflow
+- Claude version (CLAUDE.md): ~25 lines with plan mode and skills tips
+- Maintained backward compatibility by keeping existing function signatures
+
+**Test Coverage:**
+- Added 13 new tests for `generate_managed_section()`
+- Updated 15 existing tests to match new condensed format
+- All 73 tests pass, typecheck clean, linting clean
+
+**Learnings:**
+1. **DRY Architecture**: By extracting the core generation logic into `generate_managed_section()` and using it as a shared base, we eliminated ~200 lines of duplicate code while maintaining clear separation of concerns
+2. **Reference-Based Instructions**: Moving detailed docs to external files (`@.cub/map.md`, `@.cub/constitution.md`) makes the managed sections more maintainable and allows users to customize those files without editing generated content
+3. **Test-First Verification**: Writing tests for line count ranges (10-30 lines) ensures the "condensed" requirement is enforced and prevents future bloat
+4. **Backward Compatibility Pattern**: Keeping the old function names as wrappers maintains API compatibility for all existing callers while enabling a clean refactor underneath
+
+**Next Steps:**
+- The constitution.md template exists at `templates/constitution.md`
+- Need to implement map.md generation (tracked in separate tasks under cub-r1c epic)
+- Consider adding version parameter to `generate_managed_section()` for future evolution
