@@ -22,30 +22,10 @@
       "risk:high"
     ],
     "created_at": "2026-01-28T17:54:44.409206Z",
-    "captured_at": "2026-01-28T18:09:27.428870Z"
+    "captured_at": "2026-01-28T18:39:44.158435Z"
   },
   "task_changed": null,
-  "attempts": [
-    {
-      "attempt_number": 1,
-      "run_id": "cub-20260128-175601",
-      "started_at": "2026-01-28T18:09:27.441897",
-      "completed_at": "2026-01-28T18:39:27.778805Z",
-      "harness": "claude",
-      "model": "opus",
-      "success": false,
-      "error_category": "circuit_breaker_timeout",
-      "error_summary": "Circuit breaker tripped: No activity for 30 minutes. The harness appears to be hung or unresponsive.",
-      "tokens": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_creation_tokens": 0
-      },
-      "cost_usd": 0.0,
-      "duration_seconds": 0
-    }
-  ],
+  "attempts": [],
   "outcome": null,
   "drift": {
     "additions": [],
@@ -62,18 +42,18 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T18:09:27.428870Z"
+    "stage_updated_at": "2026-01-28T18:39:44.158435Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-28T18:09:27.428870Z",
+      "at": "2026-01-28T18:39:44.158435Z",
       "by": "cub-run",
       "reason": "Task execution started"
     }
   ],
-  "started_at": "2026-01-28T18:09:27.428870Z",
-  "completed_at": "2026-01-28T18:09:27.428870Z",
+  "started_at": "2026-01-28T18:39:44.158435Z",
+  "completed_at": "2026-01-28T18:39:44.158435Z",
   "tokens": {
     "input_tokens": 0,
     "output_tokens": 0,
@@ -93,8 +73,8 @@
   "epic_id": "cub-b1a",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "claude",
-  "harness_model": "opus",
+  "harness_name": "",
+  "harness_model": "",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
