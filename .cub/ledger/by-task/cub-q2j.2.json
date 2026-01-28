@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-q2j.2",
+  "title": "Add cub task CLI subcommand",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2j"
+  },
+  "task": {
+    "title": "Add cub task CLI subcommand",
+    "description": "Direct sessions need lightweight task commands callable from Bash tool use. `cub task ready`, `cub task claim`, `cub task close`, `cub task create`. These wrap the task backend protocol and work identically with JSON or beads.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/task.py` with Typer app and subcommands:\n2. Register as `app.add_typer(task.app, name=\"task\")` in `src/cub/cli/__init__.py`\n3. Output concise for machine consumption; use `--json` flag for structured output\n\n**Files:** src/cub/cli/task.py, src/cub/cli/__init__.py, tests/test_task_cli.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-q2j",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:37:44.364206Z",
+    "captured_at": "2026-01-28T06:52:38.203393Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-064539",
+      "started_at": "2026-01-28T06:52:38.219080",
+      "completed_at": "2026-01-28T06:58:27.271903Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5298,
+        "output_tokens": 9205,
+        "cache_read_tokens": 3097241,
+        "cache_creation_tokens": 70556
+      },
+      "cost_usd": 1.4253593000000004,
+      "duration_seconds": 349
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:58:27.522648Z",
+    "total_cost_usd": 1.4253593000000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 349,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "10560a53d8472256ed6c3809ab972aa4f0b7fccf",
+        "message": "task(cub-q2j.2): Add cub task CLI subcommand",
+        "author": "",
+        "timestamp": "2026-01-28T06:57:31Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:58:27.522648Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:52:38.203393Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:58:27.522648Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T06:52:38.203393Z",
+  "completed_at": "2026-01-28T06:58:27.522648Z",
+  "tokens": {
+    "input_tokens": 5298,
+    "output_tokens": 9205,
+    "cache_read_tokens": 3097241,
+    "cache_creation_tokens": 70556
+  },
+  "cost_usd": 1.4253593000000004,
+  "duration_seconds": 349,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "10560a53d8472256ed6c3809ab972aa4f0b7fccf",
+      "message": "task(cub-q2j.2): Add cub task CLI subcommand",
+      "author": "",
+      "timestamp": "2026-01-28T06:57:31Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-q2j.2",
+  "epic_id": "cub-q2j",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

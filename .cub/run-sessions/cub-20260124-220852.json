@@ -10,10 +10,10 @@
     "cost_limit": 0.0
   },
   "tasks_completed": 1,
-  "tasks_failed": -1,
+  "tasks_failed": 0,
   "current_task": null,
-  "status": "running",
-  "ended_at": null,
-  "orphaned_at": null,
-  "orphaned_reason": null
+  "status": "orphaned",
+  "ended_at": "2026-01-28T13:35:16.706334Z",
+  "orphaned_at": "2026-01-28T13:35:16.706334Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
 }

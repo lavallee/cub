@@ -77,7 +77,7 @@ class CleanupService:
     Service for cleaning up working directory after cub run.
 
     Handles:
-    - Committing useful artifacts (progress.txt, logs, reports)
+    - Committing useful artifacts (logs, reports)
     - Removing temporary files (*.bak, *.tmp, caches)
     - Ensuring clean working directory state
 

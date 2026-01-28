@@ -483,8 +483,14 @@ class ExecutionService:
 
             artifacts.append(artifact_path)
 
-        # Sort by modification time (most recent first)
-        artifacts.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        # Sort by embedded timestamp in filename (most recent first)
+        # Filename format: {timestamp}-{tool_id}-{action}.json
+        # where timestamp is YYYYMMDDTHHMMSSZ
+        def extract_timestamp(artifact_path: Path) -> str:
+            """Extract timestamp from artifact filename."""
+            return artifact_path.stem[:16]  # YYYYMMDDTHHMMSSZ
+
+        artifacts.sort(key=extract_timestamp, reverse=True)
         return artifacts
 
     def get_metrics(self, tool_id: str) -> ToolMetrics | None:

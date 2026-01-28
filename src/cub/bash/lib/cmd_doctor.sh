@@ -27,7 +27,7 @@ CHECKS:
   - Configuration: JSON validity, required fields, deprecated options
   - Project structure: prd.json/.beads, .cub/prompt.md, .cub/agent.md
   - Git state: uncommitted files categorized as:
-    * session files (progress.txt, fix_plan.md) - safe to commit
+    * session files (fix_plan.md) - safe to commit
     * source code - needs review before committing
     * cruft (.bak, .tmp, .DS_Store, etc.) - safe to clean
     * config files - needs carefully review

@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r1d.1",
+  "title": "Implement epic context generation for task prompts",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1d"
+  },
+  "task": {
+    "title": "Implement epic context generation for task prompts",
+    "description": "When a task belongs to an epic, the agent should know the epic's\npurpose and what sibling tasks have been completed or remain. This prevents\nrepeated work and helps the agent avoid painting itself into a corner.\n\n**Implementation Steps:**\n1. Add `generate_epic_context(task, task_backend)` function to `run.py` (or a new `src/cub/core/prompt.py` module if run.py is getting too large)\n2. Implementation:\n3. Truncate epic description to ~200 words to avoid blowing up the prompt\n4. Integrate into task prompt generation: call after `generate_task_prompt()`, append result if non-None\n5. Write tests with mock task backend: task with epic, task without epic, epic with many siblings\n\n**Files:** src/cub/cli/run.py (or src/cub/core/prompt.py), tests/test_run.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r1d",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T03:34:52.365164Z",
+    "captured_at": "2026-01-28T05:27:00.427383Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-052700",
+      "started_at": "2026-01-28T05:27:00.437244",
+      "completed_at": "2026-01-28T05:33:50.231933Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 144,
+        "output_tokens": 13282,
+        "cache_read_tokens": 1953518,
+        "cache_creation_tokens": 59493
+      },
+      "cost_usd": 1.0524901500000001,
+      "duration_seconds": 409
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:33:50.401321Z",
+    "total_cost_usd": 1.0524901500000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 409,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "1ca58bf16bfaf763cd4a351cd8913d8e93dc9f52",
+        "message": "task(cub-r1d.1): Implement epic context generation for task prompts",
+        "author": "",
+        "timestamp": "2026-01-28T05:33:03Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:33:50.401321Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:27:00.427383Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:33:50.401321Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T05:27:00.427383Z",
+  "completed_at": "2026-01-28T05:33:50.401321Z",
+  "tokens": {
+    "input_tokens": 144,
+    "output_tokens": 13282,
+    "cache_read_tokens": 1953518,
+    "cache_creation_tokens": 59493
+  },
+  "cost_usd": 1.0524901500000001,
+  "duration_seconds": 409,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "1ca58bf16bfaf763cd4a351cd8913d8e93dc9f52",
+      "message": "task(cub-r1d.1): Implement epic context generation for task prompts",
+      "author": "",
+      "timestamp": "2026-01-28T05:33:03Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1d.1",
+  "epic_id": "cub-r1d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

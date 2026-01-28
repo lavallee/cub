@@ -1,3 +1,50 @@
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  AGENT INSTRUCTIONS FOR CUB DEVELOPMENT                          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+This file contains instructions for building, running, and developing the Cub project.
+
+Think of this as:
+- BUILD INSTRUCTIONS: How to set up, test, and run the project
+- ARCHITECTURE: Key modules, patterns, and design decisions
+- WORKFLOWS: Git integration, task management, and development practices
+- LEARNINGS: Project-specific gotchas and conventions
+
+Update this file as you learn new things about the codebase.
+
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT TO UPDATE                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+1. Development Setup (if dependencies or tools change):
+   - Add new required tools or package managers
+   - Update Python version requirements
+   - Document new environment variables
+
+2. Project Structure (when adding new modules):
+   - Add new directories or packages to the structure diagram
+   - Document new module responsibilities
+
+3. Feedback Loops (when adding new checks):
+   - Add new test commands, linters, or type checkers
+   - Update quality gate requirements
+
+4. Gotchas & Learnings (when discovering new patterns):
+   - Add project-specific conventions
+   - Document common pitfalls
+   - Note architectural decisions and their rationale
+
+╔══════════════════════════════════════════════════════════════════╗
+║  HOW THIS FILE WORKS                                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+- This file is symlinked as AGENT.md, AGENTS.md, and CLAUDE.md for compatibility
+- It's referenced by the runloop system prompt (see Context Composition below)
+- Changes are available immediately to new sessions
+- Keep it focused: detailed specs go in specs/, plans in plans/
+-->
+
 # Agent Instructions
 
 This file contains instructions for building and running the Cub project.
@@ -128,10 +175,20 @@ ruff format src/ tests/
 ├── .beads/              # Beads task tracking
 │   ├── issues.jsonl     # Task database
 │   └── branches.yaml    # Branch-epic bindings
+├── .cub/                # Cub project metadata and state
+│   ├── agent.md         # Build/run/architecture instructions (this file)
+│   ├── hooks/           # Hook script references (for documentation)
+│   ├── scripts/
+│   │   └── hooks/
+│   │       └── cub-hook.sh     # Fast-path shell filter for hooks
+│   └── ledger/
+│       └── forensics/   # Session event logs (JSONL per session)
+├── .claude/             # Claude Code configuration
+│   └── settings.json    # Hook configuration (auto-installed by cub init)
 ├── pyproject.toml       # Python project metadata and config
 ├── README.md            # User documentation
 ├── UPGRADING.md         # Migration guide from Bash version
-└── CLAUDE.md            # This file (agent instructions)
+└── CLAUDE.md            # Symlink to .cub/agent.md (this file)
 ```
 
 ## Key Modules
@@ -142,12 +199,14 @@ ruff format src/ tests/
 - `cub.core.logger` - JSONL logging with structured events
 - `cub.core.tasks.backend` - Abstract task backend interface
 - `cub.core.harness.backend` - Abstract harness interface
+- `cub.core.harness.hooks` - Hook event handlers for symbiotic workflow (SessionStart, PostToolUse, Stop, etc.)
 - `cub.utils.hooks` - Hook execution system
 - `cub.core.bash_delegate` - Delegates unported commands to bash cub
 - `cub.core.tools` - Tool execution runtime with pluggable adapters
 - `cub.core.tools.execution` - ExecutionService for tool orchestration
 - `cub.core.tools.registry` - Tool registry and approval management
 - `cub.core.ledger` - Task completion ledger (models, reader, writer, extractor)
+- `cub.core.ledger.session_integration` - Hook-driven ledger integration for direct sessions
 - `cub.core.circuit_breaker` - Stagnation detection for the run loop
 - `cub.core.instructions` - Instruction file generation for harness sessions
 
@@ -189,7 +248,7 @@ These commands have been migrated to Python and execute directly without bash:
 
 - **`run`** - Execute tasks with AI harnesses (main loop)
 - **`status`** - Show task progress and statistics
-- **`init`** - Initialize cub configuration (global or project-level)
+- **`init`** - Initialize cub in a project (backend, templates, hooks, statusline) or globally
 - **`new`** - Create a new project directory (mkdir + git init + cub init)
 - **`monitor`** - Live dashboard for task execution monitoring
 - **`doctor`** - Diagnose and fix configuration issues
@@ -207,6 +266,70 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `ledger.py` - Task completion ledger
 - `review.py` - Task/epic/plan assessment and deep analysis
 - `session.py` - Direct session workflow commands
+- `task.py` - Task management for direct sessions and reconciliation
+- `reconcile.py` - Post-hoc session reconciliation from hooks
+
+#### Task Management Subcommands (`cub task`)
+
+The `cub task` command provides lightweight task management callable from direct harness sessions:
+
+```bash
+# List ready tasks
+cub task ready
+
+# Show task details
+cub task show <task-id>
+cub task show <task-id> --full          # Include full description
+
+# Claim a task (for current session)
+cub task claim <task-id>                # Mark as in-progress
+cub task claim <task-id> --session <id> # Claim for specific session
+
+# Close a task (for agent/session use)
+cub task close <task-id> -r "reason"    # Close with reason
+cub task close <task-id> --session <id> # Close from specific session
+```
+
+The `cub task` commands are designed for:
+1. **Discovery** -- See available tasks from inside a harness session
+2. **Claiming** -- Associate current work with a specific task
+3. **Closure** -- Complete a task with a reason for the ledger
+
+#### Session Reconciliation (`cub reconcile`)
+
+The `cub reconcile` command processes hook-generated forensics logs and produces complete ledger entries. This is useful for:
+- Post-hoc processing after a direct Claude Code session
+- Enriching with transcript data (token count, cost)
+- Fixing ledger entries if something went wrong
+- Batch processing multiple sessions
+
+```bash
+# Reconcile a single session
+cub reconcile <session-id>              # Process session forensics
+
+# Reconcile all unprocessed sessions
+cub reconcile --all                     # Process all forensics
+
+# With transcript enrichment
+cub reconcile <session-id> --transcript /path/to/transcript.jsonl
+
+# Batch with transcript directory
+cub reconcile --all --transcript-dir .cub/transcripts/
+
+# Dry-run (show what would happen)
+cub reconcile <session-id> --dry-run
+
+# Force re-processing (even if already processed)
+cub reconcile <session-id> --force
+```
+
+The reconciliation process:
+1. Reads forensics JSONL from `.cub/ledger/forensics/{session_id}.jsonl`
+2. Classifies events (file writes, task claims, git commits)
+3. Associates task if detected in forensics
+4. Optionally parses transcript for token/cost enrichment
+5. Writes ledger entry to `.cub/ledger/by-task/{task_id}/` or creates new entry if no task
+6. Updates ledger index in `.cub/ledger/index.jsonl`
 
 ### Delegated Commands (Bash-Implemented)
 
@@ -454,6 +577,67 @@ All `bd` (Beads CLI) commands are pre-approved for task management:
 All `cub` commands are pre-approved:
 - `cub run`, `cub status`, `cub pr`, `cub branch`, etc.
 
+## Context Composition
+
+Cub uses a layered system prompt composition system to provide context to AI harnesses during autonomous coding sessions. Understanding this system helps you customize the agent experience for your project.
+
+### System Prompt Lookup Order
+
+When `cub run` starts a session, it generates the system prompt by checking these locations in order (first match wins):
+
+1. **`.cub/runloop.md`** - Project-specific runloop instructions (highest priority)
+   - Use this to override the default runloop behavior for your project
+   - Inherits the demarcated format from `templates/PROMPT.md`
+   - Example: Custom workflow steps, project-specific validation gates
+
+2. **`PROMPT.md`** - Legacy project-specific prompt (backwards compatibility)
+   - Deprecated in favor of `.cub/runloop.md` but still supported
+   - Use when migrating from older cub versions
+
+3. **`templates/PROMPT.md`** - Project templates directory
+   - For projects that vendor their own templates
+   - Rare use case; most projects use package templates
+
+4. **`templates/runloop.md`** - Package-bundled runloop template
+   - Default runloop instructions shipped with cub
+   - Contains the "Ralph Loop Iteration" workflow
+
+5. **`templates/PROMPT.md`** - Package-bundled legacy template
+   - Fallback for backwards compatibility
+   - Contains demarcated format with customization guide
+
+6. **Hardcoded fallback** - Minimal prompt if nothing else found
+   - Safety fallback; should never be reached in normal operation
+
+### Context Files Referenced in Prompts
+
+The system prompt (from the lookup chain above) references these files:
+
+- **`@AGENT.md`** - This file (build instructions, architecture, learnings)
+- **`@specs/*`** - Detailed specifications for tasks/features (if present)
+
+These references use the `@` syntax to signal they should be loaded as context by the harness.
+
+### Task Context Injection
+
+In addition to the system prompt, `cub run` injects task-specific context into each session:
+
+- **CURRENT TASK section** - Task ID, title, description, files, dependencies
+- **Epic context** - Parent epic details if the task is part of an epic
+- **Task closure instructions** - How to mark the task complete (beads backend-specific)
+
+### Customizing Your Project's Prompt
+
+To customize the autonomous coding experience for your project:
+
+1. **For minor tweaks**: Edit `AGENT.md` (this file) to add build commands, gotchas, etc.
+2. **For workflow changes**: Create `.cub/runloop.md` based on `templates/PROMPT.md`
+3. **For task-specific context**: Add detailed specs to `specs/` and reference them in task descriptions
+
+### Implementation
+
+The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()`.
+
 ## Gotchas & Learnings
 
 - **Python 3.10+**: Cub requires Python 3.10+ for features like match statements and type unions (`|` syntax)
@@ -466,6 +650,7 @@ All `cub` commands are pre-approved:
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
 - **Rich for terminal output**: Use Rich tables, progress bars, and console for all user-facing output.
+- **Context composition**: System prompts follow a lookup order (`.cub/runloop.md` → `PROMPT.md` → `templates/PROMPT.md` → `templates/runloop.md` → fallback). See "Context Composition" section above for details. When modifying autonomous agent behavior, edit `.cub/runloop.md` or this file (AGENT.md).
 
 ## Common Commands
 
@@ -737,3 +922,220 @@ The dashboard is designed for extensibility:
 - New API endpoints can be added to `api/routes/`
 - View configurations can be customized per project
 - Stage computation logic can be extended for custom workflows
+
+## Symbiotic Workflow (v0.25+)
+
+The symbiotic workflow enables fluid movement between CLI-driven (`cub run`) and interactive harness sessions (Claude Code, etc.) by using hooks to implicitly track task creation, execution, and completion regardless of mode. This solves the "learning degradation" problem: when developers work directly in Claude Code, cub has no visibility into what happened.
+
+### Architecture Overview
+
+The symbiotic workflow uses a three-tier pipeline:
+
+1. **Shell Fast-Path Filter** (`.cub/scripts/hooks/cub-hook.sh`)
+   - Lightweight bash shell script (no Python startup latency)
+   - Runs first, filters irrelevant events (90% of tool uses)
+   - Checks `CUB_RUN_ACTIVE` env var to prevent double-tracking
+   - Only pipes to Python handler when relevant
+
+2. **Python Event Handlers** (`cub.core.harness.hooks`)
+   - Classifies file writes (plans, specs, captures, source code)
+   - Detects task commands (cub task operations, git commits)
+   - Maintains session forensics (JSONL event log per session)
+   - Triggers ledger integration
+
+3. **Session Ledger Integration** (`cub.core.ledger.session_integration`)
+   - Works with partial information (task ID may arrive mid-session)
+   - Synthesizes complete ledger entries from accumulated events
+   - Supports transcript parsing for token/cost enrichment
+
+### What Hooks Do
+
+Claude Code provides hooks at key lifecycle points. The symbiotic workflow observes:
+
+| Hook Event | What It Captures |
+|-----------|------------------|
+| **SessionStart** | Session begins; injects ready tasks and project context |
+| **PostToolUse** (Write/Edit) | Files written to `plans/`, `specs/`, `captures/`, source |
+| **PostToolUse** (Bash) | Task commands (`cub task`), git commits (`git commit`) |
+| **Stop** | Session finalized; creates ledger entry if task was worked on |
+| **PreCompact** | Checkpoint before context loss (compaction = new session) |
+
+### Installation
+
+Hooks are configured automatically by `cub init`. To verify or manually configure:
+
+**Option 1: Automatic (Recommended)**
+```bash
+cd your-project
+cub init                          # Install hooks and configure settings
+```
+
+**Option 2: Manual Configuration**
+Add hooks to `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "${CLAUDE_PROJECT_DIR}/.cub/scripts/hooks/cub-hook.sh",
+          "timeout": 5
+        }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "command",
+          "command": "${CLAUDE_PROJECT_DIR}/.cub/scripts/hooks/cub-hook.sh",
+          "timeout": 5
+        }]
+      }
+    ],
+    "Stop": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PROJECT_DIR}/.cub/scripts/hooks/cub-hook.sh",
+        "timeout": 10
+      }]
+    }]
+  }
+}
+```
+
+Then verify installation:
+```bash
+cub doctor                        # Check hook installation
+```
+
+### Session Forensics
+
+Hooks write JSONL event logs to `.cub/ledger/forensics/{session_id}.jsonl`:
+
+```json
+{"event": "session_start", "timestamp": "2026-01-28T20:30:00Z"}
+{"event": "file_write", "file_path": "plans/foo/plan.md", "tool": "Write"}
+{"event": "task_claim", "task_id": "cub-042", "timestamp": "2026-01-28T20:35:00Z"}
+{"event": "git_commit", "hash": "abc123", "message": "implement feature"}
+{"event": "session_end", "timestamp": "2026-01-28T20:45:00Z"}
+```
+
+These logs accumulate during the session and are converted to a ledger entry when the session ends.
+
+### Working in Direct Sessions
+
+The symbiotic workflow guides you to claim a task when starting a direct Claude Code session:
+
+1. **Open Claude Code** in your project
+2. **See injected context** -- available tasks and current epic
+3. **Claim a task** (if not auto-detected from branch or prompt)
+   ```bash
+   cub task claim cub-042
+   ```
+4. **Work normally** -- write code, commit, create plans
+5. **Hooks track everything automatically**
+6. **Close the task** when done
+   ```bash
+   cub task close cub-042 -r "Implemented feature"
+   ```
+
+### Parity with `cub run`
+
+| Capability | `cub run` | Direct Session + Hooks |
+|------------|-----------|------------------------|
+| Task selection | Automatic | Manual (guided by context) |
+| Task claiming | Automatic | Via command or branch inference |
+| Ledger entry creation | Automatic | From hook forensics |
+| Plan capture | Auto (harness) | PostToolUse detects writes |
+| File tracking | Run loop | PostToolUse tracks Write/Edit |
+| Git commits | Run loop | PostToolUse detects commits |
+| Session context | Built-in | SessionStart injects context |
+
+### Double-Tracking Prevention
+
+When `cub run` invokes Claude Code as a harness, hooks are disabled for that session via the `CUB_RUN_ACTIVE` environment variable. This prevents duplicate ledger entries -- the run loop already tracks everything. Hooks only activate for direct (non-cub-run) sessions.
+
+### Project Structure
+
+The symbiotic workflow adds these directories and files:
+
+```
+.cub/
+├── hooks/                        # Hook scripts (for reference)
+│   ├── README.md                 # Hook installation and troubleshooting
+│   ├── post-tool-use.sh          # Capture file writes
+│   ├── session-start.sh          # Initialize session
+│   ├── session-end.sh            # Finalize session
+│   └── stop.sh                   # Session cleanup
+├── scripts/
+│   └── hooks/
+│       └── cub-hook.sh           # Fast-path shell filter (installed here)
+└── ledger/
+    └── forensics/                # Session event logs (JSONL per session)
+        └── {session_id}.jsonl
+
+.claude/
+└── settings.json                 # Hook configuration (auto-installed)
+```
+
+### Troubleshooting Hooks
+
+**Hooks not running?**
+1. Verify shell scripts are executable:
+   ```bash
+   ls -la .cub/scripts/hooks/
+   # Should show -rwxr-xr-x permissions
+   chmod +x .cub/scripts/hooks/cub-hook.sh
+   ```
+
+2. Check `.claude/settings.json` has hooks configured:
+   ```bash
+   grep -A 5 '"hooks"' .claude/settings.json
+   ```
+
+3. Enable verbose mode in Claude Code (Ctrl+O) to see hook execution logs
+
+**No forensic logs created?**
+1. Ensure `.cub/config.json` exists (run `cub init` if needed)
+2. Verify cub is in PATH:
+   ```bash
+   which cub
+   which python3
+   ```
+3. Test the Python module directly:
+   ```bash
+   python3 -m cub.core.harness.hooks --help
+   ```
+
+**Hook timeouts?**
+If hooks timeout (default 5-15 seconds), increase in `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "PostToolUse": [{
+      "hooks": [{
+        "timeout": 30
+      }]
+    }]
+  }
+}
+```
+
+**Hooks not installed?**
+Run `cub init` to install:
+```bash
+cub init
+cub doctor  # Verify installation
+```
+
+**Check hook status with cub doctor:**
+```bash
+cub doctor
+# Output includes:
+# Hooks installed: Yes/No
+# Shell script present and executable: Yes/No
+# Python module importable: Yes/No
+# All hook events configured: Yes/No
+```

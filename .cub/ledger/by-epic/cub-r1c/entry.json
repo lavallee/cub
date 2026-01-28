@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cub-r1c",
+  "title": "cub-r1c",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-r1c",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T05:00:25.438745Z",
+    "captured_at": "2026-01-28T05:00:25.438745Z"
+  },
+  "task_ids": [
+    "cub-r1c.4",
+    "cub-r1c.2",
+    "cub-r1c.3",
+    "cub-r1c.1"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 8.944556600000002,
+    "avg_cost_per_task": 2.2361391500000005,
+    "min_cost_usd": 1.2644632000000002,
+    "max_cost_usd": 4.6732068500000015,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 12436865,
+    "avg_tokens_per_task": 3109216,
+    "total_duration_seconds": 2142,
+    "avg_duration_seconds": 535,
+    "models_used": [
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:26:54.490692Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T04:51:03.270684Z",
+  "completed_at": "2026-01-28T05:26:54.446054Z",
+  "updated_at": "2026-01-28T05:26:54.490695Z",
+  "first_commit": {
+    "hash": "556ea0bf2a5f363252e05630dd03d8e06b08a3a9",
+    "message": "task(cub-r1c.1): Implement structure analyzer module",
+    "author": "",
+    "timestamp": "2026-01-28T04:59:43Z"
+  },
+  "last_commit": {
+    "hash": "a545d85ed60ee3c1e56fcd1465217e89def6d816",
+    "message": "docs: Update progress log with cub-r1c.4 learnings",
+    "author": "",
+    "timestamp": "2026-01-28T05:26:42Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

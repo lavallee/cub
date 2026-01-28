@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r1a.2",
+  "title": "Remove deprecated template files",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1a"
+  },
+  "task": {
+    "title": "Remove deprecated template files",
+    "description": "guardrails.md, fix_plan.md, and AGENT.md templates are being\nreplaced by constitution.md, ledger-based retry context, and cub map\nrespectively. Remove them from the template set so `cub init` and `cub update`\nno longer deploy them.\n\n**Implementation Steps:**\n1. Delete `templates/guardrails.md`\n2. Delete `templates/fix_plan.md`\n3. Delete `templates/AGENT.md`\n4. Delete `templates/progress.txt`\n5. Search `src/cub/` for code that copies or references these template files (init, update commands) and remove those code paths\n6. Update any tests that reference these template files\n7. Do NOT delete `templates/PROMPT.md` yet (it gets replaced in Phase 2 by runloop.md)\n\n**Files:** templates/guardrails.md, templates/fix_plan.md, templates/AGENT.md, templates/progress.txt, src/cub/cli/init_cmd.py, src/cub/cli/update.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "cleanup",
+      "complexity:medium",
+      "epic:cub-r1a",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-28T03:34:52.364953Z",
+    "captured_at": "2026-01-28T04:16:02.062491Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-041125",
+      "started_at": "2026-01-28T04:16:02.079080",
+      "completed_at": "2026-01-28T04:21:14.309805Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 18373,
+        "output_tokens": 15711,
+        "cache_read_tokens": 2932336,
+        "cache_creation_tokens": 81190
+      },
+      "cost_usd": 1.5028733,
+      "duration_seconds": 312
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T04:21:14.597423Z",
+    "total_cost_usd": 1.5028733,
+    "total_attempts": 1,
+    "total_duration_seconds": 312,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c858e4723721aac0a846d33e86dfab90a1f2010e",
+        "message": "task(cub-r1a.2): Remove deprecated template files",
+        "author": "",
+        "timestamp": "2026-01-28T04:21:02Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T04:21:14.597423Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:16:02.062491Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:21:14.597423Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T04:16:02.062491Z",
+  "completed_at": "2026-01-28T04:21:14.597423Z",
+  "tokens": {
+    "input_tokens": 18373,
+    "output_tokens": 15711,
+    "cache_read_tokens": 2932336,
+    "cache_creation_tokens": 81190
+  },
+  "cost_usd": 1.5028733,
+  "duration_seconds": 312,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "c858e4723721aac0a846d33e86dfab90a1f2010e",
+      "message": "task(cub-r1a.2): Remove deprecated template files",
+      "author": "",
+      "timestamp": "2026-01-28T04:21:02Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1a.2",
+  "epic_id": "cub-r1a",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

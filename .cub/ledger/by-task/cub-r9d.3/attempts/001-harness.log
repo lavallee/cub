@@ -1,0 +1,43 @@
+I'll implement end-to-end integration tests for the symbiotic workflow. Let me start by understanding the current codebase structure and existing test patterns.Excellent! Now I have a comprehensive understanding of the codebase. Let me read the existing test files to understand patterns better, then implement the integration tests.Now let me read more of the hooks.py file to understand the full structure:Good! The integration test directory exists. Now let me create the comprehensive end-to-end integration tests:Great! Now let's run the tests to make sure they work:I see the issues! The tests are failing because:
+
+1. `handle_stop` is writing a `session_end` event to forensics (not expected)
+2. Files are being categorized differently than expected (README.md not categorized)
+
+Let me check the hook handlers to understand the behavior better:I see! The `_categorize_file` function returns `None` for files that don't match tracked categories (like README.md). Also, `handle_stop` writes a `session_end` forensics event. Let me fix the tests to match the actual behavior:Now let's run the tests again:Excellent! All tests are passing. Now let's run the full test suite and linting:The mypy errors are benign (missing type annotations in imported modules). Let me add a type annotation to fix the one error we can fix:Now let's run the full test suite to make sure we didn't break anything:Perfect! All tests pass. Now let's close the task and commit:Perfect! Now let's check if there are any remaining tasks:Great! Let me check if all tasks in the current epic (cub-r9d) are closed:There's one more task (documentation), but it's P3 and marked for phase-4. The main implementation tasks are complete. Let me append learnings to the progress file:Perfect! Now let me check which tasks are complete in this epic:Excellent! All the main implementation tasks (cub-r9d.1, cub-r9d.2, cub-r9d.3) are complete. Only cub-r9d.4 (documentation) remains, which is P3 and lower priority. Let me create a final summary:
+
+## Task Completion Summary
+
+I successfully completed task **cub-r9d.3: End-to-end integration tests** for the symbiotic workflow.
+
+### What Was Implemented
+
+Created comprehensive end-to-end integration tests in `tests/integration/test_symbiotic_workflow.py` that validate the complete flow from hook events → forensics logs → ledger entries.
+
+### Test Coverage (11 tests total)
+
+1. **Complete successful workflow**: SessionStart → Write plan → Claim task → Write files → Git commit → Close task → Stop
+2. **Session with no task claimed**: Verifies forensics-only capture (no ledger entry)
+3. **Multiple task claims**: Verifies last task wins and all files tracked
+4. **Interrupted session**: No Stop event, forensics remain recoverable
+5. **Task claimed but not closed**: Ledger entry with success=False
+6. **Redundant synthesis**: Both Stop and SessionEnd trigger ledger creation
+7. **Ledger entry parity**: Validates same structure as `cub run` produces
+8. **Files changed tracking**: Matches forensics file_write events
+9. **Lineage extraction**: Spec/plan files correctly extracted
+10. **Forensics recovery**: Readable after crash
+11. **Malformed forensics**: Skipped gracefully without crashing
+
+### Key Discoveries
+
+- **Hook behavior**: `handle_stop` writes a `session_end` event to forensics
+- **File categorization**: Only files in `plans/`, `specs/`, `captures/`, `src/`, `lib/`, `app/`, `tests/` are tracked (root files like README.md are ignored)
+- **Parity validation**: Confirmed direct Claude Code sessions produce structurally equivalent ledger entries to `cub run` sessions
+
+### Test Results
+
+✅ All 11 integration tests pass  
+✅ All 48 related integration tests pass  
+✅ Linting passes  
+✅ Type checking passes (except benign missing stubs warnings)
+
+The implementation is complete and validated. All main tasks in the cub-r9d epic are now closed!

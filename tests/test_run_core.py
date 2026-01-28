@@ -257,6 +257,753 @@ class TestGenerateSystemPrompt:
         assert "Project Level Prompt" in result
         assert "Templates Prompt" not in result
 
+    def test_cub_runloop_takes_precedence(self, tmp_path):
+        """Test that .cub/runloop.md takes precedence over PROMPT.md."""
+        project = tmp_path / "project"
+        project.mkdir()
+
+        # Create .cub/runloop.md (highest priority)
+        cub_dir = project / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Cub Runloop Prompt\nFrom .cub/runloop.md")
+
+        # Create PROMPT.md (lower priority)
+        (project / "PROMPT.md").write_text("# Project Level Prompt")
+
+        result = generate_system_prompt(project)
+
+        assert "Cub Runloop Prompt" in result
+        assert "From .cub/runloop.md" in result
+        assert "Project Level Prompt" not in result
+
+
+# ==============================================================================
+# Tests for generate_epic_context
+# ==============================================================================
+
+
+class TestGenerateEpicContext:
+    """Tests for generate_epic_context function."""
+
+    def test_returns_none_when_no_parent(self, mock_task, mock_task_backend):
+        """Test that None is returned when task has no parent epic."""
+        # Ensure task has no parent
+        task = Task(
+            id="cub-001",
+            title="Task without parent",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent=None,
+        )
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is None
+
+    def test_returns_none_when_epic_not_found(self, mock_task_backend):
+        """Test that None is returned when parent epic doesn't exist."""
+        task = Task(
+            id="cub-001",
+            title="Task with missing parent",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="nonexistent-epic",
+        )
+
+        # Mock backend returns None for missing epic
+        mock_task_backend.get_task.return_value = None
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is None
+
+    def test_basic_epic_context_structure(self, mock_task_backend):
+        """Test basic epic context contains required sections."""
+        # Create epic
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description here",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        # Create task with parent
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        # Mock backend
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        assert "## Epic Context" in result
+        assert "epic-001" in result
+        assert "Main Epic" in result
+        assert "Epic Purpose:" in result
+        assert "Epic description here" in result
+
+    def test_truncates_long_epic_description(self, mock_task_backend):
+        """Test that epic descriptions longer than 200 words are truncated."""
+        # Create epic with long description (250 words)
+        long_description = " ".join([f"word{i}" for i in range(250)])
+
+        epic = Task(
+            id="epic-long",
+            title="Epic with Long Description",
+            description=long_description,
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-long",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        # Should contain exactly 200 words plus "..."
+        assert "..." in result
+        # The description should end with "..."
+        assert "word199..." in result
+        # Should not contain word200 or beyond
+        assert "word200" not in result
+        assert "word249" not in result
+
+    def test_does_not_truncate_short_description(self, mock_task_backend):
+        """Test that short epic descriptions are not truncated."""
+        short_description = "This is a short epic description with only ten words here."
+
+        epic = Task(
+            id="epic-short",
+            title="Epic with Short Description",
+            description=short_description,
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-short",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        assert short_description in result
+        assert "..." not in result
+
+    def test_shows_completed_sibling_tasks(self, mock_task_backend):
+        """Test that completed sibling tasks are shown."""
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-002",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        completed_task = Task(
+            id="cub-001",
+            title="Completed task",
+            status=TaskStatus.CLOSED,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [current_task, completed_task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        assert "Completed Sibling Tasks:" in result
+        assert "✓ cub-001: Completed task" in result
+
+    def test_shows_remaining_sibling_tasks(self, mock_task_backend):
+        """Test that remaining sibling tasks are shown."""
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-002",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        open_task = Task(
+            id="cub-003",
+            title="Open task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        in_progress_task = Task(
+            id="cub-004",
+            title="In progress task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [
+            current_task,
+            open_task,
+            in_progress_task,
+        ]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        assert "Remaining Sibling Tasks:" in result
+        assert "○ cub-003: Open task" in result
+        assert "◐ cub-004: In progress task" in result
+        # Current task should not be in the remaining list
+        assert "cub-002" not in result.split("Remaining Sibling Tasks:")[1]
+
+    def test_handles_epic_with_many_siblings(self, mock_task_backend):
+        """Test epic context with many sibling tasks."""
+        epic = Task(
+            id="epic-big",
+            title="Big Epic",
+            description="Epic with many tasks",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-010",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-big",
+        )
+
+        # Create many sibling tasks
+        siblings = [current_task]
+        for i in range(1, 10):
+            status = TaskStatus.CLOSED if i < 5 else TaskStatus.OPEN
+            siblings.append(
+                Task(
+                    id=f"cub-{i:03d}",
+                    title=f"Task {i}",
+                    status=status,
+                    priority=TaskPriority.P2,
+                    type=TaskType.TASK,
+                    parent="epic-big",
+                )
+            )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = siblings
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        # Should have both completed and remaining sections
+        assert "Completed Sibling Tasks:" in result
+        assert "Remaining Sibling Tasks:" in result
+        # Check some completed tasks
+        assert "✓ cub-001: Task 1" in result
+        assert "✓ cub-004: Task 4" in result
+        # Check some remaining tasks
+        assert "○ cub-005: Task 5" in result
+        assert "○ cub-009: Task 9" in result
+
+
+# ==============================================================================
+# Tests for generate_retry_context
+# ==============================================================================
+
+
+class TestGenerateRetryContext:
+    """Tests for generate_retry_context function."""
+
+    def test_returns_none_when_no_entry(self, mock_task, tmp_path):
+        """Test that None is returned when task has no ledger entry."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger integration with empty ledger
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_returns_none_when_no_attempts(self, mock_task, tmp_path):
+        """Test that None is returned when entry exists but has no attempts."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with entry but no attempts
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[],  # No attempts
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_returns_none_when_only_successful_attempts(self, mock_task, tmp_path):
+        """Test that None is returned when all attempts succeeded."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with successful attempts only
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=True,
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is None
+
+    def test_basic_retry_context_structure(self, mock_task, tmp_path):
+        """Test basic retry context contains required sections."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        # Create ledger with one failed attempt
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="timeout",
+                    error_summary="Task timed out after 10 minutes",
+                    duration_seconds=600,
+                    cost_usd=0.10,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "## Retry Context" in result
+        assert "attempted 1 time(s) before" in result
+        assert "1 failure(s)" in result
+        assert "Previous Failed Attempts:" in result
+        assert "Attempt #1:" in result
+        assert "Model: haiku" in result
+        assert "Duration: 10.0m" in result
+        assert "Error: timeout" in result
+        assert "Summary: Task timed out after 10 minutes" in result
+
+    def test_shows_multiple_failed_attempts(self, mock_task, tmp_path):
+        """Test retry context shows all failed attempts."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed with 3 errors",
+                    duration_seconds=45,
+                    cost_usd=0.05,
+                ),
+                Attempt(
+                    attempt_number=2,
+                    run_id="run-2",
+                    harness="claude",
+                    model="sonnet",
+                    success=False,
+                    error_category="syntax_error",
+                    error_summary="Invalid Python syntax in module.py",
+                    duration_seconds=30,
+                    cost_usd=0.15,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "attempted 2 time(s) before" in result
+        assert "2 failure(s)" in result
+        assert "Attempt #1:" in result
+        assert "Model: haiku" in result
+        assert "test_failure" in result
+        assert "Attempt #2:" in result
+        assert "Model: sonnet" in result
+        assert "syntax_error" in result
+
+    def test_includes_log_tail_when_available(self, mock_task, tmp_path):
+        """Test retry context includes log tail from most recent failure."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed",
+                    duration_seconds=45,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Write a log file
+        log_content = "\n".join([f"Log line {i}" for i in range(1, 101)])
+        writer.write_harness_log(mock_task.id, 1, log_content)
+
+        result = generate_retry_context(mock_task, integration, log_tail_lines=10)
+
+        assert result is not None
+        assert "Last 10 lines from most recent failure" in result
+        assert "attempt #1" in result
+        assert "```" in result
+        # Should contain the last 10 lines
+        assert "Log line 91" in result
+        assert "Log line 100" in result
+        # Should not contain earlier lines (check with boundaries to avoid substring matches)
+        lines_in_result = result.split("\n")
+        assert "Log line 1" not in lines_in_result
+        assert "Log line 50" not in lines_in_result
+
+    def test_handles_missing_log_file_gracefully(self, mock_task, tmp_path):
+        """Test retry context handles missing log file gracefully."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="harness_crash",
+                    error_summary="Harness crashed before writing log",
+                    duration_seconds=5,
+                    cost_usd=0.01,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Don't write a log file - simulate missing log
+
+        result = generate_retry_context(mock_task, integration)
+
+        # Should still return valid context, just without log tail
+        assert result is not None
+        assert "## Retry Context" in result
+        assert "Attempt #1:" in result
+        assert "harness_crash" in result
+        # Should not crash or include log section
+
+    def test_shows_duration_in_seconds_for_short_tasks(self, mock_task, tmp_path):
+        """Test retry context shows duration in seconds for tasks under 1 minute."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="quick_failure",
+                    error_summary="Failed immediately",
+                    duration_seconds=45,  # Under 60 seconds
+                    cost_usd=0.02,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "Duration: 45s" in result
+
+    def test_mixed_success_and_failure_attempts(self, mock_task, tmp_path):
+        """Test retry context only shows failed attempts when there are mixed results."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="test_failure",
+                    error_summary="Tests failed",
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+                Attempt(
+                    attempt_number=2,
+                    run_id="run-2",
+                    harness="claude",
+                    model="haiku",
+                    success=True,  # This one succeeded
+                    duration_seconds=45,
+                    cost_usd=0.06,
+                ),
+                Attempt(
+                    attempt_number=3,
+                    run_id="run-3",
+                    harness="claude",
+                    model="sonnet",
+                    success=False,
+                    error_category="timeout",
+                    error_summary="Timed out",
+                    duration_seconds=600,
+                    cost_usd=0.20,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        result = generate_retry_context(mock_task, integration)
+
+        assert result is not None
+        assert "attempted 3 time(s) before" in result
+        assert "2 failure(s)" in result  # Only 2 failures
+        # Should show failed attempts
+        assert "Attempt #1:" in result
+        assert "test_failure" in result
+        assert "Attempt #3:" in result
+        assert "timeout" in result
+
+    def test_custom_log_tail_lines(self, mock_task, tmp_path):
+        """Test retry context respects custom log_tail_lines parameter."""
+        from cub.cli.run import generate_retry_context
+        from cub.core.ledger.integration import LedgerIntegration
+        from cub.core.ledger.models import Attempt, LedgerEntry
+        from cub.core.ledger.writer import LedgerWriter
+
+        ledger_dir = tmp_path / ".cub" / "ledger"
+        ledger_dir.mkdir(parents=True)
+        writer = LedgerWriter(ledger_dir)
+        integration = LedgerIntegration(writer)
+
+        entry = LedgerEntry(
+            id=mock_task.id,
+            title=mock_task.title,
+            type="task",
+            attempts=[
+                Attempt(
+                    attempt_number=1,
+                    run_id="run-1",
+                    harness="claude",
+                    model="haiku",
+                    success=False,
+                    error_category="error",
+                    duration_seconds=30,
+                    cost_usd=0.05,
+                ),
+            ],
+        )
+        writer.create_entry(entry)
+
+        # Write a log with 100 lines
+        log_content = "\n".join([f"Line {i}" for i in range(1, 101)])
+        writer.write_harness_log(mock_task.id, 1, log_content)
+
+        # Request only 5 lines
+        result = generate_retry_context(mock_task, integration, log_tail_lines=5)
+
+        assert result is not None
+        assert "Last 5 lines" in result
+        assert "Line 96" in result
+        assert "Line 100" in result
+        assert "Line 95" not in result
+
 
 # ==============================================================================
 # Tests for generate_task_prompt
@@ -313,7 +1060,7 @@ class TestGenerateTaskPrompt:
             f"**Task lifecycle:**\n"
             f"- `bd update {mock_task.id} --status in_progress` - Claim the task (do this first)\n"
             f"- `bd close {mock_task.id}` - Mark task complete (after all checks pass)\n"
-            f"- `bd close {mock_task.id} -r \"reason\"` - Close with explanation"
+            f'- `bd close {mock_task.id} -r "reason"` - Close with explanation'
         )
 
         result = generate_task_prompt(mock_task, mock_task_backend)
@@ -325,8 +1072,8 @@ class TestGenerateTaskPrompt:
         """Test json backend shows different completion instructions."""
         mock_task_backend.backend_name = "json"
         mock_task_backend.get_agent_instructions.return_value = (
-            'This project uses the JSON task backend.\n\n'
-            '**Task lifecycle:**\n'
+            "This project uses the JSON task backend.\n\n"
+            "**Task lifecycle:**\n"
             '- Edit prd.json: set status to "closed" when complete'
         )
 
@@ -336,9 +1083,7 @@ class TestGenerateTaskPrompt:
 
     def test_includes_backend_specific_instructions(self, mock_task, mock_task_backend):
         """Test prompt includes backend-specific agent instructions."""
-        mock_task_backend.get_agent_instructions.return_value = (
-            "Custom backend instructions here"
-        )
+        mock_task_backend.get_agent_instructions.return_value = "Custom backend instructions here"
 
         result = generate_task_prompt(mock_task, mock_task_backend)
 
@@ -376,6 +1121,66 @@ class TestGenerateTaskPrompt:
 
             assert f"Type: {task_type.value}" in result
             assert f"{task_type.value}(cub-001):" in result
+
+    def test_includes_epic_context_when_present(self, mock_task_backend):
+        """Test that epic context is included in task prompt when task has parent."""
+        # Create epic
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        # Create task with parent
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        completed_sibling = Task(
+            id="cub-000",
+            title="Completed sibling",
+            status=TaskStatus.CLOSED,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        # Mock backend
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task, completed_sibling]
+
+        result = generate_task_prompt(task, mock_task_backend)
+
+        # Should contain epic context section
+        assert "## Epic Context" in result
+        assert "epic-001" in result
+        assert "Main Epic" in result
+        assert "Completed Sibling Tasks:" in result
+        assert "✓ cub-000: Completed sibling" in result
+
+    def test_no_epic_context_when_no_parent(self, mock_task_backend):
+        """Test that epic context is not included when task has no parent."""
+        task = Task(
+            id="cub-001",
+            title="Standalone task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent=None,
+        )
+
+        result = generate_task_prompt(task, mock_task_backend)
+
+        # Should not contain epic context section
+        assert "## Epic Context" not in result
 
 
 # ==============================================================================
@@ -502,9 +1307,7 @@ class TestShowReadyTasks:
 
         _show_ready_tasks(mock_backend, epic="epic-1", label=None)
 
-        mock_backend.get_ready_tasks.assert_called_once_with(
-            parent="epic-1", label=None
-        )
+        mock_backend.get_ready_tasks.assert_called_once_with(parent="epic-1", label=None)
 
     def test_filters_by_label(self):
         """Test that label filter is passed to backend."""
@@ -517,9 +1320,7 @@ class TestShowReadyTasks:
 
         _show_ready_tasks(mock_backend, epic=None, label="urgent")
 
-        mock_backend.get_ready_tasks.assert_called_once_with(
-            parent=None, label="urgent"
-        )
+        mock_backend.get_ready_tasks.assert_called_once_with(parent=None, label="urgent")
 
     def test_handles_many_labels(self, mock_task_backend, capsys):
         """Test truncation of many labels."""
@@ -614,9 +1415,7 @@ class TestFlagValidation:
             mock_config.return_value.harness.priority = []
 
             with patch("cub.cli.run.detect_async_harness", return_value=None):
-                result = runner.invoke(
-                    app, ["--worktree", "--worktree-keep", "--once"]
-                )
+                result = runner.invoke(app, ["--worktree", "--worktree-keep", "--once"])
 
                 # Should not fail with worktree-keep validation error
                 assert "--worktree-keep requires" not in result.output
@@ -1424,9 +2223,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--epic", "backend-v2"])
 
         # Verify epic was passed as parent filter
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent="backend-v2", label=None
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent="backend-v2", label=None)
 
     def test_label_filter_passed_to_backend(self, runner, filter_mock_deps):
         """Test that --label filter is passed to task backend."""
@@ -1437,9 +2234,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--label", "urgent"])
 
         # Verify label was passed
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent=None, label="urgent"
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent=None, label="urgent")
 
     def test_both_filters_combined(self, runner, filter_mock_deps):
         """Test that both epic and label filters can be combined."""
@@ -1450,9 +2245,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--epic", "v2", "--label", "critical"])
 
         # Verify both filters passed
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent="v2", label="critical"
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent="v2", label="critical")
 
     def test_auto_close_epic_when_all_tasks_complete(self, runner, filter_mock_deps):
         """Test that epic is auto-closed when all tasks are complete."""
@@ -1521,9 +2314,7 @@ class TestBranchCreation:
     def test_use_current_branch_on_main_with_main_ok_succeeds(self, runner):
         """Test --use-current-branch on main with --main-ok succeeds."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1533,9 +2324,7 @@ class TestBranchCreation:
             mock_config.return_value.harness.priority = []
             mock_task_backend.return_value = MagicMock()
 
-            result = runner.invoke(
-                app, ["--use-current-branch", "--main-ok", "--once"]
-            )
+            result = runner.invoke(app, ["--use-current-branch", "--main-ok", "--once"])
 
             # Should fail for no harness, not branch protection
             assert "No AI harness available" in result.output
@@ -1544,9 +2333,7 @@ class TestBranchCreation:
     def test_use_current_branch_on_feature_branch_succeeds(self, runner):
         """Test --use-current-branch on feature branch works without --main-ok."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1565,9 +2352,7 @@ class TestBranchCreation:
     def test_default_creates_branch_from_origin_main(self, runner):
         """Test default behavior creates branch from origin/main."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1587,9 +2372,7 @@ class TestBranchCreation:
     def test_from_branch_overrides_default_base(self, runner):
         """Test --from-branch overrides the default origin/main base."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1609,9 +2392,7 @@ class TestBranchCreation:
     def test_use_current_branch_ignores_from_branch(self, runner):
         """Test --use-current-branch ignores --from-branch (no-op)."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
@@ -1634,9 +2415,7 @@ class TestBranchCreation:
     def test_on_feature_branch_reuses_existing(self, runner):
         """Test running on existing feature branch reuses it (no new branch)."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
@@ -1657,9 +2436,7 @@ class TestBranchCreation:
     def test_task_specific_branch_name(self, runner):
         """Test --task creates branch with task ID in name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1679,9 +2456,7 @@ class TestBranchCreation:
     def test_epic_branch_name(self, runner):
         """Test --epic creates branch with epic name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run._get_epic_title", return_value="Backend API"),
             patch("cub.cli.run.load_config") as mock_config,
@@ -1702,9 +2477,7 @@ class TestBranchCreation:
     def test_label_branch_name(self, runner):
         """Test --label creates branch with label name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -1723,9 +2496,7 @@ class TestBranchCreation:
 
     def test_master_branch_also_protected(self, runner):
         """Test 'master' branch is also protected like 'main'."""
-        with patch(
-            "cub.core.branches.store.BranchStore.get_current_branch"
-        ) as mock_get:
+        with patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get:
             mock_get.return_value = "master"
 
             result = runner.invoke(app, ["--use-current-branch", "--once"])

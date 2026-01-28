@@ -453,6 +453,54 @@ class TestRunTask:
             assert result.usage.output_tokens == 50
             assert result.session_id == "test-session"
 
+    @pytest.mark.asyncio
+    async def test_run_task_sets_cub_run_active_env_var(self) -> None:
+        """Test run_task sets CUB_RUN_ACTIVE=1 during execution."""
+        from claude_agent_sdk import AssistantMessage, ResultMessage
+        from claude_agent_sdk.types import TextBlock
+
+        harness = ClaudeSDKBackend()
+
+        # Track whether CUB_RUN_ACTIVE was set during mock execution
+        cub_run_active_during_execution = False
+
+        async def mock_query(*args: Any, **kwargs: Any) -> Any:
+            nonlocal cub_run_active_during_execution
+            # Check if CUB_RUN_ACTIVE is set during query execution
+            cub_run_active_during_execution = os.environ.get("CUB_RUN_ACTIVE") == "1"
+
+            messages = [
+                AssistantMessage(
+                    content=[TextBlock(text="Answer")],
+                    model="claude-sonnet-4-20250514",
+                ),
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=1000,
+                    duration_api_ms=800,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session",
+                    total_cost_usd=0.01,
+                    usage={"input_tokens": 100, "output_tokens": 50},
+                ),
+            ]
+            for msg in messages:
+                yield msg
+
+        with (
+            patch.object(harness, "is_available", return_value=True),
+            patch("claude_agent_sdk.query", mock_query),
+        ):
+            task_input = TaskInput(prompt="Hello")
+            result = await harness.run_task(task_input)
+
+            # Verify CUB_RUN_ACTIVE was set during execution
+            assert cub_run_active_during_execution is True
+            assert result.success is True
+            # Verify it's restored after execution
+            assert os.environ.get("CUB_RUN_ACTIVE") != "1"
+
 
 class TestStreamTask:
     """Tests for stream_task method."""
@@ -507,6 +555,51 @@ class TestStreamTask:
                 chunks.append(chunk)
 
             assert chunks == ["First ", "second ", "third"]
+
+    @pytest.mark.asyncio
+    async def test_stream_task_sets_cub_run_active_env_var(self) -> None:
+        """Test stream_task sets CUB_RUN_ACTIVE=1 during execution."""
+        from claude_agent_sdk import AssistantMessage
+        from claude_agent_sdk.types import TextBlock
+
+        harness = ClaudeSDKBackend()
+
+        # Track whether CUB_RUN_ACTIVE was set during mock execution
+        cub_run_active_during_execution = False
+
+        async def mock_query(*args: Any, **kwargs: Any) -> Any:
+            nonlocal cub_run_active_during_execution
+            # Check if CUB_RUN_ACTIVE is set during query execution
+            cub_run_active_during_execution = os.environ.get("CUB_RUN_ACTIVE") == "1"
+
+            messages = [
+                AssistantMessage(
+                    content=[TextBlock(text="Chunk1")],
+                    model="claude-sonnet-4-20250514",
+                ),
+                AssistantMessage(
+                    content=[TextBlock(text="Chunk2")],
+                    model="claude-sonnet-4-20250514",
+                ),
+            ]
+            for msg in messages:
+                yield msg
+
+        with (
+            patch.object(harness, "is_available", return_value=True),
+            patch("claude_agent_sdk.query", mock_query),
+        ):
+            task_input = TaskInput(prompt="Hello")
+            chunks: list[str] = []
+
+            async for chunk in harness.stream_task(task_input):
+                chunks.append(chunk)
+
+            # Verify CUB_RUN_ACTIVE was set during execution
+            assert cub_run_active_during_execution is True
+            assert len(chunks) == 2
+            # Verify it's restored after execution
+            assert os.environ.get("CUB_RUN_ACTIVE") != "1"
 
 
 # Integration tests - require ANTHROPIC_API_KEY

@@ -179,9 +179,6 @@ class CleanupConfig(BaseModel):
     # Patterns for files to commit (useful artifacts)
     artifact_patterns: list[str] = Field(
         default_factory=lambda: [
-            "progress.txt",
-            "fix_plan.md",
-            "AGENT.md",
             ".cub/status.json",
             ".cub/prompt.md",
             ".cub/agent.md",
@@ -291,6 +288,58 @@ class CircuitBreakerConfig(BaseModel):
     )
 
 
+class MapConfig(BaseModel):
+    """
+    Configuration for cub map command.
+
+    Controls how the codebase map is generated, including token budgets,
+    traversal depth, and what metadata to include.
+    """
+
+    token_budget: int = Field(
+        default=1500,
+        ge=1,
+        description="Maximum tokens to allocate for the map output",
+    )
+    max_depth: int = Field(
+        default=4,
+        ge=1,
+        description="Maximum directory depth to traverse",
+    )
+    include_code_intel: bool = Field(
+        default=True,
+        description="Include code intelligence (imports, exports, key functions)",
+    )
+    include_ledger_stats: bool = Field(
+        default=True,
+        description="Include statistics from the ledger (completed work)",
+    )
+    exclude_patterns: list[str] = Field(
+        default_factory=lambda: [
+            "node_modules/**",
+            ".git/**",
+            ".venv/**",
+            "venv/**",
+            "__pycache__/**",
+            "*.pyc",
+            ".mypy_cache/**",
+            ".pytest_cache/**",
+            ".ruff_cache/**",
+            "build/**",
+            "dist/**",
+            "*.egg-info/**",
+            ".tox/**",
+            "coverage/**",
+            ".coverage",
+            "htmlcov/**",
+            ".DS_Store",
+            "*.min.js",
+            "*.min.css",
+        ],
+        description="Glob patterns to exclude from the map",
+    )
+
+
 class BackendConfig(BaseModel):
     """
     Task backend configuration.
@@ -304,6 +353,28 @@ class BackendConfig(BaseModel):
             "Backend mode: 'auto' (auto-detect), 'beads', 'jsonl', 'both' "
             "(dual-backend with divergence detection)"
         ),
+    )
+
+
+class TaskConfig(BaseModel):
+    """
+    Task identification and context configuration.
+
+    Controls how tasks are identified in user prompts and how their details
+    are provided as context to the AI harness.
+    """
+
+    id_pattern: str = Field(
+        default=r"cub-[\w.-]+",
+        description=(
+            "Regex pattern for task ID detection in user prompts. "
+            "Default: 'cub-[\\w.-]+' matches IDs like 'cub-042', 'cub-w3f.2'. "
+            "Use configurable prefix for custom task ID formats."
+        ),
+    )
+    inject_context: bool = Field(
+        default=True,
+        description="Inject task details as additionalContext when task ID is mentioned in prompt",
     )
 
 
@@ -343,8 +414,18 @@ class CubConfig(BaseModel):
     """
 
     # Core settings
+    dev_mode: bool = Field(
+        default=False,
+        description=(
+            "Development mode: use local uv-managed installation for hooks. "
+            "Set to true when developing cub itself, false for production use."
+        ),
+    )
     backend: BackendConfig = Field(
         default_factory=BackendConfig, description="Task backend configuration"
+    )
+    task: TaskConfig = Field(
+        default_factory=TaskConfig, description="Task identification and context configuration"
     )
     harness: HarnessConfig = Field(
         default_factory=HarnessConfig, description="AI harness configuration"
@@ -372,12 +453,14 @@ class CubConfig(BaseModel):
     ledger: LedgerConfig = Field(
         default_factory=LedgerConfig, description="Ledger (completed work tracking) settings"
     )
-    sync: SyncConfig = Field(
-        default_factory=SyncConfig, description="Task sync settings"
-    )
+    sync: SyncConfig = Field(default_factory=SyncConfig, description="Task sync settings")
     circuit_breaker: CircuitBreakerConfig = Field(
         default_factory=CircuitBreakerConfig,
         description="Circuit breaker stagnation detection settings",
+    )
+    map: MapConfig = Field(
+        default_factory=MapConfig,
+        description="Codebase map generation settings",
     )
 
     model_config = ConfigDict(

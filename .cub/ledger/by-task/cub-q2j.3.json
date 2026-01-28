@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-q2j.3",
+  "title": "Update AGENTS.md and CLAUDE.md generation",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2j"
+  },
+  "task": {
+    "title": "Update AGENTS.md and CLAUDE.md generation",
+    "description": "Current AGENTS.md tells agents to use `bd` commands. It needs to use `cub task` commands instead, and include guidance for task claiming at session start and plan capture.\n\n**Implementation Steps:**\n1. Update `generate_agents_md()` in `instructions.py`:\n2. Update `generate_claude_md()`:\n3. Remove or mark remaining `bd` references as legacy fallback\n\n**Files:** src/cub/core/instructions.py, tests/test_instructions.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-q2j",
+      "instructions",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:37:44.364219Z",
+    "captured_at": "2026-01-28T06:58:29.873984Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-064539",
+      "started_at": "2026-01-28T06:58:29.893004",
+      "completed_at": "2026-01-28T07:03:09.242707Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 1485,
+        "output_tokens": 9825,
+        "cache_read_tokens": 1498354,
+        "cache_creation_tokens": 57372
+      },
+      "cost_usd": 0.98965065,
+      "duration_seconds": 279
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T07:03:09.533990Z",
+    "total_cost_usd": 0.98965065,
+    "total_attempts": 1,
+    "total_duration_seconds": 279,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "ef651dc4989395b59ad0136752cc17690b2e4b4a",
+        "message": "task(cub-q2j.3): Update AGENTS.md and CLAUDE.md generation",
+        "author": "",
+        "timestamp": "2026-01-28T07:02:53Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T07:03:09.533990Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:58:29.873984Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T07:03:09.533990Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T06:58:29.873984Z",
+  "completed_at": "2026-01-28T07:03:09.533990Z",
+  "tokens": {
+    "input_tokens": 1485,
+    "output_tokens": 9825,
+    "cache_read_tokens": 1498354,
+    "cache_creation_tokens": 57372
+  },
+  "cost_usd": 0.98965065,
+  "duration_seconds": 279,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "ef651dc4989395b59ad0136752cc17690b2e4b4a",
+      "message": "task(cub-q2j.3): Update AGENTS.md and CLAUDE.md generation",
+      "author": "",
+      "timestamp": "2026-01-28T07:02:53Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-q2j.3",
+  "epic_id": "cub-q2j",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

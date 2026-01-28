@@ -150,7 +150,7 @@ git_commit_cub_artifacts() {
 
 # Default session files that should be auto-committed if modified
 # These are files that agents are expected to modify during runs
-_GIT_SESSION_FILES=("progress.txt" "fix_plan.md")
+_GIT_SESSION_FILES=(".cub/prompt.md" ".cub/agent.md")
 
 # Commit all remaining uncommitted changes after successful task completion
 # This handles cases where the agent completes work but forgets to commit.
@@ -218,7 +218,7 @@ Auto-committed by cub: agent completed successfully but did not commit changes."
     return 0
 }
 
-# Commit session files (progress.txt, fix_plan.md, etc.) if they have uncommitted changes
+# Commit session files (.cub/prompt.md, .cub/agent.md, etc.) if they have uncommitted changes
 # These are files that agents are expected to modify during task execution.
 # If the agent forgets to commit them, cub will do it to maintain clean state.
 #
@@ -691,7 +691,7 @@ git_push_branch() {
 # =============================================================================
 
 # Patterns for categorizing uncommitted files
-_GIT_SESSION_PATTERNS=("progress.txt" "fix_plan.md")
+_GIT_SESSION_PATTERNS=(".cub/prompt.md" ".cub/agent.md")
 _GIT_CRUFT_PATTERNS=(
     "*.bak"
     "*.tmp"
@@ -734,10 +734,10 @@ git_categorize_file() {
     filename=$(basename "$filepath")
     local extension="${filename##*.}"
 
-    # Check session files first (exact match)
+    # Check session files first (exact match on filepath)
     local pattern
     for pattern in "${_GIT_SESSION_PATTERNS[@]}"; do
-        if [[ "$filename" == "$pattern" ]]; then
+        if [[ "$filepath" == "$pattern" ]]; then
             echo "session"
             return 0
         fi
@@ -805,7 +805,7 @@ git_categorize_file() {
 # Usage: git_categorize_changes
 # Output: JSON object with categorized files
 # {
-#   "session": ["progress.txt", "fix_plan.md"],
+#   "session": [".cub/prompt.md", ".cub/agent.md"],
 #   "source": ["src/foo.ts"],
 #   "cruft": [".DS_Store"],
 #   "config": [".env"],
@@ -826,8 +826,22 @@ git_categorize_changes() {
 
     # Get all uncommitted files (modified, staged, and untracked)
     # Use -u to show all individual files in untracked directories
+    # Filter out .beads/ entirely and .cub/ except for session files
     local all_files
-    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.cub/' | grep -v '^.. \.beads/')
+    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.beads/' | grep -v '^.. \.cub/' | grep -v '^.. \.cub$')
+
+    # Also get session files from .cub/ (they need to be categorized)
+    local session_from_cub
+    session_from_cub=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.cub/(prompt\.md|agent\.md)$')
+
+    # Combine the lists
+    if [[ -n "$session_from_cub" ]]; then
+        if [[ -n "$all_files" ]]; then
+            all_files="$all_files"$'\n'"$session_from_cub"
+        else
+            all_files="$session_from_cub"
+        fi
+    fi
 
     if [[ -z "$all_files" ]]; then
         # No changes

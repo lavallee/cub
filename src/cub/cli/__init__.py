@@ -18,7 +18,10 @@ from cub.cli import (
     delegated,
     docs,
     doctor,
+    hooks,
+    init_cmd,
     ledger,
+    map,
     merge,
     monitor,
     new,
@@ -26,6 +29,7 @@ from cub.cli import (
     plan,
     pr,
     punchlist,
+    reconcile,
     review,
     run,
     sandbox,
@@ -131,7 +135,7 @@ def main(
 # Key Commands
 # =============================================================================
 
-app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
+app.command(name="init", rich_help_panel=PANEL_KEY)(init_cmd.main)
 app.command(name="new", rich_help_panel=PANEL_KEY)(new.new)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 
@@ -144,6 +148,7 @@ app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
 app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
 app.add_typer(ledger.app, name="ledger", rich_help_panel=PANEL_STATUS)
+app.add_typer(reconcile.app, name="reconcile", rich_help_panel=PANEL_STATUS)
 app.add_typer(review.app, name="review", rich_help_panel=PANEL_STATUS)
 app.add_typer(dashboard.app, name="dashboard", rich_help_panel=PANEL_STATUS)
 app.command(name="artifacts", rich_help_panel=PANEL_STATUS)(delegated.artifacts)
@@ -190,6 +195,7 @@ app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
 
 app.command(name="guardrails", rich_help_panel=PANEL_PROJECT)(delegated.guardrails)
 app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
+app.command(name="map", rich_help_panel=PANEL_PROJECT)(map.main)
 
 
 # =============================================================================
@@ -226,6 +232,7 @@ app.add_typer(update.app, name="update", rich_help_panel=PANEL_INSTALL)
 app.add_typer(upgrade.app, name="system-upgrade", rich_help_panel=PANEL_INSTALL)
 app.add_typer(uninstall.app, name="uninstall", rich_help_panel=PANEL_INSTALL)
 app.add_typer(doctor.app, name="doctor", rich_help_panel=PANEL_INSTALL)
+app.add_typer(hooks.app, name="hooks", rich_help_panel=PANEL_INSTALL)
 
 
 # =============================================================================

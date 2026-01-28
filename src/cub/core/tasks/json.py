@@ -671,8 +671,8 @@ class JsonBackend:
         """
         Bind a git branch to an epic.
 
-        The JSON backend doesn't have native branch binding support.
-        This is a no-op that returns False.
+        Stores bindings in .cub/branches.json with the same semantics
+        as beads' .beads/branches.yaml.
 
         Args:
             epic_id: Epic ID to bind
@@ -680,11 +680,22 @@ class JsonBackend:
             base_branch: Base branch for merging
 
         Returns:
-            False (branch binding not supported in JSON backend)
+            True if binding created, False if already exists or error
         """
-        # JSON backend doesn't support branch bindings
-        # Could optionally store in prd.json metadata in the future
-        return False
+        from cub.core.branches.json_store import JsonBranchStore, JsonBranchStoreError
+
+        try:
+            store = JsonBranchStore(self.project_dir)
+            existing = store.get_binding(epic_id)
+            if existing:
+                return False
+            existing_branch = store.get_binding_by_branch(branch_name)
+            if existing_branch:
+                return False
+            store.add_binding(epic_id, branch_name, base_branch)
+            return True
+        except JsonBranchStoreError:
+            return False
 
     def try_close_epic(self, epic_id: str) -> tuple[bool, str]:
         """

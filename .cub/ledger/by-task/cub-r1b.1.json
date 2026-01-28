@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "cub-r1b.1",
+  "title": "Implement managed section detection and upsert engine",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1b"
+  },
+  "task": {
+    "title": "Implement managed section detection and upsert engine",
+    "description": "This is the most architecturally significant task. The managed\nsection engine is the foundation for non-destructive CLAUDE.md/AGENTS.md\nupdates. It must handle: first init (no file), first init (existing file, no\nmarkers), update (markers present), partial markers (error recovery), version\nmismatch, and manual edit detection via content hashing.\n\n**Implementation Steps:**\n1. Add `UpsertResult` and `SectionInfo` Pydantic models to `instructions.py`\n2. Implement `detect_managed_section(file_path)` \u2014 regex-based marker detection, returns `SectionInfo` with version, line range, and content hash\n3. Implement `upsert_managed_section(file_path, content, version)` \u2014 handles all cases: create new file, append to existing file, replace existing section. Uses sha256 hash to detect manual edits inside markers (warn but proceed)\n4. Implement marker format: `<!-- BEGIN CUB MANAGED SECTION v{N} -->`, `<!-- sha256:{hash} -->`, comment lines, content, `<!-- END CUB MANAGED SECTION -->`\n5. Handle edge cases: file doesn't exist (create with section only), begin marker without end (warn, append end marker), end marker without begin (warn, prepend begin marker)\n6. Write comprehensive tests covering all edge cases: empty file, file with user content, file with existing section, file with tampered section, partial markers, version upgrade\n\n**Files:** src/cub/core/instructions.py, tests/test_instructions.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "blocking",
+      "complexity:high",
+      "core",
+      "epic:cub-r1b",
+      "model:opus",
+      "phase-2"
+    ],
+    "created_at": "2026-01-28T03:34:52.365007Z",
+    "captured_at": "2026-01-28T04:24:48.938757Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-042448",
+      "started_at": "2026-01-28T04:24:48.953587",
+      "completed_at": "2026-01-28T04:31:41.101031Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 29,
+        "output_tokens": 15843,
+        "cache_read_tokens": 1188191,
+        "cache_creation_tokens": 51296
+      },
+      "cost_usd": 1.4877072999999994,
+      "duration_seconds": 412
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T04:31:41.320866Z",
+    "total_cost_usd": 1.4877072999999994,
+    "total_attempts": 1,
+    "total_duration_seconds": 412,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "350ed1c79a8332c74fe401ee50f37b0bb1bf13e9",
+        "message": "docs(cub-r1b.1): Update progress with managed section engine learnings",
+        "author": "",
+        "timestamp": "2026-01-28T04:31:28Z"
+      },
+      {
+        "hash": "6e4c37d614ee29039fd41b9f5bbaa5f96030a4bf",
+        "message": "task(cub-r1b.1): Implement managed section detection and upsert engine",
+        "author": "",
+        "timestamp": "2026-01-28T04:31:00Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T04:31:41.320866Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:24:48.938757Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:31:41.320866Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T04:24:48.938757Z",
+  "completed_at": "2026-01-28T04:31:41.320866Z",
+  "tokens": {
+    "input_tokens": 29,
+    "output_tokens": 15843,
+    "cache_read_tokens": 1188191,
+    "cache_creation_tokens": 51296
+  },
+  "cost_usd": 1.4877072999999994,
+  "duration_seconds": 412,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "350ed1c79a8332c74fe401ee50f37b0bb1bf13e9",
+      "message": "docs(cub-r1b.1): Update progress with managed section engine learnings",
+      "author": "",
+      "timestamp": "2026-01-28T04:31:28Z"
+    },
+    {
+      "hash": "6e4c37d614ee29039fd41b9f5bbaa5f96030a4bf",
+      "message": "task(cub-r1b.1): Implement managed section detection and upsert engine",
+      "author": "",
+      "timestamp": "2026-01-28T04:31:00Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1b.1",
+  "epic_id": "cub-r1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "opus",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

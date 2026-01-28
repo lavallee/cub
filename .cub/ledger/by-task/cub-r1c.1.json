@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "id": "cub-r1c.1",
+  "title": "Implement structure analyzer module",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1c"
+  },
+  "task": {
+    "title": "Implement structure analyzer module",
+    "description": "The structure analyzer provides the foundational layer of the\nproject map \u2014 directory tree, tech stack detection, and build command extraction.\nThis works without tree-sitter and serves as the fallback when code intelligence\nis unavailable.\n\n**Implementation Steps:**\n1. Create `src/cub/core/map/__init__.py` and `src/cub/core/map/structure.py`\n2. Implement Pydantic models: `DirectoryTree`, `TechStack`, `BuildCommand`, `KeyFile`, `ModuleInfo`, `ProjectStructure`\n3. Implement `analyze_structure(project_dir, max_depth)`:\n4. Implement config file parsers:\n5. Implement key file detection: README.*, LICENSE, main entry points (from config parsers), test directories\n6. Implement module boundary detection: top-level directories under src/ or root with `__init__.py` (Python) or `index.{js,ts}` (JS/TS)\n7. Write tests with fixture projects (minimal Python project, minimal Node project, empty project)\n\n**Files:** src/cub/core/map/__init__.py, src/cub/core/map/structure.py, src/cub/core/map/models.py, tests/test_map_structure.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-r1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:34:52.365089Z",
+    "captured_at": "2026-01-28T04:51:03.270684Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T04:51:03.280553",
+      "completed_at": "2026-01-28T05:00:25.238861Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5429,
+        "output_tokens": 26517,
+        "cache_read_tokens": 3141140,
+        "cache_creation_tokens": 59997
+      },
+      "cost_usd": 1.7281066000000005,
+      "duration_seconds": 561
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:00:25.429690Z",
+    "total_cost_usd": 1.7281066000000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 561,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "556ea0bf2a5f363252e05630dd03d8e06b08a3a9",
+        "message": "task(cub-r1c.1): Implement structure analyzer module",
+        "author": "",
+        "timestamp": "2026-01-28T04:59:43Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:00:25.429690Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:51:03.270684Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:00:25.429690Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T04:51:03.270684Z",
+  "completed_at": "2026-01-28T05:00:25.429690Z",
+  "tokens": {
+    "input_tokens": 5429,
+    "output_tokens": 26517,
+    "cache_read_tokens": 3141140,
+    "cache_creation_tokens": 59997
+  },
+  "cost_usd": 1.7281066000000005,
+  "duration_seconds": 561,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "556ea0bf2a5f363252e05630dd03d8e06b08a3a9",
+      "message": "task(cub-r1c.1): Implement structure analyzer module",
+      "author": "",
+      "timestamp": "2026-01-28T04:59:43Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.1",
+  "epic_id": "cub-r1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

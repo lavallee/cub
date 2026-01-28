@@ -113,17 +113,6 @@ get_agent_file() {
     echo "${layout_root}/agent.md"
 }
 
-# Get the path to progress.txt
-# Parameters:
-#   $1 - project directory (defaults to current directory)
-# Echoes: absolute path to progress.txt
-get_progress_file() {
-    local project_dir="${1:-.}"
-    local layout_root
-    layout_root=$(get_layout_root "$project_dir")
-    echo "${layout_root}/progress.txt"
-}
-
 # Get the path to fix_plan.md
 # Parameters:
 #   $1 - project directory (defaults to current directory)

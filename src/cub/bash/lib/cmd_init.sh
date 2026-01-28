@@ -45,7 +45,6 @@ WHAT IT CREATES:
     ├── README.md        Quick reference guide (editable)
     ├── prompt.md        System prompt template
     ├── agent.md         Build/run instructions (customized by project type)
-    ├── progress.txt     Progress tracking (auto-updated)
     └── fix_plan.md      Issue tracking (auto-updated)
   .gitignore            With cub patterns
 
@@ -532,16 +531,6 @@ EOF
     else
         log_warn "Python3 not found, skipping AGENTS.md/CLAUDE.md generation"
         log_warn "These files provide workflow instructions for direct harness use"
-    fi
-
-    # Create progress.txt in layout root
-    local progress_file
-    progress_file=$(get_progress_file ".")
-    if [[ ! -f "$progress_file" ]]; then
-        cp "${CUB_DIR}/templates/progress.txt" "$progress_file"
-        log_success "Created $(basename "$progress_file")"
-    else
-        log_warn "$(basename "$progress_file") already exists, skipping"
     fi
 
     # Create fix_plan.md in layout root

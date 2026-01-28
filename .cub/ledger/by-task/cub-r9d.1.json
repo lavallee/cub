@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "id": "cub-r9d.1",
+  "title": "Implement cub reconcile command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r9d"
+  },
+  "task": {
+    "title": "Implement cub reconcile command",
+    "description": "For sessions where hooks didn't fire or partially failed, `cub reconcile` processes forensics logs and git history to reconstruct ledger entries after the fact.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/reconcile.py` with Typer command\n2. Scan `.cub/ledger/forensics/` for session JSONL files\n3. For each file: check if a corresponding ledger entry exists (by session_id or task_id)\n4. For unprocessed sessions: replay events through `SessionLedgerIntegration.on_session_end()`\n5. Optionally scan `git log` for commits not associated with any ledger entry (orphaned work)\n6. Report reconciliation results via Rich table\n7. Ensure idempotency: running twice doesn't create duplicate entries\n\n**Files:** src/cub/cli/reconcile.py, src/cub/cli/__init__.py, tests/test_reconcile.py",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-r9d",
+      "logic",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T03:37:44.364257Z",
+    "captured_at": "2026-01-28T07:12:32.222047Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-071231",
+      "started_at": "2026-01-28T07:12:32.245242",
+      "completed_at": "2026-01-28T07:19:45.438269Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5257,
+        "output_tokens": 20995,
+        "cache_read_tokens": 3337432,
+        "cache_creation_tokens": 72286
+      },
+      "cost_usd": 1.8307854000000001,
+      "duration_seconds": 433
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T07:19:45.705718Z",
+    "total_cost_usd": 1.8307854000000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 433,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b1607b8c90947a026f61f719d6148ca9f0bb6d8a",
+        "message": "task(cub-r9d.1): Implement cub reconcile command",
+        "author": "",
+        "timestamp": "2026-01-28T07:19:12Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T07:19:45.705718Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T07:12:32.222047Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T07:19:45.705718Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T07:12:32.222047Z",
+  "completed_at": "2026-01-28T07:19:45.705718Z",
+  "tokens": {
+    "input_tokens": 5257,
+    "output_tokens": 20995,
+    "cache_read_tokens": 3337432,
+    "cache_creation_tokens": 72286
+  },
+  "cost_usd": 1.8307854000000001,
+  "duration_seconds": 433,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "b1607b8c90947a026f61f719d6148ca9f0bb6d8a",
+      "message": "task(cub-r9d.1): Implement cub reconcile command",
+      "author": "",
+      "timestamp": "2026-01-28T07:19:12Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r9d.1",
+  "epic_id": "cub-r9d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

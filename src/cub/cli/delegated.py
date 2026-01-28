@@ -5,15 +5,10 @@ These commands are not yet ported to Python, so they delegate to the
 bash cub script with proper argument passing.
 """
 
-import os
-import subprocess
-from pathlib import Path
-
 import typer
 from rich.console import Console
 
-from cub.core.bash_delegate import delegate_to_bash, find_bash_cub
-from cub.utils.hooks import HookContext, run_hooks
+from cub.core.bash_delegate import delegate_to_bash
 
 console = Console()
 
@@ -36,6 +31,7 @@ def _delegate(command: str, args: list[str], ctx: typer.Context | None = None) -
 
 
 # Vision-to-Tasks Prep Pipeline (v0.14)
+
 
 def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
     """[DEPRECATED] Run full prep pipeline. Use 'cub plan' instead."""
@@ -314,62 +310,6 @@ def update(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) ->
         cub update --help            # Show available options
     """
     _delegate("update", args or [], ctx)
-
-
-# Project Initialization
-
-
-def init(
-    ctx: typer.Context,
-    global_: bool = typer.Option(False, "--global", "-g", help="Set up global configuration"),
-    args: list[str] | None = typer.Argument(None),
-) -> None:
-    """Initialize cub in a project or globally."""
-    # Build arguments
-    all_args = []
-    if global_:
-        all_args.append("--global")
-    if args:
-        all_args.extend(args)
-
-    # Extract debug flag
-    debug = False
-    if ctx and ctx.obj:
-        debug = ctx.obj.get("debug", False)
-
-    # Run init command (custom delegation to capture exit code for hook)
-    try:
-        bash_cub = find_bash_cub()
-    except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
-        raise typer.Exit(1)
-
-    cmd = [str(bash_cub), "init"] + all_args
-    env = os.environ.copy()
-    if debug:
-        env["CUB_DEBUG"] = "true"
-
-    result = subprocess.run(cmd, env=env, check=False)
-
-    # Fire post-init hook and install statusline on success
-    if result.returncode == 0:
-        project_dir = Path.cwd()
-        init_type = "global" if global_ else "project"
-        context = HookContext(
-            hook_name="post-init",
-            project_dir=project_dir,
-            init_type=init_type,
-        )
-        run_hooks("post-init", context, project_dir)
-
-        # Install Claude Code statusline for project-level init
-        if not global_:
-            from cub.cli.statusline import install_statusline
-
-            if install_statusline(project_dir):
-                console.print("[green]✓[/green] Installed Claude Code statusline")
-
-    raise typer.Exit(result.returncode)
 
 
 # Utility & Maintenance

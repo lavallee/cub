@@ -1,3 +1,4 @@
 {
-  "project_id": "cub"
+  "project_id": "cub",
+  "dev_mode": true
 }

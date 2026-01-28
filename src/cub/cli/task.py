@@ -347,6 +347,51 @@ def close(
 
 
 @app.command()
+def claim(
+    task_id: str = typer.Argument(..., help="Task ID to claim"),
+) -> None:
+    """
+    Claim a task (set status to in_progress).
+
+    This is a convenience command equivalent to:
+        cub task update <task_id> --status in_progress
+
+    Examples:
+        cub task claim cub-123
+    """
+    backend = get_backend()
+
+    # First check if task exists and get current status
+    task = backend.get_task(task_id)
+    if task is None:
+        print_task_not_found_error(task_id)
+        raise typer.Exit(ExitCode.USER_ERROR)
+
+    # Check if already claimed (in_progress)
+    if task.status == TaskStatus.IN_PROGRESS:
+        console.print(f"[yellow]Warning:[/yellow] Task {task_id} is already in progress")
+        if task.assignee:
+            console.print(f"  Assignee: {task.assignee}")
+        raise typer.Exit(0)
+
+    # Check if already closed
+    if task.status == TaskStatus.CLOSED:
+        console.print(f"[yellow]Warning:[/yellow] Task {task_id} is already closed")
+        raise typer.Exit(0)
+
+    # Claim the task
+    try:
+        updated = backend.update_task(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+        )
+        console.print(f"[green]Claimed:[/green] {updated.id}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def ready(
     parent: str | None = typer.Option(
         None,

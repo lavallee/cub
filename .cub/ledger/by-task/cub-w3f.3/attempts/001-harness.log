@@ -1,0 +1,63 @@
+I'll start by understanding the project structure and then implement the required changes. Let me begin by reading the key files and understanding the task.Let me check the current working directory:Good! Now let me check the task and read the relevant files:Perfect! Now let me understand the task better. I need to set the `CUB_RUN_ACTIVE=1` environment variable in the harness backends to prevent hooks from firing during Claude Code runs. Let me first claim the task and then examine the target files:Let me search for and examine the target files:Now let me examine the target files to understand how they invoke the SDK and subprocess:Perfect! Now I understand the structure. I need to:
+
+1. **claude_sdk.py**: Set `CUB_RUN_ACTIVE=1` before calling the Claude SDK's `query()` function
+2. **claude_cli.py**: Set `CUB_RUN_ACTIVE=1` in the subprocess environment when running the `claude` CLI
+
+Let me also check if there's a hook filter script to understand the double-tracking prevention context:Let me check the hook shell script to understand what it checks:Perfect! Now I understand the task completely. The hook filter script checks `CUB_RUN_ACTIVE` to prevent double-tracking. I need to set this environment variable in both harness backends before they invoke the Claude SDK or CLI.
+
+Let me also check the test file to understand the expected behavior:Let me find the correct test file:Let me read the test files to understand the structure:Good! Now I have a clear understanding. Let me implement the changes. I'll start by modifying the two harness files:
+
+1. **claude_sdk.py**: Set `CUB_RUN_ACTIVE=1` in the environment before calling `query()`
+2. **claude_cli.py**: Set `CUB_RUN_ACTIVE=1` in the subprocess environment dict
+
+Let me start with `claude_sdk.py`:Now I need to restore the environment variable after the SDK execution. Let me update the method to properly restore it in all exit paths:Actually, I realize the try-except-finally pattern won't work as I wrote it because the return statements in the except blocks will exit immediately. Let me rewrite this more cleanly:I see the issue - I can't use `return_result` in a normal except block flow without defining it first. Let me rewrite this more cleanly by moving the environment variable setup outside the try block and using a finally block properly:Good! Now let me also update the `stream_task` method in the same way:Now let me update the `stream_task` method to also set `CUB_RUN_ACTIVE`:Perfect! Now let me update the `claude_cli.py` file to set `CUB_RUN_ACTIVE=1` in the subprocess environment. I need to update both the `invoke` and `invoke_streaming` methods:Now let me update the `invoke_streaming` method as well:Perfect! Now let me run the tests to ensure everything is working correctly:Great! Claude CLI tests are passing. Now let's run the Claude SDK tests:Excellent! All tests are passing. Now let me write specific tests to verify that `CUB_RUN_ACTIVE` is being set. Let me create a test that validates this:Now let me add tests to verify CUB_RUN_ACTIVE is set. Let me check the end of the test file:Now let me add tests to verify that CUB_RUN_ACTIVE is being set in the subprocess environment. I'll add them to the test file:Now let me add the test at the end of the TestClaudeCLIBackend class:Now let me add similar tests for the SDK backend. First, let me check what we need to test:Let me read that section:Now let me add a test to verify that CUB_RUN_ACTIVE is set. Let me add it after TestRunTask:Good, `os` is already imported. Now let me add a test for CUB_RUN_ACTIVE in the SDK backend. Let me find where to add it:Now let me add a test for CUB_RUN_ACTIVE. I'll add it to the TestRunTask class:Now let me add a similar test for stream_task:Perfect! Now let me run the tests to verify everything is working:Great! Now let me test the streaming version:Excellent! Now let me test the SDK backend tests:Perfect! Now let me test the stream_task version:Excellent! All my new tests are passing. Now let me run the full test suite for both harness files to make sure I haven't broken anything:Perfect! All tests are passing. Now let me run the full test suite to ensure I haven't broken anything else:Excellent! All tests pass. Now let me check the mypy type checking:That error is unrelated to my changes (it's in branches/store.py). Let me check just the harness files:Let me check the claude_cli.py file specifically:The yaml error is a pre-existing issue unrelated to my changes. Let me check if there are any syntax issues with my code:Great! Now let me run ruff to check for linting issues:I see there's an E402 error about module level import. Let me check the file structure:I see - there's a comment between the imports that causes the E402 error. This was pre-existing in the file, not something I added. The line-too-long errors in the docstrings are also pre-existing. Let me check if there are any new linting issues I introduced by comparing with the original files:Good - no issues with my import of `os`. The linting errors shown are pre-existing. Now let me verify my code is correct by looking at where I added the `import os as _os` statement:Let me fix that:Good! The import is correctly placed inside the function. Now let me check the claude_cli.py file:Perfect! The `os` module is already imported at the top of claude_cli.py, so I'm using it directly. Let me verify my changes are complete and run a final test:Perfect! All tests are passing. Now let me close the task and create a commit:Excellent! Now let me create a commit with the changes:Now let me add the relevant changes and commit:Now let me create the commit:Perfect! Let me verify the commit was created successfully:Excellent! The commit has been created successfully. Now let me verify everything one more time by running the full test suite:Perfect! Let me create a summary of the changes I made:
+
+## Summary
+
+I have successfully completed task **cub-w3f.3**: Add CUB_RUN_ACTIVE environment variable to harness backends.
+
+### What Was Done
+
+The task required setting the `CUB_RUN_ACTIVE=1` environment variable in harness backends before invoking Claude Code to prevent hook double-tracking. This env var is checked by the hook filter script (`cub-hook.sh`) to skip processing when running under `cub run` (where hooks are managed by the framework) vs. direct harness invocation.
+
+### Implementation Details
+
+**1. Claude SDK Backend (`claude_sdk.py`)**
+   - Modified `run_task()` method to set `CUB_RUN_ACTIVE=1` in the environment before calling `query()`
+   - Modified `stream_task()` method similarly for streaming execution
+   - Both methods properly restore the previous env var value in finally blocks to avoid pollution
+   - Used `import os as _os` inside methods to avoid global scope issues
+
+**2. Claude CLI Backend (`claude_cli.py`)**
+   - Modified `invoke()` method to pass `CUB_RUN_ACTIVE=1` via subprocess environment dict
+   - Modified `invoke_streaming()` method similarly for Popen subprocess
+   - Used `os.environ.copy()` to create subprocess environment with the flag set
+
+**3. Tests Added**
+   - Added 4 new tests verifying `CUB_RUN_ACTIVE` is set during execution:
+     - `test_invoke_sets_cub_run_active_env_var` (CLI backend)
+     - `test_invoke_streaming_sets_cub_run_active_env_var` (CLI backend)
+     - `test_run_task_sets_cub_run_active_env_var` (SDK backend)
+     - `test_stream_task_sets_cub_run_active_env_var` (SDK backend)
+
+### Test Results
+
+- ✅ All 49 tests passing (2 skipped integration tests that require ANTHROPIC_API_KEY)
+- ✅ No existing tests broken
+- ✅ Full test suite passes (4179 passed, 9 skipped)
+- ✅ Code is properly structured and follows project conventions
+
+### How It Works
+
+When `cub run` invokes a Claude harness backend:
+1. The harness backend sets `CUB_RUN_ACTIVE=1` before launching Claude Code
+2. When Claude Code hooks fire, they call the shell filter script (`cub-hook.sh`)
+3. The shell filter checks for `CUB_RUN_ACTIVE` and immediately returns (line 35-39 of the script)
+4. This prevents the Python hook handlers from being invoked, preventing double-tracking
+
+When Claude Code is used directly (not via `cub run`):
+1. The env var is NOT set
+2. Hook events reach the Python handlers normally
+3. Full forensics logging and artifact capture work as designed
+
+<promise>COMPLETE</promise>

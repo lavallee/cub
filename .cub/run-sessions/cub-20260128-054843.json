@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260128-054843",
+  "started_at": "2026-01-28T05:48:43.852688Z",
+  "project_dir": "/home/lavallee/clawdbot/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 11107,
+    "tokens_limit": 0,
+    "cost_usd": 0.7655057499999999,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 1,
+  "tasks_failed": 0,
+  "current_task": null,
+  "status": "orphaned",
+  "ended_at": "2026-01-28T05:51:47.130165Z",
+  "orphaned_at": "2026-01-28T05:51:47.130165Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
+}

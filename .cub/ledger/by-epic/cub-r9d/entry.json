@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cub-r9d",
+  "title": "cub-r9d",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-r9d",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T07:19:45.719281Z",
+    "captured_at": "2026-01-28T07:19:45.719281Z"
+  },
+  "task_ids": [
+    "cub-r9d.2",
+    "cub-r9d.3",
+    "cub-r9d.1",
+    "cub-r9d.4"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 3.981923750000001,
+    "avg_cost_per_task": 0.9954809375000002,
+    "min_cost_usd": 0.3573948,
+    "max_cost_usd": 1.8307854000000001,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 9777149,
+    "avg_tokens_per_task": 2444287,
+    "total_duration_seconds": 1151,
+    "avg_duration_seconds": 287,
+    "models_used": [
+      "haiku",
+      "sonnet"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T07:31:52.830926Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T07:12:32.222047Z",
+  "completed_at": "2026-01-28T07:31:52.804565Z",
+  "updated_at": "2026-01-28T07:31:52.830927Z",
+  "first_commit": {
+    "hash": "b1607b8c90947a026f61f719d6148ca9f0bb6d8a",
+    "message": "task(cub-r9d.1): Implement cub reconcile command",
+    "author": "",
+    "timestamp": "2026-01-28T07:19:12Z"
+  },
+  "last_commit": {
+    "hash": "517f8c67c6e2f06ac52007ce14b04aa7ded57e39",
+    "message": "task(cub-r9d.4): Documentation updates",
+    "author": "",
+    "timestamp": "2026-01-28T07:31:30Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

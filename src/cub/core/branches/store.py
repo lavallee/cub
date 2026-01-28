@@ -8,7 +8,7 @@ in YAML format.
 from __future__ import annotations
 
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -213,7 +213,7 @@ class BranchStore:
             branch_name=branch_name,
             base_branch=base_branch,
             status="active",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
             pr_number=None,
             merged=False,
         )

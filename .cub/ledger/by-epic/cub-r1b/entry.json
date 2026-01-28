@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "cub-r1b",
+  "title": "cub-r1b",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-r1b",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T04:31:41.333964Z",
+    "captured_at": "2026-01-28T04:31:41.333964Z"
+  },
+  "task_ids": [
+    "cub-r1b.4",
+    "cub-r1b.3",
+    "cub-r1b.5",
+    "cub-r1b.2",
+    "cub-r1b.1"
+  ],
+  "aggregates": {
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
+    "tasks_failed": 0,
+    "total_cost_usd": 5.119800099999999,
+    "avg_cost_per_task": 1.0239600199999999,
+    "min_cost_usd": 0.37534800000000007,
+    "max_cost_usd": 1.5330665999999997,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 5,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 7066454,
+    "avg_tokens_per_task": 1413290,
+    "total_duration_seconds": 1556,
+    "avg_duration_seconds": 311,
+    "models_used": [
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T04:50:57.363094Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T04:24:48.938757Z",
+  "completed_at": "2026-01-28T04:50:57.337617Z",
+  "updated_at": "2026-01-28T04:50:57.363095Z",
+  "first_commit": {
+    "hash": "6e4c37d614ee29039fd41b9f5bbaa5f96030a4bf",
+    "message": "task(cub-r1b.1): Implement managed section detection and upsert engine",
+    "author": "",
+    "timestamp": "2026-01-28T04:31:00Z"
+  },
+  "last_commit": {
+    "hash": "4221d507df62879fa3e0ac154134e37e03a0b9a2",
+    "message": "task(cub-r1b.5): Add MapConfig to config system",
+    "author": "",
+    "timestamp": "2026-01-28T04:49:35Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

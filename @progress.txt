@@ -1,3 +1,47 @@
+## Task cub-r9d.2: Add hook validation to cub doctor
+
+**Date:** 2026-01-28
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Enhanced Diagnostic Output**: Improved the `check_hooks()` function to provide explicit status reporting for each validation check:
+   - "✓ Hooks installed: Yes/No" - Shows whether settings.json exists
+   - "✓ Shell script present and executable" - Verifies script presence and permissions
+   - "✓ Python module importable" - Confirms handler module loads correctly
+   - "✓ All hook events configured" - Indicates if all required events are configured
+   This makes diagnosis much easier for users without manual inspection.
+
+2. **Categorized Issue Reporting**: Organized error, warning, and info messages into separate sections with specific fix suggestions for each category. Each issue now has a targeted fix command rather than generic suggestions.
+
+3. **Clear Status Messaging**: Updated docstring to explicitly document what the function reports on, making the feature discoverable and understandable.
+
+4. **Test Updates**: When changing output format, all test assertions checking for specific strings need updating. Tests should verify the new format while maintaining coverage.
+
+**Implementation Details:**
+- Enhanced `check_hooks()` in `src/cub/cli/doctor.py` to report hook installation status explicitly
+- Provides specific fix commands for each type of issue (script missing, handler import failure, etc.)
+- Reports on:
+  - Hooks installed (yes/no) - checks if .claude/settings.json exists
+  - Shell script present and executable - validates script file and permissions
+  - Python module importable - confirms hook handler module can be imported
+  - All hook events configured - shows if all required hook events are set up
+- Updated 4 test cases to match new output format and verify new functionality
+
+**Files Modified:**
+- `src/cub/cli/doctor.py`: Enhanced `check_hooks()` function with detailed status reporting
+- `tests/test_cli_doctor.py`: Updated 4 test cases to match new output format
+
+**Test Results:**
+- All 15 doctor tests passing
+- Full test suite: 4282 passed (excluding unrelated failing test)
+- Type checking and linting: clean
+
+**Outcome:** Successfully enhanced `cub doctor` to provide comprehensive hook validation with explicit status reporting and targeted fix suggestions. Users can now diagnose integration issues without manual file inspection.
+
+---
+
 ## Task cub-r5c.5: Add "giving up" escape hatch to prompts (2026-01-26)
 
 **Status:** Completed
@@ -710,3 +754,371 @@ All tests pass (127 total), type checking clean, linting fixed.
 7. **Documentation as Code**: Comprehensive module docstrings following the established pattern (Purpose, Key Functions, Architecture, Usage, Dependencies) improve discoverability and maintainability.
 
 **Outcome:** Successfully implemented InstructionGenerator with generate_agents_md() and generate_claude_md() functions. All tests passing (25 tests), mypy clean, ruff formatted. Ready for integration with cub init command.
+
+## cub-r1b.1: Implement managed section detection and upsert engine (2026-01-28) ✓
+
+**Key Learnings:**
+
+1. **Managed Section Marker Format**: HTML comments work well for non-destructive markdown embedding: `<!-- BEGIN CUB MANAGED SECTION v{N} -->` with `<!-- sha256:{hash} -->` for tamper detection. HTML comments are invisible when rendered but parseable by regex.
+
+2. **Content Hashing for Edit Detection**: sha256 hash of the managed content between markers enables detecting manual edits. The hash is stored in a comment line right after the begin marker, making it easy to extract and compare.
+
+3. **Error Recovery for Partial Markers**: Three edge cases need handling: begin-without-end (treat everything from begin to EOF as section), end-without-begin (treat everything from start to end marker), and both markers present but hash mismatch (warn and overwrite). All cases produce warnings in UpsertResult.
+
+4. **Pydantic Models for Results**: Using Pydantic BaseModel for SectionInfo and UpsertResult provides type safety, serialization, and clear documentation of the return contract. The UpsertAction enum (created/appended/replaced) makes action tracking explicit.
+
+5. **Idempotency is Critical**: The upsert engine must produce identical output when called twice with the same content. This was verified with a specific test case ensuring text equality after double-upsert.
+
+6. **Preserving User Content**: The core invariant is that user-authored content outside the managed section markers must never be modified. Tests verify content before and after the section survives replace operations.
+
+7. **`from __future__ import annotations`**: Required for `int | None` union type syntax to work with Python 3.10 in type annotations without runtime errors.
+
+**Outcome:** Successfully implemented managed section engine with detect_managed_section() and upsert_managed_section(). 65 total tests (40 new), mypy clean, ruff clean. Foundation ready for non-destructive CLAUDE.md/AGENTS.md updates.
+
+## Task cub-r1b.2: Refactor instruction generators for managed section content
+
+**Completed:** 2026-01-28
+
+**Summary:**
+Successfully refactored the instruction generation system to produce condensed managed section content (~20-25 lines) instead of full-file content (90+ lines). Created a new `generate_managed_section()` function that serves as the core generator, with `generate_agents_md()` and `generate_claude_md()` acting as thin wrappers for backward compatibility.
+
+**Key Changes:**
+- Created `generate_managed_section(project_dir, config, harness="generic"|"claude")` function
+- Condensed instructions now reference external context files:
+  * `@.cub/map.md` for codebase context
+  * `@.cub/constitution.md` for development principles
+  * `@.cub/agent.md` for build/test instructions
+- Generic version (AGENTS.md): ~20 lines with core workflow
+- Claude version (CLAUDE.md): ~25 lines with plan mode and skills tips
+- Maintained backward compatibility by keeping existing function signatures
+
+**Test Coverage:**
+- Added 13 new tests for `generate_managed_section()`
+- Updated 15 existing tests to match new condensed format
+- All 73 tests pass, typecheck clean, linting clean
+
+**Learnings:**
+1. **DRY Architecture**: By extracting the core generation logic into `generate_managed_section()` and using it as a shared base, we eliminated ~200 lines of duplicate code while maintaining clear separation of concerns
+2. **Reference-Based Instructions**: Moving detailed docs to external files (`@.cub/map.md`, `@.cub/constitution.md`) makes the managed sections more maintainable and allows users to customize those files without editing generated content
+3. **Test-First Verification**: Writing tests for line count ranges (10-30 lines) ensures the "condensed" requirement is enforced and prevents future bloat
+4. **Backward Compatibility Pattern**: Keeping the old function names as wrappers maintains API compatibility for all existing callers while enabling a clean refactor underneath
+
+**Next Steps:**
+- The constitution.md template exists at `templates/constitution.md`
+- Need to implement map.md generation (tracked in separate tasks under cub-r1c epic)
+- Consider adding version parameter to `generate_managed_section()` for future evolution
+
+## Task cub-r1b.5: Add MapConfig to config system (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Pydantic Configuration Pattern**: Adding a new config section follows established patterns:
+   - Create a Pydantic BaseModel with Field definitions, defaults, and validators
+   - Add it as a field to CubConfig with `default_factory=ModelClass`
+   - Export it from the module for external use
+   - Add comprehensive tests covering defaults, overrides, validation, and deep merge
+
+2. **Field Constraints with Pydantic**: Using `ge=1` on integer fields like `token_budget` and `max_depth` automatically validates minimum values at instantiation time, both for direct creation and when deserializing from JSON.
+
+3. **List Default Factory Pattern**: For list fields with default values, use `default_factory=lambda: [...]` instead of `default=[...]` to avoid mutable default arguments. This ensures each instance gets its own list.
+
+4. **Test Coverage for Config Changes**: New config sections need comprehensive tests:
+   - Default values test (verify all defaults load correctly)
+   - Override test (verify .cub.json can override defaults)
+   - Validation test (verify Pydantic validators catch invalid values)
+   - Deep merge test (verify nested config merging works correctly)
+
+5. **Config Testing Pattern**: Use pytest fixtures to create isolated temp directories with config files, and always call `clear_cache()` before loading to avoid cross-test contamination from the global config cache.
+
+6. **Exclude Patterns Best Practices**: For file exclusion patterns, include common patterns for:
+   - Version control (.git/**)
+   - Virtual environments (.venv/**, venv/**)
+   - Build artifacts (build/**, dist/**, *.egg-info/**)
+   - Cache directories (__pycache__/**, .mypy_cache/**, .pytest_cache/**)
+   - Package managers (node_modules/**)
+
+7. **MapConfig Design Rationale**: The config needs to support:
+   - Token budget control (prevents excessive output)
+   - Depth limiting (prevents deep recursion in large codebases)
+   - Feature toggles (include_code_intel, include_ledger_stats)
+   - Flexible exclusion patterns (user-customizable via .cub.json)
+
+**Implementation Details:**
+- Created `MapConfig` model with 5 fields: token_budget (1500), max_depth (4), include_code_intel (True), include_ledger_stats (True), exclude_patterns (19 defaults)
+- Added `map` field to `CubConfig` with `default_factory=MapConfig`
+- Added 4 comprehensive tests covering all config scenarios
+- All 48 config tests pass, type checking clean, linting clean
+
+**Files Modified:**
+- `src/cub/core/config/models.py`: Added MapConfig model
+- `tests/test_config_loader.py`: Added 4 new tests
+
+**Outcome:** Successfully added MapConfig to the config system, making `cub map` behavior fully configurable via .cub.json. Configuration can be overridden at both user (~/.config/cub/config.json) and project (.cub.json) levels. Ready for integration with the map command implementation.
+
+
+## Task cub-r1d.3: Update system prompt and document context composition
+
+**Date:** 2026-01-28
+
+**Key Learnings:**
+
+1. **System Prompt Composition**: The `generate_system_prompt()` function in `src/cub/cli/run.py` implements a multi-level lookup order for system prompts, allowing projects to override at different levels of granularity.
+
+2. **Demarcated Format**: The templates/PROMPT.md uses HTML comment blocks with box-drawing characters (╔══╗) to provide meta-documentation about the file's purpose and customization guide. This format helps users understand what to edit and why.
+
+3. **Context Composition Documentation**: Added a comprehensive "Context Composition" section to .cub/agent.md that explains:
+   - The 6-level lookup order for system prompts
+   - Context files referenced via @ syntax
+   - Task context injection mechanism
+   - How to customize the agent experience
+
+4. **AGENT.md Symlinks**: The CLAUDE.md, AGENT.md, and AGENTS.md files are all symlinks to .cub/agent.md, providing compatibility with different naming conventions.
+
+5. **Test Coverage for Lookup Order**: Added `test_cub_runloop_takes_precedence()` to verify that .cub/runloop.md takes priority over PROMPT.md, ensuring the new lookup order works correctly.
+
+6. **Documentation Principles**: When documenting context composition:
+   - Explain the "why" behind each lookup location
+   - Provide concrete examples of when to use each level
+   - Include implementation references for developers
+
+**Outcome:** Successfully documented the entire context composition system in cub's CLAUDE.md, making it clear how system prompts are constructed and how future contributors can customize the agent experience. All tests passing (4124 passed, 9 skipped), code formatted with ruff.
+
+
+## Task cub-w3f.2: Enhance Python hook handlers for forensics logging (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Pydantic for Structured Events**: Using Pydantic BaseModel for forensic events provides:
+   - Type safety and validation at creation time
+   - Easy JSON serialization with `model_dump(exclude_none=True)`
+   - Self-documenting event schemas with Field descriptions
+   - Literal types for event_type ensure correct classification
+
+2. **Forensic Event Design Pattern**: Each event type has:
+   - Common base fields: event_type, timestamp (auto-generated), session_id
+   - Type-specific fields: file_path (FileWriteEvent), task_id (TaskClaimEvent), etc.
+   - Literal event_type for discriminated unions: `event_type: Literal["session_start"] = "session_start"`
+   - This enables easy parsing and filtering in Phase 2 consumers
+
+3. **File Categorization Strategy**: Categorizing files by directory name enables selective tracking:
+   - plans/ → "plan" (implementation plans)
+   - specs/ → "spec" (feature specifications)
+   - captures/ → "capture" (ad-hoc notes)
+   - src/lib/app/tests → "source" (source code)
+   - Untracked files return None, preventing forensic noise
+
+4. **Regex Pattern for Task IDs**: Task ID pattern `[\w.-]+` supports:
+   - Alphanumeric characters (cub, w3f)
+   - Hyphens (cub-w3f)
+   - Dots for versioning (cub-w3f.2)
+   - Word boundary `\b` prevents partial matches
+
+5. **Git Commit Message Extraction**: Extracting commit messages requires handling:
+   - `-m` flag with quoted strings: `r'-m\s+["\']([^"\']+)["\']'`
+   - Heredoc format: `cat <<'EOF'\nMessage\nEOF`
+   - Multiline messages: return only first line for preview
+   - Defensiveness: return None if no pattern matches
+
+6. **Handler Architecture**: Each handler follows the pattern:
+   - Parse payload to extract relevant fields
+   - Create appropriate ForensicEvent instance
+   - Call `_write_forensic_event()` helper
+   - Log at appropriate level (info for events, debug for noise)
+   - Return HookEventResult allowing continuation (defensive)
+
+7. **JSONL Format for Forensics**: Writing events as JSONL (one JSON per line):
+   - Enables streaming append without reading entire file
+   - Each line is independently parseable
+   - Simple pattern: `json.dump(event.model_dump(exclude_none=True), f); f.write("\n")`
+   - Grouped by session_id: `.cub/ledger/forensics/{session_id}.jsonl`
+
+8. **Type Safety with Variable Names**: Mypy strict mode catches assignment type errors:
+   - Bad: `event = TaskClaimEvent(...); event = TaskCloseEvent(...)` (reusing var)
+   - Good: `claim_event = TaskClaimEvent(...); close_event = TaskCloseEvent(...)`
+   - Prevents accidental type confusion in complex conditionals
+
+9. **Test Organization for Hook Handlers**: Comprehensive test structure:
+   - TestForensicEventModels: Pydantic model validation
+   - TestHookEventPayload: Payload parsing
+   - TestHandleSessionStart/Stop/etc: Handler-specific behavior
+   - TestBashToolDetection: Pattern matching for commands
+   - Each test verifies: continuation flag, forensic file existence, event content
+
+10. **Defensive Handler Design**: Handlers must be defensive:
+    - Malformed tool_input should not crash: catch exceptions, log debug
+    - Missing cwd/session_id should skip write: early return
+    - Unknown event types should allow continuation: default handler
+    - This prevents hook failures from breaking user workflow
+
+**Outcome:** Successfully implemented comprehensive forensics logging with 8 Pydantic event types, enhanced 6 handlers to classify and log events, added 35 passing tests. All forensic events written to structured JSONL for Phase 2 ledger integration. Type checking clean, linting clean, defensive error handling ensures robustness.
+
+---
+
+
+## Task cub-w3f.4: Implement hook configuration installer (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Non-Destructive Configuration Merging**: When installing hooks into .claude/settings.json, preserving existing user settings is critical:
+   - Load existing settings first, then merge new hooks
+   - Check if cub hooks already exist before adding duplicates
+   - Preserve other settings like statusLine, plugins, etc.
+   - Use append mode for hooks that have multiple entries
+
+2. **Idempotent Installation Pattern**: Install operations should be safe to re-run:
+   - Check if hooks already configured before modifying
+   - Return meaningful result indicating what changed (nothing vs. new installs)
+   - Use force flag to explicitly overwrite when needed
+   - Document in result message what happened
+
+3. **Template-Based Script Copying**: When hook script is missing:
+   - Try to copy from templates/ directory first
+   - Calculate relative path using Path(__file__).parent navigation
+   - Set executable permissions (0o755) after copying
+   - Return error only if both target and template are missing
+
+4. **Comprehensive Validation Strategy**: validate_hooks() should check multiple levels:
+   - File existence (.claude/settings.json, hook script)
+   - JSON parsing (catch and report JSONDecodeError)
+   - File permissions (executable bit on script)
+   - Configuration correctness (all events configured, references correct script)
+   - Python imports (handler module importable)
+   - Return structured issues with severity levels (error/warning/info)
+
+5. **Pydantic Models for Results**: Using Pydantic for result types provides:
+   - Type safety and validation
+   - Easy JSON serialization with model_dump()
+   - Self-documenting fields with Field descriptions
+   - Clear API contract for callers
+
+6. **Clean Uninstallation Pattern**: Removing hooks requires filtering:
+   - Iterate through all hook events
+   - Filter out entries that reference cub-hook.sh
+   - Keep other hooks intact
+   - Remove empty event arrays after filtering
+   - Write back only if modified
+
+7. **Test Fixtures for Isolation**: Testing file operations requires:
+   - Temporary directories via pytest tmp_path fixture
+   - Creating realistic directory structures (.cub/, .claude/)
+   - Multiple fixtures for different scenarios (with/without script)
+   - Defensive tests that handle missing templates gracefully
+
+8. **Relative Path Resolution in JSON Config**: Claude Code settings use relative paths:
+   - Hook commands use "../.cub/scripts/hooks/cub-hook.sh" not absolute paths
+   - Paths are relative to .claude/ directory
+   - This makes config portable across machines
+
+9. **Hook Event Coverage**: Claude Code hooks cover 6 key events:
+   - PostToolUse: Capture file writes and bash commands
+   - SessionStart: Initialize session tracking
+   - Stop: Finalize when Claude stops responding
+   - SessionEnd: Capture session completion
+   - PreCompact: Checkpoint before transcript compaction
+   - UserPromptSubmit: Detect task mentions in prompts
+
+10. **Defensive JSON Handling**: When parsing user files:
+    - Catch JSONDecodeError and report as warning, not error
+    - Continue installation with empty settings if parse fails
+    - Gracefully handle missing fields (use .get() with defaults)
+    - Never crash the installer on malformed user data
+
+**Implementation Details:**
+- Created installer.py with install_hooks(), validate_hooks(), uninstall_hooks()
+- Pydantic models: HookInstallResult, HookIssue
+- 25 comprehensive tests covering all scenarios
+- All tests passing, linting clean, properly formatted
+
+**Files Created:**
+- src/cub/core/hooks/__init__.py: Module exports
+- src/cub/core/hooks/installer.py: Full implementation (380 lines)
+- tests/test_hook_installer.py: Comprehensive tests (517 lines)
+
+**Outcome:** Successfully implemented hook configuration installer with comprehensive validation and clean uninstall. Ready for integration with cub init command. Non-destructive design ensures safe installation without breaking existing Claude Code configurations.
+
+---
+
+
+## Task cub-v8n.4: Refactor cub session done to use SessionLedgerIntegration
+
+Successfully refactored `cub session done` to eliminate code duplication by using 
+`SessionLedgerIntegration` instead of manually constructing `LedgerEntry` objects.
+
+### Key Implementation Details:
+1. Created synthetic forensics file with sequential events:
+   - session_start
+   - task_claim
+   - file_write (for any --file arguments)
+   - task_close
+   - session_end
+
+2. Used `SessionLedgerIntegration.on_session_end()` to synthesize the ledger entry 
+   from the forensics log, ensuring consistency with hook-based session tracking.
+
+3. Maintained full backward compatibility:
+   - Same CLI interface (--reason, --file flags)
+   - Same console output messages
+   - Same ledger entry format and structure
+
+### Benefits:
+- Eliminated ~150 lines of duplicate entry construction logic
+- Single code path for ledger entry creation (via SessionLedgerIntegration)
+- Better maintainability and consistency
+- Forensics audit trail for `cub done` commands
+
+### Testing:
+- All type checks passed (mypy)
+- All session-related tests passed (35 tests)
+- Linting passed (ruff)
+- Manual CLI testing confirmed interface compatibility
+
+### Lesson Learned:
+When refactoring to use existing integration classes, creating synthetic event 
+streams (forensics) is an elegant way to reuse stateless integration logic without 
+duplicating construction code.
+
+
+## Task cub-r9d.1: Implement cub reconcile command
+
+**Completed**: 2026-01-28
+
+### What was implemented
+- Created `src/cub/cli/reconcile.py` with full reconcile command functionality
+- Registered command in `src/cub/cli/__init__.py` under PANEL_STATUS
+- Created comprehensive test suite in `tests/test_reconcile.py` with 14 tests
+- Implemented idempotent reconciliation that:
+  - Scans `.cub/ledger/forensics/` for session JSONL files
+  - Checks if corresponding ledger entries exist
+  - Replays unprocessed sessions through `SessionLedgerIntegration.on_session_end()`
+  - Supports `--dry-run`, `--force`, `--session`, and `--json` flags
+  - Reports results via Rich table
+
+### Key implementation details
+- Used `@app.callback(invoke_without_command=True)` to make the command execute directly without subcommands
+- Implemented `_parse_forensics_for_metadata()` helper to quickly check forensics files without full parsing
+- Used `TaskBackend.get_task()` (not `.get()`) to retrieve task context
+- Properly typed the results dict with `dict[str, Any]` for mypy compliance
+- Fixed line length issues for ruff linter (100 char max)
+
+### Testing approach
+- Tested with forensics files both with and without task associations
+- Tested idempotency (running twice doesn't create duplicates)
+- Tested dry-run mode
+- Tested force mode to re-process existing entries
+- Tested session filtering with `--session` flag
+- Tested JSON output mode
+
+### Important patterns learned
+- Typer apps with single commands should use `@app.callback(invoke_without_command=True)` not `@app.command()`
+- The `TaskBackend` protocol uses `get_task()` not `get()`
+- Forensics JSONL files contain events like `session_start`, `task_claim`, `task_close`, `file_write`, `git_commit`
+- `SessionLedgerIntegration.on_session_end()` returns `None` if no task was associated with the session
+- Rich tables can be created with `show_header=False` for summary displays
+
+All tests pass, type checking passes, and linter passes.

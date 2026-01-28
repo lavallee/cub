@@ -59,12 +59,25 @@
       {
         "hash": "bc27d5798d7f422807f7f89c3aec82535693b791",
         "message": "task(cub-c5i.5): Add comprehensive tests for CLI commands",
+        "author": "",
         "timestamp": "2026-01-24T17:26:05-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Extended the existing test_cli_ledger.py file with comprehensive test coverage for all new ledger CLI commands (show with new fields, update stage, export, and gc). Used Typer's CliRunner for isolated CLI testing and created realistic test data with proper Pydantic model instances to validate command behavior end-to-end.",
+    "decisions": [
+      "Used `WorkflowState` class (not `Workflow`) as the correct model for workflow field in LedgerEntry, discovered during test development",
+      "Ensured ledger directory structure (`by_task_dir`) exists before running update command tests, as the CLI checks ledger existence before task existence",
+      "Created 52 focused unit tests organized by command (formatting, show, update, export, gc) rather than one monolithic test, improving test maintainability and clarity",
+      "Used mocking for project root and temporary directories to keep tests isolated from filesystem dependencies",
+      "Validated both success paths and error handling (invalid stages, missing ledgers, invalid attempt numbers) for comprehensive coverage"
+    ],
+    "lessons_learned": [
+      "Ledger CLI commands have a specific precedence for validation: ledger existence first, then task-specific operations. Understanding this ordering prevents test assertion failures",
+      "Attempt files follow a strict naming convention (`NNN-prompt.md`, `NNN-harness.log`) that must be respected when creating test data",
+      "Rich formatting output (cost, duration, verification status) requires exact regex matching in assertions due to ANSI color codes\u2014use flexible patterns rather than hardcoded strings",
+      "Testing unified-tracking-model features requires understanding the full workflow: WorkflowState, outcome information (costs, duration, attempts), and lineage (epic, spec, plan references)",
+      "Comprehensive test coverage for CLI commands should include both happy paths and edge cases (zero costs, invalid parameters, missing data) to catch real-world usage issues"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +121,27 @@
   "cost_usd": 0.0,
   "duration_seconds": 206,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Extended the existing test_cli_ledger.py file with comprehensive test coverage for all new ledger CLI commands (show with new fields, update stage, export, and gc). Used Typer's CliRunner for isolated CLI testing and created realistic test data with proper Pydantic model instances to validate command behavior end-to-end.",
+  "decisions": [
+    "Used `WorkflowState` class (not `Workflow`) as the correct model for workflow field in LedgerEntry, discovered during test development",
+    "Ensured ledger directory structure (`by_task_dir`) exists before running update command tests, as the CLI checks ledger existence before task existence",
+    "Created 52 focused unit tests organized by command (formatting, show, update, export, gc) rather than one monolithic test, improving test maintainability and clarity",
+    "Used mocking for project root and temporary directories to keep tests isolated from filesystem dependencies",
+    "Validated both success paths and error handling (invalid stages, missing ledgers, invalid attempt numbers) for comprehensive coverage"
+  ],
+  "lessons_learned": [
+    "Ledger CLI commands have a specific precedence for validation: ledger existence first, then task-specific operations. Understanding this ordering prevents test assertion failures",
+    "Attempt files follow a strict naming convention (`NNN-prompt.md`, `NNN-harness.log`) that must be respected when creating test data",
+    "Rich formatting output (cost, duration, verification status) requires exact regex matching in assertions due to ANSI color codes\u2014use flexible patterns rather than hardcoded strings",
+    "Testing unified-tracking-model features requires understanding the full workflow: WorkflowState, outcome information (costs, duration, attempts), and lineage (epic, spec, plan references)",
+    "Comprehensive test coverage for CLI commands should include both happy paths and edge cases (zero costs, invalid parameters, missing data) to catch real-world usage issues"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "bc27d5798d7f422807f7f89c3aec82535693b791",
       "message": "task(cub-c5i.5): Add comprehensive tests for CLI commands",
+      "author": "",
       "timestamp": "2026-01-24T17:26:05-05:00"
     }
   ],

@@ -59,12 +59,22 @@
       {
         "hash": "eb323638ab13519f6602343e48405a6ff2ae431b",
         "message": "task(cub-e2p.1): Add EpicEntry and aggregation models",
+        "author": "",
         "timestamp": "2026-01-24T16:58:21-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Implemented the EpicEntry and aggregation models by adding three new Pydantic models (EpicSnapshot, EpicAggregates, EpicEntry) and a compute_aggregates() helper function to the existing ledger models file. The implementation followed the existing code patterns and was validated through unit tests, linting, and mypy type checking before task closure.",
+    "decisions": [
+      "Made EpicAggregates a comprehensive model with ~15+ computed fields rather than a minimal struct, providing rich project-level visibility including cost, escalation, and model usage tracking",
+      "Implemented compute_aggregates() as a standalone helper function that handles both new (outcome-based) and legacy data structures for backward compatibility",
+      "Added computed properties (completion_rate, success_rate, duration conversions) to EpicAggregates rather than computing them on-demand, trading slightly more storage for better performance and consistency",
+      "Tracked model usage and identified the most common model in aggregates to support later optimization and cost analysis"
+    ],
+    "lessons_learned": [
+      "When implementing aggregation functions that process collections, design for both new and legacy data formats from the start\u2014retrofitting backward compatibility is more difficult than building it in initially",
+      "Comprehensive computed metrics at the epic level enable better project visibility; include temporal metrics (durations), financial metrics (costs), and quality metrics (escalation rate, success rate) together rather than in isolation",
+      "Test helper functions with realistic data structures early (not just happy-path cases) to catch edge cases like empty task lists or missing optional fields before integration tests fail"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +118,24 @@
   "cost_usd": 0.0,
   "duration_seconds": 171,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Implemented the EpicEntry and aggregation models by adding three new Pydantic models (EpicSnapshot, EpicAggregates, EpicEntry) and a compute_aggregates() helper function to the existing ledger models file. The implementation followed the existing code patterns and was validated through unit tests, linting, and mypy type checking before task closure.",
+  "decisions": [
+    "Made EpicAggregates a comprehensive model with ~15+ computed fields rather than a minimal struct, providing rich project-level visibility including cost, escalation, and model usage tracking",
+    "Implemented compute_aggregates() as a standalone helper function that handles both new (outcome-based) and legacy data structures for backward compatibility",
+    "Added computed properties (completion_rate, success_rate, duration conversions) to EpicAggregates rather than computing them on-demand, trading slightly more storage for better performance and consistency",
+    "Tracked model usage and identified the most common model in aggregates to support later optimization and cost analysis"
+  ],
+  "lessons_learned": [
+    "When implementing aggregation functions that process collections, design for both new and legacy data formats from the start\u2014retrofitting backward compatibility is more difficult than building it in initially",
+    "Comprehensive computed metrics at the epic level enable better project visibility; include temporal metrics (durations), financial metrics (costs), and quality metrics (escalation rate, success rate) together rather than in isolation",
+    "Test helper functions with realistic data structures early (not just happy-path cases) to catch edge cases like empty task lists or missing optional fields before integration tests fail"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "eb323638ab13519f6602343e48405a6ff2ae431b",
       "message": "task(cub-e2p.1): Add EpicEntry and aggregation models",
+      "author": "",
       "timestamp": "2026-01-24T16:58:21-05:00"
     }
   ],

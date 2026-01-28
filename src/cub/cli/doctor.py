@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from cub.core.hooks.installer import validate_hooks
 from cub.core.tasks.backend import get_backend
 from cub.core.tasks.models import TaskStatus, TaskType
 from cub.utils.project import get_project_root
@@ -207,6 +208,146 @@ def _get_command_version(cmd: str, args: list[str]) -> str:
         return "unknown"
 
 
+def check_hooks(project_dir: Path, fix: bool = False) -> int:
+    """
+    Check Claude Code hooks configuration.
+
+    Reports on hook installation status:
+    - Hooks installed (yes/no)
+    - Shell script present and executable
+    - Python module importable
+    - All required hook events configured
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, auto-install hooks when issues are found
+
+    Returns:
+        Number of issues found
+    """
+    console.print("\n[bold]Claude Code Hooks:[/bold]")
+
+    # Check if .claude directory exists
+    claude_dir = project_dir / ".claude"
+    if not claude_dir.exists():
+        console.print("[red]✗[/red] Hooks installed: No")
+        console.print("[dim]  .claude/ directory not found[/dim]")
+        console.print(
+            "[dim]→ Run 'cub hooks install' to install Claude Code hooks[/dim]"
+        )
+        return 0
+
+    # Hooks are "installed" if settings.json exists
+    settings_file = claude_dir / "settings.json"
+    hooks_installed = settings_file.exists()
+
+    if hooks_installed:
+        console.print("[green]✓[/green] Hooks installed: Yes")
+    else:
+        console.print("[red]✗[/red] Hooks installed: No")
+        console.print("[dim]  settings.json not found in .claude/[/dim]")
+        console.print(
+            "[dim]→ Run 'cub hooks install' to install Claude Code hooks[/dim]"
+        )
+        return 0
+
+    # Validate hooks
+    issues = validate_hooks(project_dir)
+
+    if not issues:
+        console.print("[green]✓[/green] Shell script present and executable")
+        console.print("[green]✓[/green] Python module importable")
+        console.print("[green]✓[/green] All hook events configured")
+        return 0
+
+    # Categorize issues by severity
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+    infos = [i for i in issues if i.severity == "info"]
+
+    # Check specific validation statuses
+    hook_script = project_dir / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+    if any(hook_script.name in i.message for i in errors if "script" in i.message.lower()):
+        console.print("[red]✗[/red] Shell script present and executable: No")
+    else:
+        console.print("[green]✓[/green] Shell script present and executable")
+
+    if any("handler" in i.message.lower() for i in errors):
+        console.print("[red]✗[/red] Python module importable: No")
+    else:
+        console.print("[green]✓[/green] Python module importable")
+
+    if any("event" in i.message.lower() or "not configured" in i.message.lower() for i in infos):
+        console.print("[yellow]![/yellow] All hook events configured: Partially")
+    else:
+        console.print("[green]✓[/green] All hook events configured")
+
+    console.print()
+
+    # Report errors with specific fix suggestions
+    if errors:
+        console.print("[bold]Errors:[/bold]")
+        for issue in errors:
+            console.print(f"  [red]✗[/red] {issue.message}")
+            if issue.file_path:
+                console.print(f"    [dim]File: {issue.file_path}[/dim]")
+            # Provide specific fix command
+            if "script" in issue.message.lower():
+                console.print(
+                    "[dim]    → Run 'cub hooks install --force' to reinstall script[/dim]"
+                )
+            elif "handler" in issue.message.lower():
+                console.print(
+                    "[dim]    → Ensure cub is properly installed: pip install -e .[dev][/dim]"
+                )
+
+    # Report warnings with suggestions
+    if warnings:
+        console.print("[bold]Warnings:[/bold]")
+        for issue in warnings:
+            console.print(f"  [yellow]![/yellow] {issue.message}")
+            if issue.file_path:
+                console.print(f"    [dim]File: {issue.file_path}[/dim]")
+            console.print(
+                "[dim]    → Run 'cub hooks install --force' to fix[/dim]"
+            )
+
+    # Report infos (unconfigured events)
+    if infos:
+        console.print("[bold]Info:[/bold]")
+        for issue in infos:
+            console.print(f"  [dim]ℹ[/dim] {issue.message}")
+        console.print(
+            "[dim]  → Run 'cub hooks install --force' to configure all events[/dim]"
+        )
+
+    # Overall fix suggestion or auto-fix
+    if errors or warnings:
+        if fix:
+            from cub.core.hooks.installer import install_hooks
+
+            console.print("\n[blue]Attempting to auto-fix hook issues...[/blue]")
+            result = install_hooks(project_dir, force=True)
+
+            if result.success:
+                console.print(f"[green]✓[/green] {result.message}")
+                if result.hooks_installed:
+                    console.print(f"  Installed hooks: {', '.join(result.hooks_installed)}")
+                return 0  # Fixed successfully, no issues remaining
+            else:
+                console.print(f"[red]✗[/red] Auto-fix failed: {result.message}")
+                for issue in result.issues:
+                    if issue.severity == "error":
+                        console.print(f"  [red]Error:[/red] {issue.message}")
+                return len(errors) + len(warnings)
+        else:
+            console.print(
+                "\n[dim]→ Run 'cub hooks install --force' to reinstall hooks[/dim]"
+            )
+
+    return len(errors) + len(warnings)
+
+
 @app.callback(invoke_without_command=True)
 def doctor(
     ctx: typer.Context,
@@ -256,6 +397,9 @@ def doctor(
 
         # Check environment
         total_issues += check_environment()
+
+        # Check hooks
+        total_issues += check_hooks(project_dir, fix=fix)
 
         # Check stale epics
         console.print("\n[bold]Stale Epics:[/bold]")

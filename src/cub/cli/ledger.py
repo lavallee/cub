@@ -13,9 +13,11 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.core.ledger.extractor import extract_insights
 from cub.core.ledger.models import VerificationStatus
 from cub.core.ledger.reader import LedgerReader
 from cub.core.ledger.writer import LedgerWriter
+from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.utils.project import get_project_root
 
 if TYPE_CHECKING:
@@ -1094,3 +1096,192 @@ def gc(
     console.print()
     console.print("[dim]Note: This is a dry-run. Files are not actually deleted.[/dim]")
     console.print("[dim]Future versions will support actual deletion with --dry-run=false.[/dim]")
+
+
+@app.command()
+def extract(
+    task_id: str | None = typer.Argument(None, help="Task ID to extract insights for (or --all)"),
+    all_tasks: bool = typer.Option(
+        False,
+        "--all",
+        help="Extract insights for all tasks with empty lessons_learned",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Re-extract insights even if already present",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed extraction output",
+    ),
+) -> None:
+    """
+    Extract insights (approach, decisions, lessons learned) from task execution logs.
+
+    Uses Claude Haiku to analyze harness execution logs and extract structured
+    insights. Can process a single task or batch process all tasks.
+
+    Examples:
+        cub ledger extract cub-abc       # Extract for single task
+        cub ledger extract --all         # Extract for all tasks
+        cub ledger extract --all --force # Re-extract all tasks
+    """
+    reader = _get_ledger_reader()
+    writer = _get_ledger_writer()
+
+    if not reader.exists():
+        console.print("[yellow]Warning:[/yellow] No ledger found.")
+        raise typer.Exit(1)
+
+    # Determine which tasks to process
+    tasks_to_process: list[str] = []
+    if all_tasks:
+        # Get all task IDs from index
+        index_entries = reader.list_tasks()
+        for index_entry in index_entries:
+            # Get full entry to check for insights
+            if not force:
+                full_entry = reader.get_task(index_entry.id)
+                if full_entry and full_entry.outcome:
+                    has_insights = (
+                        full_entry.outcome.approach
+                        or full_entry.outcome.decisions
+                        or full_entry.outcome.lessons_learned
+                    )
+                    if has_insights:
+                        continue
+            tasks_to_process.append(index_entry.id)
+    elif task_id:
+        tasks_to_process = [task_id]
+    else:
+        console.print("[red]Error:[/red] Must specify task ID or use --all")
+        raise typer.Exit(1)
+
+    if not tasks_to_process:
+        console.print("[dim]No tasks need insight extraction.[/dim]")
+        raise typer.Exit(0)
+
+    console.print(f"[bold]Extracting insights for {len(tasks_to_process)} task(s)...[/bold]\n")
+
+    # Get task backend for task context
+    try:
+        task_backend = get_task_backend()
+    except Exception as e:
+        console.print(f"[yellow]Warning:[/yellow] Could not load task backend: {e}")
+        task_backend = None
+
+    # Process each task
+    success_count = 0
+    skip_count = 0
+    error_count = 0
+
+    for idx, tid in enumerate(tasks_to_process, 1):
+        console.print(f"[{idx}/{len(tasks_to_process)}] Processing [cyan]{tid}[/cyan]...")
+
+        # Get ledger entry
+        entry = reader.get_task(tid)
+        if not entry:
+            console.print(f"  [red]✗[/red] Entry not found")
+            error_count += 1
+            continue
+
+        # Check if extraction needed
+        if not force and entry.outcome:
+            has_insights = (
+                entry.outcome.approach
+                or entry.outcome.decisions
+                or entry.outcome.lessons_learned
+            )
+            if has_insights:
+                console.print(f"  [dim]↷[/dim] Already has insights (use --force to re-extract)")
+                skip_count += 1
+                continue
+
+        # Get harness log from first attempt
+        if not entry.attempts:
+            console.print(f"  [yellow]⚠[/yellow] No attempts found")
+            skip_count += 1
+            continue
+
+        # Read harness log file
+        log_path = writer.ledger_dir / "by-task" / tid / "attempts" / f"{entry.attempts[0].attempt_number:03d}-harness.log"
+        if not log_path.exists():
+            console.print(f"  [yellow]⚠[/yellow] Harness log not found: {log_path.name}")
+            skip_count += 1
+            continue
+
+        try:
+            harness_log = log_path.read_text()
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Failed to read log: {e}")
+            error_count += 1
+            continue
+
+        # Get task object for context
+        task = None
+        if task_backend:
+            try:
+                task = task_backend.get_task(tid)
+            except Exception:
+                pass  # Task might not exist in backend anymore
+
+        # Create minimal task if not found
+        if not task:
+            from cub.core.tasks.models import Task
+            task = Task(
+                id=tid,
+                title=entry.title,
+                description=entry.task.description if entry.task else "",
+            )
+
+        # Extract insights
+        try:
+            insights = extract_insights(harness_log, task)
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Extraction failed: {e}")
+            error_count += 1
+            continue
+
+        if not insights.success:
+            console.print(f"  [red]✗[/red] Extraction failed: {insights.error}")
+            error_count += 1
+            continue
+
+        # Update ledger entry
+        if entry.outcome:
+            entry.outcome.approach = insights.approach
+            entry.outcome.decisions = insights.decisions
+            entry.outcome.lessons_learned = insights.lessons_learned
+
+        # Update legacy fields
+        entry.approach = insights.approach or ""
+        entry.decisions = insights.decisions
+        entry.lessons_learned = insights.lessons_learned
+
+        # Write updated entry
+        try:
+            writer.update_entry(entry)
+            console.print(f"  [green]✓[/green] Extracted insights")
+            if verbose:
+                if insights.approach:
+                    console.print(f"    Approach: {insights.approach[:80]}...")
+                console.print(f"    Decisions: {len(insights.decisions)}")
+                console.print(f"    Lessons: {len(insights.lessons_learned)}")
+            success_count += 1
+        except Exception as e:
+            console.print(f"  [red]✗[/red] Failed to update entry: {e}")
+            error_count += 1
+
+    # Summary
+    console.print()
+    console.print("[bold]Summary:[/bold]")
+    console.print(f"  Success: [green]{success_count}[/green]")
+    console.print(f"  Skipped: [dim]{skip_count}[/dim]")
+    console.print(f"  Errors: [red]{error_count}[/red]")
+
+    if error_count > 0:
+        raise typer.Exit(1)

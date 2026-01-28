@@ -59,12 +59,24 @@
       {
         "hash": "9eca5745f5e69123638dfd1e18b47fe174e8b6a6",
         "message": "task(cub-c5i.1): Extend ledger show for new fields",
+        "author": "",
         "timestamp": "2026-01-24T17:12:06-05:00"
       }
     ],
-    "approach": null,
-    "decisions": [],
-    "lessons_learned": []
+    "approach": "Extended the `cub ledger show` command by adding three new flags (`--attempt`, `--changes`, `--history`) and enhancing the default display to include lineage, workflow stage, outcome summary, and attempts table. The implementation prioritized backward compatibility by gracefully falling back to legacy ledger fields when new unified fields aren't present, while also adding helper functions for formatting durations and workflow stages.",
+    "decisions": [
+      "Implemented three separate flags (`--attempt N`, `--changes`, `--history`) rather than a single comprehensive flag, allowing users to request only the details they need",
+      "Added fallback logic to handle both old and new ledger entry formats, ensuring the command works with existing ledger data while supporting new unified fields",
+      "Limited default attempts display to the first 10 with a note about additional attempts, avoiding overwhelming output for high-iteration tasks",
+      "Created dedicated helper functions (`_format_duration()`, `_format_workflow_stage()`, `_show_attempt_detail()`) to keep the main show function readable and maintainable",
+      "Used Rich tables for attempts display rather than plain text, providing structured, color-coded output consistent with other cub commands"
+    ],
+    "lessons_learned": [
+      "When extending commands with new fields, prioritize backward compatibility by maintaining support for old field names/formats during the transition period\u2014this prevents breaking existing workflows",
+      "Helper functions for formatting (duration, stage colors, etc.) make code more testable and reusable across different display contexts",
+      "Iterative feedback loops (typecheck \u2192 linting \u2192 testing) are essential for catching issues early; the process revealed and resolved type annotation issues before they became test failures",
+      "Graceful degradation (showing what data is available rather than erroring on missing fields) is preferable to strict validation when dealing with heterogeneous data sources"
+    ]
   },
   "drift": {
     "additions": [],
@@ -108,14 +120,26 @@
   "cost_usd": 0.0,
   "duration_seconds": 217,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Extended the `cub ledger show` command by adding three new flags (`--attempt`, `--changes`, `--history`) and enhancing the default display to include lineage, workflow stage, outcome summary, and attempts table. The implementation prioritized backward compatibility by gracefully falling back to legacy ledger fields when new unified fields aren't present, while also adding helper functions for formatting durations and workflow stages.",
+  "decisions": [
+    "Implemented three separate flags (`--attempt N`, `--changes`, `--history`) rather than a single comprehensive flag, allowing users to request only the details they need",
+    "Added fallback logic to handle both old and new ledger entry formats, ensuring the command works with existing ledger data while supporting new unified fields",
+    "Limited default attempts display to the first 10 with a note about additional attempts, avoiding overwhelming output for high-iteration tasks",
+    "Created dedicated helper functions (`_format_duration()`, `_format_workflow_stage()`, `_show_attempt_detail()`) to keep the main show function readable and maintainable",
+    "Used Rich tables for attempts display rather than plain text, providing structured, color-coded output consistent with other cub commands"
+  ],
+  "lessons_learned": [
+    "When extending commands with new fields, prioritize backward compatibility by maintaining support for old field names/formats during the transition period\u2014this prevents breaking existing workflows",
+    "Helper functions for formatting (duration, stage colors, etc.) make code more testable and reusable across different display contexts",
+    "Iterative feedback loops (typecheck \u2192 linting \u2192 testing) are essential for catching issues early; the process revealed and resolved type annotation issues before they became test failures",
+    "Graceful degradation (showing what data is available rather than erroring on missing fields) is preferable to strict validation when dealing with heterogeneous data sources"
+  ],
   "files_changed": [],
   "commits": [
     {
       "hash": "9eca5745f5e69123638dfd1e18b47fe174e8b6a6",
       "message": "task(cub-c5i.1): Extend ledger show for new fields",
+      "author": "",
       "timestamp": "2026-01-24T17:12:06-05:00"
     }
   ],

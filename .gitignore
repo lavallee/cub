@@ -8,6 +8,11 @@
 .cub/runs/
 .cub/config.json            # Auto-generated project config (project_id)
 .cub/toolsmith/             # Toolsmith local catalog/cache + adoptions + runs (project-scoped)
+.cub/progress.txt           # Development progress tracking (stale)
+.cub/progress.md            # Development progress tracking (stale)
+.cub/guardrails.md          # Development guardrails (stale)
+.cub/fix_plan.md            # Development fix plan (stale)
+progress.txt                # Root-level progress tracking (stale)
 
 # Beads viewer local config and caches
 .bv/

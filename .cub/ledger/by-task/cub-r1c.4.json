@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "id": "cub-r1c.4",
+  "title": "Implement cub map CLI command and wire into init/update",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1c"
+  },
+  "task": {
+    "title": "Implement cub map CLI command and wire into init/update",
+    "description": "The CLI command ties together structure analysis, code intelligence,\nand rendering. It also needs to be called by `cub init` and `cub update` so the\nmap is generated/refreshed automatically.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/map.py` with Typer command:\n2. Register command in `src/cub/cli/__init__.py`: `app.command(name=\"map\")` under appropriate panel\n3. Wire map generation into `cub init`: call map generation after managed section upsert\n4. Wire map generation into `cub update`: regenerate map as part of update flow\n5. Update managed section content to reference `@.cub/map.md` (should already be there from Task cub-r1b.2, verify)\n6. Write integration tests: `cub map` on a fixture project, verify output file exists and contains expected sections\n\n**Files:** src/cub/cli/map.py, src/cub/cli/__init__.py, src/cub/cli/init_cmd.py, src/cub/cli/update.py, tests/test_map_cli.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-r1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:34:52.365149Z",
+    "captured_at": "2026-01-28T05:21:06.931857Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T05:21:06.942471",
+      "completed_at": "2026-01-28T05:26:54.193863Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 6163,
+        "output_tokens": 17287,
+        "cache_read_tokens": 1808639,
+        "cache_creation_tokens": 63938
+      },
+      "cost_usd": 1.2787799500000003,
+      "duration_seconds": 347
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:26:54.446054Z",
+    "total_cost_usd": 1.2787799500000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 347,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a545d85ed60ee3c1e56fcd1465217e89def6d816",
+        "message": "docs: Update progress log with cub-r1c.4 learnings",
+        "author": "",
+        "timestamp": "2026-01-28T05:26:42Z"
+      },
+      {
+        "hash": "065998bbefbe74839756a444884b252ebfc1f59a",
+        "message": "task(cub-r1c.4): Implement cub map CLI command and wire into init/update",
+        "author": "",
+        "timestamp": "2026-01-28T05:26:04Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:26:54.446054Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:21:06.931857Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:26:54.446054Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T05:21:06.931857Z",
+  "completed_at": "2026-01-28T05:26:54.446054Z",
+  "tokens": {
+    "input_tokens": 6163,
+    "output_tokens": 17287,
+    "cache_read_tokens": 1808639,
+    "cache_creation_tokens": 63938
+  },
+  "cost_usd": 1.2787799500000003,
+  "duration_seconds": 347,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "a545d85ed60ee3c1e56fcd1465217e89def6d816",
+      "message": "docs: Update progress log with cub-r1c.4 learnings",
+      "author": "",
+      "timestamp": "2026-01-28T05:26:42Z"
+    },
+    {
+      "hash": "065998bbefbe74839756a444884b252ebfc1f59a",
+      "message": "task(cub-r1c.4): Implement cub map CLI command and wire into init/update",
+      "author": "",
+      "timestamp": "2026-01-28T05:26:04Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.4",
+  "epic_id": "cub-r1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

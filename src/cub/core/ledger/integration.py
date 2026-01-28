@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from cub.core.ledger.extractor import extract_insights
 from cub.core.ledger.models import (
     Attempt,
     CommitRef,
@@ -366,6 +367,43 @@ class LedgerIntegration:
         models_used = [a.model for a in entry.attempts if a.model]
         unique_models = list(dict.fromkeys(models_used))  # Preserve order, remove duplicates
         escalated = len(unique_models) > 1
+
+        # Extract insights from harness log if not provided
+        if approach is None and decisions is None and lessons_learned is None:
+            # Try to extract insights from the most recent attempt's harness log
+            if entry.attempts:
+                last_attempt = entry.attempts[-1]
+                log_path = (
+                    self.writer.ledger_dir
+                    / "by-task"
+                    / task_id
+                    / "attempts"
+                    / f"{last_attempt.attempt_number:03d}-harness.log"
+                )
+                if log_path.exists():
+                    try:
+                        harness_log = log_path.read_text()
+                        # Get task object for context (if provided, otherwise use snapshot)
+                        task_for_extraction = current_task
+                        if not task_for_extraction and entry.task:
+                            # Create a minimal Task from snapshot
+                            from cub.core.tasks.models import Task
+
+                            task_for_extraction = Task(
+                                id=task_id,
+                                title=entry.task.title,
+                                description=entry.task.description,
+                            )
+
+                        if task_for_extraction:
+                            insights = extract_insights(harness_log, task_for_extraction)
+                            if insights.success:
+                                approach = insights.approach
+                                decisions = insights.decisions
+                                lessons_learned = insights.lessons_learned
+                    except Exception:
+                        # If extraction fails, continue without insights
+                        pass
 
         # Create outcome
         outcome = Outcome(

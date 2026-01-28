@@ -47,7 +47,6 @@ WHY THIS FILE EXISTS:
 | **README.md** | 📖 Reference | This file - quick start and file guide |
 | **agent.md** | ✏️ Editable | Build/run instructions for your project type |
 | **prompt.md** | ✏️ Editable | System prompt for Claude Code or other harnesses |
-| **progress.txt** | ✏️ Editable | Session learnings, discoveries, and gotchas |
 | **fix_plan.md** | ✏️ Editable | Known issues, bugs, and technical debt tracker |
 
 **Key:**
@@ -85,9 +84,6 @@ $EDITOR .cub/agent.md
 # Edit system prompt
 $EDITOR .cub/prompt.md
 
-# Add a learning/gotcha
-$EDITOR .cub/progress.txt
-
 # Track an issue
 $EDITOR .cub/fix_plan.md
 ```
@@ -109,14 +105,6 @@ Edit this file to:
 - Include links to important docs
 - Add team conventions or standards
 
-### progress.txt
-Add entries for:
-- Surprising behaviors in the codebase
-- Performance characteristics
-- Workarounds that fixed problems
-- Build/test system quirks
-- Commands that helped solve issues
-
 ### fix_plan.md
 Add issues for:
 - Bugs discovered during development
@@ -131,7 +119,6 @@ Add issues for:
 ├── README.md           ← You are here
 ├── agent.md            ← Edit with project setup info
 ├── prompt.md           ← Edit with context & patterns
-├── progress.txt        ← Add learnings as you work
 └── fix_plan.md         ← Track issues & improvements
 ```
 
@@ -139,9 +126,8 @@ Add issues for:
 
 1. **Review agent.md** - Check that build/test commands are correct for your project
 2. **Update prompt.md** - Add context about your codebase
-3. **Use progress.txt** - Add learnings as you discover them
-4. **Track issues in fix_plan.md** - Document bugs and technical debt
-5. **Run `cub --ready`** - See what tasks are ready to work on
+3. **Track issues in fix_plan.md** - Document bugs and technical debt
+4. **Run `cub --ready`** - See what tasks are ready to work on
 
 ## Learn More
 
@@ -149,16 +135,14 @@ Add issues for:
 - **Build/test commands**: Check `.cub/agent.md` → Feedback Loops section
 - **Code patterns**: Check `.cub/prompt.md` and project documentation
 - **Known issues**: Check `.cub/fix_plan.md`
-- **Session learnings**: Check `.cub/progress.txt`
 
 ## Tips for Agents
 
 When an AI coding assistant works on this project:
 1. Read `.cub/agent.md` first for build/test instructions
-2. Check `.cub/progress.txt` for known gotchas
-3. Review `.cub/fix_plan.md` before making changes
-4. Update these files as you learn new things
-5. Follow task management instructions provided in each task prompt
+2. Review `.cub/fix_plan.md` before making changes
+3. Update these files as you learn new things
+4. Follow task management instructions provided in each task prompt
 
 ---
 

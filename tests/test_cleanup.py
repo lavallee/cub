@@ -22,7 +22,6 @@ class TestCleanupConfig:
         assert config.enabled is True
         assert config.commit_artifacts is True
         assert config.remove_temp_files is True
-        assert "progress.txt" in config.artifact_patterns
         assert "*.bak" in config.temp_patterns
         assert ".git/**" in config.ignore_patterns
 
@@ -59,7 +58,7 @@ class TestCleanupResult:
     def test_summary_with_commits(self):
         """Summary should report committed files."""
         result = CleanupResult(
-            committed_files=["progress.txt", "AGENT.md", "fix_plan.md"],
+            committed_files=[".cub/prompt.md", ".cub/agent.md", "status.log"],
             is_clean=True,
         )
 

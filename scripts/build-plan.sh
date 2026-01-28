@@ -396,7 +396,7 @@ main() {
     local processed=0
 
     for epic in $EPICS; do
-        ((epic_num++))
+        epic_num=$((epic_num + 1))
 
         # Handle --only-epic
         if [[ -n "$ONLY_EPIC" ]]; then
@@ -419,7 +419,7 @@ main() {
         # Check if epic is already complete (closed or no open tasks)
         if is_epic_complete "$epic"; then
             log_success "Skipping ${epic} (already complete - closed or no open tasks)"
-            ((processed++))
+            processed=$((processed + 1))
             continue
         fi
 
@@ -437,7 +437,7 @@ main() {
             exit 1
         fi
 
-        ((processed++))
+        processed=$((processed + 1))
     done
 
     # Sync beads at the end

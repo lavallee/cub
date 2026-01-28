@@ -476,6 +476,8 @@ class ClaudeSDKBackend:
                 messages=[],
             )
 
+        import os as _os
+
         options = _build_options(task_input)
 
         # Collect messages and output
@@ -486,137 +488,149 @@ class ClaudeSDKBackend:
         exit_code = 0
         session_id: str | None = None
 
+        # Set CUB_RUN_ACTIVE to prevent hook double-tracking
+        _old_cub_run_active = _os.environ.get("CUB_RUN_ACTIVE")
+        _os.environ["CUB_RUN_ACTIVE"] = "1"
+
         try:
-            async for sdk_message in query(prompt=task_input.prompt, options=options):
-                # Parse message for history
-                parsed = _parse_sdk_message(sdk_message)
-                if parsed is not None:
-                    messages.append(parsed)
+            try:
+                async for sdk_message in query(prompt=task_input.prompt, options=options):
+                    # Parse message for history
+                    parsed = _parse_sdk_message(sdk_message)
+                    if parsed is not None:
+                        messages.append(parsed)
 
-                    # Execute ON_MESSAGE hooks
-                    msg_context = HookContext(
-                        event=HookEvent.ON_MESSAGE,
-                        task_id=task_input.session_id,
-                        message_content=parsed.content,
-                        message_role=parsed.role,
-                    )
-                    await self._execute_hooks(HookEvent.ON_MESSAGE, msg_context)
+                        # Execute ON_MESSAGE hooks
+                        msg_context = HookContext(
+                            event=HookEvent.ON_MESSAGE,
+                            task_id=task_input.session_id,
+                            message_content=parsed.content,
+                            message_role=parsed.role,
+                        )
+                        await self._execute_hooks(HookEvent.ON_MESSAGE, msg_context)
 
-                # Extract text for output
-                text = _extract_text_from_message(sdk_message)
-                if text:
-                    output_chunks.append(text)
+                    # Extract text for output
+                    text = _extract_text_from_message(sdk_message)
+                    if text:
+                        output_chunks.append(text)
 
-                # Extract usage from ResultMessage
-                msg_usage = _extract_usage(sdk_message)
-                if msg_usage is not None:
-                    usage = msg_usage
+                    # Extract usage from ResultMessage
+                    msg_usage = _extract_usage(sdk_message)
+                    if msg_usage is not None:
+                        usage = msg_usage
 
-                # Extract session ID from ResultMessage
-                if isinstance(sdk_message, ResultMessage):
-                    session_id = sdk_message.session_id
-                    if sdk_message.is_error:
-                        exit_code = 1
-                        error = sdk_message.result or "Task failed"
+                    # Extract session ID from ResultMessage
+                    if isinstance(sdk_message, ResultMessage):
+                        session_id = sdk_message.session_id
+                        if sdk_message.is_error:
+                            exit_code = 1
+                            error = sdk_message.result or "Task failed"
 
-        except CLINotFoundError as e:
+            except CLINotFoundError as e:
+                duration = time.time() - start_time
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                return TaskResult(
+                    output="",
+                    usage=TokenUsage(),
+                    duration_seconds=duration,
+                    exit_code=1,
+                    error=f"Claude Code CLI not found: {e}",
+                    messages=[],
+                )
+
+            except CLIConnectionError as e:
+                duration = time.time() - start_time
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                return TaskResult(
+                    output="",
+                    usage=TokenUsage(),
+                    duration_seconds=duration,
+                    exit_code=1,
+                    error=f"Failed to connect to Claude Code: {e}",
+                    messages=[],
+                )
+
+            except ProcessError as e:
+                duration = time.time() - start_time
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                return TaskResult(
+                    output="",
+                    usage=TokenUsage(),
+                    duration_seconds=duration,
+                    exit_code=e.exit_code or 1,
+                    error=f"Claude Code process failed: {e}",
+                    messages=[],
+                )
+
+            except Exception as e:
+                duration = time.time() - start_time
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                return TaskResult(
+                    output="",
+                    usage=TokenUsage(),
+                    duration_seconds=duration,
+                    exit_code=1,
+                    error=f"Unexpected error: {e}",
+                    messages=[],
+                )
+
             duration = time.time() - start_time
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            return TaskResult(
-                output="",
-                usage=TokenUsage(),
+            output_text = "".join(output_chunks)
+
+            result = TaskResult(
+                output=output_text,
+                usage=usage,
                 duration_seconds=duration,
-                exit_code=1,
-                error=f"Claude Code CLI not found: {e}",
-                messages=[],
+                exit_code=exit_code,
+                error=error,
+                messages=messages,
+                session_id=session_id,
             )
 
-        except CLIConnectionError as e:
-            duration = time.time() - start_time
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
+            # Execute POST_TASK hooks
+            post_task_context = HookContext(
+                event=HookEvent.POST_TASK,
+                task_id=session_id,
+                metadata={
+                    "output": output_text,
+                    "exit_code": exit_code,
+                    "usage": usage.model_dump() if usage else {},
+                },
             )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            return TaskResult(
-                output="",
-                usage=TokenUsage(),
-                duration_seconds=duration,
-                exit_code=1,
-                error=f"Failed to connect to Claude Code: {e}",
-                messages=[],
-            )
+            await self._execute_hooks(HookEvent.POST_TASK, post_task_context)
 
-        except ProcessError as e:
-            duration = time.time() - start_time
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            return TaskResult(
-                output="",
-                usage=TokenUsage(),
-                duration_seconds=duration,
-                exit_code=e.exit_code or 1,
-                error=f"Claude Code process failed: {e}",
-                messages=[],
-            )
+            return result
 
-        except Exception as e:
-            duration = time.time() - start_time
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            return TaskResult(
-                output="",
-                usage=TokenUsage(),
-                duration_seconds=duration,
-                exit_code=1,
-                error=f"Unexpected error: {e}",
-                messages=[],
-            )
-
-        duration = time.time() - start_time
-        output_text = "".join(output_chunks)
-
-        result = TaskResult(
-            output=output_text,
-            usage=usage,
-            duration_seconds=duration,
-            exit_code=exit_code,
-            error=error,
-            messages=messages,
-            session_id=session_id,
-        )
-
-        # Execute POST_TASK hooks
-        post_task_context = HookContext(
-            event=HookEvent.POST_TASK,
-            task_id=session_id,
-            metadata={
-                "output": output_text,
-                "exit_code": exit_code,
-                "usage": usage.model_dump() if usage else {},
-            },
-        )
-        await self._execute_hooks(HookEvent.POST_TASK, post_task_context)
-
-        return result
+        finally:
+            # Restore CUB_RUN_ACTIVE to its previous state
+            if _old_cub_run_active is None:
+                _os.environ.pop("CUB_RUN_ACTIVE", None)
+            else:
+                _os.environ["CUB_RUN_ACTIVE"] = _old_cub_run_active
 
     async def stream_task(
         self,
@@ -672,54 +686,68 @@ class ClaudeSDKBackend:
                 f"Task blocked by hook: {pre_task_result.reason or 'No reason given'}"
             )
 
+        import os as _os
+
         options = _build_options(task_input)
+
+        # Set CUB_RUN_ACTIVE to prevent hook double-tracking
+        _old_cub_run_active = _os.environ.get("CUB_RUN_ACTIVE")
+        _os.environ["CUB_RUN_ACTIVE"] = "1"
 
         usage: TokenUsage | None = None
         try:
-            async for sdk_message in query(prompt=task_input.prompt, options=options):
-                # Extract and yield text chunks
-                text = _extract_text_from_message(sdk_message)
-                if text:
-                    yield text
+            try:
+                async for sdk_message in query(prompt=task_input.prompt, options=options):
+                    # Extract and yield text chunks
+                    text = _extract_text_from_message(sdk_message)
+                    if text:
+                        yield text
 
-                # Capture usage from ResultMessage
-                msg_usage = _extract_usage(sdk_message)
-                if msg_usage is not None:
-                    usage = msg_usage
+                    # Capture usage from ResultMessage
+                    msg_usage = _extract_usage(sdk_message)
+                    if msg_usage is not None:
+                        usage = msg_usage
 
-        except CLINotFoundError as e:
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            raise RuntimeError(f"Claude Code CLI not found: {e}") from e
+            except CLINotFoundError as e:
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                raise RuntimeError(f"Claude Code CLI not found: {e}") from e
 
-        except CLIConnectionError as e:
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            raise RuntimeError(f"Failed to connect to Claude Code: {e}") from e
+            except CLIConnectionError as e:
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                raise RuntimeError(f"Failed to connect to Claude Code: {e}") from e
 
-        except ProcessError as e:
-            # Execute ON_ERROR hooks
-            error_context = HookContext(
-                event=HookEvent.ON_ERROR,
-                task_id=task_input.session_id,
-                error=e,
-            )
-            await self._execute_hooks(HookEvent.ON_ERROR, error_context)
-            raise RuntimeError(f"Claude Code process failed: {e}") from e
+            except ProcessError as e:
+                # Execute ON_ERROR hooks
+                error_context = HookContext(
+                    event=HookEvent.ON_ERROR,
+                    task_id=task_input.session_id,
+                    error=e,
+                )
+                await self._execute_hooks(HookEvent.ON_ERROR, error_context)
+                raise RuntimeError(f"Claude Code process failed: {e}") from e
 
-        # Yield usage as final sentinel
-        if usage is not None:
-            yield usage
+            # Yield usage as final sentinel
+            if usage is not None:
+                yield usage
+
+        finally:
+            # Restore CUB_RUN_ACTIVE to its previous state
+            if _old_cub_run_active is None:
+                _os.environ.pop("CUB_RUN_ACTIVE", None)
+            else:
+                _os.environ["CUB_RUN_ACTIVE"] = _old_cub_run_active
 
     def get_version(self) -> str:
         """

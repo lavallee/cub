@@ -438,12 +438,25 @@ def generate_system_prompt(project_dir: Path) -> str:
     """
     Generate the system prompt for the harness.
 
-    Reads from PROMPT.md in the project directory or templates.
+    New lookup order:
+    1. .cub/runloop.md (new context stack runloop)
+    2. PROMPT.md (project-specific legacy prompt)
+    3. templates/PROMPT.md (project templates)
+    4. templates/runloop.md (package template)
+    5. Fallback minimal prompt
+
+    Args:
+        project_dir: Path to the project root directory
+
+    Returns:
+        System prompt content
     """
-    # Check for project-specific prompt
+    # Check for prompts in priority order
     prompt_files = [
+        project_dir / ".cub" / "runloop.md",
         project_dir / "PROMPT.md",
         project_dir / "templates" / "PROMPT.md",
+        Path(__file__).parent.parent.parent.parent / "templates" / "runloop.md",
         Path(__file__).parent.parent.parent.parent / "templates" / "PROMPT.md",
     ]
 
@@ -533,13 +546,173 @@ def generate_direct_task_prompt(task_content: str) -> str:
     return "\n".join(prompt_parts)
 
 
-def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
+def generate_epic_context(task: Task, task_backend: TaskBackend) -> str | None:
+    """
+    Generate epic context for a task that belongs to an epic.
+
+    When a task belongs to an epic, this provides context about the epic's
+    purpose and what sibling tasks have been completed or remain. This helps
+    prevent repeated work and gives the agent awareness of the bigger picture.
+
+    Args:
+        task: Task to generate epic context for
+        task_backend: The task backend instance
+
+    Returns:
+        Epic context string, or None if task has no parent epic
+    """
+    # Skip if task has no parent
+    if not task.parent:
+        return None
+
+    # Fetch the parent epic
+    epic = task_backend.get_task(task.parent)
+    if not epic:
+        return None
+
+    # Build epic context
+    context_parts = []
+    context_parts.append("## Epic Context\n")
+    context_parts.append(f"This task belongs to epic: **{epic.id}** - {epic.title}\n")
+
+    # Add truncated epic description (~200 words)
+    if epic.description:
+        words = epic.description.split()
+        if len(words) > 200:
+            truncated = " ".join(words[:200]) + "..."
+        else:
+            truncated = epic.description
+        context_parts.append("Epic Purpose:")
+        context_parts.append(truncated)
+        context_parts.append("")
+
+    # Fetch sibling tasks (all tasks with same parent)
+    sibling_tasks = task_backend.list_tasks(parent=task.parent)
+
+    if sibling_tasks:
+        # Separate into completed and remaining
+        completed = [t for t in sibling_tasks if t.status == TaskStatus.CLOSED]
+        remaining = [t for t in sibling_tasks if t.status != TaskStatus.CLOSED and t.id != task.id]
+
+        if completed:
+            context_parts.append("Completed Sibling Tasks:")
+            for t in completed:
+                context_parts.append(f"- ✓ {t.id}: {t.title}")
+            context_parts.append("")
+
+        if remaining:
+            context_parts.append("Remaining Sibling Tasks:")
+            for t in remaining:
+                status_icon = "◐" if t.status == TaskStatus.IN_PROGRESS else "○"
+                context_parts.append(f"- {status_icon} {t.id}: {t.title}")
+            context_parts.append("")
+
+    return "\n".join(context_parts)
+
+
+def generate_retry_context(
+    task: Task, ledger_integration: LedgerIntegration, log_tail_lines: int = 50
+) -> str | None:
+    """
+    Generate retry context for a task with previous failed attempts.
+
+    When a task is retried after failure, this provides context about what
+    went wrong in previous attempts. This helps the agent avoid repeating
+    the same mistakes and understand the failure patterns.
+
+    Args:
+        task: Task to generate retry context for
+        ledger_integration: The ledger integration instance
+        log_tail_lines: Number of lines to extract from the end of the last log (default: 50)
+
+    Returns:
+        Retry context string, or None if task has no previous attempts
+    """
+    # Get the ledger entry for this task
+    entry = ledger_integration.writer.get_entry(task.id)
+    if not entry or not entry.attempts:
+        return None
+
+    # Filter to failed attempts only
+    failed_attempts = [a for a in entry.attempts if not a.success]
+    if not failed_attempts:
+        return None
+
+    # Build retry context
+    context_parts = []
+    context_parts.append("## Retry Context\n")
+    context_parts.append(
+        f"This task has been attempted {len(entry.attempts)} time(s) before with "
+        f"{len(failed_attempts)} failure(s).\n"
+    )
+
+    # Add summary of all failed attempts
+    context_parts.append("Previous Failed Attempts:")
+    for attempt in failed_attempts:
+        duration_str = f"{attempt.duration_seconds}s"
+        if attempt.duration_seconds >= 60:
+            duration_str = f"{attempt.duration_minutes:.1f}m"
+
+        parts = [f"- Attempt #{attempt.attempt_number}:"]
+        parts.append(f"Model: {attempt.model or 'unknown'}")
+        parts.append(f"Duration: {duration_str}")
+
+        if attempt.error_category:
+            parts.append(f"Error: {attempt.error_category}")
+        if attempt.error_summary:
+            parts.append(f"Summary: {attempt.error_summary}")
+
+        context_parts.append(" | ".join(parts))
+
+    context_parts.append("")
+
+    # Add log tail from the most recent failed attempt
+    last_failed = failed_attempts[-1]
+    log_path = (
+        ledger_integration.writer.by_task_dir
+        / task.id
+        / "attempts"
+        / f"{last_failed.attempt_number:03d}-harness.log"
+    )
+
+    if log_path.exists():
+        try:
+            log_content = log_path.read_text(encoding="utf-8")
+            lines = log_content.splitlines()
+
+            if lines:
+                # Get the tail of the log
+                tail_lines = lines[-log_tail_lines:] if len(lines) > log_tail_lines else lines
+                context_parts.append(
+                    f"Last {len(tail_lines)} lines from most recent failure "
+                    f"(attempt #{last_failed.attempt_number}):"
+                )
+                context_parts.append("```")
+                context_parts.extend(tail_lines)
+                context_parts.append("```")
+                context_parts.append("")
+        except (OSError, UnicodeDecodeError) as e:
+            # Log file exists but couldn't be read - gracefully skip
+            error_msg = (
+                f"(Log file for attempt #{last_failed.attempt_number} "
+                f"exists but could not be read: {e})"
+            )
+            context_parts.append(error_msg)
+            context_parts.append("")
+
+    return "\n".join(context_parts)
+
+
+def generate_task_prompt(
+    task: Task, task_backend: TaskBackend, ledger_integration: LedgerIntegration | None = None
+) -> str:
     """
     Generate the task prompt for a specific task.
 
     Args:
         task: Task to generate prompt for
         task_backend: The task backend instance
+        ledger_integration: Optional ledger integration for retry context
 
     Returns:
         Task prompt string
@@ -565,6 +738,17 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
             prompt_parts.append(f"- {criterion}")
         prompt_parts.append("")
 
+    # Add epic context if available
+    epic_context = generate_epic_context(task, task_backend)
+    if epic_context:
+        prompt_parts.append(epic_context)
+
+    # Add retry context if available
+    if ledger_integration:
+        retry_context = generate_retry_context(task, ledger_integration)
+        if retry_context:
+            prompt_parts.append(retry_context)
+
     # Add backend-specific task management instructions
     prompt_parts.append("## Task Management\n")
     prompt_parts.append(task_backend.get_agent_instructions(task.id))
@@ -576,7 +760,6 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     prompt_parts.append("1. Run feedback loops (typecheck, test, lint)")
     prompt_parts.append("2. Mark the task complete (see Task Management above)")
     prompt_parts.append(f"3. Commit: `{task_type_str}({task.id}): {task.title}`")
-    prompt_parts.append("4. Append learnings to progress.txt")
 
     return "\n".join(prompt_parts)
 
@@ -872,15 +1055,17 @@ def run(
     # Validate flags
     if no_network and not sandbox:
         print_incompatible_flags_error(
-            "--no-network", "--sandbox",
-            reason="Network isolation is only available in sandbox mode"
+            "--no-network",
+            "--sandbox",
+            reason="Network isolation is only available in sandbox mode",
         )
         raise typer.Exit(ExitCode.USER_ERROR)
 
     if sandbox_keep and not sandbox:
         print_incompatible_flags_error(
-            "--sandbox-keep", "--sandbox",
-            reason="Can only preserve sandboxes when sandbox mode is enabled"
+            "--sandbox-keep",
+            "--sandbox",
+            reason="Can only preserve sandboxes when sandbox mode is enabled",
         )
         raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -888,32 +1073,27 @@ def run(
         # --direct is incompatible with task management flags
         if task_id:
             print_incompatible_flags_error(
-                "--direct", "--task",
-                reason="Direct mode runs without task management"
+                "--direct", "--task", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
             print_incompatible_flags_error(
-                "--direct", "--epic",
-                reason="Direct mode runs without task management"
+                "--direct", "--epic", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if label:
             print_incompatible_flags_error(
-                "--direct", "--label",
-                reason="Direct mode runs without task management"
+                "--direct", "--label", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
             print_incompatible_flags_error(
-                "--direct", "--ready",
-                reason="Direct mode runs without task management"
+                "--direct", "--ready", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
             print_incompatible_flags_error(
-                "--direct", "--parallel",
-                reason="Direct mode runs without task management"
+                "--direct", "--parallel", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -921,38 +1101,34 @@ def run(
         # --gh-issue is incompatible with task management flags
         if task_id:
             print_incompatible_flags_error(
-                "--gh-issue", "--task",
-                reason="GitHub issue mode uses issues for input, not tasks"
+                "--gh-issue", "--task", reason="GitHub issue mode uses issues for input, not tasks"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
             print_incompatible_flags_error(
-                "--gh-issue", "--epic",
-                reason="GitHub issue mode uses issues for input, not epics"
+                "--gh-issue", "--epic", reason="GitHub issue mode uses issues for input, not epics"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if label:
             print_incompatible_flags_error(
-                "--gh-issue", "--label",
-                reason="GitHub issue mode uses issues for input"
+                "--gh-issue", "--label", reason="GitHub issue mode uses issues for input"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
             print_incompatible_flags_error(
-                "--gh-issue", "--ready",
-                reason="GitHub issue mode uses issues for input"
+                "--gh-issue", "--ready", reason="GitHub issue mode uses issues for input"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
             print_incompatible_flags_error(
-                "--gh-issue", "--parallel",
-                reason="GitHub issue mode processes one issue at a time"
+                "--gh-issue", "--parallel", reason="GitHub issue mode processes one issue at a time"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if direct:
             print_incompatible_flags_error(
-                "--gh-issue", "--direct",
-                reason="Choose either GitHub issue mode or direct mode, not both"
+                "--gh-issue",
+                "--direct",
+                reason="Choose either GitHub issue mode or direct mode, not both",
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -1047,7 +1223,7 @@ def run(
             print_missing_dependency_error(
                 "docker",
                 install_url="https://docs.docker.com/get-docker/",
-                install_cmd="Follow platform-specific instructions at the docs link"
+                install_cmd="Follow platform-specific instructions at the docs link",
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -1072,23 +1248,6 @@ def run(
 
     # Load configuration
     config = load_config(project_dir)
-
-    # Initialize sync service (if enabled and auto_sync is "run" or "always")
-    sync_service: SyncService | None = None
-    should_auto_sync = (
-        not no_sync and config.sync.enabled and config.sync.auto_sync in ("run", "always")
-    )
-    if should_auto_sync:
-        sync_service = SyncService(project_dir=project_dir)
-        # Initialize sync branch if not already initialized
-        if not sync_service.is_initialized():
-            try:
-                sync_service.initialize()
-                if debug:
-                    console.print("[dim]Initialized cub-sync branch[/dim]")
-            except Exception as e:
-                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
-                sync_service = None  # Disable auto-sync for this run
 
     # Initialize session manager
     session_manager = RunSessionManager(project_dir / ".cub")
@@ -1239,6 +1398,27 @@ def run(
     if debug:
         console.print(f"[dim]Task backend: {backend_name}[/dim]")
 
+    # Initialize sync service (if enabled and backend supports it)
+    # Only initialize for backends that use .cub/tasks.jsonl (jsonl or both mode)
+    sync_service: SyncService | None = None
+    should_auto_sync = (
+        not no_sync
+        and config.sync.enabled
+        and config.sync.auto_sync in ("run", "always")
+        and ("jsonl" in backend_name or "both" in backend_name)
+    )
+    if should_auto_sync:
+        sync_service = SyncService(project_dir=project_dir)
+        # Initialize sync branch if not already initialized
+        if not sync_service.is_initialized():
+            try:
+                sync_service.initialize()
+                if debug:
+                    console.print("[dim]Initialized cub-sync branch[/dim]")
+            except Exception as e:
+                console.print(f"[yellow]Warning: Failed to initialize sync branch: {e}[/yellow]")
+                sync_service = None  # Disable auto-sync for this run
+
     # Handle --ready flag: just list ready tasks
     if ready:
         _show_ready_tasks(task_backend, epic, label)
@@ -1274,9 +1454,8 @@ def run(
         enabled=circuit_breaker_enabled,
     )
     if debug and circuit_breaker_enabled:
-        console.print(
-            f"[dim]Circuit breaker enabled: {config.circuit_breaker.timeout_minutes} minute timeout[/dim]"
-        )
+        timeout = config.circuit_breaker.timeout_minutes
+        console.print(f"[dim]Circuit breaker enabled: {timeout} minute timeout[/dim]")
     elif debug:
         console.print("[dim]Circuit breaker disabled[/dim]")
 
@@ -1518,7 +1697,9 @@ def run(
                         console.print(f"[dim]Warning: Failed to create ledger entry: {e}[/dim]")
 
             # Generate task prompt
-            task_prompt = generate_task_prompt(current_task, task_backend)
+            task_prompt = generate_task_prompt(
+                current_task, task_backend, ledger_integration if config.ledger.enabled else None
+            )
 
             if debug:
                 console.print(f"[dim]System prompt: {len(system_prompt)} chars[/dim]")
@@ -1660,6 +1841,58 @@ def run(
                 status.mark_failed(e.message)
                 status_writer.write(status)
                 break
+
+            except KeyboardInterrupt:
+                # User interrupted execution (Ctrl-C) - record partial attempt
+                console.print("\n[yellow]Task interrupted by user[/yellow]")
+                status.add_event(
+                    "Task interrupted by user (Ctrl-C)",
+                    EventLevel.WARNING,
+                    task_id=current_task.id,
+                )
+
+                # Record interrupted attempt in ledger with partial progress
+                if config.ledger.enabled:
+                    try:
+                        # Capture whatever log content exists
+                        log_content = ""
+                        if harness_log_path and harness_log_path.exists():
+                            try:
+                                log_content = harness_log_path.read_text(encoding="utf-8")
+                            except Exception:
+                                log_content = "(Log file exists but could not be read)"
+
+                        # Calculate duration up to interruption
+                        duration = int((datetime.now() - attempt_start_time).total_seconds())
+
+                        ledger_integration.on_attempt_end(
+                            current_task.id,
+                            attempt_number,
+                            log_content,
+                            run_id=run_id,
+                            success=False,
+                            harness=harness_name,
+                            model=task_model or "",
+                            error_category="user_interrupted",
+                            error_summary="User interrupted execution (Ctrl-C) - partial work may exist",
+                            started_at=attempt_start_time,
+                            duration_seconds=duration,
+                        )
+                        if debug:
+                            console.print(
+                                f"[dim]Recorded interrupted attempt in ledger "
+                                f"(duration: {duration}s, log: {len(log_content)} chars)[/dim]"
+                            )
+                    except Exception as ledger_error:
+                        if debug:
+                            console.print(
+                                f"[dim]Warning: Failed to record interrupted attempt: "
+                                f"{ledger_error}[/dim]"
+                            )
+
+                # Set interrupted flag and re-raise to propagate interrupt
+                _interrupted = True
+                raise
 
             except Exception as e:
                 console.print(f"[red]Harness invocation failed: {e}[/red]")
@@ -1964,7 +2197,7 @@ def run(
                 session_manager.update_session(
                     run_session.run_id,
                     tasks_completed=status.budget.tasks_completed,
-                    tasks_failed=status.tasks_closed - status.budget.tasks_completed,
+                    tasks_failed=max(0, status.tasks_closed - status.budget.tasks_completed),
                     current_task=None,  # Task just finished
                     budget=session_budget,
                 )
@@ -2652,7 +2885,7 @@ def _run_parallel(
 
             # Aggregate budget from worker results if available
             budget_status = BudgetStatus()
-            if 'result' in locals():
+            if "result" in locals():
                 total_tokens = sum(
                     worker.tokens_used for worker in result.workers if worker.tokens_used
                 )
@@ -2673,8 +2906,8 @@ def _run_parallel(
                     "epic": epic,
                     "label": label,
                 },
-                tasks_completed=result.tasks_completed if 'result' in locals() else 0,
-                tasks_failed=result.tasks_failed if 'result' in locals() else 0,
+                tasks_completed=result.tasks_completed if "result" in locals() else 0,
+                tasks_failed=result.tasks_failed if "result" in locals() else 0,
                 budget=budget_status,
             )
 

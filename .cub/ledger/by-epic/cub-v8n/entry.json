@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "cub-v8n",
+  "title": "cub-v8n",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-v8n",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T06:24:50.184585Z",
+    "captured_at": "2026-01-28T06:24:50.184585Z"
+  },
+  "task_ids": [
+    "cub-v8n.1",
+    "cub-v8n.4",
+    "cub-v8n.2",
+    "cub-v8n.3"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 6.443502100000002,
+    "avg_cost_per_task": 1.6108755250000004,
+    "min_cost_usd": 1.127592,
+    "max_cost_usd": 2.1107681000000005,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 10300644,
+    "avg_tokens_per_task": 2575161,
+    "total_duration_seconds": 1667,
+    "avg_duration_seconds": 416,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:45:33.281302Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T06:17:36.839942Z",
+  "completed_at": "2026-01-28T06:45:33.254405Z",
+  "updated_at": "2026-01-28T06:45:33.281303Z",
+  "first_commit": {
+    "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
+    "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
+    "author": "",
+    "timestamp": "2026-01-28T06:23:51Z"
+  },
+  "last_commit": {
+    "hash": "04715a546111f9f8cde223ca0c57ec15748121a6",
+    "message": "task(cub-v8n.4): Refactor cub session done to use SessionLedgerIntegration",
+    "author": "",
+    "timestamp": "2026-01-28T06:45:09Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

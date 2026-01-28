@@ -53,8 +53,9 @@ tests/e2e/
 └── project/            # Test project
     ├── prd.json        # 3 simple tasks
     ├── PROMPT.md       # Agent prompt
-    ├── AGENT.md        # Build instructions
-    ├── progress.txt    # Progress log
+    ├── .cub/
+    │   ├── agent.md    # Build instructions
+    │   └── prompt.md   # Agent prompt
     └── .cub/
         ├── hooks/      # Test hooks
         │   ├── pre-loop.d/
@@ -124,7 +125,7 @@ export ANTHROPIC_API_KEY="your-key-here"
 
 The budget is set to 100,000 tokens which should be enough for 3 simple tasks. If tasks are taking too long:
 
-- Check the PROMPT.md and AGENT.md are clear
+- Check the .cub/prompt.md and .cub/agent.md are clear
 - Verify Claude is not stuck waiting for user input
 - Check the cub logs for errors
 
