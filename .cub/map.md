@@ -126,6 +126,7 @@
     │   │   │   ├── cub-b1e.1/
     │   │   │   ├── cub-b1e.2/
     │   │   │   ├── cub-b1e.3/
+    │   │   │   ├── cub-b1f.3/
     │   │   │   ├── cub-c5i.1/
     │   │   │   ├── cub-c5i.2/
     │   │   │   ├── cub-c5i.3/
@@ -270,6 +271,7 @@
     │   │   │   ├── cub-b1e.1.json
     │   │   │   ├── cub-b1e.2.json
     │   │   │   ├── cub-b1e.3.json
+    │   │   │   ├── cub-b1f.3.json
     │   │   │   ├── cub-c5i.1.json
     │   │   │   ├── cub-c5i.2.json
     │   │   │   ├── cub-c5i.3.json
@@ -313,8 +315,6 @@
     │   │   │   ├── cub-j1e.1.json
     │   │   │   ├── cub-j1e.2.json
     │   │   │   ├── cub-j1e.3.json
-    │   │   │   ├── cub-j1f.1.json
-    │   │   │   ├── cub-j1f.2.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
