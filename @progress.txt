@@ -813,3 +813,31 @@ Successfully refactored the instruction generation system to produce condensed m
 
 **Outcome:** Successfully added MapConfig to the config system, making `cub map` behavior fully configurable via .cub.json. Configuration can be overridden at both user (~/.config/cub/config.json) and project (.cub.json) levels. Ready for integration with the map command implementation.
 
+
+## Task cub-r1d.3: Update system prompt and document context composition
+
+**Date:** 2026-01-28
+
+**Key Learnings:**
+
+1. **System Prompt Composition**: The `generate_system_prompt()` function in `src/cub/cli/run.py` implements a multi-level lookup order for system prompts, allowing projects to override at different levels of granularity.
+
+2. **Demarcated Format**: The templates/PROMPT.md uses HTML comment blocks with box-drawing characters (╔══╗) to provide meta-documentation about the file's purpose and customization guide. This format helps users understand what to edit and why.
+
+3. **Context Composition Documentation**: Added a comprehensive "Context Composition" section to .cub/agent.md that explains:
+   - The 6-level lookup order for system prompts
+   - Context files referenced via @ syntax
+   - Task context injection mechanism
+   - How to customize the agent experience
+
+4. **AGENT.md Symlinks**: The CLAUDE.md, AGENT.md, and AGENTS.md files are all symlinks to .cub/agent.md, providing compatibility with different naming conventions.
+
+5. **Test Coverage for Lookup Order**: Added `test_cub_runloop_takes_precedence()` to verify that .cub/runloop.md takes priority over PROMPT.md, ensuring the new lookup order works correctly.
+
+6. **Documentation Principles**: When documenting context composition:
+   - Explain the "why" behind each lookup location
+   - Provide concrete examples of when to use each level
+   - Include implementation references for developers
+
+**Outcome:** Successfully documented the entire context composition system in cub's CLAUDE.md, making it clear how system prompts are constructed and how future contributors can customize the agent experience. All tests passing (4124 passed, 9 skipped), code formatted with ruff.
+
