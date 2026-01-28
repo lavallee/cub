@@ -1072,3 +1072,109 @@ class TestTryCloseEpic:
 
         assert closed is True
         assert "3 tasks completed" in message
+
+
+# ==============================================================================
+# Branch Binding Tests
+# ==============================================================================
+
+
+class TestBindBranch:
+    """Test branch binding functionality."""
+
+    def test_bind_branch_creates_binding(self, temp_dir):
+        """Test that bind_branch creates a new binding."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Create an epic first
+        epic = backend.create_task(title="Test Epic", task_type="epic")
+
+        # Bind branch
+        result = backend.bind_branch(epic.id, "feature/test-branch", "main")
+
+        assert result is True
+
+        # Verify binding was created
+        from cub.core.branches.json_store import JsonBranchStore
+
+        store = JsonBranchStore(temp_dir)
+        binding = store.get_binding(epic.id)
+
+        assert binding is not None
+        assert binding.epic_id == epic.id
+        assert binding.branch_name == "feature/test-branch"
+        assert binding.base_branch == "main"
+        assert binding.status == "active"
+
+    def test_bind_branch_duplicate_epic_returns_false(self, temp_dir):
+        """Test that binding the same epic twice returns False."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Bind once
+        result1 = backend.bind_branch("epic-001", "feature/branch-1", "main")
+        assert result1 is True
+
+        # Try to bind same epic to different branch
+        result2 = backend.bind_branch("epic-001", "feature/branch-2", "main")
+        assert result2 is False
+
+    def test_bind_branch_duplicate_branch_returns_false(self, temp_dir):
+        """Test that binding the same branch twice returns False."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # Bind once
+        result1 = backend.bind_branch("epic-001", "feature/shared-branch", "main")
+        assert result1 is True
+
+        # Try to bind same branch to different epic
+        result2 = backend.bind_branch("epic-002", "feature/shared-branch", "main")
+        assert result2 is False
+
+    def test_bind_branch_creates_cub_directory(self, temp_dir):
+        """Test that bind_branch creates .cub directory if needed."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        # .cub directory shouldn't exist yet
+        cub_dir = temp_dir / ".cub"
+        assert not cub_dir.exists()
+
+        # Bind branch
+        backend.bind_branch("epic-001", "feature/test", "main")
+
+        # .cub directory should now exist
+        assert cub_dir.exists()
+        assert (cub_dir / "branches.json").exists()
+
+    def test_bind_branch_with_custom_base(self, temp_dir):
+        """Test binding with custom base branch."""
+        backend = JsonBackend(project_dir=temp_dir)
+
+        result = backend.bind_branch("epic-001", "feature/test", "develop")
+        assert result is True
+
+        from cub.core.branches.json_store import JsonBranchStore
+
+        store = JsonBranchStore(temp_dir)
+        binding = store.get_binding("epic-001")
+
+        assert binding.base_branch == "develop"
+
+    def test_bind_branch_file_format(self, temp_dir):
+        """Test that branches.json has correct format."""
+        backend = JsonBackend(project_dir=temp_dir)
+        backend.bind_branch("epic-001", "feature/test", "main")
+
+        branches_file = temp_dir / ".cub" / "branches.json"
+        assert branches_file.exists()
+
+        import json
+
+        content = json.loads(branches_file.read_text())
+
+        assert "bindings" in content
+        assert len(content["bindings"]) == 1
+        assert content["bindings"][0]["epic_id"] == "epic-001"
+        assert content["bindings"][0]["branch_name"] == "feature/test"
+        assert content["bindings"][0]["status"] == "active"
+        assert content["bindings"][0]["pr_number"] is None
+        assert content["bindings"][0]["merged"] is False

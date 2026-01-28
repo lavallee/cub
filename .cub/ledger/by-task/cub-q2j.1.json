@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "cub-q2j.1",
+  "title": "Add branch binding to JSON task backend",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-q2j"
+  },
+  "task": {
+    "title": "Add branch binding to JSON task backend",
+    "description": "`bind_branch()` returns False in the JSON backend, blocking `cub branch` and `cub pr` for JSON-only users. Store bindings in `.cub/branches.json` with the same semantics as beads' `.beads/branches.yaml`.\n\n**Implementation Steps:**\n1. Create `src/cub/core/branches/json_store.py` following the pattern of the existing beads BranchStore\n2. Define binding model: `epic_id`, `branch_name`, `base_branch`, `created_at`\n3. Implement `get_binding(epic_id)`, `get_binding_by_branch(branch_name)`, `add_binding()`, `remove_binding()`\n4. Storage: `.cub/branches.json` with atomic writes (temp + replace)\n5. Wire into JSON backend's `bind_branch()` method\n6. Update `cub branch` and `cub branches` commands to work with JSON backend's branch store\n\n**Files:** src/cub/core/branches/json_store.py, src/cub/core/tasks/json.py, tests/test_json_backend.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-q2j",
+      "logic",
+      "model:sonnet",
+      "phase-3",
+      "tasks"
+    ],
+    "created_at": "2026-01-28T03:37:44.364192Z",
+    "captured_at": "2026-01-28T06:45:39.513425Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:45:39.513425Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:45:39.513425Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T06:45:39.513425Z",
+  "completed_at": "2026-01-28T06:45:39.513425Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-q2j.1",
+  "epic_id": "cub-q2j",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

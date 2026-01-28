@@ -7,7 +7,7 @@ in .beads/branches.yaml.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
@@ -25,7 +25,7 @@ class BranchBinding(BaseModel):
     base_branch: str = Field(default="main", description="The target branch for merging")
     status: str = Field(default="active", description="Binding status: active, merged, or closed")
     created_at: datetime = Field(
-        default_factory=lambda: datetime.utcnow(),
+        default_factory=lambda: datetime.now(timezone.utc),
         description="When the binding was created",
     )
     pr_number: int | None = Field(default=None, description="Associated PR number if created")

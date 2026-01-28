@@ -1,81 +1,83 @@
 """
-Branch bindings store for reading/writing .beads/branches.yaml.
+JSON branch bindings store for reading/writing .cub/branches.json.
 
 Provides a store class for managing branch-epic bindings persisted
-in YAML format.
+in JSON format for projects not using beads.
 """
 
 from __future__ import annotations
 
+import json
+import os
 import subprocess
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-
-import yaml
 
 from cub.core.branches.models import BranchBinding, BranchBindingsFile
 
 
-class BranchStoreError(Exception):
-    """Error from branch store operations."""
+class JsonBranchStoreError(Exception):
+    """Error from JSON branch store operations."""
 
     pass
 
 
-class BranchStore:
+class JsonBranchStore:
     """
-    Store for branch-epic bindings.
+    Store for branch-epic bindings using JSON format.
 
-    Reads and writes bindings from .beads/branches.yaml in the project directory.
+    Reads and writes bindings from .cub/branches.json in the project directory.
+    This is the JSON backend equivalent of the beads BranchStore.
 
     Example:
-        >>> store = BranchStore(Path.cwd())
+        >>> store = JsonBranchStore(Path.cwd())
         >>> bindings = store.read()
         >>> binding = store.get_binding("cub-vd6")
     """
 
-    BRANCHES_FILE = ".beads/branches.yaml"
+    BRANCHES_FILE = ".cub/branches.json"
 
     def __init__(self, project_dir: Path | None = None) -> None:
         """
-        Initialize BranchStore.
+        Initialize JsonBranchStore.
 
         Args:
-            project_dir: Project directory containing .beads/ (defaults to cwd)
+            project_dir: Project directory containing .cub/ (defaults to cwd)
         """
         self.project_dir = project_dir or Path.cwd()
         self._file_path = self.project_dir / self.BRANCHES_FILE
 
     @property
     def file_path(self) -> Path:
-        """Get the path to the branches.yaml file."""
+        """Get the path to the branches.json file."""
         return self._file_path
 
     def file_exists(self) -> bool:
         """Check if the branches file exists."""
         return self._file_path.exists()
 
-    def _ensure_beads_dir(self) -> None:
-        """Ensure .beads directory exists."""
-        beads_dir = self.project_dir / ".beads"
-        if not beads_dir.exists():
-            raise BranchStoreError(f".beads directory does not exist in {self.project_dir}")
+    def _ensure_cub_dir(self) -> None:
+        """Ensure .cub directory exists."""
+        cub_dir = self.project_dir / ".cub"
+        if not cub_dir.exists():
+            cub_dir.mkdir(parents=True, exist_ok=True)
 
     def _init_file(self) -> None:
         """Initialize branches file if it doesn't exist."""
-        self._ensure_beads_dir()
+        self._ensure_cub_dir()
         if not self._file_path.exists():
             content = BranchBindingsFile(bindings=[])
             self._write_file(content)
 
     def _read_file(self) -> BranchBindingsFile:
-        """Read and parse the branches.yaml file."""
+        """Read and parse the branches.json file."""
         if not self._file_path.exists():
             return BranchBindingsFile(bindings=[])
 
         try:
             content = self._file_path.read_text()
-            data = yaml.safe_load(content) or {}
+            data = json.loads(content)
 
             # Handle empty bindings
             if "bindings" not in data:
@@ -97,20 +99,14 @@ class BranchStore:
                 bindings.append(BranchBinding.model_validate(b))
 
             return BranchBindingsFile(bindings=bindings)
-        except yaml.YAMLError as e:
-            raise BranchStoreError(f"Failed to parse branches.yaml: {e}")
+        except json.JSONDecodeError as e:
+            raise JsonBranchStoreError(f"Failed to parse branches.json: {e}")
 
     def _write_file(self, content: BranchBindingsFile) -> None:
-        """Write bindings to the branches.yaml file."""
-        self._ensure_beads_dir()
+        """Write bindings to the branches.json file atomically."""
+        self._ensure_cub_dir()
 
-        # Build YAML content with header
-        header = """# Branch-Epic Bindings
-# Managed by cub - do not edit manually
-# Format: YAML with branch bindings array
-
-"""
-        # Convert to dict for YAML serialization
+        # Convert to dict for JSON serialization
         bindings_data = []
         for b in content.bindings:
             binding_dict = b.model_dump()
@@ -123,14 +119,28 @@ class BranchStore:
 
         data = {"bindings": bindings_data}
 
-        yaml_content = yaml.dump(
-            data,
-            default_flow_style=False,
-            sort_keys=False,
-            allow_unicode=True,
+        # Atomic write: temp file + replace
+        fd, temp_path = tempfile.mkstemp(
+            dir=self._file_path.parent,
+            prefix=".branches_",
+            suffix=".json.tmp",
         )
 
-        self._file_path.write_text(header + yaml_content)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.write("\n")  # Add trailing newline
+
+            # Atomic rename (replaces existing file)
+            os.replace(temp_path, self._file_path)
+
+        except Exception:
+            # Clean up temp file on error
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
 
     def read(self) -> list[BranchBinding]:
         """
@@ -191,7 +201,7 @@ class BranchStore:
             The created BranchBinding
 
         Raises:
-            BranchStoreError: If epic or branch already has a binding
+            JsonBranchStoreError: If epic or branch already has a binding
         """
         self._init_file()
         content = self._read_file()
@@ -199,11 +209,11 @@ class BranchStore:
         # Check for existing bindings
         for binding in content.bindings:
             if binding.epic_id == epic_id:
-                raise BranchStoreError(
+                raise JsonBranchStoreError(
                     f"Epic {epic_id} is already bound to branch: {binding.branch_name}"
                 )
             if binding.branch_name == branch_name:
-                raise BranchStoreError(
+                raise JsonBranchStoreError(
                     f"Branch {branch_name} is already bound to epic: {binding.epic_id}"
                 )
 
@@ -231,7 +241,7 @@ class BranchStore:
             pr_number: PR number (or None to clear)
 
         Raises:
-            BranchStoreError: If binding not found
+            JsonBranchStoreError: If binding not found
         """
         content = self._read_file()
         found = False
@@ -242,7 +252,7 @@ class BranchStore:
                 break
 
         if not found:
-            raise BranchStoreError(f"No binding found for epic {epic_id}")
+            raise JsonBranchStoreError(f"No binding found for epic {epic_id}")
 
         self._write_file(content)
 
@@ -255,7 +265,7 @@ class BranchStore:
             status: New status (active, merged, closed)
 
         Raises:
-            BranchStoreError: If binding not found
+            JsonBranchStoreError: If binding not found
         """
         content = self._read_file()
         found = False
@@ -268,7 +278,7 @@ class BranchStore:
                 break
 
         if not found:
-            raise BranchStoreError(f"No binding found for epic {epic_id}")
+            raise JsonBranchStoreError(f"No binding found for epic {epic_id}")
 
         self._write_file(content)
 
