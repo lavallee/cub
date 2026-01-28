@@ -6,6 +6,7 @@ by examining ledger entries, verification status, spec drift, and more.
 """
 
 from cub.core.review.assessor import EpicAssessor, PlanAssessor, TaskAssessor
+from cub.core.review.formatter import to_json
 from cub.core.review.models import (
     AssessmentGrade,
     EpicAssessment,
@@ -15,7 +16,6 @@ from cub.core.review.models import (
     ReviewIssue,
     TaskAssessment,
 )
-from cub.core.review.reporter import ReviewReporter
 
 __all__ = [
     "AssessmentGrade",
@@ -26,7 +26,7 @@ __all__ = [
     "PlanAssessment",
     "PlanAssessor",
     "ReviewIssue",
-    "ReviewReporter",
     "TaskAssessment",
     "TaskAssessor",
+    "to_json",
 ]

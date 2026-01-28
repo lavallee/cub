@@ -1,8 +1,8 @@
 """
-Reporter for rendering review assessments with Rich formatting.
+Rich formatting and display for review assessments.
 
-This module provides the ReviewReporter class for displaying
-task, epic, and plan assessments in the terminal.
+This module handles all terminal rendering for task, epic, and plan assessments.
+It consumes data models from cub.core.review.models and renders them with Rich.
 """
 
 from __future__ import annotations
@@ -50,11 +50,11 @@ def _severity_style(severity: IssueSeverity) -> str:
         return "dim"
 
 
-class ReviewReporter:
-    """Reporter for rendering review assessments with Rich formatting."""
+class ReviewDisplay:
+    """Display handler for rendering review assessments with Rich formatting."""
 
     def __init__(self, console: Console | None = None, verbose: bool = False) -> None:
-        """Initialize the reporter.
+        """Initialize the display handler.
 
         Args:
             console: Rich console for output (creates default if None)
@@ -267,14 +267,3 @@ class ReviewReporter:
             for rec in recommendations:
                 self.console.print(f"  - {rec}")
             self.console.print()
-
-    def to_json(self, assessment: TaskAssessment | EpicAssessment | PlanAssessment) -> str:
-        """Serialize assessment to JSON.
-
-        Args:
-            assessment: Assessment model to serialize
-
-        Returns:
-            JSON string representation
-        """
-        return assessment.model_dump_json(indent=2)

@@ -10,9 +10,10 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from cub.cli.review.display import ReviewDisplay
 from cub.core.ledger.reader import LedgerReader
 from cub.core.review.assessor import EpicAssessor, PlanAssessor, TaskAssessor
-from cub.core.review.reporter import ReviewReporter
+from cub.core.review.formatter import to_json
 from cub.utils.project import get_project_root
 
 app = typer.Typer(
@@ -84,13 +85,12 @@ def task(
     assessment = assessor.assess_task(task_id, deep=deep)
 
     if json_output:
-        reporter = ReviewReporter(console, verbose=verbose)
-        console.print(reporter.to_json(assessment))
+        console.print(to_json(assessment))
         return
 
     # Rich formatted output
-    reporter = ReviewReporter(console, verbose=verbose)
-    reporter.render_task_assessment(assessment)
+    display = ReviewDisplay(console, verbose=verbose)
+    display.render_task_assessment(assessment)
 
 
 @app.command()
@@ -140,13 +140,12 @@ def epic(
     assessment = assessor.assess_epic(epic_id, deep=deep)
 
     if json_output:
-        reporter = ReviewReporter(console, verbose=verbose)
-        console.print(reporter.to_json(assessment))
+        console.print(to_json(assessment))
         return
 
     # Rich formatted output
-    reporter = ReviewReporter(console, verbose=verbose)
-    reporter.render_epic_assessment(assessment)
+    display = ReviewDisplay(console, verbose=verbose)
+    display.render_epic_assessment(assessment)
 
 
 @app.command()
@@ -197,10 +196,12 @@ def plan(
     assessment = assessor.assess_plan(plan_slug, deep=deep)
 
     if json_output:
-        reporter = ReviewReporter(console, verbose=verbose)
-        console.print(reporter.to_json(assessment))
+        console.print(to_json(assessment))
         return
 
     # Rich formatted output
-    reporter = ReviewReporter(console, verbose=verbose)
-    reporter.render_plan_assessment(assessment)
+    display = ReviewDisplay(console, verbose=verbose)
+    display.render_plan_assessment(assessment)
+
+
+__all__ = ["ReviewDisplay", "app"]
