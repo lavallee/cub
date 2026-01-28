@@ -826,10 +826,22 @@ git_categorize_changes() {
 
     # Get all uncommitted files (modified, staged, and untracked)
     # Use -u to show all individual files in untracked directories
-    # Note: We don't filter .cub/ here since session files live there
-    # and need to be categorized. Non-session .cub/ files will be "unknown".
+    # Filter out .beads/ entirely and .cub/ except for session files
     local all_files
-    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.beads/')
+    all_files=$(git status --porcelain -u 2>/dev/null | grep -v '^.. \.beads/' | grep -v '^.. \.cub/' | grep -v '^.. \.cub$')
+
+    # Also get session files from .cub/ (they need to be categorized)
+    local session_from_cub
+    session_from_cub=$(git status --porcelain -u 2>/dev/null | grep -E '^.. \.cub/(prompt\.md|agent\.md)$')
+
+    # Combine the lists
+    if [[ -n "$session_from_cub" ]]; then
+        if [[ -n "$all_files" ]]; then
+            all_files="$all_files"$'\n'"$session_from_cub"
+        else
+            all_files="$session_from_cub"
+        fi
+    fi
 
     if [[ -z "$all_files" ]]; then
         # No changes
