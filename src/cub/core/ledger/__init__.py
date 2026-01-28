@@ -54,6 +54,10 @@ from cub.core.ledger.models import (
     WorkflowState,
 )
 from cub.core.ledger.reader import LedgerReader
+from cub.core.ledger.session_integration import (
+    SessionLedgerIntegration,
+    SessionState,
+)
 from cub.core.ledger.writer import LedgerWriter
 
 __all__ = [
@@ -82,6 +86,8 @@ __all__ = [
     "LedgerWriter",
     # Integration
     "LedgerIntegration",
+    "SessionLedgerIntegration",
+    "SessionState",
     # Extraction
     "InsightExtraction",
     "extract_insights",
