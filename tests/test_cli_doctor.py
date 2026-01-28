@@ -311,7 +311,7 @@ class TestDoctorHooksCheck:
             assert result.exit_code == 0
             assert "Claude Code Hooks" in result.output
             assert ".claude/ directory not found" in result.output
-            assert "cub init --hooks" in result.output
+            assert "cub hooks install" in result.output
 
     def test_doctor_checks_hooks_installed_correctly(self, mock_project_dir: Path) -> None:
         """Test that doctor confirms when hooks are properly configured."""
@@ -369,7 +369,7 @@ class TestDoctorHooksCheck:
             assert result.exit_code == 1  # Exit with error code
             assert "Hook script not found" in result.output
             assert "Hook PostToolUse not configured" in result.output
-            assert "cub init --hooks --force" in result.output
+            assert "cub hooks install --force" in result.output
 
     def test_doctor_reports_hook_warnings(self, mock_project_dir: Path) -> None:
         """Test that doctor reports hook configuration warnings."""

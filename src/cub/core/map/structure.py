@@ -8,7 +8,10 @@ extracting build commands, and identifying key files and module boundaries.
 import json
 from pathlib import Path
 
-import tomllib  # type: ignore[import-not-found]
+try:
+    import tomllib  # type: ignore[import-not-found]
+except ImportError:
+    import tomli as tomllib  # type: ignore[import-not-found]
 
 from cub.core.map.models import (
     BuildCommand,

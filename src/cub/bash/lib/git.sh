@@ -734,10 +734,10 @@ git_categorize_file() {
     filename=$(basename "$filepath")
     local extension="${filename##*.}"
 
-    # Check session files first (exact match)
+    # Check session files first (exact match on filepath)
     local pattern
     for pattern in "${_GIT_SESSION_PATTERNS[@]}"; do
-        if [[ "$filename" == "$pattern" ]]; then
+        if [[ "$filepath" == "$pattern" ]]; then
             echo "session"
             return 0
         fi
