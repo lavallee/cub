@@ -642,3 +642,59 @@
 - Mypy type checking: Clean (only pre-existing yaml stub warnings)
 - Ruff linting: All checks passed
 
+## Task cub-v8n.2 - Connect hook handlers to SessionLedgerIntegration
+
+**Date:** 2026-01-28
+
+**Key Implementation Details:**
+
+1. **Helper Function**: Added `_get_ledger_integration(cwd)` helper that creates `LedgerWriter` and `SessionLedgerIntegration` from project directory. Returns None if cwd is invalid. Ensures `.cub/ledger` directory exists.
+
+2. **handle_session_start Integration**: Modified to instantiate `SessionLedgerIntegration` for setup/validation. Logs debug message confirming initialization. This is mostly a no-op since integration is stateless.
+
+3. **handle_stop Integration**: Modified to call `integration.on_session_end()` after writing session_end forensic event. Synthesizes ledger entry from forensics. Logs success/failure messages. Gracefully handles errors without blocking hook.
+
+4. **handle_session_end Integration**: Similar to handle_stop, calls `on_session_end()` to synthesize ledger entry. This handles explicit SessionEnd events (as opposed to Stop).
+
+5. **Duration Calculation Fix**: Fixed negative duration bug in `SessionLedgerIntegration.on_session_end()`. Was using `state.duration_seconds` which calculated from session start/end, but when mixing old forensic timestamps with `now`, could get negative values. Changed to calculate duration from attempt timestamps (task_claimed_at/task_closed_at) with safeguard to ensure non-negative.
+
+6. **Integration Tests**: Created comprehensive `test_harness_hooks_integration.py` with 9 tests covering:
+   - Session start forensics writing
+   - File write, task claim, task close, git commit forensics creation
+   - Stop hook without task (no ledger entry)
+   - Stop hook with task (ledger entry created)
+   - Session end with task (ledger entry created)
+   - Complete workflow from start to end
+
+7. **Error Handling**: All ledger synthesis wrapped in try/except with warning logs. Hooks never crash due to ledger errors. Continue execution even if ledger write fails.
+
+### Learnings
+
+- **Hook Process Model**: Each hook invocation is a separate process with separate cwd. Must reconstruct LedgerWriter from cwd on each call, can't maintain state across invocations.
+
+- **Forensics Path Construction**: Forensics path is `{cwd}/.cub/ledger/forensics/{session_id}.jsonl`. Use Path concatenation with `/` operator for clean code.
+
+- **Duration Calculation Bug**: When mixing timestamps from different time periods (e.g., 2026 test data with 2025 `now`), duration calculations can go negative. Always calculate duration from paired timestamps (start/end) and ensure non-negative with safeguard.
+
+- **Task Object Availability**: Hook handlers don't have access to Task objects (would need backend integration). Pass `task=None` to `on_session_end()` which uses task_id only. Full Task integration would require loading from backend.
+
+- **Line Length Linting**: Long Path constructions like `Path(cwd) / ".cub" / "ledger" / "forensics" / f"{session_id}.jsonl"` exceed 100 chars. Use parenthesized multi-line for readability.
+
+- **Test Forensics Writing**: Helper function `read_forensics(path)` reads JSONL and returns list of parsed events. Reusable across tests for verifying forensics content.
+
+- **Ledger Entry Validation**: When testing ledger entry creation, verify key fields like attempts, outcome, files_changed to ensure synthesis worked correctly. Don't just check entry exists.
+
+### Files Modified
+- src/cub/core/harness/hooks.py (added _get_ledger_integration, modified handle_session_start, handle_stop, handle_session_end)
+- src/cub/core/ledger/session_integration.py (fixed duration calculation to avoid negative values)
+
+### Files Created
+- tests/test_harness_hooks_integration.py (530 lines, 9 tests)
+
+### Test Results
+- All 9 new integration tests pass
+- All 30 session ledger integration tests pass
+- Total: 39 related tests passed
+- Mypy type checking: Clean (no errors in modified files)
+- Ruff linting: All checks passed
+

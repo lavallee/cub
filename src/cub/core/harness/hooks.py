@@ -376,6 +376,31 @@ async def handle_stop(payload: HookEventPayload) -> HookEventResult:
                         f"Ledger entry created for session {payload.session_id}: {entry.id}",
                         extra={"session_id": payload.session_id, "task_id": entry.id},
                     )
+
+                    # Enrich with transcript data (best-effort)
+                    if payload.transcript_path:
+                        try:
+                            enriched_entry = integration.enrich_from_transcript(
+                                entry.id,
+                                Path(payload.transcript_path),
+                            )
+                            if enriched_entry:
+                                logger.debug(
+                                    f"Enriched ledger entry {entry.id} with transcript data: "
+                                    f"{enriched_entry.tokens.total_tokens} tokens, "
+                                    f"${enriched_entry.cost_usd:.4f} cost",
+                                    extra={
+                                        "session_id": payload.session_id,
+                                        "task_id": entry.id,
+                                        "tokens": enriched_entry.tokens.total_tokens,
+                                        "cost_usd": enriched_entry.cost_usd,
+                                    },
+                                )
+                        except Exception as e:
+                            logger.debug(
+                                f"Failed to enrich ledger entry from transcript: {e}",
+                                extra={"session_id": payload.session_id, "task_id": entry.id},
+                            )
                 else:
                     logger.debug(
                         f"No ledger entry created for session {payload.session_id} "

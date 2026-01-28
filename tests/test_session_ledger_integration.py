@@ -891,3 +891,287 @@ class TestFullWorkflow:
         assert entry is None
         # Verify no ledger entry was created
         # (We don't have a way to list all entries, so we just check None was returned)
+
+
+class TestEnrichFromTranscript:
+    """Tests for transcript enrichment functionality."""
+
+    def test_enriches_entry_with_transcript_data(
+        self,
+        integration: SessionLedgerIntegration,
+        writer: LedgerWriter,
+        forensics_dir: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test that transcript data enriches ledger entry."""
+        # Create forensics with task
+        forensics_path = forensics_dir / "test.jsonl"
+        events = [
+            {
+                "event_type": "session_start",
+                "timestamp": "2026-01-28T10:00:00+00:00",
+                "session_id": "claude-123",
+            },
+            {
+                "event_type": "task_claim",
+                "timestamp": "2026-01-28T10:01:00+00:00",
+                "session_id": "claude-123",
+                "task_id": "cub-xyz.1",
+            },
+            {
+                "event_type": "task_close",
+                "timestamp": "2026-01-28T10:30:00+00:00",
+                "session_id": "claude-123",
+                "task_id": "cub-xyz.1",
+            },
+            {
+                "event_type": "session_end",
+                "timestamp": "2026-01-28T10:35:00+00:00",
+                "session_id": "claude-123",
+                "transcript_path": "/path/to/transcript.jsonl",
+            },
+        ]
+        write_forensics(forensics_path, events)
+
+        # Create transcript
+        transcript_path = tmp_path / "transcript.jsonl"
+        transcript_lines = [
+            json.dumps({"type": "input", "content": "User message"}),
+            json.dumps({
+                "type": "output",
+                "model": "claude-sonnet-4-5-20250929",
+                "usage": {
+                    "input_tokens": 10000,
+                    "output_tokens": 5000,
+                    "cache_read_input_tokens": 2000,
+                    "cache_creation_input_tokens": 500,
+                },
+            }),
+            json.dumps({"type": "input", "content": "Continue"}),
+            json.dumps({
+                "type": "output",
+                "model": "claude-sonnet-4-5-20250929",
+                "usage": {
+                    "input_tokens": 8000,
+                    "output_tokens": 3000,
+                    "cache_read_input_tokens": 1000,
+                    "cache_creation_input_tokens": 0,
+                },
+            }),
+        ]
+        transcript_path.write_text("\n".join(transcript_lines) + "\n")
+
+        # Create ledger entry
+        entry = integration.on_session_end("claude-123", forensics_path)
+        assert entry is not None
+
+        # Initial state should have zero tokens
+        assert entry.attempts[0].tokens.input_tokens == 0
+        assert entry.attempts[0].tokens.output_tokens == 0
+        assert entry.attempts[0].model == ""
+        assert entry.attempts[0].cost_usd == 0.0
+
+        # Enrich with transcript
+        enriched = integration.enrich_from_transcript("cub-xyz.1", transcript_path)
+
+        assert enriched is not None
+        assert enriched.id == "cub-xyz.1"
+
+        # Check that tokens were updated
+        assert enriched.attempts[0].tokens.input_tokens == 18000  # 10k + 8k
+        assert enriched.attempts[0].tokens.output_tokens == 8000  # 5k + 3k
+        assert enriched.attempts[0].tokens.cache_read_tokens == 3000  # 2k + 1k
+        assert enriched.attempts[0].tokens.cache_creation_tokens == 500  # 500 + 0
+
+        # Check that model was updated
+        assert enriched.attempts[0].model == "sonnet"
+
+        # Check that cost was calculated
+        # (18000*3 + 8000*15 + 3000*0.3 + 500*3.75) / 1M
+        # = (54000 + 120000 + 900 + 1875) / 1M = 0.176775
+        assert abs(enriched.attempts[0].cost_usd - 0.176775) < 0.0001
+
+        # Check that outcome was updated
+        assert enriched.outcome is not None
+        assert enriched.outcome.final_model == "sonnet"
+        assert abs(enriched.outcome.total_cost_usd - 0.176775) < 0.0001
+
+        # Check that legacy fields were updated
+        assert enriched.harness_model == "sonnet"
+        assert abs(enriched.cost_usd - 0.176775) < 0.0001
+        assert enriched.tokens.input_tokens == 18000
+
+    def test_handles_missing_transcript(
+        self,
+        integration: SessionLedgerIntegration,
+        writer: LedgerWriter,
+        forensics_dir: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test that missing transcript doesn't crash."""
+        # Create forensics with task
+        forensics_path = forensics_dir / "test.jsonl"
+        events = [
+            {
+                "event_type": "session_start",
+                "timestamp": "2026-01-28T10:00:00+00:00",
+                "session_id": "claude-123",
+            },
+            {
+                "event_type": "task_claim",
+                "timestamp": "2026-01-28T10:01:00+00:00",
+                "session_id": "claude-123",
+                "task_id": "cub-xyz.1",
+            },
+            {
+                "event_type": "session_end",
+                "timestamp": "2026-01-28T10:35:00+00:00",
+                "session_id": "claude-123",
+            },
+        ]
+        write_forensics(forensics_path, events)
+
+        # Create ledger entry
+        entry = integration.on_session_end("claude-123", forensics_path)
+        assert entry is not None
+
+        # Try to enrich with nonexistent transcript
+        nonexistent = tmp_path / "nonexistent.jsonl"
+        enriched = integration.enrich_from_transcript("cub-xyz.1", nonexistent)
+
+        # Should return the entry unchanged
+        assert enriched is not None
+        assert enriched.attempts[0].tokens.input_tokens == 0
+        assert enriched.attempts[0].cost_usd == 0.0
+
+    def test_returns_none_for_nonexistent_entry(
+        self,
+        integration: SessionLedgerIntegration,
+        tmp_path: Path,
+    ) -> None:
+        """Test that enriching nonexistent entry returns None."""
+        transcript_path = tmp_path / "transcript.jsonl"
+        transcript_path.write_text(
+            json.dumps({
+                "type": "output",
+                "model": "claude-sonnet-4-5-20250929",
+                "usage": {"input_tokens": 100, "output_tokens": 50},
+            })
+            + "\n"
+        )
+
+        result = integration.enrich_from_transcript("nonexistent", transcript_path)
+
+        assert result is None
+
+    def test_handles_empty_transcript(
+        self,
+        integration: SessionLedgerIntegration,
+        writer: LedgerWriter,
+        forensics_dir: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test that empty transcript results in zero tokens."""
+        # Create forensics with task
+        forensics_path = forensics_dir / "test.jsonl"
+        events = [
+            {
+                "event_type": "session_start",
+                "timestamp": "2026-01-28T10:00:00+00:00",
+                "session_id": "claude-123",
+            },
+            {
+                "event_type": "task_claim",
+                "timestamp": "2026-01-28T10:01:00+00:00",
+                "session_id": "claude-123",
+                "task_id": "cub-xyz.1",
+            },
+            {
+                "event_type": "session_end",
+                "timestamp": "2026-01-28T10:35:00+00:00",
+                "session_id": "claude-123",
+            },
+        ]
+        write_forensics(forensics_path, events)
+
+        # Create ledger entry
+        entry = integration.on_session_end("claude-123", forensics_path)
+        assert entry is not None
+
+        # Create empty transcript
+        transcript_path = tmp_path / "transcript.jsonl"
+        transcript_path.write_text("")
+
+        # Enrich with empty transcript
+        enriched = integration.enrich_from_transcript("cub-xyz.1", transcript_path)
+
+        assert enriched is not None
+        # Empty transcript should result in zero tokens/cost
+        assert enriched.attempts[0].tokens.input_tokens == 0
+        assert enriched.attempts[0].tokens.output_tokens == 0
+        assert enriched.attempts[0].cost_usd == 0.0
+        assert enriched.attempts[0].model == ""  # No model in empty transcript
+
+    def test_enrichment_updates_persisted_entry(
+        self,
+        integration: SessionLedgerIntegration,
+        writer: LedgerWriter,
+        forensics_dir: Path,
+        tmp_path: Path,
+    ) -> None:
+        """Test that enrichment persists to storage."""
+        # Create forensics with task
+        forensics_path = forensics_dir / "test.jsonl"
+        events = [
+            {
+                "event_type": "session_start",
+                "timestamp": "2026-01-28T10:00:00+00:00",
+                "session_id": "claude-123",
+            },
+            {
+                "event_type": "task_claim",
+                "timestamp": "2026-01-28T10:01:00+00:00",
+                "session_id": "claude-123",
+                "task_id": "cub-xyz.1",
+            },
+            {
+                "event_type": "session_end",
+                "timestamp": "2026-01-28T10:35:00+00:00",
+                "session_id": "claude-123",
+            },
+        ]
+        write_forensics(forensics_path, events)
+
+        # Create transcript
+        transcript_path = tmp_path / "transcript.jsonl"
+        transcript_path.write_text(
+            json.dumps({
+                "type": "output",
+                "model": "claude-opus-4-5",
+                "usage": {
+                    "input_tokens": 5000,
+                    "output_tokens": 2000,
+                    "cache_read_input_tokens": 0,
+                    "cache_creation_input_tokens": 0,
+                },
+            })
+            + "\n"
+        )
+
+        # Create and enrich entry
+        entry = integration.on_session_end("claude-123", forensics_path)
+        assert entry is not None
+
+        enriched = integration.enrich_from_transcript("cub-xyz.1", transcript_path)
+        assert enriched is not None
+
+        # Read entry again from storage
+        reloaded = writer.get_entry("cub-xyz.1")
+        assert reloaded is not None
+
+        # Verify enrichment was persisted
+        assert reloaded.attempts[0].tokens.input_tokens == 5000
+        assert reloaded.attempts[0].tokens.output_tokens == 2000
+        assert reloaded.attempts[0].model == "opus"
+        # (5000*15 + 2000*75) / 1M = (75000 + 150000) / 1M = 0.225
+        assert abs(reloaded.attempts[0].cost_usd - 0.225) < 0.0001

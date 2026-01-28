@@ -46,6 +46,7 @@ from cub.core.ledger.models import (
     Verification,
     WorkflowState,
 )
+from cub.core.ledger.transcript_parser import parse_transcript, to_token_usage
 from cub.core.ledger.writer import LedgerWriter
 
 if TYPE_CHECKING:
@@ -467,3 +468,73 @@ class SessionLedgerIntegration:
             return self.read_forensics(forensics_path)
         except FileNotFoundError:
             return None
+
+    def enrich_from_transcript(
+        self,
+        task_id: str,
+        transcript_path: Path,
+    ) -> LedgerEntry | None:
+        """Enrich existing ledger entry with data from transcript.
+
+        Parses the transcript to extract token usage, cost, and model information
+        that wasn't available when the initial ledger entry was created. This is
+        a best-effort operation - failures are logged but don't prevent the entry
+        from being used.
+
+        Args:
+            task_id: Task ID of the ledger entry to enrich
+            transcript_path: Path to transcript JSONL file
+
+        Returns:
+            Updated LedgerEntry if successful, None if entry doesn't exist or
+            transcript is missing/unreadable
+
+        Examples:
+            >>> entry = integration.enrich_from_transcript(
+            ...     "cub-abc",
+            ...     Path(".claude/session-123.jsonl")
+            ... )
+            >>> entry.attempts[0].tokens.input_tokens
+            45230
+            >>> entry.attempts[0].model
+            'sonnet'
+        """
+        # Get existing entry
+        entry = self.writer.get_entry(task_id)
+        if not entry:
+            return None
+
+        # Parse transcript (best-effort)
+        try:
+            transcript_data = parse_transcript(transcript_path)
+        except (FileNotFoundError, OSError, ValueError):
+            # Transcript missing, unreadable, or invalid - return entry unchanged
+            return entry
+
+        # If we have attempts, update the most recent one
+        if entry.attempts:
+            attempt = entry.attempts[-1]
+
+            # Update token usage
+            attempt.tokens = to_token_usage(transcript_data)
+
+            # Update model
+            attempt.model = transcript_data.normalized_model
+
+            # Update cost
+            attempt.cost_usd = transcript_data.total_cost_usd
+
+            # Update outcome if present
+            if entry.outcome:
+                entry.outcome.total_cost_usd = transcript_data.total_cost_usd
+                entry.outcome.final_model = transcript_data.normalized_model
+
+            # Update legacy fields for backward compatibility
+            entry.tokens = attempt.tokens
+            entry.cost_usd = transcript_data.total_cost_usd
+            entry.harness_model = transcript_data.normalized_model
+
+            # Save updated entry
+            self.writer.update_entry(entry)
+
+        return entry

@@ -17,25 +17,26 @@
     "captured_at": "2026-01-28T06:24:50.184585Z"
   },
   "task_ids": [
-    "cub-v8n.1"
+    "cub-v8n.1",
+    "cub-v8n.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 1.7336272500000005,
-    "avg_cost_per_task": 1.7336272500000005,
-    "min_cost_usd": 1.7336272500000005,
+    "total_cost_usd": 3.2051420000000013,
+    "avg_cost_per_task": 1.6025710000000006,
+    "min_cost_usd": 1.4715147500000008,
     "max_cost_usd": 1.7336272500000005,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 2413781,
-    "avg_tokens_per_task": 2413781,
-    "total_duration_seconds": 433,
-    "avg_duration_seconds": 433,
+    "total_tokens": 5311347,
+    "avg_tokens_per_task": 2655673,
+    "total_duration_seconds": 794,
+    "avg_duration_seconds": 397,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:24:50.203930Z"
+    "stage_updated_at": "2026-01-28T06:30:53.950932Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T06:17:36.839942Z",
-  "completed_at": "2026-01-28T06:24:50.176392Z",
-  "updated_at": "2026-01-28T06:24:50.203936Z",
+  "completed_at": "2026-01-28T06:30:53.925381Z",
+  "updated_at": "2026-01-28T06:30:53.950933Z",
   "first_commit": {
     "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
     "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-28T06:23:51Z"
   },
   "last_commit": {
-    "hash": "69b0453fe38df1c788b1aefb3ff35988d0875b23",
-    "message": "task(cub-v8n.1): Implement SessionLedgerIntegration",
+    "hash": "41f5016757ad4a61c14cdace0fde3c317fa8f023",
+    "message": "task(cub-v8n.2): Connect hook handlers to SessionLedgerIntegration",
     "author": "",
-    "timestamp": "2026-01-28T06:23:51Z"
+    "timestamp": "2026-01-28T06:30:06Z"
   },
   "drift": {
     "additions": [],
