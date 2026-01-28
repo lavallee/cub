@@ -19,6 +19,7 @@ from cub.cli import (
     docs,
     doctor,
     ledger,
+    map,
     merge,
     monitor,
     new,
@@ -190,6 +191,7 @@ app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
 
 app.command(name="guardrails", rich_help_panel=PANEL_PROJECT)(delegated.guardrails)
 app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
+app.command(name="map", rich_help_panel=PANEL_PROJECT)(map.main)
 
 
 # =============================================================================

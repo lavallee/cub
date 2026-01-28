@@ -23,8 +23,50 @@
     "captured_at": "2026-01-28T05:13:10.420452Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-045103",
+      "started_at": "2026-01-28T05:13:10.427091",
+      "completed_at": "2026-01-28T05:21:04.507683Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 108,
+        "output_tokens": 20317,
+        "cache_read_tokens": 1838443,
+        "cache_creation_tokens": 52511
+      },
+      "cost_usd": 1.2644632000000002,
+      "duration_seconds": 474
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T05:21:04.668092Z",
+    "total_cost_usd": 1.2644632000000002,
+    "total_attempts": 1,
+    "total_duration_seconds": 474,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9d54c058ddffc3d8ce4dabd6135ce1515b67d8c4",
+        "message": "task(cub-r1c.3): Implement map renderer with token budgeting",
+        "author": "",
+        "timestamp": "2026-01-28T05:20:04Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T05:13:10.420452Z"
+    "stage_updated_at": "2026-01-28T05:21:04.668092Z"
   },
   "state_history": [
     {
@@ -48,31 +90,44 @@
       "at": "2026-01-28T05:13:10.420452Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:21:04.668092Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T05:13:10.420452Z",
-  "completed_at": "2026-01-28T05:13:10.420452Z",
+  "completed_at": "2026-01-28T05:21:04.668092Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 108,
+    "output_tokens": 20317,
+    "cache_read_tokens": 1838443,
+    "cache_creation_tokens": 52511
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.2644632000000002,
+  "duration_seconds": 474,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "9d54c058ddffc3d8ce4dabd6135ce1515b67d8c4",
+      "message": "task(cub-r1c.3): Implement map renderer with token budgeting",
+      "author": "",
+      "timestamp": "2026-01-28T05:20:04Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.3",
   "epic_id": "cub-r1c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

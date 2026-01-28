@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-r1c.4",
+  "title": "Implement cub map CLI command and wire into init/update",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-r1c"
+  },
+  "task": {
+    "title": "Implement cub map CLI command and wire into init/update",
+    "description": "The CLI command ties together structure analysis, code intelligence,\nand rendering. It also needs to be called by `cub init` and `cub update` so the\nmap is generated/refreshed automatically.\n\n**Implementation Steps:**\n1. Create `src/cub/cli/map.py` with Typer command:\n2. Register command in `src/cub/cli/__init__.py`: `app.command(name=\"map\")` under appropriate panel\n3. Wire map generation into `cub init`: call map generation after managed section upsert\n4. Wire map generation into `cub update`: regenerate map as part of update flow\n5. Update managed section content to reference `@.cub/map.md` (should already be there from Task cub-r1b.2, verify)\n6. Write integration tests: `cub map` on a fixture project, verify output file exists and contains expected sections\n\n**Files:** src/cub/cli/map.py, src/cub/cli/__init__.py, src/cub/cli/init_cmd.py, src/cub/cli/update.py, tests/test_map_cli.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "cli",
+      "complexity:medium",
+      "epic:cub-r1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T03:34:52.365149Z",
+    "captured_at": "2026-01-28T05:21:06.931857Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T05:21:06.931857Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T05:21:06.931857Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-28T05:21:06.931857Z",
+  "completed_at": "2026-01-28T05:21:06.931857Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1c.4",
+  "epic_id": "cub-r1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

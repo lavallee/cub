@@ -13,6 +13,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.cli.map import generate_map
 from cub.core.config.loader import load_config
 from cub.core.constitution import ensure_constitution
 from cub.core.instructions import (
@@ -291,6 +292,23 @@ def update(
         if managed_messages and not dry_run:
             for msg in managed_messages:
                 console.print(msg)
+
+    # Regenerate project map
+    if not skills_only:
+        map_path = project_dir / ".cub" / "map.md"
+        try:
+            if not dry_run:
+                map_content = generate_map(project_dir, token_budget=4096, max_depth=4)
+                map_path.parent.mkdir(parents=True, exist_ok=True)
+                map_path.write_text(map_content, encoding="utf-8")
+                console.print("[green]✓[/green] Regenerated project map at .cub/map.md")
+            else:
+                console.print("[dim]Would regenerate project map at .cub/map.md[/dim]")
+        except Exception as e:
+            if not dry_run:
+                console.print(f"[yellow]Warning: Could not regenerate map: {e}[/yellow]")
+            elif debug:
+                console.print(f"[dim]Map generation would fail: {e}[/dim]")
 
     # Track updates
     updates: list[tuple[str, str, str]] = []  # (source, target, status)

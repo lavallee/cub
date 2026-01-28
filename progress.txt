@@ -172,3 +172,79 @@
 - Mypy type checking: Success (3 source files)
 - Ruff linting: All checks passed
 
+## Task cub-r1c.3 - Implement map renderer with token budgeting
+
+### Key Implementation Details
+
+1. **Token Estimation**: Implemented `estimate_tokens(text)` using word count
+   heuristic: tokens ≈ words / 0.75. Model-agnostic, no tiktoken dependency.
+   Conservative ceiling division to avoid underestimation.
+
+2. **Budget Allocation**: Implemented 3-tier priority system:
+   - Ledger stats (optional): 10% of total budget
+   - Structure sections: 40% of remaining budget
+   - Ranked symbols: 60% of remaining budget
+   - Ensures critical structural info always fits before cutting symbols
+
+3. **Markdown Sections**: Renders 8 sections in priority order:
+   - Header with project name and directory
+   - Tech stacks (bulleted list)
+   - Build commands (name, command, source)
+   - Key files (path, type, description)
+   - Modules (name, path, file count, entry file)
+   - Directory tree (recursive with tree-drawing characters ├── └──)
+   - Ranked symbols (grouped by file, sorted by PageRank score)
+   - Ledger statistics (optional, requires LedgerReader)
+
+4. **Directory Tree Rendering**: Recursive `_render_tree_node()` with proper
+   tree-drawing characters. Files rendered as-is, directories with trailing `/`.
+   Respects budget with truncation message.
+
+5. **Symbol Grouping**: Groups symbols by file path for readability. Within each
+   file, displays symbol name, kind (def/ref), line number (1-indexed), and
+   PageRank score. Truncates when budget exhausted with count of omitted symbols.
+
+6. **Budget Enforcement**: Each section estimates tokens before rendering.
+   Long sections (tree, symbols) truncate content with "... (N items omitted)"
+   messages. ~10% margin allowed for rounding errors.
+
+7. **Ledger Integration**: Optional ledger stats section requires explicit flag
+   and LedgerReader instance. Shows task count, cost, tokens, averages. Skips
+   silently if ledger doesn't exist.
+
+### Learnings
+
+- **DirectoryTree vs DirectoryNode**: ProjectStructure.directory_tree is a
+  `DirectoryTree` wrapper containing a root `DirectoryNode`, not a bare node.
+  The wrapper adds metadata like max_depth, total_files, total_dirs.
+
+- **Pydantic Validation**: When test fixtures create models with wrong types
+  (e.g., DirectoryNode instead of DirectoryTree), Pydantic validation errors
+  are very clear: "Input should be a valid dictionary or instance of X".
+
+- **Markdown Formatting**: Bold uses `**text**`, inline code uses backticks.
+  Tree-drawing characters require careful prefix tracking (└── for last child,
+  ├── otherwise, │ for continuation).
+
+- **Budget vs Actual Tokens**: Tests allow 10% margin (budget * 1.1) for
+  token estimation inaccuracies, since word count heuristic is approximate.
+
+- **Empty Section Filtering**: Use `filter(None, sections)` to remove empty
+  strings from section list before joining. Cleaner than if checks everywhere.
+
+- **Import Cleanup**: Removed unused `Path` import, then realized it's needed
+  for extracting project name from directory path. Ruff auto-fix helped with
+  import ordering.
+
+### Files Created
+- src/cub/core/map/renderer.py (~350 lines)
+- tests/test_map_renderer.py (~600 lines, 22 tests)
+
+### Files Modified
+- src/cub/core/map/__init__.py (added render_map, estimate_tokens exports)
+
+### Test Results
+- All 22 tests pass (+ 49 structure + 54 code_intel tests still pass)
+- Mypy type checking: Success (no errors in renderer.py)
+- Ruff linting: All checks passed
+

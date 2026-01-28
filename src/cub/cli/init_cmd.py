@@ -12,6 +12,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
+from cub.cli.map import generate_map
 from cub.core.config.loader import load_config
 from cub.core.constitution import ensure_constitution
 from cub.core.instructions import (
@@ -144,6 +145,16 @@ def generate_instruction_files(project_dir: Path, force: bool = False) -> None:
     except Exception as e:
         console.print(f"[red]Error creating CLAUDE.md: {e}[/red]")
         raise typer.Exit(1)
+
+    # Generate project map
+    try:
+        map_content = generate_map(project_dir, token_budget=4096, max_depth=4)
+        map_path = project_dir / ".cub" / "map.md"
+        map_path.parent.mkdir(parents=True, exist_ok=True)
+        map_path.write_text(map_content, encoding="utf-8")
+        console.print("[green]✓[/green] Generated project map at .cub/map.md")
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not generate map: {e}[/yellow]")
 
 
 def main(
