@@ -3,6 +3,7 @@ Tests for CLI init_cmd module.
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 from cub.cli.init_cmd import generate_instruction_files
 
@@ -112,3 +113,78 @@ class TestGenerateInstructionFiles:
         # Should include project name
         assert "my-test-project" in agents_content
         assert "my-test-project" in claude_content
+
+    def test_installs_hooks_when_flag_set(self, tmp_path: Path) -> None:
+        """Test that hooks are installed when install_hooks_flag=True."""
+        # Mock install_hooks to avoid actual installation
+        with patch("cub.cli.init_cmd.install_hooks") as mock_install:
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_install.return_value = HookInstallResult(
+                success=True,
+                hooks_installed=["PostToolUse", "SessionStart"],
+                message="Installed 2 hooks",
+                settings_file=str(tmp_path / ".claude" / "settings.json"),
+            )
+
+            generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
+
+            # Verify install_hooks was called
+            mock_install.assert_called_once_with(tmp_path, force=False)
+
+    def test_skips_hooks_when_flag_not_set(self, tmp_path: Path) -> None:
+        """Test that hooks are not installed when install_hooks_flag=False."""
+        with patch("cub.cli.init_cmd.install_hooks") as mock_install:
+            generate_instruction_files(tmp_path, force=False, install_hooks_flag=False)
+
+            # Verify install_hooks was not called
+            mock_install.assert_not_called()
+
+    def test_handles_hook_installation_failure(self, tmp_path: Path) -> None:
+        """Test that init continues when hook installation fails."""
+        with patch("cub.cli.init_cmd.install_hooks") as mock_install:
+            from cub.core.hooks.installer import HookInstallResult, HookIssue
+
+            mock_install.return_value = HookInstallResult(
+                success=False,
+                message="Hook script not found",
+                issues=[
+                    HookIssue(
+                        severity="error",
+                        message="Hook script not found",
+                        file_path=str(tmp_path / ".cub" / "scripts" / "hooks" / "cub-hook.sh"),
+                    )
+                ],
+            )
+
+            # Should not raise exception
+            generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
+
+            # Main files should still be created
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "CLAUDE.md").exists()
+
+    def test_reports_hook_installation_warnings(self, tmp_path: Path) -> None:
+        """Test that hook installation warnings are displayed."""
+        with patch("cub.cli.init_cmd.install_hooks") as mock_install:
+            from cub.core.hooks.installer import HookInstallResult, HookIssue
+
+            mock_install.return_value = HookInstallResult(
+                success=True,
+                hooks_installed=["PostToolUse"],
+                issues=[
+                    HookIssue(
+                        severity="warning",
+                        message="Hook script not executable",
+                        file_path=str(tmp_path / ".cub" / "scripts" / "hooks" / "cub-hook.sh"),
+                    )
+                ],
+                message="Installed 1 hook with warnings",
+            )
+
+            # Should not raise exception
+            generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
+
+            # Main files should still be created
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "CLAUDE.md").exists()

@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 
+from cub.core.hooks.installer import validate_hooks
 from cub.core.tasks.backend import get_backend
 from cub.core.tasks.models import TaskStatus, TaskType
 from cub.utils.project import get_project_root
@@ -207,6 +208,64 @@ def _get_command_version(cmd: str, args: list[str]) -> str:
         return "unknown"
 
 
+def check_hooks(project_dir: Path) -> int:
+    """
+    Check Claude Code hooks configuration.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        Number of issues found
+    """
+    console.print("\n[bold]Claude Code Hooks:[/bold]")
+
+    # Check if .claude directory exists
+    claude_dir = project_dir / ".claude"
+    if not claude_dir.exists():
+        console.print(
+            "[dim]ℹ[/dim] .claude/ directory not found (hooks not configured)"
+        )
+        console.print(
+            "[dim]→ Run 'cub init --hooks' to install Claude Code hooks[/dim]"
+        )
+        return 0
+
+    # Validate hooks
+    issues = validate_hooks(project_dir)
+
+    if not issues:
+        console.print("[green]✓[/green] Hooks are properly configured")
+        return 0
+
+    # Categorize issues by severity
+    errors = [i for i in issues if i.severity == "error"]
+    warnings = [i for i in issues if i.severity == "warning"]
+    infos = [i for i in issues if i.severity == "info"]
+
+    # Report errors
+    for issue in errors:
+        console.print(f"[red]✗[/red] {issue.message}")
+        if issue.file_path:
+            console.print(f"  [dim]File: {issue.file_path}[/dim]")
+
+    # Report warnings
+    for issue in warnings:
+        console.print(f"[yellow]![/yellow] {issue.message}")
+        if issue.file_path:
+            console.print(f"  [dim]File: {issue.file_path}[/dim]")
+
+    # Report infos (only if verbose)
+    if infos:
+        console.print(f"[dim]ℹ {len(infos)} info message(s)[/dim]")
+
+    # Provide fix suggestions
+    if errors or warnings:
+        console.print("\n[dim]→ Run 'cub init --hooks --force' to reinstall hooks[/dim]")
+
+    return len(errors) + len(warnings)
+
+
 @app.callback(invoke_without_command=True)
 def doctor(
     ctx: typer.Context,
@@ -256,6 +315,9 @@ def doctor(
 
         # Check environment
         total_issues += check_environment()
+
+        # Check hooks
+        total_issues += check_hooks(project_dir)
 
         # Check stale epics
         console.print("\n[bold]Stale Epics:[/bold]")

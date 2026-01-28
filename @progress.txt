@@ -841,3 +841,162 @@ Successfully refactored the instruction generation system to produce condensed m
 
 **Outcome:** Successfully documented the entire context composition system in cub's CLAUDE.md, making it clear how system prompts are constructed and how future contributors can customize the agent experience. All tests passing (4124 passed, 9 skipped), code formatted with ruff.
 
+
+## Task cub-w3f.2: Enhance Python hook handlers for forensics logging (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Pydantic for Structured Events**: Using Pydantic BaseModel for forensic events provides:
+   - Type safety and validation at creation time
+   - Easy JSON serialization with `model_dump(exclude_none=True)`
+   - Self-documenting event schemas with Field descriptions
+   - Literal types for event_type ensure correct classification
+
+2. **Forensic Event Design Pattern**: Each event type has:
+   - Common base fields: event_type, timestamp (auto-generated), session_id
+   - Type-specific fields: file_path (FileWriteEvent), task_id (TaskClaimEvent), etc.
+   - Literal event_type for discriminated unions: `event_type: Literal["session_start"] = "session_start"`
+   - This enables easy parsing and filtering in Phase 2 consumers
+
+3. **File Categorization Strategy**: Categorizing files by directory name enables selective tracking:
+   - plans/ → "plan" (implementation plans)
+   - specs/ → "spec" (feature specifications)
+   - captures/ → "capture" (ad-hoc notes)
+   - src/lib/app/tests → "source" (source code)
+   - Untracked files return None, preventing forensic noise
+
+4. **Regex Pattern for Task IDs**: Task ID pattern `[\w.-]+` supports:
+   - Alphanumeric characters (cub, w3f)
+   - Hyphens (cub-w3f)
+   - Dots for versioning (cub-w3f.2)
+   - Word boundary `\b` prevents partial matches
+
+5. **Git Commit Message Extraction**: Extracting commit messages requires handling:
+   - `-m` flag with quoted strings: `r'-m\s+["\']([^"\']+)["\']'`
+   - Heredoc format: `cat <<'EOF'\nMessage\nEOF`
+   - Multiline messages: return only first line for preview
+   - Defensiveness: return None if no pattern matches
+
+6. **Handler Architecture**: Each handler follows the pattern:
+   - Parse payload to extract relevant fields
+   - Create appropriate ForensicEvent instance
+   - Call `_write_forensic_event()` helper
+   - Log at appropriate level (info for events, debug for noise)
+   - Return HookEventResult allowing continuation (defensive)
+
+7. **JSONL Format for Forensics**: Writing events as JSONL (one JSON per line):
+   - Enables streaming append without reading entire file
+   - Each line is independently parseable
+   - Simple pattern: `json.dump(event.model_dump(exclude_none=True), f); f.write("\n")`
+   - Grouped by session_id: `.cub/ledger/forensics/{session_id}.jsonl`
+
+8. **Type Safety with Variable Names**: Mypy strict mode catches assignment type errors:
+   - Bad: `event = TaskClaimEvent(...); event = TaskCloseEvent(...)` (reusing var)
+   - Good: `claim_event = TaskClaimEvent(...); close_event = TaskCloseEvent(...)`
+   - Prevents accidental type confusion in complex conditionals
+
+9. **Test Organization for Hook Handlers**: Comprehensive test structure:
+   - TestForensicEventModels: Pydantic model validation
+   - TestHookEventPayload: Payload parsing
+   - TestHandleSessionStart/Stop/etc: Handler-specific behavior
+   - TestBashToolDetection: Pattern matching for commands
+   - Each test verifies: continuation flag, forensic file existence, event content
+
+10. **Defensive Handler Design**: Handlers must be defensive:
+    - Malformed tool_input should not crash: catch exceptions, log debug
+    - Missing cwd/session_id should skip write: early return
+    - Unknown event types should allow continuation: default handler
+    - This prevents hook failures from breaking user workflow
+
+**Outcome:** Successfully implemented comprehensive forensics logging with 8 Pydantic event types, enhanced 6 handlers to classify and log events, added 35 passing tests. All forensic events written to structured JSONL for Phase 2 ledger integration. Type checking clean, linting clean, defensive error handling ensures robustness.
+
+---
+
+
+## Task cub-w3f.4: Implement hook configuration installer (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Non-Destructive Configuration Merging**: When installing hooks into .claude/settings.json, preserving existing user settings is critical:
+   - Load existing settings first, then merge new hooks
+   - Check if cub hooks already exist before adding duplicates
+   - Preserve other settings like statusLine, plugins, etc.
+   - Use append mode for hooks that have multiple entries
+
+2. **Idempotent Installation Pattern**: Install operations should be safe to re-run:
+   - Check if hooks already configured before modifying
+   - Return meaningful result indicating what changed (nothing vs. new installs)
+   - Use force flag to explicitly overwrite when needed
+   - Document in result message what happened
+
+3. **Template-Based Script Copying**: When hook script is missing:
+   - Try to copy from templates/ directory first
+   - Calculate relative path using Path(__file__).parent navigation
+   - Set executable permissions (0o755) after copying
+   - Return error only if both target and template are missing
+
+4. **Comprehensive Validation Strategy**: validate_hooks() should check multiple levels:
+   - File existence (.claude/settings.json, hook script)
+   - JSON parsing (catch and report JSONDecodeError)
+   - File permissions (executable bit on script)
+   - Configuration correctness (all events configured, references correct script)
+   - Python imports (handler module importable)
+   - Return structured issues with severity levels (error/warning/info)
+
+5. **Pydantic Models for Results**: Using Pydantic for result types provides:
+   - Type safety and validation
+   - Easy JSON serialization with model_dump()
+   - Self-documenting fields with Field descriptions
+   - Clear API contract for callers
+
+6. **Clean Uninstallation Pattern**: Removing hooks requires filtering:
+   - Iterate through all hook events
+   - Filter out entries that reference cub-hook.sh
+   - Keep other hooks intact
+   - Remove empty event arrays after filtering
+   - Write back only if modified
+
+7. **Test Fixtures for Isolation**: Testing file operations requires:
+   - Temporary directories via pytest tmp_path fixture
+   - Creating realistic directory structures (.cub/, .claude/)
+   - Multiple fixtures for different scenarios (with/without script)
+   - Defensive tests that handle missing templates gracefully
+
+8. **Relative Path Resolution in JSON Config**: Claude Code settings use relative paths:
+   - Hook commands use "../.cub/scripts/hooks/cub-hook.sh" not absolute paths
+   - Paths are relative to .claude/ directory
+   - This makes config portable across machines
+
+9. **Hook Event Coverage**: Claude Code hooks cover 6 key events:
+   - PostToolUse: Capture file writes and bash commands
+   - SessionStart: Initialize session tracking
+   - Stop: Finalize when Claude stops responding
+   - SessionEnd: Capture session completion
+   - PreCompact: Checkpoint before transcript compaction
+   - UserPromptSubmit: Detect task mentions in prompts
+
+10. **Defensive JSON Handling**: When parsing user files:
+    - Catch JSONDecodeError and report as warning, not error
+    - Continue installation with empty settings if parse fails
+    - Gracefully handle missing fields (use .get() with defaults)
+    - Never crash the installer on malformed user data
+
+**Implementation Details:**
+- Created installer.py with install_hooks(), validate_hooks(), uninstall_hooks()
+- Pydantic models: HookInstallResult, HookIssue
+- 25 comprehensive tests covering all scenarios
+- All tests passing, linting clean, properly formatted
+
+**Files Created:**
+- src/cub/core/hooks/__init__.py: Module exports
+- src/cub/core/hooks/installer.py: Full implementation (380 lines)
+- tests/test_hook_installer.py: Comprehensive tests (517 lines)
+
+**Outcome:** Successfully implemented hook configuration installer with comprehensive validation and clean uninstall. Ready for integration with cub init command. Non-destructive design ensures safe installation without breaking existing Claude Code configurations.
+
+---
+

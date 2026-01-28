@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "id": "cub-w3f.4",
+  "title": "Implement hook configuration installer",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-w3f"
+  },
+  "task": {
+    "title": "Implement hook configuration installer",
+    "description": "The hook shell script and Python handlers need to be wired into Claude Code via `.claude/settings.json`. This installer handles creating/merging the configuration without clobbering existing user content.\n\n**Implementation Steps:**\n1. Create `src/cub/core/hooks/__init__.py` and `src/cub/core/hooks/installer.py`\n2. Define `HookInstallResult` and `HookIssue` Pydantic models\n3. Implement `install_hooks(project_dir, force=False) -> HookInstallResult`:\n4. Implement `validate_hooks(project_dir) -> list[HookIssue]`:\n5. Implement `uninstall_hooks(project_dir) -> None`:\n\n**Files:** src/cub/core/hooks/__init__.py, src/cub/core/hooks/installer.py, tests/test_hook_installer.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-w3f",
+      "hooks",
+      "model:sonnet",
+      "phase-1",
+      "risk:medium",
+      "setup"
+    ],
+    "created_at": "2026-01-28T03:37:44.364082Z",
+    "captured_at": "2026-01-28T06:06:51.198234Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-054843",
+      "started_at": "2026-01-28T06:06:51.216060",
+      "completed_at": "2026-01-28T06:12:11.727277Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 4896,
+        "output_tokens": 14993,
+        "cache_read_tokens": 1537257,
+        "cache_creation_tokens": 67290
+      },
+      "cost_usd": 1.1143818000000003,
+      "duration_seconds": 320
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:12:11.936344Z",
+    "total_cost_usd": 1.1143818000000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 320,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "400210b1690f02d8ae61ae672e717dbb81328532",
+        "message": "task(cub-w3f.4): Implement hook configuration installer",
+        "author": "",
+        "timestamp": "2026-01-28T06:11:23Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T06:12:11.936344Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:06:51.198234Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:12:11.936344Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T06:06:51.198234Z",
+  "completed_at": "2026-01-28T06:12:11.936344Z",
+  "tokens": {
+    "input_tokens": 4896,
+    "output_tokens": 14993,
+    "cache_read_tokens": 1537257,
+    "cache_creation_tokens": 67290
+  },
+  "cost_usd": 1.1143818000000003,
+  "duration_seconds": 320,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "400210b1690f02d8ae61ae672e717dbb81328532",
+      "message": "task(cub-w3f.4): Implement hook configuration installer",
+      "author": "",
+      "timestamp": "2026-01-28T06:11:23Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-w3f.4",
+  "epic_id": "cub-w3f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

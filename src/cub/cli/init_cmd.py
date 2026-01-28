@@ -15,6 +15,7 @@ from rich.console import Console
 from cub.cli.map import generate_map
 from cub.core.config.loader import load_config
 from cub.core.constitution import ensure_constitution
+from cub.core.hooks.installer import install_hooks
 from cub.core.instructions import (
     generate_agents_md,
     generate_claude_md,
@@ -59,7 +60,9 @@ def _ensure_runloop(project_dir: Path, force: bool = False) -> None:
         shutil.copy2(source_path, target_path)
 
 
-def generate_instruction_files(project_dir: Path, force: bool = False) -> None:
+def generate_instruction_files(
+    project_dir: Path, force: bool = False, install_hooks_flag: bool = False
+) -> None:
     """
     Generate AGENTS.md and CLAUDE.md instruction files at project root.
 
@@ -69,6 +72,7 @@ def generate_instruction_files(project_dir: Path, force: bool = False) -> None:
     Args:
         project_dir: Path to the project root directory
         force: If True, overwrite existing files. If False, skip if files exist.
+        install_hooks_flag: If True, install Claude Code hooks
 
     Raises:
         typer.Exit: If configuration cannot be loaded
@@ -156,6 +160,30 @@ def generate_instruction_files(project_dir: Path, force: bool = False) -> None:
     except Exception as e:
         console.print(f"[yellow]Warning: Could not generate map: {e}[/yellow]")
 
+    # Install hooks if requested
+    if install_hooks_flag:
+        try:
+            hook_result = install_hooks(project_dir, force=force)
+            if hook_result.success:
+                if hook_result.hooks_installed:
+                    console.print(
+                        f"[green]✓[/green] Installed Claude Code hooks: "
+                        f"{', '.join(hook_result.hooks_installed)}"
+                    )
+                else:
+                    console.print("[green]✓[/green] Claude Code hooks already installed")
+                if hook_result.issues:
+                    for issue in hook_result.issues:
+                        if issue.severity == "warning":
+                            console.print(f"[yellow]Warning: {issue.message}[/yellow]")
+            else:
+                console.print(f"[red]✗[/red] Failed to install hooks: {hook_result.message}")
+                if hook_result.issues:
+                    for issue in hook_result.issues:
+                        console.print(f"  [red]•[/red] {issue.message}")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not install hooks: {e}[/yellow]")
+
 
 def main(
     project_dir: str = typer.Argument(
@@ -168,12 +196,20 @@ def main(
         "-f",
         help="Overwrite existing instruction files",
     ),
+    hooks: bool = typer.Option(
+        False,
+        "--hooks",
+        help="Install Claude Code hooks for artifact tracking",
+    ),
 ) -> None:
     """
     Generate AGENTS.md and CLAUDE.md instruction files.
 
     This command is typically called automatically by 'cub init' but can
     be run standalone to regenerate instruction files.
+
+    Use --hooks to install Claude Code hooks that enable artifact tracking
+    when working directly in the harness (outside of 'cub run').
     """
     project_path = Path(project_dir).resolve()
 
@@ -185,7 +221,7 @@ def main(
         console.print(f"[red]Error: Not a directory: {project_path}[/red]")
         raise typer.Exit(1)
 
-    generate_instruction_files(project_path, force=force)
+    generate_instruction_files(project_path, force=force, install_hooks_flag=hooks)
 
 
 if __name__ == "__main__":

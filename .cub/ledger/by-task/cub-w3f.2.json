@@ -24,8 +24,50 @@
     "captured_at": "2026-01-28T05:53:31.884675Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-054843",
+      "started_at": "2026-01-28T05:53:31.893044",
+      "completed_at": "2026-01-28T06:01:39.836189Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 217,
+        "output_tokens": 29267,
+        "cache_read_tokens": 3137331,
+        "cache_creation_tokens": 82230
+      },
+      "cost_usd": 1.7208158,
+      "duration_seconds": 487
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:01:40.027314Z",
+    "total_cost_usd": 1.7208158,
+    "total_attempts": 1,
+    "total_duration_seconds": 487,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "19a4200429ec864f31d4ff63122b6e8b5c8c545d",
+        "message": "task(cub-w3f.2): Enhance Python hook handlers for forensics logging",
+        "author": "",
+        "timestamp": "2026-01-28T06:00:48Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +83,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T05:53:31.884675Z"
+    "stage_updated_at": "2026-01-28T06:01:40.027314Z"
   },
   "state_history": [
     {
@@ -49,31 +91,44 @@
       "at": "2026-01-28T05:53:31.884675Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:01:40.027314Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T05:53:31.884675Z",
-  "completed_at": "2026-01-28T05:53:31.884675Z",
+  "completed_at": "2026-01-28T06:01:40.027314Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 217,
+    "output_tokens": 29267,
+    "cache_read_tokens": 3137331,
+    "cache_creation_tokens": 82230
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.7208158,
+  "duration_seconds": 487,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "19a4200429ec864f31d4ff63122b6e8b5c8c545d",
+      "message": "task(cub-w3f.2): Enhance Python hook handlers for forensics logging",
+      "author": "",
+      "timestamp": "2026-01-28T06:00:48Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-w3f.2",
   "epic_id": "cub-w3f",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

@@ -291,3 +291,133 @@ class TestDoctorCommand:
 
             assert result.exit_code == 0
             assert "Cub Doctor" in result.output
+
+
+class TestDoctorHooksCheck:
+    """Test the hooks checking functionality in doctor command."""
+
+    def test_doctor_checks_hooks_not_installed(self, mock_project_dir: Path) -> None:
+        """Test that doctor detects when hooks are not installed."""
+        # No .claude directory exists
+        mock_backend = MagicMock()
+        mock_backend.list_tasks.return_value = []
+
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+        ):
+            result = runner.invoke(app, ["doctor"])
+
+            assert result.exit_code == 0
+            assert "Claude Code Hooks" in result.output
+            assert ".claude/ directory not found" in result.output
+            assert "cub init --hooks" in result.output
+
+    def test_doctor_checks_hooks_installed_correctly(self, mock_project_dir: Path) -> None:
+        """Test that doctor confirms when hooks are properly configured."""
+        # Create .claude directory
+        (mock_project_dir / ".claude").mkdir()
+
+        mock_backend = MagicMock()
+        mock_backend.list_tasks.return_value = []
+
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.validate_hooks", return_value=[]),
+        ):
+            result = runner.invoke(app, ["doctor"])
+
+            assert result.exit_code == 0
+            assert "Hooks are properly configured" in result.output
+
+    def test_doctor_reports_hook_errors(self, mock_project_dir: Path) -> None:
+        """Test that doctor reports hook configuration errors."""
+        from cub.core.hooks.installer import HookIssue
+
+        # Create .claude directory
+        (mock_project_dir / ".claude").mkdir()
+
+        mock_backend = MagicMock()
+        mock_backend.list_tasks.return_value = []
+
+        issues = [
+            HookIssue(
+                severity="error",
+                message="Hook script not found",
+                file_path=str(mock_project_dir / ".cub" / "scripts" / "hooks" / "cub-hook.sh"),
+            ),
+            HookIssue(
+                severity="warning",
+                message="Hook PostToolUse not configured",
+                hook_name="PostToolUse",
+            ),
+        ]
+
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.validate_hooks", return_value=issues),
+        ):
+            result = runner.invoke(app, ["doctor"])
+
+            assert result.exit_code == 1  # Exit with error code
+            assert "Hook script not found" in result.output
+            assert "Hook PostToolUse not configured" in result.output
+            assert "cub init --hooks --force" in result.output
+
+    def test_doctor_reports_hook_warnings(self, mock_project_dir: Path) -> None:
+        """Test that doctor reports hook configuration warnings."""
+        from cub.core.hooks.installer import HookIssue
+
+        # Create .claude directory
+        (mock_project_dir / ".claude").mkdir()
+
+        mock_backend = MagicMock()
+        mock_backend.list_tasks.return_value = []
+
+        issues = [
+            HookIssue(
+                severity="warning",
+                message="Hook script not executable",
+                file_path=str(mock_project_dir / ".cub" / "scripts" / "hooks" / "cub-hook.sh"),
+            )
+        ]
+
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.validate_hooks", return_value=issues),
+        ):
+            result = runner.invoke(app, ["doctor"])
+
+            assert result.exit_code == 1  # Exit with error code due to warning
+            assert "Hook script not executable" in result.output
+
+    def test_doctor_ignores_info_messages(self, mock_project_dir: Path) -> None:
+        """Test that doctor shows info messages only in summary."""
+        from cub.core.hooks.installer import HookIssue
+
+        # Create .claude directory
+        (mock_project_dir / ".claude").mkdir()
+
+        mock_backend = MagicMock()
+        mock_backend.list_tasks.return_value = []
+
+        issues = [
+            HookIssue(
+                severity="info",
+                message="Hook SessionEnd not configured",
+                hook_name="SessionEnd",
+            )
+        ]
+
+        with (
+            patch("cub.cli.doctor.get_backend", return_value=mock_backend),
+            patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.validate_hooks", return_value=issues),
+        ):
+            result = runner.invoke(app, ["doctor"])
+
+            assert result.exit_code == 0  # Info messages don't cause failure
+            assert "1 info message" in result.output
