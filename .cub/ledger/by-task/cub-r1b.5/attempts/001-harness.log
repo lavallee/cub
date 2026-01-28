@@ -1,0 +1,41 @@
+I'll start by claiming the task and then understanding the current config system structure before implementing MapConfig.Let me search for the actual config files in the codebase:Good, I found the test file. Let me search in the correct directory and look for the config module:Now let me check the config directory structure:Perfect! Now let me read the models.py file to understand the current structure:Perfect! Now I understand the structure. I need to:
+1. Add a `MapConfig` model
+2. Add a `map` field to `CubConfig`
+3. Add tests for MapConfig
+
+Let me start by implementing the MapConfig model:Now I need to add the `map` field to the `CubConfig` class:Now let's add tests for the MapConfig. First, let me check the existing test structure to match the pattern:Perfect! Now let's verify the implementation by running the type checker and tests:Great! Now let's run all the new map-related tests:Perfect! All the new tests pass. Now let's run all the existing tests to make sure we didn't break anything:Excellent! All tests pass. Now let's run the type checker to make sure there are no type issues:Perfect! Now let's verify that the config can actually be loaded and used:Excellent! Let's also test that we can override the config via a `.cub.json` file:Good! The test passed (the error about pwd is just because we deleted the directory we were in). Now let's run a comprehensive lint check:Perfect! All checks passed. Let's verify by running the full test suite for the config module:Perfect! All tests pass. Now let's close the task and commit the changes:Now let's commit the changes:Excellent! Let's verify the commit and check the git status:Perfect! The commit was successful. Now let's update the progress file with our learnings:Now let me append the learning to the progress file:Perfect! Let's verify the task was closed and check if there are more tasks to work on:Great! The task is successfully closed. Let me check the overall status of the plan:Let me check if all tasks in the current plan are complete:Let me check if cub-r1b.5 appears in the list:Perfect! The task is closed. Let me check the epic status to see if there are any remaining tasks:Excellent! All tasks in the cub-r1b epic are now complete. The task I just finished (cub-r1b.5) was the last one. Let me check if this was the only task assigned to me in the current run:Perfect! I've successfully completed task cub-r1b.5. According to the CURRENT TASK section, I was only assigned this one task. Let me check if there are any remaining open tasks in the backlog to confirm completion:Good! There are more tasks in the backlog, but since I was only assigned task cub-r1b.5 (as shown in the CURRENT TASK section), and I've successfully completed it, my work is done.
+
+## Summary
+
+I have successfully completed task **cub-r1b.5: Add MapConfig to config system**:
+
+### What I Did:
+1. ✅ Added `MapConfig` Pydantic model to `src/cub/core/config/models.py` with fields:
+   - `token_budget` (int, default 1500)
+   - `max_depth` (int, default 4)
+   - `include_code_intel` (bool, default True)
+   - `include_ledger_stats` (bool, default True)
+   - `exclude_patterns` (list[str], 19 default patterns)
+
+2. ✅ Added `map: MapConfig` field to `CubConfig` with `default_factory=MapConfig`
+
+3. ✅ Verified config loading works with defaults and overrides via `.cub.json`
+
+4. ✅ Added comprehensive tests:
+   - `test_load_config_map_defaults` - Tests default values
+   - `test_load_config_map_project_override` - Tests .cub.json override
+   - `test_load_config_map_validation` - Tests validation of invalid values
+   - `test_load_config_map_deep_merge` - Tests deep merge with user config
+
+### Validation Results:
+- ✅ All 48 config tests pass (including 4 new tests)
+- ✅ Type checking passes (mypy)
+- ✅ Linting passes (ruff)
+- ✅ Manual functional test verified config loading and override
+
+### Deliverables:
+- ✅ Task closed via `bd close cub-r1b.5`
+- ✅ Changes committed with message: `task(cub-r1b.5): Add MapConfig to config system`
+- ✅ Learnings appended to @progress.txt
+
+The MapConfig is now ready for use by the `cub map` command implementation in upcoming tasks.

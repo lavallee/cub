@@ -23,8 +23,56 @@
     "captured_at": "2026-01-28T04:39:01.508276Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-042448",
+      "started_at": "2026-01-28T04:39:01.516443",
+      "completed_at": "2026-01-28T04:47:24.164424Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 1730,
+        "output_tokens": 17192,
+        "cache_read_tokens": 2150502,
+        "cache_creation_tokens": 53217
+      },
+      "cost_usd": 1.5330665999999997,
+      "duration_seconds": 502
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T04:47:24.363541Z",
+    "total_cost_usd": 1.5330665999999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 502,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "bf78cc2ca3f18e157cdfbed196f02fe85f673566",
+        "message": "docs: Add progress log for task cub-r1b.4",
+        "author": "",
+        "timestamp": "2026-01-28T04:47:12Z"
+      },
+      {
+        "hash": "fb5f8e3bc878dcd8f0e138fafe527b6ec2843973",
+        "message": "task(cub-r1b.4): Update cub init and cub update for new context stack",
+        "author": "",
+        "timestamp": "2026-01-28T04:46:25Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +88,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T04:39:01.508276Z"
+    "stage_updated_at": "2026-01-28T04:47:24.363541Z"
   },
   "state_history": [
     {
@@ -48,31 +96,50 @@
       "at": "2026-01-28T04:39:01.508276Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T04:47:24.363541Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T04:39:01.508276Z",
-  "completed_at": "2026-01-28T04:39:01.508276Z",
+  "completed_at": "2026-01-28T04:47:24.363541Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 1730,
+    "output_tokens": 17192,
+    "cache_read_tokens": 2150502,
+    "cache_creation_tokens": 53217
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.5330665999999997,
+  "duration_seconds": 502,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "bf78cc2ca3f18e157cdfbed196f02fe85f673566",
+      "message": "docs: Add progress log for task cub-r1b.4",
+      "author": "",
+      "timestamp": "2026-01-28T04:47:12Z"
+    },
+    {
+      "hash": "fb5f8e3bc878dcd8f0e138fafe527b6ec2843973",
+      "message": "task(cub-r1b.4): Update cub init and cub update for new context stack",
+      "author": "",
+      "timestamp": "2026-01-28T04:46:25Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r1b.4",
   "epic_id": "cub-r1b",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

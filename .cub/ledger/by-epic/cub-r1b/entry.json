@@ -17,27 +17,29 @@
     "captured_at": "2026-01-28T04:31:41.333964Z"
   },
   "task_ids": [
+    "cub-r1b.4",
     "cub-r1b.3",
+    "cub-r1b.5",
     "cub-r1b.2",
     "cub-r1b.1"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
     "tasks_failed": 0,
-    "total_cost_usd": 2.7566734999999993,
-    "avg_cost_per_task": 0.9188911666666665,
+    "total_cost_usd": 5.119800099999999,
+    "avg_cost_per_task": 1.0239600199999999,
     "min_cost_usd": 0.37534800000000007,
-    "max_cost_usd": 1.4877072999999994,
+    "max_cost_usd": 1.5330665999999997,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 3337198,
-    "avg_tokens_per_task": 1112399,
-    "total_duration_seconds": 844,
-    "avg_duration_seconds": 281,
+    "total_tokens": 7066454,
+    "avg_tokens_per_task": 1413290,
+    "total_duration_seconds": 1556,
+    "avg_duration_seconds": 311,
     "models_used": [
       "opus",
       "sonnet"
@@ -46,12 +48,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T04:38:59.288829Z"
+    "stage_updated_at": "2026-01-28T04:50:57.363094Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T04:24:48.938757Z",
-  "completed_at": "2026-01-28T04:38:59.262171Z",
-  "updated_at": "2026-01-28T04:38:59.288830Z",
+  "completed_at": "2026-01-28T04:50:57.337617Z",
+  "updated_at": "2026-01-28T04:50:57.363095Z",
   "first_commit": {
     "hash": "6e4c37d614ee29039fd41b9f5bbaa5f96030a4bf",
     "message": "task(cub-r1b.1): Implement managed section detection and upsert engine",
@@ -59,10 +61,10 @@
     "timestamp": "2026-01-28T04:31:00Z"
   },
   "last_commit": {
-    "hash": "03fb527f3d1b119df0c35d8c1e521efdeb05cc05",
-    "message": "task(cub-r1b.3): Create runloop.md and constitution manager",
+    "hash": "4221d507df62879fa3e0ac154134e37e03a0b9a2",
+    "message": "task(cub-r1b.5): Add MapConfig to config system",
     "author": "",
-    "timestamp": "2026-01-28T04:38:39Z"
+    "timestamp": "2026-01-28T04:49:35Z"
   },
   "drift": {
     "additions": [],

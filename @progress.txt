@@ -763,3 +763,53 @@ Successfully refactored the instruction generation system to produce condensed m
 - The constitution.md template exists at `templates/constitution.md`
 - Need to implement map.md generation (tracked in separate tasks under cub-r1c epic)
 - Consider adding version parameter to `generate_managed_section()` for future evolution
+
+## Task cub-r1b.5: Add MapConfig to config system (2026-01-28)
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Pydantic Configuration Pattern**: Adding a new config section follows established patterns:
+   - Create a Pydantic BaseModel with Field definitions, defaults, and validators
+   - Add it as a field to CubConfig with `default_factory=ModelClass`
+   - Export it from the module for external use
+   - Add comprehensive tests covering defaults, overrides, validation, and deep merge
+
+2. **Field Constraints with Pydantic**: Using `ge=1` on integer fields like `token_budget` and `max_depth` automatically validates minimum values at instantiation time, both for direct creation and when deserializing from JSON.
+
+3. **List Default Factory Pattern**: For list fields with default values, use `default_factory=lambda: [...]` instead of `default=[...]` to avoid mutable default arguments. This ensures each instance gets its own list.
+
+4. **Test Coverage for Config Changes**: New config sections need comprehensive tests:
+   - Default values test (verify all defaults load correctly)
+   - Override test (verify .cub.json can override defaults)
+   - Validation test (verify Pydantic validators catch invalid values)
+   - Deep merge test (verify nested config merging works correctly)
+
+5. **Config Testing Pattern**: Use pytest fixtures to create isolated temp directories with config files, and always call `clear_cache()` before loading to avoid cross-test contamination from the global config cache.
+
+6. **Exclude Patterns Best Practices**: For file exclusion patterns, include common patterns for:
+   - Version control (.git/**)
+   - Virtual environments (.venv/**, venv/**)
+   - Build artifacts (build/**, dist/**, *.egg-info/**)
+   - Cache directories (__pycache__/**, .mypy_cache/**, .pytest_cache/**)
+   - Package managers (node_modules/**)
+
+7. **MapConfig Design Rationale**: The config needs to support:
+   - Token budget control (prevents excessive output)
+   - Depth limiting (prevents deep recursion in large codebases)
+   - Feature toggles (include_code_intel, include_ledger_stats)
+   - Flexible exclusion patterns (user-customizable via .cub.json)
+
+**Implementation Details:**
+- Created `MapConfig` model with 5 fields: token_budget (1500), max_depth (4), include_code_intel (True), include_ledger_stats (True), exclude_patterns (19 defaults)
+- Added `map` field to `CubConfig` with `default_factory=MapConfig`
+- Added 4 comprehensive tests covering all config scenarios
+- All 48 config tests pass, type checking clean, linting clean
+
+**Files Modified:**
+- `src/cub/core/config/models.py`: Added MapConfig model
+- `tests/test_config_loader.py`: Added 4 new tests
+
+**Outcome:** Successfully added MapConfig to the config system, making `cub map` behavior fully configurable via .cub.json. Configuration can be overridden at both user (~/.config/cub/config.json) and project (.cub.json) levels. Ready for integration with the map command implementation.
+
