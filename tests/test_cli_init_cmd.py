@@ -2,10 +2,21 @@
 Tests for CLI init_cmd module.
 """
 
+import json
+import os
 from pathlib import Path
 from unittest.mock import patch
 
-from cub.cli.init_cmd import generate_instruction_files
+import pytest
+
+from cub.cli.init_cmd import (
+    _init_global,
+    _update_gitignore,
+    detect_backend,
+    detect_project_type,
+    generate_instruction_files,
+    init_project,
+)
 
 
 class TestGenerateInstructionFiles:
@@ -188,3 +199,223 @@ class TestGenerateInstructionFiles:
             # Main files should still be created
             assert (tmp_path / "AGENTS.md").exists()
             assert (tmp_path / "CLAUDE.md").exists()
+
+
+class TestDetectProjectType:
+    """Tests for detect_project_type function."""
+
+    def test_detects_nextjs(self, tmp_path: Path) -> None:
+        pkg = {"dependencies": {"next": "^14.0.0", "react": "^18.0.0"}}
+        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        assert detect_project_type(tmp_path) == "nextjs"
+
+    def test_detects_react(self, tmp_path: Path) -> None:
+        pkg = {"dependencies": {"react": "^18.0.0"}}
+        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        assert detect_project_type(tmp_path) == "react"
+
+    def test_detects_node(self, tmp_path: Path) -> None:
+        pkg = {"dependencies": {"express": "^4.0.0"}}
+        (tmp_path / "package.json").write_text(json.dumps(pkg))
+        assert detect_project_type(tmp_path) == "node"
+
+    def test_detects_python_pyproject(self, tmp_path: Path) -> None:
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "myapp"\n')
+        assert detect_project_type(tmp_path) == "python"
+
+    def test_detects_python_requirements(self, tmp_path: Path) -> None:
+        (tmp_path / "requirements.txt").write_text("flask==2.0\n")
+        assert detect_project_type(tmp_path) == "python"
+
+    def test_detects_go(self, tmp_path: Path) -> None:
+        (tmp_path / "go.mod").write_text("module example.com/myapp\n")
+        assert detect_project_type(tmp_path) == "go"
+
+    def test_detects_rust(self, tmp_path: Path) -> None:
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "myapp"\n')
+        assert detect_project_type(tmp_path) == "rust"
+
+    def test_falls_back_to_generic(self, tmp_path: Path) -> None:
+        assert detect_project_type(tmp_path) == "generic"
+
+    def test_handles_invalid_package_json(self, tmp_path: Path) -> None:
+        (tmp_path / "package.json").write_text("not valid json")
+        assert detect_project_type(tmp_path) == "node"
+
+
+class TestDetectBackend:
+    """Tests for detect_backend function."""
+
+    def test_explicit_overrides_all(self) -> None:
+        assert detect_backend(explicit="jsonl") == "jsonl"
+
+    def test_env_var_overrides_auto(self) -> None:
+        with patch.dict(os.environ, {"CUB_BACKEND": "jsonl"}):
+            assert detect_backend() == "jsonl"
+
+    def test_auto_detects_beads(self) -> None:
+        with patch("cub.cli.init_cmd.shutil.which", return_value="/usr/bin/bd"):
+            with patch.dict(os.environ, {}, clear=True):
+                # Ensure CUB_BACKEND is not set
+                os.environ.pop("CUB_BACKEND", None)
+                assert detect_backend() == "beads"
+
+    def test_falls_back_to_jsonl(self) -> None:
+        with patch("cub.cli.init_cmd.shutil.which", return_value=None):
+            with patch.dict(os.environ, {}, clear=True):
+                os.environ.pop("CUB_BACKEND", None)
+                assert detect_backend() == "jsonl"
+
+
+class TestInitGlobal:
+    """Tests for _init_global function."""
+
+    def test_creates_global_config(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(tmp_path)}):
+            _init_global(force=False)
+
+        config_file = tmp_path / "cub" / "config.json"
+        assert config_file.exists()
+
+        config = json.loads(config_file.read_text())
+        assert config["harness"] == "auto"
+        assert config["budget"]["max_tokens_per_task"] == 500000
+        assert config["state"]["require_clean"] is True
+
+    def test_creates_hooks_directory(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(tmp_path)}):
+            _init_global(force=False)
+
+        hooks_dir = tmp_path / "cub" / "hooks"
+        assert hooks_dir.is_dir()
+
+    def test_does_not_overwrite_without_force(self, tmp_path: Path) -> None:
+        global_dir = tmp_path / "cub"
+        global_dir.mkdir(parents=True)
+        config_file = global_dir / "config.json"
+        config_file.write_text('{"custom": true}\n')
+
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(tmp_path)}):
+            _init_global(force=False)
+
+        # Should not be overwritten
+        config = json.loads(config_file.read_text())
+        assert config.get("custom") is True
+
+    def test_overwrites_with_force(self, tmp_path: Path) -> None:
+        global_dir = tmp_path / "cub"
+        global_dir.mkdir(parents=True)
+        config_file = global_dir / "config.json"
+        config_file.write_text('{"custom": true}\n')
+
+        with patch.dict(os.environ, {"XDG_CONFIG_HOME": str(tmp_path)}):
+            _init_global(force=True)
+
+        config = json.loads(config_file.read_text())
+        assert "custom" not in config
+        assert config["harness"] == "auto"
+
+
+class TestUpdateGitignore:
+    """Tests for _update_gitignore function."""
+
+    def test_creates_gitignore_if_missing(self, tmp_path: Path) -> None:
+        _update_gitignore(tmp_path)
+        gitignore = tmp_path / ".gitignore"
+        assert gitignore.exists()
+        content = gitignore.read_text()
+        assert "# cub" in content
+        assert ".cub/ledger/forensics/" in content
+
+    def test_appends_missing_patterns(self, tmp_path: Path) -> None:
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("node_modules/\n")
+
+        _update_gitignore(tmp_path)
+
+        content = gitignore.read_text()
+        assert "node_modules/" in content
+        assert "# cub" in content
+
+    def test_skips_existing_patterns(self, tmp_path: Path) -> None:
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text("# cub\n.cub/ledger/forensics/\n.cub/dashboard.db\n.cub/map.md\n")
+
+        _update_gitignore(tmp_path)
+
+        content = gitignore.read_text()
+        # Should not duplicate
+        assert content.count("# cub") == 1
+
+
+class TestInitProject:
+    """Tests for init_project orchestrator."""
+
+    def test_full_init_creates_expected_files(self, tmp_path: Path) -> None:
+        """Test that init_project creates the expected directory structure."""
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=True),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(
+                success=True,
+                hooks_installed=["PostToolUse"],
+                message="ok",
+            )
+
+            init_project(
+                tmp_path,
+                force=False,
+                backend="jsonl",
+                install_hooks_flag=True,
+            )
+
+        # Core files should exist
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / "CLAUDE.md").exists()
+        assert (tmp_path / ".cub" / "constitution.md").exists()
+        assert (tmp_path / ".cub" / "runloop.md").exists()
+        assert (tmp_path / "specs").is_dir()
+
+    def test_init_project_detects_python(self, tmp_path: Path) -> None:
+        """Test that Python project type is detected."""
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "test"\n')
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            # Should not raise
+            init_project(tmp_path, backend="jsonl", install_hooks_flag=False)
+
+    @pytest.mark.parametrize("backend_name", ["beads", "jsonl"])
+    def test_init_project_backends(self, tmp_path: Path, backend_name: str) -> None:
+        """Test that both backends can be initialized."""
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+            patch("cub.cli.init_cmd.shutil.which", return_value="/usr/bin/bd"),
+            patch("cub.cli.init_cmd.subprocess.run"),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend=backend_name,
+                install_hooks_flag=False,
+            )
+
+    def test_init_project_nonexistent_dir_exits(self, tmp_path: Path) -> None:
+        """Test that init_project exits for nonexistent directory."""
+        from click.exceptions import Exit
+
+        with pytest.raises(Exit):
+            init_project(tmp_path / "does-not-exist")

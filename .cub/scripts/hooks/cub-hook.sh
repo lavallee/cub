@@ -108,9 +108,36 @@ is_tracked_command() {
     return 1
 }
 
+# Detect dev_mode from config or environment
+detect_dev_mode() {
+    # Check env var first (highest priority)
+    if [[ -n "${CUB_DEV_MODE:-}" ]]; then
+        echo "$CUB_DEV_MODE"
+        return
+    fi
+
+    # Check .cub/config.json (if jq available)
+    if [[ $HAS_JQ -eq 1 ]] && [[ -f ".cub/config.json" ]]; then
+        local dev_mode=$(jq -r '.dev_mode // "false"' .cub/config.json 2>/dev/null || echo "false")
+        echo "$dev_mode"
+        return
+    fi
+
+    # Default: not in dev mode
+    echo "false"
+}
+
 # Invoke Python handler with stdin passthrough
 invoke_python_handler() {
-    echo "$STDIN_DATA" | python -m cub.core.harness.hooks "$HOOK_EVENT"
+    local dev_mode=$(detect_dev_mode)
+
+    if [[ "$dev_mode" == "true" ]]; then
+        # Dev mode: use uv run to execute in local venv
+        echo "$STDIN_DATA" | uv run cub-hooks "$HOOK_EVENT"
+    else
+        # Production mode: use installed cub-hooks command
+        echo "$STDIN_DATA" | cub-hooks "$HOOK_EVENT"
+    fi
 }
 
 # Main logic: fast-path filtering

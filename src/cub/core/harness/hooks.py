@@ -992,7 +992,17 @@ async def main() -> int:
         return 0
 
 
-if __name__ == "__main__":
+def cli_main() -> None:
+    """
+    Entry point for cub-hooks console script.
+
+    This is the function registered in pyproject.toml as the cub-hooks command.
+    It's a lightweight wrapper around main() that handles asyncio event loop setup.
+    """
     import asyncio
 
     sys.exit(asyncio.run(main()))
+
+
+if __name__ == "__main__":
+    cli_main()

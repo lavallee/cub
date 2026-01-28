@@ -248,7 +248,7 @@ These commands have been migrated to Python and execute directly without bash:
 
 - **`run`** - Execute tasks with AI harnesses (main loop)
 - **`status`** - Show task progress and statistics
-- **`init`** - Initialize cub configuration (global or project-level)
+- **`init`** - Initialize cub in a project (backend, templates, hooks, statusline) or globally
 - **`new`** - Create a new project directory (mkdir + git init + cub init)
 - **`monitor`** - Live dashboard for task execution monitoring
 - **`doctor`** - Diagnose and fix configuration issues

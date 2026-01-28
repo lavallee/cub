@@ -19,6 +19,7 @@ from cub.cli import (
     docs,
     doctor,
     hooks,
+    init_cmd,
     ledger,
     map,
     merge,
@@ -134,7 +135,7 @@ def main(
 # Key Commands
 # =============================================================================
 
-app.command(name="init", rich_help_panel=PANEL_KEY)(delegated.init)
+app.command(name="init", rich_help_panel=PANEL_KEY)(init_cmd.main)
 app.command(name="new", rich_help_panel=PANEL_KEY)(new.new)
 app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 

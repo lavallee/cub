@@ -414,6 +414,13 @@ class CubConfig(BaseModel):
     """
 
     # Core settings
+    dev_mode: bool = Field(
+        default=False,
+        description=(
+            "Development mode: use local uv-managed installation for hooks. "
+            "Set to true when developing cub itself, false for production use."
+        ),
+    )
     backend: BackendConfig = Field(
         default_factory=BackendConfig, description="Task backend configuration"
     )

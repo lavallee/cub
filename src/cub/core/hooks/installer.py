@@ -140,8 +140,8 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
         "UserPromptSubmit",
     ]
 
-    # Relative path from .claude/ to .cub/scripts/hooks/
-    hook_script_relative = "../.cub/scripts/hooks/cub-hook.sh"
+    # Use CLAUDE_PROJECT_DIR variable for absolute path resolution
+    hook_script_path = "${CLAUDE_PROJECT_DIR}/.cub/scripts/hooks/cub-hook.sh"
 
     # Create hook configuration for each event
     hooks_config: dict[str, Any] = existing_settings.get("hooks", {})
@@ -153,7 +153,7 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
             "hooks": [
                 {
                     "type": "command",
-                    "command": f"{hook_script_relative} {event}",
+                    "command": hook_script_path,
                     "timeout": 10,  # Fast timeout for quick filter script
                 }
             ],
@@ -167,7 +167,7 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
             # Check if our hook is already present
             existing_entries = hooks_config.get(event, [])
             has_cub_hook = any(
-                hook_script_relative in str(hook.get("hooks", []))
+                "cub-hook.sh" in str(hook.get("hooks", []))
                 for hook in existing_entries
                 if isinstance(hook, dict)
             )
