@@ -1,0 +1,12 @@
+# Branch-Epic Bindings
+# Managed by cub - do not edit manually
+# Format: YAML with branch bindings array
+
+bindings:
+- epic_id: cub-xyz
+  branch_name: feature/backend-api
+  base_branch: origin/main
+  status: active
+  created_at: '2026-01-28T18:02:28Z'
+  pr_number: null
+  merged: false
