@@ -24,8 +24,66 @@
     "captured_at": "2026-01-28T20:37:24.110672Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-202245",
+      "started_at": "2026-01-28T20:37:24.118424",
+      "completed_at": "2026-01-28T20:46:01.978697Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 317,
+        "cache_read_tokens": 86896,
+        "cache_creation_tokens": 3730
+      },
+      "cost_usd": 1.3453565999999997,
+      "duration_seconds": 517
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T20:46:03.812316Z",
+    "total_cost_usd": 1.3453565999999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 517,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9639d6d8a2d8816403ba01e95135e74a3025a343",
+        "message": "task(cub-b1e.3): Integration testing and edge cases",
+        "author": "",
+        "timestamp": "2026-01-28T20:45:28Z"
+      },
+      {
+        "hash": "33aa917eaa2e1bcb408fe5d270d5931842b939d9",
+        "message": "chore: cleanup working directory artifacts",
+        "author": "",
+        "timestamp": "2026-01-28T20:43:33Z"
+      }
+    ],
+    "approach": "Created a comprehensive integration test suite covering all edge cases for the bare `cub` command by systematically testing different scenarios: fresh directories without configuration, both JSONL and beads backends, nested session detection, resume/continue flags, missing harness handling, and proper routing of help/subcommands. Tests were iteratively debugged and fixed by mocking deeper into the execution stack to prevent actual harness invocation and hanging.",
+    "decisions": [
+      "Mock the execution layer rather than attempting to run actual harnesses, which prevents tests from hanging and allows controlled testing of edge cases",
+      "Create 21 focused test cases organized by category (fresh directory, backends, nested sessions, flags, missing harness, subcommands) rather than attempting fewer comprehensive tests",
+      "Skip complex integration tests that would hang (like actual `cub run` execution) in favor of testing the routing and error handling paths",
+      "Use `CliRunner` to capture exit codes and output rather than direct function invocation, matching how users actually invoke the CLI"
+    ],
+    "lessons_learned": [
+      "When testing CLI tools that spawn subprocess harnesses, mocking needs to occur at the execution/subprocess level, not just at the function level, to prevent unexpected hangs",
+      "Organizing tests by logical scenario categories (fresh directory, backends, sessions, flags) makes the test suite more maintainable and easier to extend with new edge cases",
+      "Integration tests for CLI commands should verify routing and error handling paths first, then layer in actual execution mocks\u2014attempting to mock everything at once leads to brittle tests",
+      "Exit code verification is important: tests that only check output miss cases where the CLI succeeds when it should fail or vice versa"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +99,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T20:37:24.110672Z"
+    "stage_updated_at": "2026-01-28T20:46:03.812316Z"
   },
   "state_history": [
     {
@@ -49,31 +107,60 @@
       "at": "2026-01-28T20:37:24.110672Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:46:03.812316Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T20:37:24.110672Z",
-  "completed_at": "2026-01-28T20:37:24.110672Z",
+  "completed_at": "2026-01-28T20:46:03.812316Z",
   "tokens": {
     "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "output_tokens": 317,
+    "cache_read_tokens": 86896,
+    "cache_creation_tokens": 3730
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.3453565999999997,
+  "duration_seconds": 517,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Created a comprehensive integration test suite covering all edge cases for the bare `cub` command by systematically testing different scenarios: fresh directories without configuration, both JSONL and beads backends, nested session detection, resume/continue flags, missing harness handling, and proper routing of help/subcommands. Tests were iteratively debugged and fixed by mocking deeper into the execution stack to prevent actual harness invocation and hanging.",
+  "decisions": [
+    "Mock the execution layer rather than attempting to run actual harnesses, which prevents tests from hanging and allows controlled testing of edge cases",
+    "Create 21 focused test cases organized by category (fresh directory, backends, nested sessions, flags, missing harness, subcommands) rather than attempting fewer comprehensive tests",
+    "Skip complex integration tests that would hang (like actual `cub run` execution) in favor of testing the routing and error handling paths",
+    "Use `CliRunner` to capture exit codes and output rather than direct function invocation, matching how users actually invoke the CLI"
+  ],
+  "lessons_learned": [
+    "When testing CLI tools that spawn subprocess harnesses, mocking needs to occur at the execution/subprocess level, not just at the function level, to prevent unexpected hangs",
+    "Organizing tests by logical scenario categories (fresh directory, backends, sessions, flags) makes the test suite more maintainable and easier to extend with new edge cases",
+    "Integration tests for CLI commands should verify routing and error handling paths first, then layer in actual execution mocks\u2014attempting to mock everything at once leads to brittle tests",
+    "Exit code verification is important: tests that only check output miss cases where the CLI succeeds when it should fail or vice versa"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "9639d6d8a2d8816403ba01e95135e74a3025a343",
+      "message": "task(cub-b1e.3): Integration testing and edge cases",
+      "author": "",
+      "timestamp": "2026-01-28T20:45:28Z"
+    },
+    {
+      "hash": "33aa917eaa2e1bcb408fe5d270d5931842b939d9",
+      "message": "chore: cleanup working directory artifacts",
+      "author": "",
+      "timestamp": "2026-01-28T20:43:33Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1e.3",
   "epic_id": "cub-b1e",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
