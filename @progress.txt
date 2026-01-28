@@ -710,3 +710,23 @@ All tests pass (127 total), type checking clean, linting fixed.
 7. **Documentation as Code**: Comprehensive module docstrings following the established pattern (Purpose, Key Functions, Architecture, Usage, Dependencies) improve discoverability and maintainability.
 
 **Outcome:** Successfully implemented InstructionGenerator with generate_agents_md() and generate_claude_md() functions. All tests passing (25 tests), mypy clean, ruff formatted. Ready for integration with cub init command.
+
+## cub-r1b.1: Implement managed section detection and upsert engine (2026-01-28) ✓
+
+**Key Learnings:**
+
+1. **Managed Section Marker Format**: HTML comments work well for non-destructive markdown embedding: `<!-- BEGIN CUB MANAGED SECTION v{N} -->` with `<!-- sha256:{hash} -->` for tamper detection. HTML comments are invisible when rendered but parseable by regex.
+
+2. **Content Hashing for Edit Detection**: sha256 hash of the managed content between markers enables detecting manual edits. The hash is stored in a comment line right after the begin marker, making it easy to extract and compare.
+
+3. **Error Recovery for Partial Markers**: Three edge cases need handling: begin-without-end (treat everything from begin to EOF as section), end-without-begin (treat everything from start to end marker), and both markers present but hash mismatch (warn and overwrite). All cases produce warnings in UpsertResult.
+
+4. **Pydantic Models for Results**: Using Pydantic BaseModel for SectionInfo and UpsertResult provides type safety, serialization, and clear documentation of the return contract. The UpsertAction enum (created/appended/replaced) makes action tracking explicit.
+
+5. **Idempotency is Critical**: The upsert engine must produce identical output when called twice with the same content. This was verified with a specific test case ensuring text equality after double-upsert.
+
+6. **Preserving User Content**: The core invariant is that user-authored content outside the managed section markers must never be modified. Tests verify content before and after the section survives replace operations.
+
+7. **`from __future__ import annotations`**: Required for `int | None` union type syntax to work with Python 3.10 in type annotations without runtime errors.
+
+**Outcome:** Successfully implemented managed section engine with detect_managed_section() and upsert_managed_section(). 65 total tests (40 new), mypy clean, ruff clean. Foundation ready for non-destructive CLAUDE.md/AGENTS.md updates.
