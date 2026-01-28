@@ -24,8 +24,61 @@
     "captured_at": "2026-01-28T19:30:44.117977Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-192025",
+      "started_at": "2026-01-28T19:30:44.129035",
+      "completed_at": "2026-01-28T19:43:16.434819Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 4152,
+        "output_tokens": 29734,
+        "cache_read_tokens": 4682958,
+        "cache_creation_tokens": 95628
+      },
+      "cost_usd": 2.7115902999999983,
+      "duration_seconds": 752
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:43:17.097498Z",
+    "total_cost_usd": 2.7115902999999983,
+    "total_attempts": 1,
+    "total_duration_seconds": 752,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "e7f0c97b5231fb0d7544e9976894d1164976a00c",
+        "message": "task(cub-b1c.2): Create StatusService and LedgerService",
+        "author": "",
+        "timestamp": "2026-01-28T19:42:55Z"
+      }
+    ],
+    "approach": "Built a service layer by creating ProjectStats and EpicProgress models, implementing LedgerService as a clean wrapper around ledger reader/writer operations, and StatusService to aggregate project state from tasks, ledger, and git. Then refactored existing CLI commands (status.py, ledger.py) to use these services, maintaining all functionality while providing a reusable abstraction for future interfaces.",
+    "decisions": [
+      "**Service factory methods**: Used `try_from_project_dir()` class methods that return `None` on missing resources rather than raising exceptions, enabling graceful degradation in CLI commands",
+      "**Separate models file**: Created dedicated `services/models.py` for `ProjectStats` and `EpicProgress` rather than inline to maintain modularity and enable reuse across multiple services",
+      "**No Rich in service layer**: Kept services pure (no terminal output, sys.exit, or print statements) to ensure they can be used by API, skills, and future UI layers without side effects",
+      "**Explicit project root passing**: When refactoring CLI helpers like `_get_ledger_service()`, explicitly passed `project_dir` to service factory methods rather than letting services call `get_project_root()` internally, ensuring proper mock behavior in tests",
+      "**Stateless orchestrators**: Designed both services as stateless wrappers that don't cache data or maintain internal state, making them predictable and thread-safe"
+    ],
+    "lessons_learned": [
+      "**Mock import locations matter**: When tests mock a function, they must mock it at the location where it's imported/used, not just where it's defined. The mock on `cub.cli.ledger.get_project_root` doesn't affect calls inside `LedgerService` which imports from a different module",
+      "**Check() methods for validation**: Using `exists()` checks that only verify directory existence can mask real issues\u2014consider whether validators should check both presence and validity (directory exists + contains expected files/data)",
+      "**Service layer prevents CLI coupling**: By extracting StatusService and LedgerService, the codebase now has a clear abstraction that can be consumed by suggestion engines, APIs, and skills without duplicating aggregation logic or risking inconsistency",
+      "**Test fixtures and project root interaction**: When services call `get_project_root()` without arguments inside factory methods, ensure CLI test helpers explicitly pass `project_dir` to factory methods rather than relying on global mocking, which can be fragile across module boundaries"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +94,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:30:44.117977Z"
+    "stage_updated_at": "2026-01-28T19:43:17.097498Z"
   },
   "state_history": [
     {
@@ -49,31 +102,55 @@
       "at": "2026-01-28T19:30:44.117977Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:43:17.097498Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T19:30:44.117977Z",
-  "completed_at": "2026-01-28T19:30:44.117977Z",
+  "completed_at": "2026-01-28T19:43:17.097498Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 4152,
+    "output_tokens": 29734,
+    "cache_read_tokens": 4682958,
+    "cache_creation_tokens": 95628
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.7115902999999983,
+  "duration_seconds": 752,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Built a service layer by creating ProjectStats and EpicProgress models, implementing LedgerService as a clean wrapper around ledger reader/writer operations, and StatusService to aggregate project state from tasks, ledger, and git. Then refactored existing CLI commands (status.py, ledger.py) to use these services, maintaining all functionality while providing a reusable abstraction for future interfaces.",
+  "decisions": [
+    "**Service factory methods**: Used `try_from_project_dir()` class methods that return `None` on missing resources rather than raising exceptions, enabling graceful degradation in CLI commands",
+    "**Separate models file**: Created dedicated `services/models.py` for `ProjectStats` and `EpicProgress` rather than inline to maintain modularity and enable reuse across multiple services",
+    "**No Rich in service layer**: Kept services pure (no terminal output, sys.exit, or print statements) to ensure they can be used by API, skills, and future UI layers without side effects",
+    "**Explicit project root passing**: When refactoring CLI helpers like `_get_ledger_service()`, explicitly passed `project_dir` to service factory methods rather than letting services call `get_project_root()` internally, ensuring proper mock behavior in tests",
+    "**Stateless orchestrators**: Designed both services as stateless wrappers that don't cache data or maintain internal state, making them predictable and thread-safe"
+  ],
+  "lessons_learned": [
+    "**Mock import locations matter**: When tests mock a function, they must mock it at the location where it's imported/used, not just where it's defined. The mock on `cub.cli.ledger.get_project_root` doesn't affect calls inside `LedgerService` which imports from a different module",
+    "**Check() methods for validation**: Using `exists()` checks that only verify directory existence can mask real issues\u2014consider whether validators should check both presence and validity (directory exists + contains expected files/data)",
+    "**Service layer prevents CLI coupling**: By extracting StatusService and LedgerService, the codebase now has a clear abstraction that can be consumed by suggestion engines, APIs, and skills without duplicating aggregation logic or risking inconsistency",
+    "**Test fixtures and project root interaction**: When services call `get_project_root()` without arguments inside factory methods, ensure CLI test helpers explicitly pass `project_dir` to factory methods rather than relying on global mocking, which can be fragile across module boundaries"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "e7f0c97b5231fb0d7544e9976894d1164976a00c",
+      "message": "task(cub-b1c.2): Create StatusService and LedgerService",
+      "author": "",
+      "timestamp": "2026-01-28T19:42:55Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1c.2",
   "epic_id": "cub-b1c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

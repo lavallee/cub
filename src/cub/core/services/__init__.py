@@ -13,11 +13,17 @@ Design principles:
 
 Modules:
     run: RunService wraps core/run/ to provide run loop orchestration.
+    launch: LaunchService handles environment detection and harness launching.
     ledger: LedgerService provides ledger queries and stats.
     status: StatusService aggregates project state from multiple sources.
     models: Data models used across services (ProjectStats, EpicProgress, etc.)
 """
 
+from cub.core.services.launch import (
+    HarnessNotFoundError,
+    LaunchService,
+    LaunchServiceError,
+)
 from cub.core.services.ledger import (
     LedgerQuery,
     LedgerService,
@@ -31,6 +37,10 @@ from cub.core.services.status import StatusService, StatusServiceError
 __all__ = [
     # Run service
     "RunService",
+    # Launch service
+    "LaunchService",
+    "LaunchServiceError",
+    "HarnessNotFoundError",
     # Ledger service
     "LedgerService",
     "LedgerServiceError",

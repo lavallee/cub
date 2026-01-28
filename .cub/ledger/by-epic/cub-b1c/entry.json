@@ -17,38 +17,40 @@
     "captured_at": "2026-01-28T19:30:41.842264Z"
   },
   "task_ids": [
+    "cub-b1c.2",
     "cub-b1c.1"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 4.0648421,
-    "avg_cost_per_task": 4.0648421,
-    "min_cost_usd": 4.0648421,
+    "total_cost_usd": 6.776432399999998,
+    "avg_cost_per_task": 3.388216199999999,
+    "min_cost_usd": 2.7115902999999983,
     "max_cost_usd": 4.0648421,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 5237971,
-    "avg_tokens_per_task": 5237971,
-    "total_duration_seconds": 607,
-    "avg_duration_seconds": 607,
+    "total_tokens": 10050443,
+    "avg_tokens_per_task": 5025221,
+    "total_duration_seconds": 1359,
+    "avg_duration_seconds": 679,
     "models_used": [
-      "opus"
+      "opus",
+      "sonnet"
     ],
-    "most_common_model": "opus"
+    "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T19:30:41.874931Z"
+    "stage_updated_at": "2026-01-28T19:43:27.737734Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T19:20:25.594610Z",
-  "completed_at": "2026-01-28T19:30:33.054598Z",
-  "updated_at": "2026-01-28T19:30:41.874940Z",
+  "completed_at": "2026-01-28T19:43:17.097498Z",
+  "updated_at": "2026-01-28T19:43:27.737738Z",
   "first_commit": {
     "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
     "message": "task(cub-b1c.1): Create service layer foundation and RunService",
@@ -56,10 +58,10 @@
     "timestamp": "2026-01-28T19:30:14Z"
   },
   "last_commit": {
-    "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
-    "message": "task(cub-b1c.1): Create service layer foundation and RunService",
+    "hash": "e7f0c97b5231fb0d7544e9976894d1164976a00c",
+    "message": "task(cub-b1c.2): Create StatusService and LedgerService",
     "author": "",
-    "timestamp": "2026-01-28T19:30:14Z"
+    "timestamp": "2026-01-28T19:42:55Z"
   },
   "drift": {
     "additions": [],
