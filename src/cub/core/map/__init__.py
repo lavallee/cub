@@ -1,11 +1,15 @@
 """
 Cub map module.
 
-Provides structure analysis and codebase mapping functionality.
+Provides structure analysis, codebase mapping, and code intelligence.
 This module analyzes project structure, detects tech stacks, extracts
-build commands, and identifies key files and module boundaries.
+build commands, identifies key files and module boundaries, and uses
+tree-sitter + PageRank for symbol extraction and ranking.
 
-Main entry point: analyze_structure()
+Main entry points:
+    - analyze_structure(): Project structure analysis
+    - extract_tags(): Tree-sitter symbol extraction
+    - rank_symbols(): PageRank-based symbol ranking
 
 Example:
     >>> from cub.core.map import analyze_structure
@@ -14,8 +18,18 @@ Example:
     <TechStack.PYTHON: 'python'>
     >>> len(structure.build_commands)
     5
+
+    >>> from cub.core.map import extract_tags, rank_symbols
+    >>> tags = extract_tags(Path("/path/to/project"))
+    >>> ranked = rank_symbols(tags, token_budget=2048)
 """
 
+from cub.core.map.code_intel import (
+    RankedSymbol,
+    SymbolTag,
+    extract_tags,
+    rank_symbols,
+)
 from cub.core.map.models import (
     BuildCommand,
     DirectoryNode,
@@ -28,9 +42,12 @@ from cub.core.map.models import (
 from cub.core.map.structure import analyze_structure
 
 __all__ = [
-    # Main function
+    # Structure analysis
     "analyze_structure",
-    # Models
+    # Code intelligence
+    "extract_tags",
+    "rank_symbols",
+    # Structure models
     "BuildCommand",
     "DirectoryNode",
     "DirectoryTree",
@@ -38,4 +55,7 @@ __all__ = [
     "ModuleInfo",
     "ProjectStructure",
     "TechStack",
+    # Code intelligence models
+    "RankedSymbol",
+    "SymbolTag",
 ]
