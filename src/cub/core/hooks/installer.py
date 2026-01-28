@@ -429,6 +429,9 @@ def uninstall_hooks(project_dir: Path | str) -> None:
             ]
 
             if filtered_defs:
+                # Check if any hooks were filtered out
+                if len(filtered_defs) < len(hook_defs):
+                    modified = True
                 hook_entry["hooks"] = filtered_defs
                 filtered_hooks.append(hook_entry)
             else:

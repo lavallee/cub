@@ -940,7 +940,23 @@ async def _write_forensic_event(event: ForensicEvent, cwd: str | None) -> None:
     forensics_dir = Path(cwd) / ".cub" / "ledger" / "forensics"
     forensics_dir.mkdir(parents=True, exist_ok=True)
 
-    forensics_file = forensics_dir / f"{event.session_id}.jsonl"
+    # Sanitize session_id to prevent path traversal attacks
+    # Only allow alphanumeric characters, hyphens, and underscores
+    safe_session_id = "".join(
+        c for c in event.session_id if c.isalnum() or c in "-_"
+    )
+    if not safe_session_id:
+        logger.warning(f"Invalid session_id after sanitization: {event.session_id}")
+        return
+
+    forensics_file = forensics_dir / f"{safe_session_id}.jsonl"
+
+    # Double-check the resolved path is within forensics_dir
+    try:
+        forensics_file.resolve().relative_to(forensics_dir.resolve())
+    except ValueError:
+        logger.warning(f"Path traversal attempt detected: {event.session_id}")
+        return
     with forensics_file.open("a", encoding="utf-8") as f:
         # Write event as JSONL (one JSON object per line)
         json.dump(event.model_dump(exclude_none=True), f)

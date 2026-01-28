@@ -56,6 +56,8 @@ Primary implementations and main execution paths. These modules coordinate betwe
 | `core/ledger/models.py` | Ledger data models | — | New module |
 | `core/ledger/reader.py` | Ledger query interface | — | New module |
 | `core/ledger/writer.py` | Ledger persistence | — | New module |
+| `core/ledger/session_integration.py` | Session-to-ledger integration | — | New module |
+| `core/hooks/installer.py` | Hook installation and configuration | — | New module |
 | `core/dashboard/db/` | Dashboard database layer | 93% | Above threshold |
 | `core/dashboard/api/` | Dashboard FastAPI routes | 84% | Above threshold |
 | `core/dashboard/sync/` | Dashboard sync orchestrator | 60% | At threshold |
@@ -83,6 +85,7 @@ Newer features, less stable APIs, and modules still under active development. Br
 | `cli/captures.py` | Captures CLI | 79% | Above threshold |
 | `cli/organize_captures.py` | Capture organization | 64% | Above threshold |
 | `core/ledger/extractor.py` | LLM-based insight extraction | — | New module |
+| `core/ledger/transcript_parser.py` | Transcript parsing for enrichment | — | New module |
 | `core/tools/` | Tool execution runtime | — | New module |
 | `cli/session.py` | Direct session CLI commands | — | New module |
 | `cli/new.py` | New project bootstrapping | — | New module |
@@ -112,6 +115,9 @@ User interface components and bash-delegated commands. These are difficult to un
 | `cli/investigate.py` | Investigation CLI | 12% | Interactive |
 | `cli/merge.py` | Merge CLI | 13% | Interactive |
 | `cli/pr.py` | PR CLI | 14% | Interactive |
+| `cli/hooks.py` | Hook management CLI | — | New module |
+| `cli/reconcile.py` | Session reconciliation CLI | — | New module |
+| `cli/task.py` | Task management CLI | — | New module |
 | `dashboard/tmux.py` | Tmux integration | 25% | External process |
 | `core/prep/plan_markdown.py` | Plan parsing | 0% | Low priority |
 

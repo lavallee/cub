@@ -27,6 +27,7 @@ from cub.core.config.loader import load_config
 from cub.core.constitution import ensure_constitution
 from cub.core.hooks.installer import install_hooks
 from cub.core.instructions import (
+    UpsertAction,
     generate_agents_md,
     generate_claude_md,
     upsert_managed_section,
@@ -439,11 +440,11 @@ def generate_instruction_files(
         agents_path = project_dir / "AGENTS.md"
         result = upsert_managed_section(agents_path, agents_content, version=1)
 
-        if result.action.value == "CREATED":
+        if result.action == UpsertAction.CREATED:
             console.print("[green]v[/green] Created AGENTS.md")
-        elif result.action.value == "APPENDED":
+        elif result.action == UpsertAction.APPENDED:
             console.print("[green]v[/green] Added managed section to AGENTS.md")
-        elif result.action.value == "REPLACED":
+        elif result.action == UpsertAction.REPLACED:
             console.print("[green]v[/green] Updated managed section in AGENTS.md")
 
         if result.warnings:
@@ -459,11 +460,11 @@ def generate_instruction_files(
         claude_path = project_dir / "CLAUDE.md"
         result = upsert_managed_section(claude_path, claude_content, version=1)
 
-        if result.action.value == "CREATED":
+        if result.action == UpsertAction.CREATED:
             console.print("[green]v[/green] Created CLAUDE.md")
-        elif result.action.value == "APPENDED":
+        elif result.action == UpsertAction.APPENDED:
             console.print("[green]v[/green] Added managed section to CLAUDE.md")
-        elif result.action.value == "REPLACED":
+        elif result.action == UpsertAction.REPLACED:
             console.print("[green]v[/green] Updated managed section in CLAUDE.md")
 
         if result.warnings:

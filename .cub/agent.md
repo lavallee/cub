@@ -932,7 +932,7 @@ The symbiotic workflow enables fluid movement between CLI-driven (`cub run`) and
 The symbiotic workflow uses a three-tier pipeline:
 
 1. **Shell Fast-Path Filter** (`.cub/scripts/hooks/cub-hook.sh`)
-   - Lightweight POSIX shell script (no Python startup latency)
+   - Lightweight bash shell script (no Python startup latency)
    - Runs first, filters irrelevant events (90% of tool uses)
    - Checks `CUB_RUN_ACTIVE` env var to prevent double-tracking
    - Only pipes to Python handler when relevant
