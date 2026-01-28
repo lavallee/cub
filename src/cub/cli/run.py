@@ -72,6 +72,44 @@ from cub.dashboard.tmux import get_dashboard_pane_size, launch_with_dashboard
 from cub.utils.hooks import HookContext, run_hooks_async, wait_async_hooks
 
 
+class RichParallelCallback:
+    """Rich Console-based implementation of ParallelRunnerCallback."""
+
+    def __init__(self, console: Console) -> None:
+        """
+        Initialize callback.
+
+        Args:
+            console: Rich console for output
+        """
+        self.console = console
+
+    def on_start(self, num_tasks: int, num_workers: int) -> None:
+        """Display start message."""
+        self.console.print(
+            f"[bold cyan]Starting parallel execution: {num_tasks} tasks, "
+            f"{num_workers} workers[/bold cyan]"
+        )
+
+    def on_task_complete(
+        self, task_id: str, task_title: str, success: bool, error: str | None = None
+    ) -> None:
+        """Display task completion status."""
+        if success:
+            self.console.print(f"[green]✓ {task_id}: {task_title}[/green]")
+        else:
+            error_msg = error or "Unknown error"
+            self.console.print(f"[red]✗ {task_id}: {error_msg}[/red]")
+
+    def on_task_exception(self, task_id: str, exception: str) -> None:
+        """Display task exception."""
+        self.console.print(f"[red]✗ {task_id}: Exception: {exception}[/red]")
+
+    def on_debug(self, message: str) -> None:
+        """Display debug message."""
+        self.console.print(f"[dim]{message}[/dim]")
+
+
 def _run_async(func: Any, *args: Any) -> Any:
     """
     Run an async function from a sync context.
@@ -2110,6 +2148,9 @@ def _run_parallel(
     exit_code = 1
 
     try:
+        # Create callback for Rich output
+        callback = RichParallelCallback(console=console)
+
         # Create parallel runner
         runner = ParallelRunner(
             project_dir=project_dir,
@@ -2117,6 +2158,7 @@ def _run_parallel(
             model=model,
             debug=debug,
             stream=stream,
+            callback=callback,
         )
 
         # Find independent tasks
