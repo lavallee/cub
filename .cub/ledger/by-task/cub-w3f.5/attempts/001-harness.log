@@ -1,0 +1,55 @@
+I'll start by marking this task as in progress, then understand the current codebase structure before implementing the integration.Let me check for the progress file in the correct location:Perfect! Now I have a comprehensive understanding of the codebase. Let me read the key files to understand the current implementation:Perfect! Now I understand the implementation. Let me implement the integration according to the task requirements:Now let me implement the changes. First, let me modify `init_cmd.py`:Now let me add hook validation to the doctor command:Now let me read the existing test files to understand testing patterns:Now let me add tests for the init and doctor commands. First, let me add tests to the existing test files:Now let me add tests for the doctor command hook validation:Now let me run the tests to verify everything works:Excellent! All tests pass. Now let me run mypy and ruff:I see the issue - I'm reusing the `result` variable name. Let me fix that:Good! The mypy errors are pre-existing (related to yaml stubs), not in my code. Let me run ruff:Let me fix these linting issues:Perfect! Now let me run the full test suite to ensure we didn't break anything:Excellent! All tests pass. Now let me update the todo list and close the task:Now let me close the task and commit the changes:Perfect! Let me append learnings to progress.txt:Perfect! Now let me check if there are any more tasks to work on:Great! Let me check if the epic is complete:Perfect! All subtasks are complete. The epic can now be closed:Excellent! Let me commit this final change:Perfect! Let me check the final git status:Perfect! All changes committed. Let me provide a summary:
+
+## Task Complete: cub-w3f.5 - Integrate hook installation into cub init and cub doctor
+
+### Summary
+
+Successfully integrated Claude Code hook installation and validation into the `cub init` and `cub doctor` commands, providing users with natural entry and diagnostic points for hook management.
+
+### Implementation
+
+**1. Init Command (`src/cub/cli/init_cmd.py`)**
+- Added `--hooks` flag for explicit opt-in hook installation
+- Integrated `install_hooks()` from the installer module
+- Reports installation results with Rich console output
+- Gracefully handles failures without blocking initialization
+- Displays warnings for non-critical issues
+
+**2. Doctor Command (`src/cub/cli/doctor.py`)**
+- Added `check_hooks()` function for hook validation
+- Uses `validate_hooks()` to check configuration health
+- Reports errors, warnings, and info messages
+- Provides actionable suggestions (e.g., "Run 'cub init --hooks --force'")
+- Validates when `.claude/` directory exists, informs when not present
+
+**3. Test Coverage**
+- Added 4 tests to `test_cli_init_cmd.py`:
+  - Hook installation with flag set
+  - Skip when flag not set
+  - Failure handling
+  - Warning reporting
+- Added 5 tests to `test_cli_doctor.py`:
+  - Not installed detection
+  - Proper configuration confirmation
+  - Error reporting
+  - Warning reporting
+  - Info message handling
+
+### Results
+
+✅ All 50 related tests pass (10 init + 15 doctor + 25 installer)  
+✅ Mypy type checking clean (pre-existing yaml stub warnings)  
+✅ Ruff linting passes  
+✅ Task closed: `cub-w3f.5`  
+✅ Epic closed: `cub-w3f` (all 5 subtasks complete)  
+✅ Changes committed with detailed commit messages  
+✅ Progress documented in `progress.txt`
+
+### Key Learnings
+
+- **Opt-in Design**: Hook installation is explicit via `--hooks` flag, respecting user choice
+- **Graceful Degradation**: Hook failures don't block core functionality
+- **Actionable Feedback**: Doctor provides clear commands to fix issues
+- **Variable Naming**: Use descriptive names (`hook_result`) to avoid type conflicts
+
+The hook pipeline infrastructure (epic cub-w3f) is now complete!
