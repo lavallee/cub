@@ -2,8 +2,8 @@
 attempt: 1
 harness: claude
 model: sonnet
-run_id: cub-20260128-034412
-started_at: '2026-01-28T03:44:13.137521+00:00'
+run_id: cub-20260128-035958
+started_at: '2026-01-28T03:59:58.447568+00:00'
 ---
 
 # System Prompt
@@ -162,4 +162,3 @@ This project uses the beads task backend (`bd` CLI).
 1. Run feedback loops (typecheck, test, lint)
 2. Mark the task complete (see Task Management above)
 3. Commit: `task(cub-r1a.1): Remove progress.txt references from templates and prompts`
-4. Append learnings to progress.txt
