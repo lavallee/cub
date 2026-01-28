@@ -40,3 +40,135 @@
 - All 6 init command tests pass
 - Total: 3958 tests passed across full test suite
 - Linting: All checks pass
+
+## Task cub-r1c.1 - Implement structure analyzer module
+
+### Key Implementation Details
+
+1. **Pydantic Models**: Created comprehensive models following codebase patterns:
+   - TechStack enum with from_config_file() classmethod for detection
+   - BuildCommand, KeyFile, ModuleInfo with frozen=True for immutability
+   - DirectoryNode with recursive children for tree structure
+   - DirectoryTree and ProjectStructure as top-level containers
+   - Computed properties (@property) for derived data
+
+2. **Tech Stack Detection**: Implemented multi-stack detection based on config files:
+   - Python: pyproject.toml, setup.py, requirements.txt, Pipfile
+   - Node: package.json, package-lock.json, yarn.lock, pnpm-lock.yaml
+   - Rust: Cargo.toml, Cargo.lock
+   - Go: go.mod, go.sum
+   - Ruby and Java support included
+   - Returns ordered list with most common stacks first
+
+3. **Build Command Extraction**: Parses commands from multiple sources:
+   - package.json scripts (Node)
+   - pyproject.toml scripts and poetry.scripts (Python)
+   - Makefile targets with simple heuristic parsing
+
+4. **Module Detection**: Identifies module boundaries:
+   - Python: directories with __init__.py
+   - Node: directories with index.js/ts/jsx/tsx
+   - Only scans top-level directories under src/ or project root
+
+5. **Directory Tree Building**: Recursive traversal with exclusions:
+   - Respects max_depth parameter (default 4)
+   - Excludes: node_modules, .git, .venv, __pycache__, build, dist, etc.
+   - Matches MapConfig defaults from config/models.py
+   - Gracefully handles permission errors
+
+### Learnings
+
+- **TOML Library Compatibility**: The project targets Python 3.10+ but tomllib is only
+  available in 3.11+. Used `import tomllib # type: ignore[import-not-found]` to satisfy
+  mypy (configured for 3.10) while using the native library on Python 3.13 runtime.
+
+- **Frozen Pydantic Models**: Use ConfigDict(frozen=True) for immutable models like
+  BuildCommand and KeyFile to prevent accidental modification.
+
+- **Recursive Tree Structures**: DirectoryNode with children: list[DirectoryNode] 
+  creates a self-referential structure that Pydantic handles well.
+
+- **Test Fixtures**: pytest fixtures with tmp_path are excellent for creating isolated
+  test project structures. Created minimal_python_project, minimal_node_project, and
+  multi_tech_project fixtures.
+
+- **Error Handling**: Use broad exception catching for file parsing (TOML, JSON) to
+  gracefully degrade when config files are malformed.
+
+### Files Created
+- src/cub/core/map/__init__.py
+- src/cub/core/map/models.py (214 lines)
+- src/cub/core/map/structure.py (499 lines)
+- tests/test_map_structure.py (655 lines, 49 tests)
+
+### Test Results
+- All 49 tests pass
+- Mypy type checking: Success (3 source files)
+- Ruff linting: All checks passed
+
+## Task cub-r1c.2 - Implement code intelligence module with tree-sitter
+
+### Key Implementation Details
+
+1. **Tree-sitter AST Parsing**: Uses grep-ast for language detection via
+   filename_to_lang(), tree-sitter-language-pack for parsers, and custom
+   tree-sitter query patterns per language (Python, JS, TS, Rust, Go, Java,
+   Ruby, C, C++). QueryCursor API (tree-sitter 0.25+) for captures.
+
+2. **Pydantic Models**: SymbolTag (frozen) for extracted definitions/references,
+   RankedSymbol (frozen) for PageRank-scored symbols.
+
+3. **PageRank Ranking**: networkx MultiDiGraph with weighted edges from
+   referencer → definer. Weights boosted by naming convention (snake_case,
+   camelCase ≥8 chars), mentioned identifiers, focus files. Penalized for
+   private (_prefix) and overly-common (>5 definers) symbols.
+
+4. **Diskcache Caching**: Per-file caching keyed by SHA-256 of
+   (path, mtime_ns, size). Falls back to module-level dict if diskcache
+   unavailable. Disk cache stored in .cub/cache/code_intel/.
+
+5. **Pathspec .gitignore Filtering**: Uses pathspec library with "gitignore"
+   pattern type (not deprecated "gitwildmatch"). Always applies default ignore
+   patterns plus project .gitignore.
+
+6. **Pygments Fallback**: When tree-sitter finds definitions but no references,
+   falls back to Pygments lexer token extraction for reference tags.
+
+7. **Graceful Degradation**: All optional deps (grep-ast, tree-sitter,
+   networkx, diskcache, pathspec, pygments) guarded by try/except with module
+   flags. extract_tags() and rank_symbols() return empty lists with warnings.
+
+### Learnings
+
+- **Tree-sitter 0.25+ API**: The newer API uses `Query(language, pattern)` +
+  `QueryCursor(query)` + `cursor.captures(node)` returning `dict[str, list[Node]]`.
+  The older `language.query()` method is deprecated.
+
+- **Mypy Strict + Optional Deps**: Used Protocol classes (_CacheLike,
+  _PathSpecLike) to type optional dependencies without importing their types.
+  This avoids `Any` in strict mode and `object` attribute errors.
+
+- **Type Ignore Comments**: When mypy overrides already handle
+  `ignore_missing_imports`, `type: ignore[import-untyped]` comments are
+  redundant and cause `unused-ignore` errors.
+
+- **pathspec Deprecation**: Use `"gitignore"` not `"gitwildmatch"` for
+  PathSpec.from_lines() — the latter triggers DeprecationWarning.
+
+- **Query String Line Length**: Tree-sitter query strings for C/C++ can
+  exceed 100 chars. Use parenthesized string concatenation to break lines.
+
+### Files Created
+- src/cub/core/map/code_intel.py (~600 lines)
+- tests/test_map_code_intel.py (~500 lines, 54 tests)
+
+### Files Modified
+- pyproject.toml (5 new deps + 7 mypy overrides)
+- src/cub/core/map/__init__.py (added code_intel exports)
+- uv.lock (new dependency resolution)
+
+### Test Results
+- All 54 tests pass (+ 49 existing structure tests still pass)
+- Mypy type checking: Success (3 source files)
+- Ruff linting: All checks passed
+
