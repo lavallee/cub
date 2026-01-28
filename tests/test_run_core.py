@@ -259,6 +259,311 @@ class TestGenerateSystemPrompt:
 
 
 # ==============================================================================
+# Tests for generate_epic_context
+# ==============================================================================
+
+
+class TestGenerateEpicContext:
+    """Tests for generate_epic_context function."""
+
+    def test_returns_none_when_no_parent(self, mock_task, mock_task_backend):
+        """Test that None is returned when task has no parent epic."""
+        # Ensure task has no parent
+        task = Task(
+            id="cub-001",
+            title="Task without parent",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent=None,
+        )
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is None
+
+    def test_returns_none_when_epic_not_found(self, mock_task_backend):
+        """Test that None is returned when parent epic doesn't exist."""
+        task = Task(
+            id="cub-001",
+            title="Task with missing parent",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="nonexistent-epic",
+        )
+
+        # Mock backend returns None for missing epic
+        mock_task_backend.get_task.return_value = None
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is None
+
+    def test_basic_epic_context_structure(self, mock_task_backend):
+        """Test basic epic context contains required sections."""
+        # Create epic
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description here",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        # Create task with parent
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        # Mock backend
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        assert "## Epic Context" in result
+        assert "epic-001" in result
+        assert "Main Epic" in result
+        assert "Epic Purpose:" in result
+        assert "Epic description here" in result
+
+    def test_truncates_long_epic_description(self, mock_task_backend):
+        """Test that epic descriptions longer than 200 words are truncated."""
+        # Create epic with long description (250 words)
+        long_description = " ".join([f"word{i}" for i in range(250)])
+
+        epic = Task(
+            id="epic-long",
+            title="Epic with Long Description",
+            description=long_description,
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-long",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        # Should contain exactly 200 words plus "..."
+        assert "..." in result
+        # The description should end with "..."
+        assert "word199..." in result
+        # Should not contain word200 or beyond
+        assert "word200" not in result
+        assert "word249" not in result
+
+    def test_does_not_truncate_short_description(self, mock_task_backend):
+        """Test that short epic descriptions are not truncated."""
+        short_description = "This is a short epic description with only ten words here."
+
+        epic = Task(
+            id="epic-short",
+            title="Epic with Short Description",
+            description=short_description,
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-short",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(task, mock_task_backend)
+
+        assert result is not None
+        assert short_description in result
+        assert "..." not in result
+
+    def test_shows_completed_sibling_tasks(self, mock_task_backend):
+        """Test that completed sibling tasks are shown."""
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-002",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        completed_task = Task(
+            id="cub-001",
+            title="Completed task",
+            status=TaskStatus.CLOSED,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [current_task, completed_task]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        assert "Completed Sibling Tasks:" in result
+        assert "✓ cub-001: Completed task" in result
+
+    def test_shows_remaining_sibling_tasks(self, mock_task_backend):
+        """Test that remaining sibling tasks are shown."""
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-002",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        open_task = Task(
+            id="cub-003",
+            title="Open task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        in_progress_task = Task(
+            id="cub-004",
+            title="In progress task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [
+            current_task,
+            open_task,
+            in_progress_task,
+        ]
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        assert "Remaining Sibling Tasks:" in result
+        assert "○ cub-003: Open task" in result
+        assert "◐ cub-004: In progress task" in result
+        # Current task should not be in the remaining list
+        assert "cub-002" not in result.split("Remaining Sibling Tasks:")[1]
+
+    def test_handles_epic_with_many_siblings(self, mock_task_backend):
+        """Test epic context with many sibling tasks."""
+        epic = Task(
+            id="epic-big",
+            title="Big Epic",
+            description="Epic with many tasks",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        current_task = Task(
+            id="cub-010",
+            title="Current task",
+            status=TaskStatus.IN_PROGRESS,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-big",
+        )
+
+        # Create many sibling tasks
+        siblings = [current_task]
+        for i in range(1, 10):
+            status = TaskStatus.CLOSED if i < 5 else TaskStatus.OPEN
+            siblings.append(
+                Task(
+                    id=f"cub-{i:03d}",
+                    title=f"Task {i}",
+                    status=status,
+                    priority=TaskPriority.P2,
+                    type=TaskType.TASK,
+                    parent="epic-big",
+                )
+            )
+
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = siblings
+
+        from cub.cli.run import generate_epic_context
+
+        result = generate_epic_context(current_task, mock_task_backend)
+
+        assert result is not None
+        # Should have both completed and remaining sections
+        assert "Completed Sibling Tasks:" in result
+        assert "Remaining Sibling Tasks:" in result
+        # Check some completed tasks
+        assert "✓ cub-001: Task 1" in result
+        assert "✓ cub-004: Task 4" in result
+        # Check some remaining tasks
+        assert "○ cub-005: Task 5" in result
+        assert "○ cub-009: Task 9" in result
+
+
+# ==============================================================================
 # Tests for generate_task_prompt
 # ==============================================================================
 
@@ -376,6 +681,66 @@ class TestGenerateTaskPrompt:
 
             assert f"Type: {task_type.value}" in result
             assert f"{task_type.value}(cub-001):" in result
+
+    def test_includes_epic_context_when_present(self, mock_task_backend):
+        """Test that epic context is included in task prompt when task has parent."""
+        # Create epic
+        epic = Task(
+            id="epic-001",
+            title="Main Epic",
+            description="Epic description",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.EPIC,
+        )
+
+        # Create task with parent
+        task = Task(
+            id="cub-001",
+            title="Task in epic",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        completed_sibling = Task(
+            id="cub-000",
+            title="Completed sibling",
+            status=TaskStatus.CLOSED,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent="epic-001",
+        )
+
+        # Mock backend
+        mock_task_backend.get_task.return_value = epic
+        mock_task_backend.list_tasks.return_value = [task, completed_sibling]
+
+        result = generate_task_prompt(task, mock_task_backend)
+
+        # Should contain epic context section
+        assert "## Epic Context" in result
+        assert "epic-001" in result
+        assert "Main Epic" in result
+        assert "Completed Sibling Tasks:" in result
+        assert "✓ cub-000: Completed sibling" in result
+
+    def test_no_epic_context_when_no_parent(self, mock_task_backend):
+        """Test that epic context is not included when task has no parent."""
+        task = Task(
+            id="cub-001",
+            title="Standalone task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            parent=None,
+        )
+
+        result = generate_task_prompt(task, mock_task_backend)
+
+        # Should not contain epic context section
+        assert "## Epic Context" not in result
 
 
 # ==============================================================================

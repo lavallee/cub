@@ -546,6 +546,70 @@ def generate_direct_task_prompt(task_content: str) -> str:
     return "\n".join(prompt_parts)
 
 
+def generate_epic_context(task: Task, task_backend: TaskBackend) -> str | None:
+    """
+    Generate epic context for a task that belongs to an epic.
+
+    When a task belongs to an epic, this provides context about the epic's
+    purpose and what sibling tasks have been completed or remain. This helps
+    prevent repeated work and gives the agent awareness of the bigger picture.
+
+    Args:
+        task: Task to generate epic context for
+        task_backend: The task backend instance
+
+    Returns:
+        Epic context string, or None if task has no parent epic
+    """
+    # Skip if task has no parent
+    if not task.parent:
+        return None
+
+    # Fetch the parent epic
+    epic = task_backend.get_task(task.parent)
+    if not epic:
+        return None
+
+    # Build epic context
+    context_parts = []
+    context_parts.append("## Epic Context\n")
+    context_parts.append(f"This task belongs to epic: **{epic.id}** - {epic.title}\n")
+
+    # Add truncated epic description (~200 words)
+    if epic.description:
+        words = epic.description.split()
+        if len(words) > 200:
+            truncated = " ".join(words[:200]) + "..."
+        else:
+            truncated = epic.description
+        context_parts.append("Epic Purpose:")
+        context_parts.append(truncated)
+        context_parts.append("")
+
+    # Fetch sibling tasks (all tasks with same parent)
+    sibling_tasks = task_backend.list_tasks(parent=task.parent)
+
+    if sibling_tasks:
+        # Separate into completed and remaining
+        completed = [t for t in sibling_tasks if t.status == TaskStatus.CLOSED]
+        remaining = [t for t in sibling_tasks if t.status != TaskStatus.CLOSED and t.id != task.id]
+
+        if completed:
+            context_parts.append("Completed Sibling Tasks:")
+            for t in completed:
+                context_parts.append(f"- ✓ {t.id}: {t.title}")
+            context_parts.append("")
+
+        if remaining:
+            context_parts.append("Remaining Sibling Tasks:")
+            for t in remaining:
+                status_icon = "◐" if t.status == TaskStatus.IN_PROGRESS else "○"
+                context_parts.append(f"- {status_icon} {t.id}: {t.title}")
+            context_parts.append("")
+
+    return "\n".join(context_parts)
+
+
 def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     """
     Generate the task prompt for a specific task.
@@ -577,6 +641,11 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
         for criterion in task.acceptance_criteria:
             prompt_parts.append(f"- {criterion}")
         prompt_parts.append("")
+
+    # Add epic context if available
+    epic_context = generate_epic_context(task, task_backend)
+    if epic_context:
+        prompt_parts.append(epic_context)
 
     # Add backend-specific task management instructions
     prompt_parts.append("## Task Management\n")
@@ -1286,9 +1355,8 @@ def run(
         enabled=circuit_breaker_enabled,
     )
     if debug and circuit_breaker_enabled:
-        console.print(
-            f"[dim]Circuit breaker enabled: {config.circuit_breaker.timeout_minutes} minute timeout[/dim]"
-        )
+        timeout = config.circuit_breaker.timeout_minutes
+        console.print(f"[dim]Circuit breaker enabled: {timeout} minute timeout[/dim]")
     elif debug:
         console.print("[dim]Circuit breaker disabled[/dim]")
 
