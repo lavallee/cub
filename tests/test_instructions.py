@@ -5,7 +5,7 @@ Tests for instruction file generation module.
 import hashlib
 from pathlib import Path
 
-from cub.core.config.models import CircuitBreakerConfig, CubConfig
+from cub.core.config.models import CubConfig
 from cub.core.instructions import (
     ESCAPE_HATCH_SECTION,
     SectionInfo,
@@ -16,8 +16,129 @@ from cub.core.instructions import (
     detect_managed_section,
     generate_agents_md,
     generate_claude_md,
+    generate_managed_section,
     upsert_managed_section,
 )
+
+
+class TestGenerateManagedSection:
+    """Tests for generate_managed_section function."""
+
+    def test_generic_harness_generates_valid_content(self, tmp_path: Path) -> None:
+        """Test that generic harness generates valid markdown content."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        # Should be non-empty string
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+        # Should start with markdown header
+        assert content.startswith("# Cub Task Workflow")
+
+    def test_claude_harness_generates_valid_content(self, tmp_path: Path) -> None:
+        """Test that claude harness generates valid markdown content."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="claude")
+
+        # Should be non-empty string
+        assert isinstance(content, str)
+        assert len(content) > 0
+
+        # Should start with markdown header
+        assert content.startswith("# Cub Task Workflow (Claude Code)")
+
+    def test_includes_project_name(self, tmp_path: Path) -> None:
+        """Test that project name is included in output."""
+        project_dir = tmp_path / "my-awesome-project"
+        project_dir.mkdir()
+        config = CubConfig()
+
+        content = generate_managed_section(project_dir, config, harness="generic")
+
+        assert "my-awesome-project" in content
+
+    def test_includes_map_reference(self, tmp_path: Path) -> None:
+        """Test that content references @.cub/map.md."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        assert "@.cub/map.md" in content
+
+    def test_includes_constitution_reference(self, tmp_path: Path) -> None:
+        """Test that content references @.cub/constitution.md."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        assert "@.cub/constitution.md" in content
+
+    def test_includes_agent_md_reference(self, tmp_path: Path) -> None:
+        """Test that content references @.cub/agent.md."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        assert "@.cub/agent.md" in content
+
+    def test_includes_task_workflow(self, tmp_path: Path) -> None:
+        """Test that condensed task workflow is included."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        # Should include workflow steps
+        assert "bd ready" in content
+        assert "bd update" in content
+        assert "bd close" in content
+
+    def test_includes_escape_hatch_summary(self, tmp_path: Path) -> None:
+        """Test that escape hatch summary is included."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        assert "<stuck>" in content
+        assert "When Stuck" in content
+
+    def test_generic_is_condensed(self, tmp_path: Path) -> None:
+        """Test that generic content is condensed (~15-20 lines)."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="generic")
+
+        # Count lines (excluding empty lines for better measurement)
+        lines = [line for line in content.splitlines() if line.strip()]
+        # Should be around 15-25 lines
+        assert 10 <= len(lines) <= 30, f"Expected 10-30 lines, got {len(lines)}"
+
+    def test_claude_includes_plan_mode_tip(self, tmp_path: Path) -> None:
+        """Test that Claude-specific content includes plan mode tip."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="claude")
+
+        assert "plan mode" in content.lower() or "Plan mode" in content
+
+    def test_claude_includes_skills_reference(self, tmp_path: Path) -> None:
+        """Test that Claude-specific content mentions skills."""
+        config = CubConfig()
+        content = generate_managed_section(tmp_path, config, harness="claude")
+
+        assert "skill" in content.lower() or "/commit" in content
+
+    def test_claude_is_slightly_longer_than_generic(self, tmp_path: Path) -> None:
+        """Test that Claude content is slightly longer due to extra tips."""
+        config = CubConfig()
+        generic = generate_managed_section(tmp_path, config, harness="generic")
+        claude = generate_managed_section(tmp_path, config, harness="claude")
+
+        # Claude should be a bit longer than generic
+        assert len(claude) >= len(generic)
+
+    def test_invalid_harness_raises_error(self, tmp_path: Path) -> None:
+        """Test that invalid harness type raises ValueError."""
+        config = CubConfig()
+
+        try:
+            generate_managed_section(tmp_path, config, harness="invalid")
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "Unknown harness type" in str(e)
 
 
 class TestGenerateAgentsMd:
@@ -33,7 +154,7 @@ class TestGenerateAgentsMd:
         assert len(content) > 0
 
         # Should start with markdown header
-        assert content.startswith("# Agent Instructions")
+        assert content.startswith("# Cub Task Workflow")
 
     def test_includes_project_name(self, tmp_path: Path) -> None:
         """Test that project name is included in output."""
@@ -44,14 +165,6 @@ class TestGenerateAgentsMd:
         content = generate_agents_md(project_dir, config)
 
         assert "my-awesome-project" in content
-
-    def test_includes_circuit_breaker_timeout(self, tmp_path: Path) -> None:
-        """Test that circuit breaker timeout is included."""
-        config = CubConfig(circuit_breaker=CircuitBreakerConfig(timeout_minutes=45))
-
-        content = generate_agents_md(tmp_path, config)
-
-        assert "45-minute timeout" in content
 
     def test_includes_task_management_workflow(self, tmp_path: Path) -> None:
         """Test that task management commands are documented."""
@@ -69,51 +182,31 @@ class TestGenerateAgentsMd:
         assert "cub status" in content
         assert "cub log" in content
 
-    def test_includes_workflow_steps(self, tmp_path: Path) -> None:
-        """Test that workflow steps are clearly documented."""
-        config = CubConfig()
-        content = generate_agents_md(tmp_path, config)
-
-        # Should include the workflow steps
-        assert "Find Available Tasks" in content
-        assert "Claim a Task" in content
-        assert "Do the Work" in content
-        assert "Complete the Task" in content
-
     def test_includes_escape_hatch_section(self, tmp_path: Path) -> None:
         """Test that escape hatch language is included."""
         config = CubConfig()
         content = generate_agents_md(tmp_path, config)
 
         # Should include the escape hatch section
-        assert "Escape Hatch: Signal When Stuck" in content
         assert "<stuck>" in content
-        assert "genuinely blocked" in content
+        assert "When Stuck" in content or "stuck" in content.lower()
 
-    def test_includes_examples(self, tmp_path: Path) -> None:
-        """Test that concrete examples are provided."""
+    def test_includes_map_and_constitution_references(self, tmp_path: Path) -> None:
+        """Test that content references map and constitution files."""
         config = CubConfig()
         content = generate_agents_md(tmp_path, config)
 
-        # Should include example commands with placeholders
-        assert "cub-abc.1" in content or "<task-id>" in content
-        assert "bd close" in content
-        assert "bd update" in content
+        # Should reference external context files
+        assert "@.cub/map.md" in content
+        assert "@.cub/constitution.md" in content
 
-    def test_includes_commands_reference(self, tmp_path: Path) -> None:
-        """Test that a commands reference section exists."""
+    def test_includes_agent_md_reference(self, tmp_path: Path) -> None:
+        """Test that content references agent.md for build/test instructions."""
         config = CubConfig()
         content = generate_agents_md(tmp_path, config)
 
-        # Should have a commands reference section
-        assert "Commands Reference" in content or "Task Management" in content
-
-    def test_uses_config_circuit_breaker_default(self, tmp_path: Path) -> None:
-        """Test that default circuit breaker timeout is used."""
-        config = CubConfig()  # Uses default timeout_minutes=30
-        content = generate_agents_md(tmp_path, config)
-
-        assert "30-minute timeout" in content
+        # Should reference agent.md
+        assert "@.cub/agent.md" in content
 
     def test_escape_hatch_section_standalone(self) -> None:
         """Test that ESCAPE_HATCH_SECTION constant is properly formatted."""
@@ -136,7 +229,7 @@ class TestGenerateClaudeMd:
         assert len(content) > 0
 
         # Should start with markdown header
-        assert content.startswith("# Claude Code Instructions")
+        assert content.startswith("# Cub Task Workflow (Claude Code)")
 
     def test_includes_project_name(self, tmp_path: Path) -> None:
         """Test that project name is included in output."""
@@ -148,42 +241,21 @@ class TestGenerateClaudeMd:
 
         assert "my-claude-project" in content
 
-    def test_references_agents_md(self, tmp_path: Path) -> None:
-        """Test that CLAUDE.md references AGENTS.md for core workflow."""
-        config = CubConfig()
-        content = generate_claude_md(tmp_path, config)
-
-        # Should reference AGENTS.md
-        assert "AGENTS.md" in content
-        assert "See AGENTS.md" in content or "Read AGENTS.md" in content
-
     def test_includes_plan_mode_instructions(self, tmp_path: Path) -> None:
         """Test that plan mode integration is documented."""
         config = CubConfig()
         content = generate_claude_md(tmp_path, config)
 
         # Should include plan mode guidance
-        assert "plan mode" in content.lower()
-        assert "plans/" in content
-        assert "plan.md" in content
+        assert "plan mode" in content.lower() or "Plan mode" in content
 
-    def test_includes_plan_file_format_example(self, tmp_path: Path) -> None:
-        """Test that plan file format example is provided."""
+    def test_includes_skills_reference(self, tmp_path: Path) -> None:
+        """Test that skills are mentioned."""
         config = CubConfig()
         content = generate_claude_md(tmp_path, config)
 
-        # Should include plan structure guidance
-        assert "Summary" in content
-        assert "Approach" in content
-        assert "Steps" in content
-
-    def test_includes_claude_best_practices(self, tmp_path: Path) -> None:
-        """Test that Claude Code-specific best practices are included."""
-        config = CubConfig()
-        content = generate_claude_md(tmp_path, config)
-
-        # Should have best practices section
-        assert "Best Practices" in content or "Before Starting Work" in content
+        # Should mention skills
+        assert "skill" in content.lower() or "/commit" in content
 
     def test_includes_reference_to_agent_md(self, tmp_path: Path) -> None:
         """Test that .cub/agent.md is referenced for build instructions."""
@@ -191,24 +263,24 @@ class TestGenerateClaudeMd:
         content = generate_claude_md(tmp_path, config)
 
         # Should reference .cub/agent.md (build/test instructions)
-        assert ".cub/agent.md" in content
+        assert "@.cub/agent.md" in content
 
-    def test_shorter_than_agents_md(self, tmp_path: Path) -> None:
-        """Test that CLAUDE.md is shorter since it references AGENTS.md."""
-        config = CubConfig()
-        agents_content = generate_agents_md(tmp_path, config)
-        claude_content = generate_claude_md(tmp_path, config)
-
-        # CLAUDE.md should be shorter since it delegates to AGENTS.md
-        assert len(claude_content) < len(agents_content)
-
-    def test_includes_escape_hatch_reference(self, tmp_path: Path) -> None:
-        """Test that escape hatch is mentioned (via AGENTS.md reference)."""
+    def test_includes_map_and_constitution_references(self, tmp_path: Path) -> None:
+        """Test that content references map and constitution files."""
         config = CubConfig()
         content = generate_claude_md(tmp_path, config)
 
-        # Should mention the escape hatch (either directly or via reference)
-        assert "stuck" in content.lower() or "AGENTS.md" in content
+        # Should reference external context files
+        assert "@.cub/map.md" in content
+        assert "@.cub/constitution.md" in content
+
+    def test_includes_escape_hatch_reference(self, tmp_path: Path) -> None:
+        """Test that escape hatch is mentioned."""
+        config = CubConfig()
+        content = generate_claude_md(tmp_path, config)
+
+        # Should mention the escape hatch
+        assert "<stuck>" in content
 
 
 class TestInstructionIntegration:
@@ -241,7 +313,7 @@ class TestInstructionIntegration:
         agents_content = generate_agents_md(tmp_path, config)
         claude_content = generate_claude_md(tmp_path, config)
 
-        # Files should have different content
+        # Files should have different content (Claude has extra tips)
         assert agents_content != claude_content
 
     def test_consistent_workflow_between_files(self, tmp_path: Path) -> None:
@@ -255,42 +327,44 @@ class TestInstructionIntegration:
         core_commands = ["bd ready", "bd close", "bd update", "cub status"]
 
         for cmd in core_commands:
-            # AGENTS.md should have all commands
+            # Both should have all commands
             assert cmd in agents_content
+            assert cmd in claude_content
 
-            # CLAUDE.md should at least reference AGENTS.md which has them
-            # (or include them directly)
-            assert cmd in claude_content or "AGENTS.md" in claude_content
-
-    def test_agents_md_is_self_contained(self, tmp_path: Path) -> None:
-        """Test that AGENTS.md is self-contained (no external references required)."""
+    def test_agents_md_references_context_files(self, tmp_path: Path) -> None:
+        """Test that AGENTS.md references external context files."""
         config = CubConfig()
         content = generate_agents_md(tmp_path, config)
 
-        # Should have complete workflow without requiring other files
-        # (though it may reference .cub/agent.md for build instructions)
-        assert "bd ready" in content
-        assert "bd close" in content
-        assert "Escape Hatch" in content
-        assert "Workflow Summary" in content or "Commands Reference" in content
+        # Should reference external context files
+        assert "@.cub/map.md" in content
+        assert "@.cub/constitution.md" in content
+        assert "@.cub/agent.md" in content
 
     def test_claude_md_references_external_docs(self, tmp_path: Path) -> None:
         """Test that CLAUDE.md appropriately references external documentation."""
         config = CubConfig()
         content = generate_claude_md(tmp_path, config)
 
-        # Should reference other documentation files
-        assert "AGENTS.md" in content
-        assert ".cub/agent.md" in content
+        # Should reference context files
+        assert "@.cub/map.md" in content
+        assert "@.cub/constitution.md" in content
+        assert "@.cub/agent.md" in content
 
-    def test_custom_circuit_breaker_timeout_propagates(self, tmp_path: Path) -> None:
-        """Test that custom circuit breaker timeout appears in AGENTS.md."""
-        config = CubConfig(circuit_breaker=CircuitBreakerConfig(timeout_minutes=60))
+    def test_both_are_condensed(self, tmp_path: Path) -> None:
+        """Test that both generated files are condensed (~15-25 lines)."""
+        config = CubConfig()
 
-        content = generate_agents_md(tmp_path, config)
+        agents_content = generate_agents_md(tmp_path, config)
+        claude_content = generate_claude_md(tmp_path, config)
 
-        assert "60-minute timeout" in content
-        assert "30-minute timeout" not in content
+        # Count non-empty lines
+        agents_lines = [line for line in agents_content.splitlines() if line.strip()]
+        claude_lines = [line for line in claude_content.splitlines() if line.strip()]
+
+        # Both should be condensed
+        assert 10 <= len(agents_lines) <= 30, f"AGENTS.md has {len(agents_lines)} lines"
+        assert 10 <= len(claude_lines) <= 35, f"CLAUDE.md has {len(claude_lines)} lines"
 
 
 class TestContentHash:

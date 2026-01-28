@@ -451,6 +451,97 @@ active signal that you, the agent, are genuinely blocked and should stop.
 """
 
 
+def generate_managed_section(
+    project_dir: Path, config: CubConfig, harness: str = "generic"
+) -> str:
+    """
+    Generate condensed managed section content for instruction files.
+
+    Produces concise (~15-25 lines) instructions that reference external context
+    files rather than embedding full documentation inline.
+
+    Args:
+        project_dir: Path to the project root directory
+        config: CubConfig instance with project configuration
+        harness: Type of harness ("generic" for AGENTS.md, "claude" for CLAUDE.md)
+
+    Returns:
+        Condensed managed section content as a string (without markers)
+
+    Example:
+        >>> config = load_config()
+        >>> content = generate_managed_section(Path.cwd(), config, "generic")
+    """
+    project_name = project_dir.name
+
+    if harness == "generic":
+        # Generic harness-agnostic instructions for AGENTS.md
+        content = f"""# Cub Task Workflow
+
+**Project:** `{project_name}` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+
+## Quick Start
+
+1. **Find work**: `bd ready` or `bd list --status open`
+2. **Claim task**: `bd update <task-id> --status in_progress`
+3. **Build/test**: See @.cub/agent.md for commands
+4. **Complete**: `bd close <task-id> -r "what you did"`
+5. **Log**: `cub log --notes="session summary"` (optional)
+
+## Task Commands
+
+- `bd show <id>` - View task details
+- `cub status` - Project status and progress
+
+## When Stuck
+
+If genuinely blocked (missing files, unclear requirements, external blocker):
+```xml
+<stuck>Clear description of the blocker</stuck>
+```
+
+See @.cub/agent.md for full workflow documentation."""
+
+    elif harness == "claude":
+        # Claude-specific instructions for CLAUDE.md
+        content = f"""# Cub Task Workflow (Claude Code)
+
+**Project:** `{project_name}` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+
+## Quick Start
+
+1. **Find work**: `bd ready` or `bd list --status open`
+2. **Claim task**: `bd update <task-id> --status in_progress`
+3. **Build/test**: See @.cub/agent.md for commands
+4. **Complete**: `bd close <task-id> -r "what you did"`
+5. **Log**: `cub log --notes="session summary"` (optional)
+
+## Task Commands
+
+- `bd show <id>` - View task details
+- `cub status` - Project status and progress
+
+## Claude-Specific Tips
+
+- **Plan mode**: Save complex plans to `plans/<name>/plan.md`
+- **Skills**: Use `/commit`, `/review-pr`, and other skills as needed
+- **@ References**: Use @.cub/map.md for codebase context, @.cub/constitution.md for principles
+
+## When Stuck
+
+If genuinely blocked (missing files, unclear requirements, external blocker):
+```xml
+<stuck>Clear description of the blocker</stuck>
+```
+
+See @.cub/agent.md for full workflow documentation."""
+
+    else:
+        raise ValueError(f"Unknown harness type: {harness}")
+
+    return content
+
+
 def generate_agents_md(project_dir: Path, config: CubConfig) -> str:
     """
     Generate AGENTS.md with harness-agnostic workflow instructions.
@@ -459,296 +550,51 @@ def generate_agents_md(project_dir: Path, config: CubConfig) -> str:
     to use cub commands for task tracking and work logging. This file is compatible
     with Claude Code, Codex, OpenCode, and other AI coding assistants.
 
-    The generated file includes:
-    - Project context and overview
-    - How to find available tasks (`cub status`, `bd ready`)
-    - How to claim work (`bd update <id> --status in_progress`)
-    - How to complete tasks (`bd close <id>`)
-    - How to log work (`cub log`)
-    - Escape hatch language for signaling when stuck
+    The generated content is designed to be upserted into AGENTS.md as a managed
+    section, preserving any user-written content outside the markers.
 
     Args:
         project_dir: Path to the project root directory
         config: CubConfig instance with project configuration
 
     Returns:
-        Complete AGENTS.md content as a string
+        Complete managed section content (ready for upsert_managed_section)
 
     Example:
         >>> config = load_config()
         >>> content = generate_agents_md(Path.cwd(), config)
-        >>> Path("AGENTS.md").write_text(content)
+        >>> result = upsert_managed_section(Path("AGENTS.md"), content)
     """
-    # Read project name from config or use directory name
-    project_name = project_dir.name
-
-    # Circuit breaker timeout from config
-    timeout_minutes = config.circuit_breaker.timeout_minutes
-
-    content = f"""# Agent Instructions
-
-This project uses **cub** for task management and autonomous coding workflows.
-
-## Project Context
-
-You are working in the `{project_name}` project. This project uses:
-- **Task backend**: Beads CLI (`bd`) for task tracking
-- **Cub**: Autonomous coding loop and workflow management
-- **Circuit breaker**: {timeout_minutes}-minute timeout for detecting stagnation
-
-For detailed build/test instructions, see `.cub/agent.md`.
-
-## When Running Directly (Not via cub run)
-
-If you're running as a direct harness session (Claude Code, Codex, OpenCode,
-etc.) rather than via `cub run`, follow this workflow to keep work tracked:
-
-### 1. Find Available Tasks
-
-```bash
-# See all open tasks
-bd list --status open
-
-# See tasks ready to work on (no blockers)
-bd ready
-
-# Show current project status
-cub status
-```
-
-### 2. Claim a Task
-
-Before starting work, claim the task:
-
-```bash
-bd update <task-id> --status in_progress
-```
-
-Example:
-```bash
-bd update cub-abc.1 --status in_progress
-```
-
-### 3. Do the Work
-
-- Read task description: `bd show <task-id>`
-- Implement the changes
-- Run tests and quality checks
-- Commit your work with conventional commit format: `type(task-id): description`
-
-### 4. Complete the Task
-
-When done, close the task with a brief reason:
-
-```bash
-bd close <task-id> -r "brief description of what was done"
-```
-
-Example:
-```bash
-bd close cub-abc.1 -r "implemented feature with tests and docs"
-```
-
-### 5. Log Your Session (Optional)
-
-Record what you accomplished:
-
-```bash
-cub log --notes="Completed task cub-abc.1: implemented X feature"
-```
-
-{ESCAPE_HATCH_SECTION}
-
-## Workflow Summary
-
-```
-1. Find work    → bd ready
-2. Claim task   → bd update <id> --status in_progress
-3. Implement    → (code, test, commit)
-4. Complete     → bd close <id> -r "done"
-5. Log session  → cub log --notes="..."
-```
-
-## Important Notes
-
-- **Always claim tasks** before starting work (`bd update --status in_progress`)
-- **Always close tasks** when done (`bd close -r "reason"`)
-- **Use conventional commits**: Format commits as `type(task-id): description`
-- **Run quality checks**: Tests, linting, type checking before closing tasks
-- **Signal if stuck**: Use the `<stuck>` tag if genuinely blocked (see above)
-
-## Commands Reference
-
-### Task Management (bd)
-- `bd list --status open` - List open tasks
-- `bd ready` - Show tasks ready to work on
-- `bd show <id>` - View task details
-- `bd update <id> --status in_progress` - Claim a task
-- `bd close <id> -r "reason"` - Complete a task
-
-### Cub Commands
-- `cub status` - Show project status and progress
-- `cub log --notes="..."` - Log work done in this session
-- `cub run` - Start autonomous coding loop (if needed)
-
-## Getting Help
-
-- Read `.cub/agent.md` for build/run/test instructions
-- Read `@specs/*` for detailed specifications (if present)
-- Use `bd show <task-id>` for task-specific context
-"""
-
-    return content
+    return generate_managed_section(project_dir, config, harness="generic")
 
 
 def generate_claude_md(project_dir: Path, config: CubConfig) -> str:
     """
     Generate CLAUDE.md with Claude Code-specific workflow instructions.
 
-    Creates instructions tailored for Claude Code, including references to
-    AGENTS.md for the core workflow plus Claude-specific features like
-    plan mode integration.
+    Creates instructions tailored for Claude Code, including the core workflow
+    plus Claude-specific features like plan mode integration and skills.
 
-    The generated file includes:
-    - Reference to AGENTS.md for core workflow
-    - Plan mode instructions (save plans to plans/ directory)
-    - Claude Code-specific tips and best practices
+    The generated content is designed to be upserted into CLAUDE.md as a managed
+    section, preserving any user-written content outside the markers.
 
     Args:
         project_dir: Path to the project root directory
         config: CubConfig instance with project configuration
 
     Returns:
-        Complete CLAUDE.md content as a string
+        Complete managed section content (ready for upsert_managed_section)
 
     Example:
         >>> config = load_config()
         >>> content = generate_claude_md(Path.cwd(), config)
-        >>> Path("CLAUDE.md").write_text(content)
+        >>> result = upsert_managed_section(Path("CLAUDE.md"), content)
     """
-    # Read project name from config or use directory name
-    project_name = project_dir.name
-
-    content = f"""# Claude Code Instructions
-
-This project uses **cub** for task management and autonomous coding workflows.
-
-## Core Workflow
-
-**See AGENTS.md** for complete workflow instructions on:
-- Finding and claiming tasks
-- Completing work and closing tasks
-- Logging sessions
-- Escape hatch for signaling when stuck
-
-This file contains **Claude Code-specific** additions.
-
-Note: Build/test instructions are in `.cub/agent.md` (generated by `cub stage`).
-
-## Plan Mode Integration
-
-When using Claude Code's plan mode to create implementation plans:
-
-### Save Plans to plans/ Directory
-
-After creating a plan in plan mode, save it to:
-```
-plans/<descriptive-name>/plan.md
-```
-
-Example structure:
-```
-plans/
-├── authentication-system/
-│   └── plan.md
-├── api-refactor/
-│   └── plan.md
-└── dashboard-ui/
-    └── plan.md
-```
-
-### Plan File Format
-
-Your plan file should include:
-- **Summary**: What you're implementing and why
-- **Approach**: Technical strategy and key decisions
-- **Steps**: Ordered list of implementation tasks
-- **Files**: Which files will be created/modified
-- **Tests**: Testing strategy
-- **Risks**: Potential issues and mitigations
-
-Example:
-```markdown
-# Authentication System Implementation
-
-## Summary
-Implement JWT-based authentication with refresh tokens.
-
-## Approach
-- Use PyJWT library for token generation/validation
-- Store refresh tokens in Redis with expiration
-- Add middleware for route protection
-
-## Steps
-1. Install and configure PyJWT
-2. Create auth service with login/logout/refresh endpoints
-3. Add authentication middleware
-4. Write integration tests
-5. Update API documentation
-
-## Files
-- src/cub/core/auth/service.py (new)
-- src/cub/core/auth/middleware.py (new)
-- tests/test_auth.py (new)
-- requirements.txt (modified)
-
-## Tests
-- Unit tests for token generation/validation
-- Integration tests for login/logout flow
-- Security tests for invalid/expired tokens
-
-## Risks
-- Token secret management (use environment variables)
-- Redis availability (add graceful degradation)
-```
-
-## Claude Code Best Practices
-
-### Before Starting Work
-1. Read `AGENTS.md` for the workflow
-2. Check `.cub/agent.md` for build/test commands
-3. Run `bd ready` to see available tasks
-4. Claim your task: `bd update <id> --status in_progress`
-
-### During Work
-- Use plan mode for complex features
-- Save plans to `plans/<name>/plan.md`
-- Commit frequently with conventional commit format
-- Run tests before considering work done
-
-### After Completing Work
-- Run all quality checks (tests, linting, type checking)
-- Close the task: `bd close <id> -r "what you did"`
-- Optional: Log your session with `cub log`
-
-### If You Get Stuck
-Use the escape hatch signal (see AGENTS.md):
-```xml
-<stuck>Clear description of the blocker preventing progress</stuck>
-```
-
-## Project: {project_name}
-
-For project-specific context:
-- **Build/Run/Test**: See `.cub/agent.md`
-- **Specifications**: See `@specs/*` (if present)
-- **Task Details**: Use `bd show <task-id>`
-"""
-
-    return content
+    return generate_managed_section(project_dir, config, harness="claude")
 
 
 __all__ = [
+    "generate_managed_section",
     "generate_agents_md",
     "generate_claude_md",
     "detect_managed_section",
