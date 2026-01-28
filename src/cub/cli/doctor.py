@@ -212,6 +212,12 @@ def check_hooks(project_dir: Path) -> int:
     """
     Check Claude Code hooks configuration.
 
+    Reports on hook installation status:
+    - Hooks installed (yes/no)
+    - Shell script present and executable
+    - Python module importable
+    - All required hook events configured
+
     Args:
         project_dir: Project directory path
 
@@ -223,9 +229,22 @@ def check_hooks(project_dir: Path) -> int:
     # Check if .claude directory exists
     claude_dir = project_dir / ".claude"
     if not claude_dir.exists():
+        console.print("[red]✗[/red] Hooks installed: No")
+        console.print("[dim]  .claude/ directory not found[/dim]")
         console.print(
-            "[dim]ℹ[/dim] .claude/ directory not found (hooks not configured)"
+            "[dim]→ Run 'cub init --hooks' to install Claude Code hooks[/dim]"
         )
+        return 0
+
+    # Hooks are "installed" if settings.json exists
+    settings_file = claude_dir / "settings.json"
+    hooks_installed = settings_file.exists()
+
+    if hooks_installed:
+        console.print("[green]✓[/green] Hooks installed: Yes")
+    else:
+        console.print("[red]✗[/red] Hooks installed: No")
+        console.print("[dim]  settings.json not found in .claude/[/dim]")
         console.print(
             "[dim]→ Run 'cub init --hooks' to install Claude Code hooks[/dim]"
         )
@@ -235,7 +254,9 @@ def check_hooks(project_dir: Path) -> int:
     issues = validate_hooks(project_dir)
 
     if not issues:
-        console.print("[green]✓[/green] Hooks are properly configured")
+        console.print("[green]✓[/green] Shell script present and executable")
+        console.print("[green]✓[/green] Python module importable")
+        console.print("[green]✓[/green] All hook events configured")
         return 0
 
     # Categorize issues by severity
@@ -243,25 +264,67 @@ def check_hooks(project_dir: Path) -> int:
     warnings = [i for i in issues if i.severity == "warning"]
     infos = [i for i in issues if i.severity == "info"]
 
-    # Report errors
-    for issue in errors:
-        console.print(f"[red]✗[/red] {issue.message}")
-        if issue.file_path:
-            console.print(f"  [dim]File: {issue.file_path}[/dim]")
+    # Check specific validation statuses
+    hook_script = project_dir / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+    if any(hook_script.name in i.message for i in errors if "script" in i.message.lower()):
+        console.print("[red]✗[/red] Shell script present and executable: No")
+    else:
+        console.print("[green]✓[/green] Shell script present and executable")
 
-    # Report warnings
-    for issue in warnings:
-        console.print(f"[yellow]![/yellow] {issue.message}")
-        if issue.file_path:
-            console.print(f"  [dim]File: {issue.file_path}[/dim]")
+    if any("handler" in i.message.lower() for i in errors):
+        console.print("[red]✗[/red] Python module importable: No")
+    else:
+        console.print("[green]✓[/green] Python module importable")
 
-    # Report infos (only if verbose)
+    if any("event" in i.message.lower() or "not configured" in i.message.lower() for i in infos):
+        console.print("[yellow]![/yellow] All hook events configured: Partially")
+    else:
+        console.print("[green]✓[/green] All hook events configured")
+
+    console.print()
+
+    # Report errors with specific fix suggestions
+    if errors:
+        console.print("[bold]Errors:[/bold]")
+        for issue in errors:
+            console.print(f"  [red]✗[/red] {issue.message}")
+            if issue.file_path:
+                console.print(f"    [dim]File: {issue.file_path}[/dim]")
+            # Provide specific fix command
+            if "script" in issue.message.lower():
+                console.print(
+                    "[dim]    → Run 'cub init --hooks --force' to reinstall script[/dim]"
+                )
+            elif "handler" in issue.message.lower():
+                console.print(
+                    "[dim]    → Ensure cub is properly installed: pip install -e .[dev][/dim]"
+                )
+
+    # Report warnings with suggestions
+    if warnings:
+        console.print("[bold]Warnings:[/bold]")
+        for issue in warnings:
+            console.print(f"  [yellow]![/yellow] {issue.message}")
+            if issue.file_path:
+                console.print(f"    [dim]File: {issue.file_path}[/dim]")
+            console.print(
+                "[dim]    → Run 'cub init --hooks --force' to fix[/dim]"
+            )
+
+    # Report infos (unconfigured events)
     if infos:
-        console.print(f"[dim]ℹ {len(infos)} info message(s)[/dim]")
+        console.print("[bold]Info:[/bold]")
+        for issue in infos:
+            console.print(f"  [dim]ℹ[/dim] {issue.message}")
+        console.print(
+            "[dim]  → Run 'cub init --hooks --force' to configure all events[/dim]"
+        )
 
-    # Provide fix suggestions
+    # Overall fix suggestion
     if errors or warnings:
-        console.print("\n[dim]→ Run 'cub init --hooks --force' to reinstall hooks[/dim]")
+        console.print(
+            "\n[dim]→ Run 'cub init --hooks --force' to reinstall hooks[/dim]"
+        )
 
     return len(errors) + len(warnings)
 

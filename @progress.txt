@@ -1,3 +1,47 @@
+## Task cub-r9d.2: Add hook validation to cub doctor
+
+**Date:** 2026-01-28
+
+**Status:** Completed
+
+**Key Learnings:**
+
+1. **Enhanced Diagnostic Output**: Improved the `check_hooks()` function to provide explicit status reporting for each validation check:
+   - "✓ Hooks installed: Yes/No" - Shows whether settings.json exists
+   - "✓ Shell script present and executable" - Verifies script presence and permissions
+   - "✓ Python module importable" - Confirms handler module loads correctly
+   - "✓ All hook events configured" - Indicates if all required events are configured
+   This makes diagnosis much easier for users without manual inspection.
+
+2. **Categorized Issue Reporting**: Organized error, warning, and info messages into separate sections with specific fix suggestions for each category. Each issue now has a targeted fix command rather than generic suggestions.
+
+3. **Clear Status Messaging**: Updated docstring to explicitly document what the function reports on, making the feature discoverable and understandable.
+
+4. **Test Updates**: When changing output format, all test assertions checking for specific strings need updating. Tests should verify the new format while maintaining coverage.
+
+**Implementation Details:**
+- Enhanced `check_hooks()` in `src/cub/cli/doctor.py` to report hook installation status explicitly
+- Provides specific fix commands for each type of issue (script missing, handler import failure, etc.)
+- Reports on:
+  - Hooks installed (yes/no) - checks if .claude/settings.json exists
+  - Shell script present and executable - validates script file and permissions
+  - Python module importable - confirms hook handler module can be imported
+  - All hook events configured - shows if all required hook events are set up
+- Updated 4 test cases to match new output format and verify new functionality
+
+**Files Modified:**
+- `src/cub/cli/doctor.py`: Enhanced `check_hooks()` function with detailed status reporting
+- `tests/test_cli_doctor.py`: Updated 4 test cases to match new output format
+
+**Test Results:**
+- All 15 doctor tests passing
+- Full test suite: 4282 passed (excluding unrelated failing test)
+- Type checking and linting: clean
+
+**Outcome:** Successfully enhanced `cub doctor` to provide comprehensive hook validation with explicit status reporting and targeted fix suggestions. Users can now diagnose integration issues without manual file inspection.
+
+---
+
 ## Task cub-r5c.5: Add "giving up" escape hatch to prompts (2026-01-26)
 
 **Status:** Completed
@@ -1039,3 +1083,42 @@ When refactoring to use existing integration classes, creating synthetic event
 streams (forensics) is an elegant way to reuse stateless integration logic without 
 duplicating construction code.
 
+
+## Task cub-r9d.1: Implement cub reconcile command
+
+**Completed**: 2026-01-28
+
+### What was implemented
+- Created `src/cub/cli/reconcile.py` with full reconcile command functionality
+- Registered command in `src/cub/cli/__init__.py` under PANEL_STATUS
+- Created comprehensive test suite in `tests/test_reconcile.py` with 14 tests
+- Implemented idempotent reconciliation that:
+  - Scans `.cub/ledger/forensics/` for session JSONL files
+  - Checks if corresponding ledger entries exist
+  - Replays unprocessed sessions through `SessionLedgerIntegration.on_session_end()`
+  - Supports `--dry-run`, `--force`, `--session`, and `--json` flags
+  - Reports results via Rich table
+
+### Key implementation details
+- Used `@app.callback(invoke_without_command=True)` to make the command execute directly without subcommands
+- Implemented `_parse_forensics_for_metadata()` helper to quickly check forensics files without full parsing
+- Used `TaskBackend.get_task()` (not `.get()`) to retrieve task context
+- Properly typed the results dict with `dict[str, Any]` for mypy compliance
+- Fixed line length issues for ruff linter (100 char max)
+
+### Testing approach
+- Tested with forensics files both with and without task associations
+- Tested idempotency (running twice doesn't create duplicates)
+- Tested dry-run mode
+- Tested force mode to re-process existing entries
+- Tested session filtering with `--session` flag
+- Tested JSON output mode
+
+### Important patterns learned
+- Typer apps with single commands should use `@app.callback(invoke_without_command=True)` not `@app.command()`
+- The `TaskBackend` protocol uses `get_task()` not `get()`
+- Forensics JSONL files contain events like `session_start`, `task_claim`, `task_close`, `file_write`, `git_commit`
+- `SessionLedgerIntegration.on_session_end()` returns `None` if no task was associated with the session
+- Rich tables can be created with `show_header=False` for summary displays
+
+All tests pass, type checking passes, and linter passes.

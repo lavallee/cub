@@ -315,8 +315,10 @@ class TestDoctorHooksCheck:
 
     def test_doctor_checks_hooks_installed_correctly(self, mock_project_dir: Path) -> None:
         """Test that doctor confirms when hooks are properly configured."""
-        # Create .claude directory
-        (mock_project_dir / ".claude").mkdir()
+        # Create .claude directory with settings.json
+        claude_dir = mock_project_dir / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{}")
 
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
@@ -329,14 +331,17 @@ class TestDoctorHooksCheck:
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 0
-            assert "Hooks are properly configured" in result.output
+            assert "Hooks installed: Yes" in result.output
+            assert "Shell script present and executable" in result.output
 
     def test_doctor_reports_hook_errors(self, mock_project_dir: Path) -> None:
         """Test that doctor reports hook configuration errors."""
         from cub.core.hooks.installer import HookIssue
 
-        # Create .claude directory
-        (mock_project_dir / ".claude").mkdir()
+        # Create .claude directory with settings.json
+        claude_dir = mock_project_dir / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{}")
 
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
@@ -370,8 +375,10 @@ class TestDoctorHooksCheck:
         """Test that doctor reports hook configuration warnings."""
         from cub.core.hooks.installer import HookIssue
 
-        # Create .claude directory
-        (mock_project_dir / ".claude").mkdir()
+        # Create .claude directory with settings.json
+        claude_dir = mock_project_dir / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{}")
 
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
@@ -398,8 +405,10 @@ class TestDoctorHooksCheck:
         """Test that doctor shows info messages only in summary."""
         from cub.core.hooks.installer import HookIssue
 
-        # Create .claude directory
-        (mock_project_dir / ".claude").mkdir()
+        # Create .claude directory with settings.json
+        claude_dir = mock_project_dir / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "settings.json").write_text("{}")
 
         mock_backend = MagicMock()
         mock_backend.list_tasks.return_value = []
@@ -420,4 +429,5 @@ class TestDoctorHooksCheck:
             result = runner.invoke(app, ["doctor"])
 
             assert result.exit_code == 0  # Info messages don't cause failure
-            assert "1 info message" in result.output
+            assert "Hook SessionEnd not configured" in result.output
+            assert "All hook events configured: Partially" in result.output

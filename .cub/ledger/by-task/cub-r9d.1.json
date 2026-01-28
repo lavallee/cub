@@ -24,8 +24,50 @@
     "captured_at": "2026-01-28T07:12:32.222047Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-071231",
+      "started_at": "2026-01-28T07:12:32.245242",
+      "completed_at": "2026-01-28T07:19:45.438269Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5257,
+        "output_tokens": 20995,
+        "cache_read_tokens": 3337432,
+        "cache_creation_tokens": 72286
+      },
+      "cost_usd": 1.8307854000000001,
+      "duration_seconds": 433
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T07:19:45.705718Z",
+    "total_cost_usd": 1.8307854000000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 433,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b1607b8c90947a026f61f719d6148ca9f0bb6d8a",
+        "message": "task(cub-r9d.1): Implement cub reconcile command",
+        "author": "",
+        "timestamp": "2026-01-28T07:19:12Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -41,7 +83,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T07:12:32.222047Z"
+    "stage_updated_at": "2026-01-28T07:19:45.705718Z"
   },
   "state_history": [
     {
@@ -49,31 +91,44 @@
       "at": "2026-01-28T07:12:32.222047Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T07:19:45.705718Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T07:12:32.222047Z",
-  "completed_at": "2026-01-28T07:12:32.222047Z",
+  "completed_at": "2026-01-28T07:19:45.705718Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 5257,
+    "output_tokens": 20995,
+    "cache_read_tokens": 3337432,
+    "cache_creation_tokens": 72286
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.8307854000000001,
+  "duration_seconds": 433,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "b1607b8c90947a026f61f719d6148ca9f0bb6d8a",
+      "message": "task(cub-r9d.1): Implement cub reconcile command",
+      "author": "",
+      "timestamp": "2026-01-28T07:19:12Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-r9d.1",
   "epic_id": "cub-r9d",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
