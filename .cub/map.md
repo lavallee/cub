@@ -49,6 +49,7 @@
     │   └── sync-state.json
     ├── .claude/
     │   ├── commands/
+    │   │   ├── cub.md
     │   │   ├── cub:architect.md
     │   │   ├── cub:capture.md
     │   │   ├── cub:itemize.md
@@ -79,6 +80,7 @@
     │   │   │   ├── cub-b1c/
     │   │   │   ├── cub-b1d/
     │   │   │   ├── cub-b1e/
+    │   │   │   ├── cub-b1f/
     │   │   │   ├── cub-c5i/
     │   │   │   ├── cub-d8b/
     │   │   │   ├── cub-j1a/
@@ -126,6 +128,8 @@
     │   │   │   ├── cub-b1e.1/
     │   │   │   ├── cub-b1e.2/
     │   │   │   ├── cub-b1e.3/
+    │   │   │   ├── cub-b1f.1/
+    │   │   │   ├── cub-b1f.2/
     │   │   │   ├── cub-b1f.3/
     │   │   │   ├── cub-c5i.1/
     │   │   │   ├── cub-c5i.2/
@@ -271,6 +275,8 @@
     │   │   │   ├── cub-b1e.1.json
     │   │   │   ├── cub-b1e.2.json
     │   │   │   ├── cub-b1e.3.json
+    │   │   │   ├── cub-b1f.1.json
+    │   │   │   ├── cub-b1f.2.json
     │   │   │   ├── cub-b1f.3.json
     │   │   │   ├── cub-c5i.1.json
     │   │   │   ├── cub-c5i.2.json
@@ -309,12 +315,6 @@
     │   │   │   ├── cub-j1c.2.json
     │   │   │   ├── cub-j1c.3.json
     │   │   │   ├── cub-j1c.4.json
-    │   │   │   ├── cub-j1c.5.json
-    │   │   │   ├── cub-j1d.1.json
-    │   │   │   ├── cub-j1d.2.json
-    │   │   │   ├── cub-j1e.1.json
-    │   │   │   ├── cub-j1e.2.json
-    │   │   │   ├── cub-j1e.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
