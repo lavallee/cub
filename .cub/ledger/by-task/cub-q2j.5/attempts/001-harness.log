@@ -1,0 +1,110 @@
+I'll start by understanding the current state of the task and exploring the codebase to implement the UserPromptSubmit hook for task ID detection.
+
+Let me first claim the task and then explore the relevant files:Let me check the current working directory:Good! Now let me claim the task:Perfect! Now let me explore the codebase to understand the existing structure. Let me search for the relevant files and understand the current implementation:Now let me search for more context about task backends and configuration:Let me read the task models and backend to understand how tasks work:Now let me check the config models to understand how task ID patterns are configured:Let me continue reading the config models:Perfect! Now I have a good understanding of the codebase. Let me understand the task better by examining the current `handle_user_prompt_submit` implementation more carefully and check for test patterns:Good! The basic pattern matching is already there. Now I need to understand what the task asks me to implement. Let me re-read the task description carefully and understand the requirements:
+
+The task is to:
+1. Extract task ID patterns from `payload.prompt` in `handle_user_prompt_submit`
+2. Pattern should be configurable from project config (prefix + number)
+3. Query task backend for the matching task
+4. If found: return task details (title, description, acceptance criteria) as `additionalContext`
+5. If not found or already in-progress: return empty context
+
+Currently, the code only detects and logs task mentions. I need to enhance it to:
+1. Query the task backend
+2. Get task details
+3. Return them as additional context
+
+Let me search for how task details are returned in the codebase:Perfect! I can see in the `handle_session_start` function (around line 565-571) how to inject additional context. Now let me implement the feature. First, let me create a plan for the implementation:
+
+**Implementation Plan:**
+
+1. **Add a configuration field** to `CubConfig` for task ID pattern (configurable prefix)
+2. **Enhance `handle_user_prompt_submit`** to:
+   - Extract task ID patterns from the prompt (using config)
+   - Query the task backend for matching tasks
+   - Format task details (title, description, acceptance criteria)
+   - Return as `additionalContext` in the hook result
+3. **Add tests** to verify task detection and context injection
+
+Let me start by updating the config model to include a task pattern configuration:Now let me add a TaskConfig class to models.py and update CubConfig to include it:Now let me add the task config to the CubConfig model:Now let me enhance the `handle_user_prompt_submit` function in hooks.py to query the task backend and return task details as additional context:Now I need to add the `_format_task_context` helper function. Let me add it right before the `handle_user_prompt_submit` function:Now let me add the necessary imports at the top of the file:Good, the imports are already there. Now let me run the tests to see if my implementation works:Great! The existing tests pass. Now I need to add tests for the new functionality. Let me add tests for the `handle_user_prompt_submit` hook with task ID detection and context injection:Now let me add a comprehensive test class for the UserPromptSubmit hook at the end of the test file:Now let's run the new tests to see if they pass:There's an issue - the task context isn't being injected. Let me debug this by checking if the task is being found:The BeadsBackend isn't finding the task. This is because BeadsBackend uses the `bd` (beads) CLI to read tasks. Let me check the BeadsBackend implementation:I see - the BeadsBackend uses the `bd` CLI which requires proper beads initialization. For testing, I should use the JSONL backend instead. Let me update the test fixtures to use JSONL format instead:Now let me also update the other test methods to use JSONL format:Now update the skip_in_progress_tasks test:Now update the task_not_found test:Now update the disabled_context_injection test:Now update the custom_task_id_pattern test:Now update the multiple_tasks_in_prompt test:Now update the empty_prompt test:Now let's run the tests again to see if they pass:The task is still not being found. Let me check if the JSONL backend is correctly loading the task:Good! The backend is correctly loading the task. The issue might be in the hook implementation. Let me add some debug output to understand what's happening:The hook is not detecting the task. Let me add logging to see what's happening:Ah! There's a regex error: "no such group". The problem is that the config has double-escaped backslashes in JSON: `\\w` instead of `\w`. Let me check my implementation - the issue is that the regex pattern in the config has an extra escape level. Let me fix the test:Let me use replace_all:Now also fix the custom pattern test:Actually, wait - the issue is that I'm using regex with groups incorrectly. Let me check the error more carefully - `re.finditer` is expecting groups but my pattern doesn't have a capturing group. Let me fix the implementation to use the correct regex:I see the issue - on line 759 I'm using `match.group(1)` which assumes there's a capturing group. But the config pattern might not have a capturing group. Let me fix this by wrapping the pattern with a capturing group if needed:Now let me test the hook again:Excellent! Now the hook is working. Now I need to revert the test config escaping since it's not needed:Also fix the custom pattern test:Now let's run the tests again:The test is failing because the config is returning `false` as a boolean, but my code is checking it incorrectly. Let me check how the config is being parsed:The config is correctly parsed as False. The issue is in my implementation - the check for `if not inject_context:` is happening before the task pattern detection loop. But that should be correct... Let me re-read my code:The code looks correct. Let me debug this by checking what's happening in the test:Good, the standalone test works correctly when context injection is disabled. The issue might be with how pytest is loading the config. Let me check if there's a stale config in the test directory. Actually, wait - looking at the test again, I notice that each test is creating its own temporary directory, so there shouldn't be a config from a previous test.
+
+Let me run the individual test in isolation:Perfect! The test passes when run in isolation. That means there might be some state being shared between tests. Let me run all the tests again to see if they pass:Interesting - when tests run together they fail. This suggests there's caching in the config loader. Let me check the config loader for caching:Ah! There's a global config cache on line 18: `_config_cache`. This is causing the issue - once a config is loaded, it's cached globally. I need to clear this cache in my tests or avoid the caching issue. Let me add a fixture to reset the config cache:Now let's run all the tests again:Excellent! All tests pass. Now let's run all the tests in the test file to make sure I didn't break anything:Perfect! All 34 tests pass. Now let's run the full test suite to make sure I didn't break anything else:There's one test failure but it's not related to my changes - it's a pre-existing issue with the test environment having `CUB_RUN_ACTIVE` set. Let me run just the tests related to my changes:Excellent! All tests related to hooks and config pass. Now let's run the type check:That error is not related to my changes. Let me check my specific files:Good - no type errors in my files. Let me check the config models:Good, no type errors in the files I modified. Now let's run linting:That's not my change - it's a pre-existing linting error. Let me check if there are any linting issues in the code I wrote:Good! No linting errors in my new code. Now let me format the files:Good! Now let me make sure my modifications are complete. Let me verify that the implementation covers all the requirements from the task:
+
+✅ 1. Extract task ID patterns from `payload.prompt` - Done
+✅ 2. Pattern is configurable from project config - Done (via TaskConfig with `id_pattern` field)
+✅ 3. Query task backend for matching task - Done
+✅ 4. If found: return task details (title, description, acceptance criteria) as `additionalContext` - Done
+✅ 5. If not found or already in-progress: return empty context - Done
+
+Now let me write a simple test to make sure the feature works end-to-end:Perfect! The implementation is working correctly. Now let me close the task by running all the feedback loops and then marking it as complete:Perfect! All tests pass. Now let me commit the changes:Now let me commit the changes:Perfect! Now let me close the task:Excellent! The task is now complete. Let me verify the commit was successful:Good! The `.beads/issues.jsonl` change is just the task status update. Let me add and commit that:Let me commit this:Perfect! Now let me verify everything is clean:Excellent! Everything is committed. Let me run the feedback loops one final time to ensure everything is working:Perfect! All tests pass. Let me also run a quick sanity check on the entire test suite for the modules I modified:Excellent! All 82 tests pass. Let me create a summary of the implementation:
+
+## Summary
+
+I have successfully completed task **cub-q2j.5: UserPromptSubmit hook for task ID detection**. Here's what was implemented:
+
+### Changes Made
+
+#### 1. **Configuration Model Enhancement** (`src/cub/core/config/models.py`)
+   - Added `TaskConfig` class with two configurable fields:
+     - `id_pattern`: Regex pattern for detecting task IDs in prompts (default: `cub-[\w.-]+`)
+     - `inject_context`: Boolean to enable/disable context injection (default: True)
+   - Integrated `TaskConfig` into the main `CubConfig` model
+
+#### 2. **Hook Implementation** (`src/cub/core/harness/hooks.py`)
+   - Enhanced `handle_user_prompt_submit` to:
+     - Extract task ID patterns from user prompts using configurable regex
+     - Query the task backend for matching tasks
+     - Skip in-progress tasks (avoid context duplication)
+     - Format task details (title, description, acceptance criteria)
+     - Return task details as `additionalContext` in the hook result
+   
+   - Added helper function `_format_task_context()`:
+     - Formats task details in markdown for readability
+     - Includes task ID, title, status, priority, description, and acceptance criteria
+
+#### 3. **Comprehensive Test Coverage** (`tests/test_harness_hooks.py`)
+   - Added 8 new tests covering:
+     - Task ID detection in prompts
+     - Context injection with task details
+     - In-progress task skipping
+     - Task not found handling
+     - Disabled context injection via config
+     - Custom task ID patterns
+     - Multiple tasks in a single prompt
+     - Empty prompt handling
+   - Fixed config cache issue by resetting cache before each test
+
+### Key Features
+
+✅ **Configurable Task ID Pattern**: Projects can customize the pattern used to detect task IDs (e.g., `proj-\w+` for different prefixes)
+
+✅ **Automatic Context Injection**: When a user mentions a task ID in their prompt, the hook automatically fetches and injects:
+   - Task title
+   - Task status
+   - Task priority
+   - Task description
+   - Acceptance criteria
+
+✅ **Graceful Error Handling**: 
+   - Skips tasks that are already in-progress
+   - Handles missing tasks gracefully
+   - Supports fallback to default pattern if config loading fails
+
+✅ **Extensible Design**: 
+   - Uses task backend interface, supporting both JSONL and Beads backends
+   - Pattern wrapping intelligently handles both simple patterns and complex regex
+
+### Test Results
+
+- **8 new tests** specifically for UserPromptSubmit hook functionality - All passing ✅
+- **82 total tests** (including config loader tests) - All passing ✅
+- **Type checking** - No errors in modified files ✅
+- **Linting** - No issues in new code ✅
+
+### Commit
+
+The implementation has been committed with:
+- Commit message: `task(cub-q2j.5): UserPromptSubmit hook for task ID detection`
+- Co-authored by Claude Haiku 4.5
+
+<promise>COMPLETE</promise>
