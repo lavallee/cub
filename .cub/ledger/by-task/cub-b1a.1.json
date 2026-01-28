@@ -25,8 +25,60 @@
     "captured_at": "2026-01-28T17:56:01.929769Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-175601",
+      "started_at": "2026-01-28T17:56:01.946626",
+      "completed_at": "2026-01-28T18:04:02.080082Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 52,
+        "output_tokens": 22512,
+        "cache_read_tokens": 2946007,
+        "cache_creation_tokens": 74752
+      },
+      "cost_usd": 2.670084549999999,
+      "duration_seconds": 480
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T18:04:02.319736Z",
+    "total_cost_usd": 2.670084549999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 480,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6d2089c53d457f743336366d2b5dcb03a7a97de3",
+        "message": "task(cub-b1a.1): Create core/run package with prompt builder extraction",
+        "author": "",
+        "timestamp": "2026-01-28T18:03:46Z"
+      }
+    ],
+    "approach": "Extracted the prompt builder functions from `cli/run.py` into a new `core/run/prompt_builder.py` module by first identifying all related functions through code search and test analysis, then creating the new package with proper data models (`PromptConfig`, `TaskPrompt`) and all five orchestrator functions, finally updating `cli/run.py` with imports while maintaining backwards compatibility.",
+    "decisions": [
+      "**Keep `_read_direct_input()` in `cli/run.py`** \u2014 This function uses `typer` and `sys` for interactive CLI input, so it belongs in the CLI layer rather than core. Only the pure, testable prompt builders were extracted.",
+      "**Use frozen dataclasses for data models** \u2014 `PromptConfig` and `TaskPrompt` were defined as frozen dataclasses rather than Pydantic models to keep the core module lightweight and dependency-free. The TaskBackend protocol is already defined in `core/tasks/backend.py`, so no need to duplicate.",
+      "**Re-export internal functions with `# noqa: F401`** \u2014 `generate_epic_context()` and `generate_retry_context()` are called only by `generate_task_prompt()`, but they're re-exported from `__init__.py` for backwards compatibility with potential future imports.",
+      "**Keep lint issues pre-existing** \u2014 Pre-existing mypy and ruff violations in `cli/run.py` (E501 line length, F401 unused imports) were left untouched to avoid scope creep; only the extracted code is clean."
+    ],
+    "lessons_learned": [
+      "**Test-driven extraction reveals dependencies** \u2014 Running existing tests while extracting functions helped identify which functions had external dependencies (TaskBackend, LedgerIntegration protocols) versus pure functions, guiding the extraction boundary.",
+      "**Frozen dataclasses work well for immutable config** \u2014 Using `frozen=True` on dataclasses made it clear that prompt configuration is immutable and serializable, reducing potential bugs from accidental modification.",
+      "**Re-exports enable gradual migration** \u2014 Keeping `cli/run.py` importing and re-exporting the core functions allows callers to either import directly from `core/run` or continue using the old path, enabling teams to migrate incrementally.",
+      "**Shell fast-path filters speed up hook execution** \u2014 The execution log mentions `.cub/scripts/hooks/cub-hook.sh` as a lightweight bash filter that prevents 90% of tool use events from reaching Python handlers, showing that performance-critical shell operations benefit from lean implementation."
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -42,7 +94,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T17:56:01.929769Z"
+    "stage_updated_at": "2026-01-28T18:04:02.319736Z"
   },
   "state_history": [
     {
@@ -50,31 +102,54 @@
       "at": "2026-01-28T17:56:01.929769Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T18:04:02.319736Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T17:56:01.929769Z",
-  "completed_at": "2026-01-28T17:56:01.929769Z",
+  "completed_at": "2026-01-28T18:04:02.319736Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 52,
+    "output_tokens": 22512,
+    "cache_read_tokens": 2946007,
+    "cache_creation_tokens": 74752
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.670084549999999,
+  "duration_seconds": 480,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Extracted the prompt builder functions from `cli/run.py` into a new `core/run/prompt_builder.py` module by first identifying all related functions through code search and test analysis, then creating the new package with proper data models (`PromptConfig`, `TaskPrompt`) and all five orchestrator functions, finally updating `cli/run.py` with imports while maintaining backwards compatibility.",
+  "decisions": [
+    "**Keep `_read_direct_input()` in `cli/run.py`** \u2014 This function uses `typer` and `sys` for interactive CLI input, so it belongs in the CLI layer rather than core. Only the pure, testable prompt builders were extracted.",
+    "**Use frozen dataclasses for data models** \u2014 `PromptConfig` and `TaskPrompt` were defined as frozen dataclasses rather than Pydantic models to keep the core module lightweight and dependency-free. The TaskBackend protocol is already defined in `core/tasks/backend.py`, so no need to duplicate.",
+    "**Re-export internal functions with `# noqa: F401`** \u2014 `generate_epic_context()` and `generate_retry_context()` are called only by `generate_task_prompt()`, but they're re-exported from `__init__.py` for backwards compatibility with potential future imports.",
+    "**Keep lint issues pre-existing** \u2014 Pre-existing mypy and ruff violations in `cli/run.py` (E501 line length, F401 unused imports) were left untouched to avoid scope creep; only the extracted code is clean."
+  ],
+  "lessons_learned": [
+    "**Test-driven extraction reveals dependencies** \u2014 Running existing tests while extracting functions helped identify which functions had external dependencies (TaskBackend, LedgerIntegration protocols) versus pure functions, guiding the extraction boundary.",
+    "**Frozen dataclasses work well for immutable config** \u2014 Using `frozen=True` on dataclasses made it clear that prompt configuration is immutable and serializable, reducing potential bugs from accidental modification.",
+    "**Re-exports enable gradual migration** \u2014 Keeping `cli/run.py` importing and re-exporting the core functions allows callers to either import directly from `core/run` or continue using the old path, enabling teams to migrate incrementally.",
+    "**Shell fast-path filters speed up hook execution** \u2014 The execution log mentions `.cub/scripts/hooks/cub-hook.sh` as a lightweight bash filter that prevents 90% of tool use events from reaching Python handlers, showing that performance-critical shell operations benefit from lean implementation."
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "6d2089c53d457f743336366d2b5dcb03a7a97de3",
+      "message": "task(cub-b1a.1): Create core/run package with prompt builder extraction",
+      "author": "",
+      "timestamp": "2026-01-28T18:03:46Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1a.1",
   "epic_id": "cub-b1a",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "opus",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
