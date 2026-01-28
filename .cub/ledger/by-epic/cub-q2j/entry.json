@@ -19,39 +19,41 @@
   "task_ids": [
     "cub-q2j.1",
     "cub-q2j.3",
+    "cub-q2j.5",
     "cub-q2j.2",
     "cub-q2j.4"
   ],
   "aggregates": {
-    "total_tasks": 4,
-    "tasks_completed": 4,
-    "tasks_successful": 4,
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
     "tasks_failed": 0,
-    "total_cost_usd": 5.26978405,
-    "avg_cost_per_task": 1.3174460125,
+    "total_cost_usd": 6.267761000000001,
+    "avg_cost_per_task": 1.2535522000000001,
     "min_cost_usd": 0.98965065,
     "max_cost_usd": 1.7986507000000005,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 4,
+    "total_attempts": 5,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 9690608,
-    "avg_tokens_per_task": 2422652,
-    "total_duration_seconds": 1285,
-    "avg_duration_seconds": 321,
+    "total_tokens": 16206118,
+    "avg_tokens_per_task": 3241223,
+    "total_duration_seconds": 1594,
+    "avg_duration_seconds": 318,
     "models_used": [
+      "haiku",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T07:07:14.065882Z"
+    "stage_updated_at": "2026-01-28T07:12:25.998064Z"
   },
   "state_history": [],
   "started_at": "2026-01-28T06:45:39.513425Z",
-  "completed_at": "2026-01-28T07:07:14.040049Z",
-  "updated_at": "2026-01-28T07:07:14.065884Z",
+  "completed_at": "2026-01-28T07:12:25.964037Z",
+  "updated_at": "2026-01-28T07:12:25.998066Z",
   "first_commit": {
     "hash": "35afbd4ff9d3d8a418040d12fb5f104afb64d517",
     "message": "task(cub-q2j.1): Add branch binding to JSON task backend",
@@ -59,10 +61,10 @@
     "timestamp": "2026-01-28T06:51:50Z"
   },
   "last_commit": {
-    "hash": "23b59ab5d73c9d6cbc45badf5dd222f2507c8c0d",
-    "message": "task(cub-q2j.4): SessionStart hook injects project context",
+    "hash": "1e2a227446b9561aec18ffe91aa714fbaae6f71a",
+    "message": "chore: close task cub-q2j.5",
     "author": "",
-    "timestamp": "2026-01-28T07:06:35Z"
+    "timestamp": "2026-01-28T07:12:07Z"
   },
   "drift": {
     "additions": [],
