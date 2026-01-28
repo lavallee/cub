@@ -144,7 +144,6 @@ def update(
         template_files = {
             "PROMPT.md": layout_root / "prompt.md",
             "AGENT.md": layout_root / "agent.md",
-            "progress.txt": layout_root / "progress.txt",
             "fix_plan.md": layout_root / "fix_plan.md",
             "guardrails.md": layout_root / "guardrails.md",
             "README.md": layout_root / "README.md",

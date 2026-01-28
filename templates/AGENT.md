@@ -215,7 +215,6 @@ If a command doesn't exist for your project, delete that section entirely.
 ├── .cub/                 # Cub control files (auto-managed)
 │   ├── agent.md          # This file (project instructions)
 │   ├── prompt.md         # System prompt for AI assistants
-│   ├── progress.txt      # Session learnings and discoveries
 │   └── fix_plan.md       # Known issues and technical debt
 ├── .env.example          # Environment template (copy to .env)
 ├── .gitignore            # Git ignore patterns

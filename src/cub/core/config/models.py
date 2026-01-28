@@ -179,7 +179,6 @@ class CleanupConfig(BaseModel):
     # Patterns for files to commit (useful artifacts)
     artifact_patterns: list[str] = Field(
         default_factory=lambda: [
-            "progress.txt",
             "fix_plan.md",
             "AGENT.md",
             ".cub/status.json",

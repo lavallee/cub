@@ -573,7 +573,6 @@ def generate_task_prompt(task: Task, task_backend: TaskBackend) -> str:
     prompt_parts.append("1. Run feedback loops (typecheck, test, lint)")
     prompt_parts.append("2. Mark the task complete (see Task Management above)")
     prompt_parts.append(f"3. Commit: `{task_type_str}({task.id}): {task.title}`")
-    prompt_parts.append("4. Append learnings to progress.txt")
 
     return "\n".join(prompt_parts)
 

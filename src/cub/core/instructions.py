@@ -239,7 +239,6 @@ cub log --notes="Completed task cub-abc.1: implemented X feature"
 
 - Read `AGENT.md` for build/run/test instructions
 - Read `@specs/*` for detailed specifications (if present)
-- Read `@progress.txt` for learnings from previous sessions
 - Use `bd show <task-id>` for task-specific context
 """
 
@@ -385,7 +384,6 @@ Use the escape hatch signal (see AGENTS.md):
 For project-specific context:
 - **Build/Run/Test**: See `AGENT.md`
 - **Specifications**: See `@specs/*` (if present)
-- **Previous Learnings**: See `@progress.txt`
 - **Task Details**: Use `bd show <task-id>`
 """
 

@@ -540,7 +540,6 @@ PROJECT FILES:
   .cub/
     ├── prompt.md                System prompt template
     ├── agent.md                 Build/run instructions
-    ├── progress.txt             Progress log
     ├── fix_plan.md              Issue tracking
     ├── progress.md              Beads progress tracking
     ├── sessions/                Pipeline session artifacts

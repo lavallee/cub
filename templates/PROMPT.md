@@ -89,7 +89,6 @@ You are an autonomous coding agent working through a task backlog.
 Study these files to understand the project:
 - @AGENT.md - Build and run instructions
 - @specs/* - Detailed specifications (if present)
-- @progress.txt - Learnings from previous iterations
 
 ## Your Workflow
 
@@ -162,8 +161,7 @@ Output this XML tag with your reason:
 After successfully completing the task and all checks pass:
 1. Close the task using the method shown in CURRENT TASK
 2. Commit your changes with format: `type(task-id): description`
-3. Append learnings to @progress.txt
-4. If ALL tasks are closed, output exactly:
+3. If ALL tasks are closed, output exactly:
 
 <promise>COMPLETE</promise>
 
