@@ -290,7 +290,9 @@ async def handle_post_tool_use(payload: HookEventPayload) -> HookEventResult:
                     )
                     await _write_forensic_event(claim_event, payload.cwd)
                     logger.info(f"Task claimed: {task_id}", extra={"task_id": task_id})
-                elif match := re.search(r"bd\s+update\s+([\w.-]+)\s+--status\s+in_progress", command):
+                elif match := re.search(
+                    r"bd\s+update\s+([\w.-]+)\s+--status\s+in_progress", command
+                ):
                     # Legacy fallback for bd commands
                     task_id = match.group(1)
                     claim_event = TaskClaimEvent(
@@ -669,32 +671,102 @@ async def handle_pre_compact(payload: HookEventPayload) -> HookEventResult:
     )
 
 
+def _format_task_context(task: Any) -> str:
+    """
+    Format task details for injection as additional context.
+
+    Args:
+        task: Task object from backend
+
+    Returns:
+        Formatted task context string (markdown)
+    """
+    from cub.core.tasks.models import Task
+
+    if not isinstance(task, Task):
+        return ""
+
+    # Build context with task details
+    context_parts = [f"## Task: {task.id}"]
+    context_parts.append(f"**Title:** {task.title}")
+
+    if task.status:
+        context_parts.append(f"**Status:** {task.status.value}")
+
+    if task.priority:
+        context_parts.append(f"**Priority:** {task.priority.value}")
+
+    if task.description:
+        context_parts.append(f"**Description:**\n{task.description}")
+
+    if task.acceptance_criteria:
+        criteria_text = "\n".join(f"- {c}" for c in task.acceptance_criteria)
+        context_parts.append(f"**Acceptance Criteria:**\n{criteria_text}")
+
+    return "\n\n".join(context_parts)
+
+
 async def handle_user_prompt_submit(payload: HookEventPayload) -> HookEventResult:
     """
-    Handle UserPromptSubmit events to detect task mentions.
+    Handle UserPromptSubmit events to detect task mentions and inject task details.
 
-    Detects task ID patterns (e.g., cub-w3f.2) in user prompts and logs
-    task_mention events for context injection.
+    Detects task ID patterns (e.g., cub-w3f.2) in user prompts, queries the task
+    backend for task details, and injects them as additionalContext for the AI.
 
     Args:
         payload: Parsed hook event payload
 
     Returns:
-        Hook result allowing execution to continue
+        Hook result allowing execution to continue, with task details in additionalContext
     """
+    additional_context = None
+    hook_specific = {"hookEventName": "UserPromptSubmit"}
+
     try:
         # Extract user prompt from payload
         user_prompt = payload.tool_input.get("prompt", "") if payload.tool_input else ""
 
-        # Detect task ID patterns (configurable prefix, default: cub-)
-        # Pattern: cub-<alphanumeric>.<number> or cub-<alphanumeric>
-        task_pattern = r"\b(cub-[\w.-]+)\b"
+        if not user_prompt or not payload.cwd:
+            return HookEventResult(
+                continue_execution=True,
+                hook_specific=hook_specific,
+            )
+
+        # Load config to get task ID pattern
+        try:
+            from cub.core.config import load_config
+
+            config = load_config(project_dir=Path(payload.cwd))
+            task_pattern = config.task.id_pattern
+            inject_context = config.task.inject_context
+        except Exception:
+            # Fall back to default pattern if config loading fails
+            task_pattern = r"cub-[\w.-]+"
+            inject_context = True
+
+        # Skip context injection if disabled in config
+        if not inject_context:
+            return HookEventResult(
+                continue_execution=True,
+                hook_specific=hook_specific,
+            )
+
+        # Wrap pattern in word boundaries and capturing group if needed
+        if not task_pattern.startswith("("):
+            # Add word boundaries and capturing group
+            task_pattern = r"\b(" + task_pattern + r")\b"
+
+        # Detect task ID patterns in the prompt
         matches = re.finditer(task_pattern, user_prompt, re.IGNORECASE)
+
+        # Collect task details for all matched task IDs
+        task_details: list[str] = []
 
         for match in matches:
             task_id = match.group(1)
             prompt_preview = user_prompt[:100]  # First 100 chars
 
+            # Write forensic event for this task mention
             event = TaskMentionEvent(
                 session_id=payload.session_id, task_id=task_id, prompt_preview=prompt_preview
             )
@@ -702,12 +774,53 @@ async def handle_user_prompt_submit(payload: HookEventPayload) -> HookEventResul
 
             logger.info(f"Task mentioned: {task_id}", extra={"task_id": task_id})
 
+            # Query task backend for task details
+            try:
+                from cub.core.tasks.backend import get_backend
+                from cub.core.tasks.models import TaskStatus
+
+                backend = get_backend(project_dir=Path(payload.cwd))
+                task = backend.get_task(task_id)
+
+                if task:
+                    # Skip if task is already in progress (avoid context duplication)
+                    if task.status == TaskStatus.IN_PROGRESS:
+                        logger.debug(
+                            f"Task {task_id} already in progress, skipping context injection",
+                            extra={"task_id": task_id},
+                        )
+                        continue
+
+                    # Format task details for injection
+                    task_context = _format_task_context(task)
+                    task_details.append(task_context)
+                    logger.debug(
+                        f"Task context injected: {task_id}",
+                        extra={"task_id": task_id},
+                    )
+                else:
+                    logger.debug(
+                        f"Task not found in backend: {task_id}",
+                        extra={"task_id": task_id},
+                    )
+            except Exception as e:
+                logger.debug(
+                    f"Failed to fetch task details for {task_id}: {e}",
+                    extra={"task_id": task_id},
+                )
+                continue
+
+        # Build additional context if any tasks were found
+        if task_details:
+            additional_context = "\n\n".join(task_details)
+            hook_specific["additionalContext"] = additional_context
+
     except Exception as e:
-        logger.debug(f"Failed to detect task mentions in user prompt: {e}")
+        logger.debug(f"Failed to handle user prompt submit event: {e}")
 
     return HookEventResult(
         continue_execution=True,
-        hook_specific={"hookEventName": "UserPromptSubmit"},
+        hook_specific=hook_specific,
     )
 
 

@@ -815,3 +815,61 @@
 - Type checking: No errors in task.py
 - Linting: All checks passed
 
+
+## Task cub-q2j.4: SessionStart hook injects project context - COMPLETED
+
+**Date:** 2026-01-28
+
+**Key Implementation Details:**
+
+1. **Project Context Builder**: Added `_build_project_context(project_dir)` helper function that:
+   - Loads task backend from project config using `get_backend(project_dir)`
+   - Queries `get_ready_tasks()` for top 10 tasks by priority
+   - Queries `list_tasks(status=IN_PROGRESS)` for resumed session awareness
+   - Builds concise context with project name, ready tasks (ID + title + priority), and in-progress tasks
+   - Keeps context under 500 tokens (~2000 chars) to avoid bloating conversation
+   - Returns None on errors (graceful degradation)
+
+2. **SessionStart Hook Enhancement**: Modified `handle_session_start()` to:
+   - Call `_build_project_context()` after forensics and ledger initialization
+   - Inject context as `additionalContext` in `HookEventResult.hook_specific`
+   - Return enhanced hook result with project awareness
+   - Never crash on context building failures (defensive error handling)
+
+3. **Context Format**: The context string includes:
+   - Project name from directory
+   - Ready tasks section with task ID, title, and priority (e.g., `[P0]`)
+   - In-progress tasks section for resumed session awareness
+   - Markdown formatting for clear structure
+   - Truncation with "..." if exceeding character limit
+
+4. **Test Coverage**: Added 2 comprehensive integration tests:
+   - `test_session_start_injects_project_context`: Verifies context includes project name, ready tasks, in-progress tasks, priority indicators
+   - `test_session_start_handles_missing_tasks`: Verifies graceful handling when no tasks exist
+   - Both tests create temporary projects with tasks.jsonl backend
+
+### Learnings
+
+- **Backend Query Interface**: The `TaskBackend` protocol provides `get_ready_tasks()` which returns tasks sorted by priority, and `list_tasks(status=TaskStatus)` which requires TaskStatus enum (not string).
+
+- **Type Safety**: Always import TaskStatus enum and use `TaskStatus.IN_PROGRESS` rather than string `"in_progress"` for type-safe backend queries. Mypy catches these errors.
+
+- **Token Budgeting**: Used character-based approximation (1 token ≈ 4 chars) rather than actual token counting. This is simpler and sufficient for this use case.
+
+- **Defensive Programming**: Context building wrapped in try/except with None return on errors. This ensures SessionStart hook never crashes due to backend/task loading issues.
+
+- **Test Patterns**: Integration tests write tasks.jsonl directly to tmp_path to simulate project with tasks. This is simpler than mocking the entire backend.
+
+- **Context Injection**: The `additionalContext` field in `hook_specific` is the standard way to inject ambient information into Claude Code sessions at startup.
+
+### Files Modified
+- src/cub/core/harness/hooks.py (added _build_project_context, enhanced handle_session_start)
+- tests/test_harness_hooks_integration.py (added 2 context injection tests)
+
+### Test Results
+- All 3 SessionStart integration tests pass (1 existing + 2 new)
+- All 13 harness hooks integration tests pass
+- All 26 harness hook tests pass
+- Type checking: No errors in hooks.py
+- Linting: All checks passed
+

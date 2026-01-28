@@ -506,3 +506,329 @@ class TestToolLevelHooksWarning:
             warning_calls = [c for c in mock_logger.warning.call_args_list]
             assert len(warning_calls) == 1
             assert "not yet active" in warning_calls[0][0][0]
+
+
+class TestUserPromptSubmitHook:
+    """Tests for UserPromptSubmit hook with task ID detection and context injection."""
+
+    def setup_method(self) -> None:
+        """Reset config cache before each test to avoid interference."""
+        import cub.core.config.loader
+
+        cub.core.config.loader._config_cache = None
+
+    @pytest.mark.asyncio
+    async def test_detect_task_id_in_prompt(self, tmp_path: Any) -> None:
+        """Test that task IDs are detected in user prompts."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+
+        # Create a minimal project structure with JSONL backend
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "tasks.jsonl").write_text("")
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "I need to work on cub-w3f.2 to fix the bug"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        assert result.hook_specific["hookEventName"] == "UserPromptSubmit"
+
+    @pytest.mark.asyncio
+    async def test_inject_task_details_as_context(self, tmp_path: Any) -> None:
+        """Test that task details are injected as additionalContext."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+        from cub.core.tasks.models import Task, TaskStatus
+
+        # Create a minimal JSONL project (easier to test with than beads)
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Create a task
+        task = Task(
+            id="cub-test-001",
+            title="Test Task",
+            description="This is a test task",
+            status=TaskStatus.OPEN,
+            acceptance_criteria=["Criterion 1", "Criterion 2"],
+        )
+
+        # Write task to JSONL format
+        import json
+
+        tasks_file.write_text(json.dumps(task.model_dump(by_alias=True)) + "\n")
+
+        # Create minimal config
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "cub-[\\\\w.-]+", "inject_context": true}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "Let me work on cub-test-001"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        assert "additionalContext" in result.hook_specific
+        context = result.hook_specific["additionalContext"]
+        assert "cub-test-001" in context
+        assert "Test Task" in context
+        assert "This is a test task" in context
+        assert "Criterion 1" in context
+        assert "Criterion 2" in context
+
+    @pytest.mark.asyncio
+    async def test_skip_in_progress_tasks(self, tmp_path: Any) -> None:
+        """Test that in-progress tasks are skipped (no context injection)."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+        from cub.core.tasks.models import Task, TaskStatus
+
+        # Create a minimal JSONL project
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Create an in-progress task
+        task = Task(
+            id="cub-test-002",
+            title="In Progress Task",
+            description="This task is already being worked on",
+            status=TaskStatus.IN_PROGRESS,
+            acceptance_criteria=["Must do this"],
+        )
+
+        # Write task to JSONL format
+        import json
+
+        tasks_file.write_text(json.dumps(task.model_dump(by_alias=True)) + "\n")
+
+        # Create minimal config
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "cub-[\\\\w.-]+", "inject_context": true}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "Continuing work on cub-test-002"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        # Should not have additionalContext for in-progress task
+        assert "additionalContext" not in result.hook_specific
+
+    @pytest.mark.asyncio
+    async def test_task_not_found(self, tmp_path: Any) -> None:
+        """Test behavior when task is not found in backend."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+
+        # Create an empty JSONL project
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text("")
+
+        # Create minimal config
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "cub-[\\\\w.-]+", "inject_context": true}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "Working on cub-nonexistent"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        # Should not crash, just skip context for missing task
+        assert "additionalContext" not in result.hook_specific
+
+    @pytest.mark.asyncio
+    async def test_disabled_context_injection(self, tmp_path: Any) -> None:
+        """Test that context injection can be disabled via config."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+        from cub.core.tasks.models import Task, TaskStatus
+
+        # Create a minimal JSONL project
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Create a task
+        task = Task(
+            id="cub-test-003",
+            title="Test Task 3",
+            description="Another test task",
+            status=TaskStatus.OPEN,
+        )
+
+        # Write task to JSONL format
+        import json
+
+        tasks_file.write_text(json.dumps(task.model_dump(by_alias=True)) + "\n")
+
+        # Create config with context injection disabled
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "cub-[\\\\w.-]+", "inject_context": false}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "Work on cub-test-003"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        # Context injection should be disabled
+        assert "additionalContext" not in result.hook_specific
+
+    @pytest.mark.asyncio
+    async def test_custom_task_id_pattern(self, tmp_path: Any) -> None:
+        """Test that custom task ID patterns can be configured."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+        from cub.core.tasks.models import Task, TaskStatus
+
+        # Create a minimal JSONL project
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Create a task with custom prefix
+        task = Task(
+            id="proj-custom-001",
+            title="Custom Task",
+            description="Task with custom prefix",
+            status=TaskStatus.OPEN,
+        )
+
+        # Write task to JSONL format
+        import json
+
+        tasks_file.write_text(json.dumps(task.model_dump(by_alias=True)) + "\n")
+
+        # Create config with custom pattern
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "proj-[\\\\w.-]+", "inject_context": true}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": "Starting work on proj-custom-001"},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        assert "additionalContext" in result.hook_specific
+        context = result.hook_specific["additionalContext"]
+        assert "proj-custom-001" in context
+        assert "Custom Task" in context
+
+    @pytest.mark.asyncio
+    async def test_multiple_tasks_in_prompt(self, tmp_path: Any) -> None:
+        """Test that multiple task IDs in a prompt are all detected."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+        from cub.core.tasks.models import Task, TaskStatus
+
+        # Create a minimal JSONL project
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Create multiple tasks
+        task1 = Task(
+            id="cub-task-001",
+            title="First Task",
+            description="First description",
+            status=TaskStatus.OPEN,
+        )
+        task2 = Task(
+            id="cub-task-002",
+            title="Second Task",
+            description="Second description",
+            status=TaskStatus.OPEN,
+        )
+
+        # Write tasks to JSONL format
+        import json
+
+        with open(tasks_file, "w") as f:
+            f.write(json.dumps(task1.model_dump(by_alias=True)) + "\n")
+            f.write(json.dumps(task2.model_dump(by_alias=True)) + "\n")
+
+        # Create minimal config
+        config_file = tmp_path / ".cub.json"
+        config_file.write_text('{"task": {"id_pattern": "cub-[\\\\w.-]+", "inject_context": true}}')
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {
+                    "prompt": "I need to work on cub-task-001 and also cub-task-002 together"
+                },
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        assert "additionalContext" in result.hook_specific
+        context = result.hook_specific["additionalContext"]
+        # Both tasks should be in context
+        assert "cub-task-001" in context
+        assert "First Task" in context
+        assert "cub-task-002" in context
+        assert "Second Task" in context
+
+    @pytest.mark.asyncio
+    async def test_empty_prompt(self, tmp_path: Any) -> None:
+        """Test behavior with empty prompt."""
+        from cub.core.harness.hooks import HookEventPayload, handle_user_prompt_submit
+
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "tasks.jsonl").write_text("")
+
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "session_id": "test-session",
+                "cwd": str(tmp_path),
+                "tool_input": {"prompt": ""},
+            }
+        )
+
+        result = await handle_user_prompt_submit(payload)
+
+        assert result.continue_execution is True
+        assert "additionalContext" not in result.hook_specific

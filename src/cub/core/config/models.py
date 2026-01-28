@@ -356,6 +356,28 @@ class BackendConfig(BaseModel):
     )
 
 
+class TaskConfig(BaseModel):
+    """
+    Task identification and context configuration.
+
+    Controls how tasks are identified in user prompts and how their details
+    are provided as context to the AI harness.
+    """
+
+    id_pattern: str = Field(
+        default=r"cub-[\w.-]+",
+        description=(
+            "Regex pattern for task ID detection in user prompts. "
+            "Default: 'cub-[\\w.-]+' matches IDs like 'cub-042', 'cub-w3f.2'. "
+            "Use configurable prefix for custom task ID formats."
+        ),
+    )
+    inject_context: bool = Field(
+        default=True,
+        description="Inject task details as additionalContext when task ID is mentioned in prompt",
+    )
+
+
 class HarnessConfig(BaseModel):
     """
     AI harness configuration.
@@ -395,6 +417,9 @@ class CubConfig(BaseModel):
     backend: BackendConfig = Field(
         default_factory=BackendConfig, description="Task backend configuration"
     )
+    task: TaskConfig = Field(
+        default_factory=TaskConfig, description="Task identification and context configuration"
+    )
     harness: HarnessConfig = Field(
         default_factory=HarnessConfig, description="AI harness configuration"
     )
@@ -421,9 +446,7 @@ class CubConfig(BaseModel):
     ledger: LedgerConfig = Field(
         default_factory=LedgerConfig, description="Ledger (completed work tracking) settings"
     )
-    sync: SyncConfig = Field(
-        default_factory=SyncConfig, description="Task sync settings"
-    )
+    sync: SyncConfig = Field(default_factory=SyncConfig, description="Task sync settings")
     circuit_breaker: CircuitBreakerConfig = Field(
         default_factory=CircuitBreakerConfig,
         description="Circuit breaker stagnation detection settings",
