@@ -389,3 +389,74 @@
 - Total: 4113 tests passed across full test suite
 - Ruff linting: All checks passed (fixed one line-too-long error)
 
+## Task cub-r1d.2 - Implement retry context injection from ledger
+
+### Key Implementation Details
+
+1. **Retry Context Function**: Added `generate_retry_context(task, ledger_integration, 
+   log_tail_lines=50)` to src/cub/cli/run.py that enriches task prompts with retry 
+   awareness. Returns None if task has no previous failed attempts, otherwise returns 
+   formatted context.
+
+2. **Failed Attempt Analysis**: Extracts structured information from ledger entry:
+   - Total attempts vs failed attempts count
+   - Per-attempt details: model, duration, error_category, error_summary
+   - Filters to show only failed attempts (ignores successful ones)
+   - Duration formatting: seconds for <60s, minutes for ≥60s
+
+3. **Log Tail Extraction**: Reads the most recent failure's harness log file from 
+   `.cub/ledger/by-task/{task_id}/attempts/{attempt:03d}-harness.log`. Extracts 
+   last N lines (default 50) to show what happened before failure. Gracefully handles 
+   missing logs (e.g., if harness crashed before writing log).
+
+4. **Integration**: Retry context is injected into `generate_task_prompt()` after 
+   epic context and before task management instructions. Only included when 
+   ledger.enabled is true and ledger_integration is passed to the function.
+
+5. **Pattern Consistency**: Followed the same pattern as `generate_epic_context()`:
+   - Returns `str | None` for optional context
+   - Builds context using list accumulation (`context_parts.append()`)
+   - Joins with `"\n".join(context_parts)` at the end
+   - Uses markdown formatting for structure
+
+### Learnings
+
+- **Ledger File Paths**: Log files are stored at 
+  `.cub/ledger/by-task/{task_id}/attempts/{attempt_number:03d}-harness.log`.
+  The attempt number is zero-padded to 3 digits (001, 002, etc.).
+
+- **LedgerIntegration vs LedgerWriter**: The run loop has access to 
+  `ledger_integration` (type LedgerIntegration), which has a `.writer` attribute
+  (type LedgerWriter). The writer provides `get_entry(task_id)` and has a 
+  `by_task_dir` attribute for constructing log file paths.
+
+- **Attempt Model Structure**: Each Attempt has error_category, error_summary,
+  success, model, duration_seconds, and duration_minutes (computed property).
+  The error fields are `str | None`, so we need to check for None.
+
+- **Graceful Degradation**: Use try/except for file operations with specific 
+  exception types (OSError, UnicodeDecodeError) to handle missing/corrupt logs.
+  Don't crash the prompt generation - just skip the log section if it fails.
+
+- **Test Import Pattern**: For testing functions from the module under test, 
+  import them within each test method rather than at the top-level. This avoids 
+  "redefinition of unused import" linting errors (F811).
+
+- **Substring Matching in Tests**: When testing "Log line 1" not in result, be 
+  careful about substring matches with "Log line 91". Split by newlines first 
+  or use line-based assertions instead of string containment.
+
+- **Line Length Linting**: Lines over 100 chars trigger E501. Break long strings 
+  across multiple lines with explicit variable assignment or string concatenation.
+
+### Files Modified
+- src/cub/cli/run.py (added generate_retry_context, modified generate_task_prompt signature)
+- tests/test_run_core.py (added 10 retry context tests)
+
+### Test Results
+- All 10 new retry context tests pass
+- All 96 run_core tests pass (86 existing + 10 new)
+- Total: 4123 tests passed across full test suite
+- Ruff linting: All checks passed
+- Mypy type checking: Success (pre-existing errors in other files, none in run.py)
+

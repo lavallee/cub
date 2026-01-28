@@ -1055,15 +1055,17 @@ def run(
     # Validate flags
     if no_network and not sandbox:
         print_incompatible_flags_error(
-            "--no-network", "--sandbox",
-            reason="Network isolation is only available in sandbox mode"
+            "--no-network",
+            "--sandbox",
+            reason="Network isolation is only available in sandbox mode",
         )
         raise typer.Exit(ExitCode.USER_ERROR)
 
     if sandbox_keep and not sandbox:
         print_incompatible_flags_error(
-            "--sandbox-keep", "--sandbox",
-            reason="Can only preserve sandboxes when sandbox mode is enabled"
+            "--sandbox-keep",
+            "--sandbox",
+            reason="Can only preserve sandboxes when sandbox mode is enabled",
         )
         raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -1071,32 +1073,27 @@ def run(
         # --direct is incompatible with task management flags
         if task_id:
             print_incompatible_flags_error(
-                "--direct", "--task",
-                reason="Direct mode runs without task management"
+                "--direct", "--task", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
             print_incompatible_flags_error(
-                "--direct", "--epic",
-                reason="Direct mode runs without task management"
+                "--direct", "--epic", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if label:
             print_incompatible_flags_error(
-                "--direct", "--label",
-                reason="Direct mode runs without task management"
+                "--direct", "--label", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
             print_incompatible_flags_error(
-                "--direct", "--ready",
-                reason="Direct mode runs without task management"
+                "--direct", "--ready", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
             print_incompatible_flags_error(
-                "--direct", "--parallel",
-                reason="Direct mode runs without task management"
+                "--direct", "--parallel", reason="Direct mode runs without task management"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -1104,38 +1101,34 @@ def run(
         # --gh-issue is incompatible with task management flags
         if task_id:
             print_incompatible_flags_error(
-                "--gh-issue", "--task",
-                reason="GitHub issue mode uses issues for input, not tasks"
+                "--gh-issue", "--task", reason="GitHub issue mode uses issues for input, not tasks"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if epic:
             print_incompatible_flags_error(
-                "--gh-issue", "--epic",
-                reason="GitHub issue mode uses issues for input, not epics"
+                "--gh-issue", "--epic", reason="GitHub issue mode uses issues for input, not epics"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if label:
             print_incompatible_flags_error(
-                "--gh-issue", "--label",
-                reason="GitHub issue mode uses issues for input"
+                "--gh-issue", "--label", reason="GitHub issue mode uses issues for input"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if ready:
             print_incompatible_flags_error(
-                "--gh-issue", "--ready",
-                reason="GitHub issue mode uses issues for input"
+                "--gh-issue", "--ready", reason="GitHub issue mode uses issues for input"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if parallel:
             print_incompatible_flags_error(
-                "--gh-issue", "--parallel",
-                reason="GitHub issue mode processes one issue at a time"
+                "--gh-issue", "--parallel", reason="GitHub issue mode processes one issue at a time"
             )
             raise typer.Exit(ExitCode.USER_ERROR)
         if direct:
             print_incompatible_flags_error(
-                "--gh-issue", "--direct",
-                reason="Choose either GitHub issue mode or direct mode, not both"
+                "--gh-issue",
+                "--direct",
+                reason="Choose either GitHub issue mode or direct mode, not both",
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -1230,7 +1223,7 @@ def run(
             print_missing_dependency_error(
                 "docker",
                 install_url="https://docs.docker.com/get-docker/",
-                install_cmd="Follow platform-specific instructions at the docs link"
+                install_cmd="Follow platform-specific instructions at the docs link",
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
@@ -2836,7 +2829,7 @@ def _run_parallel(
 
             # Aggregate budget from worker results if available
             budget_status = BudgetStatus()
-            if 'result' in locals():
+            if "result" in locals():
                 total_tokens = sum(
                     worker.tokens_used for worker in result.workers if worker.tokens_used
                 )
@@ -2857,8 +2850,8 @@ def _run_parallel(
                     "epic": epic,
                     "label": label,
                 },
-                tasks_completed=result.tasks_completed if 'result' in locals() else 0,
-                tasks_failed=result.tasks_failed if 'result' in locals() else 0,
+                tasks_completed=result.tasks_completed if "result" in locals() else 0,
+                tasks_failed=result.tasks_failed if "result" in locals() else 0,
                 budget=budget_status,
             )
 

@@ -1,3 +1,50 @@
+<!--
+╔══════════════════════════════════════════════════════════════════╗
+║  AGENT INSTRUCTIONS FOR CUB DEVELOPMENT                          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+This file contains instructions for building, running, and developing the Cub project.
+
+Think of this as:
+- BUILD INSTRUCTIONS: How to set up, test, and run the project
+- ARCHITECTURE: Key modules, patterns, and design decisions
+- WORKFLOWS: Git integration, task management, and development practices
+- LEARNINGS: Project-specific gotchas and conventions
+
+Update this file as you learn new things about the codebase.
+
+╔══════════════════════════════════════════════════════════════════╗
+║  WHAT TO UPDATE                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+1. Development Setup (if dependencies or tools change):
+   - Add new required tools or package managers
+   - Update Python version requirements
+   - Document new environment variables
+
+2. Project Structure (when adding new modules):
+   - Add new directories or packages to the structure diagram
+   - Document new module responsibilities
+
+3. Feedback Loops (when adding new checks):
+   - Add new test commands, linters, or type checkers
+   - Update quality gate requirements
+
+4. Gotchas & Learnings (when discovering new patterns):
+   - Add project-specific conventions
+   - Document common pitfalls
+   - Note architectural decisions and their rationale
+
+╔══════════════════════════════════════════════════════════════════╗
+║  HOW THIS FILE WORKS                                             ║
+╚══════════════════════════════════════════════════════════════════╝
+
+- This file is symlinked as AGENT.md, AGENTS.md, and CLAUDE.md for compatibility
+- It's referenced by the runloop system prompt (see Context Composition below)
+- Changes are available immediately to new sessions
+- Keep it focused: detailed specs go in specs/, plans in plans/
+-->
+
 # Agent Instructions
 
 This file contains instructions for building and running the Cub project.
@@ -454,6 +501,67 @@ All `bd` (Beads CLI) commands are pre-approved for task management:
 All `cub` commands are pre-approved:
 - `cub run`, `cub status`, `cub pr`, `cub branch`, etc.
 
+## Context Composition
+
+Cub uses a layered system prompt composition system to provide context to AI harnesses during autonomous coding sessions. Understanding this system helps you customize the agent experience for your project.
+
+### System Prompt Lookup Order
+
+When `cub run` starts a session, it generates the system prompt by checking these locations in order (first match wins):
+
+1. **`.cub/runloop.md`** - Project-specific runloop instructions (highest priority)
+   - Use this to override the default runloop behavior for your project
+   - Inherits the demarcated format from `templates/PROMPT.md`
+   - Example: Custom workflow steps, project-specific validation gates
+
+2. **`PROMPT.md`** - Legacy project-specific prompt (backwards compatibility)
+   - Deprecated in favor of `.cub/runloop.md` but still supported
+   - Use when migrating from older cub versions
+
+3. **`templates/PROMPT.md`** - Project templates directory
+   - For projects that vendor their own templates
+   - Rare use case; most projects use package templates
+
+4. **`templates/runloop.md`** - Package-bundled runloop template
+   - Default runloop instructions shipped with cub
+   - Contains the "Ralph Loop Iteration" workflow
+
+5. **`templates/PROMPT.md`** - Package-bundled legacy template
+   - Fallback for backwards compatibility
+   - Contains demarcated format with customization guide
+
+6. **Hardcoded fallback** - Minimal prompt if nothing else found
+   - Safety fallback; should never be reached in normal operation
+
+### Context Files Referenced in Prompts
+
+The system prompt (from the lookup chain above) references these files:
+
+- **`@AGENT.md`** - This file (build instructions, architecture, learnings)
+- **`@specs/*`** - Detailed specifications for tasks/features (if present)
+
+These references use the `@` syntax to signal they should be loaded as context by the harness.
+
+### Task Context Injection
+
+In addition to the system prompt, `cub run` injects task-specific context into each session:
+
+- **CURRENT TASK section** - Task ID, title, description, files, dependencies
+- **Epic context** - Parent epic details if the task is part of an epic
+- **Task closure instructions** - How to mark the task complete (beads backend-specific)
+
+### Customizing Your Project's Prompt
+
+To customize the autonomous coding experience for your project:
+
+1. **For minor tweaks**: Edit `AGENT.md` (this file) to add build commands, gotchas, etc.
+2. **For workflow changes**: Create `.cub/runloop.md` based on `templates/PROMPT.md`
+3. **For task-specific context**: Add detailed specs to `specs/` and reference them in task descriptions
+
+### Implementation
+
+The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()`.
+
 ## Gotchas & Learnings
 
 - **Python 3.10+**: Cub requires Python 3.10+ for features like match statements and type unions (`|` syntax)
@@ -466,6 +574,7 @@ All `cub` commands are pre-approved:
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
 - **Rich for terminal output**: Use Rich tables, progress bars, and console for all user-facing output.
+- **Context composition**: System prompts follow a lookup order (`.cub/runloop.md` → `PROMPT.md` → `templates/PROMPT.md` → `templates/runloop.md` → fallback). See "Context Composition" section above for details. When modifying autonomous agent behavior, edit `.cub/runloop.md` or this file (AGENT.md).
 
 ## Common Commands
 

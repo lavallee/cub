@@ -257,6 +257,25 @@ class TestGenerateSystemPrompt:
         assert "Project Level Prompt" in result
         assert "Templates Prompt" not in result
 
+    def test_cub_runloop_takes_precedence(self, tmp_path):
+        """Test that .cub/runloop.md takes precedence over PROMPT.md."""
+        project = tmp_path / "project"
+        project.mkdir()
+
+        # Create .cub/runloop.md (highest priority)
+        cub_dir = project / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Cub Runloop Prompt\nFrom .cub/runloop.md")
+
+        # Create PROMPT.md (lower priority)
+        (project / "PROMPT.md").write_text("# Project Level Prompt")
+
+        result = generate_system_prompt(project)
+
+        assert "Cub Runloop Prompt" in result
+        assert "From .cub/runloop.md" in result
+        assert "Project Level Prompt" not in result
+
 
 # ==============================================================================
 # Tests for generate_epic_context
@@ -1041,7 +1060,7 @@ class TestGenerateTaskPrompt:
             f"**Task lifecycle:**\n"
             f"- `bd update {mock_task.id} --status in_progress` - Claim the task (do this first)\n"
             f"- `bd close {mock_task.id}` - Mark task complete (after all checks pass)\n"
-            f"- `bd close {mock_task.id} -r \"reason\"` - Close with explanation"
+            f'- `bd close {mock_task.id} -r "reason"` - Close with explanation'
         )
 
         result = generate_task_prompt(mock_task, mock_task_backend)
@@ -1053,8 +1072,8 @@ class TestGenerateTaskPrompt:
         """Test json backend shows different completion instructions."""
         mock_task_backend.backend_name = "json"
         mock_task_backend.get_agent_instructions.return_value = (
-            'This project uses the JSON task backend.\n\n'
-            '**Task lifecycle:**\n'
+            "This project uses the JSON task backend.\n\n"
+            "**Task lifecycle:**\n"
             '- Edit prd.json: set status to "closed" when complete'
         )
 
@@ -1064,9 +1083,7 @@ class TestGenerateTaskPrompt:
 
     def test_includes_backend_specific_instructions(self, mock_task, mock_task_backend):
         """Test prompt includes backend-specific agent instructions."""
-        mock_task_backend.get_agent_instructions.return_value = (
-            "Custom backend instructions here"
-        )
+        mock_task_backend.get_agent_instructions.return_value = "Custom backend instructions here"
 
         result = generate_task_prompt(mock_task, mock_task_backend)
 
@@ -1290,9 +1307,7 @@ class TestShowReadyTasks:
 
         _show_ready_tasks(mock_backend, epic="epic-1", label=None)
 
-        mock_backend.get_ready_tasks.assert_called_once_with(
-            parent="epic-1", label=None
-        )
+        mock_backend.get_ready_tasks.assert_called_once_with(parent="epic-1", label=None)
 
     def test_filters_by_label(self):
         """Test that label filter is passed to backend."""
@@ -1305,9 +1320,7 @@ class TestShowReadyTasks:
 
         _show_ready_tasks(mock_backend, epic=None, label="urgent")
 
-        mock_backend.get_ready_tasks.assert_called_once_with(
-            parent=None, label="urgent"
-        )
+        mock_backend.get_ready_tasks.assert_called_once_with(parent=None, label="urgent")
 
     def test_handles_many_labels(self, mock_task_backend, capsys):
         """Test truncation of many labels."""
@@ -1402,9 +1415,7 @@ class TestFlagValidation:
             mock_config.return_value.harness.priority = []
 
             with patch("cub.cli.run.detect_async_harness", return_value=None):
-                result = runner.invoke(
-                    app, ["--worktree", "--worktree-keep", "--once"]
-                )
+                result = runner.invoke(app, ["--worktree", "--worktree-keep", "--once"])
 
                 # Should not fail with worktree-keep validation error
                 assert "--worktree-keep requires" not in result.output
@@ -2212,9 +2223,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--epic", "backend-v2"])
 
         # Verify epic was passed as parent filter
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent="backend-v2", label=None
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent="backend-v2", label=None)
 
     def test_label_filter_passed_to_backend(self, runner, filter_mock_deps):
         """Test that --label filter is passed to task backend."""
@@ -2225,9 +2234,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--label", "urgent"])
 
         # Verify label was passed
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent=None, label="urgent"
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent=None, label="urgent")
 
     def test_both_filters_combined(self, runner, filter_mock_deps):
         """Test that both epic and label filters can be combined."""
@@ -2238,9 +2245,7 @@ class TestFiltering:
         runner.invoke(app, ["--once", "--epic", "v2", "--label", "critical"])
 
         # Verify both filters passed
-        deps["task_backend"].get_ready_tasks.assert_called_with(
-            parent="v2", label="critical"
-        )
+        deps["task_backend"].get_ready_tasks.assert_called_with(parent="v2", label="critical")
 
     def test_auto_close_epic_when_all_tasks_complete(self, runner, filter_mock_deps):
         """Test that epic is auto-closed when all tasks are complete."""
@@ -2309,9 +2314,7 @@ class TestBranchCreation:
     def test_use_current_branch_on_main_with_main_ok_succeeds(self, runner):
         """Test --use-current-branch on main with --main-ok succeeds."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2321,9 +2324,7 @@ class TestBranchCreation:
             mock_config.return_value.harness.priority = []
             mock_task_backend.return_value = MagicMock()
 
-            result = runner.invoke(
-                app, ["--use-current-branch", "--main-ok", "--once"]
-            )
+            result = runner.invoke(app, ["--use-current-branch", "--main-ok", "--once"])
 
             # Should fail for no harness, not branch protection
             assert "No AI harness available" in result.output
@@ -2332,9 +2333,7 @@ class TestBranchCreation:
     def test_use_current_branch_on_feature_branch_succeeds(self, runner):
         """Test --use-current-branch on feature branch works without --main-ok."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2353,9 +2352,7 @@ class TestBranchCreation:
     def test_default_creates_branch_from_origin_main(self, runner):
         """Test default behavior creates branch from origin/main."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2375,9 +2372,7 @@ class TestBranchCreation:
     def test_from_branch_overrides_default_base(self, runner):
         """Test --from-branch overrides the default origin/main base."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2397,9 +2392,7 @@ class TestBranchCreation:
     def test_use_current_branch_ignores_from_branch(self, runner):
         """Test --use-current-branch ignores --from-branch (no-op)."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
@@ -2422,9 +2415,7 @@ class TestBranchCreation:
     def test_on_feature_branch_reuses_existing(self, runner):
         """Test running on existing feature branch reuses it (no new branch)."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
@@ -2445,9 +2436,7 @@ class TestBranchCreation:
     def test_task_specific_branch_name(self, runner):
         """Test --task creates branch with task ID in name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2467,9 +2456,7 @@ class TestBranchCreation:
     def test_epic_branch_name(self, runner):
         """Test --epic creates branch with epic name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run._get_epic_title", return_value="Backend API"),
             patch("cub.cli.run.load_config") as mock_config,
@@ -2490,9 +2477,7 @@ class TestBranchCreation:
     def test_label_branch_name(self, runner):
         """Test --label creates branch with label name."""
         with (
-            patch(
-                "cub.core.branches.store.BranchStore.get_current_branch"
-            ) as mock_get,
+            patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
             patch("cub.cli.run._create_branch_from_base") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2511,9 +2496,7 @@ class TestBranchCreation:
 
     def test_master_branch_also_protected(self, runner):
         """Test 'master' branch is also protected like 'main'."""
-        with patch(
-            "cub.core.branches.store.BranchStore.get_current_branch"
-        ) as mock_get:
+        with patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get:
             mock_get.return_value = "master"
 
             result = runner.invoke(app, ["--use-current-branch", "--once"])
