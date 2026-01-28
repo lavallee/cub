@@ -85,9 +85,9 @@ class TestGenerateManagedSection:
         content = generate_managed_section(tmp_path, config, harness="generic")
 
         # Should include workflow steps
-        assert "bd ready" in content
-        assert "bd update" in content
-        assert "bd close" in content
+        assert "cub task ready" in content
+        assert "cub task claim" in content
+        assert "cub task close" in content
 
     def test_includes_escape_hatch_summary(self, tmp_path: Path) -> None:
         """Test that escape hatch summary is included."""
@@ -171,14 +171,14 @@ class TestGenerateAgentsMd:
         config = CubConfig()
         content = generate_agents_md(tmp_path, config)
 
-        # Should include bd commands
-        assert "bd ready" in content
-        assert "bd list --status open" in content
-        assert "bd update" in content
-        assert "bd close" in content
-        assert "bd show" in content
+        # Should include cub task commands
+        assert "cub task ready" in content
+        assert "cub task list --status open" in content
+        assert "cub task claim" in content
+        assert "cub task close" in content
+        assert "cub task show" in content
 
-        # Should include cub commands
+        # Should include other cub commands
         assert "cub status" in content
         assert "cub log" in content
 
@@ -324,7 +324,7 @@ class TestInstructionIntegration:
         claude_content = generate_claude_md(tmp_path, config)
 
         # Both should reference core commands
-        core_commands = ["bd ready", "bd close", "bd update", "cub status"]
+        core_commands = ["cub task ready", "cub task close", "cub task claim", "cub status"]
 
         for cmd in core_commands:
             # Both should have all commands

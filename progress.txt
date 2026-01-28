@@ -781,3 +781,37 @@
 - Mypy type checking: Clean (no errors in new files)
 - Ruff linting: All checks passed
 
+
+## Task cub-q2j.2: Add cub task CLI subcommand - COMPLETED
+
+**What was done:**
+- The `cub task` CLI was already fully implemented in `src/cub/cli/task.py`
+- Added missing `claim` command to match task description requirements
+- The CLI provides lightweight task commands for direct session use
+- All commands work identically with JSON or beads backends
+- Added comprehensive test coverage (24 tests total, 4 new for claim)
+
+**Commands implemented:**
+- `cub task create` - Create new tasks with various options
+- `cub task show` - Show detailed task information
+- `cub task list` - List tasks with filters (status, parent, label)
+- `cub task update` - Update task fields (status, assignee, labels, description)
+- `cub task close` - Close tasks with optional reason
+- `cub task claim` - Claim tasks (convenience wrapper for setting status to in_progress)
+- `cub task ready` - List tasks ready to work on (no blockers)
+- `cub task counts` - Show task statistics
+- `cub task dep` - Manage task dependencies (add, list)
+
+**Key features:**
+- Backend-agnostic: Works with both beads and JSON backends
+- JSON output: All commands support --json flag for machine consumption
+- Concise output: Designed for machine consumption while remaining human-readable
+- Comprehensive tests: 24 tests covering all commands and edge cases
+- Type-safe: Passes mypy type checking
+- Linted: Passes ruff linting
+
+**Testing results:**
+- All 141 task-related tests pass
+- Type checking: No errors in task.py
+- Linting: All checks passed
+

@@ -279,19 +279,31 @@ async def handle_post_tool_use(payload: HookEventPayload) -> HookEventResult:
         elif payload.tool_name == "Bash":
             command = payload.tool_input.get("command", "") if payload.tool_input else ""
             if command:
-                # Detect task claim/update (bd update <task-id> --status in_progress)
+                # Detect task claim/update
                 # Task ID pattern: cub-w3f.2 (alphanumeric with optional dots)
-                if match := re.search(r"bd\s+update\s+([\w.-]+)\s+--status\s+in_progress", command):
+                # New format: cub task claim <task-id>
+                # Legacy format: bd update <task-id> --status in_progress
+                if match := re.search(r"cub\s+task\s+claim\s+([\w.-]+)", command):
                     task_id = match.group(1)
                     claim_event = TaskClaimEvent(
                         session_id=payload.session_id, task_id=task_id, command=command
                     )
                     await _write_forensic_event(claim_event, payload.cwd)
                     logger.info(f"Task claimed: {task_id}", extra={"task_id": task_id})
+                elif match := re.search(r"bd\s+update\s+([\w.-]+)\s+--status\s+in_progress", command):
+                    # Legacy fallback for bd commands
+                    task_id = match.group(1)
+                    claim_event = TaskClaimEvent(
+                        session_id=payload.session_id, task_id=task_id, command=command
+                    )
+                    await _write_forensic_event(claim_event, payload.cwd)
+                    logger.info(f"Task claimed (legacy): {task_id}", extra={"task_id": task_id})
 
-                # Detect task close (bd close <task-id>)
+                # Detect task close
+                # New format: cub task close <task-id> --reason "..."
+                # Legacy format: bd close <task-id> -r "..."
                 elif match := re.search(
-                    r"bd\s+close\s+([\w.-]+)(?:\s+-r\s+['\"]([^'\"]+)['\"])?", command
+                    r"cub\s+task\s+close\s+([\w.-]+)(?:\s+--reason\s+['\"]([^'\"]+)['\"])?", command
                 ):
                     task_id = match.group(1)
                     reason = match.group(2)
@@ -303,6 +315,20 @@ async def handle_post_tool_use(payload: HookEventPayload) -> HookEventResult:
                     )
                     await _write_forensic_event(close_event, payload.cwd)
                     logger.info(f"Task closed: {task_id}", extra={"task_id": task_id})
+                elif match := re.search(
+                    r"bd\s+close\s+([\w.-]+)(?:\s+-r\s+['\"]([^'\"]+)['\"])?", command
+                ):
+                    # Legacy fallback for bd commands
+                    task_id = match.group(1)
+                    reason = match.group(2)
+                    close_event = TaskCloseEvent(
+                        session_id=payload.session_id,
+                        task_id=task_id,
+                        command=command,
+                        reason=reason,
+                    )
+                    await _write_forensic_event(close_event, payload.cwd)
+                    logger.info(f"Task closed (legacy): {task_id}", extra={"task_id": task_id})
 
                 # Detect git commit
                 elif "git commit" in command and not command.strip().startswith("#"):

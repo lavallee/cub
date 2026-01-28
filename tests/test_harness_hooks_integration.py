@@ -200,6 +200,65 @@ class TestPostToolUseIntegration:
         assert events[0]["task_id"] == "cub-test.1"
 
     @pytest.mark.asyncio
+    async def test_cub_task_claim_creates_forensics(
+        self,
+        project_dir: Path,
+        forensics_dir: Path,
+    ) -> None:
+        """Test that cub task claim creates forensics events."""
+        session_id = "test-session-cub-claim"
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "PostToolUse",
+                "session_id": session_id,
+                "cwd": str(project_dir),
+                "tool_name": "Bash",
+                "tool_input": {"command": "cub task claim cub-test.2"},
+            }
+        )
+
+        result = await handle_post_tool_use(payload)
+
+        assert result.continue_execution is True
+
+        # Check forensics
+        forensics_path = forensics_dir / f"{session_id}.jsonl"
+        events = read_forensics(forensics_path)
+        assert len(events) == 1
+        assert events[0]["event_type"] == "task_claim"
+        assert events[0]["task_id"] == "cub-test.2"
+
+    @pytest.mark.asyncio
+    async def test_cub_task_close_creates_forensics(
+        self,
+        project_dir: Path,
+        forensics_dir: Path,
+    ) -> None:
+        """Test that cub task close creates forensics events."""
+        session_id = "test-session-cub-close"
+        payload = HookEventPayload(
+            {
+                "hook_event_name": "PostToolUse",
+                "session_id": session_id,
+                "cwd": str(project_dir),
+                "tool_name": "Bash",
+                "tool_input": {"command": 'cub task close cub-test.2 --reason "done"'},
+            }
+        )
+
+        result = await handle_post_tool_use(payload)
+
+        assert result.continue_execution is True
+
+        # Check forensics
+        forensics_path = forensics_dir / f"{session_id}.jsonl"
+        events = read_forensics(forensics_path)
+        assert len(events) == 1
+        assert events[0]["event_type"] == "task_close"
+        assert events[0]["task_id"] == "cub-test.2"
+        assert events[0]["reason"] == "done"
+
+    @pytest.mark.asyncio
     async def test_git_commit_creates_forensics(
         self,
         project_dir: Path,

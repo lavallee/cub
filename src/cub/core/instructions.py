@@ -14,7 +14,7 @@ Key Functions:
 
 Architecture:
     The instruction generator produces markdown files that:
-    1. Guide agents to use `bd` commands for task management
+    1. Guide agents to use `cub task` commands for task management
     2. Instruct agents to use `cub` commands for logging and status
     3. Include escape hatch language for signaling when stuck
     4. Provide workflow instructions for finding, claiming, and completing tasks
@@ -482,15 +482,15 @@ def generate_managed_section(
 
 ## Quick Start
 
-1. **Find work**: `bd ready` or `bd list --status open`
-2. **Claim task**: `bd update <task-id> --status in_progress`
+1. **Find work**: `cub task ready` or `cub task list --status open`
+2. **Claim task**: `cub task claim <task-id>`
 3. **Build/test**: See @.cub/agent.md for commands
-4. **Complete**: `bd close <task-id> -r "what you did"`
+4. **Complete**: `cub task close <task-id> --reason "what you did"`
 5. **Log**: `cub log --notes="session summary"` (optional)
 
 ## Task Commands
 
-- `bd show <id>` - View task details
+- `cub task show <id>` - View task details
 - `cub status` - Project status and progress
 
 ## When Stuck
@@ -510,15 +510,15 @@ See @.cub/agent.md for full workflow documentation."""
 
 ## Quick Start
 
-1. **Find work**: `bd ready` or `bd list --status open`
-2. **Claim task**: `bd update <task-id> --status in_progress`
+1. **Find work**: `cub task ready` or `cub task list --status open`
+2. **Claim task**: `cub task claim <task-id>`
 3. **Build/test**: See @.cub/agent.md for commands
-4. **Complete**: `bd close <task-id> -r "what you did"`
+4. **Complete**: `cub task close <task-id> --reason "what you did"`
 5. **Log**: `cub log --notes="session summary"` (optional)
 
 ## Task Commands
 
-- `bd show <id>` - View task details
+- `cub task show <id>` - View task details
 - `cub status` - Project status and progress
 
 ## Claude-Specific Tips

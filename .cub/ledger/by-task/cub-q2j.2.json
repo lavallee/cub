@@ -23,8 +23,50 @@
     "captured_at": "2026-01-28T06:52:38.203393Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-064539",
+      "started_at": "2026-01-28T06:52:38.219080",
+      "completed_at": "2026-01-28T06:58:27.271903Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5298,
+        "output_tokens": 9205,
+        "cache_read_tokens": 3097241,
+        "cache_creation_tokens": 70556
+      },
+      "cost_usd": 1.4253593000000004,
+      "duration_seconds": 349
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T06:58:27.522648Z",
+    "total_cost_usd": 1.4253593000000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 349,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "10560a53d8472256ed6c3809ab972aa4f0b7fccf",
+        "message": "task(cub-q2j.2): Add cub task CLI subcommand",
+        "author": "",
+        "timestamp": "2026-01-28T06:57:31Z"
+      }
+    ],
+    "approach": null,
+    "decisions": [],
+    "lessons_learned": []
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +82,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-28T06:52:38.203393Z"
+    "stage_updated_at": "2026-01-28T06:58:27.522648Z"
   },
   "state_history": [
     {
@@ -48,31 +90,44 @@
       "at": "2026-01-28T06:52:38.203393Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T06:58:27.522648Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-28T06:52:38.203393Z",
-  "completed_at": "2026-01-28T06:52:38.203393Z",
+  "completed_at": "2026-01-28T06:58:27.522648Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 5298,
+    "output_tokens": 9205,
+    "cache_read_tokens": 3097241,
+    "cache_creation_tokens": 70556
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.4253593000000004,
+  "duration_seconds": 349,
   "iterations": 1,
   "approach": "",
   "decisions": [],
   "lessons_learned": [],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "10560a53d8472256ed6c3809ab972aa4f0b7fccf",
+      "message": "task(cub-q2j.2): Add cub task CLI subcommand",
+      "author": "",
+      "timestamp": "2026-01-28T06:57:31Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-q2j.2",
   "epic_id": "cub-q2j",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
