@@ -26,6 +26,7 @@ from cub.core.stage.stager import (
     StagingResult,
     TaskImportError,
     find_stageable_plans,
+    stage_file,
 )
 
 app = typer.Typer(
@@ -470,6 +471,18 @@ def stage(
         _list_stageable_plans(project_root, verbose)
         return
 
+    # Detect if the argument is a file path (e.g., from punchlist output)
+    if plan_slug and _is_file_path(plan_slug):
+        _stage_standalone_file(
+            file_path=Path(plan_slug),
+            project_root=project_root,
+            dry_run=dry_run,
+            verbose=verbose,
+            skip_checks=skip_checks,
+            debug=debug,
+        )
+        return
+
     # Find the plan to stage
     plan_dir = _find_plan_dir(plan_slug, project_root)
 
@@ -681,3 +694,90 @@ def _print_detailed_results(
         for task in result.tasks_created:
             priority_str = f"P{task.priority_numeric}"
             console.print(f"  - {task.id} [{priority_str}]: {task.title}")
+
+
+def _is_file_path(arg: str) -> bool:
+    """Check if an argument looks like a file path rather than a plan slug."""
+    return arg.endswith(".md") or "/" in arg or "\\" in arg
+
+
+def _stage_standalone_file(
+    file_path: Path,
+    project_root: Path,
+    dry_run: bool,
+    verbose: bool,
+    skip_checks: bool,
+    debug: bool,
+) -> None:
+    """
+    Stage a standalone itemized-plan.md file (e.g., from punchlist).
+
+    This bypasses the PlanContext/plan.json flow and directly parses
+    and imports the markdown file.
+    """
+    file_path = file_path.resolve() if not file_path.is_absolute() else file_path
+
+    if not file_path.exists():
+        console.print(f"[red]File not found: {file_path}[/red]")
+        raise typer.Exit(1)
+
+    if not file_path.suffix == ".md":
+        console.print(f"[red]Expected a .md file, got: {file_path}[/red]")
+        raise typer.Exit(1)
+
+    # Run pre-flight checks
+    if not skip_checks and not dry_run:
+        if verbose:
+            console.print("[dim]Running pre-flight checks...[/dim]")
+        preflight_warnings = _run_preflight_checks(
+            project_root, verbose=verbose
+        )
+        for warning in preflight_warnings:
+            console.print(f"[yellow]Warning: {warning}[/yellow]")
+
+    if dry_run:
+        console.print(f"[bold]Dry run:[/bold] {file_path.name}")
+    else:
+        console.print(f"[bold]Staging:[/bold] {file_path.name}")
+
+    try:
+        result = stage_file(
+            plan_path=file_path,
+            project_root=project_root,
+            dry_run=dry_run,
+        )
+    except ItemizedPlanNotFoundError as e:
+        console.print(f"[red]File not found: {e}[/red]")
+        raise typer.Exit(1)
+    except TaskImportError as e:
+        console.print(f"[red]Import failed: {e}[/red]")
+        raise typer.Exit(1)
+    except StagerError as e:
+        console.print(f"[red]Staging error: {e}[/red]")
+        if debug:
+            import traceback
+
+            console.print(traceback.format_exc())
+        raise typer.Exit(1)
+
+    # Report results
+    console.print()
+    if dry_run:
+        console.print("[yellow]Dry run complete - no tasks imported[/yellow]")
+    else:
+        console.print("[green]Staging complete![/green]")
+
+    console.print(f"[dim]Duration: {result.duration_seconds:.1f}s[/dim]")
+
+    console.print()
+    console.print(
+        f"[bold]Created:[/bold] {len(result.epics_created)} epics, "
+        f"{len(result.tasks_created)} tasks"
+    )
+
+    if verbose:
+        _print_detailed_results(result, project_root)
+
+    if not dry_run:
+        console.print()
+        console.print("[bold]Next step:[/bold] cub run")

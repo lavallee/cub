@@ -370,6 +370,144 @@ class Stager:
         )
 
 
+def stage_file(
+    plan_path: Path,
+    project_root: Path | None = None,
+    dry_run: bool = False,
+) -> StagingResult:
+    """
+    Stage a standalone itemized-plan.md file directly.
+
+    Unlike the Stager class which requires a PlanContext with plan.json,
+    this function accepts any itemized-plan.md file and imports its
+    tasks into the backend. Used for punchlist-generated plans and
+    other one-off plan files.
+
+    Args:
+        plan_path: Path to the itemized-plan.md file.
+        project_root: Project root for backend detection. Defaults to cwd.
+        dry_run: If True, parse but don't import.
+
+    Returns:
+        StagingResult with created epics and tasks.
+
+    Raises:
+        ItemizedPlanNotFoundError: If the file doesn't exist.
+        StagerError: If the file has invalid format.
+        TaskImportError: If backend import fails.
+    """
+    start_time = time.time()
+
+    if not plan_path.exists():
+        raise ItemizedPlanNotFoundError(f"File not found: {plan_path}")
+
+    # Parse the plan file
+    try:
+        parsed_plan = parse_itemized_plan(plan_path)
+    except PlanFileNotFoundError as e:
+        raise ItemizedPlanNotFoundError(str(e)) from e
+    except PlanFormatError as e:
+        raise StagerError(f"Invalid plan format: {e}") from e
+
+    # Reuse the same conversion helpers as Stager
+    # (they're static-compatible, just need a temporary instance-free approach)
+    epic_tasks = [
+        Task(
+            id=epic.id,
+            title=epic.title,
+            priority=TaskPriority(f"P{epic.priority}"),
+            labels=epic.labels,
+            type=TaskType.EPIC,
+            description=epic.description,
+        )
+        for epic in parsed_plan.epics
+    ]
+
+    tasks: list[Task] = []
+    for parsed_task in parsed_plan.tasks:
+        description_parts: list[str] = []
+        if parsed_task.context:
+            description_parts.append(parsed_task.context)
+        if parsed_task.implementation_steps:
+            description_parts.append("\n**Implementation Steps:**")
+            for i, step in enumerate(parsed_task.implementation_steps, 1):
+                description_parts.append(f"{i}. {step}")
+        if parsed_task.files:
+            description_parts.append(
+                f"\n**Files:** {', '.join(parsed_task.files)}"
+            )
+        description = "\n".join(description_parts) if description_parts else ""
+
+        tasks.append(
+            Task(
+                id=parsed_task.id,
+                title=parsed_task.title,
+                priority=TaskPriority(f"P{parsed_task.priority}"),
+                labels=parsed_task.labels,
+                parent=parsed_task.epic_id,
+                blocks=parsed_task.blocks,
+                acceptance_criteria=parsed_task.acceptance_criteria,
+                description=description,
+                type=TaskType.TASK,
+            )
+        )
+
+    if not epic_tasks and not tasks:
+        raise StagerError("Plan file contains no epics or tasks.")
+
+    # Validate relationships
+    epic_ids = {e.id for e in epic_tasks}
+    for task in tasks:
+        if task.parent and task.parent not in epic_ids:
+            raise StagerError(
+                f"Task '{task.id}' references non-existent epic '{task.parent}'."
+            )
+
+    slug = plan_path.stem
+
+    if dry_run:
+        return StagingResult(
+            plan_slug=slug,
+            epics_created=epic_tasks,
+            tasks_created=tasks,
+            duration_seconds=time.time() - start_time,
+            dry_run=True,
+        )
+
+    # Import to backend
+    if project_root is None:
+        project_root = Path.cwd()
+
+    try:
+        backend = get_backend(project_dir=project_root)
+    except ValueError as e:
+        raise StagerError(
+            f"Cannot detect task backend: {e}. "
+            "Ensure you have beads configured or .tasks.json present."
+        ) from e
+
+    try:
+        created_epics = backend.import_tasks(epic_tasks)
+    except ValueError as e:
+        raise TaskImportError(f"Failed to import epics: {e}") from e
+
+    try:
+        created_tasks = backend.import_tasks(tasks)
+    except ValueError as e:
+        raise TaskImportError(
+            f"Failed to import tasks: {e}. "
+            f"Note: {len(created_epics)} epics were already imported."
+        ) from e
+
+    return StagingResult(
+        plan_slug=slug,
+        epics_created=created_epics,
+        tasks_created=created_tasks,
+        duration_seconds=time.time() - start_time,
+        dry_run=False,
+    )
+
+
 def find_stageable_plans(project_root: Path) -> list[Path]:
     """
     Find all plans that are ready to be staged.

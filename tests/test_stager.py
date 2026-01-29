@@ -20,9 +20,11 @@ from cub.core.stage.stager import (
     PlanAlreadyStagedError,
     PlanNotCompleteError,
     Stager,
+    StagerError,
     StagingResult,
     TaskImportError,
     find_stageable_plans,
+    stage_file,
 )
 from cub.core.tasks.models import Task, TaskType
 
@@ -452,3 +454,122 @@ class TestFindStageablePlans:
         slugs = [p.name for p in stageable]
         assert "my-feature" in slugs
         assert "another-feature" in slugs
+
+
+class TestStageFile:
+    """Tests for the stage_file function (standalone .md files)."""
+
+    @pytest.fixture
+    def standalone_plan(self, tmp_path: Path) -> Path:
+        """Create a standalone itemized-plan.md file."""
+        plan_file = tmp_path / "test-bugs-plan.md"
+        plan_file.write_text(
+            """# Itemized Plan: Test Bugs
+
+> Source: [test-bugs.md](test-bugs.md)
+> Generated: 2026-01-29
+
+## Context Summary
+Tasks generated from punchlist: test-bugs.md
+
+---
+
+## Epic: cub-x7k - Test Bugs
+Priority: 2
+Labels: punchlist, punchlist:test-bugs
+
+Punchlist tasks from: test-bugs.md
+
+### Task: cub-x7k.1 - Fix login bug
+Priority: 2
+Labels: punchlist
+
+**Context**: The login form fails with special characters.
+
+**Implementation Steps**:
+1. Update validation regex
+2. Add escaping
+
+**Acceptance Criteria**:
+- [ ] Login works with special chars
+- [ ] Tests pass
+
+---
+
+### Task: cub-x7k.2 - Add verbose flag
+Priority: 2
+Labels: punchlist
+
+**Context**: Users need more output.
+
+**Implementation Steps**:
+1. Add CLI flag
+
+**Acceptance Criteria**:
+- [ ] --verbose shows output
+
+---
+""",
+            encoding="utf-8",
+        )
+        return plan_file
+
+    def test_stage_file_dry_run(
+        self, standalone_plan: Path, mock_backend: Mock
+    ) -> None:
+        """Test dry run of a standalone file."""
+        result = stage_file(standalone_plan, dry_run=True)
+
+        assert result.dry_run
+        assert len(result.epics_created) == 1
+        assert len(result.tasks_created) == 2
+        assert result.plan_slug == "test-bugs-plan"
+        assert result.epics_created[0].id == "cub-x7k"
+        assert result.epics_created[0].title == "Test Bugs"
+
+    def test_stage_file_imports(
+        self, standalone_plan: Path, tmp_path: Path, mock_backend: Mock
+    ) -> None:
+        """Test that stage_file imports to backend."""
+        from unittest.mock import patch
+
+        with patch(
+            "cub.core.stage.stager.get_backend", return_value=mock_backend
+        ):
+            result = stage_file(
+                standalone_plan,
+                project_root=tmp_path,
+            )
+
+        assert not result.dry_run
+        assert len(result.epics_created) == 1
+        assert len(result.tasks_created) == 2
+        assert mock_backend.import_tasks.call_count == 2
+
+    def test_stage_file_not_found(self, tmp_path: Path) -> None:
+        """Test error when file doesn't exist."""
+        missing = tmp_path / "nonexistent.md"
+
+        with pytest.raises(ItemizedPlanNotFoundError):
+            stage_file(missing)
+
+    def test_stage_file_empty_plan(self, tmp_path: Path) -> None:
+        """Test error when plan has no tasks."""
+        empty_plan = tmp_path / "empty-plan.md"
+        empty_plan.write_text("# Itemized Plan: Empty\n\nNothing here.\n")
+
+        with pytest.raises(StagerError, match="no epics or tasks"):
+            stage_file(empty_plan, dry_run=True)
+
+    def test_stage_file_task_details(
+        self, standalone_plan: Path
+    ) -> None:
+        """Test that task details are preserved through staging."""
+        result = stage_file(standalone_plan, dry_run=True)
+
+        task1 = result.tasks_created[0]
+        assert task1.id == "cub-x7k.1"
+        assert task1.title == "Fix login bug"
+        assert task1.parent == "cub-x7k"
+        assert "login form fails" in task1.description
+        assert len(task1.acceptance_criteria) == 2

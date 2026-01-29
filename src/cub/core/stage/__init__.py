@@ -9,10 +9,12 @@ from cub.core.stage.stager import (
     Stager,
     StagerError,
     StagingResult,
+    stage_file,
 )
 
 __all__ = [
     "Stager",
     "StagerError",
     "StagingResult",
+    "stage_file",
 ]
