@@ -348,6 +348,109 @@ def close(
 
 
 @app.command()
+def reopen(
+    task_id: str = typer.Argument(..., help="Task ID to reopen"),
+    reason: str | None = typer.Option(
+        None,
+        "--reason",
+        "-r",
+        help="Reason for reopening the task",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+) -> None:
+    """
+    Reopen a closed task.
+
+    Changes task status from CLOSED back to OPEN.
+
+    Examples:
+        cub task reopen cub-123
+        cub task reopen cub-123 --reason "Issue not fully resolved"
+    """
+    backend = get_backend()
+
+    try:
+        task = backend.reopen_task(task_id, reason=reason)
+
+        if json_output:
+            console.print(json.dumps(task.model_dump(mode="json"), indent=2))
+        else:
+            console.print(f"[green]Reopened:[/green] {task.id} - {task.title}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def delete(
+    task_id: str = typer.Argument(..., help="Task ID to delete"),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation prompt",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON (only with --force)",
+    ),
+) -> None:
+    """
+    Delete a task permanently.
+
+    WARNING: This is destructive and cannot be undone. A confirmation prompt
+    is shown unless --force is passed.
+
+    Examples:
+        cub task delete cub-123              # Shows confirmation prompt
+        cub task delete cub-123 --force      # Skips prompt
+        cub task delete cub-123 -f           # Shorthand
+    """
+    backend = get_backend()
+
+    # Get the task to display title in confirmation
+    task = backend.get_task(task_id)
+    if task is None:
+        print_task_not_found_error(task_id)
+        raise typer.Exit(ExitCode.USER_ERROR)
+
+    # Show confirmation unless --force is passed
+    if not force:
+        confirmation = typer.confirm(
+            f"Delete task {task_id} '{task.title}'?",
+            default=False,
+        )
+        if not confirmation:
+            console.print("[yellow]Cancelled.[/yellow]")
+            raise typer.Exit(0)
+
+    try:
+        deleted = backend.delete_task(task_id)
+
+        if not deleted:
+            console.print(f"[red]Error:[/red] Task not found: {task_id}")
+            raise typer.Exit(1)
+
+        if json_output:
+            output = {
+                "deleted": True,
+                "task_id": task_id,
+                "title": task.title,
+            }
+            console.print(json.dumps(output, indent=2))
+        else:
+            console.print(f"[green]Deleted:[/green] {task_id}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
 def claim(
     task_id: str = typer.Argument(..., help="Task ID to claim"),
 ) -> None:
