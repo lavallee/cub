@@ -260,7 +260,7 @@ def _init_backend(project_dir: Path, backend: str) -> None:
 
 def _ensure_prompt_md(project_dir: Path, backend: str, force: bool = False) -> None:
     """Copy and customize PROMPT.md template for the project."""
-    target = project_dir / ".cub" / "PROMPT.md"
+    target = project_dir / ".cub" / "prompt.md"
     if target.exists() and not force:
         return
 
