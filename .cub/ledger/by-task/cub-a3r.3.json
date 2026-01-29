@@ -22,8 +22,58 @@
     "captured_at": "2026-01-29T20:54:30.286224Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-154351",
+      "started_at": "2026-01-29T15:54:30.291728",
+      "completed_at": "2026-01-29T20:56:09.688546Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 72,
+        "output_tokens": 4726,
+        "cache_read_tokens": 938795,
+        "cache_creation_tokens": 29429
+      },
+      "cost_usd": 0.19008074999999997,
+      "duration_seconds": 99
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T20:56:10.043703Z",
+    "total_cost_usd": 0.19008074999999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 99,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "ea83d51ba9dda1efb8d46a679c0262b55295b8f4",
+        "message": "task(cub-a3r.3): Add learned routes section to router skill",
+        "author": "",
+        "timestamp": "2026-01-29T20:55:40Z"
+      }
+    ],
+    "approach": "The task was completed by first understanding the compiled routes file location (`.cub/learned-routes.md`), then locating the correct insertion point in `.claude/commands/cub.md` between \"Execution Rules\" and \"Examples\" sections, and finally adding a \"Learned Routes\" section that references the file using the `@` prefix syntax to enable file injection into Claude Code context.",
+    "decisions": [
+      "Used the `@` prefix syntax (@ .cub/learned-routes.md) to enable automatic file content injection into Claude Code context, following the established pattern for context references",
+      "Positioned the new section immediately after \"Execution Rules\" and before \"Examples\" as specified, maintaining logical flow in the skill documentation",
+      "Verified the learned-routes.md file existed by running `cub routes compile --force` to ensure the referenced file was available before committing changes"
+    ],
+    "lessons_learned": [
+      "The `@` prefix in Claude Code skill files is a powerful mechanism for injecting external file content into agent context\u2014useful for frequency data, configuration, and other dynamic content that should inform decision-making",
+      "For route learning systems, the LLM judgment entry point should be clearly documented and isolated; in this case, it's the single place where frequency data is consulted as a tiebreaker for ambiguous intents",
+      "Verifying that referenced files exist before committing changes prevents downstream errors when agents try to load context\u2014especially important for generated files like compiled routes"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +89,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-29T20:54:30.286224Z"
+    "stage_updated_at": "2026-01-29T20:56:10.043703Z"
   },
   "state_history": [
     {
@@ -47,31 +97,52 @@
       "at": "2026-01-29T20:54:30.286224Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:56:10.043703Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-29T20:54:30.286224Z",
-  "completed_at": "2026-01-29T20:54:30.286224Z",
+  "completed_at": "2026-01-29T20:56:10.043703Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 72,
+    "output_tokens": 4726,
+    "cache_read_tokens": 938795,
+    "cache_creation_tokens": 29429
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.19008074999999997,
+  "duration_seconds": 99,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "The task was completed by first understanding the compiled routes file location (`.cub/learned-routes.md`), then locating the correct insertion point in `.claude/commands/cub.md` between \"Execution Rules\" and \"Examples\" sections, and finally adding a \"Learned Routes\" section that references the file using the `@` prefix syntax to enable file injection into Claude Code context.",
+  "decisions": [
+    "Used the `@` prefix syntax (@ .cub/learned-routes.md) to enable automatic file content injection into Claude Code context, following the established pattern for context references",
+    "Positioned the new section immediately after \"Execution Rules\" and before \"Examples\" as specified, maintaining logical flow in the skill documentation",
+    "Verified the learned-routes.md file existed by running `cub routes compile --force` to ensure the referenced file was available before committing changes"
+  ],
+  "lessons_learned": [
+    "The `@` prefix in Claude Code skill files is a powerful mechanism for injecting external file content into agent context\u2014useful for frequency data, configuration, and other dynamic content that should inform decision-making",
+    "For route learning systems, the LLM judgment entry point should be clearly documented and isolated; in this case, it's the single place where frequency data is consulted as a tiebreaker for ambiguous intents",
+    "Verifying that referenced files exist before committing changes prevents downstream errors when agents try to load context\u2014especially important for generated files like compiled routes"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "ea83d51ba9dda1efb8d46a679c0262b55295b8f4",
+      "message": "task(cub-a3r.3): Add learned routes section to router skill",
+      "author": "",
+      "timestamp": "2026-01-29T20:55:40Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a3r.3",
   "epic_id": "cub-a3r",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "haiku",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
