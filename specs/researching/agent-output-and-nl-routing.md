@@ -8,33 +8,50 @@ blocks: []
 created: 2026-01-29
 updated: 2026-01-29
 readiness:
-  score: 7
+  score: 8
   blockers:
     - DependencyGraph class does not exist yet — needed for analysis hints on task commands
-  questions:
-    - Should route learning be a separate spec/phase to keep this shippable?
+  questions: []
   decisions_needed:
     - Truncation defaults for --agent output (10 items recommended based on research)
-    - Whether to ship analysis hints as a fast-follow or gate on them
 ---
 
 # Agent Output and Natural Language Routing
 
 ## Overview
 
-Make cub's CLI output optimized for LLM consumption via an `--agent` flag, and upgrade the `/cub` natural language router to use this output. The `--agent` flag produces structured markdown that is 34-38% more token-efficient than JSON, includes pre-computed analysis hints so Claude doesn't have to derive insights from raw data, and truncates to actionable size.
+Make cub's CLI output optimized for LLM consumption via an `--agent` flag, and upgrade the `/cub` natural language router to use this output and learn from usage over time.
 
 This spec covers three separable pieces that can ship incrementally:
 1. **`--agent` output flag** — Python engineering, core value
 2. **Passthrough skills** — already done on `feature/cub-nl-router`
-3. **Route learning** — research/UX, can ship independently
+3. **Route learning** — hook-based observation + background compilation
+
+### Design Principle: Deterministic Infrastructure, LLM Judgment
+
+Every component in this system follows a strict separation between what should be deterministic and what benefits from LLM reasoning:
+
+| Concern | Mechanism | Reliability |
+|---------|-----------|-------------|
+| **Observing** what happens | Hooks (PostToolUse, Stop) | 100% — fires on every tool use |
+| **Computing** from observations | Background process (`cub routes compile`) | 100% — deterministic code |
+| **Surfacing** computed results | `@file` reference in skill | ~95% — Claude reads injected files reliably |
+| **Deciding** what to do | LLM (router skill, interpretation) | 50-84% — this is where LLM judgment belongs |
+
+The rule: **never ask the LLM to do something deterministic.** Hooks observe. Code computes. Files surface. The LLM only interprets natural language and presents results — the one thing it's actually good at.
+
+This principle applies throughout:
+- Route logging is a hook, not a skill instruction
+- Route compilation is a background process, not an LLM call
+- Analysis hints are pre-computed by Python, not derived by Claude
+- Output formatting is code (`AgentFormatter`), not prompt engineering
 
 ## Goals
 
 - Add `--agent` flag to key CLI commands producing structured markdown optimized for LLM consumption
 - Pre-compute analysis hints (dependency impact, bottlenecks, recommendations) so Claude echoes accurate insights rather than guessing
 - Keep output under ~500 tokens per command to leave room for Claude's interpretation
-- Make the `/cub` router invoke commands with `--agent` for better output
+- Build a self-improving route learning system using hooks (observation) and background compilation (computation), with zero reliance on LLM instruction adherence
 - Maintain Claude's role as interpreter — `--agent` provides structured data and hints, not final prose
 
 ## Non-Goals
@@ -44,6 +61,7 @@ This spec covers three separable pieces that can ship incrementally:
 - Full NLU/intent classification — routing stays prompt-based with learned examples
 - Velocity/trajectory/ETA computation — requires time-series data we don't collect yet
 - Effort estimation for tasks — no complexity signal exists in task data currently
+- Asking the LLM to perform any deterministic operation (logging, aggregation, file management)
 
 ## Design / Approach
 
@@ -392,58 +410,169 @@ These four cover the most common `/cub` routing targets and have all data availa
 
 ### Part 3: Route Learning
 
-**This is separable and should ship after Parts 1 and 2 are validated.**
+**Separable from Parts 1 and 2. Can ship independently.**
 
-The core question: how does `/cub` get better at routing over time?
+The core question: how does `/cub` get better at routing over time without relying on LLM instruction adherence?
 
-#### Mechanism
+#### Architecture: Three deterministic stages
 
-1. **Logging**: After the router executes a command, append to `.cub/route-log.jsonl`:
-   ```json
-   {"ts": "2026-01-29T10:30:00Z", "input": "what are my important tasks", "routed_to": "cub task ready", "type": "cli"}
-   ```
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    1. OBSERVE (Hook)                        │
+│                                                             │
+│  PostToolUse/Bash hook fires on every cub command           │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ cub-hook.sh sees: "cub task ready"                  │    │
+│  │ Appends to: .cub/route-log.jsonl                    │    │
+│  │ {"ts":"...","cmd":"cub task ready","tool":"Bash"}    │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  Reliability: 100% — hooks fire deterministically           │
+│  No LLM cooperation needed                                 │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 2. COMPILE (Background)                     │
+│                                                             │
+│  Stop hook triggers: cub routes compile                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ Reads: .cub/route-log.jsonl                         │    │
+│  │ Groups by command, counts frequency                 │    │
+│  │ Filters: count >= 3 (suppress noise)                │    │
+│  │ Writes: .cub/learned-routes.md                      │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  Reliability: 100% — deterministic Python code              │
+│  Runs at session end, never blocks the user                │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  3. SURFACE (File Reference)                │
+│                                                             │
+│  Router skill (.claude/commands/cub.md) includes:           │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ ## Learned Routes                                   │    │
+│  │                                                     │    │
+│  │ Check @.cub/learned-routes.md for commands that     │    │
+│  │ have been used frequently. Prefer these when the    │    │
+│  │ user's phrasing is similar.                         │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  Reliability: ~95% — Claude reads @-referenced files        │
+│  The ONLY point where LLM judgment is involved              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-2. **Aggregation**: `cub routes compile` (or a hook) reads the log, groups by `routed_to`, extracts common phrases, writes `.cub/learned-routes.md`:
-   ```markdown
-   # Learned Routes
-   Prefer these mappings when the user's input is similar.
+#### Stage 1: Observation via PostToolUse hook
 
-   | Phrase pattern | Routed to | Times used |
-   |---------------|-----------|------------|
-   | "important tasks" / "priority tasks" | `cub task ready` | 12 |
-   | "how's the project" | `cub status` | 8 |
-   ```
+The existing `cub-hook.sh` fast-path filter already fires on every Bash tool use. It currently detects `cub task`, `git commit`, and other commands for the symbiotic workflow. Extending it to log cub command usage is a small addition.
 
-3. **Injection**: The router skill references `@.cub/learned-routes.md` and prefers learned routes over the static table when phrasing is similar.
+**What the hook captures**:
+```json
+{"ts": "2026-01-29T10:30:00Z", "cmd": "cub task ready", "tool": "Bash"}
+{"ts": "2026-01-29T10:31:00Z", "cmd": "cub status", "tool": "Bash"}
+{"ts": "2026-01-29T10:35:00Z", "cmd": "cub task show cub-r6s.1 --full", "tool": "Bash"}
+```
 
-#### Reliability concern
+**What it does NOT capture**: The natural language input that led to the command. The hook sees `cub task ready`, not "what are my important tasks." This is fine — we're learning which commands are used frequently, not which phrases triggered them. The static routing table in the skill file handles phrase → command mapping; the learned routes reinforce which commands matter.
 
-The logging step depends on Claude following a skill instruction to run a Bash echo append. Research shows skill instruction adherence is 50-84%. Two mitigations:
+**Why this is better than skill-instruction logging**: Research shows LLM instruction adherence is 50-84%. A hook fires 100% of the time. The data is complete, not a lower bound.
 
-- **Primary**: Use a `PostToolUse` hook on Bash that detects `cub task|cub status|cub suggest|...` invocations originating from a `/cub` session and logs automatically. This is deterministic — no LLM adherence needed.
-- **Fallback**: Instruct Claude in the skill to log. If it sometimes doesn't, the data is incomplete but not wrong (frequency counts are lower bounds).
+**Implementation**: Add to `cub-hook.sh`:
+```bash
+# In the PostToolUse/Bash handler
+case "$TOOL_INPUT" in
+  cub\ *)
+    echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"cmd\":\"$TOOL_INPUT\"}" \
+      >> "$PROJECT_DIR/.cub/route-log.jsonl"
+    ;;
+esac
+```
 
-**Decision**: Use the hook-based approach. The existing symbiotic workflow hook infrastructure (`cub-hook.sh`) already detects Bash tool uses and can be extended to recognize `/cub`-originated commands.
+This is 4 lines of shell. No Python startup latency, no daemon, no new dependencies.
 
-#### Feedback signal
+#### Stage 2: Compilation via Stop hook
 
-How do we know a route was "successful"?
+The `Stop` hook fires when a Claude Code session ends. It already runs `cub-hook.sh` for session finalization. Adding route compilation is a background step at session end.
 
-**Chosen approach**: Frequency-based (conservative). Log every route, weight by count. Rationale:
-- No UX friction (no "was that right?" prompts)
-- Self-correcting: bad routes won't be repeated, so their counts stay low
-- Simple: no implicit signal detection needed
+**What `cub routes compile` does**:
+1. Reads `.cub/route-log.jsonl`
+2. Groups entries by normalized command (strips arguments like task IDs)
+3. Counts frequency per command
+4. Filters: excludes commands with count < 3 (noise suppression)
+5. Writes `.cub/learned-routes.md`
 
-Routes with count < 3 are excluded from `learned-routes.md` to avoid noise from one-off queries.
+**Normalization examples**:
+```
+"cub task show cub-r6s.1 --full"  → "cub task show"
+"cub task ready --agent"          → "cub task ready"
+"cub run --task cub-042"          → "cub run --task"
+"cub status"                      → "cub status"
+```
+
+This groups variants of the same command so frequency counts are meaningful.
+
+**Output** (`.cub/learned-routes.md`):
+```markdown
+# Learned Routes
+
+Commands used frequently in this project. The /cub router should
+prefer these when the user's intent is ambiguous.
+
+| Command | Times used | Last used |
+|---------|-----------|-----------|
+| `cub task ready` | 24 | 2026-01-29 |
+| `cub status` | 18 | 2026-01-29 |
+| `cub task show` | 12 | 2026-01-28 |
+| `cub suggest` | 8 | 2026-01-27 |
+| `cub ledger show` | 5 | 2026-01-25 |
+| `cub task blocked` | 4 | 2026-01-26 |
+```
+
+**Timing**: Runs at session end as a background process (non-blocking). The compiled file is ready for the next session. If compilation takes >1 second for a very large log, it can be truncated to the last 1000 entries.
+
+**Trigger**: Add to `cub-hook.sh` Stop handler:
+```bash
+# In the Stop handler
+python3 -m cub.cli.routes compile &  # Background, non-blocking
+```
+
+#### Stage 3: Surfacing via file reference
+
+The router skill (`.claude/commands/cub.md`) references the compiled file:
+
+```markdown
+## Learned Routes
+
+If @.cub/learned-routes.md exists, check it for frequently-used commands.
+When the user's intent could map to multiple commands, prefer ones that
+appear in the learned routes table (they've been useful before).
+```
+
+This is the only point where LLM judgment enters. Claude reads the file (reliable — `@` file references are injected into context) and uses the frequency data to break ties. The static routing table remains the primary mapping; learned routes are a tiebreaker.
+
+#### What about learning natural language phrases?
+
+The hook-based approach logs commands, not the NL phrases that triggered them. This is a deliberate simplification:
+
+- **Pro**: 100% reliable logging, no need to reconstruct "what did the user say"
+- **Pro**: Simpler compilation — just count commands
+- **Con**: Can't learn that "how's the project" maps to `cub status`
+
+The phrase-to-command mapping stays in the static routing table (the skill file). What learned routes add is **frequency weighting**: if `cub task ready` is used 24 times and `cub task list` is used 3 times, and the user says something ambiguous like "show me tasks," the router should prefer `cub task ready`.
+
+**Future enhancement**: If we want phrase learning, we could log the full conversation turn (the Bash tool use includes the user message in context). But this requires parsing the hook's input more deeply and raises privacy/size concerns. Start with command frequency; add phrase learning only if the frequency approach proves insufficient.
 
 #### Where learning lives
 
 | File | Purpose | Git tracked? |
 |------|---------|-------------|
-| `.cub/route-log.jsonl` | Raw append-only log | No (gitignored) |
-| `.cub/learned-routes.md` | Aggregated patterns | Yes (shared with team) |
+| `.cub/route-log.jsonl` | Raw command log (append-only) | No (gitignored) |
+| `.cub/learned-routes.md` | Compiled frequency table | Yes (shared with team) |
 
-Team members benefit from each other's routing patterns when they pull. The raw log stays local since it's high-volume and user-specific.
+Team members benefit from each other's usage patterns when they pull. The raw log stays local (high-volume, user-specific). The compiled routes are compact and stable.
 
 ## Implementation Notes
 
@@ -484,18 +613,27 @@ Before shipping, validate with 10+ real `/cub` invocations in Claude Code:
 
 Document results in a validation log. If Claude struggles with any format element, adjust before merging.
 
+## Resolved Decisions
+
+1. **Route logging reliability**: Hooks, not skill instructions. The PostToolUse hook logs every `cub *` command deterministically. No LLM cooperation needed.
+
+2. **Route compilation timing**: Stop hook triggers `cub routes compile` as a background process at session end. Ready for next session.
+
+3. **Phrase learning**: Deferred. Start with command frequency (which commands are used most). Phrase-to-command mapping stays in the static routing table. Add phrase learning only if frequency proves insufficient.
+
+4. **Route learning scope**: Per-project (`.cub/`). Compiled routes are git-tracked for team sharing. Raw logs are gitignored.
+
 ## Open Questions
 
-1. **Should route learning be a separate spec?** It's separable and has different risk profile (UX/research vs engineering). Could be its own spec to keep this one shippable.
-
-2. **Truncation defaults**: Research suggests 10 items with counts. But some commands (like `task blocked` with 18 items) might benefit from showing all if under 20. Threshold: show all if ≤ 15, truncate to 10 with notice if > 15?
+1. **Truncation defaults**: Research suggests 10 items with counts. But some commands (like `task blocked` with 18 items) might benefit from showing all if under 20. Recommendation: show all if ≤ 15, truncate to 10 with notice if > 15.
 
 ## Future Considerations
 
 - **MCP server**: Expose `--agent` formatted output as MCP tool results with `structuredContent` for richer client integration
 - **Velocity/trajectory analysis**: Once we collect time-series data (historical snapshots of task counts), add to status `--agent` output
 - **Skill auto-generation**: Generate passthrough skill files from Typer command metadata during `cub update`
-- **LLM-assisted route aggregation**: Use an LLM call during `cub routes compile` to cluster similar phrases into canonical patterns
+- **Phrase-level route learning**: Log the user's NL input alongside commands by parsing the hook's conversation context. Would enable learning that "how's the project" → `cub status`. Deferred until command frequency proves insufficient.
+- **Route decay**: Time-weight frequency counts so stale patterns fade. Not needed initially — revisit if the project's command usage patterns shift significantly over time.
 
 ---
 
