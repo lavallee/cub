@@ -165,11 +165,22 @@ def list_tasks(
         "--parent",
         help="Filter by parent epic/task ID",
     ),
+    epic: str | None = typer.Option(
+        None,
+        "--epic",
+        help="Filter by parent epic/task ID (alias for --parent)",
+    ),
     label: str | None = typer.Option(
         None,
         "--label",
         "-l",
         help="Filter by label",
+    ),
+    assignee: str | None = typer.Option(
+        None,
+        "--assignee",
+        "-a",
+        help="Filter by assignee",
     ),
     json_output: bool = typer.Option(
         False,
@@ -184,9 +195,14 @@ def list_tasks(
         cub task list                           # All tasks
         cub task list --status open             # Open tasks only
         cub task list --parent cub-123          # Tasks under epic
+        cub task list --epic cub-123            # Tasks under epic (same as --parent)
         cub task list --label bug               # Tasks with label
+        cub task list --assignee agent-001      # Tasks assigned to agent-001
     """
     backend = get_backend()
+
+    # --epic is an alias for --parent (use epic if both provided, otherwise parent)
+    parent_filter = epic or parent
 
     # Convert status string to TaskStatus
     task_status: TaskStatus | None = None
@@ -200,7 +216,11 @@ def list_tasks(
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
-    tasks = backend.list_tasks(status=task_status, parent=parent, label=label)
+    tasks = backend.list_tasks(status=task_status, parent=parent_filter, label=label)
+
+    # Client-side filtering for assignee (since backend doesn't support it)
+    if assignee:
+        tasks = [t for t in tasks if t.assignee == assignee]
 
     if json_output:
         output = [t.model_dump(mode="json") for t in tasks]
@@ -211,10 +231,12 @@ def list_tasks(
         criteria_parts = []
         if status:
             criteria_parts.append(f"status={status}")
-        if parent:
-            criteria_parts.append(f"parent={parent}")
+        if parent_filter:
+            criteria_parts.append(f"parent={parent_filter}")
         if label:
             criteria_parts.append(f"label={label}")
+        if assignee:
+            criteria_parts.append(f"assignee={assignee}")
         criteria_str = " ".join(criteria_parts) if criteria_parts else None
         print_no_tasks_found_error(criteria_str)
         return
@@ -269,6 +291,22 @@ def update(
         "-d",
         help="Update description",
     ),
+    title: str | None = typer.Option(
+        None,
+        "--title",
+        help="Update title",
+    ),
+    priority: int | None = typer.Option(
+        None,
+        "--priority",
+        "-p",
+        help="Update priority (0-4, where 0 is highest)",
+    ),
+    notes: str | None = typer.Option(
+        None,
+        "--notes",
+        help="Update notes/comments",
+    ),
 ) -> None:
     """
     Update a task's fields.
@@ -277,6 +315,9 @@ def update(
         cub task update cub-123 --status in_progress
         cub task update cub-123 --assignee "agent-001"
         cub task update cub-123 --add-label "priority:high"
+        cub task update cub-123 --title "New title"
+        cub task update cub-123 --priority 1
+        cub task update cub-123 --notes "Additional context"
     """
     backend = get_backend()
 
@@ -284,6 +325,11 @@ def update(
     task = backend.get_task(task_id)
     if task is None:
         print_task_not_found_error(task_id)
+        raise typer.Exit(ExitCode.USER_ERROR)
+
+    # Validate priority if provided
+    if priority is not None and not (0 <= priority <= 4):
+        console.print(f"[red]Error:[/red] Priority must be between 0 and 4 (got {priority})")
         raise typer.Exit(ExitCode.USER_ERROR)
 
     # Convert status string to TaskStatus
@@ -313,6 +359,9 @@ def update(
             assignee=assignee,
             description=description,
             labels=new_labels,
+            title=title,
+            priority=priority,
+            notes=notes,
         )
         console.print(f"[green]Updated:[/green] {updated.id}")
     except ValueError as e:
@@ -502,11 +551,21 @@ def ready(
         "--parent",
         help="Filter by parent epic/task ID",
     ),
+    epic: str | None = typer.Option(
+        None,
+        "--epic",
+        help="Filter by parent epic/task ID (alias for --parent)",
+    ),
     label: str | None = typer.Option(
         None,
         "--label",
         "-l",
         help="Filter by label",
+    ),
+    by: str = typer.Option(
+        "priority",
+        "--by",
+        help="Sort order: priority (default) or impact (transitive unblocks)",
     ),
     json_output: bool = typer.Option(
         False,
@@ -522,19 +581,51 @@ def ready(
     - All dependencies are CLOSED
 
     Examples:
-        cub task ready                  # All ready tasks
-        cub task ready --parent cub-123 # Ready tasks under epic
+        cub task ready                      # All ready tasks (by priority)
+        cub task ready --parent cub-123     # Ready tasks under epic
+        cub task ready --epic cub-123       # Ready tasks under epic (same as --parent)
+        cub task ready --by priority        # Sort by priority (default)
+        cub task ready --by impact          # Sort by impact (transitive unblocks)
     """
     backend = get_backend()
-    tasks = backend.get_ready_tasks(parent=parent, label=label)
+
+    # --epic is an alias for --parent (use epic if both provided, otherwise parent)
+    parent_filter = epic or parent
+
+    # Validate --by option
+    if by not in ("priority", "impact"):
+        print_invalid_option_error(by, ["priority", "impact"])
+        raise typer.Exit(ExitCode.USER_ERROR)
+
+    tasks = backend.get_ready_tasks(parent=parent_filter, label=label)
+
+    if not tasks:
+        if json_output:
+            console.print(json.dumps([], indent=2))
+        else:
+            console.print("[yellow]No tasks ready to work on.[/yellow]")
+        return
+
+    # Sort tasks based on --by option
+    if by == "impact":
+        # Build dependency graph from all tasks and sort by transitive unblocks
+        all_tasks = backend.list_tasks()
+        graph = DependencyGraph(all_tasks)
+
+        # Calculate impact scores for all ready tasks
+        impact_scores: dict[str, int] = {}
+        for task in tasks:
+            impact_scores[task.id] = len(graph.transitive_unblocks(task.id))
+
+        # Sort by impact (descending), then by priority (ascending)
+        tasks.sort(key=lambda t: (-impact_scores.get(t.id, 0), t.priority_numeric))
+    else:
+        # Default: sort by priority (already done by backend, but ensure consistency)
+        tasks.sort(key=lambda t: t.priority_numeric)
 
     if json_output:
         output = [t.model_dump(mode="json") for t in tasks]
         console.print(json.dumps(output, indent=2))
-        return
-
-    if not tasks:
-        console.print("[yellow]No tasks ready to work on.[/yellow]")
         return
 
     table = Table(
@@ -546,12 +637,31 @@ def ready(
     table.add_column("P", width=2, justify="center")
     table.add_column("Title", overflow="fold")
 
+    # Add impact column if sorting by impact
+    if by == "impact":
+        table.add_column("Impact", width=8, justify="right")
+
+    # Pre-compute impact scores if needed (avoid rebuilding graph in loop)
+    impact_scores_display: dict[str, int] = {}
+    if by == "impact":
+        all_tasks = backend.list_tasks()
+        graph = DependencyGraph(all_tasks)
+        for task in tasks:
+            impact_scores_display[task.id] = len(graph.transitive_unblocks(task.id))
+
     for task in tasks:
-        table.add_row(
+        row = [
             task.id,
             task.priority.value[1],
             task.title,
-        )
+        ]
+
+        # Add impact score if sorting by impact
+        if by == "impact":
+            impact = impact_scores_display.get(task.id, 0)
+            row.append(str(impact) if impact > 0 else "-")
+
+        table.add_row(*row)
 
     console.print(table)
     console.print(f"\n[dim]{len(tasks)} tasks ready[/dim]")
