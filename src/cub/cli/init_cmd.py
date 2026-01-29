@@ -522,6 +522,7 @@ def init_project(
     interactive: bool = False,
     install_hooks_flag: bool = True,
     dev_mode_override: bool | None = None,
+    quiet: bool = False,
 ) -> None:
     """
     Full project initialization sequence.
@@ -600,6 +601,12 @@ def init_project(
 
     console.print(f"\n[green bold]cub initialized in {project_name}[/green bold]")
 
+    if not quiet:
+        from cub.cli.guidance import render_guidance
+        from cub.core.guidance import CommandType
+
+        render_guidance(console, CommandType.INIT)
+
 
 # ---------------------------------------------------------------------------
 # CLI entry point
@@ -651,6 +658,12 @@ def main(
         "-i",
         help="Interactive mode with prompts",
     ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress post-command guidance messages",
+    ),
 ) -> None:
     """
     Initialize cub in a project or globally.
@@ -683,6 +696,7 @@ def main(
         interactive=interactive,
         install_hooks_flag=hooks,
         dev_mode_override=dev_mode,
+        quiet=quiet,
     )
 
 

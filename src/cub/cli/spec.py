@@ -37,6 +37,12 @@ def spec(
         "-l",
         help="List specs in all lifecycle stages",
     ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress post-command guidance messages",
+    ),
 ) -> None:
     """
     Create a feature specification through an interactive interview.
@@ -86,6 +92,13 @@ def spec(
             ["claude", skill_prompt],
             check=False,  # Don't raise on non-zero exit
         )
+
+        # Show guidance on successful completion
+        if result.returncode == 0 and not quiet:
+            from cub.cli.guidance import render_guidance
+            from cub.core.guidance import CommandType
+
+            render_guidance(console, CommandType.SPEC)
 
         # Exit with the same code as Claude
         raise typer.Exit(result.returncode)
