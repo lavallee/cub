@@ -4,16 +4,16 @@
   "project_dir": "/Users/lavallee/Experiments/cub_sat",
   "harness": "claude",
   "budget": {
-    "tokens_used": 15536,
+    "tokens_used": 42019,
     "tokens_limit": 0,
-    "cost_usd": 0.8086250999999998,
+    "cost_usd": 2.65000605,
     "cost_limit": 0.0
   },
-  "tasks_completed": 1,
+  "tasks_completed": 2,
   "tasks_failed": 0,
   "current_task": null,
-  "status": "running",
-  "ended_at": null,
+  "status": "completed",
+  "ended_at": "2026-01-29T20:39:49.910554Z",
   "orphaned_at": null,
   "orphaned_reason": null
 }
