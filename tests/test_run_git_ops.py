@@ -142,9 +142,22 @@ class TestCreateRunBranch:
         assert result.branch_name == "feature/new-feature"
         assert result.error is None
 
-        # Verify git checkout -b was called
-        mock_run.assert_called_once_with(
+        # Verify git checkout -b was called, followed by upstream tracking config
+        assert mock_run.call_count == 3
+        mock_run.assert_any_call(
             ["git", "checkout", "-b", "feature/new-feature", "origin/main"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/new-feature.remote", "origin"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/new-feature.merge", "refs/heads/feature/new-feature"],
             capture_output=True,
             text=True,
             check=False,
@@ -216,8 +229,9 @@ class TestCreateRunBranch:
             assert result.success is True
             assert result.created is True
 
-            # Verify it used origin/main as the base
-            mock_run.assert_called_once_with(
+            # Verify it used origin/main as the base and configured upstream
+            assert mock_run.call_count == 3
+            mock_run.assert_any_call(
                 ["git", "checkout", "-b", "feature/new", "origin/main"],
                 capture_output=True,
                 text=True,
@@ -239,6 +253,55 @@ class TestCreateRunBranch:
         assert result.success is False
         assert result.created is False
         assert "Failed to create branch" in result.error
+
+
+class TestConfigureUpstreamTracking:
+    """Tests for _configure_upstream_tracking internal function."""
+
+    @patch("subprocess.run")
+    def test_configures_remote_and_merge(self, mock_run):
+        """Test that upstream tracking sets both remote and merge config."""
+        from cub.core.run.git_ops import _configure_upstream_tracking
+
+        mock_run.return_value = MagicMock(returncode=0)
+
+        _configure_upstream_tracking("feature/my-branch")
+
+        assert mock_run.call_count == 2
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/my-branch.remote", "origin"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/my-branch.merge", "refs/heads/feature/my-branch"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("subprocess.run")
+    def test_custom_remote(self, mock_run):
+        """Test configuring upstream with a custom remote name."""
+        from cub.core.run.git_ops import _configure_upstream_tracking
+
+        mock_run.return_value = MagicMock(returncode=0)
+
+        _configure_upstream_tracking("feature/test", remote="upstream")
+
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/test.remote", "upstream"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        mock_run.assert_any_call(
+            ["git", "config", "branch.feature/test.merge", "refs/heads/feature/test"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
 
 
 class TestGetGhIssueTitle:
