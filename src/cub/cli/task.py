@@ -18,7 +18,8 @@ from cub.cli.errors import (
     print_task_not_found_error,
 )
 from cub.core.tasks.backend import get_backend
-from cub.core.tasks.models import TaskStatus
+from cub.core.tasks.graph import DependencyGraph
+from cub.core.tasks.models import Task, TaskStatus
 
 console = Console()
 app = typer.Typer(help="Manage tasks (backend-agnostic)")
@@ -575,3 +576,150 @@ def dep_list(
                 console.print(f"  {blocked_id} (not found)")
     else:
         console.print("\n[dim]Not blocking any tasks[/dim]")
+
+
+@app.command()
+def blocked(
+    epic: str | None = typer.Option(
+        None,
+        "--epic",
+        help="Filter by epic/parent ID",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Include agent analysis (root blockers, chain lengths)",
+    ),
+) -> None:
+    """
+    Show blocked tasks (tasks with unresolved dependencies).
+
+    Blocked tasks are:
+    - Status is OPEN
+    - Have at least one dependency that is not CLOSED
+
+    Examples:
+        cub task blocked                # All blocked tasks
+        cub task blocked --epic cub-123 # Blocked tasks under epic
+        cub task blocked --agent        # Include dependency analysis
+    """
+    from cub.core.tasks.graph import DependencyGraph
+
+    backend = get_backend()
+    blocked_tasks = backend.list_blocked_tasks(parent=epic)
+
+    if json_output:
+        output = [t.model_dump(mode="json") for t in blocked_tasks]
+        console.print(json.dumps(output, indent=2))
+        return
+
+    if not blocked_tasks:
+        console.print("[yellow]No blocked tasks found.[/yellow]")
+        return
+
+    # Agent mode: include dependency graph analysis
+    if agent:
+        # Build dependency graph from all tasks for analysis
+        all_tasks = backend.list_tasks()
+        graph = DependencyGraph(all_tasks)
+
+        # Try to import AgentFormatter if available
+        try:
+            from cub.core.tasks.agent_formatter import (
+                AgentFormatter,  # type: ignore[import-untyped]
+            )
+
+            formatter = AgentFormatter()
+            output = formatter.format_blocked(blocked_tasks, graph)
+            console.print(output)
+            return
+        except ImportError:
+            # Fallback to markdown table with analysis
+            _format_blocked_agent_fallback(blocked_tasks, graph)
+            return
+
+    # Rich table output (default)
+    table = Table(
+        title="Blocked Tasks",
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("ID", style="dim")
+    table.add_column("P", width=2, justify="center")
+    table.add_column("Title", overflow="fold")
+    table.add_column("Blocked By", overflow="fold")
+
+    for task in blocked_tasks:
+        # Get open blockers
+        open_blockers = []
+        for dep_id in task.depends_on:
+            dep_task = backend.get_task(dep_id)
+            if dep_task and dep_task.status != TaskStatus.CLOSED:
+                open_blockers.append(dep_id)
+
+        table.add_row(
+            task.id,
+            task.priority.value[1],
+            task.title,
+            ", ".join(open_blockers) if open_blockers else "[dim]none[/dim]",
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]{len(blocked_tasks)} blocked tasks[/dim]")
+
+
+def _format_blocked_agent_fallback(
+    blocked_tasks: list[Task], graph: DependencyGraph
+) -> None:
+    """Format blocked tasks with dependency analysis.
+
+    Fallback when AgentFormatter not available.
+    """
+
+    console.print("[bold cyan]# Blocked Tasks Analysis[/bold cyan]\n")
+
+    # Show blocked tasks table
+    console.print("[bold]## Blocked Tasks[/bold]\n")
+    console.print("| ID | Priority | Title | Blocked By |")
+    console.print("|----|----------|-------|------------|")
+
+    backend = get_backend()
+    for task in blocked_tasks:
+        # Get open blockers
+        open_blockers = []
+        for dep_id in task.depends_on:
+            dep_task = backend.get_task(dep_id)
+            if dep_task and dep_task.status != TaskStatus.CLOSED:
+                open_blockers.append(dep_id)
+
+        blockers_str = ", ".join(open_blockers) if open_blockers else "none"
+        console.print(f"| {task.id} | {task.priority.value} | {task.title} | {blockers_str} |")
+
+    console.print(f"\n*Total: {len(blocked_tasks)} blocked tasks*\n")
+
+    # Show root blockers analysis
+    root_blockers = graph.root_blockers(limit=5)
+    if root_blockers:
+        console.print("[bold]## Root Blockers[/bold]\n")
+        console.print("Completing these tasks would unblock the most other tasks:\n")
+        for task_id, unblock_count in root_blockers:
+            maybe_task = backend.get_task(task_id)
+            title = maybe_task.title if maybe_task else "(not found)"
+            console.print(f"- **{task_id}**: {title} (unblocks {unblock_count} tasks)")
+        console.print()
+
+    # Show longest dependency chains
+    chains = graph.chains(limit=5)
+    if chains:
+        console.print("[bold]## Dependency Chains[/bold]\n")
+        max_depth = len(chains[0]) if chains else 0
+        console.print(f"Longest dependency chains (max depth: {max_depth}):\n")
+        for i, chain in enumerate(chains, 1):
+            chain_str = " → ".join(chain)
+            console.print(f"{i}. {chain_str} (length: {len(chain)})")
+        console.print()
