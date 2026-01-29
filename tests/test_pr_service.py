@@ -96,25 +96,19 @@ class TestPRServiceGeneratePRBody:
             assert "## Test Plan" in body
 
     def test_generate_pr_body_with_epic(self, pr_service):
-        """Test PR body generation with epic from beads."""
+        """Test PR body generation with epic from task backend."""
+        from cub.core.tasks.models import Task
 
-        def mock_subprocess_run(cmd, **kwargs):
-            """Mock subprocess.run to return different values for different commands."""
-            if cmd[0] == "bd" and cmd[1] == "show":
-                return MagicMock(
-                    returncode=0,
-                    stdout='{"title": "Epic Title", "description": "Epic description here"}',
-                )
-            elif cmd[0] == "bd" and cmd[1] == "list":
-                # Return empty list for child tasks
-                return MagicMock(
-                    returncode=0,
-                    stdout="[]",
-                )
-            return MagicMock(returncode=1)
+        mock_backend = MagicMock()
+        mock_backend.get_task.return_value = Task(
+            id="epic-123",
+            title="Epic Title",
+            description="Epic description here",
+        )
+        mock_backend.list_tasks.return_value = []
+        pr_service._task_backend = mock_backend
 
         with (
-            patch("subprocess.run", side_effect=mock_subprocess_run),
             patch.object(pr_service.github_client, "get_commits_between") as mock_commits,
             patch.object(pr_service.github_client, "get_files_changed") as mock_files,
             patch.object(pr_service.github_client, "get_diff_stat") as mock_stat,
@@ -1683,22 +1677,22 @@ class TestGeneratePRBodyEdgeCases:
         return service
 
     def test_generate_pr_body_with_completed_tasks(self, pr_service):
-        """Test PR body includes completed tasks from beads."""
+        """Test PR body includes completed tasks from task backend."""
+        from cub.core.tasks.models import Task, TaskStatus
 
-        def mock_subprocess_run(cmd, **kwargs):
-            if cmd[0] == "bd" and cmd[1] == "show":
-                return MagicMock(
-                    returncode=0,
-                    stdout='{"title": "Epic", "description": ""}',
-                )
-            elif cmd[0] == "bd" and cmd[1] == "list":
-                tasks = '[{"id": "task-1", "title": "Task 1"}, '
-                tasks += '{"id": "task-2", "title": "Task 2"}]'
-                return MagicMock(returncode=0, stdout=tasks)
-            return MagicMock(returncode=1)
+        mock_backend = MagicMock()
+        mock_backend.get_task.return_value = Task(
+            id="epic-123",
+            title="Epic",
+            description="",
+        )
+        mock_backend.list_tasks.return_value = [
+            Task(id="task-1", title="Task 1", status=TaskStatus.CLOSED),
+            Task(id="task-2", title="Task 2", status=TaskStatus.CLOSED),
+        ]
+        pr_service._task_backend = mock_backend
 
         with (
-            patch("subprocess.run", side_effect=mock_subprocess_run),
             patch.object(pr_service.github_client, "get_commits_between") as mock_commits,
             patch.object(pr_service.github_client, "get_files_changed") as mock_files,
             patch.object(pr_service.github_client, "get_diff_stat") as mock_stat,
@@ -1714,19 +1708,14 @@ class TestGeneratePRBodyEdgeCases:
             assert "Task 1" in body
             assert "task-2" in body
 
-    def test_generate_pr_body_bd_json_error(self, pr_service):
-        """Test PR body handles bd JSON parse errors gracefully."""
-
-        def mock_subprocess_run(cmd, **kwargs):
-            if cmd[0] == "bd":
-                return MagicMock(
-                    returncode=0,
-                    stdout="invalid json",
-                )
-            return MagicMock(returncode=1)
+    def test_generate_pr_body_backend_error(self, pr_service):
+        """Test PR body handles task backend errors gracefully."""
+        mock_backend = MagicMock()
+        mock_backend.get_task.side_effect = RuntimeError("backend error")
+        mock_backend.list_tasks.side_effect = RuntimeError("backend error")
+        pr_service._task_backend = mock_backend
 
         with (
-            patch("subprocess.run", side_effect=mock_subprocess_run),
             patch.object(pr_service.github_client, "get_commits_between") as mock_commits,
             patch.object(pr_service.github_client, "get_files_changed") as mock_files,
             patch.object(pr_service.github_client, "get_diff_stat") as mock_stat,

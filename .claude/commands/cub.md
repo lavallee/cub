@@ -11,13 +11,11 @@ These conversational skills guide you through structured workflows:
 | `/cub:capture` | Capture quick ideas, notes, and observations |
 | `/cub:spec` | Create a feature specification through interactive interview |
 | `/cub:spec-to-issues` | Convert specs into actionable tasks |
-| `/cub:triage` | Refine requirements through interactive questions |
 | `/cub:orient` | Research and understand the problem space (requirements refinement) |
 | `/cub:architect` | Design solution architecture |
-| `/cub:plan` | Run full planning pipeline (orient → architect → itemize) |
 | `/cub:itemize` | Break architecture into agent-sized tasks |
 
-**Workflow:** Start with `/cub:capture` for raw ideas, use `/cub:spec` to structure them, then run `/cub:plan` (or individual phases) to generate executable tasks.
+**Workflow:** Start with `/cub:capture` for raw ideas, use `/cub:spec` to structure them, then run individual phases (`/cub:orient` → `/cub:architect` → `/cub:itemize`) to generate executable tasks.
 
 ## Common CLI Commands
 

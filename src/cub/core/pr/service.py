@@ -7,7 +7,6 @@ pull requests with optional CI/review handling via Claude.
 
 from __future__ import annotations
 
-import json
 import logging
 import subprocess
 from dataclasses import dataclass
@@ -16,6 +15,8 @@ from typing import Protocol
 
 from cub.core.branches import BranchStore, ResolvedTarget
 from cub.core.github.client import GitHubClient, GitHubClientError
+from cub.core.tasks.backend import TaskBackend, get_backend
+from cub.core.tasks.models import TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +268,7 @@ class PRService:
         self,
         project_dir: Path | None = None,
         callback: PREventCallback | None = None,
+        task_backend: TaskBackend | None = None,
     ) -> None:
         """
         Initialize PRService.
@@ -274,11 +276,13 @@ class PRService:
         Args:
             project_dir: Project directory (defaults to cwd)
             callback: Event callback for progress/status output
+            task_backend: Task backend for querying tasks/epics (auto-detected if None)
         """
         self.project_dir = project_dir or Path.cwd()
         self._callback = callback or _NoOpCallback()
         self._branch_store: BranchStore | None = None
         self._github_client: GitHubClient | None = None
+        self._task_backend: TaskBackend | None = task_backend
 
     @property
     def branch_store(self) -> BranchStore:
@@ -293,6 +297,13 @@ class PRService:
         if self._github_client is None:
             self._github_client = GitHubClient.from_project_dir(self.project_dir)
         return self._github_client
+
+    @property
+    def task_backend(self) -> TaskBackend:
+        """Get task backend (lazy initialization)."""
+        if self._task_backend is None:
+            self._task_backend = get_backend(project_dir=self.project_dir)
+        return self._task_backend
 
     def resolve_input(self, target: str | None) -> ResolvedTarget:
         """
@@ -374,35 +385,23 @@ class PRService:
         completed_tasks: list[dict[str, str]] = []
 
         if epic_id:
-            # Try to get epic from beads
             try:
-                result = subprocess.run(
-                    ["bd", "show", epic_id, "--json"],
-                    capture_output=True,
-                    text=True,
-                    check=False,
-                )
-                if result.returncode == 0:
-                    epic_data = json.loads(result.stdout)
-                    epic_title = epic_data.get("title", epic_id)
-                    epic_description = epic_data.get("description", "")
-            except (json.JSONDecodeError, OSError, FileNotFoundError):
+                epic = self.task_backend.get_task(epic_id)
+                if epic:
+                    epic_title = epic.title
+                    epic_description = epic.description
+            except Exception:
                 pass
 
             # Get closed child tasks
             try:
-                result = subprocess.run(
-                    ["bd", "list", "--parent", epic_id, "--status", "closed", "--json"],
-                    capture_output=True,
-                    text=True,
-                    check=False,
+                closed_tasks = self.task_backend.list_tasks(
+                    status=TaskStatus.CLOSED, parent=epic_id
                 )
-                if result.returncode == 0:
-                    tasks = json.loads(result.stdout)
-                    completed_tasks = [
-                        {"id": t.get("id", ""), "title": t.get("title", "")} for t in tasks
-                    ]
-            except (json.JSONDecodeError, OSError, FileNotFoundError):
+                completed_tasks = [
+                    {"id": t.id, "title": t.title} for t in closed_tasks
+                ]
+            except Exception:
                 pass
 
         # Get git information
@@ -562,6 +561,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             else:
                 base = "main"
                 logger.debug("Using default base branch: main")
+        # Strip remote prefix (e.g. "origin/main" -> "main") since
+        # gh pr create --base expects a bare branch name
+        if "/" in base:
+            base = base.split("/", 1)[1]
         logger.debug(f"base={base!r}")
 
         # Check for existing PR
@@ -635,21 +638,16 @@ Generated with [cub](https://github.com/lavallee/cub)
         self._callback.on_progress("Determining PR title...")
         if not title:
             if resolved.epic_id:
-                # Try to get from beads
-                logger.debug(f"Fetching epic info from beads: {resolved.epic_id}")
+                # Get title from task backend
+                logger.debug(f"Fetching epic info: {resolved.epic_id}")
                 try:
-                    bd_result = subprocess.run(
-                        ["bd", "show", resolved.epic_id, "--json"],
-                        capture_output=True,
-                        text=True,
-                        check=False,
-                    )
-                    logger.debug(f"bd_show_returncode={bd_result.returncode}")
-                    if bd_result.returncode == 0:
-                        epic_data = json.loads(bd_result.stdout)
-                        logger.debug(f"epic_data={epic_data!r}")
-                        title = epic_data.get("title", resolved.epic_id)
-                except (json.JSONDecodeError, OSError, FileNotFoundError) as e:
+                    epic = self.task_backend.get_task(resolved.epic_id)
+                    if epic:
+                        title = epic.title
+                        logger.debug(f"Got epic title: {title!r}")
+                    else:
+                        title = resolved.epic_id
+                except Exception as e:
                     logger.debug(f"Failed to get epic title: {e}")
                     title = resolved.epic_id
             else:

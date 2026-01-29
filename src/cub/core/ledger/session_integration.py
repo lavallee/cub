@@ -36,6 +36,8 @@ from typing import TYPE_CHECKING, Any
 
 from cub.core.ledger.models import (
     Attempt,
+    CIMonitorSummary,
+    CIRetryRecord,
     CommitRef,
     LedgerEntry,
     Lineage,
@@ -89,6 +91,8 @@ class SessionState:
         self.spec_files: list[str] = []
         self.git_commits: list[dict[str, Any]] = []
         self.transcript_path: str | None = None
+        self.ci_retries: list[dict[str, Any]] = []
+        self.ci_monitor_result: dict[str, Any] | None = None
 
     @property
     def has_task(self) -> bool:
@@ -219,6 +223,24 @@ class SessionLedgerIntegration:
                 "timestamp": timestamp_str or "",
             }
             state.git_commits.append(commit_info)
+
+        elif event_type == "ci_retry":
+            retry_info = {
+                "attempt_number": event.get("attempt_number", 0),
+                "reason": event.get("reason", "unknown"),
+                "failed_checks": event.get("failed_checks", []),
+                "triggered_at": timestamp_str or "",
+                "success": event.get("success", False),
+            }
+            state.ci_retries.append(retry_info)
+
+        elif event_type == "ci_monitor_complete":
+            state.ci_monitor_result = {
+                "pr_number": event.get("pr_number"),
+                "final_state": event.get("final_state", "unknown"),
+                "total_retries": event.get("total_retries", 0),
+                "duration_seconds": event.get("duration_seconds", 0.0),
+            }
 
     def on_session_end(
         self,
@@ -387,6 +409,9 @@ class SessionLedgerIntegration:
             notes=[],
         )
 
+        # Build CI monitor summary if retry data exists
+        ci_monitor = self._build_ci_monitor_summary(state)
+
         # Create or update ledger entry
         if existing_entry:
             # Update existing entry (add session attempt)
@@ -396,6 +421,7 @@ class SessionLedgerIntegration:
             existing_entry.workflow = workflow
             existing_entry.state_history.append(state_history[0])
             existing_entry.completed_at = now
+            existing_entry.ci_monitor = ci_monitor
 
             # Update legacy fields
             existing_entry.iterations = len(existing_entry.attempts)
@@ -429,6 +455,7 @@ class SessionLedgerIntegration:
                 verification=verification,
                 workflow=workflow,
                 state_history=state_history,
+                ci_monitor=ci_monitor,
                 started_at=state.task_claimed_at or state.started_at or now,
                 completed_at=now,
                 # Legacy fields
@@ -449,6 +476,48 @@ class SessionLedgerIntegration:
 
             self.writer.create_entry(entry)
             return entry
+
+    def _build_ci_monitor_summary(self, state: SessionState) -> CIMonitorSummary | None:
+        """Build CI monitor summary from session state.
+
+        Args:
+            state: Session state with CI retry data
+
+        Returns:
+            CIMonitorSummary if retry data exists, None otherwise
+        """
+        if not state.ci_retries and not state.ci_monitor_result:
+            return None
+
+        retry_records: list[CIRetryRecord] = []
+        for retry in state.ci_retries:
+            triggered_at_str = retry.get("triggered_at", "")
+            triggered_at = datetime.now(timezone.utc)
+            if triggered_at_str:
+                try:
+                    triggered_at = datetime.fromisoformat(triggered_at_str)
+                except (ValueError, TypeError):
+                    pass
+
+            retry_records.append(
+                CIRetryRecord(
+                    attempt_number=retry.get("attempt_number", 1),
+                    reason=retry.get("reason", "unknown"),
+                    triggered_at=triggered_at,
+                    failed_checks=retry.get("failed_checks", []),
+                    success=retry.get("success", False),
+                )
+            )
+
+        monitor_data = state.ci_monitor_result or {}
+        return CIMonitorSummary(
+            pr_number=monitor_data.get("pr_number", 1),
+            final_state=monitor_data.get("final_state", "unknown"),
+            total_retries=monitor_data.get("total_retries", len(retry_records)),
+            retry_records=retry_records,
+            check_records=[],
+            duration_seconds=monitor_data.get("duration_seconds", 0.0),
+        )
 
     def finalize_forensics(self, forensics_path: Path) -> SessionState | None:
         """Finalize forensics log without creating ledger entry.

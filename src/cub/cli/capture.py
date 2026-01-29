@@ -68,6 +68,12 @@ def capture(
         "--no-slug",
         help="Skip AI-generated slug, use ID as filename",
     ),
+    quiet: bool = typer.Option(
+        False,
+        "--quiet",
+        "-q",
+        help="Suppress post-command guidance messages",
+    ),
 ) -> None:
     """
     Capture quick ideas, notes, and observations.
@@ -217,6 +223,12 @@ def capture(
     # Success output
     console.print(f"[green]✓[/green] Captured as [bold]{capture_id}[/bold] ({location})")
     console.print(f"  [dim]{file_path}[/dim]")
+
+    if not quiet:
+        from cub.cli.guidance import render_guidance
+        from cub.core.guidance import CommandType
+
+        render_guidance(console, CommandType.CAPTURE)
 
     if debug:
         console.print("\n[dim]Debug info:[/dim]")

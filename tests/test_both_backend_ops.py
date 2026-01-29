@@ -195,6 +195,50 @@ class TestCompareTasks:
         result = both._compare_tasks(t1, t2)
         assert "labels" in result
 
+    def test_same_labels_different_order_no_divergence(self, both: BothBackend) -> None:
+        """Labels in different order should NOT be flagged as a divergence."""
+        t1 = _make_task(labels=["bug", "core", "phase-1"])
+        t2 = _make_task(labels=["core", "phase-1", "bug"])
+        result = both._compare_tasks(t1, t2)
+        assert result is None
+
+    def test_same_labels_reversed_order_no_divergence(self, both: BothBackend) -> None:
+        """Reversed label order should NOT be flagged as a divergence."""
+        t1 = _make_task(labels=["alpha", "beta", "gamma"])
+        t2 = _make_task(labels=["gamma", "beta", "alpha"])
+        result = both._compare_tasks(t1, t2)
+        assert result is None
+
+    def test_same_labels_two_elements_swapped_no_divergence(self, both: BothBackend) -> None:
+        """Two-element label lists in swapped order should NOT be flagged."""
+        t1 = _make_task(labels=["setup", "core"])
+        t2 = _make_task(labels=["core", "setup"])
+        result = both._compare_tasks(t1, t2)
+        assert result is None
+
+    def test_labels_subset_detected_as_divergence(self, both: BothBackend) -> None:
+        """A subset of labels should be detected as a real divergence."""
+        t1 = _make_task(labels=["alpha", "beta", "gamma"])
+        t2 = _make_task(labels=["alpha", "beta"])
+        result = both._compare_tasks(t1, t2)
+        assert result is not None
+        assert "labels" in result
+
+    def test_labels_empty_vs_nonempty_detected_as_divergence(self, both: BothBackend) -> None:
+        """Empty labels vs non-empty labels should be a real divergence."""
+        t1 = _make_task(labels=[])
+        t2 = _make_task(labels=["bug"])
+        result = both._compare_tasks(t1, t2)
+        assert result is not None
+        assert "labels" in result
+
+    def test_labels_both_empty_no_divergence(self, both: BothBackend) -> None:
+        """Both empty label lists should NOT be flagged."""
+        t1 = _make_task(labels=[])
+        t2 = _make_task(labels=[])
+        result = both._compare_tasks(t1, t2)
+        assert result is None
+
     def test_different_depends_on(self, both: BothBackend) -> None:
         t1 = _make_task(depends_on=["dep-1"])
         t2 = _make_task(depends_on=["dep-2"])

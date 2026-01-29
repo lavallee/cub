@@ -15,8 +15,15 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
+from cub.core.config import load_config
 from cub.core.github.client import GitHubClientError
 from cub.core.pr import PRService, PRServiceError
+from cub.core.services.pr_monitor import (
+    CheckPollError,
+    MonitorState,
+    PRMonitorService,
+    RetryAttempt,
+)
 
 app = typer.Typer(
     name="pr",
@@ -239,6 +246,94 @@ def _pr_needs_work(pr_number: int) -> tuple[bool, str]:
         return False, "Could not check PR status"
 
 
+def _run_retry_monitor(
+    pr_number: int,
+    retry_timeout: int | None,
+    console: Console,
+) -> None:
+    """
+    Run automated CI retry monitoring for a PR.
+
+    Loads config, creates a PRMonitorService, and runs a single
+    check cycle. If checks are already passing or pending, exits early.
+    If failures are detected, runs the retry loop.
+
+    Args:
+        pr_number: PR number to monitor
+        retry_timeout: Override for retry timeout, or None for config default
+        console: Rich console for output
+    """
+    try:
+        config = load_config()
+        pr_retry_config = config.pr_retry
+
+        if not pr_retry_config.enabled:
+            return
+
+        monitor = PRMonitorService(
+            poll_interval=pr_retry_config.poll_interval,
+            retry_timeout=retry_timeout or pr_retry_config.retry_timeout,
+            max_retries=pr_retry_config.max_retries,
+        )
+
+        # Quick check first — skip full monitoring if checks are passing
+        try:
+            summary = monitor.check_once(pr_number)
+        except CheckPollError:
+            # Can't poll checks — skip retry monitoring silently
+            return
+
+        if summary.all_passed:
+            console.print("[green]✓ All CI checks passing[/green]")
+            return
+
+        if not summary.has_failures:
+            # Still pending, no failures yet — skip retry loop
+            if summary.is_pending:
+                console.print("[dim]CI checks still running...[/dim]")
+            return
+
+        # Failures detected — run retry monitoring
+        failed_names = [c.name for c in summary.failed_checks]
+        console.print(
+            f"[yellow]⚠ {len(failed_names)} check(s) failing:[/yellow] "
+            f"{', '.join(failed_names[:3])}"
+        )
+        console.print("[cyan]Starting automated retry monitoring...[/cyan]")
+
+        def on_retry(attempt: RetryAttempt) -> None:
+            console.print(
+                f"[cyan]  → Retry {attempt.attempt_number} "
+                f"(reason: {attempt.reason.value})[/cyan]"
+            )
+
+        result = monitor.monitor_pr(pr_number, on_retry=on_retry)
+
+        if result.state == MonitorState.SUCCEEDED:
+            console.print(
+                f"[green]✓ All checks passed after "
+                f"{result.total_retries} retry(ies)[/green]"
+            )
+        elif result.state == MonitorState.EXHAUSTED:
+            console.print(
+                f"[red]✗ Checks still failing after "
+                f"{result.total_retries} retries[/red]"
+            )
+            if result.error_message:
+                console.print(f"[dim]{result.error_message}[/dim]")
+        elif result.state == MonitorState.TIMED_OUT:
+            console.print(
+                f"[yellow]⏱ Retry monitoring timed out after "
+                f"{result.total_retries} retries[/yellow]"
+            )
+
+    except KeyboardInterrupt:
+        console.print("[yellow]Retry monitoring interrupted.[/yellow]")
+    except Exception:
+        # Graceful degradation — retry monitoring is best-effort
+        pass
+
+
 @app.callback(invoke_without_command=True)
 def pr_command(
     ctx: typer.Context,
@@ -301,6 +396,20 @@ def pr_command(
             help="Show real-time output from PR creation process",
         ),
     ] = False,
+    retry_timeout: Annotated[
+        int | None,
+        typer.Option(
+            "--retry-timeout",
+            help="Timeout in seconds for CI retry monitoring (default: from config, 600s)",
+        ),
+    ] = None,
+    no_retry: Annotated[
+        bool,
+        typer.Option(
+            "--no-retry",
+            help="Disable automated CI check retry on transient failures",
+        ),
+    ] = False,
 ) -> None:
     """
     Create a pull request for an epic or branch.
@@ -332,6 +441,12 @@ def pr_command(
 
         # Show progress with debug details
         cub pr --stream --debug
+
+        # Disable automated CI retry
+        cub pr --no-retry
+
+        # Set custom retry timeout (5 minutes)
+        cub pr --retry-timeout 300
     """
     # Skip if a subcommand was invoked
     if ctx.invoked_subcommand is not None:
@@ -418,6 +533,14 @@ def pr_command(
                 if first_line:
                     console.print(f"[dim]Details: {first_line}[/dim]")
             console.print(f"[dim]You can check CI manually: gh pr checks {branch} --watch[/dim]")
+
+        # Run automated retry monitoring if enabled
+        if not no_retry:
+            _run_retry_monitor(
+                pr_number=result.number,
+                retry_timeout=retry_timeout,
+                console=console,
+            )
 
     except PRServiceError as e:
         console.print(f"[red]Error:[/red] {e}")

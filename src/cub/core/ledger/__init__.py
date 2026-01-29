@@ -37,6 +37,9 @@ from cub.core.ledger.extractor import InsightExtraction, extract_insights
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import (
     Attempt,
+    CICheckRecord,
+    CIMonitorSummary,
+    CIRetryRecord,
     CommitRef,
     DriftRecord,
     EpicSummary,
@@ -67,6 +70,10 @@ __all__ = [
     "CommitRef",
     "EpicSummary",
     "LedgerStats",
+    # CI monitoring models
+    "CICheckRecord",
+    "CIMonitorSummary",
+    "CIRetryRecord",
     # New tracking models
     "Lineage",
     "TaskSnapshot",

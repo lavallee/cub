@@ -340,6 +340,73 @@ class WorkflowState(BaseModel):
         return v
 
 
+class CICheckRecord(BaseModel):
+    """Record of a CI check result from PR monitoring.
+
+    Captures the state of individual CI checks for audit trail
+    and retry decision-making.
+    """
+
+    name: str = Field(..., description="Check name (e.g., 'tests', 'lint')")
+    state: str = Field(
+        default="pending",
+        description="Check state (pending, running, success, failure, error, timed_out)",
+    )
+    url: str | None = Field(default=None, description="URL to check details")
+    completed_at: datetime | None = Field(default=None, description="When check completed (UTC)")
+
+
+class CIRetryRecord(BaseModel):
+    """Record of a CI retry attempt.
+
+    Captures when and why a retry was triggered for session forensics.
+    """
+
+    attempt_number: int = Field(..., ge=1, description="Retry attempt number")
+    reason: str = Field(
+        default="unknown",
+        description="Reason for retry (flaky_test, rate_limit, service_error, timeout)",
+    )
+    triggered_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When retry was triggered (UTC)",
+    )
+    failed_checks: list[str] = Field(
+        default_factory=list, description="Names of checks that were failing"
+    )
+    success: bool = Field(default=False, description="Whether retry resolved the failure")
+
+
+class CIMonitorSummary(BaseModel):
+    """Summary of CI monitoring for a PR associated with a task.
+
+    Recorded in the ledger when a task's PR goes through automated
+    check monitoring and retry logic.
+    """
+
+    pr_number: int = Field(..., ge=1, description="PR number that was monitored")
+    final_state: str = Field(
+        default="unknown",
+        description="Final monitor state (succeeded, exhausted, timed_out)",
+    )
+    total_retries: int = Field(default=0, ge=0, description="Total retry attempts")
+    retry_records: list[CIRetryRecord] = Field(
+        default_factory=list, description="Individual retry attempt records"
+    )
+    check_records: list[CICheckRecord] = Field(
+        default_factory=list, description="Final check states"
+    )
+    started_at: datetime | None = Field(
+        default=None, description="When monitoring started (UTC)"
+    )
+    completed_at: datetime | None = Field(
+        default=None, description="When monitoring completed (UTC)"
+    )
+    duration_seconds: float = Field(
+        default=0.0, ge=0.0, description="Total monitoring duration in seconds"
+    )
+
+
 class LedgerEntry(BaseModel):
     """Individual task completion record for the ledger.
 
@@ -411,6 +478,11 @@ class LedgerEntry(BaseModel):
     # State history - NEW
     state_history: list[StateTransition] = Field(
         default_factory=list, description="Workflow stage transition history"
+    )
+
+    # CI monitoring - NEW
+    ci_monitor: CIMonitorSummary | None = Field(
+        default=None, description="CI check monitoring and retry summary (if PR was monitored)"
     )
 
     # Temporal tracking

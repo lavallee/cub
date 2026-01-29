@@ -212,10 +212,41 @@ def create_run_branch(
             error=f"Failed to create branch: {result.stderr}",
         )
 
+    # Configure upstream tracking so `git push` works without --set-upstream.
+    # We set the branch's remote and merge ref directly via git-config so this
+    # works even before the remote branch exists.
+    _configure_upstream_tracking(branch_name)
+
     return BranchCreationResult(
         success=True,
         branch_name=branch_name,
         created=True,
+    )
+
+
+def _configure_upstream_tracking(branch_name: str, remote: str = "origin") -> None:
+    """Configure upstream tracking for a local branch.
+
+    Sets the branch's remote and merge ref via git-config so that
+    ``git push`` works without requiring ``--set-upstream``. This
+    operates purely on local config and does not require the remote
+    branch to exist yet.
+
+    Args:
+        branch_name: The local branch name to configure tracking for.
+        remote: The remote to track against (default: "origin").
+    """
+    subprocess.run(
+        ["git", "config", f"branch.{branch_name}.remote", remote],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    subprocess.run(
+        ["git", "config", f"branch.{branch_name}.merge", f"refs/heads/{branch_name}"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
 

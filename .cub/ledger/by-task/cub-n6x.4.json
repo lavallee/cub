@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "id": "cub-n6x.4",
+  "title": "Configure git upstream on feature branch creation",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-n6x"
+  },
+  "task": {
+    "title": "Configure git upstream on feature branch creation",
+    "description": "When build-plan creates a feature branch, it doesn't set upstream tracking, causing `git push` to fail with \"fatal: The current branch has no upstream branch.\" Users must manually run `git push --set-upstream origin <branch>` before subsequent pushes work. This friction breaks the autonomous workflow where agents should be able to push changes without manual git intervention.\n\n**Implementation Steps:**\n1. Locate the feature branch creation logic in build-plan (likely in `cub.core.launch` or a related module that handles git operations)\n2. After creating the local branch, immediately configure upstream tracking by either:",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "epic:cub-n6x",
+      "punchlist"
+    ],
+    "created_at": "2026-01-29T01:58:07.313530Z",
+    "captured_at": "2026-01-29T02:25:27.807551Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-020557",
+      "started_at": "2026-01-29T02:25:27.818404",
+      "completed_at": "2026-01-29T02:30:46.994793Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 18,
+        "output_tokens": 4195,
+        "cache_read_tokens": 520317,
+        "cache_creation_tokens": 18719
+      },
+      "cost_usd": 0.6369597499999998,
+      "duration_seconds": 319
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T02:30:47.270389Z",
+    "total_cost_usd": 0.6369597499999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 319,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c153790e1f8d782d7820dac7cf6c83a6bbaae1a8",
+        "message": "task(cub-n6x.4): Configure git upstream on feature branch creation",
+        "author": "",
+        "timestamp": "2026-01-29T02:30:38Z"
+      }
+    ],
+    "approach": "Added upstream tracking configuration to the `create_run_branch()` function in `git_ops.py` by executing two `git config` commands after branch creation. This sets the branch's remote and merge refs locally without requiring the remote branch to exist, enabling `git push` to work without the `--set-upstream` flag during autonomous workflows.",
+    "decisions": [
+      "Used `git config branch.<name>.remote origin` and `git config branch.<name>.merge refs/heads/<name>` instead of `git push -u` to avoid network dependencies and allow push to work before remote branch exists",
+      "Implemented tracking configuration as a private helper function `_configure_upstream_tracking()` for reusability and clean separation of concerns",
+      "Updated existing tests rather than creating isolated test cases, maintaining consistency with the test suite's existing patterns for the `create_run_branch()` function"
+    ],
+    "lessons_learned": [
+      "For autonomous workflows, prefer local git configuration (config commands) over remote operations (push --set-upstream) to avoid external dependencies and enable workflows where remote branches haven't been created yet",
+      "When modifying functions that call `subprocess.run()`, update all existing tests that mock subprocess calls, not just tests for the new behavior, to prevent test failures from unexpected calls",
+      "The `git config branch.<name>.merge` ref format requires the full `refs/heads/` prefix, not just the branch name, for proper upstream tracking configuration"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T02:30:47.270389Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T02:25:27.807551Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T02:30:47.270389Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T02:25:27.807551Z",
+  "completed_at": "2026-01-29T02:30:47.270389Z",
+  "tokens": {
+    "input_tokens": 18,
+    "output_tokens": 4195,
+    "cache_read_tokens": 520317,
+    "cache_creation_tokens": 18719
+  },
+  "cost_usd": 0.6369597499999998,
+  "duration_seconds": 319,
+  "iterations": 1,
+  "approach": "Added upstream tracking configuration to the `create_run_branch()` function in `git_ops.py` by executing two `git config` commands after branch creation. This sets the branch's remote and merge refs locally without requiring the remote branch to exist, enabling `git push` to work without the `--set-upstream` flag during autonomous workflows.",
+  "decisions": [
+    "Used `git config branch.<name>.remote origin` and `git config branch.<name>.merge refs/heads/<name>` instead of `git push -u` to avoid network dependencies and allow push to work before remote branch exists",
+    "Implemented tracking configuration as a private helper function `_configure_upstream_tracking()` for reusability and clean separation of concerns",
+    "Updated existing tests rather than creating isolated test cases, maintaining consistency with the test suite's existing patterns for the `create_run_branch()` function"
+  ],
+  "lessons_learned": [
+    "For autonomous workflows, prefer local git configuration (config commands) over remote operations (push --set-upstream) to avoid external dependencies and enable workflows where remote branches haven't been created yet",
+    "When modifying functions that call `subprocess.run()`, update all existing tests that mock subprocess calls, not just tests for the new behavior, to prevent test failures from unexpected calls",
+    "The `git config branch.<name>.merge` ref format requires the full `refs/heads/` prefix, not just the branch name, for proper upstream tracking configuration"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "c153790e1f8d782d7820dac7cf6c83a6bbaae1a8",
+      "message": "task(cub-n6x.4): Configure git upstream on feature branch creation",
+      "author": "",
+      "timestamp": "2026-01-29T02:30:38Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-n6x.4",
+  "epic_id": "cub-n6x",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -12,14 +12,18 @@ from pathlib import Path
 
 import pytest
 
-from cub.core.plan.models import PlanStage
+from cub.core.plan.models import PlanStage, StageStatus
 from cub.core.plan.pipeline import (
     PipelineConfig,
     PipelineConfigError,
     PipelineResult,
+    PipelineStepSummary,
     PlanPipeline,
     StageResult,
+    StepDetectionStatus,
+    StepInfo,
     continue_pipeline,
+    detect_pipeline_steps,
     run_pipeline,
 )
 
@@ -727,3 +731,350 @@ class TestPlanRunCLI:
 
         assert result.exit_code == 1
         assert "plan not found" in result.output.lower()
+
+
+# ==============================================================================
+# Step Detection Tests
+# ==============================================================================
+
+
+class TestDetectPipelineSteps:
+    """Test detect_pipeline_steps function."""
+
+    def _make_plan_dir(
+        self,
+        tmp_path: Path,
+        *,
+        stages: dict[str, str] | None = None,
+        artifacts: dict[str, str] | None = None,
+        status: str = "in_progress",
+    ) -> Path:
+        """Helper to create a plan directory with specified state."""
+        plan_dir = tmp_path / "plans" / "test-plan"
+        plan_dir.mkdir(parents=True)
+
+        if stages is None:
+            stages = {
+                "orient": "pending",
+                "architect": "pending",
+                "itemize": "pending",
+            }
+
+        plan_json = {
+            "slug": "test-plan",
+            "project": "test",
+            "status": status,
+            "stages": stages,
+        }
+        (plan_dir / "plan.json").write_text(json.dumps(plan_json))
+
+        if artifacts:
+            for filename, content in artifacts.items():
+                (plan_dir / filename).write_text(content)
+
+        return plan_dir
+
+    def test_all_incomplete(self, tmp_path: Path) -> None:
+        """Test detection when no steps are done."""
+        plan_dir = self._make_plan_dir(tmp_path, status="pending")
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.plan_slug == "test-plan"
+        assert summary.plan_exists is True
+        assert summary.all_complete is False
+        assert summary.next_step == PlanStage.ORIENT
+        assert len(summary.steps) == 3
+        assert all(
+            s.status == StepDetectionStatus.INCOMPLETE for s in summary.steps
+        )
+
+    def test_orient_complete(self, tmp_path: Path) -> None:
+        """Test detection when only orient is complete."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "pending", "itemize": "pending"},
+            artifacts={"orientation.md": "# Orientation\n" + "x" * 200},
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.steps[0].status == StepDetectionStatus.COMPLETE
+        assert summary.steps[1].status == StepDetectionStatus.INCOMPLETE
+        assert summary.steps[2].status == StepDetectionStatus.INCOMPLETE
+        assert summary.next_step == PlanStage.ARCHITECT
+        assert summary.all_complete is False
+
+    def test_all_complete(self, tmp_path: Path) -> None:
+        """Test detection when all steps are complete."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "complete", "itemize": "complete"},
+            artifacts={
+                "orientation.md": "# Orientation\n" + "x" * 200,
+                "architecture.md": "# Architecture\n" + "x" * 200,
+                "itemized-plan.md": "# Tasks\n" + "x" * 200,
+            },
+            status="complete",
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.all_complete is True
+        assert summary.next_step is None
+        assert all(
+            s.status == StepDetectionStatus.COMPLETE for s in summary.steps
+        )
+
+    def test_corrupted_missing_artifact(self, tmp_path: Path) -> None:
+        """Test detection when plan.json says complete but artifact is missing."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "pending", "itemize": "pending"},
+            # No orientation.md artifact!
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.steps[0].status == StepDetectionStatus.CORRUPTED
+        assert "missing" in summary.steps[0].detail
+        assert summary.has_corruption is True
+        assert summary.next_step == PlanStage.ORIENT
+
+    def test_corrupted_tiny_artifact(self, tmp_path: Path) -> None:
+        """Test detection when artifact file is suspiciously small."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "pending", "itemize": "pending"},
+            artifacts={"orientation.md": "x"},  # Too small
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.steps[0].status == StepDetectionStatus.CORRUPTED
+        assert "small" in summary.steps[0].detail
+
+    def test_in_progress_stage(self, tmp_path: Path) -> None:
+        """Test detection of in-progress stages."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={
+                "orient": "complete",
+                "architect": "in_progress",
+                "itemize": "pending",
+            },
+            artifacts={"orientation.md": "# Orientation\n" + "x" * 200},
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.steps[0].status == StepDetectionStatus.COMPLETE
+        assert summary.steps[1].status == StepDetectionStatus.IN_PROGRESS
+        assert summary.next_step == PlanStage.ARCHITECT
+
+    def test_artifact_exists_but_plan_says_pending(self, tmp_path: Path) -> None:
+        """Test detection when artifact exists but plan.json hasn't been updated."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "pending", "architect": "pending", "itemize": "pending"},
+            artifacts={"orientation.md": "# Orientation\n" + "x" * 200},
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        # Should detect as in-progress (partial completion)
+        assert summary.steps[0].status == StepDetectionStatus.IN_PROGRESS
+        assert "pending" in summary.steps[0].detail
+
+    def test_missing_plan_json(self, tmp_path: Path) -> None:
+        """Test detection when plan.json doesn't exist."""
+        plan_dir = tmp_path / "plans" / "orphan-plan"
+        plan_dir.mkdir(parents=True)
+
+        # Create an artifact without plan.json
+        (plan_dir / "orientation.md").write_text("# Orientation\n" + "x" * 200)
+
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.plan_exists is False
+        # Without plan.json, all plan_status will be None → incomplete
+        # but orient has an artifact so it should be detected
+        assert summary.steps[0].status == StepDetectionStatus.INCOMPLETE
+
+    def test_corrupted_plan_json(self, tmp_path: Path) -> None:
+        """Test detection when plan.json is corrupted."""
+        plan_dir = tmp_path / "plans" / "bad-plan"
+        plan_dir.mkdir(parents=True)
+        (plan_dir / "plan.json").write_text("{not valid json")
+        (plan_dir / "orientation.md").write_text("# Orientation\n" + "x" * 200)
+
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.plan_exists is True  # File exists, just can't parse
+        # Should still detect artifacts
+        assert summary.plan_slug == "bad-plan"
+
+    def test_staged_plan(self, tmp_path: Path) -> None:
+        """Test detection of a staged plan."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "complete", "itemize": "complete"},
+            artifacts={
+                "orientation.md": "# Orientation\n" + "x" * 200,
+                "architecture.md": "# Architecture\n" + "x" * 200,
+                "itemized-plan.md": "# Tasks\n" + "x" * 200,
+            },
+            status="staged",
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        assert summary.is_staged is True
+        assert summary.all_complete is True
+
+    def test_inferred_project_root(self, tmp_path: Path) -> None:
+        """Test that project root is inferred from plan_dir when not provided."""
+        plan_dir = self._make_plan_dir(tmp_path)
+        summary = detect_pipeline_steps(plan_dir)
+
+        assert summary.plan_slug == "test-plan"
+        assert summary.plan_exists is True
+
+    def test_completed_steps_property(self, tmp_path: Path) -> None:
+        """Test the completed_steps property."""
+        plan_dir = self._make_plan_dir(
+            tmp_path,
+            stages={"orient": "complete", "architect": "complete", "itemize": "pending"},
+            artifacts={
+                "orientation.md": "# Orientation\n" + "x" * 200,
+                "architecture.md": "# Architecture\n" + "x" * 200,
+            },
+        )
+        summary = detect_pipeline_steps(plan_dir, tmp_path)
+
+        completed = summary.completed_steps
+        assert len(completed) == 2
+        assert completed[0].stage == PlanStage.ORIENT
+        assert completed[1].stage == PlanStage.ARCHITECT
+
+
+class TestStepDetectionStatus:
+    """Test StepDetectionStatus enum values."""
+
+    def test_enum_values(self) -> None:
+        """Test that all expected status values exist."""
+        assert StepDetectionStatus.COMPLETE == "complete"
+        assert StepDetectionStatus.IN_PROGRESS == "in_progress"
+        assert StepDetectionStatus.INCOMPLETE == "incomplete"
+        assert StepDetectionStatus.CORRUPTED == "corrupted"
+
+
+class TestPipelineStepSummary:
+    """Test PipelineStepSummary dataclass properties."""
+
+    def test_all_complete_property(self, tmp_path: Path) -> None:
+        """Test all_complete property with mixed steps."""
+        steps = [
+            StepInfo(
+                stage=PlanStage.ORIENT,
+                status=StepDetectionStatus.COMPLETE,
+                artifact_path=tmp_path / "orientation.md",
+                artifact_exists=True,
+            ),
+            StepInfo(
+                stage=PlanStage.ARCHITECT,
+                status=StepDetectionStatus.INCOMPLETE,
+                artifact_path=tmp_path / "architecture.md",
+                artifact_exists=False,
+            ),
+            StepInfo(
+                stage=PlanStage.ITEMIZE,
+                status=StepDetectionStatus.INCOMPLETE,
+                artifact_path=tmp_path / "itemized-plan.md",
+                artifact_exists=False,
+            ),
+        ]
+        summary = PipelineStepSummary(
+            plan_slug="test",
+            plan_dir=tmp_path,
+            steps=steps,
+            plan_exists=True,
+            next_step=PlanStage.ARCHITECT,
+        )
+        assert summary.all_complete is False
+
+    def test_has_corruption_property(self, tmp_path: Path) -> None:
+        """Test has_corruption property."""
+        steps = [
+            StepInfo(
+                stage=PlanStage.ORIENT,
+                status=StepDetectionStatus.CORRUPTED,
+                artifact_path=tmp_path / "orientation.md",
+                artifact_exists=False,
+            ),
+            StepInfo(
+                stage=PlanStage.ARCHITECT,
+                status=StepDetectionStatus.INCOMPLETE,
+                artifact_path=tmp_path / "architecture.md",
+                artifact_exists=False,
+            ),
+            StepInfo(
+                stage=PlanStage.ITEMIZE,
+                status=StepDetectionStatus.INCOMPLETE,
+                artifact_path=tmp_path / "itemized-plan.md",
+                artifact_exists=False,
+            ),
+        ]
+        summary = PipelineStepSummary(
+            plan_slug="test",
+            plan_dir=tmp_path,
+            steps=steps,
+            plan_exists=True,
+            next_step=PlanStage.ORIENT,
+        )
+        assert summary.has_corruption is True
+
+
+class TestPlanRunCLIStepSummary:
+    """Test that plan run CLI shows step summary."""
+
+    def test_run_shows_step_summary_on_success(
+        self, project_with_spec: tuple[Path, Path]
+    ) -> None:
+        """Test that successful run shows pipeline status summary."""
+        from typer.testing import CliRunner
+
+        from cub.cli import app
+
+        project_root, spec_file = project_with_spec
+        runner = CliRunner()
+
+        result = runner.invoke(
+            app,
+            [
+                "plan", "run",
+                str(spec_file),
+                "-p", str(project_root),
+                "--no-move-spec",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "pipeline status" in result.output.lower()
+        assert "complete" in result.output.lower()
+
+    def test_continue_shows_step_summary(
+        self, project_with_partial_plan: tuple[Path, Path]
+    ) -> None:
+        """Test that --continue run shows step summary."""
+        from typer.testing import CliRunner
+
+        from cub.cli import app
+
+        project_root, plan_dir = project_with_partial_plan
+        runner = CliRunner()
+
+        result = runner.invoke(
+            app,
+            [
+                "plan", "run",
+                "--continue", "my-feature",
+                "-p", str(project_root),
+                "--no-move-spec",
+            ],
+        )
+
+        assert result.exit_code == 0
+        assert "pipeline status" in result.output.lower()

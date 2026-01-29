@@ -1,0 +1,23 @@
+
+
+I'll start by claiming the task and exploring the codebase to understand the current state.Now let me read the key files I need to modify:Now let me understand how the run loop writes status and how status.json gets created:Now let me understand how the run loop currently uses these systems - specifically how it finds the latest active run:Now I understand the architecture. The key insight is:
+
+1. **The monitor already works with `status.json`** files via `StatusWatcher` and `DashboardRenderer` - these are fine.
+2. **The problem** is the session detection path: `monitor.py` uses `RunSessionManager.get_active_session()` which requires a symlink at `.cub/run-sessions/active-run.json`.
+3. **The fix needed**: When the session-based detection fails, fall back to finding the latest active run via `get_latest_status()` from `status/writer.py`, which scans `.cub/runs/*/status.json`.
+
+Let me check how `cub run` currently creates the status files to confirm this approach:Now I have a clear picture. The `cub run` command:
+1. Creates a `StatusWriter` that writes `status.json` to `.cub/runs/{run_id}/`
+2. Also starts a session via `RunSessionManager` with a symlink
+
+The monitor fails because the session symlink may not exist (beads-based runs might not always create sessions, or sessions may have been cleaned up). The fix is to make monitor resilient by:
+
+1. First trying the session-based approach (existing behavior)
+2. Falling back to scanning `.cub/runs/*/status.json` for the latest active run
+3. Providing clear error messages
+
+Let me also check if there are existing tests:Now I have a clear understanding. Let me implement the fix:I need a helper that finds the latest *active* run (not just latest). Let me also check what `get_latest_status` returns to understand if it already gives us the run_id we need:
+
+The `get_latest_status` returns a `RunStatus` which has `run_id`. I also need a function to find active runs specifically. Let me now write the refactored monitor:Now let me check if there are any references to the old monitor imports that need updating:Good - no other code references the old functions. Now let me write tests:Now let me write the test file:Now let's run the tests and feedback loops:The issue is that when the corrupt file is sorted first (by mtime) and the fallback path (step 3) tries to read only `status_files[0]`, it hits the corrupt one. Let me fix the fallback logic in the `_find_active_run` function to skip corrupt files:All 12 tests pass. Now let me run the broader feedback loops:Wait, the test file already has `import json` at the top. Let me check:Duplicate import. Let me fix:All checks pass. Now close the task and commit:Let me check if there are remaining open tasks:There are many open tasks remaining, so this isn't the last one. Task cub-n6x.2 is now complete.
+
+<promise>COMPLETE</promise>

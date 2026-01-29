@@ -340,6 +340,38 @@ class MapConfig(BaseModel):
     )
 
 
+class PRRetryConfig(BaseModel):
+    """
+    PR check retry configuration.
+
+    Controls automated retry behavior for transient CI failures
+    in pull requests. When enabled, cub pr will poll check status
+    and retry failed checks that appear to be transient.
+    """
+
+    enabled: bool = Field(
+        default=True,
+        description="Enable automated retry of transient CI failures",
+    )
+    retry_timeout: int = Field(
+        default=600,
+        ge=30,
+        description="Total timeout in seconds for retry operations (default: 10 minutes)",
+    )
+    max_retries: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Maximum number of retry attempts before giving up",
+    )
+    poll_interval: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="Seconds between check status polls",
+    )
+
+
 class BackendConfig(BaseModel):
     """
     Task backend configuration.
@@ -461,6 +493,10 @@ class CubConfig(BaseModel):
     map: MapConfig = Field(
         default_factory=MapConfig,
         description="Codebase map generation settings",
+    )
+    pr_retry: PRRetryConfig = Field(
+        default_factory=PRRetryConfig,
+        description="PR check retry configuration for transient CI failures",
     )
 
     model_config = ConfigDict(

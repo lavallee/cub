@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-n6x.3",
+  "title": "Add post-command guidance messages to key cub workflows",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-n6x"
+  },
+  "task": {
+    "title": "Add post-command guidance messages to key cub workflows",
+    "description": "Users new to cub lack clear direction after running commands, leaving them uncertain about next steps. Contextual guidance messages will improve onboarding and reduce friction by providing actionable next steps with concrete examples. This is a UX improvement focused on making cub more intuitive for new users.\n\n**Implementation Steps:**\n1. Create a guidance module (`cub/core/guidance.py`) with a `GuidanceProvider` class to generate contextual next-step messages based on command type and result\n2. Add guidance output to `cub init` command - display suggested next steps (create capture, run interview, start task) after successful initialization\n3. Add guidance output to `cub capture` command - suggest next steps (review capture, start interview, organize into spec) after capture creation\n4. Add guidance output to `cub spec` command - guide to next phase (detailed requirements, link to epic, schedule planning) after spec creation\n5. Implement `--quiet` flag support across these commands to suppress guidance messages when desired\n6. Format guidance using Rich tables/panels for readability and consistency\n7. Add tests for guidance module and verify all commands respect quiet flag",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "epic:cub-n6x",
+      "punchlist"
+    ],
+    "created_at": "2026-01-29T01:58:07.313516Z",
+    "captured_at": "2026-01-29T02:15:35.743810Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-020557",
+      "started_at": "2026-01-29T02:15:35.798040",
+      "completed_at": "2026-01-29T02:25:16.236754Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 3,
+        "output_tokens": 40,
+        "cache_read_tokens": 77423,
+        "cache_creation_tokens": 2550
+      },
+      "cost_usd": 2.0821782500000006,
+      "duration_seconds": 580
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T02:25:16.509045Z",
+    "total_cost_usd": 2.0821782500000006,
+    "total_attempts": 1,
+    "total_duration_seconds": 580,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b67f04d1aeb07cc90c4be3c83ac54adbc4fc24e4",
+        "message": "task(cub-n6x.3): Add post-command guidance messages to key cub workflows",
+        "author": "",
+        "timestamp": "2026-01-29T02:25:00Z"
+      }
+    ],
+    "approach": "The task was completed by implementing a guidance module to provide contextual next-step messages after key cub commands. The solution involved creating data models in the core layer (following architectural boundaries) and rendering logic in the CLI layer, then integrating guidance messages into the `init`, `capture`, and `spec` commands with an optional `--quiet` flag to suppress output when needed.",
+    "decisions": [
+      "**Architectural separation**: Kept guidance data models in `core/guidance.py` (no Rich dependencies) and moved rendering to `cub/cli/guidance.py` to respect the architectural rule that core modules cannot import Rich or other presentation libraries.",
+      "**`--quiet` flag pattern**: Added a `--quiet` option to commands to allow suppressing guidance messages, enabling integration with other tools and scripting while maintaining helpful defaults for interactive use.",
+      "**Selective command coverage**: Applied guidance to three key workflows (`init`, `capture`, `spec`) rather than all commands, prioritizing user onboarding touchpoints.",
+      "**Conditional guidance timing**: For `spec` command, placed guidance before the `typer.Exit()` call since the subprocess exits immediately, ensuring users see actionable next steps even when delegating to Claude."
+    ],
+    "lessons_learned": [
+      "**Test pre-existing failures early**: The `test_run_task_sets_cub_run_active_env_var` failure was environment-dependent (triggered by running inside a cub run). Identifying root causes before declaring success prevents false negatives.",
+      "**Architectural boundaries matter at test time**: When core/CLI separation is enforced, tests must import from the correct layer. Moving rendering to CLI required updating test imports, but improved code organization and maintainability.",
+      "**Guidance as optional, not mandatory**: The `--quiet` flag proved valuable for integration scenarios. Even UX improvements benefit from opt-out mechanisms for automated workflows."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T02:25:16.509045Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T02:15:35.743810Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T02:25:16.509045Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T02:15:35.743810Z",
+  "completed_at": "2026-01-29T02:25:16.509045Z",
+  "tokens": {
+    "input_tokens": 3,
+    "output_tokens": 40,
+    "cache_read_tokens": 77423,
+    "cache_creation_tokens": 2550
+  },
+  "cost_usd": 2.0821782500000006,
+  "duration_seconds": 580,
+  "iterations": 1,
+  "approach": "The task was completed by implementing a guidance module to provide contextual next-step messages after key cub commands. The solution involved creating data models in the core layer (following architectural boundaries) and rendering logic in the CLI layer, then integrating guidance messages into the `init`, `capture`, and `spec` commands with an optional `--quiet` flag to suppress output when needed.",
+  "decisions": [
+    "**Architectural separation**: Kept guidance data models in `core/guidance.py` (no Rich dependencies) and moved rendering to `cub/cli/guidance.py` to respect the architectural rule that core modules cannot import Rich or other presentation libraries.",
+    "**`--quiet` flag pattern**: Added a `--quiet` option to commands to allow suppressing guidance messages, enabling integration with other tools and scripting while maintaining helpful defaults for interactive use.",
+    "**Selective command coverage**: Applied guidance to three key workflows (`init`, `capture`, `spec`) rather than all commands, prioritizing user onboarding touchpoints.",
+    "**Conditional guidance timing**: For `spec` command, placed guidance before the `typer.Exit()` call since the subprocess exits immediately, ensuring users see actionable next steps even when delegating to Claude."
+  ],
+  "lessons_learned": [
+    "**Test pre-existing failures early**: The `test_run_task_sets_cub_run_active_env_var` failure was environment-dependent (triggered by running inside a cub run). Identifying root causes before declaring success prevents false negatives.",
+    "**Architectural boundaries matter at test time**: When core/CLI separation is enforced, tests must import from the correct layer. Moving rendering to CLI required updating test imports, but improved code organization and maintainability.",
+    "**Guidance as optional, not mandatory**: The `--quiet` flag proved valuable for integration scenarios. Even UX improvements benefit from opt-out mechanisms for automated workflows."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "b67f04d1aeb07cc90c4be3c83ac54adbc4fc24e4",
+      "message": "task(cub-n6x.3): Add post-command guidance messages to key cub workflows",
+      "author": "",
+      "timestamp": "2026-01-29T02:25:00Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-n6x.3",
+  "epic_id": "cub-n6x",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

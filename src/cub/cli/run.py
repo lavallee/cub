@@ -206,14 +206,18 @@ async def _invoke_harness_async(
 
         collected = ""
         usage = TokenUsage()
+        message_count = 0
         # stream_task yields str chunks and optionally a final TokenUsage sentinel
         stream_it = harness_backend.stream_task(task_input, debug=debug)
         async for chunk in stream_it:  # type: ignore[attr-defined]
             if isinstance(chunk, TokenUsage):
                 usage = chunk
             else:
+                if message_count > 0:
+                    _stream_callback("\n")
                 _stream_callback(chunk)
                 collected += chunk
+                message_count += 1
 
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -405,7 +409,14 @@ def _read_direct_input(direct: str) -> str:
     return direct.strip()
 
 
-def display_task_info(task: Task, iteration: int, max_iterations: int) -> None:
+def display_task_info(
+    task: Task,
+    iteration: int,
+    max_iterations: int,
+    *,
+    harness_name: str | None = None,
+    model: str | None = None,
+) -> None:
     """Display information about the current task being executed."""
     table = Table(show_header=False, box=None)
     table.add_column("Field", style="cyan")
@@ -418,6 +429,10 @@ def display_task_info(task: Task, iteration: int, max_iterations: int) -> None:
     table.add_row("Priority", str(priority_str))
     table.add_row("Type", str(type_str))
     table.add_row("Iteration", f"{iteration}/{max_iterations}")
+    if harness_name:
+        table.add_row("Harness", harness_name)
+    if model:
+        table.add_row("Model", model)
 
     console.print(Panel(table, title="[bold]Current Task[/bold]", border_style="blue"))
 
@@ -1247,6 +1262,7 @@ def run(
                 run_session=run_session,
                 config=config,
                 harness_name=harness_name,
+                model=run_config.model,
                 run_id=run_id,
                 project_dir=project_dir,
                 debug=debug,
@@ -1389,6 +1405,7 @@ def _render_run_event(
     run_session: object,
     config: CubConfig,
     harness_name: str,
+    model: str | None = None,
     run_id: str,
     project_dir: Path,
     debug: bool,
@@ -1412,6 +1429,7 @@ def _render_run_event(
         run_session: Current session object.
         config: Loaded CubConfig.
         harness_name: Harness name for display.
+        model: Model override from CLI/config (e.g., "sonnet", "opus").
         run_id: Run ID for session tracking.
         project_dir: Project directory.
         debug: Debug mode flag.
@@ -1433,7 +1451,15 @@ def _render_run_event(
         if event.task_id:
             task = task_backend.get_task(event.task_id)
             if task:
-                display_task_info(task, event.iteration, event.max_iterations)
+                # Resolve effective model: CLI/config override > task label
+                effective_model = model or task.model_label
+                display_task_info(
+                    task,
+                    event.iteration,
+                    event.max_iterations,
+                    harness_name=harness_name,
+                    model=effective_model,
+                )
 
             # Update status
             status.current_task_id = event.task_id
