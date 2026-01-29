@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (259 files) (entry: __init__.py)
+- **cub**: `src/cub` (253 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -32,6 +32,8 @@
     │   ├── .local_version
     │   ├── README.md
     │   ├── beads.db
+    │   ├── beads.db-shm
+    │   ├── beads.db-wal
     │   ├── branches.yaml
     │   ├── config.yaml
     │   ├── daemon-error
@@ -96,6 +98,7 @@
     │   │   │   ├── cub-j1f/
     │   │   │   ├── cub-m3k/
     │   │   │   ├── cub-p1t/
+    │   │   │   ├── cub-p2c/
     │   │   │   ├── cub-p9q/
     │   │   │   ├── cub-q2j/
     │   │   │   ├── cub-r1a/
@@ -181,6 +184,13 @@
     │   │   │   ├── cub-p1t.1/
     │   │   │   ├── cub-p1t.2/
     │   │   │   ├── cub-p1t.3/
+    │   │   │   ├── cub-p1t.4/
+    │   │   │   ├── cub-p1t.5/
+    │   │   │   ├── cub-p2c.1/
+    │   │   │   ├── cub-p2c.2/
+    │   │   │   ├── cub-p2c.3/
+    │   │   │   ├── cub-p2c.4/
+    │   │   │   ├── cub-p2c.5/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -306,16 +316,6 @@
     │   │   │   ├── cub-e2p.2.json
     │   │   │   ├── cub-e2p.3.json
     │   │   │   ├── cub-f7m.1.json
-    │   │   │   ├── cub-f7m.2.json
-    │   │   │   ├── cub-f7m.3.json
-    │   │   │   ├── cub-f7m.4.json
-    │   │   │   ├── cub-fail.json
-    │   │   │   ├── cub-hj6j.json
-    │   │   │   ├── cub-j1a.1.json
-    │   │   │   ├── cub-j1a.2.json
-    │   │   │   ├── cub-j1a.3.json
-    │   │   │   ├── cub-j1a.4.json
-    │   │   │   ├── cub-j1a.5.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols

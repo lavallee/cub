@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "id": "cub-p2c.5",
+  "title": "Add cub task search command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p2c"
+  },
+  "task": {
+    "title": "Add cub task search command",
+    "description": "Full-text search across task titles and descriptions. BeadsBackend wraps `bd search`. JsonlBackend does substring match on title + description in memory. This is P2 but included since we're not excluding anything.\n\n**Implementation Steps:**\n1. Add `search_tasks(query: str) -> list[Task]` to `TaskBackend` protocol\n2. Implement in BeadsBackend: run `bd search <query> --json`, parse results\n3. Implement in JsonlBackend: case-insensitive substring match on title and description\n4. Add `search` command to task CLI: `cub task search <query>`\n5. Support `--json` and `--agent` output modes\n6. Show match count and results table\n\n**Files:** src/cub/core/tasks/backend.py, src/cub/core/tasks/beads.py, src/cub/core/tasks/jsonl.py, src/cub/cli/task.py",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-p2c",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-29T16:45:10.094208Z",
+    "captured_at": "2026-01-29T19:13:14.251972Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-124742",
+      "started_at": "2026-01-29T14:13:14.258060",
+      "completed_at": "2026-01-29T19:17:44.980062Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 62,
+        "output_tokens": 8906,
+        "cache_read_tokens": 1676112,
+        "cache_creation_tokens": 77685
+      },
+      "cost_usd": 0.97926735,
+      "duration_seconds": 270
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T19:18:10.767130Z",
+    "total_cost_usd": 0.97926735,
+    "total_attempts": 1,
+    "total_duration_seconds": 270,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "4ad744d2e38f837add9141d0570f2c682a179008",
+        "message": "task(cub-p2c.5): Add cub task search command",
+        "author": "",
+        "timestamp": "2026-01-29T19:17:14Z"
+      }
+    ],
+    "approach": "Implemented the task search command by adding a protocol method to the TaskBackend abstraction, then providing backend-specific implementations (wrapping `bd search` for BeadsBackend and doing in-memory substring matching for JsonlBackend), and finally exposing it through a new CLI command with multiple output formats (table, JSON, agent-friendly markdown).",
+    "decisions": [
+      "Implemented `search_tasks()` as a protocol method with a default case-insensitive substring implementation in `TaskBackendDefaults`, allowing backends to override if needed (as BeadsBackend did)",
+      "Added three output modes to the CLI command (table/Rich, JSON, agent markdown) rather than a single format, enabling flexible consumption",
+      "Placed the search functionality at the protocol level rather than service layer, keeping it close to the task abstraction where it logically belongs",
+      "Used `bd search --json` directly in BeadsBackend rather than parsing text output, leveraging existing structured output support"
+    ],
+    "lessons_learned": [
+      "Default implementations in protocol support classes (via TaskBackendDefaults) provide a good pattern for shared behavior across backends while allowing overrides",
+      "Multiple output formats (especially `--agent` markdown) are valuable for both interactive and programmatic use cases, and should be considered early",
+      "Protocol-level methods that map directly to backend capabilities (like search) are simpler to implement than trying to compose them from lower-level operations",
+      "Testing across backends revealed that the protocol's default implementation can serve as a fallback, reducing code duplication"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T19:18:10.767130Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T19:13:14.251972Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T19:18:10.767130Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T19:13:14.251972Z",
+  "completed_at": "2026-01-29T19:18:10.767130Z",
+  "tokens": {
+    "input_tokens": 62,
+    "output_tokens": 8906,
+    "cache_read_tokens": 1676112,
+    "cache_creation_tokens": 77685
+  },
+  "cost_usd": 0.97926735,
+  "duration_seconds": 270,
+  "iterations": 1,
+  "approach": "Implemented the task search command by adding a protocol method to the TaskBackend abstraction, then providing backend-specific implementations (wrapping `bd search` for BeadsBackend and doing in-memory substring matching for JsonlBackend), and finally exposing it through a new CLI command with multiple output formats (table, JSON, agent-friendly markdown).",
+  "decisions": [
+    "Implemented `search_tasks()` as a protocol method with a default case-insensitive substring implementation in `TaskBackendDefaults`, allowing backends to override if needed (as BeadsBackend did)",
+    "Added three output modes to the CLI command (table/Rich, JSON, agent markdown) rather than a single format, enabling flexible consumption",
+    "Placed the search functionality at the protocol level rather than service layer, keeping it close to the task abstraction where it logically belongs",
+    "Used `bd search --json` directly in BeadsBackend rather than parsing text output, leveraging existing structured output support"
+  ],
+  "lessons_learned": [
+    "Default implementations in protocol support classes (via TaskBackendDefaults) provide a good pattern for shared behavior across backends while allowing overrides",
+    "Multiple output formats (especially `--agent` markdown) are valuable for both interactive and programmatic use cases, and should be considered early",
+    "Protocol-level methods that map directly to backend capabilities (like search) are simpler to implement than trying to compose them from lower-level operations",
+    "Testing across backends revealed that the protocol's default implementation can serve as a fallback, reducing code duplication"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "4ad744d2e38f837add9141d0570f2c682a179008",
+      "message": "task(cub-p2c.5): Add cub task search command",
+      "author": "",
+      "timestamp": "2026-01-29T19:17:14Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p2c.5",
+  "epic_id": "cub-p2c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
