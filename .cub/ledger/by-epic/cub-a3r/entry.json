@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "cub-a3r",
+  "title": "cub-a3r",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-a3r",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T20:47:53.813500Z",
+    "captured_at": "2026-01-29T20:47:53.813500Z"
+  },
+  "task_ids": [
+    "cub-a3r.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.2749702500000001,
+    "avg_cost_per_task": 0.2749702500000001,
+    "min_cost_usd": 0.2749702500000001,
+    "max_cost_usd": 0.2749702500000001,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 1625400,
+    "avg_tokens_per_task": 1625400,
+    "total_duration_seconds": 227,
+    "avg_duration_seconds": 227,
+    "models_used": [
+      "haiku"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:47:53.852142Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T20:43:52.203933Z",
+  "completed_at": "2026-01-29T20:47:40.257835Z",
+  "updated_at": "2026-01-29T20:47:53.852145Z",
+  "first_commit": null,
+  "last_commit": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

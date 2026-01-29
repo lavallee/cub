@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "cub-a3r.2",
+  "title": "Build route compiler and cub routes CLI",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a3r"
+  },
+  "task": {
+    "title": "Build route compiler and cub routes CLI",
+    "description": "The route compiler reads the raw log, normalizes commands (strips task IDs, file paths), aggregates by frequency, filters noise (count < 3), and writes a markdown table to `.cub/learned-routes.md`. This compiled file is git-tracked and shared with the team. The compiler is triggered by the Stop hook at session end.\n\n**Implementation Steps:**\n1. Create `src/cub/core/routes/compiler.py`:\n2. Create `src/cub/core/routes/__init__.py`\n3. Create `src/cub/cli/routes.py`:\n4. Register routes app in `src/cub/cli/__init__.py`\n5. Add Stop hook trigger in `cub-hook.sh`:\n6. Write tests for `normalize_command` with edge cases (various command patterns)\n7. Write tests for `compile_routes` with sample JSONL input\n8. Write tests for `render_learned_routes` output format\n\n**Files:** src/cub/core/routes/__init__.py, src/cub/core/routes/compiler.py, src/cub/cli/routes.py, src/cub/cli/__init__.py, .cub/scripts/hooks/cub-hook.sh, tests/test_route_compiler.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-a3r",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-29T16:46:50.495159Z",
+    "captured_at": "2026-01-29T20:47:56.107746Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:47:56.107746Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:47:56.107746Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-29T20:47:56.107746Z",
+  "completed_at": "2026-01-29T20:47:56.107746Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a3r.2",
+  "epic_id": "cub-a3r",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
