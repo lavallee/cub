@@ -5,9 +5,11 @@ Includes snapshot tests for each format method with representative inputs
 (0, 1, 10, 20 items) and token budget tests.
 """
 
+from datetime import datetime, timezone
 
 import pytest
 
+from cub.core.ledger.models import LedgerEntry, LedgerStats, TokenUsage
 from cub.core.services.agent_format import AgentFormatter
 from cub.core.services.models import EpicProgress, ProjectStats
 from cub.core.suggestions.models import Suggestion, SuggestionCategory
@@ -136,6 +138,79 @@ def sample_suggestions() -> list[Suggestion]:
             rationale="Uncommitted changes detected",
             priority_score=0.60,
             action="git add . && git commit",
+        ),
+    ]
+
+
+@pytest.fixture
+def sample_ledger_entries() -> list[LedgerEntry]:
+    """Create sample ledger entries."""
+    return [
+        LedgerEntry(
+            id="cub-001",
+            title="Implement feature X",
+            completed_at=datetime(2026, 1, 18, 10, 45, tzinfo=timezone.utc),
+            cost_usd=0.09,
+            tokens=TokenUsage(input_tokens=45000, output_tokens=12000),
+        ),
+        LedgerEntry(
+            id="cub-002",
+            title="Add tests for feature X",
+            completed_at=datetime(2026, 1, 18, 11, 30, tzinfo=timezone.utc),
+            cost_usd=0.05,
+            tokens=TokenUsage(input_tokens=25000, output_tokens=8000),
+        ),
+        LedgerEntry(
+            id="cub-003",
+            title="Document feature X",
+            completed_at=datetime(2026, 1, 18, 12, 15, tzinfo=timezone.utc),
+            cost_usd=0.03,
+            tokens=TokenUsage(input_tokens=15000, output_tokens=5000),
+        ),
+    ]
+
+
+@pytest.fixture
+def sample_ledger_stats() -> LedgerStats:
+    """Create sample ledger stats."""
+    return LedgerStats(
+        total_tasks=24,
+        total_cost_usd=2.16,
+        total_tokens=288000,
+        average_cost_per_task=0.09,
+        total_duration_seconds=15000,
+        tasks_verified=20,
+        tasks_failed=4,
+    )
+
+
+@pytest.fixture
+def blocked_tasks(sample_tasks: list[Task]) -> list[Task]:
+    """Create blocked tasks for testing."""
+    return [
+        Task(
+            id="cub-010",
+            title="Task blocked by one",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.TASK,
+            depends_on=["cub-001"],
+        ),
+        Task(
+            id="cub-011",
+            title="Task blocked by multiple",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            depends_on=["cub-001", "cub-002"],
+        ),
+        Task(
+            id="cub-012",
+            title="Another blocked task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            type=TaskType.TASK,
+            depends_on=["cub-001"],
         ),
     ]
 
@@ -482,6 +557,44 @@ def test_token_budget_format_suggestions(sample_suggestions: list[Suggestion]) -
     assert len(output) < 2000, f"Output too long: {len(output)} chars"
 
 
+def test_token_budget_format_blocked(
+    sample_tasks: list[Task], blocked_tasks: list[Task]
+) -> None:
+    """Test that format_blocked output is under token budget."""
+    # Use 10 blocked tasks (typical case)
+    all_tasks = sample_tasks + blocked_tasks
+    graph = DependencyGraph(all_tasks)
+
+    output = AgentFormatter.format_blocked(blocked_tasks, graph)
+
+    # Target: <500 tokens (~2000 chars)
+    assert len(output) < 2000, f"Output too long: {len(output)} chars"
+
+
+def test_token_budget_format_list(sample_tasks: list[Task]) -> None:
+    """Test that format_list output is under token budget."""
+    # Use 10 tasks (typical case)
+    tasks = sample_tasks + sample_tasks  # 10 tasks
+
+    output = AgentFormatter.format_list(tasks)
+
+    # Target: <500 tokens (~2000 chars)
+    assert len(output) < 2000, f"Output too long: {len(output)} chars"
+
+
+def test_token_budget_format_ledger(
+    sample_ledger_entries: list[LedgerEntry], sample_ledger_stats: LedgerStats
+) -> None:
+    """Test that format_ledger output is under token budget."""
+    # Use 10 entries (typical case)
+    entries = sample_ledger_entries * 4  # 12 entries
+
+    output = AgentFormatter.format_ledger(entries, sample_ledger_stats)
+
+    # Target: <500 tokens (~2000 chars)
+    assert len(output) < 2000, f"Output too long: {len(output)} chars"
+
+
 # ============================================================================
 # Helper method tests
 # ============================================================================
@@ -531,6 +644,317 @@ def test_truncate_description_long() -> None:
 
     assert len(output) <= 503  # 500 + "..."
     assert output.endswith("...")
+
+
+# ============================================================================
+# format_blocked tests
+# ============================================================================
+
+
+def test_format_blocked_empty() -> None:
+    """Test format_blocked with 0 tasks."""
+    output = AgentFormatter.format_blocked([])
+
+    assert "# cub task blocked" in output
+    assert "0 tasks blocked" in output
+    assert "## Blocked Tasks" not in output
+
+
+def test_format_blocked_one_task(blocked_tasks: list[Task]) -> None:
+    """Test format_blocked with 1 task."""
+    tasks = [blocked_tasks[0]]
+    output = AgentFormatter.format_blocked(tasks)
+
+    assert "# cub task blocked" in output
+    assert "1 task blocked" in output
+    assert "## Blocked Tasks" in output
+    assert "cub-010" in output
+    assert "Task blocked by one" in output
+    assert "cub-001" in output
+
+
+def test_format_blocked_with_graph(
+    sample_tasks: list[Task], blocked_tasks: list[Task]
+) -> None:
+    """Test format_blocked with dependency graph."""
+    all_tasks = sample_tasks + blocked_tasks
+    graph = DependencyGraph(all_tasks)
+    output = AgentFormatter.format_blocked(blocked_tasks, graph)
+
+    assert "# cub task blocked" in output
+    assert "## Blocked Tasks" in output
+    assert "## Analysis" in output
+    assert "Root blockers" in output or "Top blocker" in output
+
+
+def test_format_blocked_many_tasks() -> None:
+    """Test format_blocked with 20 tasks (truncation test)."""
+    tasks = [
+        Task(
+            id=f"cub-{i:03d}",
+            title=f"Blocked task {i}",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+            depends_on=["cub-base"],
+        )
+        for i in range(20)
+    ]
+
+    output = AgentFormatter.format_blocked(tasks)
+
+    assert "# cub task blocked" in output
+    assert "20 tasks blocked" in output
+    assert "Showing 10 of 20" in output
+
+
+def test_format_blocked_no_graph(blocked_tasks: list[Task]) -> None:
+    """Test format_blocked without dependency graph."""
+    output = AgentFormatter.format_blocked(blocked_tasks, graph=None)
+
+    assert "# cub task blocked" in output
+    assert "## Analysis" not in output  # No analysis without graph
+
+
+def test_format_blocked_singular_plural() -> None:
+    """Test format_blocked handles singular/plural correctly."""
+    # Singular
+    task = Task(id="cub-001", title="Blocked task", depends_on=["cub-base"])
+    output = AgentFormatter.format_blocked([task])
+    assert "1 task blocked" in output
+
+    # Plural
+    tasks = [task, task]  # Duplicate for test
+    output = AgentFormatter.format_blocked(tasks)
+    assert "2 tasks blocked" in output
+
+
+def test_format_blocked_blocked_by_formatting(blocked_tasks: list[Task]) -> None:
+    """Test format_blocked formats 'blocked by' column correctly."""
+    output = AgentFormatter.format_blocked(blocked_tasks)
+
+    # Single blocker
+    assert "cub-001" in output
+
+    # Multiple blockers
+    assert "2 tasks" in output
+
+
+# ============================================================================
+# format_list tests
+# ============================================================================
+
+
+def test_format_list_empty() -> None:
+    """Test format_list with 0 tasks."""
+    output = AgentFormatter.format_list([])
+
+    assert "# cub task list" in output
+    assert "0 tasks across all statuses" in output
+    assert "## Tasks" not in output
+
+
+def test_format_list_one_task(sample_tasks: list[Task]) -> None:
+    """Test format_list with 1 task."""
+    tasks = [sample_tasks[0]]
+    output = AgentFormatter.format_list(tasks)
+
+    assert "# cub task list" in output
+    assert "1 task across all statuses" in output
+    assert "## Tasks" in output
+    assert "cub-001" in output
+    assert "Implement feature X" in output
+    assert "open" in output
+    assert "P1" in output
+
+
+def test_format_list_multiple_tasks(sample_tasks: list[Task]) -> None:
+    """Test format_list with multiple tasks."""
+    output = AgentFormatter.format_list(sample_tasks)
+
+    assert "# cub task list" in output
+    assert "5 tasks across all statuses" in output
+    assert "## Tasks" in output
+
+    # Check all tasks are included
+    for task in sample_tasks:
+        assert task.id in output
+
+
+def test_format_list_many_tasks() -> None:
+    """Test format_list with 20 tasks (truncation test)."""
+    tasks = [
+        Task(
+            id=f"cub-{i:03d}",
+            title=f"Task {i}",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P2,
+            type=TaskType.TASK,
+        )
+        for i in range(20)
+    ]
+
+    output = AgentFormatter.format_list(tasks)
+
+    assert "# cub task list" in output
+    assert "20 tasks across all statuses" in output
+    assert "Showing 10 of 20" in output
+
+
+def test_format_list_mixed_statuses() -> None:
+    """Test format_list with tasks in different statuses."""
+    tasks = [
+        Task(id="cub-001", title="Open task", status=TaskStatus.OPEN),
+        Task(id="cub-002", title="In progress", status=TaskStatus.IN_PROGRESS),
+        Task(id="cub-003", title="Closed task", status=TaskStatus.CLOSED),
+    ]
+
+    output = AgentFormatter.format_list(tasks)
+
+    assert "open" in output
+    assert "in_progress" in output
+    assert "closed" in output
+
+
+def test_format_list_with_dependencies(sample_tasks: list[Task]) -> None:
+    """Test format_list shows dependency information."""
+    output = AgentFormatter.format_list(sample_tasks)
+
+    # Check blocks column
+    assert "2 tasks" in output  # cub-001 blocks 2 tasks
+
+    # Check blocked by column
+    assert "none" in output  # Some tasks have no dependencies
+
+
+# ============================================================================
+# format_ledger tests
+# ============================================================================
+
+
+def test_format_ledger_empty() -> None:
+    """Test format_ledger with 0 entries."""
+    output = AgentFormatter.format_ledger([])
+
+    assert "# cub ledger" in output
+    assert "0 tasks in ledger" in output
+    assert "## Recent Completions" not in output
+
+
+def test_format_ledger_one_entry(sample_ledger_entries: list[LedgerEntry]) -> None:
+    """Test format_ledger with 1 entry."""
+    entries = [sample_ledger_entries[0]]
+    output = AgentFormatter.format_ledger(entries)
+
+    assert "# cub ledger" in output
+    assert "1 task in ledger" in output
+    assert "## Recent Completions" in output
+    assert "cub-001" in output
+    assert "Implement feature X" in output
+    assert "2026-01-18" in output
+    assert "$0.09" in output
+
+
+def test_format_ledger_with_stats(
+    sample_ledger_entries: list[LedgerEntry], sample_ledger_stats: LedgerStats
+) -> None:
+    """Test format_ledger with stats."""
+    output = AgentFormatter.format_ledger(sample_ledger_entries, sample_ledger_stats)
+
+    assert "# cub ledger" in output
+    assert "24 tasks completed" in output
+    assert "$2.16" in output
+    assert "## Analysis" in output
+    assert "Average cost" in output
+
+
+def test_format_ledger_many_entries() -> None:
+    """Test format_ledger with 20 entries (truncation test)."""
+    entries = [
+        LedgerEntry(
+            id=f"cub-{i:03d}",
+            title=f"Task {i}",
+            completed_at=datetime(2026, 1, 18, tzinfo=timezone.utc),
+            cost_usd=0.05,
+            tokens=TokenUsage(input_tokens=10000, output_tokens=5000),
+        )
+        for i in range(20)
+    ]
+
+    output = AgentFormatter.format_ledger(entries)
+
+    assert "# cub ledger" in output
+    assert "20 tasks in ledger" in output
+    assert "Showing 10 of 20" in output
+
+
+def test_format_ledger_no_stats(sample_ledger_entries: list[LedgerEntry]) -> None:
+    """Test format_ledger without stats."""
+    output = AgentFormatter.format_ledger(sample_ledger_entries, stats=None)
+
+    assert "# cub ledger" in output
+    assert "3 tasks in ledger" in output
+    assert "## Analysis" not in output
+
+
+def test_format_ledger_token_formatting() -> None:
+    """Test format_ledger formats tokens correctly (K, M)."""
+    # Small tokens (< 1K)
+    entry1 = LedgerEntry(
+        id="cub-001",
+        title="Small task",
+        completed_at=datetime(2026, 1, 18, tzinfo=timezone.utc),
+        cost_usd=0.01,
+        tokens=TokenUsage(input_tokens=500, output_tokens=200),
+    )
+
+    # Medium tokens (K range)
+    entry2 = LedgerEntry(
+        id="cub-002",
+        title="Medium task",
+        completed_at=datetime(2026, 1, 18, tzinfo=timezone.utc),
+        cost_usd=0.05,
+        tokens=TokenUsage(input_tokens=25000, output_tokens=8000),
+    )
+
+    # Large tokens (M range)
+    entry3 = LedgerEntry(
+        id="cub-003",
+        title="Large task",
+        completed_at=datetime(2026, 1, 18, tzinfo=timezone.utc),
+        cost_usd=0.50,
+        tokens=TokenUsage(input_tokens=1500000, output_tokens=500000),
+    )
+
+    output = AgentFormatter.format_ledger([entry1, entry2, entry3])
+
+    assert "700" in output  # Small tokens (no suffix)
+    assert "33K" in output  # Medium tokens
+    assert "2.0M" in output  # Large tokens
+
+
+def test_format_ledger_verification_rate() -> None:
+    """Test format_ledger shows verification rate in analysis."""
+    entries = [
+        LedgerEntry(
+            id="cub-001",
+            title="Task 1",
+            completed_at=datetime(2026, 1, 18, tzinfo=timezone.utc),
+        )
+    ]
+
+    stats = LedgerStats(
+        total_tasks=10,
+        total_cost_usd=1.0,
+        tasks_verified=8,
+        tasks_failed=2,
+    )
+
+    output = AgentFormatter.format_ledger(entries, stats)
+
+    assert "Verification" in output
+    assert "8/10" in output
+    assert "80%" in output
 
 
 # ============================================================================

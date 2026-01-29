@@ -17,6 +17,7 @@ Design principles:
 
 from __future__ import annotations
 
+from cub.core.ledger.models import LedgerEntry, LedgerStats
 from cub.core.services.models import EpicProgress, ProjectStats
 from cub.core.suggestions.models import Suggestion
 from cub.core.tasks.graph import DependencyGraph
@@ -491,6 +492,286 @@ class AgentFormatter:
             )
 
         output += AgentFormatter._truncate_table(rows, total=count)
+
+        return output.rstrip()
+
+    # ============================================================================
+    # format_blocked
+    # ============================================================================
+
+    @staticmethod
+    def format_blocked(tasks: list[Task], graph: DependencyGraph | None = None) -> str:
+        """Format blocked tasks as structured markdown.
+
+        Args:
+            tasks: List of blocked tasks (open, has dependencies)
+            graph: Optional dependency graph for root blocker analysis
+
+        Returns:
+            Markdown string following envelope template
+
+        Example output:
+            # cub task blocked
+
+            18 tasks blocked by 5 root blockers. Longest chain: 4 tasks deep.
+
+            ## Blocked Tasks
+
+            | ID | Title | Pri | Blocked By |
+            |----|--------|-----|------------|
+            | cub-r6s.2 | Create template engine | P1 | cub-r6s.1 |
+
+            ## Analysis
+
+            - **Root blockers**: 3 tasks block all 18 blocked tasks
+            - **Top blocker**: cub-r6s.1 blocks 3 tasks directly, 5 transitively
+            - **Longest chain**: cub-r6s.1 → cub-r6s.2 → cub-r6s.3 → cub-r6s.6
+        """
+        count = len(tasks)
+
+        # Build summary line
+        summary = f"{count} task{'s' if count != 1 else ''} blocked"
+
+        # Add root blocker info if we have a graph
+        if graph:
+            root_blockers = graph.root_blockers(limit=100)
+            root_count = len(root_blockers)
+            chains = graph.chains(limit=100)
+            max_chain_depth = len(chains[0]) if chains else 0
+
+            if root_count > 0:
+                summary += f" by {root_count} root blocker"
+                summary += "s" if root_count != 1 else ""
+
+            if max_chain_depth > 1:
+                summary += f". Longest chain: {max_chain_depth} tasks deep"
+
+        summary += "."
+
+        output = f"# cub task blocked\n\n{summary}\n\n"
+
+        # Early return if no tasks
+        if count == 0:
+            return output.rstrip()
+
+        # Build table
+        output += "## Blocked Tasks\n\n"
+        output += "| ID | Title | Pri | Blocked By |\n"
+        output += "|----|-------|-----|------------|\n"
+
+        rows = []
+        for task in tasks:
+            deps_count = len(task.depends_on)
+            if deps_count == 0:
+                blocked_by_str = "none"
+            elif deps_count == 1:
+                blocked_by_str = task.depends_on[0]
+            else:
+                blocked_by_str = f"{deps_count} tasks"
+            rows.append(f"| {task.id} | {task.title} | {task.priority.value} | {blocked_by_str} |")
+
+        output += AgentFormatter._truncate_table(rows, total=count)
+
+        # Add analysis section if we have a graph
+        if graph:
+            output += "\n\n## Analysis\n\n"
+
+            # Root blockers
+            root_blockers = graph.root_blockers(limit=5)
+            if root_blockers:
+                root_count = len(root_blockers)
+                output += f"- **Root blockers**: {root_count} task"
+                output += "s" if root_count != 1 else ""
+                output += f" block all {count} blocked task"
+                output += "s" if count != 1 else ""
+                output += "\n"
+
+                # Top blocker details
+                top_id, top_count = root_blockers[0]
+                direct = graph.direct_unblocks(top_id)
+                direct_count = len(direct)
+                output += f"- **Top blocker**: {top_id} blocks {direct_count} task"
+                output += "s" if direct_count != 1 else ""
+                output += f" directly, {top_count} transitively\n"
+
+            # Longest chain visualization
+            chains = graph.chains(limit=1)
+            if chains and len(chains[0]) > 1:
+                chain = chains[0]
+                chain_str = " → ".join(chain)
+                output += f"- **Longest chain**: {chain_str}"
+
+        return output.rstrip()
+
+    # ============================================================================
+    # format_list
+    # ============================================================================
+
+    @staticmethod
+    def format_list(tasks: list[Task]) -> str:
+        """Format task list as structured markdown.
+
+        Args:
+            tasks: List of tasks to display
+
+        Returns:
+            Markdown string following envelope template
+
+        Example output:
+            # cub task list
+
+            42 tasks across all statuses.
+
+            ## Tasks
+
+            | ID | Title | Status | Pri | Blocks | Blocked By |
+            |----|-------|--------|-----|--------|------------|
+            | cub-001 | Implement feature X | open | P1 | 2 tasks | none |
+        """
+        count = len(tasks)
+
+        # Summary line
+        summary = f"{count} task{'s' if count != 1 else ''} across all statuses."
+
+        output = f"# cub task list\n\n{summary}\n\n"
+
+        # Early return if no tasks
+        if count == 0:
+            return output.rstrip()
+
+        # Build table
+        output += "## Tasks\n\n"
+        output += "| ID | Title | Status | Pri | Blocks | Blocked By |\n"
+        output += "|----|-------|--------|-----|--------|------------|\n"
+
+        rows = []
+        for task in tasks:
+            # Format blocks
+            blocks_count = len(task.blocks)
+            blocks_str = AgentFormatter._format_blocks_count(blocks_count)
+
+            # Format blocked by
+            deps_count = len(task.depends_on)
+            if deps_count == 0:
+                blocked_by_str = "none"
+            elif deps_count == 1:
+                blocked_by_str = task.depends_on[0]
+            else:
+                blocked_by_str = f"{deps_count} tasks"
+
+            rows.append(
+                f"| {task.id} | {task.title} | {task.status.value} | "
+                f"{task.priority.value} | {blocks_str} | {blocked_by_str} |"
+            )
+
+        output += AgentFormatter._truncate_table(rows, total=count)
+
+        return output.rstrip()
+
+    # ============================================================================
+    # format_ledger
+    # ============================================================================
+
+    @staticmethod
+    def format_ledger(entries: list[LedgerEntry], stats: LedgerStats | None = None) -> str:
+        """Format ledger entries as structured markdown.
+
+        Args:
+            entries: List of ledger entries (recent completions)
+            stats: Optional ledger statistics for summary
+
+        Returns:
+            Markdown string following envelope template
+
+        Example output:
+            # cub ledger
+
+            24 tasks completed. Total cost: $42.50, 125K tokens.
+
+            ## Recent Completions
+
+            | ID | Title | Completed | Cost | Tokens |
+            |----|-------|-----------|------|--------|
+            | cub-001 | Feature X | 2026-01-18 | $0.09 | 12K |
+
+            ## Analysis
+
+            - **Average cost**: $1.77 per task
+            - **Total duration**: 4.2 hours
+        """
+        count = len(entries)
+
+        # Build summary line
+        if stats:
+            summary = f"{stats.total_tasks} task{'s' if stats.total_tasks != 1 else ''} completed. "
+            summary += f"Total cost: ${stats.total_cost_usd:.2f}, "
+
+            # Format tokens
+            if stats.total_tokens >= 1_000_000:
+                token_str = f"{stats.total_tokens / 1_000_000:.1f}M"
+            elif stats.total_tokens >= 1_000:
+                token_str = f"{stats.total_tokens / 1_000:.0f}K"
+            else:
+                token_str = str(stats.total_tokens)
+
+            summary += f"{token_str} tokens."
+        else:
+            summary = f"{count} task{'s' if count != 1 else ''} in ledger."
+
+        output = f"# cub ledger\n\n{summary}\n\n"
+
+        # Early return if no entries
+        if count == 0:
+            return output.rstrip()
+
+        # Build table
+        output += "## Recent Completions\n\n"
+        output += "| ID | Title | Completed | Cost | Tokens |\n"
+        output += "|----|-------|-----------|------|--------|\n"
+
+        rows = []
+        for entry in entries:
+            # Format completion date
+            completed_date = entry.completed_at.strftime("%Y-%m-%d")
+
+            # Format cost
+            cost_str = f"${entry.cost_usd:.2f}"
+
+            # Format tokens
+            total_tokens = entry.tokens.total_tokens
+            if total_tokens >= 1_000_000:
+                token_str = f"{total_tokens / 1_000_000:.1f}M"
+            elif total_tokens >= 1_000:
+                token_str = f"{total_tokens / 1_000:.0f}K"
+            else:
+                token_str = str(total_tokens)
+
+            rows.append(
+                f"| {entry.id} | {entry.title} | {completed_date} | {cost_str} | {token_str} |"
+            )
+
+        output += AgentFormatter._truncate_table(rows, total=count)
+
+        # Add analysis section if we have stats
+        if stats:
+            output += "\n\n## Analysis\n\n"
+
+            # Average cost
+            if stats.total_tasks > 0:
+                avg_cost = stats.total_cost_usd / stats.total_tasks
+                output += f"- **Average cost**: ${avg_cost:.2f} per task\n"
+
+            # Total duration
+            if stats.total_duration_seconds > 0:
+                hours = stats.total_duration_seconds / 3600
+                output += f"- **Total duration**: {hours:.1f} hours\n"
+
+            # Verification rate
+            if stats.tasks_verified > 0 or stats.tasks_failed > 0:
+                total_verified = stats.tasks_verified + stats.tasks_failed
+                pass_rate = (stats.tasks_verified / total_verified) * 100
+                verified_str = f"{stats.tasks_verified}/{total_verified}"
+                output += f"- **Verification**: {verified_str} passed ({pass_rate:.0f}%)"
 
         return output.rstrip()
 
