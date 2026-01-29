@@ -4,16 +4,16 @@
   "project_dir": "/Users/lavallee/Experiments/cub_sat",
   "harness": "claude",
   "budget": {
-    "tokens_used": 0,
+    "tokens_used": 329,
     "tokens_limit": 0,
-    "cost_usd": 0.0,
+    "cost_usd": 0.1846957,
     "cost_limit": 0.0
   },
-  "tasks_completed": 0,
+  "tasks_completed": 1,
   "tasks_failed": 0,
   "current_task": null,
-  "status": "orphaned",
-  "ended_at": "2026-01-29T20:42:26.848446Z",
+  "status": "completed",
+  "ended_at": "2026-01-29T20:43:48.937921Z",
   "orphaned_at": "2026-01-29T20:42:26.848446Z",
   "orphaned_reason": "Session was still running but not active (process died or crash)"
 }
