@@ -1,0 +1,70 @@
+I'll start by understanding the current state of the code and then implement the `--agent` flag for the specified commands.Let me find the correct file paths:Now let me check the AgentFormatter to understand what methods are available:Now I understand the structure. I need to:
+1. Add `--agent` flag to `cub task blocked`, `cub task list`, and `cub ledger show`
+2. Wire in the AgentFormatter methods: `format_blocked`, `format_list`, and `format_ledger`
+
+Let me check the skill files to see what needs updating:Now I'll implement the changes:
+
+1. Add `--agent` flag to `cub task blocked` in task.py
+2. Add `--agent` flag to `cub task list` in task.py  
+3. Add `--agent` flag to `cub ledger show` in ledger.py
+4. Update the skill files
+
+Let me start with the task.py changes:Now I need to update the `blocked` command. Let me check the current implementation more carefully:Good! Now let me update the ledger.py file to add the --agent flag to the show command. First, let me check if there's a ledger format method that needs to be used:
+
+Looking at the AgentFormatter, I see there's a `format_ledger` method that takes a list of entries and stats. However, the `cub ledger show` command is for showing a single task's ledger entry, not a list. So I need to check what the correct approach is here.
+
+Let me re-read the task description and look at what exists:The task says "cub ledger show" but looking at the ledger.py file, the `show` command is for showing a single task. Looking at the AgentFormatter, the `format_ledger` method is meant for a list of entries. Let me check if there's a command that lists ledger entries:
+
+Looking at ledger.py again, I see there's no command that just lists recent ledger entries. The `search` command exists but requires a query. Let me check what the skill file says:
+
+Looking at the skill file for ledger, line 13 says:
+```
+| (empty) / "show" / "recent" / "history" | `cub ledger show --agent` |
+```
+
+This doesn't make sense because `cub ledger show` requires a task_id argument. Looking at the actual implementation of `cub ledger show`, it shows a detailed view of a single task's ledger entry.
+
+I think the intention might be to create an agent-friendly output for showing a single ledger entry, not using the `format_ledger` method which is for lists. Let me check if there's a format method for a single entry... there isn't one in AgentFormatter.
+
+Given the task description and looking at the patterns, I think for `cub ledger show <task-id>`, we should add an --agent flag that produces a simplified markdown output similar to the other commands. Since there's no AgentFormatter method for this, I'll create a simple fallback format.
+
+Let me update the ledger.py file:Now I need to add the agent output logic. Let me add it after the json_output check:Good! Now let me update the skill files. First, let me update the tasks skill file:Now let me update the ledger skill file:Now let me write tests for these changes. Let me first check if there are existing CLI tests:Let me check the existing test files for tasks and ledger:Good! Now I need to add tests for the --agent flag on the blocked and list commands. Let me add those:Now let me check if there's a test file for the ledger CLI and add tests there:Now let me add tests for the --agent flag in the ledger show command:Great! Now let me run the tests to make sure everything is working:I see the issue - the `blocked` command returns early when there are no tasks, before checking the `agent` flag. Let me fix that:Wait, I made a mistake. Let me fix this properly - I need to remove the duplicate code:I see there's duplicate code. Let me clean it up:Now let me run the test again:Great! Now let me run all the related tests together to make sure everything works:Perfect! All tests pass. Now let me run the feedback loops (typecheck, lint, tests):I have type errors. Let me fix them - it's because I'm reusing the `output` variable:Now let me run typecheck again:Great! Now let me run ruff to lint the code:Let me fix the line length issues:Now let me run ruff again:Perfect! Now let me run the tests one more time to make sure everything still works:Excellent! All tests pass. Now let me close the task and commit the changes:<promise>COMPLETE</promise>
+
+Perfect! I've successfully completed the task. Here's a summary of what was done:
+
+## Summary
+
+Successfully implemented the `--agent` flag for `cub task blocked`, `cub task list`, and `cub ledger show` commands.
+
+### Changes Made:
+
+1. **`cub task blocked` command** (`src/cub/cli/task.py`):
+   - Added `--agent` flag parameter
+   - Wired in `AgentFormatter.format_blocked()` method
+   - Provides dependency graph analysis with root blockers and chain information
+
+2. **`cub task list` command** (`src/cub/cli/task.py`):
+   - Added `--agent` flag parameter
+   - Wired in `AgentFormatter.format_list()` method
+   - Provides structured markdown output with task details
+
+3. **`cub ledger show` command** (`src/cub/cli/ledger.py`):
+   - Added `--agent` flag parameter
+   - Created agent-friendly markdown output showing summary, approach, decisions, and files changed
+   - Note: `format_ledger()` is for lists, so implemented custom markdown output for single entries
+
+4. **Updated skill files**:
+   - `.claude/commands/cub:tasks.md`: Updated to use `cub task blocked --agent`
+   - `.claude/commands/cub:ledger.md`: Updated to show task ID usage
+
+5. **Added comprehensive tests**:
+   - `TestTaskListAgent`: 3 tests (basic, empty, wins over json)
+   - `TestTaskBlockedAgent`: 2 tests (basic, empty)
+   - `TestShowCommand`: 2 tests (agent output, wins over json)
+
+### All Feedback Loops Passed:
+✅ Type checking (mypy)
+✅ Linting (ruff)
+✅ Tests (7 new tests, all passing)
+
+The task has been closed and changes committed.

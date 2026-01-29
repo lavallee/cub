@@ -17,11 +17,16 @@ Design principles:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from cub.core.ledger.models import LedgerEntry, LedgerStats
 from cub.core.services.models import EpicProgress, ProjectStats
 from cub.core.suggestions.models import Suggestion
 from cub.core.tasks.graph import DependencyGraph
 from cub.core.tasks.models import Task
+
+if TYPE_CHECKING:
+    from cub.cli.doctor import DiagnosticResult
 
 
 class AgentFormatter:
@@ -772,6 +777,115 @@ class AgentFormatter:
                 pass_rate = (stats.tasks_verified / total_verified) * 100
                 verified_str = f"{stats.tasks_verified}/{total_verified}"
                 output += f"- **Verification**: {verified_str} passed ({pass_rate:.0f}%)"
+
+        return output.rstrip()
+
+
+    # ============================================================================
+    # format_doctor
+    # ============================================================================
+
+    @staticmethod
+    def format_doctor(checks: list[DiagnosticResult]) -> str:
+        """Format doctor diagnostic results as structured markdown.
+
+        Args:
+            checks: List of DiagnosticResult objects from doctor command
+
+        Returns:
+            Markdown string following envelope template
+
+        Example output:
+            # cub doctor
+
+            System check complete. 5 checks passed, 1 warning, 0 failed.
+
+            ## Results
+
+            | Category | Check | Status | Message |
+            |----------|-------|--------|---------|
+            | Environment | git | ✓ pass | git 2.39.0 |
+            | Hooks | Hooks Installed | ✓ pass | Hooks installed |
+
+            ## Issues
+
+            - **Task State / Stale Epics**: Found 2 stale epic(s)
+              Fix: cub doctor --fix
+
+            ## Analysis
+
+            - All critical systems operational
+            - 1 warning requires attention
+        """
+        # Count statuses
+        passed = sum(1 for c in checks if c.status == "pass")
+        warnings = sum(1 for c in checks if c.status == "warn")
+        failed = sum(1 for c in checks if c.status == "fail")
+
+        # Summary line
+        summary = f"System check complete. {passed} checks passed"
+        if warnings > 0:
+            summary += f", {warnings} warning{'s' if warnings != 1 else ''}"
+        if failed > 0:
+            summary += f", {failed} failed"
+        summary += "."
+
+        output = f"# cub doctor\n\n{summary}\n\n"
+
+        # Results table
+        output += "## Results\n\n"
+        output += "| Category | Check | Status | Message |\n"
+        output += "|----------|-------|--------|----------|\n"
+
+        for check in checks:
+            # Status icon
+            status_icon = {
+                "pass": "✓",
+                "warn": "⚠",
+                "fail": "✗",
+                "info": "ℹ",
+            }.get(check.status, "?")
+
+            output += f"| {check.category} | {check.name} | "
+            output += f"{status_icon} {check.status} | {check.message} |\n"
+
+        # Issues section (warnings and failures)
+        issues = [c for c in checks if c.status in ("warn", "fail")]
+        if issues:
+            output += "\n## Issues\n\n"
+            for issue in issues:
+                severity = "⚠ WARNING" if issue.status == "warn" else "✗ ERROR"
+                output += f"- **{severity}**: {issue.category} / {issue.name}\n"
+                output += f"  {issue.message}\n"
+
+                # Add details if present
+                if issue.details:
+                    for detail in issue.details[:3]:  # Limit to 3 details
+                        output += f"  - {detail}\n"
+                    if len(issue.details) > 3:
+                        output += f"  - ... and {len(issue.details) - 3} more\n"
+
+                # Add fix command if present
+                if issue.fix_command:
+                    output += f"  **Fix**: `{issue.fix_command}`\n"
+
+                output += "\n"
+
+        # Analysis section
+        output += "## Analysis\n\n"
+
+        if failed == 0 and warnings == 0:
+            output += "- ✓ All systems operational\n"
+        elif failed > 0:
+            output += f"- ✗ {failed} critical issue{'s' if failed != 1 else ''} "
+            output += "require immediate attention\n"
+        elif warnings > 0:
+            output += f"- ⚠ {warnings} warning{'s' if warnings != 1 else ''} "
+            output += "should be addressed\n"
+
+        # Recommendation
+        if failed > 0 or warnings > 0:
+            output += "- **Recommendation**: Review issues above and run suggested fixes"
 
         return output.rstrip()
 

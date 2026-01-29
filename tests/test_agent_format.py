@@ -1008,3 +1008,192 @@ def test_format_suggestions_one() -> None:
 
     assert "1 recommendation" in output
     assert "recommendations" not in output  # Should be singular
+
+
+# ============================================================================
+# format_doctor tests
+# ============================================================================
+
+
+def test_format_doctor_all_pass() -> None:
+    """Test format_doctor with all passing checks."""
+    from cub.cli.doctor import DiagnosticResult
+
+    checks = [
+        DiagnosticResult(
+            category="Environment",
+            name="git",
+            status="pass",
+            message="git 2.39.0",
+        ),
+        DiagnosticResult(
+            category="Hooks",
+            name="Hooks Installed",
+            status="pass",
+            message="Hooks installed",
+        ),
+        DiagnosticResult(
+            category="Task State",
+            name="Stale Epics",
+            status="pass",
+            message="No stale epics found",
+        ),
+    ]
+
+    output = AgentFormatter.format_doctor(checks)
+
+    assert "# cub doctor" in output
+    assert "3 checks passed" in output
+    assert "## Results" in output
+    assert "✓ pass" in output
+    assert "## Analysis" in output
+    assert "All systems operational" in output
+    assert "## Issues" not in output  # No issues section
+
+
+def test_format_doctor_with_warnings() -> None:
+    """Test format_doctor with warnings."""
+    from cub.cli.doctor import DiagnosticResult
+
+    checks = [
+        DiagnosticResult(
+            category="Environment",
+            name="git",
+            status="pass",
+            message="git 2.39.0",
+        ),
+        DiagnosticResult(
+            category="Task State",
+            name="Stale Epics",
+            status="warn",
+            message="Found 2 stale epic(s) with all subtasks complete",
+            details=[
+                "cub-001 (Epic 1) - 5 subtasks complete",
+                "cub-002 (Epic 2) - 3 subtasks complete",
+            ],
+            fix_command="cub doctor --fix",
+        ),
+    ]
+
+    output = AgentFormatter.format_doctor(checks)
+
+    assert "# cub doctor" in output
+    assert "1 checks passed, 1 warning" in output
+    assert "## Issues" in output
+    assert "⚠ WARNING" in output
+    assert "Task State / Stale Epics" in output
+    assert "cub doctor --fix" in output
+    assert "cub-001" in output
+    assert "## Analysis" in output
+    assert "1 warning should be addressed" in output
+
+
+def test_format_doctor_with_failures() -> None:
+    """Test format_doctor with failures."""
+    from cub.cli.doctor import DiagnosticResult
+
+    checks = [
+        DiagnosticResult(
+            category="Environment",
+            name="git",
+            status="fail",
+            message="git not installed (required)",
+            fix_command="Install from https://git-scm.com/downloads",
+        ),
+        DiagnosticResult(
+            category="Hooks",
+            name="Hooks Installed",
+            status="pass",
+            message="Hooks installed",
+        ),
+    ]
+
+    output = AgentFormatter.format_doctor(checks)
+
+    assert "# cub doctor" in output
+    assert "1 checks passed" in output
+    assert "1 failed" in output
+    assert "## Issues" in output
+    assert "✗ ERROR" in output
+    assert "Environment / git" in output
+    assert "Install from https://git-scm.com/downloads" in output
+    assert "## Analysis" in output
+    assert "1 critical issue" in output
+
+
+def test_format_doctor_mixed_statuses() -> None:
+    """Test format_doctor with mixed statuses."""
+    from cub.cli.doctor import DiagnosticResult
+
+    checks = [
+        DiagnosticResult(
+            category="Environment",
+            name="git",
+            status="pass",
+            message="git 2.39.0",
+        ),
+        DiagnosticResult(
+            category="Environment",
+            name="beads (bd)",
+            status="info",
+            message="beads (bd) not installed (optional)",
+        ),
+        DiagnosticResult(
+            category="Hooks",
+            name="Hook Events",
+            status="warn",
+            message="Some hook events not configured",
+            fix_command="cub hooks install --force",
+        ),
+        DiagnosticResult(
+            category="Task State",
+            name="Stale Epics",
+            status="fail",
+            message="Backend error",
+        ),
+    ]
+
+    output = AgentFormatter.format_doctor(checks)
+
+    assert "# cub doctor" in output
+    assert "1 checks passed" in output
+    assert "1 warning" in output
+    assert "1 failed" in output
+    assert "✓ pass" in output
+    assert "ℹ info" in output
+    assert "⚠ warn" in output
+    assert "✗ fail" in output
+
+
+def test_format_doctor_empty() -> None:
+    """Test format_doctor with no checks."""
+    output = AgentFormatter.format_doctor([])
+
+    assert "# cub doctor" in output
+    assert "0 checks passed" in output
+    assert "## Results" in output
+
+
+def test_format_doctor_with_many_details() -> None:
+    """Test format_doctor truncates details list."""
+    from cub.cli.doctor import DiagnosticResult
+
+    checks = [
+        DiagnosticResult(
+            category="Task State",
+            name="Stale Epics",
+            status="warn",
+            message="Found 5 stale epics",
+            details=[f"epic-{i} - details" for i in range(5)],
+            fix_command="cub doctor --fix",
+        ),
+    ]
+
+    output = AgentFormatter.format_doctor(checks)
+
+    assert "# cub doctor" in output
+    assert "epic-0" in output
+    assert "epic-1" in output
+    assert "epic-2" in output
+    # Should truncate to 3 and show "... and 2 more"
+    assert "... and 2 more" in output

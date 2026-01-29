@@ -86,6 +86,7 @@
     │   │   │   ├── cub-a1f/
     │   │   │   ├── cub-a2s/
     │   │   │   ├── cub-a3r/
+    │   │   │   ├── cub-a4e/
     │   │   │   ├── cub-b1a/
     │   │   │   ├── cub-b1b/
     │   │   │   ├── cub-b1c/
@@ -129,6 +130,8 @@
     │   │   │   ├── cub-a3r.2/
     │   │   │   ├── cub-a3r.3/
     │   │   │   ├── cub-a4e.1/
+    │   │   │   ├── cub-a4e.2/
+    │   │   │   ├── cub-a4e.3/
     │   │   │   ├── cub-b1a.1/
     │   │   │   ├── cub-b1a.2/
     │   │   │   ├── cub-b1a.3/
@@ -289,6 +292,8 @@
     │   │   │   ├── cub-a3r.2.json
     │   │   │   ├── cub-a3r.3.json
     │   │   │   ├── cub-a4e.1.json
+    │   │   │   ├── cub-a4e.2.json
+    │   │   │   ├── cub-a4e.3.json
     │   │   │   ├── cub-a7f.1.json
     │   │   │   ├── cub-a7f.2.json
     │   │   │   ├── cub-a7f.3.json
@@ -310,11 +315,6 @@
     │   │   │   ├── cub-b1c.3.json
     │   │   │   ├── cub-b1c.4.json
     │   │   │   ├── cub-b1d.1.json
-    │   │   │   ├── cub-b1d.2.json
-    │   │   │   ├── cub-b1d.3.json
-    │   │   │   ├── cub-b1e.1.json
-    │   │   │   ├── cub-b1e.2.json
-    │   │   │   ├── cub-b1e.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -530,12 +530,16 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/doctor.py
 
-- **_check_command** (def, line 175, score: 0.0025)
-- **_get_command_version** (def, line 189, score: 0.0025)
-- **check_environment** (def, line 125, score: 0.0025)
-- **check_hooks** (def, line 211, score: 0.0025)
-- **check_stale_epics** (def, line 28, score: 0.0025)
-- **doctor** (def, line 352, score: 0.0025)
+- **DiagnosticResult** (def, line 29, score: 0.0025)
+- **_check_command** (def, line 40, score: 0.0025)
+- **_get_command_version** (def, line 54, score: 0.0025)
+- **check_environment** (def, line 560, score: 0.0025)
+- **check_hooks** (def, line 610, score: 0.0025)
+- **check_stale_epics** (def, line 463, score: 0.0025)
+- **collect_environment_checks** (def, line 76, score: 0.0025)
+- **collect_hooks_check** (def, line 163, score: 0.0025)
+- **collect_stale_epics_check** (def, line 348, score: 0.0025)
+- **doctor** (def, line 751, score: 0.0025)
 
 ### src/cub/cli/errors.py
 
@@ -580,11 +584,5 @@ Symbols ranked by importance (PageRank score):
 - **detect_project_type** (def, line 172, score: 0.0025)
 - **generate_instruction_files** (def, line 390, score: 0.0025)
 - **init_project** (def, line 517, score: 0.0025)
-- **main** (def, line 609, score: 0.0025)
 
-### src/cub/cli/investigate.py
-
-- **CaptureCategory** (def, line 28, score: 0.0025)
-- **_ensure_investigations_dir** (def, line 196, score: 0.0025)
-
-... (216 more symbols omitted to fit budget)
+... (215 more symbols omitted to fit budget)
