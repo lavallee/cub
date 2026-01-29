@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "id": "cub-b1c.3",
+  "title": "Create LaunchService for environment detection and harness launch",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1c"
+  },
+  "task": {
+    "title": "Create LaunchService for environment detection and harness launch",
+    "description": "LaunchService handles the core logic for bare `cub`: detect environment, determine if nested, launch harness with context. This is the service that `cli/default.py` will call.\n\n**Implementation Steps:**\n1. Create `src/cub/core/launch/__init__.py` package\n2. Create `src/cub/core/launch/detector.py` with `detect_environment() -> EnvironmentInfo`\n3. Check `CUB_SESSION_ACTIVE`, `CLAUDE_CODE`, `CLAUDE_PROJECT_DIR` env vars\n4. Create `src/cub/core/launch/launcher.py` with `launch_harness(config, context)`\n5. Implement harness binary resolution, flag assembly, `exec` call\n6. Create `src/cub/core/launch/models.py` with `EnvironmentInfo`, `LaunchConfig`\n7. Create `src/cub/core/services/launch.py` with `LaunchService` wrapper\n8. Write tests with mocked environment variables\n\n**Files:** src/cub/core/launch/detector.py, src/cub/core/launch/launcher.py, src/cub/core/launch/models.py, src/cub/core/services/launch.py, tests/test_launch.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "architecture",
+      "complexity:medium",
+      "core",
+      "epic:cub-b1c",
+      "model:sonnet",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T17:54:44.409515Z",
+    "captured_at": "2026-01-28T19:43:30.150739Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-192025",
+      "started_at": "2026-01-28T19:43:30.166599",
+      "completed_at": "2026-01-28T19:49:56.610704Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2977,
+        "output_tokens": 16817,
+        "cache_read_tokens": 2306894,
+        "cache_creation_tokens": 70203
+      },
+      "cost_usd": 1.5228130000000002,
+      "duration_seconds": 386
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:49:58.440740Z",
+    "total_cost_usd": 1.5228130000000002,
+    "total_attempts": 1,
+    "total_duration_seconds": 386,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "199660b176459580f7a6b779887869a7ea1fc5f6",
+        "message": "task(cub-b1c.3): Create LaunchService for environment detection and harness launch",
+        "author": "",
+        "timestamp": "2026-01-28T19:49:32Z"
+      }
+    ],
+    "approach": "Implemented LaunchService by first analyzing existing service layer patterns (StatusService, LedgerService, RunService), then systematically building the launch infrastructure in three layers: models for type safety, detector/launcher modules for core logic, and a service wrapper following established conventions. Comprehensive tests and quality gates (mypy, ruff, pytest) ensured the implementation was production-ready before completion.",
+    "decisions": [
+      "**Service layer pattern adoption**: Created LaunchService as a wrapper around detector/launcher modules to maintain consistency with existing services and enable dependency injection via `from_config()` factory method",
+      "**Environment detection priority order**: Set `CUB_SESSION_ACTIVE` as highest priority for nesting detection, followed by `CLAUDE_CODE` and `CLAUDE_PROJECT_DIR`, ensuring correct behavior in nested harness scenarios",
+      "**Exec-based harness launch**: Used `os.execvp()` for harness launching to replace the current process rather than spawning subprocesses, enabling clean session transitions",
+      "**Session ID generation**: Made `CUB_SESSION_ID` optional with automatic UUID generation, allowing both explicit session tracking and auto-generated IDs for flexibility",
+      "**Typed exceptions**: Created specific exception types (`HarnessNotFoundError`, `LaunchServiceError`) for better error handling and debugging, distinguishing between missing harnesses and launch failures"
+    ],
+    "lessons_learned": [
+      "**Service layer consistency is critical**: Following existing patterns (StatusService factory method, error handling conventions, module exports) made the implementation fit seamlessly into the codebase and reduced integration risk",
+      "**Environment variable ordering matters**: Priority ordering for env var detection prevents common issues like double-nesting; documenting this priority in code comments helps future maintainers understand why checks are in specific order",
+      "**Comprehensive test coverage catches edge cases**: Writing tests for error paths (missing harnesses, invalid configs, OSError handling) revealed issues that unit testing the detector/launcher separately would have missed",
+      "**mypy strict mode catches subtle bugs**: The type system caught that `OSError` wasn't being handled in exception chains, preventing runtime failures in production",
+      "**Service factories enable testability**: The `from_config()` factory pattern made it easy to inject mocked configs in tests without coupling to global state"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:49:58.440740Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:43:30.150739Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:49:58.440740Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T19:43:30.150739Z",
+  "completed_at": "2026-01-28T19:49:58.440740Z",
+  "tokens": {
+    "input_tokens": 2977,
+    "output_tokens": 16817,
+    "cache_read_tokens": 2306894,
+    "cache_creation_tokens": 70203
+  },
+  "cost_usd": 1.5228130000000002,
+  "duration_seconds": 386,
+  "iterations": 1,
+  "approach": "Implemented LaunchService by first analyzing existing service layer patterns (StatusService, LedgerService, RunService), then systematically building the launch infrastructure in three layers: models for type safety, detector/launcher modules for core logic, and a service wrapper following established conventions. Comprehensive tests and quality gates (mypy, ruff, pytest) ensured the implementation was production-ready before completion.",
+  "decisions": [
+    "**Service layer pattern adoption**: Created LaunchService as a wrapper around detector/launcher modules to maintain consistency with existing services and enable dependency injection via `from_config()` factory method",
+    "**Environment detection priority order**: Set `CUB_SESSION_ACTIVE` as highest priority for nesting detection, followed by `CLAUDE_CODE` and `CLAUDE_PROJECT_DIR`, ensuring correct behavior in nested harness scenarios",
+    "**Exec-based harness launch**: Used `os.execvp()` for harness launching to replace the current process rather than spawning subprocesses, enabling clean session transitions",
+    "**Session ID generation**: Made `CUB_SESSION_ID` optional with automatic UUID generation, allowing both explicit session tracking and auto-generated IDs for flexibility",
+    "**Typed exceptions**: Created specific exception types (`HarnessNotFoundError`, `LaunchServiceError`) for better error handling and debugging, distinguishing between missing harnesses and launch failures"
+  ],
+  "lessons_learned": [
+    "**Service layer consistency is critical**: Following existing patterns (StatusService factory method, error handling conventions, module exports) made the implementation fit seamlessly into the codebase and reduced integration risk",
+    "**Environment variable ordering matters**: Priority ordering for env var detection prevents common issues like double-nesting; documenting this priority in code comments helps future maintainers understand why checks are in specific order",
+    "**Comprehensive test coverage catches edge cases**: Writing tests for error paths (missing harnesses, invalid configs, OSError handling) revealed issues that unit testing the detector/launcher separately would have missed",
+    "**mypy strict mode catches subtle bugs**: The type system caught that `OSError` wasn't being handled in exception chains, preventing runtime failures in production",
+    "**Service factories enable testability**: The `from_config()` factory pattern made it easy to inject mocked configs in tests without coupling to global state"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "199660b176459580f7a6b779887869a7ea1fc5f6",
+      "message": "task(cub-b1c.3): Create LaunchService for environment detection and harness launch",
+      "author": "",
+      "timestamp": "2026-01-28T19:49:32Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1c.3",
+  "epic_id": "cub-b1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

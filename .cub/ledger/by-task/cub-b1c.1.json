@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "id": "cub-b1c.1",
+  "title": "Create service layer foundation and RunService",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1c"
+  },
+  "task": {
+    "title": "Create service layer foundation and RunService",
+    "description": "RunService wraps the newly-extracted `core/run/` package, providing the clean API that CLI and future interfaces call. This establishes the service layer pattern.\n\n**Implementation Steps:**\n1. Create `src/cub/core/services/__init__.py` package\n2. Create `src/cub/core/services/run.py` with `RunService` class\n3. `RunService.from_config(config)` factory method\n4. `RunService.execute(run_config) -> Iterator[RunEvent]` delegates to `core/run/loop.py`\n5. `RunService.run_once(task_id) -> RunResult` convenience method\n6. Refactor `cli/run.py` to use `RunService` instead of calling `core/run/` directly\n7. Write service-level integration tests\n\n**Files:** src/cub/core/services/__init__.py, src/cub/core/services/run.py, src/cub/cli/run.py, tests/test_service_run.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "architecture",
+      "blocking",
+      "complexity:high",
+      "core",
+      "epic:cub-b1c",
+      "model:opus",
+      "phase-3"
+    ],
+    "created_at": "2026-01-28T17:54:44.409427Z",
+    "captured_at": "2026-01-28T19:20:25.594610Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-192025",
+      "started_at": "2026-01-28T19:20:25.602822",
+      "completed_at": "2026-01-28T19:30:32.613585Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 73,
+        "output_tokens": 25831,
+        "cache_read_tokens": 5118759,
+        "cache_creation_tokens": 93308
+      },
+      "cost_usd": 4.0648421,
+      "duration_seconds": 607
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:30:33.054598Z",
+    "total_cost_usd": 4.0648421,
+    "total_attempts": 1,
+    "total_duration_seconds": 607,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
+        "message": "task(cub-b1c.1): Create service layer foundation and RunService",
+        "author": "",
+        "timestamp": "2026-01-28T19:30:14Z"
+      }
+    ],
+    "approach": "Extracted the service layer pattern by wrapping the existing RunLoop with a new RunService class that provides high-level factory methods and dependency wiring. Refactored the CLI to use RunService instead of directly constructing RunLoop, establishing the service layer as the canonical interface for task execution.",
+    "decisions": [
+      "**Service factory pattern** \u2014 RunService provides `from_config()` for dependency injection and `build_run_config()` to mirror CLI argument translation, avoiding duplication",
+      "**Decorator-based backend detection** \u2014 Kept existing harness/task backend detection logic in the service layer using existing decorators, preventing need to rewrite detection",
+      "**Generator-based execution** \u2014 Maintained `execute()` as a generator yielding `RunEvent` objects for streaming progress, matching existing CLI patterns",
+      "**CLI stays responsible for concerns outside the run loop** \u2014 Branch management, worktree, sandbox, and Rich rendering remain in CLI; RunService focuses only on task execution orchestration",
+      "**Typed service-level exceptions** \u2014 Created specific exception types (HarnessNotFoundError, HarnessNotAvailableError, etc.) for clearer error handling vs. generic exceptions from lower layers"
+    ],
+    "lessons_learned": [
+      "**Large refactors benefit from layer-by-layer verification** \u2014 Testing CLI dependencies, RunLoop interface, and fixture patterns separately before refactoring prevented cascading failures",
+      "**Mock objects need to match Pydantic model structure** \u2014 Returning a MagicMock for `HarnessResult` failed validation; using real `HarnessResult` + `TokenUsage` objects was necessary",
+      "**Service layer should be thin but complete** \u2014 RunService adds minimal logic (mostly wiring) but provides high-level contracts (factories, typed exceptions) that improve usability for future interfaces like REST APIs",
+      "**Import cleanup reveals unused code** \u2014 Removing direct RunLoop/RunConfig imports from CLI showed these abstractions weren't needed at CLI level once service layer existed"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:30:33.054598Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:20:25.594610Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:30:33.054598Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T19:20:25.594610Z",
+  "completed_at": "2026-01-28T19:30:33.054598Z",
+  "tokens": {
+    "input_tokens": 73,
+    "output_tokens": 25831,
+    "cache_read_tokens": 5118759,
+    "cache_creation_tokens": 93308
+  },
+  "cost_usd": 4.0648421,
+  "duration_seconds": 607,
+  "iterations": 1,
+  "approach": "Extracted the service layer pattern by wrapping the existing RunLoop with a new RunService class that provides high-level factory methods and dependency wiring. Refactored the CLI to use RunService instead of directly constructing RunLoop, establishing the service layer as the canonical interface for task execution.",
+  "decisions": [
+    "**Service factory pattern** \u2014 RunService provides `from_config()` for dependency injection and `build_run_config()` to mirror CLI argument translation, avoiding duplication",
+    "**Decorator-based backend detection** \u2014 Kept existing harness/task backend detection logic in the service layer using existing decorators, preventing need to rewrite detection",
+    "**Generator-based execution** \u2014 Maintained `execute()` as a generator yielding `RunEvent` objects for streaming progress, matching existing CLI patterns",
+    "**CLI stays responsible for concerns outside the run loop** \u2014 Branch management, worktree, sandbox, and Rich rendering remain in CLI; RunService focuses only on task execution orchestration",
+    "**Typed service-level exceptions** \u2014 Created specific exception types (HarnessNotFoundError, HarnessNotAvailableError, etc.) for clearer error handling vs. generic exceptions from lower layers"
+  ],
+  "lessons_learned": [
+    "**Large refactors benefit from layer-by-layer verification** \u2014 Testing CLI dependencies, RunLoop interface, and fixture patterns separately before refactoring prevented cascading failures",
+    "**Mock objects need to match Pydantic model structure** \u2014 Returning a MagicMock for `HarnessResult` failed validation; using real `HarnessResult` + `TokenUsage` objects was necessary",
+    "**Service layer should be thin but complete** \u2014 RunService adds minimal logic (mostly wiring) but provides high-level contracts (factories, typed exceptions) that improve usability for future interfaces like REST APIs",
+    "**Import cleanup reveals unused code** \u2014 Removing direct RunLoop/RunConfig imports from CLI showed these abstractions weren't needed at CLI level once service layer existed"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "299384aa7747546fe31b6694dcbf86bee6b2101a",
+      "message": "task(cub-b1c.1): Create service layer foundation and RunService",
+      "author": "",
+      "timestamp": "2026-01-28T19:30:14Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1c.1",
+  "epic_id": "cub-b1c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "opus",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

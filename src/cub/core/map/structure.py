@@ -371,7 +371,10 @@ def _detect_python_modules(search_root: Path, project_dir: Path) -> list[ModuleI
         if init_file.exists():
             rel_path = str(item.relative_to(project_dir))
             # Count Python files in module
-            file_count = len(list(item.rglob("*.py")))
+            try:
+                file_count = len(list(item.rglob("*.py")))
+            except OSError:
+                file_count = 0
             modules.append(
                 ModuleInfo(
                     name=item.name,
@@ -405,12 +408,15 @@ def _detect_node_modules(search_root: Path, project_dir: Path) -> list[ModuleInf
         if entry_file:
             rel_path = str(item.relative_to(project_dir))
             # Count JS/TS files in module
-            file_count = len(
-                list(item.rglob("*.js"))
-                + list(item.rglob("*.ts"))
-                + list(item.rglob("*.jsx"))
-                + list(item.rglob("*.tsx"))
-            )
+            try:
+                file_count = len(
+                    list(item.rglob("*.js"))
+                    + list(item.rglob("*.ts"))
+                    + list(item.rglob("*.jsx"))
+                    + list(item.rglob("*.tsx"))
+                )
+            except OSError:
+                file_count = 0
             modules.append(
                 ModuleInfo(
                     name=item.name,
@@ -462,12 +468,26 @@ def build_directory_tree(project_dir: Path, max_depth: int = 4) -> DirectoryTree
             rel_path = project_dir.name
 
         if path.is_file():
+            try:
+                size = path.stat().st_size
+            except OSError:
+                size = 0
             return DirectoryNode(
                 name=path.name,
                 path=rel_path,
                 is_file=True,
                 children=[],
-                size=path.stat().st_size,
+                size=size,
+            )
+
+        # Skip non-file, non-directory entries (sockets, pipes, etc.)
+        if not path.is_dir():
+            return DirectoryNode(
+                name=path.name,
+                path=rel_path,
+                is_file=True,
+                children=[],
+                size=0,
             )
 
         # Directory node
@@ -479,8 +499,8 @@ def build_directory_tree(project_dir: Path, max_depth: int = 4) -> DirectoryTree
                         continue
                     child_node = build_node(item, current_depth + 1)
                     children.append(child_node)
-            except PermissionError:
-                # Skip directories we can't read
+            except OSError:
+                # Skip directories we can't read (PermissionError, NotADirectoryError, etc.)
                 pass
 
         return DirectoryNode(

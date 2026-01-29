@@ -119,6 +119,111 @@ ruff check src/ tests/
 ruff format src/ tests/
 ```
 
+## Architecture Overview
+
+Cub v0.26+ uses a layered service architecture to separate business logic from interface concerns. This enables multiple interfaces (CLI, skills, API, future UIs) to share core functionality.
+
+### Architectural Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     INTERFACES                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │   CLI    │  │  Skills  │  │ Dashboard│  │ Future   │  │
+│  │ (Typer)  │  │  (MCP)   │  │  (API)   │  │   UIs    │  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘  │
+└───────┼─────────────┼─────────────┼─────────────┼─────────┘
+        │             │             │             │
+        ▼             ▼             ▼             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SERVICE LAYER                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  RunService  │  │LaunchService │  │StatusService │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │LedgerService │  │SuggestionSvc │  │  (others)    │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│                                                             │
+│  • Stateless orchestrators                                 │
+│  • Typed inputs/outputs                                    │
+│  • No presentation logic (no Rich, no print)               │
+│  • Factory-based construction                              │
+└───────┬─────────────────────────────────────────────┬───────┘
+        │                                             │
+        ▼                                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     CORE DOMAIN                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │core/run/ │  │core/tasks│  │core/     │  │core/     │  │
+│  │          │  │          │  │harness/  │  │ledger/   │  │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │core/     │  │core/     │  │core/     │  │core/     │  │
+│  │launch/   │  │suggest/  │  │config/   │  │(others)  │  │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+│                                                             │
+│  • Business logic and domain models                        │
+│  • No interface dependencies                               │
+│  • Pure functions and protocols                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Concepts
+
+**Service Layer** (`core/services/`):
+- **Purpose**: Stateless orchestrators that compose domain operations into clean APIs
+- **Design**: Accept typed inputs, return typed outputs, raise typed exceptions
+- **No presentation logic**: Services never call Rich, print(), or sys.exit()
+- **Factory construction**: Created via factory methods that accept configuration
+- **Interface-agnostic**: Any interface (CLI, API, skills) calls service methods
+
+**Core Domain** (`core/*/`):
+- **Purpose**: Business logic, domain models, and pure functions
+- **Independence**: No dependencies on interfaces or presentation layers
+- **Protocols**: Use typing.Protocol for pluggability (no ABC inheritance)
+- **Separation**: Each domain package has clear boundaries and responsibilities
+
+### Core Packages
+
+| Package | Purpose |
+|---------|---------|
+| `core/services/` | Service layer orchestrators (RunService, LaunchService, etc.) |
+| `core/run/` | Run loop logic (prompt building, budget tracking, state machine) |
+| `core/launch/` | Harness detection and environment setup |
+| `core/suggestions/` | Smart recommendation engine for next actions |
+| `core/tasks/` | Task backend abstraction (beads, JSON, JSONL) |
+| `core/harness/` | AI harness backends (Claude, Codex, Gemini, OpenCode) |
+| `core/ledger/` | Task completion ledger (models, reader, writer, extractor) |
+| `core/config/` | Configuration loading with layered precedence |
+| `core/hooks/` | Hook execution system for lifecycle events |
+
+### Service Layer Details
+
+**RunService** (`core/services/run.py`):
+- Orchestrates the autonomous task execution loop
+- Methods: `execute_once()`, `execute_loop()`, `prepare_environment()`
+- Composes: task selection, prompt generation, harness invocation, result recording
+
+**LaunchService** (`core/services/launch.py`):
+- Detects available harnesses and launches them with proper configuration
+- Methods: `detect_harness()`, `launch()`, `validate_environment()`
+- Handles: environment variables, model selection, harness-specific flags
+
+**LedgerService** (`core/services/ledger.py`):
+- Provides queries and statistics for completed work
+- Methods: `query()`, `stats()`, `recent()`, `by_task()`, `by_epic()`
+- Returns: Structured data models (no Rich formatting)
+
+**StatusService** (`core/services/status.py`):
+- Aggregates project state from multiple sources
+- Methods: `get_project_stats()`, `get_epic_progress()`, `get_task_summary()`
+- Composes: task backend, ledger, git state, dashboard data
+
+**SuggestionService** (`core/services/suggestions.py`):
+- Provides smart recommendations for next actions
+- Methods: `suggest_next_action()`, `get_recommendations()`
+- Considers: task readiness, epic progress, recent completions, blockers
+
 ## Project Structure
 
 ```
@@ -131,8 +236,32 @@ ruff format src/ tests/
 │   │   ├── init.py       # cub init subcommand
 │   │   └── ...          # Other subcommands
 │   ├── core/             # Core logic (independent of CLI)
-│   │   ├── config.py     # Configuration loading/merging
-│   │   ├── models.py     # Pydantic models (Task, Config, etc.)
+│   │   ├── services/     # Service layer (NEW in v0.26+)
+│   │   │   ├── run.py        # RunService orchestrator
+│   │   │   ├── launch.py     # LaunchService for harness detection
+│   │   │   ├── ledger.py     # LedgerService for queries
+│   │   │   ├── status.py     # StatusService for project state
+│   │   │   ├── suggestions.py # SuggestionService for recommendations
+│   │   │   └── models.py     # Service data models
+│   │   ├── run/          # Run loop domain logic (NEW in v0.26+)
+│   │   │   ├── prompt_builder.py # System prompt generation
+│   │   │   ├── budget.py         # Budget tracking
+│   │   │   ├── loop.py           # Run loop state machine
+│   │   │   └── models.py         # Run configuration and events
+│   │   ├── launch/       # Harness launching (NEW in v0.26+)
+│   │   │   ├── detector.py       # Harness detection
+│   │   │   ├── launcher.py       # Harness launcher
+│   │   │   ├── welcome.py        # Welcome message display
+│   │   │   └── models.py         # Launch configuration
+│   │   ├── suggestions/  # Recommendation engine (NEW in v0.26+)
+│   │   │   ├── engine.py         # Suggestion engine
+│   │   │   ├── sources.py        # Data sources for suggestions
+│   │   │   ├── ranking.py        # Suggestion ranking algorithm
+│   │   │   └── models.py         # Suggestion models
+│   │   ├── config/       # Configuration loading
+│   │   │   ├── loader.py     # Layered config loading
+│   │   │   ├── models.py     # Config models
+│   │   │   └── env.py        # Environment variable handling
 │   │   ├── tasks/        # Task backends
 │   │   │   ├── backend.py    # Task backend interface (Protocol)
 │   │   │   ├── beads.py      # Beads backend implementation
@@ -194,6 +323,10 @@ ruff format src/ tests/
 ## Key Modules
 
 - `cub.cli.app` - Main Typer CLI application
+- `cub.core.services.*` - Service layer orchestrators (NEW in v0.26+)
+- `cub.core.run.*` - Run loop domain logic (NEW in v0.26+)
+- `cub.core.launch.*` - Harness launching (NEW in v0.26+)
+- `cub.core.suggestions.*` - Recommendation engine (NEW in v0.26+)
 - `cub.core.config` - Configuration loading with precedence: env vars > project > global > defaults
 - `cub.core.models` - Pydantic data models (Task, Config, RunMetadata, etc.)
 - `cub.core.logger` - JSONL logging with structured events
@@ -201,7 +334,7 @@ ruff format src/ tests/
 - `cub.core.harness.backend` - Abstract harness interface
 - `cub.core.harness.hooks` - Hook event handlers for symbiotic workflow (SessionStart, PostToolUse, Stop, etc.)
 - `cub.utils.hooks` - Hook execution system
-- `cub.core.bash_delegate` - Delegates unported commands to bash cub
+- `cub.cli.delegated.runner` - Delegates unported commands to bash cub
 - `cub.core.tools` - Tool execution runtime with pluggable adapters
 - `cub.core.tools.execution` - ExecutionService for tool orchestration
 - `cub.core.tools.registry` - Tool registry and approval management
@@ -222,13 +355,214 @@ The codebase uses a tiered approach to test coverage:
 
 When modifying code, check the tier in STABILITY.md to understand the expected testing rigor.
 
+## Available Skills
+
+Cub provides a comprehensive set of commands organized by use case. These commands can be invoked directly or through skills/MCP servers.
+
+### Core Workflow Commands
+
+**Essential Commands:**
+- `cub init` - Initialize cub in a project or globally
+- `cub new <name>` - Create a new project directory ready for cub
+- `cub run` - Execute autonomous task loop with AI harness
+- `cub status` - Show current session status and task progress
+- `cub suggest` - Get smart suggestions for next actions
+
+### Task Management Commands
+
+**Work with Tasks:**
+- `cub task ready` - List tasks ready to work on (no blockers)
+- `cub task show <id>` - Show detailed task information
+- `cub task claim <id>` - Claim a task for current session
+- `cub task close <id> -r "reason"` - Close a completed task
+- `cub task list` - List all tasks (with filtering options)
+- `cub explain-task <id>` - Show detailed task information and context
+- `cub close-task <id>` - Close a completed task (for agent use)
+- `cub verify-task <id>` - Verify a task is closed
+- `cub interview <id>` - Deep dive on task specifications
+- `cub punchlist` - Process punchlist files into epics with tasks
+- `cub workflow` - Manage post-completion workflow stages
+
+### Session & Ledger Commands
+
+**Track Your Work:**
+- `cub session log` - Log work in a direct harness session
+- `cub session done` - Mark current session complete
+- `cub session wip` - Mark current session as work-in-progress
+- `cub ledger show` - View completed work ledger
+- `cub ledger stats` - Show ledger statistics
+- `cub ledger search <query>` - Search ledger entries
+- `cub reconcile <session-id>` - Reconstruct ledger entries from forensics
+- `cub review <id>` - Review completed task implementations
+- `cub artifacts` - List and manage task output artifacts
+
+### Epic & Branch Management
+
+**Manage Epics (Groups of Tasks):**
+- `cub branch <epic-id>` - Create and bind a feature branch to an epic
+- `cub branches` - List and manage branch-epic bindings
+- `cub checkpoints` - Manage review/approval gates blocking task execution
+- `cub worktree` - Manage git worktrees for parallel task execution
+- `cub pr <epic-id>` - Create and manage pull requests
+- `cub merge <pr-number>` - Merge pull requests
+
+### Planning & Roadmap Commands
+
+**Plan from Specs:**
+- `cub plan` - Plan projects with orient, architect, and itemize phases
+- `cub plan orient` - Research and understand the problem space
+- `cub plan architect` - Design the solution architecture
+- `cub plan itemize` - Break into agent-sized tasks
+- `cub stage` - Import tasks from a completed plan into the task backend
+
+**Manage Your Roadmap:**
+- `cub capture` - Capture quick ideas, notes, and observations
+- `cub captures` - List and manage captures
+- `cub organize-captures` - Organize and normalize capture files
+- `cub spec` - Create a feature specification through interactive interview
+- `cub triage` - Refine requirements through interactive questions
+- `cub import` - Import tasks from external sources
+
+### Monitoring & Observability
+
+**See What a Run is Doing:**
+- `cub monitor` - Display live dashboard for cub run session
+- `cub dashboard` - Launch project kanban dashboard
+- `cub sandbox` - Manage Docker sandboxes
+
+### Project Improvement Commands
+
+**Improve Your Project:**
+- `cub guardrails` - Display and manage institutional memory
+- `cub map` - Generate a project map with structure analysis
+- `cub audit` - Run code health audits (dead code, docs, coverage)
+
+### Tool Management Commands
+
+**Discover and Use Tools:**
+- `cub tools` - Manage and execute tools via the unified tool runtime
+- `cub toolsmith` - Discover and catalog tools
+- `cub toolsmith sync` - Sync tool catalog from external sources
+- `cub toolsmith search <query>` - Search for tools
+- `cub workbench` - PM Workbench: unknowns ledger + next move
+
+### System Management Commands
+
+**Manage Your Cub Installation:**
+- `cub version` - Show cub version
+- `cub docs` - Open cub documentation in browser
+- `cub update` - Update project templates and skills
+- `cub system-upgrade` - Upgrade cub to a newer version
+- `cub uninstall` - Uninstall cub from your system
+- `cub doctor` - Diagnose and fix configuration issues
+- `cub hooks` - Manage Claude Code hooks for symbiotic workflow
+
+### Git Integration Commands
+
+**Task State Management:**
+- `cub sync` - Sync task state to git branch
+- `cub sync status` - Check sync status
+- `cub sync init` - Initialize sync branch
+- `cub sync --push` - Push changes to remote
+
+## Common Cub Command Patterns
+
+### Run Loop Commands
+
+```bash
+# Start autonomous execution
+cub run                           # Run until all tasks complete
+cub run --once                    # Single iteration
+cub run --task <id>               # Run specific task
+cub run --epic <id>               # Target tasks within epic
+cub run --label <name>            # Target tasks with label
+cub run --stream                  # Stream harness activity in real-time
+cub run --debug                   # Verbose debug logging
+cub run --monitor                 # Launch live dashboard in tmux split
+
+# Harness and model selection
+cub run --harness claude          # Use Claude Code (default)
+cub run --harness codex           # Use OpenAI Codex CLI
+cub run --model haiku             # Use Haiku model
+cub run --model sonnet            # Use Sonnet model
+cub run --model opus              # Use Opus model
+
+# Budget control
+cub run --budget 10               # Max budget in USD
+cub run --budget-tokens 100000    # Max token budget
+
+# Isolation modes
+cub run --worktree                # Run in isolated git worktree
+cub run --sandbox                 # Run in Docker sandbox
+cub run --parallel 4              # Run 4 tasks in parallel
+```
+
+### Task Management Commands
+
+```bash
+# Discovery
+cub task ready                    # List ready tasks (no blockers)
+cub task list --status open       # List all open tasks
+cub task show <id>                # Show task details
+cub task show <id> --full         # Include full description
+
+# Claiming and closing
+cub task claim <id>               # Claim task for current session
+cub task close <id> -r "reason"   # Close with reason
+```
+
+### Status and Monitoring
+
+```bash
+# Project status
+cub status                        # Show task progress
+cub status --json                 # JSON output for scripting
+cub status -v                     # Verbose status with details
+cub suggest                       # Get smart suggestions for next actions
+
+# Live monitoring
+cub monitor                       # Live dashboard
+cub dashboard                     # Launch Kanban dashboard
+```
+
+### Planning Workflow
+
+```bash
+# Full planning pipeline
+cub plan run                      # Run orient → architect → itemize
+
+# Individual phases
+cub plan orient                   # Research problem space
+cub plan architect                # Design solution architecture
+cub plan itemize                  # Break into agent-sized tasks
+
+# Stage tasks
+cub stage                         # Import tasks from completed plan
+```
+
+## Bare `cub` Behavior
+
+When you run `cub` without a subcommand, it defaults to `cub run`. This enables quick iteration:
+
+```bash
+cub              # Same as: cub run
+cub --once       # Same as: cub run --once
+cub --epic xyz   # Same as: cub run --epic xyz
+```
+
+## Nesting Detection
+
+Cub detects when it's being run inside another `cub run` session (nesting) and warns/exits to prevent infinite loops. This is controlled by the `CUB_RUN_ACTIVE` environment variable.
+
+When hooks execute during a `cub run` session, they skip certain operations to avoid double-tracking.
+
 ## Hybrid CLI Architecture (v0.23.1)
 
 Cub uses a hybrid Python/Bash CLI architecture to enable gradual migration from Bash to Python without blocking new development. Commands are implemented in Python where possible, with remaining commands delegated to the bash version.
 
 ### Command Routing
 
-All commands are registered in the Typer CLI (`cub.cli.app`). Native Python commands are implemented directly, while bash-only commands delegate through `cub.core.bash_delegate`.
+All commands are registered in the Typer CLI (`cub.cli.app`). Native Python commands are implemented directly, while bash-only commands delegate through `cub.cli.delegated.runner`.
 
 **Command Execution Flow:**
 ```
@@ -236,7 +570,7 @@ cub <command> [args]
   ↓
 Typer CLI (Python)
   ├─→ Native command (run, status, init, monitor) → Python implementation
-  └─→ Delegated command → bash_delegate.delegate_to_bash()
+  └─→ Delegated command → delegated.runner.delegate_to_bash()
                             ↓
                          Find bash cub script
                          Execute: cub <command> [args]
@@ -368,7 +702,7 @@ These commands are not yet ported to Python. They are registered as Typer comman
 
 ### How Delegation Works
 
-Delegation is implemented in `cub.core.bash_delegate`:
+Delegation is implemented in `cub.cli.delegated.runner`:
 
 1. **Script Discovery** (`find_bash_cub()`) - Locates bash cub in order:
    - `CUB_BASH_PATH` environment variable (explicit override)
@@ -409,7 +743,7 @@ Delegation is implemented in `cub.core.bash_delegate`:
    ```python
    app.command(name="new-command")(delegated.new_command)
    ```
-4. Add it to the `bash_commands` set in `cub.core.bash_delegate.is_bash_command()`
+4. Add it to the `bash_commands` set in `cub.cli.delegated.runner.is_bash_command()`
 
 ### Migration Path to Full Python
 
@@ -430,7 +764,7 @@ Eventually, all delegated commands will be ported to Python. The migration order
 When porting a command:
 1. Implement Python version in `src/cub/cli/`
 2. Remove delegation from `delegated.py` and `__init__.py`
-3. Remove from `bash_commands` set in `bash_delegate.py`
+3. Remove from `bash_commands` set in `delegated/runner.py`
 4. Update this documentation
 
 ## Interview Mode (v0.16)
@@ -651,6 +985,7 @@ The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
 - **Rich for terminal output**: Use Rich tables, progress bars, and console for all user-facing output.
 - **Context composition**: System prompts follow a lookup order (`.cub/runloop.md` → `PROMPT.md` → `templates/PROMPT.md` → `templates/runloop.md` → fallback). See "Context Composition" section above for details. When modifying autonomous agent behavior, edit `.cub/runloop.md` or this file (AGENT.md).
+- **Service layer**: v0.26+ separates business logic (services) from presentation (CLI). New features should add service methods first, then interface implementations.
 
 ## Common Commands
 
@@ -1139,3 +1474,37 @@ cub doctor
 # Python module importable: Yes/No
 # All hook events configured: Yes/No
 ```
+<!-- BEGIN CUB MANAGED SECTION v1 -->
+<!-- sha256:cb43dee7c868ba02c061efa07d13ebec49607e2aef56977944ecd8f51ceb4210 -->
+# Cub Task Workflow (Claude Code)
+
+**Project:** `cub` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+
+## Quick Start
+
+1. **Find work**: `cub task ready` or `cub task list --status open`
+2. **Claim task**: `cub task claim <task-id>`
+3. **Build/test**: See @.cub/agent.md for commands
+4. **Complete**: `cub task close <task-id> --reason "what you did"`
+5. **Log**: `cub log --notes="session summary"` (optional)
+
+## Task Commands
+
+- `cub task show <id>` - View task details
+- `cub status` - Project status and progress
+
+## Claude-Specific Tips
+
+- **Plan mode**: Save complex plans to `plans/<name>/plan.md`
+- **Skills**: Use `/commit`, `/review-pr`, and other skills as needed
+- **@ References**: Use @.cub/map.md for codebase context, @.cub/constitution.md for principles
+
+## When Stuck
+
+If genuinely blocked (missing files, unclear requirements, external blocker):
+```xml
+<stuck>Clear description of the blocker</stuck>
+```
+
+See @.cub/agent.md for full workflow documentation.
+<!-- END CUB MANAGED SECTION -->

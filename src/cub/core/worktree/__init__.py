@@ -22,7 +22,12 @@ from .manager import (
     WorktreeManager,
     WorktreeNotFoundError,
 )
-from .parallel import ParallelRunner, ParallelRunResult, WorkerResult
+from .parallel import (
+    ParallelRunner,
+    ParallelRunnerCallback,
+    ParallelRunResult,
+    WorkerResult,
+)
 
 __all__ = [
     "WorktreeManager",
@@ -31,6 +36,7 @@ __all__ = [
     "WorktreeLockError",
     "WorktreeNotFoundError",
     "ParallelRunner",
+    "ParallelRunnerCallback",
     "ParallelRunResult",
     "WorkerResult",
 ]

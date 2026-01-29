@@ -17,6 +17,7 @@ from cub.core.ledger.extractor import extract_insights
 from cub.core.ledger.models import VerificationStatus
 from cub.core.ledger.reader import LedgerReader
 from cub.core.ledger.writer import LedgerWriter
+from cub.core.services.ledger import LedgerQuery, LedgerService, StatsQuery
 from cub.core.tasks.backend import get_backend as get_task_backend
 from cub.utils.project import get_project_root
 
@@ -30,6 +31,12 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _get_ledger_service() -> LedgerService | None:
+    """Get ledger service for current project, or None if ledger doesn't exist."""
+    project_root = get_project_root()
+    return LedgerService.try_from_project_dir(project_root)
 
 
 def _get_ledger_reader() -> LedgerReader:
@@ -199,18 +206,19 @@ def show(
         cub ledger show beads-abc --history
         cub ledger show beads-abc --json
     """
-    reader = _get_ledger_reader()
+    service = _get_ledger_service()
 
-    if not reader.exists():
+    if not service:
         console.print(
             "[yellow]Warning:[/yellow] No ledger found. "
             "Tasks have not been completed yet."
         )
         raise typer.Exit(0)
 
-    entry = reader.get_task(task_id)
-    if not entry:
-        console.print(f"[red]Error:[/red] Task '{task_id}' not found in ledger")
+    try:
+        entry = service.get_task(task_id)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
     if json_output:
@@ -499,37 +507,22 @@ def update(
         cub ledger update cub-abc --stage validated --reason "Tests passed"
         cub ledger update cub-abc -s released -r "Deployed to production"
     """
-    writer = _get_ledger_writer()
+    service = _get_ledger_service()
 
-    # Validate that ledger exists
-    if not writer.by_task_dir.exists():
+    if not service:
         console.print(
             "[yellow]Warning:[/yellow] No ledger found. "
             "Tasks have not been completed yet."
         )
         raise typer.Exit(1)
 
-    # Validate that task exists
-    if not writer.entry_exists(task_id):
-        console.print(f"[red]Error:[/red] Task '{task_id}' not found in ledger")
-        raise typer.Exit(1)
-
-    # Validate stage
-    valid_stages = {"dev_complete", "needs_review", "validated", "released"}
-    if stage not in valid_stages:
-        console.print(
-            f"[red]Error:[/red] Invalid stage '{stage}'. "
-            f"Must be one of: {', '.join(sorted(valid_stages))}"
-        )
-        raise typer.Exit(1)
-
-    # Update the workflow stage
+    # Update the workflow stage using service
     try:
-        success = writer.update_workflow_stage(task_id, stage, reason=reason, by="cli")
-        if not success:
-            console.print(f"[red]Error:[/red] Failed to update task '{task_id}'")
-            raise typer.Exit(1)
+        service.update_workflow_stage(task_id, stage, reason=reason, by="cli")
     except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
@@ -572,16 +565,17 @@ def stats(
         cub ledger stats --epic cub-vd6
         cub ledger stats --json
     """
-    reader = _get_ledger_reader()
+    service = _get_ledger_service()
 
-    if not reader.exists():
+    if not service:
         console.print(
             "[yellow]Warning:[/yellow] No ledger found. "
             "Tasks have not been completed yet."
         )
         raise typer.Exit(0)
 
-    stats = reader.get_stats(since=since, epic=epic)
+    query = StatsQuery(since=since, epic=epic)
+    stats = service.stats(query)
 
     if json_output:
         console.print(stats.model_dump_json(indent=2))
@@ -705,9 +699,9 @@ def search(
         cub ledger search "complex" --cost-above 0.50
         cub ledger search "hard" --escalated true
     """
-    reader = _get_ledger_reader()
+    service = _get_ledger_service()
 
-    if not reader.exists():
+    if not service:
         console.print(
             "[yellow]Warning:[/yellow] No ledger found. "
             "Tasks have not been completed yet."
@@ -734,10 +728,8 @@ def search(
             )
             raise typer.Exit(1)
 
-    # Search tasks with all filters applied via index
-    results = reader.search_tasks(
-        query,
-        fields=fields,
+    # Build query filters
+    filters = LedgerQuery(
         since=since,
         epic=epic,
         verification=verification_status,
@@ -745,6 +737,9 @@ def search(
         cost_above=cost_above,
         escalated=escalated,
     )
+
+    # Search tasks using service
+    results = service.search(query, fields=fields, filters=filters)
 
     if not results:
         console.print(f"No tasks found matching '{query}'")
@@ -818,9 +813,9 @@ def export(
         cub ledger export --format csv --epic cub-vd6 --output epic.csv
         cub ledger export --format json --since 2026-01-01 > recent.json
     """
-    reader = _get_ledger_reader()
+    service = _get_ledger_service()
 
-    if not reader.exists():
+    if not service:
         console.print(
             "[yellow]Warning:[/yellow] No ledger found. "
             "Tasks have not been completed yet."
@@ -832,8 +827,9 @@ def export(
         console.print(f"[red]Error:[/red] Invalid format '{format}'. Must be 'json' or 'csv'")
         raise typer.Exit(1)
 
-    # Get entries
-    entries = reader.list_tasks(since=since, epic=epic)
+    # Get entries using service
+    filters = LedgerQuery(since=since, epic=epic)
+    entries = service.query(filters)
 
     if not entries:
         console.print("[yellow]Warning:[/yellow] No tasks found matching filters")
@@ -842,9 +838,12 @@ def export(
     # Get full entries for export
     full_entries = []
     for index_entry in entries:
-        full_entry = reader.get_task(index_entry.id)
-        if full_entry:
+        try:
+            full_entry = service.get_task(index_entry.id)
             full_entries.append(full_entry)
+        except Exception:
+            # Skip entries that fail to load
+            continue
 
     # Export data
     if format == "json":
@@ -1130,22 +1129,27 @@ def extract(
         cub ledger extract --all         # Extract for all tasks
         cub ledger extract --all --force # Re-extract all tasks
     """
-    reader = _get_ledger_reader()
-    writer = _get_ledger_writer()
+    service = _get_ledger_service()
 
-    if not reader.exists():
+    if not service:
         console.print("[yellow]Warning:[/yellow] No ledger found.")
         raise typer.Exit(1)
+
+    # Get writer for low-level file access (prompt/log files)
+    writer = _get_ledger_writer()
 
     # Determine which tasks to process
     tasks_to_process: list[str] = []
     if all_tasks:
-        # Get all task IDs from index
-        index_entries = reader.list_tasks()
+        # Get all task IDs from service
+        index_entries = service.query()
         for index_entry in index_entries:
             # Get full entry to check for insights
             if not force:
-                full_entry = reader.get_task(index_entry.id)
+                try:
+                    full_entry = service.get_task(index_entry.id)
+                except Exception:
+                    continue
                 if full_entry and full_entry.outcome:
                     has_insights = (
                         full_entry.outcome.approach
@@ -1183,9 +1187,10 @@ def extract(
         console.print(f"[{idx}/{len(tasks_to_process)}] Processing [cyan]{tid}[/cyan]...")
 
         # Get ledger entry
-        entry = reader.get_task(tid)
-        if not entry:
-            console.print(f"  [red]✗[/red] Entry not found")
+        try:
+            entry = service.get_task(tid)
+        except Exception:
+            console.print("  [red]✗[/red] Entry not found")
             error_count += 1
             continue
 
@@ -1197,18 +1202,22 @@ def extract(
                 or entry.outcome.lessons_learned
             )
             if has_insights:
-                console.print(f"  [dim]↷[/dim] Already has insights (use --force to re-extract)")
+                console.print(
+                    "  [dim]↷[/dim] Already has insights (use --force to re-extract)"
+                )
                 skip_count += 1
                 continue
 
         # Get harness log from first attempt
         if not entry.attempts:
-            console.print(f"  [yellow]⚠[/yellow] No attempts found")
+            console.print("  [yellow]⚠[/yellow] No attempts found")
             skip_count += 1
             continue
 
         # Read harness log file
-        log_path = writer.ledger_dir / "by-task" / tid / "attempts" / f"{entry.attempts[0].attempt_number:03d}-harness.log"
+        attempt_num = entry.attempts[0].attempt_number
+        log_filename = f"{attempt_num:03d}-harness.log"
+        log_path = writer.ledger_dir / "by-task" / tid / "attempts" / log_filename
         if not log_path.exists():
             console.print(f"  [yellow]⚠[/yellow] Harness log not found: {log_path.name}")
             skip_count += 1
@@ -1265,7 +1274,7 @@ def extract(
         # Write updated entry
         try:
             writer.update_entry(entry)
-            console.print(f"  [green]✓[/green] Extracted insights")
+            console.print("  [green]✓[/green] Extracted insights")
             if verbose:
                 if insights.approach:
                     console.print(f"    Approach: {insights.approach[:80]}...")

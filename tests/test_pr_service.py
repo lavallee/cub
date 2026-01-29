@@ -13,7 +13,6 @@ from cub.core.github.client import GitHubClient
 from cub.core.github.models import RepoInfo
 from cub.core.pr.service import (
     PRService,
-    StreamConfig,
     _delete_local_branch,
     _find_worktree_for_branch,
     _prune_remote_tracking,
@@ -361,98 +360,44 @@ branch refs/heads/feature
         assert "git not found" in error_msg
 
 
-class TestStreamConfig:
-    """Tests for StreamConfig class."""
+class TestPREventCallback:
+    """Tests for PR event callback functionality."""
 
-    def test_stream_config_defaults(self):
-        """Test StreamConfig default values."""
-        config = StreamConfig()
-        assert config.enabled is False
-        assert config.debug is False
-        assert config.console is not None
+    class _TestCallback:
+        """Test callback that records calls."""
 
-    def test_stream_config_with_values(self):
-        """Test StreamConfig with explicit values."""
-        console = Console()
-        config = StreamConfig(enabled=True, debug=True, console=console)
-        assert config.enabled is True
-        assert config.debug is True
-        assert config.console is console
+        def __init__(self):
+            self.progress_messages = []
+            self.status_messages = []
+            self.info_messages = []
 
-    def test_stream_outputs_when_enabled(self):
-        """Test that stream() outputs when enabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(enabled=True, console=console)
+        def on_progress(self, message: str) -> None:
+            self.progress_messages.append(message)
 
-        config.stream("Test message")
+        def on_status(self, message: str, level: str = "info") -> None:
+            self.status_messages.append((message, level))
 
-        output.seek(0)
-        content = output.read()
-        assert "Test message" in content
+        def on_info(self, message: str) -> None:
+            self.info_messages.append(message)
 
-    def test_stream_silent_when_disabled(self):
-        """Test that stream() is silent when disabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(enabled=False, console=console)
+    def test_callback_receives_progress(self):
+        """Test that callback receives progress messages."""
+        callback = self._TestCallback()
+        # Callback functionality tested via service integration tests
+        callback.on_progress("Test progress")
+        assert "Test progress" in callback.progress_messages
 
-        config.stream("Test message")
+    def test_callback_receives_status(self):
+        """Test that callback receives status messages."""
+        callback = self._TestCallback()
+        callback.on_status("Test status", level="success")
+        assert ("Test status", "success") in callback.status_messages
 
-        output.seek(0)
-        content = output.read()
-        assert content == ""
-
-    def test_debug_log_outputs_when_enabled(self):
-        """Test that debug_log() outputs when debug enabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(debug=True, console=console)
-
-        config.debug_log("Debug message")
-
-        output.seek(0)
-        content = output.read()
-        assert "DEBUG" in content
-        assert "Debug message" in content
-
-    def test_debug_log_silent_when_disabled(self):
-        """Test that debug_log() is silent when debug disabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(debug=False, console=console)
-
-        config.debug_log("Debug message")
-
-        output.seek(0)
-        content = output.read()
-        assert content == ""
-
-    def test_debug_value_outputs_when_enabled(self):
-        """Test that debug_value() outputs when debug enabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(debug=True, console=console)
-
-        config.debug_value("my_var", "my_value")
-
-        output.seek(0)
-        content = output.read()
-        assert "DEBUG" in content
-        assert "my_var" in content
-        assert "my_value" in content
-
-    def test_debug_value_silent_when_disabled(self):
-        """Test that debug_value() is silent when debug disabled."""
-        output = StringIO()
-        console = Console(file=output, force_terminal=True)
-        config = StreamConfig(debug=False, console=console)
-
-        config.debug_value("my_var", "my_value")
-
-        output.seek(0)
-        content = output.read()
-        assert content == ""
+    def test_callback_receives_info(self):
+        """Test that callback receives info messages."""
+        callback = self._TestCallback()
+        callback.on_info("Test info")
+        assert "Test info" in callback.info_messages
 
 
 class TestPRServiceWithStreaming:
@@ -474,29 +419,49 @@ class TestPRServiceWithStreaming:
         """Create a console that writes to StringIO."""
         return Console(file=stream_output, force_terminal=True)
 
+    class _StreamingCallback:
+        """Test callback that writes to console."""
+
+        def __init__(self, console: Console):
+            self.console = console
+
+        def on_progress(self, message: str) -> None:
+            self.console.print(f"[cyan]→[/cyan] {message}")
+
+        def on_status(self, message: str, level: str = "info") -> None:
+            if level == "success":
+                self.console.print(f"[green]{message}[/green]")
+            elif level == "warning":
+                self.console.print(f"[yellow]{message}[/yellow]")
+            else:
+                self.console.print(message)
+
+        def on_info(self, message: str) -> None:
+            self.console.print(message)
+
     @pytest.fixture
     def pr_service_with_streaming(self, tmp_path, mock_github_client, stream_console):
         """Create a PR service with streaming enabled."""
-        config = StreamConfig(enabled=True, debug=False, console=stream_console)
-        service = PRService(tmp_path, stream_config=config)
+        callback = self._StreamingCallback(stream_console)
+        service = PRService(tmp_path, callback=callback)
         service._github_client = mock_github_client
         return service
 
     @pytest.fixture
     def pr_service_with_debug(self, tmp_path, mock_github_client, stream_console):
-        """Create a PR service with debug enabled."""
-        config = StreamConfig(enabled=True, debug=True, console=stream_console)
-        service = PRService(tmp_path, stream_config=config)
+        """Create a PR service with debug enabled (uses logging for debug)."""
+        callback = self._StreamingCallback(stream_console)
+        service = PRService(tmp_path, callback=callback)
         service._github_client = mock_github_client
         return service
 
-    def test_service_uses_stream_config_console(
+    def test_service_uses_callback(
         self, tmp_path, mock_github_client, stream_console
     ):
-        """Test that service uses the console from stream config."""
-        config = StreamConfig(enabled=True, console=stream_console)
-        service = PRService(tmp_path, stream_config=config)
-        assert service._console is stream_console
+        """Test that service uses the provided callback."""
+        callback = self._StreamingCallback(stream_console)
+        service = PRService(tmp_path, callback=callback)
+        assert service._callback is callback
 
     def test_create_pr_with_streaming_shows_progress(
         self, pr_service_with_streaming, stream_output
@@ -621,21 +586,18 @@ class TestPRServiceWithStreaming:
 
         stream_output.seek(0)
         content = stream_output.read()
-        # Check for debug output (note: Rich may add escape codes between words)
-        assert "DEBUG" in content
-        # Check for target variable (Rich may format as "target=" or "target" separately)
-        assert "target" in content
+        # Debug output now goes to Python logging, not the callback
+        # Check that progress messages are still shown
+        assert "Resolving target" in content
+        assert "Checking for existing PR" in content
         assert "feature-branch" in content
-        assert "resolved" in content
-        assert "type" in content
-        assert "needs_push" in content
 
     def test_create_pr_without_streaming_is_quiet(
         self, tmp_path, mock_github_client, stream_output, stream_console
     ):
-        """Test that create_pr is quiet when streaming disabled."""
-        config = StreamConfig(enabled=False, debug=False, console=stream_console)
-        service = PRService(tmp_path, stream_config=config)
+        """Test that create_pr is quiet when no callback provided."""
+        # With no callback (default _NoOpCallback), there should be no output
+        service = PRService(tmp_path, callback=None)
         service._github_client = mock_github_client
 
         with (
@@ -682,11 +644,12 @@ class TestPRServiceWithStreaming:
 
         stream_output.seek(0)
         content = stream_output.read()
-        # Stream messages should not be present
+        # With no callback, all output is suppressed
         assert "Resolving target" not in content
         assert "DEBUG" not in content
-        # But normal output (PR created) should still be there
-        assert "Creating PR" in content
+        assert "Creating PR" not in content
+        # Verify operation succeeded (via return value, not output)
+        # This test confirms the service can work silently
 
 
 class TestPRServiceError:
@@ -776,7 +739,7 @@ class TestPRServiceInitialization:
         """Test PRService can be initialized with defaults."""
         service = PRService()
         assert service.project_dir == Path.cwd()
-        assert service._stream_config is not None
+        assert service._callback is not None
         assert service._branch_store is None
         assert service._github_client is None
 
@@ -785,12 +748,22 @@ class TestPRServiceInitialization:
         service = PRService(project_dir=tmp_path)
         assert service.project_dir == tmp_path
 
-    def test_initialization_with_stream_config(self, tmp_path):
-        """Test PRService can be initialized with stream config."""
-        config = StreamConfig(enabled=True, debug=True)
-        service = PRService(project_dir=tmp_path, stream_config=config)
-        assert service._stream_config.enabled is True
-        assert service._stream_config.debug is True
+    def test_initialization_with_callback(self, tmp_path):
+        """Test PRService can be initialized with callback."""
+
+        class _TestCallback:
+            def on_progress(self, message: str) -> None:
+                pass
+
+            def on_status(self, message: str, level: str = "info") -> None:
+                pass
+
+            def on_info(self, message: str) -> None:
+                pass
+
+        callback = _TestCallback()
+        service = PRService(project_dir=tmp_path, callback=callback)
+        assert service._callback is callback
 
     def test_branch_store_lazy_init(self, tmp_path):
         """Test branch_store property initializes BranchStore lazily."""
@@ -1507,9 +1480,29 @@ class TestMergePR:
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
+
+        class _TestCallback:
+            def __init__(self, console: Console):
+                self.console = console
+
+            def on_progress(self, message: str) -> None:
+                pass
+
+            def on_status(self, message: str, level: str = "info") -> None:
+                if level == "warning":
+                    self.console.print(f"[yellow]{message}[/yellow]")
+                elif level == "success":
+                    self.console.print(f"[green]{message}[/green]")
+                else:
+                    self.console.print(message)
+
+            def on_info(self, message: str) -> None:
+                self.console.print(message)
+
+        callback = _TestCallback(console)
         service = PRService(
             project_dir=pr_service.project_dir,
-            stream_config=StreamConfig(console=console),
+            callback=callback,
         )
         service._github_client = pr_service._github_client
 
@@ -1568,9 +1561,29 @@ class TestMergePR:
 
         output = StringIO()
         console = Console(file=output, force_terminal=True)
+
+        class _TestCallback:
+            def __init__(self, console: Console):
+                self.console = console
+
+            def on_progress(self, message: str) -> None:
+                pass
+
+            def on_status(self, message: str, level: str = "info") -> None:
+                if level == "warning":
+                    self.console.print(f"[yellow]{message}[/yellow]")
+                elif level == "success":
+                    self.console.print(f"[green]{message}[/green]")
+                else:
+                    self.console.print(message)
+
+            def on_info(self, message: str) -> None:
+                self.console.print(message)
+
+        callback = _TestCallback(console)
         service = PRService(
             project_dir=pr_service.project_dir,
-            stream_config=StreamConfig(console=console),
+            callback=callback,
         )
         service._github_client = pr_service._github_client
 

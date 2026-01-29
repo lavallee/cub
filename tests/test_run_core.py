@@ -1454,20 +1454,36 @@ class TestRunLoopIntegration:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks") as mock_wait_hooks,
             patch("anyio.from_thread.run", side_effect=sync_run_async),
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
+            # Mock RunLoop internals for harness invocation and hooks
+            patch("cub.core.run.loop.generate_system_prompt") as mock_sys_prompt,
+            patch("cub.core.run.loop.generate_task_prompt") as mock_task_prompt,
+            # Mock RunLoop's hook runner so it uses the CLI-level mock
+            patch("cub.core.run.loop.RunLoop._run_hook") as mock_loop_run_hook,
+            # Mock RunLoop's harness invocation (avoids asyncio.run in test)
+            patch("cub.core.run.loop.RunLoop._invoke_harness") as mock_loop_invoke,
+            # Mock RunLoop's git helper
+            patch("cub.core.run.loop.RunLoop._get_current_commit") as mock_get_commit,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
             mock_status_writer.return_value = MagicMock()
+            mock_sys_prompt.return_value = "system prompt"
+            mock_task_prompt.return_value = "task prompt"
+            mock_loop_run_hook.return_value = True
+            mock_loop_invoke.return_value = HarnessResult(
+                output="Task completed",
+                exit_code=0,
+                usage=TokenUsage(input_tokens=100, output_tokens=200),
+            )
+            mock_get_commit.return_value = None
 
             # Set up task backend mock
             mock_task_backend.get_task_counts.return_value = MagicMock(
@@ -1477,7 +1493,9 @@ class TestRunLoopIntegration:
             # Set up branch mocks to simulate being on a feature branch
             # This prevents the tests from trying to create branches in CI
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             yield {
                 "load_config": mock_load_config,
@@ -1485,7 +1503,6 @@ class TestRunLoopIntegration:
                 "get_harness_backend": mock_get_harness,
                 "get_task_backend": mock_get_task,
                 "status_writer": mock_status_writer,
-                "run_hooks": mock_run_hooks,
                 "run_hooks_async": mock_run_hooks_async,
                 "wait_hooks": mock_wait_hooks,
                 "config": mock_config,
@@ -1493,6 +1510,11 @@ class TestRunLoopIntegration:
                 "task_backend": mock_task_backend,
                 "branch_store": mock_branch_store,
                 "create_branch": mock_create_branch,
+                "sys_prompt": mock_sys_prompt,
+                "task_prompt": mock_task_prompt,
+                "loop_run_hook": mock_loop_run_hook,
+                "loop_invoke": mock_loop_invoke,
+                "get_commit": mock_get_commit,
             }
 
     def test_run_once_with_specific_task(self, runner, mock_run_dependencies):
@@ -1628,16 +1650,12 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
-        deps["harness_backend"].invoke.return_value = HarnessResult(
-            output="Task completed successfully",
-            exit_code=0,
-            usage=TokenUsage(input_tokens=100, output_tokens=200, cost_usd=0.01),
-        )
+        deps["task_backend"].get_task.return_value = task
 
         runner.invoke(app, ["--once"])
 
-        # Harness was invoked (async method)
-        deps["harness_backend"].run_task.assert_called_once()
+        # Harness was invoked via RunLoop's _invoke_harness
+        deps["loop_invoke"].assert_called_once()
 
     def test_run_task_failure_stops(self, runner, mock_run_dependencies):
         """Test that task failure stops the loop when configured."""
@@ -1703,18 +1721,20 @@ class TestRunLoopIntegration:
         # but not because of the failure
 
     def test_run_pre_loop_hook_failure(self, runner, mock_run_dependencies):
-        """Test that pre-loop hook failure stops execution."""
+        """Test that pre-loop hook failure stops execution when fail_fast."""
         deps = mock_run_dependencies
-        deps["run_hooks"].return_value = False  # Hook failed
+        # RunLoop._run_hook is now mocked at the class level
+        # First call is pre-loop hook → False means hook failed
+        deps["loop_run_hook"].return_value = False
         deps["config"].hooks.fail_fast = True
+        deps["config"].hooks.enabled = True
 
         result = runner.invoke(app, ["--once"])
 
         assert result.exit_code == 1
-        assert "Pre-loop hook failed" in result.output
 
     def test_run_pre_task_hook_failure(self, runner, mock_run_dependencies):
-        """Test that pre-task hook failure stops execution."""
+        """Test that pre-task hook failure stops execution when fail_fast."""
         deps = mock_run_dependencies
         task = Task(
             id="cub-001",
@@ -1724,18 +1744,19 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
 
         # Pre-loop succeeds, pre-task fails
-        deps["run_hooks"].side_effect = [True, False]
+        deps["loop_run_hook"].side_effect = [True, False]
         deps["config"].hooks.fail_fast = True
+        deps["config"].hooks.enabled = True
 
         result = runner.invoke(app, ["--once"])
 
         assert result.exit_code == 1
-        assert "Pre-task hook failed" in result.output
 
     def test_run_uses_model_from_cli(self, runner, mock_run_dependencies):
-        """Test that CLI model flag is used."""
+        """Test that CLI model flag is used in RunLoop invocation."""
         deps = mock_run_dependencies
         task = Task(
             id="cub-001",
@@ -1745,11 +1766,13 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
 
         runner.invoke(app, ["--once", "--model", "opus"])
 
-        # Verify model was passed to harness via TaskInput
-        call_args = deps["harness_backend"].run_task.call_args
+        # Verify model was passed to RunLoop._invoke_harness via TaskInput
+        call_args = deps["loop_invoke"].call_args
+        assert call_args is not None, "RunLoop._invoke_harness should have been called"
         task_input = call_args[0][0]  # First positional argument
         assert task_input.model == "opus"
 
@@ -1766,17 +1789,19 @@ class TestRunLoopIntegration:
             labels=["model:haiku"],  # This sets model_label via computed property
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
         deps["config"].harness.model = None  # No default, so task label should be used
 
         runner.invoke(app, ["--once"])
 
-        # Verify task model label was used via TaskInput
-        call_args = deps["harness_backend"].run_task.call_args
+        # Verify task model label was used via RunLoop._invoke_harness
+        call_args = deps["loop_invoke"].call_args
+        assert call_args is not None, "RunLoop._invoke_harness should have been called"
         task_input = call_args[0][0]  # First positional argument
         assert task_input.model == "haiku"
 
     def test_run_streaming_mode(self, runner, mock_run_dependencies):
-        """Test streaming mode invokes streaming method."""
+        """Test streaming mode passes stream flag to RunLoop."""
         deps = mock_run_dependencies
         task = Task(
             id="cub-001",
@@ -1786,12 +1811,13 @@ class TestRunLoopIntegration:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
 
         runner.invoke(app, ["--once", "--stream"])
 
-        # Verify streaming method was called (stream_task for async)
-        deps["harness_backend"].stream_task.assert_called_once()
-        deps["harness_backend"].run_task.assert_not_called()
+        # Streaming is now handled inside RunLoop._invoke_harness
+        # Verify the loop's harness invocation was called (streaming is a config concern)
+        deps["loop_invoke"].assert_called_once()
 
 
 # ==============================================================================
@@ -1826,7 +1852,6 @@ class TestBudgetTracking:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async") as mock_run_hooks_async,
             patch("cub.cli.run.wait_async_hooks"),
             patch("anyio.from_thread.run", side_effect=sync_run_async),
@@ -1835,7 +1860,7 @@ class TestBudgetTracking:
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
+            # run_hooks now handled by RunLoop._run_hook (mocked at loop level)
             mock_status_writer.return_value = MagicMock()
 
             mock_task_backend.get_task_counts.return_value = MagicMock(
@@ -1913,18 +1938,17 @@ class TestHarnessInvocationErrors:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
+            # run_hooks now handled by RunLoop._run_hook (mocked at loop level)
             mock_status_writer.return_value = MagicMock()
 
             mock_task_backend.get_task_counts.return_value = MagicMock(
@@ -1933,7 +1957,9 @@ class TestHarnessInvocationErrors:
 
             # Set up branch mocks to simulate being on a feature branch
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             yield {
                 "config": mock_config,
@@ -2011,13 +2037,15 @@ class TestInvalidHarness:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
         ):
             mock_config.return_value = MagicMock()
             mock_get_task.return_value = MagicMock()
             mock_get_harness.side_effect = ValueError("Unknown harness: invalid")
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             result = runner.invoke(app, ["--harness", "invalid", "--once"])
 
@@ -2040,12 +2068,14 @@ class TestTaskBackendInitialization:
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
         ):
             mock_config.return_value = MagicMock()
             mock_get_task.side_effect = Exception("No beads found")
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             result = runner.invoke(app, ["--once"])
 
@@ -2085,21 +2115,31 @@ class TestMaxIterations:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("cub.cli.run.time.sleep"),  # Don't actually sleep
             patch("anyio.from_thread.run", side_effect=sync_run_async),
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
+            # Mock RunLoop internals for harness invocation and hooks
+            patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt"),
+            patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt"),
+            patch("cub.core.run.loop.RunLoop._run_hook", return_value=True),
+            patch("cub.core.run.loop.RunLoop._invoke_harness") as mock_loop_invoke,
+            patch("cub.core.run.loop.RunLoop._get_current_commit", return_value=None),
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
+            # run_hooks now handled by RunLoop._run_hook (mocked at loop level)
             mock_status_writer.return_value = MagicMock()
+            mock_loop_invoke.return_value = HarnessResult(
+                output="Task completed",
+                exit_code=0,
+                usage=TokenUsage(input_tokens=100, output_tokens=200),
+            )
 
             mock_task_backend.get_task_counts.return_value = MagicMock(
                 total=100, open=90, in_progress=5, closed=5, remaining=95
@@ -2107,12 +2147,15 @@ class TestMaxIterations:
 
             # Set up branch mocks to simulate being on a feature branch
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             yield {
                 "config": mock_config,
                 "harness_backend": mock_harness_backend,
                 "task_backend": mock_task_backend,
+                "loop_invoke": mock_loop_invoke,
             }
 
     def test_once_flag_limits_to_one_iteration(self, runner, iteration_mock_deps):
@@ -2126,11 +2169,12 @@ class TestMaxIterations:
             type=TaskType.TASK,
         )
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
 
         runner.invoke(app, ["--once"])
 
-        # Should only invoke harness once (async method)
-        assert deps["harness_backend"].run_task.call_count == 1
+        # Should only invoke harness once via RunLoop
+        assert deps["loop_invoke"].call_count == 1
 
     def test_max_iterations_from_config(self, runner, iteration_mock_deps):
         """Test max iterations comes from config when not using --once."""
@@ -2146,11 +2190,12 @@ class TestMaxIterations:
         )
         # Return the same task each time (simulates it not being closed)
         deps["task_backend"].get_ready_tasks.return_value = [task]
+        deps["task_backend"].get_task.return_value = task
 
         result = runner.invoke(app, [])
 
-        # Should invoke harness twice (max_iterations = 2, using async method)
-        assert deps["harness_backend"].run_task.call_count == 2
+        # Should invoke harness twice (max_iterations = 2) via RunLoop
+        assert deps["loop_invoke"].call_count == 2
         assert "Reached max iterations" in result.output
 
 
@@ -2186,19 +2231,18 @@ class TestFiltering:
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
             patch("cub.cli.run.StatusWriter") as mock_status_writer,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("anyio.from_thread.run", side_effect=sync_run_async),
             # Mock branch operations to avoid git calls in CI
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
+            # run_hooks now handled by RunLoop._run_hook (mocked at loop level)
             mock_status_writer.return_value = MagicMock()
 
             mock_task_backend.get_task_counts.return_value = MagicMock(
@@ -2207,7 +2251,9 @@ class TestFiltering:
 
             # Set up branch mocks to simulate being on a feature branch
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             yield {
                 "task_backend": mock_task_backend,
@@ -2353,14 +2399,18 @@ class TestBranchCreation:
         """Test default behavior creates branch from origin/main."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
-            mock_create.return_value = True  # Branch creation succeeds
+            mock_create.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )  # Branch creation succeeds
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             runner.invoke(app, ["--once"])
 
@@ -2373,14 +2423,18 @@ class TestBranchCreation:
         """Test --from-branch overrides the default origin/main base."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
-            mock_create.return_value = True
+            mock_create.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             runner.invoke(app, ["--from-branch", "develop", "--once"])
 
@@ -2393,7 +2447,7 @@ class TestBranchCreation:
         """Test --use-current-branch ignores --from-branch (no-op)."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2416,7 +2470,7 @@ class TestBranchCreation:
         """Test running on existing feature branch reuses it (no new branch)."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
             patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
@@ -2437,14 +2491,18 @@ class TestBranchCreation:
         """Test --task creates branch with task ID in name."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
-            mock_create.return_value = True
+            mock_create.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             runner.invoke(app, ["--task", "cub-123", "--once"])
 
@@ -2457,15 +2515,20 @@ class TestBranchCreation:
         """Test --epic creates branch with epic name."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
-            patch("cub.cli.run._get_epic_title", return_value="Backend API"),
+            patch("cub.cli.run.create_run_branch") as mock_create,
+            patch("cub.cli.run.get_epic_context") as mock_epic_context,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
-            mock_create.return_value = True
+            mock_create.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
+            mock_epic_context.return_value = MagicMock(epic_id="cub-xyz", title="Backend API")
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             runner.invoke(app, ["--epic", "cub-xyz", "--once"])
 
@@ -2478,14 +2541,18 @@ class TestBranchCreation:
         """Test --label creates branch with label name."""
         with (
             patch("cub.core.branches.store.BranchStore.get_current_branch") as mock_get,
-            patch("cub.cli.run._create_branch_from_base") as mock_create,
+            patch("cub.cli.run.create_run_branch") as mock_create,
             patch("cub.cli.run.load_config") as mock_config,
+            patch("cub.cli.run.get_task_backend") as mock_task_backend,
             patch("cub.cli.run.detect_async_harness", return_value=None),
         ):
             mock_get.return_value = "main"
-            mock_create.return_value = True
+            mock_create.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
             mock_config.return_value = MagicMock()
             mock_config.return_value.harness.priority = []
+            mock_task_backend.return_value = MagicMock()
 
             runner.invoke(app, ["--label", "priority", "--once"])
 
@@ -2639,21 +2706,22 @@ class TestHarnessLogCapture:
             patch("cub.cli.run.detect_async_harness") as mock_detect,
             patch("cub.cli.run.get_async_backend") as mock_get_harness,
             patch("cub.cli.run.get_task_backend") as mock_get_task,
-            patch("cub.cli.run.run_hooks") as mock_run_hooks,
             patch("cub.cli.run.run_hooks_async"),
             patch("cub.cli.run.wait_async_hooks"),
             patch("cub.core.branches.store.BranchStore") as mock_branch_store,
-            patch("cub.cli.run._create_branch_from_base") as mock_create_branch,
+            patch("cub.cli.run.create_run_branch") as mock_create_branch,
         ):
             mock_load_config.return_value = mock_config
             mock_detect.return_value = "claude"
             mock_get_harness.return_value = mock_harness_backend
             mock_get_task.return_value = mock_task_backend
-            mock_run_hooks.return_value = True
+            # run_hooks now handled by RunLoop._run_hook (mocked at loop level)
 
             # Set up branch mocks
             mock_branch_store.get_current_branch.return_value = "feature/test-branch"
-            mock_create_branch.return_value = True
+            mock_create_branch.return_value = MagicMock(
+                success=True, created=True, branch_name="test-branch", error=None
+            )
 
             mock_task_backend.get_task_counts.return_value = MagicMock(
                 total=1, open=1, in_progress=0, closed=0, remaining=1

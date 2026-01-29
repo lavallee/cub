@@ -7,16 +7,16 @@ pull requests with optional CI/review handling.
 
 from cub.core.pr.service import (
     MergeResult,
+    PREventCallback,
     PRResult,
     PRService,
     PRServiceError,
-    StreamConfig,
 )
 
 __all__ = [
     "MergeResult",
+    "PREventCallback",
     "PRResult",
     "PRService",
     "PRServiceError",
-    "StreamConfig",
 ]

@@ -1,0 +1,13 @@
+{
+  "slug": "bare-cub-command",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "bare-cub-command.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-28T00:00:00+00:00",
+  "updated": "2026-01-28T17:54:46.171046+00:00"
+}

@@ -8,57 +8,45 @@ pull requests with optional CI/review handling via Claude.
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-
-from rich.console import Console
+from typing import Protocol
 
 from cub.core.branches import BranchStore, ResolvedTarget
 from cub.core.github.client import GitHubClient, GitHubClientError
 
+logger = logging.getLogger(__name__)
 
-@dataclass
-class StreamConfig:
-    """Configuration for streaming output during PR operations.
 
-    Attributes:
-        enabled: Whether to show real-time streaming output
-        debug: Whether to show detailed debug information
-        console: Rich console for output (defaults to new Console)
-    """
+class PREventCallback(Protocol):
+    """Protocol for PR service event callbacks."""
 
-    enabled: bool = False
-    debug: bool = False
-    console: Console = field(default_factory=Console)
-
-    def stream(self, message: str) -> None:
-        """Print a streaming message if streaming is enabled.
+    def on_progress(self, message: str) -> None:
+        """Called when a progress message should be displayed.
 
         Args:
-            message: Message to print
+            message: Progress message (e.g., "Resolving target...")
         """
-        if self.enabled:
-            self.console.print(f"[cyan]→[/cyan] {message}")
+        ...
 
-    def debug_log(self, message: str) -> None:
-        """Print a debug message if debug is enabled.
+    def on_status(self, message: str, level: str = "info") -> None:
+        """Called when a status message should be displayed.
 
         Args:
-            message: Debug message to print
+            message: Status message (e.g., "Branch pushed")
+            level: Message level (info, success, warning, error)
         """
-        if self.debug:
-            self.console.print(f"[dim][DEBUG][/dim] {message}")
+        ...
 
-    def debug_value(self, name: str, value: object) -> None:
-        """Print a named debug value if debug is enabled.
+    def on_info(self, message: str) -> None:
+        """Called when an informational message should be displayed.
 
         Args:
-            name: Variable/value name
-            value: The value to display
+            message: Informational message (e.g., "Creating PR: My Title")
         """
-        if self.debug:
-            self.console.print(f"[dim][DEBUG][/dim] {name}={value!r}")
+        ...
 
 
 def _find_worktree_for_branch(project_dir: Path, branch: str) -> Path | None:
@@ -243,6 +231,22 @@ class MergeResult:
     branch_deleted: bool
 
 
+class _NoOpCallback:
+    """Default no-op callback implementation."""
+
+    def on_progress(self, message: str) -> None:
+        """No-op progress handler."""
+        pass
+
+    def on_status(self, message: str, level: str = "info") -> None:
+        """No-op status handler."""
+        pass
+
+    def on_info(self, message: str) -> None:
+        """No-op info handler."""
+        pass
+
+
 class PRService:
     """
     Service for managing pull requests.
@@ -262,18 +266,17 @@ class PRService:
     def __init__(
         self,
         project_dir: Path | None = None,
-        stream_config: StreamConfig | None = None,
+        callback: PREventCallback | None = None,
     ) -> None:
         """
         Initialize PRService.
 
         Args:
             project_dir: Project directory (defaults to cwd)
-            stream_config: Configuration for streaming output
+            callback: Event callback for progress/status output
         """
         self.project_dir = project_dir or Path.cwd()
-        self._stream_config = stream_config or StreamConfig()
-        self._console = self._stream_config.console
+        self._callback = callback or _NoOpCallback()
         self._branch_store: BranchStore | None = None
         self._github_client: GitHubClient | None = None
 
@@ -522,25 +525,23 @@ Generated with [cub](https://github.com/lavallee/cub)
         Raises:
             PRServiceError: If PR cannot be created
         """
-        stream = self._stream_config
-
         # Resolve input
-        stream.stream("Resolving target...")
-        stream.debug_value("target", target)
+        self._callback.on_progress("Resolving target...")
+        logger.debug(f"target={target!r}")
         resolved = self.resolve_input(target)
-        stream.debug_value("resolved.type", resolved.type)
-        stream.debug_value("resolved.branch", resolved.branch)
-        stream.debug_value("resolved.epic_id", resolved.epic_id)
-        stream.debug_value("resolved.binding", resolved.binding)
+        logger.debug(f"resolved.type={resolved.type!r}")
+        logger.debug(f"resolved.branch={resolved.branch!r}")
+        logger.debug(f"resolved.epic_id={resolved.epic_id!r}")
+        logger.debug(f"resolved.binding={resolved.binding!r}")
 
         # Get branch name
         branch = resolved.branch
         if not branch:
             if resolved.type == "pr":
                 # Already have a PR - get its branch
-                stream.stream(f"Looking up existing PR #{resolved.pr_number}...")
+                self._callback.on_progress(f"Looking up existing PR #{resolved.pr_number}...")
                 pr_info = self.github_client.get_pr(resolved.pr_number or 0)
-                stream.debug_value("pr_info", pr_info)
+                logger.debug(f"pr_info={pr_info!r}")
                 if pr_info:
                     return PRResult(
                         url=str(pr_info.get("url", "")),
@@ -557,25 +558,25 @@ Generated with [cub](https://github.com/lavallee/cub)
         if not base:
             if resolved.binding:
                 base = resolved.binding.base_branch
-                stream.debug_log(f"Using base branch from binding: {base}")
+                logger.debug(f"Using base branch from binding: {base}")
             else:
                 base = "main"
-                stream.debug_log("Using default base branch: main")
-        stream.debug_value("base", base)
+                logger.debug("Using default base branch: main")
+        logger.debug(f"base={base!r}")
 
         # Check for existing PR
-        stream.stream(f"Checking for existing PR ({branch} -> {base})...")
+        self._callback.on_progress(f"Checking for existing PR ({branch} -> {base})...")
         existing_pr = self.github_client.get_pr_by_branch(branch, base)
-        stream.debug_value("existing_pr", existing_pr)
+        logger.debug(f"existing_pr={existing_pr!r}")
         if existing_pr:
             pr_number = existing_pr.get("number")
             pr_url = existing_pr.get("url")
             pr_title = existing_pr.get("title")
-            self._console.print(f"PR #{pr_number} already exists: {pr_url}")
+            self._callback.on_info(f"PR #{pr_number} already exists: {pr_url}")
 
             # Update binding if needed
             if resolved.binding and resolved.binding.pr_number != pr_number:
-                stream.debug_log(
+                logger.debug(
                     f"Updating binding PR number from {resolved.binding.pr_number} to {pr_number}"
                 )
                 if not dry_run:
@@ -592,10 +593,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Check if on correct branch
-        stream.stream("Validating current branch...")
+        self._callback.on_progress("Validating current branch...")
         current_branch = BranchStore.get_current_branch()
-        stream.debug_value("current_branch", current_branch)
-        stream.debug_value("expected_branch", branch)
+        logger.debug(f"current_branch={current_branch!r}")
+        logger.debug(f"expected_branch={branch!r}")
         if current_branch != branch:
             raise PRServiceError(
                 f"Not on expected branch.\n"
@@ -605,24 +606,24 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Push if needed
-        stream.stream("Checking if branch needs push...")
+        self._callback.on_progress("Checking if branch needs push...")
         needs_push = self.github_client.needs_push(branch)
-        stream.debug_value("needs_push", needs_push)
-        stream.debug_value("push_flag", push)
+        logger.debug(f"needs_push={needs_push!r}")
+        logger.debug(f"push_flag={push!r}")
         if push or needs_push:
             if dry_run:
-                self._console.print(f"[dry-run] Would push branch {branch}")
+                self._callback.on_info(f"[dry-run] Would push branch {branch}")
             else:
-                stream.stream(f"Pushing branch {branch} to origin...")
-                self._console.print(f"Pushing branch {branch} to origin...")
+                self._callback.on_progress(f"Pushing branch {branch} to origin...")
+                self._callback.on_info(f"Pushing branch {branch} to origin...")
                 self.github_client.push_branch(branch)
-                self._console.print("[green]Branch pushed[/green]")
+                self._callback.on_status("Branch pushed", level="success")
 
         # Verify branch is on remote
-        stream.stream("Verifying branch exists on remote...")
+        self._callback.on_progress("Verifying branch exists on remote...")
         if not dry_run:
             branch_on_remote = self.github_client.branch_exists_on_remote(branch)
-            stream.debug_value("branch_on_remote", branch_on_remote)
+            logger.debug(f"branch_on_remote={branch_on_remote!r}")
             if not branch_on_remote:
                 raise PRServiceError(
                     f"Branch {branch} is not on remote.\n"
@@ -631,11 +632,11 @@ Generated with [cub](https://github.com/lavallee/cub)
                 )
 
         # Get title
-        stream.stream("Determining PR title...")
+        self._callback.on_progress("Determining PR title...")
         if not title:
             if resolved.epic_id:
                 # Try to get from beads
-                stream.debug_log(f"Fetching epic info from beads: {resolved.epic_id}")
+                logger.debug(f"Fetching epic info from beads: {resolved.epic_id}")
                 try:
                     bd_result = subprocess.run(
                         ["bd", "show", resolved.epic_id, "--json"],
@@ -643,29 +644,29 @@ Generated with [cub](https://github.com/lavallee/cub)
                         text=True,
                         check=False,
                     )
-                    stream.debug_value("bd_show_returncode", bd_result.returncode)
+                    logger.debug(f"bd_show_returncode={bd_result.returncode}")
                     if bd_result.returncode == 0:
                         epic_data = json.loads(bd_result.stdout)
-                        stream.debug_value("epic_data", epic_data)
+                        logger.debug(f"epic_data={epic_data!r}")
                         title = epic_data.get("title", resolved.epic_id)
                 except (json.JSONDecodeError, OSError, FileNotFoundError) as e:
-                    stream.debug_log(f"Failed to get epic title: {e}")
+                    logger.debug(f"Failed to get epic title: {e}")
                     title = resolved.epic_id
             else:
                 title = branch
-        stream.debug_value("title", title)
+        logger.debug(f"title={title!r}")
 
         # Generate body
-        stream.stream("Generating PR body...")
+        self._callback.on_progress("Generating PR body...")
         body = self.generate_pr_body(resolved.epic_id, branch, base)
-        stream.debug_log(f"Generated PR body ({len(body)} chars)")
+        logger.debug(f"Generated PR body ({len(body)} chars)")
 
         if dry_run:
-            self._console.print("[dry-run] Would create PR:")
-            self._console.print(f"  Title: {title}")
-            self._console.print(f"  Head: {branch}")
-            self._console.print(f"  Base: {base}")
-            self._console.print(f"  Draft: {draft}")
+            self._callback.on_info("[dry-run] Would create PR:")
+            self._callback.on_info(f"  Title: {title}")
+            self._callback.on_info(f"  Head: {branch}")
+            self._callback.on_info(f"  Base: {base}")
+            self._callback.on_info(f"  Draft: {draft}")
             return PRResult(
                 url="(dry-run)",
                 number=0,
@@ -674,10 +675,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Create PR
-        stream.stream("Creating PR via GitHub API...")
-        self._console.print(f"Creating PR: {title}")
-        self._console.print(f"  {branch} -> {base}")
-        stream.debug_value("draft", draft)
+        self._callback.on_progress("Creating PR via GitHub API...")
+        self._callback.on_info(f"Creating PR: {title}")
+        self._callback.on_info(f"  {branch} -> {base}")
+        logger.debug(f"draft={draft!r}")
 
         try:
             result = self.github_client.create_pr(
@@ -687,9 +688,9 @@ Generated with [cub](https://github.com/lavallee/cub)
                 body=body,
                 draft=draft,
             )
-            stream.debug_value("gh_pr_create_result", result)
+            logger.debug(f"gh_pr_create_result={result!r}")
         except GitHubClientError as e:
-            stream.debug_log(f"GitHub API error: {e}")
+            logger.debug(f"GitHub API error: {e}")
             raise PRServiceError(str(e))
 
         pr_url = str(result["url"])
@@ -697,12 +698,12 @@ Generated with [cub](https://github.com/lavallee/cub)
 
         # Update binding with PR number
         if resolved.binding and resolved.epic_id:
-            stream.stream("Updating branch binding with PR number...")
-            stream.debug_log(f"Setting PR #{pr_number} on epic {resolved.epic_id}")
+            self._callback.on_progress("Updating branch binding with PR number...")
+            logger.debug(f"Setting PR #{pr_number} on epic {resolved.epic_id}")
             self.branch_store.update_pr(resolved.epic_id, pr_number)
 
-        self._console.print(f"[green]PR #{pr_number} created[/green]")
-        self._console.print(f"  {pr_url}")
+        self._callback.on_status(f"PR #{pr_number} created", level="success")
+        self._callback.on_info(f"  {pr_url}")
 
         return PRResult(
             url=pr_url,
@@ -791,7 +792,7 @@ Generated with [cub](https://github.com/lavallee/cub)
 
         pr_state = pr_info.get("state")
         if pr_state == "MERGED":
-            self._console.print(f"PR #{pr_number} is already merged")
+            self._callback.on_info(f"PR #{pr_number} is already merged")
             return MergeResult(
                 success=True,
                 pr_number=pr_number,
@@ -810,19 +811,23 @@ Generated with [cub](https://github.com/lavallee/cub)
         pending_checks = [c for c in checks if c.get("status") != "completed"]
 
         if pending_checks:
-            self._console.print(
-                f"[yellow]Warning: {len(pending_checks)} check(s) still pending[/yellow]"
+            self._callback.on_status(
+                f"Warning: {len(pending_checks)} check(s) still pending",
+                level="warning",
             )
 
         if failed_checks:
-            self._console.print(f"[red]Warning: {len(failed_checks)} check(s) failed[/red]")
+            self._callback.on_status(
+                f"Warning: {len(failed_checks)} check(s) failed",
+                level="warning",
+            )
             for check in failed_checks:
-                self._console.print(f"  - {check.get('name')}: {check.get('conclusion')}")
+                self._callback.on_info(f"  - {check.get('name')}: {check.get('conclusion')}")
 
         if dry_run:
-            self._console.print(f"[dry-run] Would merge PR #{pr_number}")
-            self._console.print(f"  Method: {method}")
-            self._console.print(f"  Delete branch: {delete_branch}")
+            self._callback.on_info(f"[dry-run] Would merge PR #{pr_number}")
+            self._callback.on_info(f"  Method: {method}")
+            self._callback.on_info(f"  Delete branch: {delete_branch}")
             return MergeResult(
                 success=True,
                 pr_number=pr_number,
@@ -831,7 +836,7 @@ Generated with [cub](https://github.com/lavallee/cub)
             )
 
         # Merge
-        self._console.print(f"Merging PR #{pr_number} ({method})...")
+        self._callback.on_info(f"Merging PR #{pr_number} ({method})...")
 
         try:
             self.github_client.merge_pr(
@@ -846,7 +851,7 @@ Generated with [cub](https://github.com/lavallee/cub)
         if resolved.binding and resolved.epic_id:
             self.branch_store.update_status(resolved.epic_id, "merged")
 
-        self._console.print(f"[green]PR #{pr_number} merged[/green]")
+        self._callback.on_status(f"PR #{pr_number} merged", level="success")
 
         # Post-merge cleanup: update local main and clean up branches
         base_branch = resolved.binding.base_branch if resolved.binding else "main"
@@ -855,12 +860,13 @@ Generated with [cub](https://github.com/lavallee/cub)
         # Update main in worktree (if worktree exists)
         main_worktree = _find_worktree_for_branch(self.project_dir, base_branch)
         if main_worktree:
-            self._console.print(f"Updating {base_branch} in worktree...")
+            self._callback.on_info(f"Updating {base_branch} in worktree...")
             if _update_worktree(main_worktree):
-                self._console.print(f"[green]{base_branch} updated[/green]")
+                self._callback.on_status(f"{base_branch} updated", level="success")
             else:
-                self._console.print(
-                    f"[yellow]Could not update {base_branch} worktree[/yellow]"
+                self._callback.on_status(
+                    f"Could not update {base_branch} worktree",
+                    level="warning",
                 )
 
         # Prune stale remote-tracking branches
@@ -884,35 +890,35 @@ Generated with [cub](https://github.com/lavallee/cub)
                     # We're on the feature branch, try to switch to base
                     success, error_msg = _switch_to_branch(self.project_dir, base_branch)
                     if success:
-                        self._console.print(f"Switched to {base_branch}")
+                        self._callback.on_info(f"Switched to {base_branch}")
                         switched_to_base = True
                     else:
                         # Branch switch failed - this is OK, merge succeeded
-                        self._console.print(
-                            f"[yellow]Could not switch to {base_branch}[/yellow]"
+                        self._callback.on_status(
+                            f"Could not switch to {base_branch}",
+                            level="warning",
                         )
                         if error_msg:
-                            self._console.print(f"[dim]  {error_msg}[/dim]")
-                        self._console.print(
-                            f"[dim]  Staying on {feature_branch}[/dim]"
-                        )
+                            self._callback.on_info(f"  {error_msg}")
+                        self._callback.on_info(f"  Staying on {feature_branch}")
             except (OSError, FileNotFoundError):
                 pass  # Can't determine current branch, continue without switching
 
         # Delete local feature branch if delete_branch was requested
         if delete_branch and feature_branch:
             if _delete_local_branch(self.project_dir, feature_branch):
-                self._console.print(f"Deleted local branch {feature_branch}")
+                self._callback.on_info(f"Deleted local branch {feature_branch}")
             else:
                 if switched_to_base:
                     # We switched but still couldn't delete - unexpected
-                    self._console.print(
-                        f"[yellow]Could not delete local branch {feature_branch}[/yellow]"
+                    self._callback.on_status(
+                        f"Could not delete local branch {feature_branch}",
+                        level="warning",
                     )
                 else:
                     # Expected - we're still on the branch
-                    self._console.print(
-                        f"[dim]Local branch {feature_branch} kept (still on this branch)[/dim]"
+                    self._callback.on_info(
+                        f"Local branch {feature_branch} kept (still on this branch)"
                     )
 
         return MergeResult(

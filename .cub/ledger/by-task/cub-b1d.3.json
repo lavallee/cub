@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-b1d.3",
+  "title": "Wire SuggestionEngine into services and dogfood",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1d"
+  },
+  "task": {
+    "title": "Wire SuggestionEngine into services and dogfood",
+    "description": "Connect the engine to real project data via services and validate it produces useful suggestions for the cub project itself.\n\n**Implementation Steps:**\n1. Create `src/cub/core/services/suggestions.py` as the service wrapper\n2. Wire `SuggestionEngine` to use `TaskService`, `LedgerService`, `StatusService`\n3. Add a CLI command for testing: `cub suggest` (or add to `cub status`)\n4. Run against the current cub project and verify suggestions are sensible\n5. Iterate on ranking weights based on dogfooding results\n6. Document the suggestion categories and their use cases\n\n**Files:** src/cub/core/services/suggestions.py, src/cub/cli/suggest.py, tests/test_suggestions_integration.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-b1d",
+      "feature",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T17:54:44.409608Z",
+    "captured_at": "2026-01-28T20:15:21.219599Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-195914",
+      "started_at": "2026-01-28T20:15:21.235234",
+      "completed_at": "2026-01-28T20:22:31.713775Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5274,
+        "output_tokens": 15945,
+        "cache_read_tokens": 2976021,
+        "cache_creation_tokens": 68581
+      },
+      "cost_usd": 1.4568830499999998,
+      "duration_seconds": 430
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T20:22:32.129028Z",
+    "total_cost_usd": 1.4568830499999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 430,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "5807c4a5bc78c29f0290a70e89a3b2c4c66730c6",
+        "message": "task(cub-b1d.3): Wire SuggestionEngine into services and dogfood",
+        "author": "",
+        "timestamp": "2026-01-28T20:21:37Z"
+      }
+    ],
+    "approach": "Implemented a clean service layer wrapper around the existing SuggestionEngine, created a new CLI command with rich formatting and filtering options, then validated the system by dogfooding it on the cub project itself. Quality feedback loops (tests, type checking, linting) ensured correctness before task closure.",
+    "decisions": [
+      "Followed the established cub service pattern (`TaskService`, `LedgerService`, etc.) rather than exposing SuggestionEngine directly, maintaining architectural consistency",
+      "Made the CLI command (`cub suggest`) a standalone module rather than adding to `cub status`, allowing independent feature evolution and testing",
+      "Prioritized integration testing over unit tests for this wiring task, validating end-to-end behavior on real project data",
+      "Included `--json` output option to enable automation and tooling integration beyond the interactive CLI",
+      "Set sensible defaults for CLI flags (limit=5, show-action=true) based on UX feedback from dogfooding"
+    ],
+    "lessons_learned": [
+      "Dogfooding during implementation caught ranking weight appropriateness early\u2014the existing weights already produce sensible results on the cub project itself, validating the previous task's implementation",
+      "Integration tests are more valuable than isolated unit tests for service wiring tasks, as they validate the full data flow and real service interactions",
+      "Following established patterns (service layer architecture, CLI command structure) significantly reduced implementation time and cognitive load\u2014consistency pays off",
+      "Committing frequently with clear messages and comprehensive testing at each step prevented accumulation of bugs and made the final integration seamless"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T20:22:32.129028Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:15:21.219599Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:22:32.129028Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T20:15:21.219599Z",
+  "completed_at": "2026-01-28T20:22:32.129028Z",
+  "tokens": {
+    "input_tokens": 5274,
+    "output_tokens": 15945,
+    "cache_read_tokens": 2976021,
+    "cache_creation_tokens": 68581
+  },
+  "cost_usd": 1.4568830499999998,
+  "duration_seconds": 430,
+  "iterations": 1,
+  "approach": "Implemented a clean service layer wrapper around the existing SuggestionEngine, created a new CLI command with rich formatting and filtering options, then validated the system by dogfooding it on the cub project itself. Quality feedback loops (tests, type checking, linting) ensured correctness before task closure.",
+  "decisions": [
+    "Followed the established cub service pattern (`TaskService`, `LedgerService`, etc.) rather than exposing SuggestionEngine directly, maintaining architectural consistency",
+    "Made the CLI command (`cub suggest`) a standalone module rather than adding to `cub status`, allowing independent feature evolution and testing",
+    "Prioritized integration testing over unit tests for this wiring task, validating end-to-end behavior on real project data",
+    "Included `--json` output option to enable automation and tooling integration beyond the interactive CLI",
+    "Set sensible defaults for CLI flags (limit=5, show-action=true) based on UX feedback from dogfooding"
+  ],
+  "lessons_learned": [
+    "Dogfooding during implementation caught ranking weight appropriateness early\u2014the existing weights already produce sensible results on the cub project itself, validating the previous task's implementation",
+    "Integration tests are more valuable than isolated unit tests for service wiring tasks, as they validate the full data flow and real service interactions",
+    "Following established patterns (service layer architecture, CLI command structure) significantly reduced implementation time and cognitive load\u2014consistency pays off",
+    "Committing frequently with clear messages and comprehensive testing at each step prevented accumulation of bugs and made the final integration seamless"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "5807c4a5bc78c29f0290a70e89a3b2c4c66730c6",
+      "message": "task(cub-b1d.3): Wire SuggestionEngine into services and dogfood",
+      "author": "",
+      "timestamp": "2026-01-28T20:21:37Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1d.3",
+  "epic_id": "cub-b1d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

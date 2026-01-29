@@ -37,6 +37,7 @@ from cub.cli import (
     spec,
     stage,
     status,
+    suggest,
     sync,
     task,
     tools,
@@ -65,7 +66,8 @@ PANEL_INSTALL = "Manage Your Cub Installation"
 app = typer.Typer(
     name="cub",
     help="Autonomous AI coding agent for reliable task execution",
-    no_args_is_help=True,
+    no_args_is_help=False,
+    invoke_without_command=True,
     add_completion=True,
     context_settings={"help_option_names": ["--help", "-h"]},
 )
@@ -73,13 +75,23 @@ app = typer.Typer(
 console = Console()
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
     debug: bool = typer.Option(
         False,
         "--debug",
         help="Enable debug output with detailed logging",
+    ),
+    resume: bool = typer.Option(
+        False,
+        "--resume",
+        help="Resume previous harness session",
+    ),
+    continue_session: bool = typer.Option(
+        False,
+        "--continue",
+        help="Continue from previous harness session",
     ),
 ) -> None:
     """
@@ -89,10 +101,19 @@ def main(
     or other AI harnesses. Handles task management, clean state verification,
     budget tracking, and structured logging.
 
+    When run without a subcommand, cub launches your default harness with
+    project context and smart suggestions. Use --resume or --continue to
+    pick up where you left off.
+
     Quick Start:
         1. cub init                  # Initialize your project
         2. cub task create "Title"   # Create a task
         3. cub run                   # Start the autonomous loop
+
+    Interactive Mode:
+        cub                          # Launch default harness
+        cub --resume                 # Resume previous session
+        cub --continue               # Continue previous session
 
     Common Workflows:
         # Plan new work
@@ -130,6 +151,19 @@ def main(
     # Store debug flag in context for subcommands
     ctx.obj = {"debug": debug}
 
+    # If a subcommand is being invoked, let it handle things
+    if ctx.invoked_subcommand is not None:
+        return
+
+    # Bare `cub` — launch default command handler
+    from cub.cli.default import default_command
+
+    default_command(
+        resume=resume,
+        continue_session=continue_session,
+        debug=debug,
+    )
+
 
 # =============================================================================
 # Key Commands
@@ -145,6 +179,7 @@ app.add_typer(run.app, name="run", rich_help_panel=PANEL_KEY)
 # =============================================================================
 
 app.add_typer(status.app, name="status", rich_help_panel=PANEL_STATUS)
+app.add_typer(suggest.app, name="suggest", rich_help_panel=PANEL_STATUS)
 app.add_typer(monitor.app, name="monitor", rich_help_panel=PANEL_STATUS)
 app.add_typer(sandbox.app, name="sandbox", rich_help_panel=PANEL_STATUS)
 app.add_typer(ledger.app, name="ledger", rich_help_panel=PANEL_STATUS)

@@ -8,6 +8,7 @@ independent tasks concurrently, each in its own git worktree.
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 import sys
 import threading
@@ -15,15 +16,58 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-from rich.console import Console
+from typing import TYPE_CHECKING, Protocol
 
 from cub.core.worktree.manager import Worktree, WorktreeError, WorktreeManager
 
 if TYPE_CHECKING:
     from cub.core.tasks.backend import TaskBackend
     from cub.core.tasks.models import Task
+
+logger = logging.getLogger(__name__)
+
+
+class ParallelRunnerCallback(Protocol):
+    """Protocol for parallel runner event callbacks."""
+
+    def on_start(self, num_tasks: int, num_workers: int) -> None:
+        """Called when parallel execution starts.
+
+        Args:
+            num_tasks: Total number of tasks to execute
+            num_workers: Number of parallel workers
+        """
+        ...
+
+    def on_task_complete(
+        self, task_id: str, task_title: str, success: bool, error: str | None = None
+    ) -> None:
+        """Called when a task completes.
+
+        Args:
+            task_id: ID of completed task
+            task_title: Title of completed task
+            success: Whether task succeeded
+            error: Error message if failed
+        """
+        ...
+
+    def on_task_exception(self, task_id: str, exception: str) -> None:
+        """Called when a task raises an exception.
+
+        Args:
+            task_id: ID of failed task
+            exception: Exception message
+        """
+        ...
+
+    def on_debug(self, message: str) -> None:
+        """Called for debug messages.
+
+        Args:
+            message: Debug message
+        """
+        ...
 
 
 @dataclass
@@ -76,6 +120,28 @@ class ParallelRunResult:
     total_cost: float = 0.0
 
 
+class _NoOpCallback:
+    """Default no-op callback implementation."""
+
+    def on_start(self, num_tasks: int, num_workers: int) -> None:
+        """No-op start handler."""
+        pass
+
+    def on_task_complete(
+        self, task_id: str, task_title: str, success: bool, error: str | None = None
+    ) -> None:
+        """No-op task complete handler."""
+        pass
+
+    def on_task_exception(self, task_id: str, exception: str) -> None:
+        """No-op exception handler."""
+        pass
+
+    def on_debug(self, message: str) -> None:
+        """No-op debug handler."""
+        pass
+
+
 class ParallelRunner:
     """
     Executes multiple tasks in parallel using git worktrees.
@@ -98,6 +164,7 @@ class ParallelRunner:
         model: str | None = None,
         debug: bool = False,
         stream: bool = False,
+        callback: ParallelRunnerCallback | None = None,
     ):
         """
         Initialize the parallel runner.
@@ -108,13 +175,14 @@ class ParallelRunner:
             model: Model to use (sonnet, opus, etc.)
             debug: Enable debug output
             stream: Stream harness output (per-worker)
+            callback: Event callback for progress/status output
         """
         self.project_dir = project_dir
         self.harness = harness
         self.model = model
         self.debug = debug
         self.stream = stream
-        self.console = Console()
+        self._callback = callback or _NoOpCallback()
         self._worktree_manager = WorktreeManager(project_dir)
         self._lock = threading.Lock()
         self._active_worktrees: dict[str, Path] = {}
@@ -197,10 +265,7 @@ class ParallelRunner:
         result = ParallelRunResult()
         start_time = time.time()
 
-        self.console.print(
-            f"[bold cyan]Starting parallel execution: {len(tasks)} tasks, "
-            f"{max_workers} workers[/bold cyan]"
-        )
+        self._callback.on_start(len(tasks), max_workers)
 
         # Execute tasks using thread pool
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -219,14 +284,14 @@ class ParallelRunner:
 
                     if worker_result.success:
                         result.tasks_completed += 1
-                        self.console.print(
-                            f"[green]✓ {task.id}: {task.title[:50]}[/green]"
+                        self._callback.on_task_complete(
+                            task.id, task.title[:50], success=True
                         )
                     else:
                         result.tasks_failed += 1
                         error_msg = worker_result.error or "Unknown error"
-                        self.console.print(
-                            f"[red]✗ {task.id}: {error_msg[:50]}[/red]"
+                        self._callback.on_task_complete(
+                            task.id, task.title[:50], success=False, error=error_msg[:50]
                         )
 
                     result.total_tokens += worker_result.tokens_used
@@ -234,7 +299,7 @@ class ParallelRunner:
 
                 except Exception as e:
                     result.tasks_failed += 1
-                    self.console.print(f"[red]✗ {task.id}: Exception: {e}[/red]")
+                    self._callback.on_task_exception(task.id, str(e))
                     result.workers.append(
                         WorkerResult(
                             task_id=task.id,
@@ -280,7 +345,7 @@ class ParallelRunner:
             cmd = self._build_run_command(task.id)
 
             if self.debug:
-                self.console.print(f"[dim]{task.id}: {' '.join(cmd)}[/dim]")
+                self._callback.on_debug(f"{task.id}: {' '.join(cmd)}")
 
             # Execute cub run in worktree
             result = subprocess.run(
@@ -442,8 +507,8 @@ class ParallelRunner:
                 self._worktree_manager.remove(worktree_path, force=False)
             except WorktreeError as e:
                 if self.debug:
-                    self.console.print(
-                        f"[dim]Failed to cleanup worktree {worktree_path}: {e}[/dim]"
+                    self._callback.on_debug(
+                        f"Failed to cleanup worktree {worktree_path}: {e}"
                     )
 
         # Also try to clean up worktrees that completed

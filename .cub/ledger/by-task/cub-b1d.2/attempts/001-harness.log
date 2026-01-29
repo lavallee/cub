@@ -1,0 +1,43 @@
+I'll implement the ranking algorithm and suggestion engine. Let me start by claiming the task and understanding the existing code structure.Now let me check the existing test structure to understand the patterns:Now I have a good understanding. Let me implement the ranking algorithm and engine. I'll start by creating the ranking module:Now let me create the suggestion engine:Now let me update the __init__.py to export the new components:Now let me create comprehensive tests for the ranking and engine:Now let's run the tests to verify everything works:I need to fix several issues:
+1. The recency decay test is failing due to floating point precision
+2. The isinstance check is failing because TaskSource is being mocked
+
+Let me fix these:Now fix the isinstance issue in the engine:Now let's run the tests again:Excellent! All tests pass. Now let me run the full test suite to make sure I didn't break anything:Perfect! All tests pass. Now let me run type checking and linting:Let me fix the linting errors:Excellent! Let's verify all tests still pass after the formatting change:Perfect! Now let's run the full test suite to ensure we didn't break anything:This is an unrelated test failure that seems to be a pre-existing issue with environment variable cleanup. Let me check if my changes might have affected it, but I doubt it since I only added files to the suggestions module:My changes are isolated to the suggestions module. Let me check if this test was already failing:This test failure is unrelated to my changes. The test is failing because `CUB_RUN_ACTIVE=1` is already set in the environment (visible in the output), likely because I'm running this from within a `cub run` session. This is a pre-existing environmental issue, not caused by my code changes.
+
+Let me verify my code works properly by running all the suggestions-specific tests:Perfect! All suggestion tests pass. Let me also run the type checker and linter on the entire codebase to ensure everything is good:Perfect! Now let me close the task and commit the changes:Now let me commit the changes:Perfect! Let me check if there are more tasks to work on:Excellent! The task has been completed successfully. Let me provide a summary:
+
+## Task Completed: cub-b1d.2
+
+I've successfully implemented the ranking algorithm and suggestion engine for the cub project.
+
+### What was implemented:
+
+**1. Ranking Algorithm (`src/cub/core/suggestions/ranking.py`):**
+- `rank_suggestions()` - Main ranking function that scores and orders suggestions
+- Scoring formula: `base_priority × urgency_multiplier × recency_decay`
+- Category urgency multipliers (REVIEW: 1.2, GIT: 1.15, TASK: 1.1, MILESTONE: 1.05, PLAN: 1.0, CLEANUP: 0.95)
+- Recency decay: no decay for suggestions <1hr old, linear decay 1-24hrs, 0.95 minimum for older suggestions
+- Stable sort by score, then priority_score, then title
+
+**2. Suggestion Engine (`src/cub/core/suggestions/engine.py`):**
+- `SuggestionEngine` class that composes all data sources
+- `get_suggestions(limit)` - Returns ranked list of suggestions from all sources
+- `get_next_action()` - Returns the single best recommendation
+- `get_welcome(max_suggestions, skills)` - Returns WelcomeMessage with project stats and top suggestions
+- Gracefully handles source failures to ensure suggestions are always available
+
+**3. Comprehensive Tests (`tests/test_suggestions_engine.py`):**
+- 31 tests covering all ranking functions and engine methods
+- Tests for urgency multipliers, recency decay, score calculation
+- Tests for ranking by priority, category, and recency
+- Tests for engine composition, filtering, error handling
+- Uses deterministic fixture data for reliable verification
+
+### Validation:
+✅ All 86 suggestion module tests pass  
+✅ Type checking clean (mypy)  
+✅ Linting clean (ruff)  
+✅ Task closed in beads  
+✅ Changes committed
+
+The implementation is ready for integration into the bare `cub` command flow.

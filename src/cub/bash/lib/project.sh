@@ -184,12 +184,5 @@ validate_project() {
     fi
     log_debug "Found prompt.md ($(wc -l < "$prompt_file") lines)"
 
-    local agent_file
-    agent_file=$(get_agent_file "${PROJECT_DIR}")
-    if [[ ! -f "$agent_file" ]]; then
-        log_warn "No agent.md found at ${agent_file}, using default template"
-        cp "${CUB_DIR}/templates/AGENT.md" "$agent_file"
-    fi
-    log_debug "Found agent.md ($(wc -l < "$agent_file") lines)"
     log_debug "Project validation complete"
 }

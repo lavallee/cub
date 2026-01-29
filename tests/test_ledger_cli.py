@@ -100,8 +100,9 @@ def populated_ledger(ledger_dir: Path, sample_entry: LedgerEntry, monkeypatch: p
     # Patch the ledger directory lookup
     monkeypatch.setenv("CUB_LEDGER_DIR", str(ledger_dir))
 
-    # Also need to patch the _get_ledger_reader and _get_ledger_writer
+    # Patch the _get_ledger_reader, _get_ledger_writer, and _get_ledger_service
     from cub.core.ledger.reader import LedgerReader
+    from cub.core.services.ledger import LedgerService
 
     def mock_get_reader() -> LedgerReader:
         return LedgerReader(ledger_dir)
@@ -109,8 +110,12 @@ def populated_ledger(ledger_dir: Path, sample_entry: LedgerEntry, monkeypatch: p
     def mock_get_writer() -> LedgerWriter:
         return LedgerWriter(ledger_dir)
 
+    def mock_get_service() -> LedgerService:
+        return LedgerService(ledger_dir)
+
     monkeypatch.setattr("cub.cli.ledger._get_ledger_reader", mock_get_reader)
     monkeypatch.setattr("cub.cli.ledger._get_ledger_writer", mock_get_writer)
+    monkeypatch.setattr("cub.cli.ledger._get_ledger_service", mock_get_service)
 
     return ledger_dir
 
@@ -272,8 +277,8 @@ class TestExportCommand:
         writer.create_entry(entry1)
         writer.create_entry(entry2)
 
-        from cub.core.ledger.reader import LedgerReader
-        monkeypatch.setattr("cub.cli.ledger._get_ledger_reader", lambda: LedgerReader(ledger_dir))
+        from cub.core.services.ledger import LedgerService
+        monkeypatch.setattr("cub.cli.ledger._get_ledger_service", lambda: LedgerService(ledger_dir))
 
         result = runner.invoke(app, ["export", "--format", "json", "--epic", "epic-a"])
         assert result.exit_code == 0
@@ -335,8 +340,7 @@ class TestNoLedgerScenarios:
         empty_ledger = tmp_path / ".cub" / "ledger"
         empty_ledger.mkdir(parents=True)
 
-        from cub.core.ledger.reader import LedgerReader
-        monkeypatch.setattr("cub.cli.ledger._get_ledger_reader", lambda: LedgerReader(empty_ledger))
+        monkeypatch.setattr("cub.cli.ledger._get_ledger_service", lambda: None)
 
         result = runner.invoke(app, ["show", "any-task"])
         # Should handle gracefully
@@ -355,11 +359,7 @@ class TestNoLedgerScenarios:
 
     def test_export_no_ledger(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test export command when no ledger exists."""
-        empty_ledger = tmp_path / ".cub" / "ledger"
-        empty_ledger.mkdir(parents=True)
-
-        from cub.core.ledger.reader import LedgerReader
-        monkeypatch.setattr("cub.cli.ledger._get_ledger_reader", lambda: LedgerReader(empty_ledger))
+        monkeypatch.setattr("cub.cli.ledger._get_ledger_service", lambda: None)
 
         result = runner.invoke(app, ["export"])
         # Should handle gracefully

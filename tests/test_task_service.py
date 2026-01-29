@@ -1029,3 +1029,396 @@ class TestTaskCreationRequestDataclass:
 
         assert "label1" not in request2.labels
         assert "step1" not in request2.implementation_steps
+
+
+class TestTaskServiceReady:
+    """Tests for TaskService.ready() method."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock task backend."""
+        backend = Mock()
+        backend.get_ready_tasks = Mock(return_value=[
+            Task(id="ready-001", title="Ready Task 1", status=TaskStatus.OPEN, priority="P0"),
+            Task(id="ready-002", title="Ready Task 2", status=TaskStatus.OPEN, priority="P1"),
+        ])
+        return backend
+
+    @pytest.fixture
+    def service_with_mock(self, mock_backend):
+        """Create TaskService with mocked backend."""
+        with patch('cub.core.tasks.service.get_backend', return_value=mock_backend):
+            service = TaskService()
+        service._backend = mock_backend
+        return service
+
+    def test_ready_returns_tasks(self, service_with_mock, mock_backend):
+        """Test ready() returns list of ready tasks."""
+        result = service_with_mock.ready()
+
+        assert len(result) == 2
+        assert result[0].id == "ready-001"
+        assert result[1].id == "ready-002"
+        mock_backend.get_ready_tasks.assert_called_once()
+
+    def test_ready_delegates_to_backend(self, service_with_mock, mock_backend):
+        """Test ready() delegates to backend.get_ready_tasks()."""
+        service_with_mock.ready()
+
+        mock_backend.get_ready_tasks.assert_called_once_with()
+
+    def test_ready_returns_empty_list_when_no_tasks(self, service_with_mock, mock_backend):
+        """Test ready() returns empty list when no tasks are ready."""
+        mock_backend.get_ready_tasks.return_value = []
+
+        result = service_with_mock.ready()
+
+        assert result == []
+
+
+class TestTaskServiceStaleEpics:
+    """Tests for TaskService.stale_epics() method."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock task backend."""
+        backend = Mock()
+        return backend
+
+    @pytest.fixture
+    def service_with_mock(self, mock_backend):
+        """Create TaskService with mocked backend."""
+        with patch('cub.core.tasks.service.get_backend', return_value=mock_backend):
+            service = TaskService()
+        service._backend = mock_backend
+        return service
+
+    def test_stale_epics_with_all_children_closed(self, service_with_mock, mock_backend):
+        """Test stale_epics() finds epic with all children closed."""
+        epic = Task(
+            id="epic-001",
+            title="Epic 1",
+            status=TaskStatus.OPEN,
+            type="epic",
+        )
+        closed_task1 = Task(
+            id="task-001", title="Task 1", status=TaskStatus.CLOSED, parent="epic-001"
+        )
+        closed_task2 = Task(
+            id="task-002", title="Task 2", status=TaskStatus.CLOSED, parent="epic-001"
+        )
+
+        mock_backend.list_tasks = Mock(side_effect=[
+            [epic],  # First call: get open tasks (epics)
+            [],  # Second call: get open children of epic-001 (none)
+            [],  # Third call: get in_progress children of epic-001 (none)
+            [closed_task1, closed_task2],  # Fourth call: get closed children of epic-001
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 1
+        assert result[0].id == "epic-001"
+
+    def test_stale_epics_excludes_epic_with_open_children(self, service_with_mock, mock_backend):
+        """Test stale_epics() excludes epic with open children."""
+        epic = Task(
+            id="epic-002",
+            title="Epic 2",
+            status=TaskStatus.OPEN,
+            type="epic",
+        )
+        open_task = Task(
+            id="task-003", title="Task 3", status=TaskStatus.OPEN, parent="epic-002"
+        )
+        closed_task = Task(
+            id="task-004", title="Task 4", status=TaskStatus.CLOSED, parent="epic-002"
+        )
+
+        mock_backend.list_tasks = Mock(side_effect=[
+            [epic],  # First call: get open tasks (epics)
+            [open_task],  # Second call: get open children of epic-002
+            [],  # Third call: get in_progress children of epic-002 (none)
+            [closed_task],  # Fourth call: get closed children of epic-002
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 0
+
+    def test_stale_epics_excludes_epic_with_in_progress_children(
+        self, service_with_mock, mock_backend
+    ):
+        """Test stale_epics() excludes epic with in-progress children."""
+        epic = Task(
+            id="epic-003",
+            title="Epic 3",
+            status=TaskStatus.OPEN,
+            type="epic",
+        )
+        in_progress_task = Task(
+            id="task-005",
+            title="Task 5",
+            status=TaskStatus.IN_PROGRESS,
+            parent="epic-003",
+        )
+        closed_task = Task(
+            id="task-006", title="Task 6", status=TaskStatus.CLOSED, parent="epic-003"
+        )
+
+        mock_backend.list_tasks = Mock(side_effect=[
+            [epic],  # First call: get open tasks (epics)
+            [],  # Second call: get open children of epic-003 (none)
+            [in_progress_task],  # Third call: get in_progress children of epic-003
+            [closed_task],  # Fourth call: get closed children of epic-003
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 0
+
+    def test_stale_epics_excludes_epic_with_no_children(self, service_with_mock, mock_backend):
+        """Test stale_epics() excludes epic with no children."""
+        epic = Task(
+            id="epic-004",
+            title="Epic 4",
+            status=TaskStatus.OPEN,
+            type="epic",
+        )
+        mock_backend.list_tasks = Mock(side_effect=[
+            [epic],  # First call: get open tasks (epics)
+            [],  # Second call: get open children of epic-004 (none)
+            [],  # Third call: get in_progress children of epic-004 (none)
+            [],  # Fourth call: get closed children of epic-004 (none)
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 0
+
+    def test_stale_epics_handles_multiple_epics(self, service_with_mock, mock_backend):
+        """Test stale_epics() correctly handles multiple epics."""
+        epic1 = Task(id="epic-005", title="Epic 5", status=TaskStatus.OPEN, type="epic")
+        epic2 = Task(id="epic-006", title="Epic 6", status=TaskStatus.OPEN, type="epic")
+        epic3 = Task(id="epic-007", title="Epic 7", status=TaskStatus.OPEN, type="epic")
+
+        task7_closed = Task(
+            id="task-007", title="Task 7", status=TaskStatus.CLOSED, parent="epic-005"
+        )
+        task8_open = Task(
+            id="task-008", title="Task 8", status=TaskStatus.OPEN, parent="epic-006"
+        )
+        task9_closed = Task(
+            id="task-009", title="Task 9", status=TaskStatus.CLOSED, parent="epic-007"
+        )
+        task10_closed = Task(
+            id="task-010", title="Task 10", status=TaskStatus.CLOSED, parent="epic-007"
+        )
+
+        mock_backend.list_tasks = Mock(side_effect=[
+            [epic1, epic2, epic3],  # First call: get open tasks
+            # Children of epic-005
+            [],  # open (none)
+            [],  # in_progress (none)
+            [task7_closed],  # closed (all closed - stale)
+            # Children of epic-006
+            [task8_open],  # open (has open task - not stale)
+            [],  # in_progress (none)
+            [],  # closed (none)
+            # Children of epic-007
+            [],  # open (none)
+            [],  # in_progress (none)
+            [task9_closed, task10_closed],  # closed (all closed - stale)
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 2
+        assert result[0].id == "epic-005"
+        assert result[1].id == "epic-007"
+
+    def test_stale_epics_returns_empty_list_when_no_epics(
+        self, service_with_mock, mock_backend
+    ):
+        """Test stale_epics() returns empty list when no epics exist."""
+        # No epics in the system
+        mock_backend.list_tasks = Mock(return_value=[
+            Task(id="task-011", title="Regular Task", status=TaskStatus.OPEN, type="task"),
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        assert len(result) == 0
+
+    def test_stale_epics_filters_open_status_and_epic_type(
+        self, service_with_mock, mock_backend
+    ):
+        """Test stale_epics() only considers OPEN tasks of type EPIC."""
+        from cub.core.tasks.models import TaskStatus
+
+        # When requesting OPEN tasks, backend should only return open tasks
+        # (mixing in a closed epic here wouldn't make sense)
+        mock_backend.list_tasks = Mock(return_value=[
+            Task(id="task-012", title="Open Task", status=TaskStatus.OPEN, type="task"),
+            Task(id="task-013", title="Another Open Task", status=TaskStatus.OPEN, type="task"),
+        ])
+
+        result = service_with_mock.stale_epics()
+
+        # Should return empty since no open epics (all open tasks are type=task)
+        assert len(result) == 0
+        # Should make one call to list_tasks for filtering open tasks
+        # (no additional calls since no open epics to check children for)
+        assert mock_backend.list_tasks.call_count == 1
+
+
+class TestTaskServiceClaim:
+    """Tests for TaskService.claim() method."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock task backend."""
+        backend = Mock()
+        return backend
+
+    @pytest.fixture
+    def service_with_mock(self, mock_backend):
+        """Create TaskService with mocked backend."""
+        with patch('cub.core.tasks.service.get_backend', return_value=mock_backend):
+            service = TaskService()
+        service._backend = mock_backend
+        return service
+
+    def test_claim_success(self, service_with_mock, mock_backend):
+        """Test successful task claim."""
+        task = Task(id="task-001", title="Task", status=TaskStatus.OPEN)
+        mock_backend.get_task = Mock(return_value=task)
+        mock_backend.update_task = Mock(return_value=Task(
+            id="task-001",
+            title="Task",
+            status=TaskStatus.IN_PROGRESS,
+            assignee="session-123",
+        ))
+
+        result = service_with_mock.claim("task-001", "session-123")
+
+        assert result.status == TaskStatus.IN_PROGRESS
+        assert result.assignee == "session-123"
+        mock_backend.get_task.assert_called_once_with("task-001")
+        mock_backend.update_task.assert_called_once_with(
+            task_id="task-001",
+            status=TaskStatus.IN_PROGRESS,
+            assignee="session-123",
+        )
+
+    def test_claim_task_not_found(self, service_with_mock, mock_backend):
+        """Test claim() raises ValueError when task not found."""
+        mock_backend.get_task = Mock(return_value=None)
+
+        with pytest.raises(ValueError, match="Task not found: nonexistent"):
+            service_with_mock.claim("nonexistent", "session-123")
+
+    def test_claim_task_already_in_progress(self, service_with_mock, mock_backend):
+        """Test claim() raises ValueError when task already in progress."""
+        task = Task(
+            id="task-002",
+            title="Task",
+            status=TaskStatus.IN_PROGRESS,
+            assignee="other-session",
+        )
+        mock_backend.get_task = Mock(return_value=task)
+
+        with pytest.raises(ValueError, match="already in progress"):
+            service_with_mock.claim("task-002", "session-123")
+
+        mock_backend.update_task.assert_not_called()
+
+    def test_claim_task_already_closed(self, service_with_mock, mock_backend):
+        """Test claim() raises ValueError when task already closed."""
+        task = Task(id="task-003", title="Task", status=TaskStatus.CLOSED)
+        mock_backend.get_task = Mock(return_value=task)
+
+        with pytest.raises(ValueError, match="already closed"):
+            service_with_mock.claim("task-003", "session-123")
+
+        mock_backend.update_task.assert_not_called()
+
+    def test_claim_updates_assignee(self, service_with_mock, mock_backend):
+        """Test claim() sets the assignee to the session ID."""
+        task = Task(id="task-004", title="Task", status=TaskStatus.OPEN, assignee=None)
+        mock_backend.get_task = Mock(return_value=task)
+        mock_backend.update_task = Mock(return_value=Task(
+            id="task-004",
+            title="Task",
+            status=TaskStatus.IN_PROGRESS,
+            assignee="my-session",
+        ))
+
+        result = service_with_mock.claim("task-004", "my-session")
+
+        assert result.assignee == "my-session"
+        call_kwargs = mock_backend.update_task.call_args.kwargs
+        assert call_kwargs["assignee"] == "my-session"
+
+
+class TestTaskServiceClose:
+    """Tests for TaskService.close() method."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock task backend."""
+        backend = Mock()
+        backend.close_task = Mock(return_value=Task(
+            id="task-001",
+            title="Task",
+            status=TaskStatus.CLOSED,
+        ))
+        return backend
+
+    @pytest.fixture
+    def service_with_mock(self, mock_backend):
+        """Create TaskService with mocked backend."""
+        with patch('cub.core.tasks.service.get_backend', return_value=mock_backend):
+            service = TaskService()
+        service._backend = mock_backend
+        return service
+
+    def test_close_success(self, service_with_mock, mock_backend):
+        """Test successful task close."""
+        result = service_with_mock.close("task-001")
+
+        assert result.status == TaskStatus.CLOSED
+        mock_backend.close_task.assert_called_once_with(task_id="task-001", reason=None)
+
+    def test_close_with_reason(self, service_with_mock, mock_backend):
+        """Test close() with a reason."""
+        service_with_mock.close("task-002", reason="Completed successfully")
+
+        mock_backend.close_task.assert_called_once_with(
+            task_id="task-002",
+            reason="Completed successfully",
+        )
+
+    def test_close_delegates_to_backend(self, service_with_mock, mock_backend):
+        """Test close() delegates to backend.close_task()."""
+        service_with_mock.close("task-003", reason="Done")
+
+        mock_backend.close_task.assert_called_once()
+        call_kwargs = mock_backend.close_task.call_args.kwargs
+        assert call_kwargs["task_id"] == "task-003"
+        assert call_kwargs["reason"] == "Done"
+
+    def test_close_without_reason(self, service_with_mock, mock_backend):
+        """Test close() works without a reason."""
+        service_with_mock.close("task-004")
+
+        call_kwargs = mock_backend.close_task.call_args.kwargs
+        assert call_kwargs["task_id"] == "task-004"
+        assert call_kwargs["reason"] is None
+
+    def test_close_backend_error_propagates(self, service_with_mock, mock_backend):
+        """Test close() propagates backend errors."""
+        mock_backend.close_task.side_effect = ValueError("Task not found")
+
+        with pytest.raises(ValueError, match="Task not found"):
+            service_with_mock.close("nonexistent")

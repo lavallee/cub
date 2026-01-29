@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "id": "cub-b1a.4",
+  "title": "Extract interrupt handling to core/run/interrupt.py",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1a"
+  },
+  "task": {
+    "title": "Extract interrupt handling to core/run/interrupt.py",
+    "description": "Signal handling (SIGINT/SIGTERM) for clean shutdown needs to work regardless of which interface is driving the run loop. The interrupt handler should coordinate with the loop state machine.\n\n**Implementation Steps:**\n1. Create `src/cub/core/run/interrupt.py` with `InterruptHandler` class\n2. Extract signal registration and `_interrupted` flag logic from `cli/run.py`\n3. Implement cooperative interruption: handler sets flag, loop checks flag between tasks\n4. Add `on_interrupt` callback for cleanup (artifact finalization, ledger entry)\n5. Update `RunLoop` to check interrupt state between iterations\n\n**Files:** src/cub/core/run/interrupt.py, src/cub/core/run/loop.py, src/cub/cli/run.py, tests/test_run_interrupt.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-b1a",
+      "model:sonnet",
+      "phase-1",
+      "refactor"
+    ],
+    "created_at": "2026-01-28T17:54:44.409236Z",
+    "captured_at": "2026-01-28T18:41:52.104583Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-183943",
+      "started_at": "2026-01-28T18:41:52.112068",
+      "completed_at": "2026-01-28T18:47:30.416242Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 14638,
+        "output_tokens": 15163,
+        "cache_read_tokens": 1768710,
+        "cache_creation_tokens": 54248
+      },
+      "cost_usd": 1.12333835,
+      "duration_seconds": 338
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T18:47:30.702192Z",
+    "total_cost_usd": 1.12333835,
+    "total_attempts": 1,
+    "total_duration_seconds": 338,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "e468da9ce14d6edacb7c4cdc4a89b86a360a5d9d",
+        "message": "task(cub-b1a.4): Extract interrupt handling to core/run/interrupt.py",
+        "author": "",
+        "timestamp": "2026-01-28T18:47:06Z"
+      }
+    ],
+    "approach": "Extracted interrupt handling into a reusable `InterruptHandler` class that centralizes SIGINT/SIGTERM signal management, then integrated it into the RunLoop and CLI run command. The implementation maintains backward compatibility while enabling interrupt coordination regardless of which interface (CLI or direct) drives the run loop.",
+    "decisions": [
+      "**Two-stage interrupt model**: First interrupt sets a flag for graceful shutdown, second interrupt force-exits with SystemExit(130). This prevents hung processes while allowing cleanup time.",
+      "**Stderr output without Rich**: InterruptHandler writes directly to stderr instead of using Rich, making it interface-agnostic and avoiding dependencies in the core module.",
+      "**Optional integration with RunLoop**: The interrupt_handler parameter is optional in RunLoop constructor, preserving backward compatibility with existing code that uses the old `interrupted` flag.",
+      "**Callback-based cleanup**: Cleanup is registered via `on_interrupt()` callbacks rather than hardcoded in the handler, allowing different interfaces (CLI, direct sessions) to provide custom cleanup behavior.",
+      "**Signal handler lifecycle management**: Explicit `register()` and `unregister()` methods ensure handlers are properly cleaned up in finally blocks, preventing signal handler leaks across multiple session runs."
+    ],
+    "lessons_learned": [
+      "**Interface-agnostic core modules should avoid UI libraries**: Keeping core modules free of Rich/terminal dependencies makes them reusable across different execution contexts (CLI, direct Claude Code sessions, testing).",
+      "**Cooperative interruption beats forceful termination**: Checking an interrupt flag between task iterations is more reliable than relying on exceptions, especially in async contexts where signals may be missed.",
+      "**Two-stage interrupt patterns improve UX**: Users can Ctrl+C once for graceful shutdown, Ctrl+C twice for immediate exit. This matches Unix convention and prevents frustration with hung processes.",
+      "**Backward compatibility eases migration**: Keeping the old interrupt flag as a fallback allowed safe integration without breaking existing code or tests that depend on it.",
+      "**Test integration patterns early**: Testing signal handling with real signals requires careful mocking (unittest.mock.patch) and understanding of signal delivery semantics; discovering this during implementation saved refactoring later."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T18:47:30.702192Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T18:41:52.104583Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T18:47:30.702192Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T18:41:52.104583Z",
+  "completed_at": "2026-01-28T18:47:30.702192Z",
+  "tokens": {
+    "input_tokens": 14638,
+    "output_tokens": 15163,
+    "cache_read_tokens": 1768710,
+    "cache_creation_tokens": 54248
+  },
+  "cost_usd": 1.12333835,
+  "duration_seconds": 338,
+  "iterations": 1,
+  "approach": "Extracted interrupt handling into a reusable `InterruptHandler` class that centralizes SIGINT/SIGTERM signal management, then integrated it into the RunLoop and CLI run command. The implementation maintains backward compatibility while enabling interrupt coordination regardless of which interface (CLI or direct) drives the run loop.",
+  "decisions": [
+    "**Two-stage interrupt model**: First interrupt sets a flag for graceful shutdown, second interrupt force-exits with SystemExit(130). This prevents hung processes while allowing cleanup time.",
+    "**Stderr output without Rich**: InterruptHandler writes directly to stderr instead of using Rich, making it interface-agnostic and avoiding dependencies in the core module.",
+    "**Optional integration with RunLoop**: The interrupt_handler parameter is optional in RunLoop constructor, preserving backward compatibility with existing code that uses the old `interrupted` flag.",
+    "**Callback-based cleanup**: Cleanup is registered via `on_interrupt()` callbacks rather than hardcoded in the handler, allowing different interfaces (CLI, direct sessions) to provide custom cleanup behavior.",
+    "**Signal handler lifecycle management**: Explicit `register()` and `unregister()` methods ensure handlers are properly cleaned up in finally blocks, preventing signal handler leaks across multiple session runs."
+  ],
+  "lessons_learned": [
+    "**Interface-agnostic core modules should avoid UI libraries**: Keeping core modules free of Rich/terminal dependencies makes them reusable across different execution contexts (CLI, direct Claude Code sessions, testing).",
+    "**Cooperative interruption beats forceful termination**: Checking an interrupt flag between task iterations is more reliable than relying on exceptions, especially in async contexts where signals may be missed.",
+    "**Two-stage interrupt patterns improve UX**: Users can Ctrl+C once for graceful shutdown, Ctrl+C twice for immediate exit. This matches Unix convention and prevents frustration with hung processes.",
+    "**Backward compatibility eases migration**: Keeping the old interrupt flag as a fallback allowed safe integration without breaking existing code or tests that depend on it.",
+    "**Test integration patterns early**: Testing signal handling with real signals requires careful mocking (unittest.mock.patch) and understanding of signal delivery semantics; discovering this during implementation saved refactoring later."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "e468da9ce14d6edacb7c4cdc4a89b86a360a5d9d",
+      "message": "task(cub-b1a.4): Extract interrupt handling to core/run/interrupt.py",
+      "author": "",
+      "timestamp": "2026-01-28T18:47:06Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1a.4",
+  "epic_id": "cub-b1a",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

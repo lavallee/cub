@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "id": "cub-b1d.1",
+  "title": "Create suggestion models and data sources",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1d"
+  },
+  "task": {
+    "title": "Create suggestion models and data sources",
+    "description": "Define the data models for suggestions and implement the four data source adapters (tasks, git, ledger, milestones) that feed the ranking engine.\n\n**Implementation Steps:**\n1. Create `src/cub/core/suggestions/__init__.py` package\n2. Create `src/cub/core/suggestions/models.py` with `Suggestion`, `ProjectSnapshot`, `SuggestionCategory` enum\n3. Create `src/cub/core/suggestions/sources.py` with source protocol and implementations:\n4. Each source implements `get_suggestions() -> list[Suggestion]`\n5. Write tests with fixture data mirroring current cub project state\n\n**Files:** src/cub/core/suggestions/models.py, src/cub/core/suggestions/sources.py, tests/test_suggestions_sources.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "blocking",
+      "complexity:medium",
+      "core",
+      "epic:cub-b1d",
+      "feature",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T17:54:44.409562Z",
+    "captured_at": "2026-01-28T19:59:14.470672Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-195914",
+      "started_at": "2026-01-28T19:59:14.483165",
+      "completed_at": "2026-01-28T20:09:46.204573Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2776,
+        "output_tokens": 39074,
+        "cache_read_tokens": 4247064,
+        "cache_creation_tokens": 93178
+      },
+      "cost_usd": 2.569108999999999,
+      "duration_seconds": 631
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T20:09:46.623468Z",
+    "total_cost_usd": 2.569108999999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 631,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "e81c076e066683cd6408a0815bf161f785dbbd43",
+        "message": "task(cub-b1d.1): Create suggestion models and data sources",
+        "author": "",
+        "timestamp": "2026-01-28T20:09:31Z"
+      }
+    ],
+    "approach": "Started by understanding existing project patterns and test conventions through code exploration, then implemented the suggestion models following the codebase's Pydantic v2 patterns. Created data source adapters using the Protocol pattern for pluggability, with each source independently analyzing different project state aspects (tasks, git, ledger, milestones). Developed comprehensive tests in parallel with implementation, iterating on test failures to refine both the models and implementations until achieving full test coverage and type safety.",
+    "decisions": [
+      "Used Pydantic v2 models with field validation for the core `Suggestion` and `ProjectSnapshot` data structures, staying consistent with codebase patterns",
+      "Implemented sources as a Protocol interface rather than abstract base class, enabling loose coupling and easier testing with mocks",
+      "Made `context` field accept `list[str]` to support lists in addition to primitives, allowing flexible context representation",
+      "Used `get_backend()` instead of `detect_backend()` to retrieve actual backend instances needed for querying tasks and ledger data",
+      "Handled exceptions gracefully in source adapters (catching and logging rather than propagating), preventing one failing source from blocking suggestion generation",
+      "Structured tests to use fixtures for common setup (mock backends, project paths) to reduce duplication across 55 tests"
+    ],
+    "lessons_learned": [
+      "When working with existing backends/services, inspect their actual return types before using them\u2014`detect_backend()` returns a string identifier, not an instance",
+      "Pydantic field constraints should balance flexibility with validation; allowing `list[str]` for context was needed for real-world suggestion richness",
+      "Mock setup in tests must match actual function signatures exactly; using `side_effect` lambdas requires proper parameter handling to avoid silent failures",
+      "Protocol-based interfaces are cleaner than ABC inheritance for plugin systems where implementations may have varying internal structures",
+      "Exception handling in data collection pipelines should be permissive (fail gracefully per source) rather than strict, ensuring partial data availability over complete failure"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T20:09:46.623468Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:59:14.470672Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:09:46.623468Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T19:59:14.470672Z",
+  "completed_at": "2026-01-28T20:09:46.623468Z",
+  "tokens": {
+    "input_tokens": 2776,
+    "output_tokens": 39074,
+    "cache_read_tokens": 4247064,
+    "cache_creation_tokens": 93178
+  },
+  "cost_usd": 2.569108999999999,
+  "duration_seconds": 631,
+  "iterations": 1,
+  "approach": "Started by understanding existing project patterns and test conventions through code exploration, then implemented the suggestion models following the codebase's Pydantic v2 patterns. Created data source adapters using the Protocol pattern for pluggability, with each source independently analyzing different project state aspects (tasks, git, ledger, milestones). Developed comprehensive tests in parallel with implementation, iterating on test failures to refine both the models and implementations until achieving full test coverage and type safety.",
+  "decisions": [
+    "Used Pydantic v2 models with field validation for the core `Suggestion` and `ProjectSnapshot` data structures, staying consistent with codebase patterns",
+    "Implemented sources as a Protocol interface rather than abstract base class, enabling loose coupling and easier testing with mocks",
+    "Made `context` field accept `list[str]` to support lists in addition to primitives, allowing flexible context representation",
+    "Used `get_backend()` instead of `detect_backend()` to retrieve actual backend instances needed for querying tasks and ledger data",
+    "Handled exceptions gracefully in source adapters (catching and logging rather than propagating), preventing one failing source from blocking suggestion generation",
+    "Structured tests to use fixtures for common setup (mock backends, project paths) to reduce duplication across 55 tests"
+  ],
+  "lessons_learned": [
+    "When working with existing backends/services, inspect their actual return types before using them\u2014`detect_backend()` returns a string identifier, not an instance",
+    "Pydantic field constraints should balance flexibility with validation; allowing `list[str]` for context was needed for real-world suggestion richness",
+    "Mock setup in tests must match actual function signatures exactly; using `side_effect` lambdas requires proper parameter handling to avoid silent failures",
+    "Protocol-based interfaces are cleaner than ABC inheritance for plugin systems where implementations may have varying internal structures",
+    "Exception handling in data collection pipelines should be permissive (fail gracefully per source) rather than strict, ensuring partial data availability over complete failure"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "e81c076e066683cd6408a0815bf161f785dbbd43",
+      "message": "task(cub-b1d.1): Create suggestion models and data sources",
+      "author": "",
+      "timestamp": "2026-01-28T20:09:31Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1d.1",
+  "epic_id": "cub-b1d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

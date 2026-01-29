@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from cub.core.tasks.backend import get_backend
-from cub.core.tasks.models import Task
+from cub.core.tasks.models import Task, TaskStatus, TaskType
 
 
 class TaskComplexity(str, Enum):
@@ -309,6 +309,108 @@ class TaskService:
             notes="\n".join(notes_parts),
         )
         return self.create_task(request)
+
+    def ready(self) -> list[Task]:
+        """
+        Get all tasks that are ready to work on.
+
+        A task is ready if:
+        - Status is OPEN
+        - All dependencies are CLOSED
+
+        Tasks are returned sorted by priority (P0 first).
+
+        Returns:
+            List of ready tasks sorted by priority
+        """
+        return self._backend.get_ready_tasks()
+
+    def stale_epics(self) -> list[Task]:
+        """
+        Get epics where all child tasks are closed but the epic itself is open.
+
+        These epics are candidates for auto-closure since their work is complete.
+
+        Returns:
+            List of stale epic tasks that should be reviewed for closure
+        """
+        # Get all open epics
+        all_epics = self._backend.list_tasks(
+            status=TaskStatus.OPEN,
+        )
+        epics = [task for task in all_epics if task.type == TaskType.EPIC]
+
+        stale = []
+        for epic in epics:
+            # Get ALL tasks under this epic (open, in_progress, AND closed)
+            # We need to check all children to determine if epic is stale
+            # Note: Some backends may require multiple queries for different statuses
+            open_children = self._backend.list_tasks(parent=epic.id, status=TaskStatus.OPEN)
+            in_progress_children = self._backend.list_tasks(
+                parent=epic.id, status=TaskStatus.IN_PROGRESS
+            )
+            closed_children = self._backend.list_tasks(
+                parent=epic.id, status=TaskStatus.CLOSED
+            )
+
+            child_tasks = open_children + in_progress_children + closed_children
+
+            # If no child tasks, not stale (might be a new epic)
+            if not child_tasks:
+                continue
+
+            # Check if all child tasks are closed
+            all_closed = all(task.status == TaskStatus.CLOSED for task in child_tasks)
+            if all_closed:
+                stale.append(epic)
+
+        return stale
+
+    def claim(self, task_id: str, session_id: str) -> Task:
+        """
+        Claim a task for a session by marking it as in progress.
+
+        Args:
+            task_id: Task ID to claim
+            session_id: Session identifier (will be set as assignee)
+
+        Returns:
+            Updated task object
+
+        Raises:
+            ValueError: If task not found or already claimed
+        """
+        task = self._backend.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task not found: {task_id}")
+
+        if task.status == TaskStatus.IN_PROGRESS:
+            raise ValueError(f"Task {task_id} is already in progress")
+
+        if task.status == TaskStatus.CLOSED:
+            raise ValueError(f"Task {task_id} is already closed")
+
+        return self._backend.update_task(
+            task_id=task_id,
+            status=TaskStatus.IN_PROGRESS,
+            assignee=session_id,
+        )
+
+    def close(self, task_id: str, reason: str | None = None) -> Task:
+        """
+        Close a task with an optional reason.
+
+        Args:
+            task_id: Task ID to close
+            reason: Optional reason for closing
+
+        Returns:
+            Closed task object
+
+        Raises:
+            ValueError: If task not found or already closed
+        """
+        return self._backend.close_task(task_id=task_id, reason=reason)
 
 
 # Convenience function for getting default service

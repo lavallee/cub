@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "id": "cub-b1f.2",
+  "title": "Update CLAUDE.md with service architecture and skill reference",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1f"
+  },
+  "task": {
+    "title": "Update CLAUDE.md with service architecture and skill reference",
+    "description": "CLAUDE.md needs to reflect the new core/interface architecture so that harness sessions (and agents) understand cub's structure. Also document available skills.\n\n**Implementation Steps:**\n1. Update CLAUDE.md architecture section to reflect service layer\n2. Add \"Available Skills\" section listing all `/cub:*` skills\n3. Add \"Cub Commands\" section with commonly-used CLI commands\n4. Update project structure diagram to show `core/services/`, `core/run/`, `core/suggestions/`, `core/launch/`\n5. Add note about bare `cub` behavior and nesting detection\n6. Remove any outdated references to old architecture\n\n**Files:** CLAUDE.md",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:medium",
+      "docs",
+      "epic:cub-b1f",
+      "model:sonnet",
+      "phase-6"
+    ],
+    "created_at": "2026-01-28T17:54:44.409708Z",
+    "captured_at": "2026-01-28T20:54:47.607749Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-204617",
+      "started_at": "2026-01-28T20:54:47.619854",
+      "completed_at": "2026-01-28T21:05:02.806178Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 3,
+        "output_tokens": 506,
+        "cache_read_tokens": 222380,
+        "cache_creation_tokens": 4293
+      },
+      "cost_usd": 1.53890055,
+      "duration_seconds": 615
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T21:05:03.130282Z",
+    "total_cost_usd": 1.53890055,
+    "total_attempts": 1,
+    "total_duration_seconds": 615,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "77ac70c0506025e134b6020fa4a0f0ea80af38ff",
+        "message": "chore: update runtime artifacts and cache",
+        "author": "",
+        "timestamp": "2026-01-28T21:04:20Z"
+      },
+      {
+        "hash": "4ecd9b53d05c62f81173348de2689ffdf1597bd2",
+        "message": "chore: sync task state and ledger entries",
+        "author": "",
+        "timestamp": "2026-01-28T21:04:11Z"
+      },
+      {
+        "hash": "253816cacc0f2d29a75c7e38f9d7fad296948342",
+        "message": "task(cub-b1f.2): Update CLAUDE.md with service architecture and skill reference",
+        "author": "",
+        "timestamp": "2026-01-28T21:03:54Z"
+      }
+    ],
+    "approach": "The task was completed by systematically exploring the existing codebase structure and documentation, then synthesizing the new v0.26+ service layer architecture into comprehensive CLAUDE.md documentation. The implementation involved reading existing files to understand the architecture, identifying all available commands and skills, and reorganizing the documentation into clear, categorized sections while preserving existing content.",
+    "decisions": [
+      "**Documentation-first strategy**: Rather than starting from scratch, the approach leveraged existing documentation patterns (sections, examples, ASCII diagrams) and extended them systematically to cover new architecture layers and command categories.",
+      "**Command organization by use case**: Instead of a flat list, commands were grouped into 10 functional categories (Core Workflow, Task Management, Session & Ledger, etc.) to make the documentation more discoverable and useful for different workflows.",
+      "**Preservation of existing content**: All pre-existing sections (symbiotic workflow, dashboard, interview mode, etc.) were kept intact rather than reorganized, minimizing risk of introducing errors or losing nuanced documentation.",
+      "**Symbolic link validation**: Recognized that CLAUDE.md was a symlink to `.cub/agent.md` and modified the actual file, preventing confusion about which file to edit."
+    ],
+    "lessons_learned": [
+      "**Symlink awareness in documentation**: When updating documentation that may be symlinked, identify the canonical source file first to avoid creating duplicates or editing the wrong file. This is critical in projects using symbolic links for documentation organization.",
+      "**Modular documentation structure**: Organizing long documentation by functional categories (rather than technical layers alone) makes it more usable for different audiences\u2014CLIs need practical commands organized by workflow, while architects need architectural diagrams and layer descriptions.",
+      "**Pre-existing failures don't block deployment**: Test failures and linting warnings that pre-date your changes should be noted but don't require resolution as part of the current task, allowing you to merge without being blocked by legacy technical debt.",
+      "**Quality gate validation workflow**: Running type checking, tests, and linting before pushing provides confidence that documentation changes haven't inadvertently affected code, even though documentation itself isn't linted."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T21:05:03.130282Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:54:47.607749Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T21:05:03.130282Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T20:54:47.607749Z",
+  "completed_at": "2026-01-28T21:05:03.130282Z",
+  "tokens": {
+    "input_tokens": 3,
+    "output_tokens": 506,
+    "cache_read_tokens": 222380,
+    "cache_creation_tokens": 4293
+  },
+  "cost_usd": 1.53890055,
+  "duration_seconds": 615,
+  "iterations": 1,
+  "approach": "The task was completed by systematically exploring the existing codebase structure and documentation, then synthesizing the new v0.26+ service layer architecture into comprehensive CLAUDE.md documentation. The implementation involved reading existing files to understand the architecture, identifying all available commands and skills, and reorganizing the documentation into clear, categorized sections while preserving existing content.",
+  "decisions": [
+    "**Documentation-first strategy**: Rather than starting from scratch, the approach leveraged existing documentation patterns (sections, examples, ASCII diagrams) and extended them systematically to cover new architecture layers and command categories.",
+    "**Command organization by use case**: Instead of a flat list, commands were grouped into 10 functional categories (Core Workflow, Task Management, Session & Ledger, etc.) to make the documentation more discoverable and useful for different workflows.",
+    "**Preservation of existing content**: All pre-existing sections (symbiotic workflow, dashboard, interview mode, etc.) were kept intact rather than reorganized, minimizing risk of introducing errors or losing nuanced documentation.",
+    "**Symbolic link validation**: Recognized that CLAUDE.md was a symlink to `.cub/agent.md` and modified the actual file, preventing confusion about which file to edit."
+  ],
+  "lessons_learned": [
+    "**Symlink awareness in documentation**: When updating documentation that may be symlinked, identify the canonical source file first to avoid creating duplicates or editing the wrong file. This is critical in projects using symbolic links for documentation organization.",
+    "**Modular documentation structure**: Organizing long documentation by functional categories (rather than technical layers alone) makes it more usable for different audiences\u2014CLIs need practical commands organized by workflow, while architects need architectural diagrams and layer descriptions.",
+    "**Pre-existing failures don't block deployment**: Test failures and linting warnings that pre-date your changes should be noted but don't require resolution as part of the current task, allowing you to merge without being blocked by legacy technical debt.",
+    "**Quality gate validation workflow**: Running type checking, tests, and linting before pushing provides confidence that documentation changes haven't inadvertently affected code, even though documentation itself isn't linted."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "77ac70c0506025e134b6020fa4a0f0ea80af38ff",
+      "message": "chore: update runtime artifacts and cache",
+      "author": "",
+      "timestamp": "2026-01-28T21:04:20Z"
+    },
+    {
+      "hash": "4ecd9b53d05c62f81173348de2689ffdf1597bd2",
+      "message": "chore: sync task state and ledger entries",
+      "author": "",
+      "timestamp": "2026-01-28T21:04:11Z"
+    },
+    {
+      "hash": "253816cacc0f2d29a75c7e38f9d7fad296948342",
+      "message": "task(cub-b1f.2): Update CLAUDE.md with service architecture and skill reference",
+      "author": "",
+      "timestamp": "2026-01-28T21:03:54Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1f.2",
+  "epic_id": "cub-b1f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

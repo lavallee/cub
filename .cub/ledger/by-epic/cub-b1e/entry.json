@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "cub-b1e",
+  "title": "cub-b1e",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-b1e",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T20:31:36.618019Z",
+    "captured_at": "2026-01-28T20:31:36.618019Z"
+  },
+  "task_ids": [
+    "cub-b1e.1",
+    "cub-b1e.2",
+    "cub-b1e.3"
+  ],
+  "aggregates": {
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
+    "tasks_failed": 0,
+    "total_cost_usd": 4.64390745,
+    "avg_cost_per_task": 1.5479691500000001,
+    "min_cost_usd": 0.8388826500000002,
+    "max_cost_usd": 2.4596682000000007,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 3,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 4078380,
+    "avg_tokens_per_task": 1359460,
+    "total_duration_seconds": 1369,
+    "avg_duration_seconds": 456,
+    "models_used": [
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T20:46:11.483099Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T20:22:46.116120Z",
+  "completed_at": "2026-01-28T20:46:03.812316Z",
+  "updated_at": "2026-01-28T20:46:11.483102Z",
+  "first_commit": {
+    "hash": "6b4b3d0be46921672d0eac5628186e14d50d690e",
+    "message": "task(cub-b1e.1): Implement bare cub default command handler",
+    "author": "",
+    "timestamp": "2026-01-28T20:31:00Z"
+  },
+  "last_commit": {
+    "hash": "9639d6d8a2d8816403ba01e95135e74a3025a343",
+    "message": "task(cub-b1e.3): Integration testing and edge cases",
+    "author": "",
+    "timestamp": "2026-01-28T20:45:28Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

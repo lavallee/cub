@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-b1b.2",
+  "title": "Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1b"
+  },
+  "task": {
+    "title": "Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+    "description": "Both modules use Rich Console for progress/status output. They should emit events or return data, letting the CLI layer handle display.\n\n**Implementation Steps:**\n1. In `core/pr/service.py`: replace `Console` usage with return values or Python logging\n2. In `core/worktree/parallel.py`: replace progress output with callback/event pattern\n3. Define callback protocols: `on_worker_start(task_id)`, `on_worker_complete(task_id, result)`\n4. Update `cli/pr.py` and `cli/worktree.py` to provide Rich-based callbacks\n5. Verify all PR and worktree commands work unchanged\n\n**Files:** src/cub/core/pr/service.py, src/cub/core/worktree/parallel.py, src/cub/cli/pr.py, src/cub/cli/worktree.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cleanup",
+      "complexity:medium",
+      "core",
+      "epic:cub-b1b",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-28T17:54:44.409303Z",
+    "captured_at": "2026-01-28T19:02:31.511719Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-185726",
+      "started_at": "2026-01-28T19:02:31.528514",
+      "completed_at": "2026-01-28T19:12:49.497540Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 14707,
+        "output_tokens": 27709,
+        "cache_read_tokens": 5577672,
+        "cache_creation_tokens": 83918
+      },
+      "cost_usd": 2.5919829500000007,
+      "duration_seconds": 617
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:12:49.916312Z",
+    "total_cost_usd": 2.5919829500000007,
+    "total_attempts": 1,
+    "total_duration_seconds": 617,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a4af72b309c7a1d7fb409ae1b0c4990a93cac261",
+        "message": "task(cub-b1b.2): Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+        "author": "",
+        "timestamp": "2026-01-28T19:12:37Z"
+      }
+    ],
+    "approach": "Replaced Rich console dependencies with callback-based protocols in core service layers (PR service and parallel runner), allowing the CLI layer to handle all Rich-specific display. This clean separation of concerns moves display logic out of business logic modules while maintaining the same external behavior through event-driven callbacks.",
+    "decisions": [
+      "Used Protocol-based callbacks instead of abstract base classes for maximum flexibility and minimal coupling",
+      "Provided `_NoOpCallback` default implementations to allow services to work without callbacks (useful for testing and non-CLI usage)",
+      "Moved debug output to Python's `logging` module instead of callback-based handling, since logging is the standard for debug info",
+      "Updated all 72 affected tests to use the new callback pattern rather than mocking console/stream objects, ensuring test coverage validates the new architecture",
+      "Implemented separate callback protocols for each service (`PREventCallback`, `ParallelRunnerCallback`) rather than a unified callback, allowing each service to define its own event interface"
+    ],
+    "lessons_learned": [
+      "Protocol-based design enables better testability and decoupling than shared abstractions; services can be tested with simple callback implementations without heavy mocking",
+      "When refactoring display logic out of core modules, keeping debug output in `logging` module is cleaner than callback-based debug, as it separates diagnostic concerns from user-facing output",
+      "Tests should validate the new architecture pattern (callbacks being called correctly) rather than just verifying end results; this caught issues early and ensured the callback pattern worked as expected",
+      "Removing dependencies from core modules creates opportunities for multiple deployment contexts (CLI with Rich, CI environments with plain logging, programmatic usage without output)"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:12:49.916312Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:02:31.511719Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:12:49.916312Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T19:02:31.511719Z",
+  "completed_at": "2026-01-28T19:12:49.916312Z",
+  "tokens": {
+    "input_tokens": 14707,
+    "output_tokens": 27709,
+    "cache_read_tokens": 5577672,
+    "cache_creation_tokens": 83918
+  },
+  "cost_usd": 2.5919829500000007,
+  "duration_seconds": 617,
+  "iterations": 1,
+  "approach": "Replaced Rich console dependencies with callback-based protocols in core service layers (PR service and parallel runner), allowing the CLI layer to handle all Rich-specific display. This clean separation of concerns moves display logic out of business logic modules while maintaining the same external behavior through event-driven callbacks.",
+  "decisions": [
+    "Used Protocol-based callbacks instead of abstract base classes for maximum flexibility and minimal coupling",
+    "Provided `_NoOpCallback` default implementations to allow services to work without callbacks (useful for testing and non-CLI usage)",
+    "Moved debug output to Python's `logging` module instead of callback-based handling, since logging is the standard for debug info",
+    "Updated all 72 affected tests to use the new callback pattern rather than mocking console/stream objects, ensuring test coverage validates the new architecture",
+    "Implemented separate callback protocols for each service (`PREventCallback`, `ParallelRunnerCallback`) rather than a unified callback, allowing each service to define its own event interface"
+  ],
+  "lessons_learned": [
+    "Protocol-based design enables better testability and decoupling than shared abstractions; services can be tested with simple callback implementations without heavy mocking",
+    "When refactoring display logic out of core modules, keeping debug output in `logging` module is cleaner than callback-based debug, as it separates diagnostic concerns from user-facing output",
+    "Tests should validate the new architecture pattern (callbacks being called correctly) rather than just verifying end results; this caught issues early and ensured the callback pattern worked as expected",
+    "Removing dependencies from core modules creates opportunities for multiple deployment contexts (CLI with Rich, CI environments with plain logging, programmatic usage without output)"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "a4af72b309c7a1d7fb409ae1b0c4990a93cac261",
+      "message": "task(cub-b1b.2): Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+      "author": "",
+      "timestamp": "2026-01-28T19:12:37Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1b.2",
+  "epic_id": "cub-b1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

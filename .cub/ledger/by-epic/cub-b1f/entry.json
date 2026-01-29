@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "cub-b1f",
+  "title": "cub-b1f",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-b1f",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-28T20:52:42.058066Z",
+    "captured_at": "2026-01-28T20:52:42.058066Z"
+  },
+  "task_ids": [
+    "cub-b1f.2",
+    "cub-b1f.1",
+    "cub-b1f.3"
+  ],
+  "aggregates": {
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
+    "tasks_failed": 0,
+    "total_cost_usd": 2.7821623499999997,
+    "avg_cost_per_task": 0.9273874499999999,
+    "min_cost_usd": 0.4738977,
+    "max_cost_usd": 1.53890055,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 3,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 1060936,
+    "avg_tokens_per_task": 353645,
+    "total_duration_seconds": 1104,
+    "avg_duration_seconds": 368,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T21:05:12.278689Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-28T20:46:18.269317Z",
+  "completed_at": "2026-01-28T21:05:03.130282Z",
+  "updated_at": "2026-01-28T21:05:12.278691Z",
+  "first_commit": {
+    "hash": "adbe9673c2b8f4597414b724a8f786ce41b8e3bb",
+    "message": "task(cub-b1f.3): End-to-end validation of full flow",
+    "author": "",
+    "timestamp": "2026-01-28T20:51:53Z"
+  },
+  "last_commit": {
+    "hash": "77ac70c0506025e134b6020fa4a0f0ea80af38ff",
+    "message": "chore: update runtime artifacts and cache",
+    "author": "",
+    "timestamp": "2026-01-28T21:04:20Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

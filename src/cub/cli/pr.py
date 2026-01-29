@@ -16,7 +16,7 @@ import typer
 from rich.console import Console
 
 from cub.core.github.client import GitHubClientError
-from cub.core.pr import PRService, PRServiceError, StreamConfig
+from cub.core.pr import PRService, PRServiceError
 
 app = typer.Typer(
     name="pr",
@@ -26,6 +26,41 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+class RichPRCallback:
+    """Rich Console-based implementation of PREventCallback."""
+
+    def __init__(self, console: Console, stream: bool = False) -> None:
+        """
+        Initialize callback.
+
+        Args:
+            console: Rich console for output
+            stream: Whether to show streaming progress messages
+        """
+        self.console = console
+        self.stream = stream
+
+    def on_progress(self, message: str) -> None:
+        """Display progress message if streaming is enabled."""
+        if self.stream:
+            self.console.print(f"[cyan]→[/cyan] {message}")
+
+    def on_status(self, message: str, level: str = "info") -> None:
+        """Display status message with appropriate styling."""
+        if level == "success":
+            self.console.print(f"[green]{message}[/green]")
+        elif level == "warning":
+            self.console.print(f"[yellow]{message}[/yellow]")
+        elif level == "error":
+            self.console.print(f"[red]{message}[/red]")
+        else:
+            self.console.print(message)
+
+    def on_info(self, message: str) -> None:
+        """Display informational message."""
+        self.console.print(message)
 
 
 # Timeout for Claude CI invocation (10 minutes max)
@@ -304,20 +339,11 @@ def pr_command(
 
     project_dir = Path.cwd()
 
-    # Get debug flag from context
-    debug = False
-    if ctx.obj:
-        debug = ctx.obj.get("debug", False)
-
-    # Configure streaming output
-    stream_config = StreamConfig(
-        enabled=stream,
-        debug=debug,
-        console=console,
-    )
+    # Create callback for Rich output
+    callback = RichPRCallback(console=console, stream=stream)
 
     try:
-        service = PRService(project_dir, stream_config=stream_config)
+        service = PRService(project_dir, callback=callback)
 
         # Create PR
         result = service.create_pr(

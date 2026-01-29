@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "id": "cub-b1d.2",
+  "title": "Implement ranking algorithm and engine",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1d"
+  },
+  "task": {
+    "title": "Implement ranking algorithm and engine",
+    "description": "The ranking algorithm scores and orders suggestions from all sources. The engine composes sources, applies ranking, and provides the public API.\n\n**Implementation Steps:**\n1. Create `src/cub/core/suggestions/ranking.py` with `rank_suggestions(suggestions) -> list[Suggestion]`\n2. Implement scoring: `base_priority \u00d7 urgency_multiplier \u00d7 recency_decay`\n3. Create `src/cub/core/suggestions/engine.py` with `SuggestionEngine` class\n4. `get_suggestions(limit) -> list[Suggestion]` \u2014 ranked list\n5. `get_welcome() -> WelcomeMessage` \u2014 stats + top suggestions + skills\n6. `get_next_action() -> Suggestion` \u2014 single best recommendation\n7. Write tests with deterministic fixture data to verify ranking order\n\n**Files:** src/cub/core/suggestions/ranking.py, src/cub/core/suggestions/engine.py, tests/test_suggestions_engine.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "core",
+      "epic:cub-b1d",
+      "feature",
+      "model:sonnet",
+      "phase-4"
+    ],
+    "created_at": "2026-01-28T17:54:44.409584Z",
+    "captured_at": "2026-01-28T20:09:58.889213Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-195914",
+      "started_at": "2026-01-28T20:09:58.899102",
+      "completed_at": "2026-01-28T20:15:08.970277Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 62,
+        "output_tokens": 13508,
+        "cache_read_tokens": 1337265,
+        "cache_creation_tokens": 55162
+      },
+      "cost_usd": 0.8417400000000004,
+      "duration_seconds": 310
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T20:15:09.257289Z",
+    "total_cost_usd": 0.8417400000000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 310,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "95a3d83b8f270aafe45a3effd334658212a400a8",
+        "message": "task(cub-b1d.2): Implement ranking algorithm and engine",
+        "author": "",
+        "timestamp": "2026-01-28T20:14:49Z"
+      }
+    ],
+    "approach": "Implemented the ranking algorithm and suggestion engine in a modular way by first creating the ranking function with a scoring formula (priority \u00d7 urgency \u00d7 recency), then building the SuggestionEngine class that composes multiple data sources and applies ranking. Tests were written concurrently with implementation using fixture-based patterns to ensure correctness before deployment.",
+    "decisions": [
+      "**Scoring formula structure**: Used multiplicative formula (`base_priority \u00d7 urgency_multiplier \u00d7 recency_decay`) rather than additive to allow category urgency and recency to meaningfully scale the base priority score",
+      "**Category urgency multipliers**: Created granular multipliers (REVIEW: 1.2, GIT: 1.15, TASK: 1.1, etc.) to reflect relative importance without separate ranking tiers",
+      "**Recency decay strategy**: Implemented tiered decay (no decay <1hr, linear 1-24hrs, 0.95 floor) rather than exponential to keep older suggestions relevant while prioritizing fresh ones",
+      "**Engine error handling**: Made sources fail gracefully so that if one source errors, others still contribute suggestions (robustness over completeness)",
+      "**Test isolation**: Used mocking for TaskSource to avoid dependency coupling in tests, catching isinstance issues with explicit assertions"
+    ],
+    "lessons_learned": [
+      "**Floating point precision in tests**: When testing decay/score calculations with time-based decay, need to use approximate equality (e.g., `pytest.approx()`) rather than exact equality to handle rounding edge cases",
+      "**Mock configuration for isinstance checks**: When mocking complex objects, ensure isinstance() checks still work by properly configuring the mock spec or using MagicMock with appropriate settings",
+      "**Module composition pattern**: Exporting key classes through `__init__.py` from the start makes the public API clear and simplifies future imports",
+      "**Pre-existing test failures**: Environmental issues (like `CUB_RUN_ACTIVE` already set) can cause unrelated test failures\u2014isolate changes and verify failures are pre-existing before troubleshooting",
+      "**Deterministic fixtures for complex logic**: Using fixed suggestion data with known properties (age, priority, category) makes ranking tests much easier to verify than randomized data"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T20:15:09.257289Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:09:58.889213Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T20:15:09.257289Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T20:09:58.889213Z",
+  "completed_at": "2026-01-28T20:15:09.257289Z",
+  "tokens": {
+    "input_tokens": 62,
+    "output_tokens": 13508,
+    "cache_read_tokens": 1337265,
+    "cache_creation_tokens": 55162
+  },
+  "cost_usd": 0.8417400000000004,
+  "duration_seconds": 310,
+  "iterations": 1,
+  "approach": "Implemented the ranking algorithm and suggestion engine in a modular way by first creating the ranking function with a scoring formula (priority \u00d7 urgency \u00d7 recency), then building the SuggestionEngine class that composes multiple data sources and applies ranking. Tests were written concurrently with implementation using fixture-based patterns to ensure correctness before deployment.",
+  "decisions": [
+    "**Scoring formula structure**: Used multiplicative formula (`base_priority \u00d7 urgency_multiplier \u00d7 recency_decay`) rather than additive to allow category urgency and recency to meaningfully scale the base priority score",
+    "**Category urgency multipliers**: Created granular multipliers (REVIEW: 1.2, GIT: 1.15, TASK: 1.1, etc.) to reflect relative importance without separate ranking tiers",
+    "**Recency decay strategy**: Implemented tiered decay (no decay <1hr, linear 1-24hrs, 0.95 floor) rather than exponential to keep older suggestions relevant while prioritizing fresh ones",
+    "**Engine error handling**: Made sources fail gracefully so that if one source errors, others still contribute suggestions (robustness over completeness)",
+    "**Test isolation**: Used mocking for TaskSource to avoid dependency coupling in tests, catching isinstance issues with explicit assertions"
+  ],
+  "lessons_learned": [
+    "**Floating point precision in tests**: When testing decay/score calculations with time-based decay, need to use approximate equality (e.g., `pytest.approx()`) rather than exact equality to handle rounding edge cases",
+    "**Mock configuration for isinstance checks**: When mocking complex objects, ensure isinstance() checks still work by properly configuring the mock spec or using MagicMock with appropriate settings",
+    "**Module composition pattern**: Exporting key classes through `__init__.py` from the start makes the public API clear and simplifies future imports",
+    "**Pre-existing test failures**: Environmental issues (like `CUB_RUN_ACTIVE` already set) can cause unrelated test failures\u2014isolate changes and verify failures are pre-existing before troubleshooting",
+    "**Deterministic fixtures for complex logic**: Using fixed suggestion data with known properties (age, priority, category) makes ranking tests much easier to verify than randomized data"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "95a3d83b8f270aafe45a3effd334658212a400a8",
+      "message": "task(cub-b1d.2): Implement ranking algorithm and engine",
+      "author": "",
+      "timestamp": "2026-01-28T20:14:49Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1d.2",
+  "epic_id": "cub-b1d",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

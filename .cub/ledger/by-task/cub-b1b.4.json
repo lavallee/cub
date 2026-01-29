@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "id": "cub-b1b.4",
+  "title": "Replace Rich logging in core/harness/hooks.py",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-b1b"
+  },
+  "task": {
+    "title": "Replace Rich logging in core/harness/hooks.py",
+    "description": "`core/harness/hooks.py` uses Rich for logging. It should use Python's standard `logging` module \u2014 hooks run in subprocess contexts where Rich may not be appropriate.\n\n**Implementation Steps:**\n1. Replace `from rich.console import Console` with `import logging`\n2. Replace `console.print()` calls with `logger.info()`, `logger.debug()`, etc.\n3. Configure logging format in hook entry point\n4. Verify hook forensics still work correctly\n\n**Files:** src/cub/core/harness/hooks.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "cleanup",
+      "complexity:low",
+      "core",
+      "epic:cub-b1b",
+      "model:haiku",
+      "phase-2"
+    ],
+    "created_at": "2026-01-28T17:54:44.409340Z",
+    "captured_at": "2026-01-28T19:17:09.258783Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260128-185726",
+      "started_at": "2026-01-28T19:17:09.270100",
+      "completed_at": "2026-01-28T19:18:27.471493Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 57,
+        "output_tokens": 3627,
+        "cache_read_tokens": 831839,
+        "cache_creation_tokens": 33721
+      },
+      "cost_usd": 0.17755714999999997,
+      "duration_seconds": 78
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-28T19:18:27.891842Z",
+    "total_cost_usd": 0.17755714999999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 78,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [],
+    "approach": "The task was completed through verification that `core/harness/hooks.py` had already been fully migrated from Rich logging to Python's standard `logging` module. Rather than re-implementing changes that were already done, the approach focused on validating the existing implementation through comprehensive testing (35 hook tests passing), type checking (mypy clean), and linting checks to ensure no regressions were introduced.",
+    "decisions": [
+      "Verified existing logging configuration uses `sys.stderr` stream (appropriate for subprocess hooks to avoid interfering with JSON output)",
+      "Confirmed logging format includes `[cub-hook]` prefix for easy identification in subprocess contexts",
+      "Chose to validate rather than re-implement, recognizing the file was already properly migrated",
+      "Ran full test suite (not just targeted hook tests) to ensure no unexpected dependencies on Rich elsewhere"
+    ],
+    "lessons_learned": [
+      "When a task shows work already partially or fully completed, verification and validation can be more valuable than re-implementation\u2014tests provide confidence that changes work correctly",
+      "Hook implementations running in subprocess contexts have special requirements (stderr for logging, careful output handling) that should be documented and enforced",
+      "Python's `logging` module with proper format configuration is sufficient for subprocess logging; Rich is unnecessary overhead in these contexts",
+      "Comprehensive test coverage (35 targeted tests + full suite) catches potential regressions and validates that logging changes don't break forensics functionality"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-28T19:18:27.891842Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:17:09.258783Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-28T19:18:27.891842Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-28T19:17:09.258783Z",
+  "completed_at": "2026-01-28T19:18:27.891842Z",
+  "tokens": {
+    "input_tokens": 57,
+    "output_tokens": 3627,
+    "cache_read_tokens": 831839,
+    "cache_creation_tokens": 33721
+  },
+  "cost_usd": 0.17755714999999997,
+  "duration_seconds": 78,
+  "iterations": 1,
+  "approach": "The task was completed through verification that `core/harness/hooks.py` had already been fully migrated from Rich logging to Python's standard `logging` module. Rather than re-implementing changes that were already done, the approach focused on validating the existing implementation through comprehensive testing (35 hook tests passing), type checking (mypy clean), and linting checks to ensure no regressions were introduced.",
+  "decisions": [
+    "Verified existing logging configuration uses `sys.stderr` stream (appropriate for subprocess hooks to avoid interfering with JSON output)",
+    "Confirmed logging format includes `[cub-hook]` prefix for easy identification in subprocess contexts",
+    "Chose to validate rather than re-implement, recognizing the file was already properly migrated",
+    "Ran full test suite (not just targeted hook tests) to ensure no unexpected dependencies on Rich elsewhere"
+  ],
+  "lessons_learned": [
+    "When a task shows work already partially or fully completed, verification and validation can be more valuable than re-implementation\u2014tests provide confidence that changes work correctly",
+    "Hook implementations running in subprocess contexts have special requirements (stderr for logging, careful output handling) that should be documented and enforced",
+    "Python's `logging` module with proper format configuration is sufficient for subprocess logging; Rich is unnecessary overhead in these contexts",
+    "Comprehensive test coverage (35 targeted tests + full suite) catches potential regressions and validates that logging changes don't break forensics functionality"
+  ],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-b1b.4",
+  "epic_id": "cub-b1b",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,47 @@
+I'll start by claiming the task and then searching the codebase to understand the current interrupt handling implementation.Let me find the correct paths for these files:Now let me read the actual files:Now let me read the relevant parts of the CLI run.py file to understand the signal handling:Now let me check if there's an existing test file for interrupt handling:Let me check the existing test_run_loop.py to understand the testing patterns:Now I have a good understanding of the codebase. Let me create the implementation plan:Now let me create the interrupt handler module:Now let me update the RunLoop to integrate with InterruptHandler. First, let me read the __init__ section and execute method more carefully:Now I'll update the RunLoop to optionally accept an InterruptHandler and check it in the loop. I'll make it backward compatible:Now I need to update the interrupt check in the execute method to use the interrupt handler:Now I need to update the RunLoop class docstring to mention the interrupt_handler:Now let me update the cli/run.py file. First, let me find the exact location where we need to make changes:Let me read the sections where the signal handler and run loop are set up:Now let me update the cli/run.py to use the InterruptHandler. I'll need to:
+1. Import InterruptHandler
+2. Create an instance
+3. Register it
+4. Pass it to RunLoop
+5. Remove the old global flag and signal handlerNow I need to replace the signal.signal call and create the InterruptHandler:Now I should add a cleanup callback. Let me check if there's a finally block I need to add cleanup to. Let me search for the finally block:Good, I can see the finally block at line 1338. Let me also add cleanup in the finally block to unregister the interrupt handler:Now let me add the cleanup to unregister the interrupt handler in the finally block. I'll add it at the end before the worktree cleanup:Now let me also update the InterruptHandler to support callbacks with Rich console for better user feedback. Actually, looking back at the implementation, the InterruptHandler writes to stderr without Rich to avoid dependencies. Let me keep it that way for now but we can add a callback from the CLI to provide Rich output. Let me add a callback to the interrupt handler:Now let me create comprehensive tests for the interrupt handler:Now let me run the feedback loops. Let me start by checking the project structure to understand the build/test commands:Good! Now let me run the feedback loops:Good! Tests pass but I need to fix the type errors and linting issues. Let me fix them:Good! Now let me run all feedback loops again to make sure everything passes:Perfect! All feedback loops pass. Now let me also run the full test suite to make sure I didn't break anything:Excellent! All tests pass. Now let me update the todo list and close the task:Perfect! Now let me close the task and commit the changes:Now let me commit the changes:Perfect! Let me check if there are any more tasks to work on:Great! The task is complete. Let me check if there are any ready tasks to work on next:Perfect! The task cub-b1a.4 is complete. Let me provide a summary:
+
+## Summary
+
+I have successfully completed task **cub-b1a.4: Extract interrupt handling to core/run/interrupt.py**.
+
+### What was implemented:
+
+1. **Created `src/cub/core/run/interrupt.py`** with the `InterruptHandler` class:
+   - Centralized SIGINT/SIGTERM signal handling
+   - Implements two-stage interrupt model: first interrupt sets flag for graceful shutdown, second interrupt force-exits with SystemExit(130)
+   - Supports cleanup callbacks via `on_interrupt()` method
+   - Writes to stderr without Rich dependencies, making it interface-agnostic
+   - Provides `register()` and `unregister()` methods for signal handler lifecycle
+
+2. **Updated `src/cub/core/run/loop.py`**:
+   - Added optional `interrupt_handler` parameter to RunLoop constructor
+   - Updated interrupt checking logic to prefer `interrupt_handler` when available
+   - Maintained backward compatibility with the old `interrupted` flag
+
+3. **Updated `src/cub/cli/run.py`**:
+   - Integrated InterruptHandler into the run command
+   - Added Rich console callback for user-friendly interrupt messages
+   - Properly registers and unregisters the handler in the finally block
+   - Deprecated the old global `_interrupted` flag (kept for backward compatibility)
+
+4. **Created comprehensive tests** in `tests/test_run_interrupt.py`:
+   - 16 test cases covering all aspects of interrupt handling
+   - Tests for signal registration/unregistration
+   - Tests for two-stage interrupt behavior
+   - Tests for cleanup callbacks and error handling
+   - Integration tests with RunLoop
+   - Backward compatibility tests
+
+### Validation:
+- ✅ All feedback loops pass:
+  - `mypy` type checking: Success
+  - `pytest` tests: 16/16 passed
+  - `ruff` linting: All checks passed
+  - Existing tests: 41/41 passed (no regressions)
+
+The implementation successfully extracts interrupt handling to a reusable core module that works regardless of which interface is driving the run loop, while maintaining full backward compatibility with existing code.
