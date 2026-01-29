@@ -10,6 +10,13 @@ from pathlib import Path
 
 import typer
 from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+)
 from rich.table import Table
 
 from cub.core.hydrate.models import HydrationResult, HydrationStatus
@@ -146,19 +153,6 @@ def punchlist(
             console.print(f"  {i}. {preview}")
         console.print()
 
-    # Progress callbacks (always active)
-    def on_start(index: int, total: int, source_text: str) -> None:
-        preview = source_text[:50].replace("\n", " ")
-        if len(source_text) > 50:
-            preview += "..."
-        console.print(f"  [{index + 1}/{total}] Hydrating: {preview}")
-        if verbose:
-            console.print(f"  [dim]{source_text}[/dim]")
-
-    def on_complete(index: int, total: int, result: HydrationResult) -> None:
-        status_label = "OK" if result.status == HydrationStatus.SUCCESS else "fallback"
-        console.print(f'  [{index + 1}/{total}] {status_label} "{result.title}"')
-
     # Stream callback
     def on_stream(line: str) -> None:
         sys.stdout.write(line)
@@ -170,21 +164,49 @@ def punchlist(
 
     console.print("\nHydrating items with Claude...")
 
-    # Process the punchlist
+    # Process with Rich progress bar
+    progress = Progress(
+        SpinnerColumn(),
+        MofNCompleteColumn(),
+        BarColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=False,
+    )
+
+    task_id = progress.add_task("Starting...", total=len(items))
+
+    def on_start(index: int, total: int, source_text: str) -> None:
+        preview = source_text[:50].replace("\n", " ")
+        if len(source_text) > 50:
+            preview += "..."
+        progress.update(task_id, description=f"Hydrating: {preview}")
+        if verbose:
+            progress.console.print(f"  [dim]{source_text}[/dim]")
+
+    def on_complete(index: int, total: int, result: HydrationResult) -> None:
+        if result.status == HydrationStatus.SUCCESS:
+            status_label = "[green]OK[/green]"
+        else:
+            status_label = "[yellow]fallback[/yellow]"
+        progress.console.print(f"  {status_label} \"{result.title}\"")
+        progress.update(task_id, advance=1)
+
     try:
-        result = process_punchlist(
-            path=file,
-            epic_title=epic_title,
-            labels=labels or [],
-            dry_run=dry_run,
-            output=output,
-            stream=stream,
-            debug=debug,
-            stream_callback=on_stream if stream else None,
-            debug_callback=on_debug if debug else None,
-            on_start=on_start,
-            on_complete=on_complete,
-        )
+        with progress:
+            result = process_punchlist(
+                path=file,
+                epic_title=epic_title,
+                labels=labels or [],
+                dry_run=dry_run,
+                output=output,
+                stream=stream,
+                debug=debug,
+                stream_callback=on_stream if stream else None,
+                debug_callback=on_debug if debug else None,
+                on_start=on_start,
+                on_complete=on_complete,
+            )
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
