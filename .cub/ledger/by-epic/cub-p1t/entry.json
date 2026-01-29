@@ -17,25 +17,26 @@
     "captured_at": "2026-01-29T17:05:15.909805Z"
   },
   "task_ids": [
+    "cub-p1t.2",
     "cub-p1t.1"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 0.78856175,
-    "avg_cost_per_task": 0.78856175,
+    "total_cost_usd": 1.9751310499999999,
+    "avg_cost_per_task": 0.9875655249999999,
     "min_cost_usd": 0.78856175,
-    "max_cost_usd": 0.78856175,
+    "max_cost_usd": 1.1865693,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 63720,
-    "avg_tokens_per_task": 63720,
-    "total_duration_seconds": 544,
-    "avg_duration_seconds": 544,
+    "total_tokens": 2188809,
+    "avg_tokens_per_task": 1094404,
+    "total_duration_seconds": 846,
+    "avg_duration_seconds": 423,
     "models_used": [
       "sonnet"
     ],
@@ -43,12 +44,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-29T17:05:15.948109Z"
+    "stage_updated_at": "2026-01-29T17:26:50.480010Z"
   },
   "state_history": [],
   "started_at": "2026-01-29T16:55:34.569058Z",
-  "completed_at": "2026-01-29T17:05:05.201135Z",
-  "updated_at": "2026-01-29T17:05:15.948116Z",
+  "completed_at": "2026-01-29T17:26:37.604810Z",
+  "updated_at": "2026-01-29T17:26:50.480014Z",
   "first_commit": {
     "hash": "5ed432568000f37acb5c6bf35efffe1042cbe5f9",
     "message": "task(cub-p1t.1): Extend TaskBackend protocol with 7 new methods",
@@ -56,10 +57,10 @@
     "timestamp": "2026-01-29T17:04:10Z"
   },
   "last_commit": {
-    "hash": "5ed432568000f37acb5c6bf35efffe1042cbe5f9",
-    "message": "task(cub-p1t.1): Extend TaskBackend protocol with 7 new methods",
+    "hash": "d36f57b6981687c0138bacb4622139ac502e1cc6",
+    "message": "task(cub-p1t.2): Implement new protocol methods in BeadsBackend",
     "author": "",
-    "timestamp": "2026-01-29T17:04:10Z"
+    "timestamp": "2026-01-29T17:26:00Z"
   },
   "drift": {
     "additions": [],

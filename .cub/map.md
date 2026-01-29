@@ -32,8 +32,6 @@
     │   ├── .local_version
     │   ├── README.md
     │   ├── beads.db
-    │   ├── beads.db-shm
-    │   ├── beads.db-wal
     │   ├── branches.yaml
     │   ├── config.yaml
     │   ├── daemon-error
@@ -97,7 +95,7 @@
     │   │   │   ├── cub-j1e/
     │   │   │   ├── cub-j1f/
     │   │   │   ├── cub-m3k/
-    │   │   │   ├── cub-n6x/
+    │   │   │   ├── cub-p1t/
     │   │   │   ├── cub-p9q/
     │   │   │   ├── cub-q2j/
     │   │   │   ├── cub-r1a/
@@ -181,6 +179,8 @@
     │   │   │   ├── cub-m3k.6/
     │   │   │   ├── cub-m3k.7/
     │   │   │   ├── cub-p1t.1/
+    │   │   │   ├── cub-p1t.2/
+    │   │   │   ├── cub-p1t.3/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -316,8 +316,6 @@
     │   │   │   ├── cub-j1a.3.json
     │   │   │   ├── cub-j1a.4.json
     │   │   │   ├── cub-j1a.5.json
-    │   │   │   ├── cub-j1b.1.json
-    │   │   │   ├── cub-j1b.2.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols

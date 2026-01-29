@@ -19,8 +19,8 @@ try:
 except ImportError:
     yaml = None
 
-from .backend import register_backend
-from .models import Task, TaskCounts, TaskStatus
+from .backend import TaskBackendDefaults, register_backend
+from .models import Task, TaskCounts, TaskPriority, TaskStatus
 
 
 class TasksFileNotFoundError(Exception):
@@ -36,7 +36,7 @@ class TasksFileCorruptedError(Exception):
 
 
 @register_backend("jsonl")
-class JsonlBackend:
+class JsonlBackend(TaskBackendDefaults):
     """
     Task backend that uses a tasks.jsonl file for storage.
 
@@ -387,6 +387,9 @@ class JsonlBackend:
         assignee: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        title: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -397,6 +400,9 @@ class JsonlBackend:
             assignee: New assignee
             description: New description
             labels: New labels list
+            title: New title
+            priority: New priority (0-4, where 0 is highest)
+            notes: New notes/comments
 
         Returns:
             Updated task object
@@ -428,6 +434,12 @@ class JsonlBackend:
             task.description = description
         if labels is not None:
             task.labels = labels
+        if title is not None:
+            task.title = title
+        if priority is not None:
+            task.priority = TaskPriority(f"P{priority}")
+        if notes is not None:
+            task.notes = notes
 
         # Update timestamp
         task.updated_at = datetime.now()
@@ -567,7 +579,7 @@ class JsonlBackend:
         Get count statistics for tasks.
 
         Returns:
-            TaskCounts object with total, open, in_progress, closed counts
+            TaskCounts object with total, open, in_progress, closed, blocked counts
         """
         tasks = self._load_tasks()
 
@@ -575,6 +587,10 @@ class JsonlBackend:
         open_count = 0
         in_progress = 0
         closed = 0
+
+        # Build set of closed task IDs for blocked count
+        closed_ids = set()
+        all_tasks = []
 
         for raw_task in tasks:
             status = raw_task.get("status", "open")
@@ -585,11 +601,29 @@ class JsonlBackend:
             elif status == "closed":
                 closed += 1
 
+            # Parse task for dependency checking
+            try:
+                task = self._parse_task(raw_task)
+                all_tasks.append(task)
+                if task.status == TaskStatus.CLOSED:
+                    closed_ids.add(task.id)
+            except Exception:
+                continue
+
+        # Count blocked tasks (open with unclosed dependencies)
+        blocked_count = 0
+        for task in all_tasks:
+            if task.status == TaskStatus.OPEN and task.depends_on:
+                # Check if any dependency is not closed
+                if not all(dep_id in closed_ids for dep_id in task.depends_on):
+                    blocked_count += 1
+
         return TaskCounts(
             total=total,
             open=open_count,
             in_progress=in_progress,
             closed=closed,
+            blocked=blocked_count,
         )
 
     def add_task_note(self, task_id: str, note: str) -> Task:
@@ -854,6 +888,255 @@ Each line is a complete JSON object:
             except OSError:
                 pass
             raise
+
+    def add_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Add a dependency to a task.
+
+        Args:
+            task_id: Task to add dependency to
+            depends_on_id: Task ID that must be completed first
+
+        Returns:
+            Updated task object with new dependency
+
+        Raises:
+            ValueError: If either task not found
+        """
+        # Get the task
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        # Verify dependency task exists
+        depends_on_task = self.get_task(depends_on_id)
+        if depends_on_task is None:
+            raise ValueError(f"Dependency task {depends_on_id} not found")
+
+        # Add dependency if not already present
+        if depends_on_id not in task.depends_on:
+            task.depends_on.append(depends_on_id)
+
+        # Update timestamp
+        task.updated_at = datetime.now()
+
+        # Update in file
+        tasks = self._load_tasks()
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                tasks[i] = self._task_to_dict(task)
+                break
+
+        self._save_tasks(tasks)
+
+        return task
+
+    def remove_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Remove a dependency from a task.
+
+        Args:
+            task_id: Task to remove dependency from
+            depends_on_id: Task ID to remove from dependencies
+
+        Returns:
+            Updated task object without the dependency
+
+        Raises:
+            ValueError: If task not found or dependency doesn't exist
+        """
+        # Get the task
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        # Check dependency exists
+        if depends_on_id not in task.depends_on:
+            raise ValueError(f"Task {task_id} does not depend on {depends_on_id}")
+
+        # Remove dependency
+        task.depends_on.remove(depends_on_id)
+
+        # Update timestamp
+        task.updated_at = datetime.now()
+
+        # Update in file
+        tasks = self._load_tasks()
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                tasks[i] = self._task_to_dict(task)
+                break
+
+        self._save_tasks(tasks)
+
+        return task
+
+    def reopen_task(self, task_id: str, reason: str | None = None) -> Task:
+        """
+        Reopen a closed task.
+
+        Args:
+            task_id: Task to reopen
+            reason: Optional reason for reopening
+
+        Returns:
+            Reopened task object
+
+        Raises:
+            ValueError: If task not found or not closed
+        """
+        # Get the task
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        if task.status != TaskStatus.CLOSED:
+            raise ValueError(f"Task {task_id} is not closed (status: {task.status})")
+
+        # Reopen the task using model method
+        task.reopen()
+
+        # Add note if reason provided
+        if reason:
+            if task.notes:
+                task.notes += f"\n\n[Reopened: {datetime.now().isoformat()}] {reason}"
+            else:
+                task.notes = f"[Reopened: {datetime.now().isoformat()}] {reason}"
+
+        # Update in file
+        tasks = self._load_tasks()
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                tasks[i] = self._task_to_dict(task)
+                break
+
+        self._save_tasks(tasks)
+
+        return task
+
+    def delete_task(self, task_id: str) -> bool:
+        """
+        Delete a task permanently.
+
+        WARNING: This is destructive and cannot be undone.
+
+        Args:
+            task_id: Task to delete
+
+        Returns:
+            True if task was deleted, False if not found
+
+        Raises:
+            ValueError: If task has dependents (other tasks depend on it)
+        """
+        tasks = self._load_tasks()
+
+        # Check if any task depends on this task
+        for raw_task in tasks:
+            # Skip the task we're trying to delete
+            if raw_task.get("id") == task_id:
+                continue
+
+            # Check dependencies
+            depends_on = raw_task.get("depends_on", [])
+            if task_id in depends_on:
+                raise ValueError(
+                    f"Cannot delete task {task_id}: task {raw_task.get('id')} depends on it"
+                )
+
+        # Find and remove the task
+        task_index = None
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                task_index = i
+                break
+
+        if task_index is None:
+            return False
+
+        # Remove task from list
+        tasks.pop(task_index)
+
+        # Save atomically
+        self._save_tasks(tasks)
+
+        return True
+
+    def add_label(self, task_id: str, label: str) -> Task:
+        """
+        Add a label to a task.
+
+        Args:
+            task_id: Task to add label to
+            label: Label to add
+
+        Returns:
+            Updated task object with new label
+
+        Raises:
+            ValueError: If task not found
+        """
+        # Get the task
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        # Add label using model method
+        task.add_label(label)
+
+        # Update timestamp
+        task.updated_at = datetime.now()
+
+        # Update in file
+        tasks = self._load_tasks()
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                tasks[i] = self._task_to_dict(task)
+                break
+
+        self._save_tasks(tasks)
+
+        return task
+
+    def remove_label(self, task_id: str, label: str) -> Task:
+        """
+        Remove a label from a task.
+
+        Args:
+            task_id: Task to remove label from
+            label: Label to remove
+
+        Returns:
+            Updated task object without the label
+
+        Raises:
+            ValueError: If task not found or label doesn't exist
+        """
+        # Get the task
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        # Check label exists
+        if label not in task.labels:
+            raise ValueError(f"Label '{label}' not found on task {task_id}")
+
+        # Remove label using model method
+        task.remove_label(label)
+
+        # Update timestamp
+        task.updated_at = datetime.now()
+
+        # Update in file
+        tasks = self._load_tasks()
+        for i, raw_task in enumerate(tasks):
+            if raw_task.get("id") == task_id:
+                tasks[i] = self._task_to_dict(task)
+                break
+
+        self._save_tasks(tasks)
+
+        return task
 
     def try_close_epic(self, epic_id: str) -> tuple[bool, str]:
         """
