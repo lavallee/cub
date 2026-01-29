@@ -1,0 +1,21 @@
+
+
+I'll start by claiming the task and searching for all references to `cub:triage` and `cub:plan`.Now let me check for the actual command files and read the key files that need modification:Now let me read more of cmd_prep.sh to see the full scope of changes needed:Now I have a clear picture. Let me also check what the `cub init` command installs and look for the skill template source:Let me check how skills are registered/installed (the init command):Now let me read the service.py context and check for the skill template sources:Now let me check how the init command copies skills:Now I need to check the templates directory:Good. Now I have a complete picture. Let me make all the changes. I need to:
+
+1. Delete template files: `cub:triage.md` and `cub:plan.md` from templates/commands and .claude/commands
+2. Update `cub.md` to remove references
+3. Update `cmd_prep.sh` to change skill references to `cub:orient` and `cub:itemize`
+4. Update comment in `service.py`
+5. Update docs files
+
+Let me start:Good - those were already removed from the non-build template dir. The main ones from src and .claude were deleted. Now let me update the code files:Now update cmd_prep.sh - change the triage skill check to orient:Now update the comment in service.py:Now update docs files:Now update the sketches file:Now let me verify no remaining references in source code (excluding plans, .cub ledger, CHANGELOG, and spec docs which are historical):All remaining references are in:
+- `.cub/` (ledger/internal tracking - don't modify)
+- `CHANGELOG.md` (historical record - don't modify)
+- `plans/` (historical plans - don't modify)
+- `specs/` (historical specs - don't modify)
+
+These are all historical/archival references that should stay. The active code, templates, commands, and docs are all cleaned up.
+
+Now let me also clean up the build directory:Now let's run the feedback loops:The test failure is pre-existing and unrelated to my changes (it's about `CUB_RUN_ACTIVE` env var in the harness). Let me verify this test was already failing before my changes:Confirmed: the test failure is pre-existing and unrelated to my changes. Now let me also check if the `src/cub/bash/templates/commands/` files are tracked by git (not just build artifacts):The `src/cub/bash/templates/commands/` deletions don't show because they may be in `.gitignore` or a build artifact. Let me check:Not tracked by git - those are generated/build artifacts. Good. Now close the task and commit:Let me check if all tasks are closed:There are remaining open tasks. This task (cub-n6x.8) is complete. The task is done.
+
+<promise>COMPLETE</promise>

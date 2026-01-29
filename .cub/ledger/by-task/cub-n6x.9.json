@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-n6x.9",
+  "title": "Add harness and model info to task headline",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-n6x"
+  },
+  "task": {
+    "title": "Add harness and model info to task headline",
+    "description": "The task headline box currently displays only basic task metadata (ID, title, priority, type, iteration), but doesn't show the runtime configuration (harness backend, model) that the iteration will use. This makes it difficult for developers to understand which AI backend and model will be executing their task, especially in contexts where multiple backends are available or when switching between different model configurations. Adding this information to the headline improves visibility into the execution environment and helps catch configuration mismatches early.\n\n**Implementation Steps:**\n1. Identify where the headline box is rendered during task iteration startup (in both `cub run` flow and direct session context)\n2. Extract harness backend and model information from the current run context or task configuration\n3. Modify the headline rendering logic to include harness backend and model as additional display fields\n4. Implement graceful fallback to omit fields when not configured (no \"None\" or empty values displayed)\n5. Test layout with various configuration combinations to ensure readability and prevent excessive line wrapping\n6. Verify the changes work in both `cub run` autonomous mode and direct harness session contexts\n7. Add or update tests to cover headline rendering with different harness/model configurations",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "epic:cub-n6x",
+      "punchlist"
+    ],
+    "created_at": "2026-01-29T01:58:07.313582Z",
+    "captured_at": "2026-01-29T03:04:52.378401Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-020557",
+      "started_at": "2026-01-29T03:04:52.390882",
+      "completed_at": "2026-01-29T03:09:54.340715Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 39,
+        "output_tokens": 8945,
+        "cache_read_tokens": 1177229,
+        "cache_creation_tokens": 28507
+      },
+      "cost_usd": 1.2089113499999997,
+      "duration_seconds": 301
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T03:09:54.613067Z",
+    "total_cost_usd": 1.2089113499999997,
+    "total_attempts": 1,
+    "total_duration_seconds": 301,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "37851f1796f8a04aa8e8dd1a4a913712a07e3d27",
+        "message": "task(cub-n6x.9): Add harness and model info to task headline",
+        "author": "",
+        "timestamp": "2026-01-29T03:09:37Z"
+      }
+    ],
+    "approach": "The task required adding harness and model information to the task headline display. The approach was to: (1) identify where the task info panel is rendered (`display_task_info()` function), (2) trace the data flow to determine where harness and model information is available at render time, and (3) thread these parameters through the call chain from the run loop event handler to the display function, with graceful fallback when values are unconfigured.",
+    "decisions": [
+      "**Parameter threading over global state**: Instead of accessing harness/model info through global state or config lookups in the display function, pass them as explicit parameters through the call chain. This keeps the display function pure and testable.",
+      "**Model resolution at call site**: Resolve the effective model (CLI override > config default > task label) at the `_render_run_event()` call site where `run_config` is available, rather than duplicating resolution logic in the display function.",
+      "**Graceful omission of empty values**: Treat both `None` and empty strings as \"not configured\" and omit those rows from the display. This prevents cluttering the UI with empty fields when a backend or model isn't specified.",
+      "**Minimal parameter additions**: Add only `harness_name` and `model` as optional keyword arguments to `display_task_info()`, keeping the function signature backward-compatible and focused."
+    ],
+    "lessons_learned": [
+      "**Trace data availability early**: Before implementing, identify exactly where in the call chain each piece of data is available (harness name vs. model info). This determines whether to pass parameters or look them up locally.",
+      "**Test parameter combinations**: When adding optional parameters affecting display output, test both the case where values are provided AND where they're absent to ensure graceful degradation and prevent UI clutter.",
+      "**Pre-existing issues won't block progress**: A failing test in an unrelated module (`test_harness_claude_sdk.py` with an env var leak) was identified but didn't block task completion since the actual changes all passed their tests and type checking."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T03:09:54.613067Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T03:04:52.378401Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T03:09:54.613067Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T03:04:52.378401Z",
+  "completed_at": "2026-01-29T03:09:54.613067Z",
+  "tokens": {
+    "input_tokens": 39,
+    "output_tokens": 8945,
+    "cache_read_tokens": 1177229,
+    "cache_creation_tokens": 28507
+  },
+  "cost_usd": 1.2089113499999997,
+  "duration_seconds": 301,
+  "iterations": 1,
+  "approach": "The task required adding harness and model information to the task headline display. The approach was to: (1) identify where the task info panel is rendered (`display_task_info()` function), (2) trace the data flow to determine where harness and model information is available at render time, and (3) thread these parameters through the call chain from the run loop event handler to the display function, with graceful fallback when values are unconfigured.",
+  "decisions": [
+    "**Parameter threading over global state**: Instead of accessing harness/model info through global state or config lookups in the display function, pass them as explicit parameters through the call chain. This keeps the display function pure and testable.",
+    "**Model resolution at call site**: Resolve the effective model (CLI override > config default > task label) at the `_render_run_event()` call site where `run_config` is available, rather than duplicating resolution logic in the display function.",
+    "**Graceful omission of empty values**: Treat both `None` and empty strings as \"not configured\" and omit those rows from the display. This prevents cluttering the UI with empty fields when a backend or model isn't specified.",
+    "**Minimal parameter additions**: Add only `harness_name` and `model` as optional keyword arguments to `display_task_info()`, keeping the function signature backward-compatible and focused."
+  ],
+  "lessons_learned": [
+    "**Trace data availability early**: Before implementing, identify exactly where in the call chain each piece of data is available (harness name vs. model info). This determines whether to pass parameters or look them up locally.",
+    "**Test parameter combinations**: When adding optional parameters affecting display output, test both the case where values are provided AND where they're absent to ensure graceful degradation and prevent UI clutter.",
+    "**Pre-existing issues won't block progress**: A failing test in an unrelated module (`test_harness_claude_sdk.py` with an env var leak) was identified but didn't block task completion since the actual changes all passed their tests and type checking."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "37851f1796f8a04aa8e8dd1a4a913712a07e3d27",
+      "message": "task(cub-n6x.9): Add harness and model info to task headline",
+      "author": "",
+      "timestamp": "2026-01-29T03:09:37Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-n6x.9",
+  "epic_id": "cub-n6x",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

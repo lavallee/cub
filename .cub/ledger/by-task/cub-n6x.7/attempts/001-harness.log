@@ -1,0 +1,11 @@
+
+
+I'll start by claiming the task and exploring the codebase to understand the current implementation.Now I can see the issue clearly. In `PlanPipeline.run()` (line 508), `ctx = self._create_or_load_context()` creates the context but doesn't save `plan.json`. The first `save_plan()` only happens inside the orient stage. I need to add `ctx.save_plan()` right after context creation at line 508.
+
+Let me also check the orient stage to understand where it saves:Good. The orient stage saves plan at lines 484 and 528. Adding `ctx.save_plan()` right after context creation won't cause issues — it just means `plan.json` exists before orient runs, which is exactly what we want. The orient stage saves will update the file with stage progress.
+
+Now let me make the change. I need to add `ctx.save_plan()` after context creation in both `run()` and `run_single_stage()`:Now do the same for `run_single_stage()`:Now let me run the feedback loops:All 45 tests pass. Let me also run typecheck and lint:All checks pass. Now close the task and commit:Let me check if there are remaining open tasks:There are other tasks but they're epics/different work items, not part of my current assignment. My task is complete.
+
+**Summary:** Added `ctx.save_plan()` calls immediately after plan context creation in both `PlanPipeline.run()` and `PlanPipeline.run_single_stage()`. This ensures `plan.json` is persisted to disk before any pipeline stage executes, providing a recovery checkpoint even if the orient stage fails before its own `save_plan()` call. All 45 pipeline tests pass, typecheck and lint are clean.
+
+<promise>COMPLETE</promise>

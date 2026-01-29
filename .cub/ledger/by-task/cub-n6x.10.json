@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "id": "cub-n6x.10",
+  "title": "Add newlines between streamed harness messages",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-n6x"
+  },
+  "task": {
+    "title": "Add newlines between streamed harness messages",
+    "description": "When `cub run --stream` outputs AI harness messages, consecutive messages are concatenated without visual separation, making the output difficult to read and follow. Adding newlines between each streamed message improves readability and creates a cleaner user experience across all harness backends.\n\n**Implementation Steps:**\n1. Locate the stream message output handling in the run loop (likely in `cub.core.run` or `cub.cli.run`)\n2. Identify where harness messages are printed/streamed to stdout\n3. Add a newline character after each complete message is output\n4. Ensure the newline only appears between messages, not duplicated at message start/end\n5. Test with `cub run --stream` to verify output formatting with multiple consecutive messages\n6. Verify non-stream output remains unchanged and unaffected by the change\n7. Test with multiple harness backends (claude, codex, gemini) to ensure consistency",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "epic:cub-n6x",
+      "punchlist"
+    ],
+    "created_at": "2026-01-29T01:58:07.313625Z",
+    "captured_at": "2026-01-29T03:10:07.614891Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-020557",
+      "started_at": "2026-01-29T03:10:07.623833",
+      "completed_at": "2026-01-29T03:16:07.258359Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 29,
+        "output_tokens": 5250,
+        "cache_read_tokens": 784004,
+        "cache_creation_tokens": 24509
+      },
+      "cost_usd": 1.0607359999999995,
+      "duration_seconds": 359
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T03:16:07.549050Z",
+    "total_cost_usd": 1.0607359999999995,
+    "total_attempts": 1,
+    "total_duration_seconds": 359,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "552d910cb798d71ba4dd4924ee73a4ba52159d29",
+        "message": "task(cub-n6x.10): Add newlines between streamed harness messages",
+        "author": "",
+        "timestamp": "2026-01-29T03:15:50Z"
+      }
+    ],
+    "approach": "Located the streaming output handling in both the core run loop (`_harness.py`) and CLI layer (`run.py`). Identified that consecutive `AssistantMessage` objects from the Claude SDK harness were being yielded as text chunks without visual separation. Added a newline counter to insert newlines between consecutive messages in the streaming loop, maintaining consistent behavior across all harness backends.",
+    "decisions": [
+      "Added a `message_count` counter to track which message is being output, inserting newlines only between consecutive messages (not before the first or after the last) to avoid extra whitespace",
+      "Applied the same fix pattern in both `_harness.py` (core) and `cli/run.py` (CLI interface) to maintain consistency across code paths",
+      "Used the existing callback mechanism (`_stream_callback(\"\\n\")`) in the CLI version rather than direct `sys.stdout.write()` to respect the CLI's abstraction layer",
+      "Verified the fix did not require changes to individual harness backends\u2014the separation logic belongs in the streaming output layer, not in backend implementations"
+    ],
+    "lessons_learned": [
+      "Streaming output handling exists in multiple code locations (core and CLI) and must be kept in sync to prevent behavior divergence",
+      "The Claude SDK backend yields individual `AssistantMessage` objects as separate chunks, while other backends (codex, claude_cli) may yield a single chunk; the streaming layer must handle both patterns gracefully",
+      "Pre-existing environmental test failures can make it difficult to establish a clean test baseline; running focused tests on changed modules is more reliable than the full suite when environment is not pristine",
+      "When adding output formatting to streaming loops, use counters to distinguish the first/last items rather than adding separators everywhere, avoiding unnecessary trailing whitespace"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T03:16:07.549050Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T03:10:07.614891Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T03:16:07.549050Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T03:10:07.614891Z",
+  "completed_at": "2026-01-29T03:16:07.549050Z",
+  "tokens": {
+    "input_tokens": 29,
+    "output_tokens": 5250,
+    "cache_read_tokens": 784004,
+    "cache_creation_tokens": 24509
+  },
+  "cost_usd": 1.0607359999999995,
+  "duration_seconds": 359,
+  "iterations": 1,
+  "approach": "Located the streaming output handling in both the core run loop (`_harness.py`) and CLI layer (`run.py`). Identified that consecutive `AssistantMessage` objects from the Claude SDK harness were being yielded as text chunks without visual separation. Added a newline counter to insert newlines between consecutive messages in the streaming loop, maintaining consistent behavior across all harness backends.",
+  "decisions": [
+    "Added a `message_count` counter to track which message is being output, inserting newlines only between consecutive messages (not before the first or after the last) to avoid extra whitespace",
+    "Applied the same fix pattern in both `_harness.py` (core) and `cli/run.py` (CLI interface) to maintain consistency across code paths",
+    "Used the existing callback mechanism (`_stream_callback(\"\\n\")`) in the CLI version rather than direct `sys.stdout.write()` to respect the CLI's abstraction layer",
+    "Verified the fix did not require changes to individual harness backends\u2014the separation logic belongs in the streaming output layer, not in backend implementations"
+  ],
+  "lessons_learned": [
+    "Streaming output handling exists in multiple code locations (core and CLI) and must be kept in sync to prevent behavior divergence",
+    "The Claude SDK backend yields individual `AssistantMessage` objects as separate chunks, while other backends (codex, claude_cli) may yield a single chunk; the streaming layer must handle both patterns gracefully",
+    "Pre-existing environmental test failures can make it difficult to establish a clean test baseline; running focused tests on changed modules is more reliable than the full suite when environment is not pristine",
+    "When adding output formatting to streaming loops, use counters to distinguish the first/last items rather than adding separators everywhere, avoiding unnecessary trailing whitespace"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "552d910cb798d71ba4dd4924ee73a4ba52159d29",
+      "message": "task(cub-n6x.10): Add newlines between streamed harness messages",
+      "author": "",
+      "timestamp": "2026-01-29T03:15:50Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-n6x.10",
+  "epic_id": "cub-n6x",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
