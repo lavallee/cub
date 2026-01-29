@@ -7,6 +7,7 @@ and _show_runs helper functions.
 
 import json
 import os
+import time
 from datetime import datetime
 
 from cub.cli.monitor import _find_active_run, _show_runs
@@ -91,8 +92,10 @@ class TestFindActiveRun:
             json.dumps({"run_id": "new-run", "phase": "completed"})
         )
 
-        # Touch new-run to make it most recent
-        os.utime(run2_dir / "status.json", None)
+        # Set old-run to an explicitly older mtime to ensure deterministic ordering
+        now = time.time()
+        os.utime(run1_dir / "status.json", (now - 10, now - 10))
+        os.utime(run2_dir / "status.json", (now, now))
 
         result = _find_active_run(tmp_path)
         assert result is not None
