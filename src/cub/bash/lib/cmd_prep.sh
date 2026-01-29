@@ -366,9 +366,9 @@ cmd_triage() {
     done
 
     if [[ "$non_interactive" == "false" ]]; then
-        # Check that triage skill is installed
-        if [[ ! -f ".claude/commands/cub:triage.md" ]]; then
-            _log_error_console "Triage skill not installed."
+        # Check that orient skill is installed
+        if [[ ! -f ".claude/commands/cub:orient.md" ]]; then
+            _log_error_console "Orient skill not installed."
             _log_error_console "Run 'cub init' to install Claude Code skills."
             return 1
         fi
@@ -416,7 +416,7 @@ cmd_triage() {
         _claude_prompt_to_file "You are Cub's prep assistant.\n\nYou will produce a TRIAGE document from a raw vision input.\n\nRules:\n- Make best-effort assumptions when details are missing.\n- If you are blocked on critical missing info, add a section '## Needs Human Input' with 1-5 specific questions.\n- Output MUST be valid Markdown. Do not wrap in code fences.\n- Output ONLY the document content (no preamble, no permission requests).\n\nOutput a triage document with these sections:\n- ## Summary\n- ## Goals\n- ## Non-Goals\n- ## Requirements\n- ## Constraints\n- ## Risks\n- ## Open Questions\n- ## Needs Human Input (only if blocked)\n\nVISION INPUT:\n---\n${vision}\n---\n" "$output_file"
     else
         # Run claude with the /triage skill
-        claude --dangerously-skip-permissions "/cub:triage ${output_file}"
+        claude --dangerously-skip-permissions "/cub:orient ${output_file}"
     fi
 
     # Check if output was created
@@ -669,9 +669,9 @@ cmd_plan() {
     done
 
     if [[ "$non_interactive" == "false" ]]; then
-        # Check that plan skill is installed
-        if [[ ! -f ".claude/commands/cub:plan.md" ]]; then
-            _log_error_console "Plan skill not installed."
+        # Check that itemize skill is installed
+        if [[ ! -f ".claude/commands/cub:itemize.md" ]]; then
+            _log_error_console "Itemize skill not installed."
             _log_error_console "Run 'cub init' to install Claude Code skills."
             return 1
         fi
@@ -958,7 +958,7 @@ PY
         fi
     else
         # Run claude with the /plan skill (outputs plan.md)
-        claude --dangerously-skip-permissions "/cub:plan ${session_dir}"
+        claude --dangerously-skip-permissions "/cub:itemize ${session_dir}"
 
         # Convert the markdown plan to beads JSONL
         if [[ -f "$md_file" ]]; then
@@ -1816,9 +1816,9 @@ incomplete stage. After you exit Claude, prep shows your progress
 and the next step.
 
 Stages:
-  1. Triage    - Interactive requirements refinement (/cub:triage)
+  1. Orient    - Interactive requirements refinement (/cub:orient)
   2. Architect - Interactive technical design (/cub:architect)
-  3. Plan      - Interactive task decomposition (/cub:plan)
+  3. Itemize   - Interactive task decomposition (/cub:itemize)
   4. Bootstrap - Initialize beads and import tasks (shell)
 
 Arguments:

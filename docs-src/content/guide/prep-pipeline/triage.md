@@ -201,7 +201,7 @@ $ cub triage
 Starting new triage session: myproject-20260117-143022
 Starting triage interview...
 
-[Claude Code launches with /cub:triage skill]
+[Claude Code launches with /cub:orient skill]
 
 Triage Agent: I found VISION.md in your project root.
 Let me ask a few questions to refine the requirements...

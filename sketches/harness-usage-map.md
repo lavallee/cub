@@ -96,9 +96,9 @@ These scripts call `claude ...` directly rather than using `harness_invoke...`:
 - `src/cub/bash/lib/cmd_prep.sh`
   - Has `_claude_prompt_to_file()` that runs `claude -p ...` (with TTY workaround)
   - Invokes slash commands directly, e.g.:
-    - `claude --dangerously-skip-permissions "/cub:triage ..."`
+    - `claude --dangerously-skip-permissions "/cub:orient ..."`
     - `claude --dangerously-skip-permissions "/cub:architect ..."`
-    - `claude --dangerously-skip-permissions "/cub:plan ..."`
+    - `claude --dangerously-skip-permissions "/cub:itemize ..."`
 
 - `src/cub/bash/lib/cmd_interview.sh`
   - Directly calls `claude --print --model sonnet ...` (based on grep hits)

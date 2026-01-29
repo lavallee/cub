@@ -82,7 +82,7 @@ class TaskCreationRequest:
         """
         Build a well-structured task description.
 
-        Follows the template from cub:plan for consistency.
+        Follows the template from cub:itemize for consistency.
         """
         parts: list[str] = []
 
