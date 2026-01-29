@@ -516,6 +516,9 @@ class PlanPipeline:
                 completed_at=datetime.now(timezone.utc),
             )
 
+        # Persist plan.json immediately so a checkpoint exists before any stage runs
+        ctx.save_plan()
+
         # Run orient stage
         if self._should_run_stage(ctx, PlanStage.ORIENT):
             stage_started = datetime.now(timezone.utc)
@@ -673,6 +676,9 @@ class PlanPipeline:
                 started_at=started_at,
                 completed_at=datetime.now(timezone.utc),
             )
+
+        # Persist plan.json immediately so a checkpoint exists before any stage runs
+        ctx.save_plan()
 
         # Run the requested stage
         stage_started = datetime.now(timezone.utc)
