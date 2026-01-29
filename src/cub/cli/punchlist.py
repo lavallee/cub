@@ -1,21 +1,23 @@
 """
 Cub CLI - Punchlist command.
 
-Process punchlist markdown files into epics with child tasks.
-Punchlists contain small bugs/features separated by em-dash delimiters.
+Process punchlist markdown files into itemized-plan.md files
+suitable for staging with `cub stage`.
 """
 
+import sys
 from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from cub.core.hydrate.models import HydrationResult, HydrationStatus
 from cub.core.punchlist import parse_punchlist, process_punchlist
-from cub.core.punchlist.models import HydratedItem, PunchlistResult
+from cub.core.punchlist.models import PunchlistResult
 
 console = Console()
-app = typer.Typer(help="Process punchlist files into epics with tasks")
+app = typer.Typer(help="Process punchlist files into itemized plans")
 
 # Default directory for punchlists
 DEFAULT_PUNCHLIST_DIR = Path("plans/_punchlists")
@@ -46,18 +48,30 @@ def punchlist(
         False,
         "--dry-run",
         "-n",
-        help="Show what would be created without creating tasks",
+        help="Show what would be generated without writing files",
     ),
-    no_write_back: bool = typer.Option(
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Custom output path for the plan file",
+    ),
+    stream: bool = typer.Option(
         False,
-        "--no-write-back",
-        help="Don't update the punchlist file with structured format",
+        "--stream",
+        "-s",
+        help="Stream Claude's output in real-time",
+    ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        help="Show debug information (prompts, raw responses)",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
         "-v",
-        help="Show detailed progress during processing",
+        help="Show full raw text before each item",
     ),
     list_files: bool = typer.Option(
         False,
@@ -66,21 +80,25 @@ def punchlist(
     ),
 ) -> None:
     """
-    Process a punchlist into an epic with child tasks.
+    Process a punchlist into an itemized plan.
 
     Punchlists are markdown files with items separated by em-dash
-    delimiters (—— or --). Each item becomes a task under a single epic.
+    delimiters (-- or --). Each item is hydrated with Claude and
+    written to an itemized-plan.md file for staging.
 
     Examples:
 
         # Process a punchlist
         cub punchlist plans/_punchlists/v0.27.0-bugs.md
 
-        # With custom epic title
-        cub punchlist bugs.md --epic-title "Sprint 12 Bugs"
-
-        # Dry run to preview
+        # Preview without writing
         cub punchlist bugs.md --dry-run
+
+        # Stream Claude's output
+        cub punchlist bugs.md --stream
+
+        # Custom output path
+        cub punchlist bugs.md -o plans/my-feature/itemized-plan.md
 
         # List available punchlists
         cub punchlist --list
@@ -113,7 +131,7 @@ def punchlist(
 
     if not items:
         console.print(f"[yellow]Warning:[/yellow] No items found in {file}")
-        console.print("\nPunchlist items should be separated by em-dash lines (—— or --)")
+        console.print("\nPunchlist items should be separated by em-dash lines (-- or --)")
         raise typer.Exit(1)
 
     console.print(f"Processing: [bold]{file}[/bold]")
@@ -128,10 +146,27 @@ def punchlist(
             console.print(f"  {i}. {preview}")
         console.print()
 
-    # Progress callback for hydration
-    def on_hydrated(current: int, total: int, hydrated: HydratedItem) -> None:
+    # Progress callbacks (always active)
+    def on_start(index: int, total: int, source_text: str) -> None:
+        preview = source_text[:50].replace("\n", " ")
+        if len(source_text) > 50:
+            preview += "..."
+        console.print(f"  [{index + 1}/{total}] Hydrating: {preview}")
         if verbose:
-            console.print(f'  [{current + 1}/{total}] "{hydrated.title}"')
+            console.print(f"  [dim]{source_text}[/dim]")
+
+    def on_complete(index: int, total: int, result: HydrationResult) -> None:
+        status_label = "OK" if result.status == HydrationStatus.SUCCESS else "fallback"
+        console.print(f'  [{index + 1}/{total}] {status_label} "{result.title}"')
+
+    # Stream callback
+    def on_stream(line: str) -> None:
+        sys.stdout.write(line)
+        sys.stdout.flush()
+
+    # Debug callback
+    def on_debug(msg: str) -> None:
+        console.print(f"[dim]{msg}[/dim]")
 
     console.print("\nHydrating items with Claude...")
 
@@ -142,8 +177,13 @@ def punchlist(
             epic_title=epic_title,
             labels=labels or [],
             dry_run=dry_run,
-            write_back=not no_write_back,
-            on_item_hydrated=on_hydrated if verbose else None,
+            output=output,
+            stream=stream,
+            debug=debug,
+            stream_callback=on_stream if stream else None,
+            debug_callback=on_debug if debug else None,
+            on_start=on_start,
+            on_complete=on_complete,
         )
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
@@ -152,24 +192,19 @@ def punchlist(
     # Show results
     console.print()
     if dry_run:
-        console.print("[yellow]Dry run - no tasks created[/yellow]\n")
+        console.print("[yellow]Dry run - no files written[/yellow]\n")
         _show_dry_run_result(result)
     else:
         _show_result(result)
 
-    # Suggest next steps
-    if not dry_run:
-        console.print(f"\nNext: [bold]cub run --epic {result.epic.id}[/bold]")
-
 
 def _list_punchlists() -> None:
     """List available punchlist files."""
-    # Check default directory
     punchlist_dir = DEFAULT_PUNCHLIST_DIR
 
     if not punchlist_dir.exists():
         console.print(f"[yellow]No punchlist directory found:[/yellow] {punchlist_dir}")
-        console.print("\nCreate the directory and add .md files with items separated by ——")
+        console.print("\nCreate the directory and add .md files with items separated by --")
         return
 
     # Find all markdown files
@@ -177,7 +212,7 @@ def _list_punchlists() -> None:
 
     if not files:
         console.print(f"[yellow]No punchlist files found in:[/yellow] {punchlist_dir}")
-        console.print("\nAdd .md files with items separated by —— (em-dash)")
+        console.print("\nAdd .md files with items separated by -- (em-dash)")
         return
 
     table = Table(
@@ -190,14 +225,12 @@ def _list_punchlists() -> None:
     table.add_column("Size")
 
     for f in files:
-        # Count items
         try:
             items = parse_punchlist(f)
             item_count = str(len(items))
         except Exception:
             item_count = "[dim]?[/dim]"
 
-        # File size
         size = f.stat().st_size
         if size < 1024:
             size_str = f"{size} B"
@@ -212,9 +245,10 @@ def _list_punchlists() -> None:
 
 def _show_dry_run_result(result: PunchlistResult) -> None:
     """Display dry run results."""
-    console.print(f"[bold]Epic:[/bold] {result.epic.title}")
+    console.print(f"[bold]Epic:[/bold] {result.epic_title}")
     stem = result.source_file.stem if result.source_file else "unknown"
     console.print(f"[dim]Labels:[/dim] punchlist, punchlist:{stem}")
+    console.print(f"[dim]Output would be:[/dim] {result.output_file}")
     console.print()
 
     table = Table(
@@ -224,20 +258,27 @@ def _show_dry_run_result(result: PunchlistResult) -> None:
     )
     table.add_column("#", justify="right", width=3)
     table.add_column("Title", overflow="fold")
+    table.add_column("Status", width=8)
 
-    for i, task in enumerate(result.tasks, 1):
-        table.add_row(str(i), task.title)
+    for i, item in enumerate(result.items, 1):
+        is_ok = item.status == HydrationStatus.SUCCESS
+        status_str = "[green]OK[/green]" if is_ok else "[yellow]fallback[/yellow]"
+        table.add_row(str(i), item.title, status_str)
 
     console.print(table)
 
 
 def _show_result(result: PunchlistResult) -> None:
     """Display processing results."""
-    console.print("[green]Created:[/green]")
-    epic_info = f"[bold]{result.epic.id}[/bold] ({result.epic.title})"
-    console.print(f"  Epic: {epic_info} - {result.task_count} tasks")
+    console.print("[green]Generated:[/green]")
+    console.print(f"  Epic: [bold]{result.epic_title}[/bold] - {result.task_count} tasks")
+    console.print(f"  Plan: [bold]{result.output_file}[/bold]")
 
     if result.task_count <= 10:
         console.print("\n[dim]Tasks:[/dim]")
-        for task in result.tasks:
-            console.print(f"  • {task.id}: {task.title}")
+        for i, item in enumerate(result.items, 1):
+            status_icon = "+" if item.status == HydrationStatus.SUCCESS else "~"
+            console.print(f"  {status_icon} {item.title}")
+
+    # Suggest next steps
+    console.print(f"\nNext: [bold]cub stage {result.output_file}[/bold]")

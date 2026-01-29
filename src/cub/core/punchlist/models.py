@@ -2,13 +2,13 @@
 Data models for punchlist processing.
 
 Defines the core dataclasses used throughout the punchlist pipeline:
-parsing, hydration, and task creation.
+parsing, hydration, and plan generation.
 """
 
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from cub.core.tasks.models import Task
+from cub.core.hydrate.models import HydrationResult
 
 
 @dataclass
@@ -27,23 +27,8 @@ class PunchlistItem:
     """Zero-based index of the item in the punchlist."""
 
 
-@dataclass
-class HydratedItem:
-    """
-    A punchlist item after hydration with Claude.
-
-    Contains the AI-generated title and description that will be
-    used to create the actual task.
-    """
-
-    title: str
-    """Concise task title (50 chars max, imperative mood)."""
-
-    description: str
-    """Detailed description with context and acceptance criteria."""
-
-    raw_item: PunchlistItem
-    """Reference to the original raw item."""
+# Keep HydratedItem as a thin alias for backwards compatibility
+HydratedItem = HydrationResult
 
 
 @dataclass
@@ -51,20 +36,22 @@ class PunchlistResult:
     """
     Result of processing a punchlist file.
 
-    Contains the created epic and all child tasks, along with
-    metadata about the processing.
+    Contains the hydration results and output file path.
     """
 
-    epic: Task
-    """The created epic task."""
+    epic_title: str
+    """Title of the generated epic."""
 
-    tasks: list[Task] = field(default_factory=list)
-    """List of child tasks created under the epic."""
+    items: list[HydrationResult] = field(default_factory=list)
+    """List of hydrated items."""
 
     source_file: Path | None = None
     """Path to the original punchlist file."""
 
+    output_file: Path | None = None
+    """Path to the generated itemized-plan.md file."""
+
     @property
     def task_count(self) -> int:
-        """Number of tasks created."""
-        return len(self.tasks)
+        """Number of tasks generated."""
+        return len(self.items)
