@@ -300,6 +300,9 @@ class BeadsBackend:
         assignee: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        title: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -310,6 +313,9 @@ class BeadsBackend:
             assignee: New assignee
             description: New description
             labels: New labels list
+            title: New title
+            priority: New priority (0-4, where 0 is highest)
+            notes: New notes/comments
 
         Returns:
             Updated task object
@@ -328,6 +334,12 @@ class BeadsBackend:
         if labels:
             # bd update expects labels as comma-separated string
             args.extend(["--labels", ",".join(labels)])
+        if title:
+            args.extend(["--title", title])
+        if priority is not None:
+            args.extend(["--priority", str(priority)])
+        if notes:
+            args.extend(["--notes", notes])
 
         try:
             # bd update doesn't return JSON, so we need to fetch the updated task

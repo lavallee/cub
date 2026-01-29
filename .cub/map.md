@@ -1,6 +1,6 @@
-# Project Map: cub
+# Project Map: cub_sat
 
-**Project Directory:** `/home/lavallee/clawdbot/cub`
+**Project Directory:** `/Users/lavallee/Experiments/cub_sat`
 
 ## Tech Stacks
 
@@ -23,7 +23,7 @@
 
 ## Directory Structure
 
-└── cub/
+└── cub_sat/
     ├── .beads/
     │   ├── export-state/
     │   │   ├── 1e122c54fe76f139.json
@@ -31,37 +31,46 @@
     │   ├── .gitignore
     │   ├── .local_version
     │   ├── README.md
-    │   ├── bd.sock
     │   ├── beads.db
     │   ├── beads.db-shm
     │   ├── beads.db-wal
-    │   ├── beads.left.jsonl
-    │   ├── beads.left.meta.json
     │   ├── branches.yaml
     │   ├── config.yaml
+    │   ├── daemon-error
     │   ├── daemon.lock
     │   ├── daemon.log
-    │   ├── daemon.pid
     │   ├── interactions.jsonl
     │   ├── issues.jsonl
     │   ├── last-touched
-    │   ├── metadata.json
-    │   └── sync-state.json
+    │   └── metadata.json
     ├── .claude/
     │   ├── commands/
     │   │   ├── cub.md
     │   │   ├── cub:architect.md
+    │   │   ├── cub:audit.md
     │   │   ├── cub:capture.md
+    │   │   ├── cub:doctor.md
     │   │   ├── cub:itemize.md
+    │   │   ├── cub:ledger.md
     │   │   ├── cub:orient.md
+    │   │   ├── cub:plan.md
+    │   │   ├── cub:run.md
     │   │   ├── cub:spec-to-issues.md
-    │   │   └── cub:spec.md
-    │   └── settings.json
+    │   │   ├── cub:spec.md
+    │   │   ├── cub:status.md
+    │   │   ├── cub:suggest.md
+    │   │   ├── cub:tasks.md
+    │   │   └── cub:triage.md
+    │   ├── settings.json
+    │   └── settings.local.json
     ├── .cub/
     │   ├── cache/
     │   │   └── code_intel/
     │   │       ├── 68/
-    │   │       └── cache.db
+    │   │       ├── a1/
+    │   │       ├── cache.db
+    │   │       ├── cache.db-shm
+    │   │       └── cache.db-wal
     │   ├── docs/
     │   │   ├── claude-code-hooks.md
     │   │   └── run-exit-paths.md
@@ -171,16 +180,7 @@
     │   │   │   ├── cub-m3k.5/
     │   │   │   ├── cub-m3k.6/
     │   │   │   ├── cub-m3k.7/
-    │   │   │   ├── cub-n6x.1/
-    │   │   │   ├── cub-n6x.10/
-    │   │   │   ├── cub-n6x.2/
-    │   │   │   ├── cub-n6x.3/
-    │   │   │   ├── cub-n6x.4/
-    │   │   │   ├── cub-n6x.5/
-    │   │   │   ├── cub-n6x.6/
-    │   │   │   ├── cub-n6x.7/
-    │   │   │   ├── cub-n6x.8/
-    │   │   │   ├── cub-n6x.9/
+    │   │   │   ├── cub-p1t.1/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -314,6 +314,10 @@
     │   │   │   ├── cub-j1a.1.json
     │   │   │   ├── cub-j1a.2.json
     │   │   │   ├── cub-j1a.3.json
+    │   │   │   ├── cub-j1a.4.json
+    │   │   │   ├── cub-j1a.5.json
+    │   │   │   ├── cub-j1b.1.json
+    │   │   │   ├── cub-j1b.2.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -417,19 +421,19 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/audit/models.py
 
-- **AuditReport** (def, line 120, score: 0.0025)
-- **CategoryScore** (def, line 112, score: 0.0025)
-- **CodeBlockFinding** (def, line 73, score: 0.0025)
-- **DeadCodeFinding** (def, line 17, score: 0.0025)
-- **DeadCodeReport** (def, line 34, score: 0.0025)
-- **DocsReport** (def, line 85, score: 0.0025)
-- **LinkFinding** (def, line 59, score: 0.0025)
-- **findings_by_kind** (def, line 51, score: 0.0025)
-- **has_failures** (def, line 161, score: 0.0025)
-- **has_findings** (def, line 99, score: 0.0025)
-- **has_findings** (def, line 46, score: 0.0025)
-- **total_issues** (def, line 104, score: 0.0025)
-- **total_issues** (def, line 151, score: 0.0025)
+- **AuditReport** (def, line 120, score: 0.0026)
+- **CategoryScore** (def, line 112, score: 0.0026)
+- **CodeBlockFinding** (def, line 73, score: 0.0026)
+- **DeadCodeFinding** (def, line 17, score: 0.0026)
+- **DeadCodeReport** (def, line 34, score: 0.0026)
+- **DocsReport** (def, line 85, score: 0.0026)
+- **LinkFinding** (def, line 59, score: 0.0026)
+- **findings_by_kind** (def, line 51, score: 0.0026)
+- **has_failures** (def, line 161, score: 0.0026)
+- **has_findings** (def, line 46, score: 0.0026)
+- **has_findings** (def, line 99, score: 0.0026)
+- **total_issues** (def, line 151, score: 0.0026)
+- **total_issues** (def, line 104, score: 0.0026)
 
 ### src/cub/cli/__init__.py
 

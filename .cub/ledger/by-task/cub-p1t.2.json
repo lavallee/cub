@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "cub-p1t.2",
+  "title": "Implement new protocol methods in BeadsBackend",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p1t"
+  },
+  "task": {
+    "title": "Implement new protocol methods in BeadsBackend",
+    "description": "BeadsBackend wraps the `bd` CLI. Each new protocol method needs a corresponding `bd` command wrapper. Follow the existing `_run_bd` pattern \u2014 bd commands that don't return JSON need a follow-up `get_task()` call.\n\n**Implementation Steps:**\n1. `add_dependency(task_id, depends_on)` \u2014 run `bd dep add <task_id> <depends_on>`, then `get_task(task_id)`\n2. `remove_dependency(task_id, depends_on)` \u2014 run `bd dep remove <task_id> <depends_on>`, then `get_task(task_id)`\n3. `list_blocked_tasks(parent?)` \u2014 run `bd blocked --json` (or `bd list --status open --json` and filter), parse JSON output\n4. `reopen_task(task_id)` \u2014 run `bd update <id> --status open`, then `get_task(task_id)`\n5. `delete_task(task_id)` \u2014 run `bd delete <id>`, return True on success\n6. `add_label(task_id, label)` \u2014 run `bd label add <id> <label>`, then `get_task(task_id)`\n7. `remove_label(task_id, label)` \u2014 run `bd label remove <id> <label>`, then `get_task(task_id)`\n8. Extend `update_task` to pass `--title`, `--priority`, `--notes` flags when provided\n9. Update `get_task_counts` to include blocked count\n\n**Files:** src/cub/core/tasks/beads.py, tests/test_beads_backend.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-p1t",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-29T16:45:10.094128Z",
+    "captured_at": "2026-01-29T17:05:38.579616Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-115503",
+      "started_at": "2026-01-29T12:05:38.585501",
+      "completed_at": "2026-01-29T17:20:09.261342Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": false,
+      "error_category": "harness_failure",
+      "error_summary": "[Errno 32] Broken pipe",
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 0
+    }
+  ],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T17:05:38.579616Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T17:05:38.579616Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-29T17:05:38.579616Z",
+  "completed_at": "2026-01-29T17:05:38.579616Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p1t.2",
+  "epic_id": "cub-p1t",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

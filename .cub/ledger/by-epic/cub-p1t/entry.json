@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-p1t",
+  "title": "cub-p1t",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-p1t",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T17:05:15.909805Z",
+    "captured_at": "2026-01-29T17:05:15.909805Z"
+  },
+  "task_ids": [
+    "cub-p1t.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.78856175,
+    "avg_cost_per_task": 0.78856175,
+    "min_cost_usd": 0.78856175,
+    "max_cost_usd": 0.78856175,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 63720,
+    "avg_tokens_per_task": 63720,
+    "total_duration_seconds": 544,
+    "avg_duration_seconds": 544,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T17:05:15.948109Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T16:55:34.569058Z",
+  "completed_at": "2026-01-29T17:05:05.201135Z",
+  "updated_at": "2026-01-29T17:05:15.948116Z",
+  "first_commit": {
+    "hash": "5ed432568000f37acb5c6bf35efffe1042cbe5f9",
+    "message": "task(cub-p1t.1): Extend TaskBackend protocol with 7 new methods",
+    "author": "",
+    "timestamp": "2026-01-29T17:04:10Z"
+  },
+  "last_commit": {
+    "hash": "5ed432568000f37acb5c6bf35efffe1042cbe5f9",
+    "message": "task(cub-p1t.1): Extend TaskBackend protocol with 7 new methods",
+    "author": "",
+    "timestamp": "2026-01-29T17:04:10Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
