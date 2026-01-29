@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .backend import TaskBackend, register_backend
+from .backend import TaskBackend, TaskBackendDefaults, register_backend
 from .models import Task, TaskCounts, TaskStatus
 
 logger = logging.getLogger(__name__)
@@ -71,8 +71,8 @@ class TaskDivergence:
         return str(obj)
 
 
-@register_backend("both")
-class BothBackend:
+@register_backend("both")  # type: ignore[arg-type]
+class BothBackend(TaskBackendDefaults):
     """
     Backend wrapper that delegates to two backends (primary and secondary).
 
@@ -83,6 +83,11 @@ class BothBackend:
 
     The primary backend is typically the production/trusted backend (e.g., beads),
     while the secondary backend is the one being validated (e.g., jsonl).
+
+    Note: This class inherits from TaskBackendDefaults to provide default
+    implementations for methods like add_label, remove_label, etc. These
+    defaults will use the delegated methods (get_task, update_task, etc.)
+    which are already implemented to compare both backends.
 
     Example:
         >>> from .beads import BeadsBackend
@@ -773,3 +778,280 @@ class BothBackend:
         except Exception as e:
             logger.warning(f"Failed to read divergence log: {e}")
             return 0
+
+    def add_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Add a dependency to a task.
+
+        Delegates to both backends and compares results.
+
+        Args:
+            task_id: Task to add dependency to
+            depends_on_id: Task ID that must be completed first
+
+        Returns:
+            Updated task from primary backend
+
+        Raises:
+            ValueError: If either task not found or dependency would create a cycle
+        """
+        primary_result = self.primary.add_dependency(task_id, depends_on_id)
+
+        try:
+            secondary_result = self.secondary.add_dependency(task_id, depends_on_id)
+
+            # Compare results
+            diff = self._compare_tasks(primary_result, secondary_result)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="add_dependency",
+                    task_id=task_id,
+                    primary_result=primary_result,
+                    secondary_result=secondary_result,
+                    difference_summary=diff,
+                )
+                self._log_divergence(divergence)
+                logger.warning(
+                    f"Backend divergence detected in add_dependency"
+                    f"({task_id}, {depends_on_id}): {diff}"
+                )
+        except Exception as e:
+            logger.warning(f"Secondary backend add_dependency failed: {e}")
+
+        return primary_result
+
+    def remove_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Remove a dependency from a task.
+
+        Delegates to both backends and compares results.
+
+        Args:
+            task_id: Task to remove dependency from
+            depends_on_id: Task ID to remove from dependencies
+
+        Returns:
+            Updated task from primary backend
+
+        Raises:
+            ValueError: If task not found or dependency doesn't exist
+        """
+        primary_result = self.primary.remove_dependency(task_id, depends_on_id)
+
+        try:
+            secondary_result = self.secondary.remove_dependency(task_id, depends_on_id)
+
+            # Compare results
+            diff = self._compare_tasks(primary_result, secondary_result)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="remove_dependency",
+                    task_id=task_id,
+                    primary_result=primary_result,
+                    secondary_result=secondary_result,
+                    difference_summary=diff,
+                )
+                self._log_divergence(divergence)
+                logger.warning(
+                    f"Backend divergence detected in remove_dependency"
+                    f"({task_id}, {depends_on_id}): {diff}"
+                )
+        except Exception as e:
+            logger.warning(f"Secondary backend remove_dependency failed: {e}")
+
+        return primary_result
+
+    def list_blocked_tasks(
+        self,
+        parent: str | None = None,
+        label: str | None = None,
+    ) -> list[Task]:
+        """
+        List all blocked tasks.
+
+        Delegates to both backends and compares results.
+
+        A task is blocked if:
+        - Status is OPEN
+        - Has at least one dependency that is not CLOSED
+
+        Args:
+            parent: Filter by parent epic/task ID
+            label: Filter by label
+
+        Returns:
+            List of blocked tasks from primary backend
+        """
+        primary_result = self.primary.list_blocked_tasks(parent=parent, label=label)
+        secondary_result = self.secondary.list_blocked_tasks(parent=parent, label=label)
+
+        # Compare results
+        diff = self._compare_task_lists(primary_result, secondary_result)
+        if diff:
+            divergence = TaskDivergence(
+                timestamp=datetime.now(),
+                operation="list_blocked_tasks",
+                task_id=None,
+                primary_result=primary_result,
+                secondary_result=secondary_result,
+                difference_summary=diff,
+            )
+            self._log_divergence(divergence)
+            logger.warning(f"Backend divergence detected in list_blocked_tasks: {diff}")
+
+        return primary_result
+
+    def reopen_task(self, task_id: str, reason: str | None = None) -> Task:
+        """
+        Reopen a closed task.
+
+        Delegates to both backends and compares results.
+
+        Args:
+            task_id: Task to reopen
+            reason: Optional reason for reopening
+
+        Returns:
+            Reopened task from primary backend
+
+        Raises:
+            ValueError: If task not found or not closed
+        """
+        primary_result = self.primary.reopen_task(task_id, reason=reason)
+
+        try:
+            secondary_result = self.secondary.reopen_task(task_id, reason=reason)
+
+            # Compare results
+            diff = self._compare_tasks(primary_result, secondary_result)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="reopen_task",
+                    task_id=task_id,
+                    primary_result=primary_result,
+                    secondary_result=secondary_result,
+                    difference_summary=diff,
+                )
+                self._log_divergence(divergence)
+                logger.warning(f"Backend divergence detected in reopen_task({task_id}): {diff}")
+        except Exception as e:
+            logger.warning(f"Secondary backend reopen_task failed: {e}")
+
+        return primary_result
+
+    def delete_task(self, task_id: str) -> bool:
+        """
+        Delete a task permanently.
+
+        Delegates to both backends.
+
+        WARNING: This is destructive and cannot be undone.
+
+        Args:
+            task_id: Task to delete
+
+        Returns:
+            True if task was deleted from primary backend, False if not found
+
+        Raises:
+            ValueError: If task has dependents (other tasks depend on it)
+        """
+        primary_result = self.primary.delete_task(task_id)
+
+        try:
+            secondary_result = self.secondary.delete_task(task_id)
+
+            if primary_result != secondary_result:
+                logger.warning(
+                    f"Backend divergence in delete_task({task_id}): "
+                    f"{primary_result} != {secondary_result}"
+                )
+        except Exception as e:
+            logger.warning(f"Secondary backend delete_task failed: {e}")
+
+        return primary_result
+
+    def add_label(self, task_id: str, label: str) -> Task:
+        """
+        Add a label to a task.
+
+        Delegates to both backends and compares results.
+
+        Args:
+            task_id: Task to add label to
+            label: Label to add (e.g., "bug", "model:sonnet")
+
+        Returns:
+            Updated task from primary backend
+
+        Raises:
+            ValueError: If task not found
+        """
+        primary_result = self.primary.add_label(task_id, label)
+
+        try:
+            secondary_result = self.secondary.add_label(task_id, label)
+
+            # Compare results
+            diff = self._compare_tasks(primary_result, secondary_result)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="add_label",
+                    task_id=task_id,
+                    primary_result=primary_result,
+                    secondary_result=secondary_result,
+                    difference_summary=diff,
+                )
+                self._log_divergence(divergence)
+                logger.warning(
+                    f"Backend divergence detected in add_label({task_id}, {label}): {diff}"
+                )
+        except Exception as e:
+            logger.warning(f"Secondary backend add_label failed: {e}")
+
+        return primary_result
+
+    def remove_label(self, task_id: str, label: str) -> Task:
+        """
+        Remove a label from a task.
+
+        Delegates to both backends and compares results.
+
+        Args:
+            task_id: Task to remove label from
+            label: Label to remove
+
+        Returns:
+            Updated task from primary backend
+
+        Raises:
+            ValueError: If task not found or label doesn't exist
+        """
+        primary_result = self.primary.remove_label(task_id, label)
+
+        try:
+            secondary_result = self.secondary.remove_label(task_id, label)
+
+            # Compare results
+            diff = self._compare_tasks(primary_result, secondary_result)
+            if diff:
+                divergence = TaskDivergence(
+                    timestamp=datetime.now(),
+                    operation="remove_label",
+                    task_id=task_id,
+                    primary_result=primary_result,
+                    secondary_result=secondary_result,
+                    difference_summary=diff,
+                )
+                self._log_divergence(divergence)
+                logger.warning(
+                    f"Backend divergence detected in remove_label({task_id}, {label}): {diff}"
+                )
+        except Exception as e:
+            logger.warning(f"Secondary backend remove_label failed: {e}")
+
+        return primary_result
