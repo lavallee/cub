@@ -790,7 +790,7 @@ cub interview --all --auto --skip-review --update-task
 - `--skip-review`: Skip interactive review (for autonomous operation)
 - `--update-task`: Append generated specs to task descriptions
 
-Batch mode uses `bd list --status open` to find tasks and processes them sequentially with AI-generated answers.
+Batch mode uses `cub task list --status open` to find tasks and processes them sequentially with AI-generated answers.
 
 ### Custom Questions Support
 
@@ -857,7 +857,7 @@ Checkpoints are review/approval gates that block downstream tasks:
 
 ```bash
 # Create a checkpoint (gate type in beads)
-bd create "Review: feature complete" --type gate
+cub task create "Review: feature complete" --type gate
 
 # List checkpoints
 cub checkpoints
@@ -902,9 +902,11 @@ When running `cub pr` or any command that uses `gh` internally, allow the `gh` s
 
 ### Beads CLI (`bd`)
 
-All `bd` (Beads CLI) commands are pre-approved for task management:
+All `bd` (Beads CLI) commands are pre-approved for power users and advanced task management:
 - `bd list`, `bd show`, `bd create`, `bd update`, `bd close`
 - `bd sync`, `bd ready`, `bd blocked`
+
+**Note:** For most workflows, use the `cub task` equivalents documented above (e.g., `cub task list`, `cub task close`). `bd` is available for power users who need direct access to the Beads backend.
 
 ### Cub CLI
 
@@ -1010,11 +1012,11 @@ mypy src/cub
 ruff check src/ tests/
 ruff format src/ tests/
 
-# Task management (beads)
-bd list                    # List all tasks
-bd list --status open     # List open tasks
-bd close <task-id> -r "reason"  # Close a task
-bd show <task-id>          # View task details
+# Task management
+cub task list                    # List all tasks
+cub task list --status open     # List open tasks
+cub task close <task-id> -r "reason"  # Close a task
+cub task show <task-id>          # View task details
 
 # Run cub from source
 cub run --once            # Single iteration
@@ -1034,7 +1036,7 @@ cub init --global         # Set up global config
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   cub task ready              # Verify no pending task state issues
    git push
    git status  # MUST show "up to date with origin"
    ```

@@ -70,17 +70,17 @@ cub
 cub --once
 
 # Show ready tasks
-cub --ready
+cub task ready
 
 # Create a new task
-bd create "Task description"
+cub task create "Task description"
 
 # View a task
-bd show <task-id>
+cub task show <task-id>
 
 # Update task status
-bd update <task-id> --status in_progress
-bd close <task-id>
+cub task update <task-id> --status in_progress
+cub task close <task-id>
 ```
 
 ### Development Commands
@@ -165,8 +165,8 @@ When an AI coding assistant works on this project:
 2. Check `.cub/progress.txt` for known gotchas
 3. Review `.cub/fix_plan.md` before making changes
 4. Update these files as you learn new things
-5. Use `bd list` to see open tasks
-6. Update task status with `bd update <id> --status in_progress` when starting work
+5. Use `cub task list` to see open tasks
+6. Update task status with `cub task update <id> --status in_progress` when starting work
 
 ---
 
