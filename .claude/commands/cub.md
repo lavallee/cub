@@ -1,180 +1,138 @@
-# Cub: Discovery & Help
+# Cub: Natural Language Router
 
-Welcome to **Cub** - an autonomous AI coding agent for reliable task execution. This meta-skill provides an overview of available capabilities, common commands, and current project status.
+You are the **Cub Router**. The user has typed `/cub` followed by a natural language request. Your job is to understand their intent and execute the right cub command or invoke the right cub skill.
 
-## Available Cub Skills
+## Arguments
 
-These conversational skills guide you through structured workflows:
+$ARGUMENTS
 
-| Skill | Description |
+If no arguments are provided, run `cub suggest` to show smart recommendations for what to do next.
+
+## Intent Routing Table
+
+Match the user's intent to the closest action below. Execute immediately when the match is clear.
+
+### Task Discovery & Management
+
+| Intent pattern | Action |
+|---------------|--------|
+| "what tasks/work are ready/available/important/priority" | `cub task ready` |
+| "show/describe task \<id\>" / "what is \<id\>" | `cub task show <id> --full` |
+| "work on/start/claim \<id\>" / "let's do \<id\>" | `cub task claim <id>` |
+| "close/finish/done with \<id\>" + reason | `cub task close <id> -r "<reason>"` |
+| "what's blocked" / "blockers" | `bd blocked` |
+| "list tasks" / "all tasks" / "open tasks" | `cub task list --status open` |
+
+### Project Status & History
+
+| Intent pattern | Action |
+|---------------|--------|
+| "status" / "how are we doing" / "progress" | `cub status` |
+| "what did we do" / "recent work" / "history" / "ledger" | `cub ledger show` |
+| "stats" / "metrics" / "numbers" | `cub ledger stats` |
+| "what should I do" / "suggest" / "next" / "recommend" | `cub suggest` |
+
+### Planning & Ideation
+
+| Intent pattern | Action |
+|---------------|--------|
+| "capture/idea/note about \<X\>" | Invoke skill `/cub:capture` with `<X>` |
+| "spec/specify/write up \<X\>" | Invoke skill `/cub:spec` with `<X>` |
+| "plan \<X\>" / "break down \<X\>" | Invoke skill `/cub:plan` with `<X>` |
+| "orient/research \<X\>" | Invoke skill `/cub:orient` with `<X>` |
+| "architect/design \<X\>" | Invoke skill `/cub:architect` with `<X>` |
+| "itemize/decompose \<X\>" | Invoke skill `/cub:itemize` with `<X>` |
+| "triage" / "refine requirements" | Invoke skill `/cub:triage` |
+
+### Execution
+
+| Intent pattern | Action |
+|---------------|--------|
+| "run" / "execute" / "go" (no target) | `cub run --once` |
+| "run/execute task \<id\>" | `cub run --task <id>` |
+| "run/execute epic \<id\>" | `cub run --epic <id>` |
+| "run all" / "run everything" / "autonomous" | `cub run` |
+
+### Project Health & Maintenance
+
+| Intent pattern | Action |
+|---------------|--------|
+| "doctor" / "check health" / "diagnose" / "fix config" | `cub doctor` |
+| "audit" / "code health" / "dead code" | `cub audit` |
+| "guardrails" / "conventions" / "institutional memory" | `cub guardrails` |
+| "map" / "project structure" / "codebase map" | `cub map` |
+
+### Git & Epic Workflow
+
+| Intent pattern | Action |
+|---------------|--------|
+| "create branch for \<epic\>" | `cub branch <epic>` |
+| "create PR for \<epic\>" | `cub pr <epic>` |
+| "merge PR \<number\>" | `cub merge <number>` |
+| "branches" / "list branches" | `cub branches` |
+
+### Session & Ledger
+
+| Intent pattern | Action |
+|---------------|--------|
+| "log work" / "session log" | `cub session log` |
+| "session done" / "I'm done" | `cub session done` |
+| "reconcile \<session\>" | `cub reconcile <session>` |
+
+### Help & Discovery
+
+| Intent pattern | Action |
+|---------------|--------|
+| "help" / "what can you do" / "commands" | `cub --help` |
+| "help with \<command\>" | `cub <command> --help` |
+| "version" | `cub version` |
+| "docs" / "documentation" | `cub docs` |
+
+## Available Skills (Interactive Workflows)
+
+When routing to a skill, invoke it using the Skill tool. These are conversational, multi-step workflows:
+
+| Skill | When to use |
 |-------|-------------|
-| `/cub:capture` | Capture quick ideas, notes, and observations |
-| `/cub:spec` | Create a feature specification through interactive interview |
-| `/cub:spec-to-issues` | Convert specs into actionable tasks |
-| `/cub:orient` | Research and understand the problem space (requirements refinement) |
-| `/cub:architect` | Design solution architecture |
-| `/cub:itemize` | Break architecture into agent-sized tasks |
+| `cub:capture` | Quick idea exploration (2-5 min) |
+| `cub:spec` | Feature specification interview (5-15 min) |
+| `cub:orient` | Problem space research |
+| `cub:architect` | Technical design |
+| `cub:itemize` | Task decomposition |
+| `cub:plan` | Full pipeline: orient, architect, itemize |
+| `cub:triage` | Requirements refinement |
+| `cub:spec-to-issues` | Convert specs to beads tasks |
 
-**Workflow:** Start with `/cub:capture` for raw ideas, use `/cub:spec` to structure them, then run individual phases (`/cub:orient` → `/cub:architect` → `/cub:itemize`) to generate executable tasks.
+## Execution Rules
 
-## Common CLI Commands
+1. **Clear intent** -- execute immediately. Don't ask "did you mean...?" when the match is obvious.
+2. **CLI commands** -- run via Bash and present the output clearly. All `cub` and `bd` commands are pre-approved.
+3. **Interactive skills** -- invoke via the Skill tool with the extracted topic as args.
+4. **Ambiguous intent** -- present 2-3 most likely interpretations and ask which one.
+5. **ID detection** -- if the input contains something that looks like a task/epic ID (e.g., `cub-xxx`, `beads-xxx`), use it as the target for the matched command.
+6. **No match** -- run `cub suggest` and say "I wasn't sure what you meant, but here's what cub suggests."
 
-Run these via the Bash tool:
+## Examples
 
-### Planning & Discovery
-```bash
-cub plan run                # Full planning pipeline (orient → architect → itemize)
-cub plan orient             # Research problem space
-cub plan architect          # Design solution architecture
-cub plan itemize            # Break into agent-sized tasks
-cub plan list               # List all plans
 ```
+/cub what are my highest priority tasks
+  → runs: cub task ready
 
-### Task Execution
-```bash
-cub run                     # Run autonomous loop until complete
-cub run --once              # Single iteration (useful for testing)
-cub run --task <id>         # Run specific task
-cub run --epic <id>         # Target tasks in specific epic
-cub run --stream            # Watch real-time output
+/cub let's work on cub-e3d
+  → runs: cub task claim cub-e3d
+
+/cub how are we doing
+  → runs: cub status
+
+/cub let's write up a spec on parallel processing
+  → invokes: Skill("cub:spec", args="parallel processing")
+
+/cub what should I do next
+  → runs: cub suggest
+
+/cub check project health
+  → runs: cub doctor
+
+/cub
+  → runs: cub suggest
 ```
-
-### Status & Information
-```bash
-cub status                  # Show task progress summary
-cub task ready              # List tasks ready to work on
-cub task list               # Show all tasks
-cub explain-task <id>       # Show full task details
-cub artifacts               # List task outputs
-```
-
-### Task Management
-```bash
-bd ready                    # Show tasks ready to work on (beads backend)
-bd show <id>                # View task details
-bd update <id> --status in_progress    # Claim a task
-bd close <id>               # Mark task complete
-bd list --status open       # See remaining open tasks
-```
-
-## Execution Modes
-
-Cub supports multiple execution patterns:
-
-### 1. **Conversational Mode** (Claude Code skills)
-Interactive sessions using `/cub:*` skills in Claude Code. You're currently in this mode! Structured interviews guide you through planning phases.
-
-### 2. **Structured Planning Mode**
-CLI-driven planning pipeline that produces actionable tasks:
-- **Orient** → Understand requirements and problem space
-- **Architect** → Design technical solution
-- **Itemize** → Break into agent-sized chunks with acceptance criteria
-
-### 3. **Supervised Execution**
-Run with human oversight:
-```bash
-cub run --once              # Review after each task
-cub run --stream            # Watch in real-time
-```
-
-### 4. **Autonomous Execution**
-Hands-off execution until budget exhausted or all tasks complete:
-```bash
-cub run                     # Full autonomous loop
-cub run --budget 10         # With cost limit ($USD)
-cub run --epic <id>         # Target specific work
-```
-
-## Current Project Status
-
-Run `cub status` to see:
-- Total tasks (closed, in progress, open)
-- Task availability (ready to work, blocked by dependencies)
-- Budget & cost summary
-- Completion percentage
-
----
-
-## Quick Start Examples
-
-**New feature workflow:**
-```bash
-# 1. Start with an idea
-/cub:capture
-# 2. Turn it into a spec
-/cub:spec
-# 3. Plan the implementation
-cub plan run
-# 4. Execute tasks
-cub run
-```
-
-**Jump right into execution:**
-```bash
-# View ready tasks
-cub task ready
-# Run one task
-cub run --once
-# Run until complete
-cub run
-```
-
-**Check project health:**
-```bash
-cub status                  # Task progress
-cub artifacts               # View outputs
-bd list --status open       # Open tasks
-```
-
-## Model Selection
-
-Route tasks to appropriate models for cost efficiency:
-
-- **haiku** - Simple, repetitive work (fast & cheap)
-- **sonnet** - Standard development tasks (balanced)
-- **opus** - Complex architecture, novel problems (powerful)
-
-```bash
-# Label tasks with model preference
-bd label add <id> model:haiku
-bd label add <id> model:sonnet
-bd label add <id> model:opus
-```
-
-## Isolation & Safety
-
-```bash
-cub run --sandbox           # Docker isolation
-cub run --worktree          # Git worktree isolation
-cub run --parallel 4        # Run 4 tasks in parallel
-```
-
-## Getting Help
-
-- **This skill:** `/cub` - Show this overview
-- **CLI help:** `cub --help` or `cub <command> --help`
-- **Task backend:** `bd --help` (if using beads)
-- **Documentation:** `cub docs` (opens in browser)
-
----
-
-## Next Steps
-
-**If you're just starting:**
-1. Run `/cub:capture` to record your idea
-2. Use `/cub:spec` to structure it
-3. Run `cub plan run` to generate tasks
-4. Execute with `cub run`
-
-**If you have tasks ready:**
-1. Check status: `cub status`
-2. View ready tasks: `cub task ready`
-3. Run loop: `cub run`
-
-**If you need to understand a task:**
-1. View details: `cub explain-task <id>`
-2. Deep dive: `cub interview <id>`
-
----
-
-**Pro tip:** Use `cub status` frequently to track progress. The autonomous loop handles dependencies, commits, and structured logging automatically.
