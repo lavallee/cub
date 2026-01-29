@@ -20,6 +20,8 @@ Usage:
 
 from __future__ import annotations
 
+import logging
+import threading
 from pathlib import Path
 
 from cub.core.config.loader import load_config
@@ -32,6 +34,9 @@ from cub.core.launch import (
     resolve_harness_binary,
 )
 from cub.core.launch.models import EnvironmentInfo, LaunchConfig
+from cub.core.services.pr_monitor import MonitorResult, PRMonitorService
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Typed exceptions
@@ -83,6 +88,8 @@ class LaunchService:
         """
         self._config = config
         self._project_dir = project_dir
+        self._monitor_thread: threading.Thread | None = None
+        self._monitor_result: MonitorResult | None = None
 
     @classmethod
     def from_config(cls, config: CubConfig | None = None) -> LaunchService:
@@ -203,6 +210,84 @@ class LaunchService:
             raise LaunchServiceError(f"Failed to launch harness: {e}") from e
         except OSError as e:
             raise LaunchServiceError(f"Failed to launch harness: {e}") from e
+
+
+    # ============================================================================
+    # Background PR monitoring
+    # ============================================================================
+
+    def start_pr_monitor(
+        self,
+        pr_number: int,
+        *,
+        poll_interval: int | None = None,
+        retry_timeout: int | None = None,
+        max_retries: int | None = None,
+    ) -> None:
+        """
+        Start background PR monitoring while harness is active.
+
+        Launches a daemon thread that polls CI check status and triggers
+        retries for transient failures. The monitor runs alongside the
+        harness process.
+
+        Args:
+            pr_number: PR number to monitor
+            poll_interval: Override poll interval from config
+            retry_timeout: Override retry timeout from config
+            max_retries: Override max retries from config
+        """
+        pr_config = self._config.pr_retry
+
+        monitor = PRMonitorService(
+            poll_interval=poll_interval or pr_config.poll_interval,
+            retry_timeout=retry_timeout or pr_config.retry_timeout,
+            max_retries=max_retries if max_retries is not None else pr_config.max_retries,
+        )
+
+        def _run_monitor() -> None:
+            try:
+                self._monitor_result = monitor.monitor_pr(pr_number)
+            except Exception:
+                logger.exception("Background PR monitor failed for PR #%d", pr_number)
+
+        self._monitor_thread = threading.Thread(
+            target=_run_monitor,
+            name=f"pr-monitor-{pr_number}",
+            daemon=True,
+        )
+        self._monitor_thread.start()
+        logger.info("Started background PR monitor for PR #%d", pr_number)
+
+    @property
+    def monitor_active(self) -> bool:
+        """Whether a background PR monitor is currently running."""
+        return self._monitor_thread is not None and self._monitor_thread.is_alive()
+
+    @property
+    def monitor_result(self) -> MonitorResult | None:
+        """Result from the most recent background PR monitor, if completed."""
+        return self._monitor_result
+
+    def stop_pr_monitor(self, timeout: float = 5.0) -> MonitorResult | None:
+        """
+        Stop the background PR monitor and return its result.
+
+        Args:
+            timeout: Seconds to wait for the monitor thread to finish
+
+        Returns:
+            MonitorResult if the monitor completed, None if still running
+        """
+        if self._monitor_thread is None:
+            return self._monitor_result
+
+        if self._monitor_thread.is_alive():
+            self._monitor_thread.join(timeout=timeout)
+
+        result = self._monitor_result
+        self._monitor_thread = None
+        return result
 
 
 __all__ = [

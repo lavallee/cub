@@ -32,6 +32,18 @@ from cub.core.services.ledger import (
     StatsQuery,
 )
 from cub.core.services.models import EpicProgress, LedgerStats, ProjectStats
+from cub.core.services.pr_monitor import (
+    CheckPollError,
+    CheckState,
+    CheckSummary,
+    MonitorResult,
+    MonitorState,
+    PRMonitorError,
+    PRMonitorService,
+    RetryAttempt,
+    RetryError,
+    RetryReason,
+)
 from cub.core.services.run import RunService
 from cub.core.services.status import StatusService, StatusServiceError
 from cub.core.services.suggestions import SuggestionService, SuggestionServiceError
@@ -48,6 +60,17 @@ __all__ = [
     "LedgerServiceError",
     "LedgerQuery",
     "StatsQuery",
+    # PR monitor service
+    "PRMonitorService",
+    "PRMonitorError",
+    "CheckPollError",
+    "RetryError",
+    "CheckState",
+    "CheckSummary",
+    "MonitorResult",
+    "MonitorState",
+    "RetryAttempt",
+    "RetryReason",
     # Status service
     "StatusService",
     "StatusServiceError",

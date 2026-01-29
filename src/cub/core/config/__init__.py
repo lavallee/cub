@@ -22,6 +22,7 @@ from .models import (
     HooksConfig,
     InterviewConfig,
     LoopConfig,
+    PRRetryConfig,
     ReviewConfig,
     StateConfig,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "HooksConfig",
     "InterviewConfig",
     "LoopConfig",
+    "PRRetryConfig",
     "ReviewConfig",
     "StateConfig",
     # Loader functions
