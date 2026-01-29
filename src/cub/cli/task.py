@@ -936,6 +936,94 @@ def label_list(
 
 
 @app.command()
+def search(
+    query: str = typer.Argument(..., help="Search query"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
+) -> None:
+    """
+    Search for tasks by title or description.
+
+    Searches across task titles and descriptions using full-text search
+    (beads backend) or case-insensitive substring matching (JSONL backend).
+
+    Examples:
+        cub task search "authentication"
+        cub task search "bug" --json
+        cub task search "database" --agent
+    """
+    backend = get_backend()
+
+    try:
+        tasks = backend.search_tasks(query)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+    if json_output:
+        output = [t.model_dump(mode="json") for t in tasks]
+        console.print(json.dumps(output, indent=2))
+        return
+
+    if agent:
+        # Agent-friendly markdown output
+        console.print(f"# Search Results: \"{query}\"\n")
+        console.print(f"Found {len(tasks)} matching task(s)\n")
+
+        if tasks:
+            console.print("| ID | Priority | Status | Title |")
+            console.print("|----|----------|--------|-------|")
+
+            for task in tasks:
+                console.print(
+                    f"| {task.id} | {task.priority.value} | {task.status.value} | {task.title} |"
+                )
+
+        console.print(f"\n*Total: {len(tasks)} results*")
+        return
+
+    # Rich table output (default)
+    if not tasks:
+        console.print(f'[yellow]No tasks found matching "{query}"[/yellow]')
+        return
+
+    table = Table(
+        title=f'Search Results: "{query}"',
+        show_header=True,
+        header_style="bold cyan",
+    )
+    table.add_column("ID", style="dim")
+    table.add_column("P", width=2, justify="center")
+    table.add_column("Status", width=12)
+    table.add_column("Title", overflow="fold")
+
+    for task in tasks:
+        status_color = {
+            TaskStatus.OPEN: "white",
+            TaskStatus.IN_PROGRESS: "yellow",
+            TaskStatus.CLOSED: "green",
+        }.get(task.status, "white")
+
+        table.add_row(
+            task.id,
+            task.priority.value[1],  # Just the number
+            f"[{status_color}]{task.status.value}[/{status_color}]",
+            task.title,
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Found {len(tasks)} matching task(s)[/dim]")
+
+
+@app.command()
 def blocked(
     epic: str | None = typer.Option(
         None,

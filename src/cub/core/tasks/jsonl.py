@@ -1204,3 +1204,36 @@ Each line is a complete JSON object:
             return True, f"Epic '{epic_id}' auto-closed ({closed_count} tasks completed)"
         except ValueError as e:
             return False, f"Failed to close epic '{epic_id}': {e}"
+
+    def search_tasks(self, query: str) -> list[Task]:
+        """
+        Search for tasks using case-insensitive substring matching.
+
+        Searches across task titles and descriptions in memory using
+        case-insensitive substring matching.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        all_tasks = self.list_tasks()
+        query_lower = query.lower()
+
+        matching_tasks = []
+        for task in all_tasks:
+            # Search in title
+            if query_lower in task.title.lower():
+                matching_tasks.append(task)
+                continue
+
+            # Search in description
+            if task.description and query_lower in task.description.lower():
+                matching_tasks.append(task)
+                continue
+
+        return matching_tasks

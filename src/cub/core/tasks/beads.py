@@ -1117,3 +1117,33 @@ class BeadsBackend(TaskBackendDefaults):
             return True, f"Epic '{epic_id}' auto-closed ({closed_count} tasks completed)"
         except (ValueError, BeadsCommandError) as e:
             return False, f"Failed to close epic '{epic_id}': {e}"
+
+    def search_tasks(self, query: str) -> list[Task]:
+        """
+        Search for tasks using bd search.
+
+        Uses the `bd search` command to perform full-text search across
+        task titles, descriptions, and IDs.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        try:
+            result = self._run_bd(["search", query, "--json", "--limit", "1000"])
+
+            # Handle both list and single-item responses
+            if not isinstance(result, list):
+                raw_tasks = [result] if result else []
+            else:
+                raw_tasks = result
+
+            return [self._transform_beads_task(t) for t in raw_tasks]
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to search tasks: {e}")

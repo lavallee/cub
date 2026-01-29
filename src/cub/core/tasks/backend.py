@@ -405,6 +405,26 @@ class TaskBackend(Protocol):
         """
         ...
 
+    def search_tasks(self, query: str) -> list[Task]:
+        """
+        Search for tasks by query string.
+
+        Searches across task titles and descriptions. The search behavior
+        depends on the backend:
+        - BeadsBackend: Uses `bd search` for full-text search
+        - JsonlBackend: Case-insensitive substring match on title and description
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        ...
+
 
 class TaskBackendDefaults:
     """
@@ -477,6 +497,41 @@ class TaskBackendDefaults:
 
         new_labels = [lbl for lbl in task.labels if lbl != label]
         return self.update_task(task_id, labels=new_labels)
+
+    def search_tasks(self: "TaskBackend", query: str) -> list[Task]:
+        """
+        Search for tasks by query string.
+
+        Searches across task titles and descriptions using case-insensitive
+        substring matching. This is a default implementation that can be
+        overridden by backends for more sophisticated search.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        # Default implementation: case-insensitive substring search
+        all_tasks = self.list_tasks()
+        query_lower = query.lower()
+
+        matching_tasks = []
+        for task in all_tasks:
+            # Search in title
+            if query_lower in task.title.lower():
+                matching_tasks.append(task)
+                continue
+
+            # Search in description
+            if task.description and query_lower in task.description.lower():
+                matching_tasks.append(task)
+                continue
+
+        return matching_tasks
 
     def reopen_task(self: "TaskBackend", task_id: str, reason: str | None = None) -> Task:
         """
