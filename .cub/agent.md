@@ -250,11 +250,13 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 │   │   │   └── models.py         # Run configuration and events
 │   │   ├── launch/       # Harness launching (NEW in v0.26+)
 │   │   │   ├── detector.py       # Harness detection
-│   │   │   ├── environment.py    # Environment setup
+│   │   │   ├── launcher.py       # Harness launcher
+│   │   │   ├── welcome.py        # Welcome message display
 │   │   │   └── models.py         # Launch configuration
 │   │   ├── suggestions/  # Recommendation engine (NEW in v0.26+)
-│   │   │   ├── analyzer.py       # Context analysis
-│   │   │   ├── recommender.py    # Suggestion generation
+│   │   │   ├── engine.py         # Suggestion engine
+│   │   │   ├── sources.py        # Data sources for suggestions
+│   │   │   ├── ranking.py        # Suggestion ranking algorithm
 │   │   │   └── models.py         # Suggestion models
 │   │   ├── config/       # Configuration loading
 │   │   │   ├── loader.py     # Layered config loading
@@ -332,7 +334,7 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 - `cub.core.harness.backend` - Abstract harness interface
 - `cub.core.harness.hooks` - Hook event handlers for symbiotic workflow (SessionStart, PostToolUse, Stop, etc.)
 - `cub.utils.hooks` - Hook execution system
-- `cub.core.bash_delegate` - Delegates unported commands to bash cub
+- `cub.cli.delegated.runner` - Delegates unported commands to bash cub
 - `cub.core.tools` - Tool execution runtime with pluggable adapters
 - `cub.core.tools.execution` - ExecutionService for tool orchestration
 - `cub.core.tools.registry` - Tool registry and approval management
@@ -560,7 +562,7 @@ Cub uses a hybrid Python/Bash CLI architecture to enable gradual migration from 
 
 ### Command Routing
 
-All commands are registered in the Typer CLI (`cub.cli.app`). Native Python commands are implemented directly, while bash-only commands delegate through `cub.core.bash_delegate`.
+All commands are registered in the Typer CLI (`cub.cli.app`). Native Python commands are implemented directly, while bash-only commands delegate through `cub.cli.delegated.runner`.
 
 **Command Execution Flow:**
 ```
@@ -568,7 +570,7 @@ cub <command> [args]
   ↓
 Typer CLI (Python)
   ├─→ Native command (run, status, init, monitor) → Python implementation
-  └─→ Delegated command → bash_delegate.delegate_to_bash()
+  └─→ Delegated command → delegated.runner.delegate_to_bash()
                             ↓
                          Find bash cub script
                          Execute: cub <command> [args]
@@ -700,7 +702,7 @@ These commands are not yet ported to Python. They are registered as Typer comman
 
 ### How Delegation Works
 
-Delegation is implemented in `cub.core.bash_delegate`:
+Delegation is implemented in `cub.cli.delegated.runner`:
 
 1. **Script Discovery** (`find_bash_cub()`) - Locates bash cub in order:
    - `CUB_BASH_PATH` environment variable (explicit override)
@@ -741,7 +743,7 @@ Delegation is implemented in `cub.core.bash_delegate`:
    ```python
    app.command(name="new-command")(delegated.new_command)
    ```
-4. Add it to the `bash_commands` set in `cub.core.bash_delegate.is_bash_command()`
+4. Add it to the `bash_commands` set in `cub.cli.delegated.runner.is_bash_command()`
 
 ### Migration Path to Full Python
 
@@ -762,7 +764,7 @@ Eventually, all delegated commands will be ported to Python. The migration order
 When porting a command:
 1. Implement Python version in `src/cub/cli/`
 2. Remove delegation from `delegated.py` and `__init__.py`
-3. Remove from `bash_commands` set in `bash_delegate.py`
+3. Remove from `bash_commands` set in `delegated/runner.py`
 4. Update this documentation
 
 ## Interview Mode (v0.16)
