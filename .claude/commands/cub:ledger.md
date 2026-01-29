@@ -10,8 +10,8 @@ $ARGUMENTS
 
 | Input | Command |
 |-------|---------|
-| (empty) / "show" / "recent" / "history" | `cub ledger show` |
-| "stats" / "statistics" / "metrics" | `cub ledger stats` |
-| "search \<query\>" / a search term | `cub ledger search "<query>"` |
+| (empty) / "show" / "recent" / "history" | `cub ledger show --agent` |
+| "stats" / "statistics" / "metrics" | `cub ledger stats --agent` |
+| "search \<query\>" / a search term | `cub ledger search "<query>" --agent` |
 
 Run the command via Bash and present the output clearly.

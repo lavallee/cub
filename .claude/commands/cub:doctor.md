@@ -8,7 +8,7 @@ $ARGUMENTS
 
 ## Instructions
 
-Run `cub doctor` via Bash and present the results clearly.
+Run `cub doctor --agent` via Bash and present the results clearly.
 
 If the doctor reports issues, explain what each problem means and suggest fixes. Common issues include:
 - Missing or misconfigured hooks (fix: `cub init`)

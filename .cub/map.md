@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (253 files) (entry: __init__.py)
+- **cub**: `src/cub` (254 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -31,14 +31,15 @@
     │   ├── .gitignore
     │   ├── .local_version
     │   ├── README.md
+    │   ├── bd.sock
     │   ├── beads.db
     │   ├── beads.db-shm
     │   ├── beads.db-wal
     │   ├── branches.yaml
     │   ├── config.yaml
-    │   ├── daemon-error
     │   ├── daemon.lock
     │   ├── daemon.log
+    │   ├── daemon.pid
     │   ├── interactions.jsonl
     │   ├── issues.jsonl
     │   ├── last-touched
@@ -82,6 +83,7 @@
     │   │   └── stop.sh
     │   ├── ledger/
     │   │   ├── by-epic/
+    │   │   │   ├── cub-a1f/
     │   │   │   ├── cub-b1a/
     │   │   │   ├── cub-b1b/
     │   │   │   ├── cub-b1c/
@@ -99,6 +101,7 @@
     │   │   │   ├── cub-m3k/
     │   │   │   ├── cub-p1t/
     │   │   │   ├── cub-p2c/
+    │   │   │   ├── cub-p3s/
     │   │   │   ├── cub-p9q/
     │   │   │   ├── cub-q2j/
     │   │   │   ├── cub-r1a/
@@ -117,6 +120,9 @@
     │   │   │   └── cub-x7f/
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
+    │   │   │   ├── cub-a1f.1/
+    │   │   │   ├── cub-a1f.2/
+    │   │   │   ├── cub-a2s.1/
     │   │   │   ├── cub-b1a.1/
     │   │   │   ├── cub-b1a.2/
     │   │   │   ├── cub-b1a.3/
@@ -192,6 +198,7 @@
     │   │   │   ├── cub-p2c.4/
     │   │   │   ├── cub-p2c.5/
     │   │   │   ├── cub-p3s.1/
+    │   │   │   ├── cub-p3s.2/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -269,6 +276,9 @@
     │   │   │   ├── cub-12be.json
     │   │   │   ├── cub-4eyt.json
     │   │   │   ├── cub-4fma.json
+    │   │   │   ├── cub-a1f.1.json
+    │   │   │   ├── cub-a1f.2.json
+    │   │   │   ├── cub-a2s.1.json
     │   │   │   ├── cub-a7f.1.json
     │   │   │   ├── cub-a7f.2.json
     │   │   │   ├── cub-a7f.3.json
@@ -305,17 +315,6 @@
     │   │   │   ├── cub-c5i.5.json
     │   │   │   ├── cub-d2v.1.json
     │   │   │   ├── cub-d2v.2.json
-    │   │   │   ├── cub-d2v.3.json
-    │   │   │   ├── cub-d2v.4.json
-    │   │   │   ├── cub-d2v.5.json
-    │   │   │   ├── cub-d2v.6.json
-    │   │   │   ├── cub-d8b.1.json
-    │   │   │   ├── cub-d8b.2.json
-    │   │   │   ├── cub-d8b.3.json
-    │   │   │   ├── cub-dmxf.json
-    │   │   │   ├── cub-e2p.1.json
-    │   │   │   ├── cub-e2p.2.json
-    │   │   │   ├── cub-e2p.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -419,19 +418,19 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/audit/models.py
 
-- **AuditReport** (def, line 120, score: 0.0026)
-- **CategoryScore** (def, line 112, score: 0.0026)
-- **CodeBlockFinding** (def, line 73, score: 0.0026)
-- **DeadCodeFinding** (def, line 17, score: 0.0026)
-- **DeadCodeReport** (def, line 34, score: 0.0026)
-- **DocsReport** (def, line 85, score: 0.0026)
-- **LinkFinding** (def, line 59, score: 0.0026)
-- **findings_by_kind** (def, line 51, score: 0.0026)
-- **has_failures** (def, line 161, score: 0.0026)
-- **has_findings** (def, line 46, score: 0.0026)
-- **has_findings** (def, line 99, score: 0.0026)
-- **total_issues** (def, line 151, score: 0.0026)
-- **total_issues** (def, line 104, score: 0.0026)
+- **AuditReport** (def, line 120, score: 0.0025)
+- **CategoryScore** (def, line 112, score: 0.0025)
+- **CodeBlockFinding** (def, line 73, score: 0.0025)
+- **DeadCodeFinding** (def, line 17, score: 0.0025)
+- **DeadCodeReport** (def, line 34, score: 0.0025)
+- **DocsReport** (def, line 85, score: 0.0025)
+- **LinkFinding** (def, line 59, score: 0.0025)
+- **findings_by_kind** (def, line 51, score: 0.0025)
+- **has_failures** (def, line 161, score: 0.0025)
+- **has_findings** (def, line 46, score: 0.0025)
+- **has_findings** (def, line 99, score: 0.0025)
+- **total_issues** (def, line 151, score: 0.0025)
+- **total_issues** (def, line 104, score: 0.0025)
 
 ### src/cub/cli/__init__.py
 
@@ -556,10 +555,6 @@ Symbols ranked by importance (PageRank score):
 - **print_sync_not_initialized_error** (def, line 135, score: 0.0025)
 - **print_task_not_found_error** (def, line 126, score: 0.0025)
 
-### src/cub/cli/guidance.py
-
-- **render_guidance** (def, line 15, score: 0.0025)
-
 ### src/cub/cli/hooks.py
 
 - **check** (def, line 136, score: 0.0025)
@@ -585,10 +580,11 @@ Symbols ranked by importance (PageRank score):
 - **detect_project_type** (def, line 172, score: 0.0025)
 - **generate_instruction_files** (def, line 390, score: 0.0025)
 - **init_project** (def, line 517, score: 0.0025)
-- **main** (def, line 616, score: 0.0025)
+- **main** (def, line 609, score: 0.0025)
 
 ### src/cub/cli/investigate.py
 
 - **CaptureCategory** (def, line 28, score: 0.0025)
+- **_ensure_investigations_dir** (def, line 196, score: 0.0025)
 
 ... (216 more symbols omitted to fit budget)

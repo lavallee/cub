@@ -6,7 +6,7 @@ You are the **Cub Router**. The user has typed `/cub` followed by a natural lang
 
 $ARGUMENTS
 
-If no arguments are provided, run `cub suggest` to show smart recommendations for what to do next.
+If no arguments are provided, run `cub suggest --agent` to show smart recommendations for what to do next.
 
 ## Intent Routing Table
 
@@ -16,21 +16,21 @@ Match the user's intent to the closest action below. Execute immediately when th
 
 | Intent pattern | Action |
 |---------------|--------|
-| "what tasks/work are ready/available/important/priority" | `cub task ready` |
-| "show/describe task \<id\>" / "what is \<id\>" | `cub task show <id> --full` |
-| "work on/start/claim \<id\>" / "let's do \<id\>" | `cub task claim <id>` |
-| "close/finish/done with \<id\>" + reason | `cub task close <id> -r "<reason>"` |
+| "what tasks/work are ready/available/important/priority" | `cub task ready --agent` |
+| "show/describe task \<id\>" / "what is \<id\>" | `cub task show <id> --full --agent` |
+| "work on/start/claim \<id\>" / "let's do \<id\>" | `cub task claim <id> --agent` |
+| "close/finish/done with \<id\>" + reason | `cub task close <id> -r "<reason>" --agent` |
 | "what's blocked" / "blockers" | `cub task list --status blocked --agent` |
-| "list tasks" / "all tasks" / "open tasks" | `cub task list --status open` |
+| "list tasks" / "all tasks" / "open tasks" | `cub task list --status open --agent` |
 
 ### Project Status & History
 
 | Intent pattern | Action |
 |---------------|--------|
-| "status" / "how are we doing" / "progress" | `cub status` |
-| "what did we do" / "recent work" / "history" / "ledger" | `cub ledger show` |
-| "stats" / "metrics" / "numbers" | `cub ledger stats` |
-| "what should I do" / "suggest" / "next" / "recommend" | `cub suggest` |
+| "status" / "how are we doing" / "progress" | `cub status --agent` |
+| "what did we do" / "recent work" / "history" / "ledger" | `cub ledger show --agent` |
+| "stats" / "metrics" / "numbers" | `cub ledger stats --agent` |
+| "what should I do" / "suggest" / "next" / "recommend" | `cub suggest --agent` |
 
 ### Planning & Ideation
 
@@ -57,10 +57,10 @@ Match the user's intent to the closest action below. Execute immediately when th
 
 | Intent pattern | Action |
 |---------------|--------|
-| "doctor" / "check health" / "diagnose" / "fix config" | `cub doctor` |
-| "audit" / "code health" / "dead code" | `cub audit` |
-| "guardrails" / "conventions" / "institutional memory" | `cub guardrails` |
-| "map" / "project structure" / "codebase map" | `cub map` |
+| "doctor" / "check health" / "diagnose" / "fix config" | `cub doctor --agent` |
+| "audit" / "code health" / "dead code" | `cub audit --agent` |
+| "guardrails" / "conventions" / "institutional memory" | `cub guardrails --agent` |
+| "map" / "project structure" / "codebase map" | `cub map --agent` |
 
 ### Git & Epic Workflow
 
@@ -107,10 +107,12 @@ When routing to a skill, invoke it using the Skill tool. These are conversationa
 
 1. **Clear intent** -- execute immediately. Don't ask "did you mean...?" when the match is obvious.
 2. **CLI commands** -- run via Bash and present the output clearly. All `cub` commands are pre-approved.
+   - All commands in this skill include `--agent` flag to receive structured output.
+   - Claude treats structured output as the source of truth and uses it to provide better context and follow-up actions.
 3. **Interactive skills** -- invoke via the Skill tool with the extracted topic as args.
 4. **Ambiguous intent** -- present 2-3 most likely interpretations and ask which one.
 5. **ID detection** -- if the input contains something that looks like a task/epic ID (e.g., `cub-xxx`, `beads-xxx`), use it as the target for the matched command.
-6. **No match** -- run `cub suggest` and say "I wasn't sure what you meant, but here's what cub suggests."
+6. **No match** -- run `cub suggest --agent` and say "I wasn't sure what you meant, but here's what cub suggests."
 
 ## Examples
 

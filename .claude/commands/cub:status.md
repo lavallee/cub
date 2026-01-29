@@ -10,8 +10,8 @@ $ARGUMENTS
 
 | Input | Command |
 |-------|---------|
-| (empty) / "overview" / "progress" | `cub status` |
-| "verbose" / "details" / "full" | `cub status -v` |
-| "json" | `cub status --json` |
+| (empty) / "overview" / "progress" | `cub status --agent` |
+| "verbose" / "details" / "full" | `cub status -v --agent` |
+| "json" | `cub status --json --agent` |
 
 Run the command via Bash and present the output clearly.

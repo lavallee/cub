@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "cub-a2s.1",
+  "title": "Update passthrough skills and router to use --agent",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a2s"
+  },
+  "task": {
+    "title": "Update passthrough skills and router to use --agent",
+    "description": "Seven passthrough skills exist and the router skill maps intent to CLI commands. Update all command invocations to include `--agent` so Claude always gets structured output when routing through skills. The router skill needs `--agent` on all CLI command mappings.\n\n**Implementation Steps:**\n1. Update `.claude/commands/cub:tasks.md`:\n2. Update `.claude/commands/cub:status.md`:\n3. Update `.claude/commands/cub:suggest.md`:\n4. Update `.claude/commands/cub:ledger.md`:\n5. Update `.claude/commands/cub:doctor.md`:\n6. Update `.claude/commands/cub.md` (router):\n7. Add instruction in router skill about how Claude should treat `--agent` output:\n\n**Files:** .claude/commands/cub.md, .claude/commands/cub:tasks.md, .claude/commands/cub:status.md, .claude/commands/cub:suggest.md, .claude/commands/cub:ledger.md, .claude/commands/cub:doctor.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "epic:cub-a2s",
+      "model:haiku",
+      "phase-2"
+    ],
+    "created_at": "2026-01-29T16:46:50.495139Z",
+    "captured_at": "2026-01-29T20:39:53.145003Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:39:53.145003Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:39:53.145003Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-29T20:39:53.145003Z",
+  "completed_at": "2026-01-29T20:39:53.145003Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a2s.1",
+  "epic_id": "cub-a2s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
