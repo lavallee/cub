@@ -268,6 +268,9 @@ class TaskCounts(BaseModel):
     open: int = Field(default=0, description="Number of open tasks")
     in_progress: int = Field(default=0, description="Number of in-progress tasks")
     closed: int = Field(default=0, description="Number of closed tasks")
+    blocked: int = Field(
+        default=0, description="Number of blocked tasks (open with unmet dependencies)"
+    )
 
     @computed_field
     @property
