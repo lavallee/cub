@@ -13,10 +13,10 @@ Determine the right subcommand from the arguments:
 | Input | Command |
 |-------|---------|
 | (empty) / "ready" / "available" / "priority" | `cub task ready --agent` |
-| a task ID like `cub-xxx` or `beads-xxx` | `cub task show <id> --full --agent` |
+| a task ID like `cub-xxx` or `beads-xxx` | `cub task show <id> --agent` |
 | "list" / "all" / "open" | `cub task list --status open --agent` |
-| "claim \<id\>" / "start \<id\>" | `cub task claim <id> --agent` |
-| "close \<id\>" with a reason | `cub task close <id> -r "<reason>" --agent` |
-| "blocked" / "blockers" | `cub task list --status blocked --agent` |
+| "claim \<id\>" / "start \<id\>" | `cub task claim <id>` |
+| "close \<id\>" with a reason | `cub task close <id> -r "<reason>"` |
+| "blocked" / "blockers" | `cub task blocked --agent` |
 
 Run the command via Bash. Present the output clearly. If the user provides something ambiguous, default to `cub task ready`.

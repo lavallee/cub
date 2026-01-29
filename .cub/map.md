@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (254 files) (entry: __init__.py)
+- **cub**: `src/cub` (257 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -84,6 +84,8 @@
     │   ├── ledger/
     │   │   ├── by-epic/
     │   │   │   ├── cub-a1f/
+    │   │   │   ├── cub-a2s/
+    │   │   │   ├── cub-a3r/
     │   │   │   ├── cub-b1a/
     │   │   │   ├── cub-b1b/
     │   │   │   ├── cub-b1c/
@@ -123,6 +125,10 @@
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
+    │   │   │   ├── cub-a3r.1/
+    │   │   │   ├── cub-a3r.2/
+    │   │   │   ├── cub-a3r.3/
+    │   │   │   ├── cub-a4e.1/
     │   │   │   ├── cub-b1a.1/
     │   │   │   ├── cub-b1a.2/
     │   │   │   ├── cub-b1a.3/
@@ -279,6 +285,10 @@
     │   │   │   ├── cub-a1f.1.json
     │   │   │   ├── cub-a1f.2.json
     │   │   │   ├── cub-a2s.1.json
+    │   │   │   ├── cub-a3r.1.json
+    │   │   │   ├── cub-a3r.2.json
+    │   │   │   ├── cub-a3r.3.json
+    │   │   │   ├── cub-a4e.1.json
     │   │   │   ├── cub-a7f.1.json
     │   │   │   ├── cub-a7f.2.json
     │   │   │   ├── cub-a7f.3.json
@@ -305,16 +315,6 @@
     │   │   │   ├── cub-b1e.1.json
     │   │   │   ├── cub-b1e.2.json
     │   │   │   ├── cub-b1e.3.json
-    │   │   │   ├── cub-b1f.1.json
-    │   │   │   ├── cub-b1f.2.json
-    │   │   │   ├── cub-b1f.3.json
-    │   │   │   ├── cub-c5i.1.json
-    │   │   │   ├── cub-c5i.2.json
-    │   │   │   ├── cub-c5i.3.json
-    │   │   │   ├── cub-c5i.4.json
-    │   │   │   ├── cub-c5i.5.json
-    │   │   │   ├── cub-d2v.1.json
-    │   │   │   ├── cub-d2v.2.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -434,9 +434,9 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 285, score: 0.0025)
-- **main** (def, line 79, score: 0.0025)
-- **version** (def, line 259, score: 0.0025)
+- **cli_main** (def, line 287, score: 0.0025)
+- **main** (def, line 80, score: 0.0025)
+- **version** (def, line 261, score: 0.0025)
 
 ### src/cub/cli/argv.py
 

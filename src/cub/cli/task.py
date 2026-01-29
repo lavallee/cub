@@ -251,6 +251,11 @@ def list_tasks(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
 ) -> None:
     """
     List tasks with optional filters.
@@ -286,9 +291,32 @@ def list_tasks(
     if assignee:
         tasks = [t for t in tasks if t.assignee == assignee]
 
+    # --agent wins over --json
+    if agent:
+        try:
+            from cub.core.services.agent_format import AgentFormatter
+
+            agent_output = AgentFormatter.format_list(tasks)
+            console.print(agent_output)
+        except ImportError:
+            # Fallback to simple markdown if AgentFormatter not available
+            console.print("# cub task list\n")
+            task_count = len(tasks)
+            plural = "s" if task_count != 1 else ""
+            console.print(f"{task_count} task{plural} across all statuses.\n")
+            if tasks:
+                console.print("| ID | Title | Status | Pri |")
+                console.print("|----|-------|--------|-----|")
+                for task in tasks:
+                    row = f"| {task.id} | {task.title} | {task.status.value}"
+                    row += f" | {task.priority.value} |"
+                    console.print(row)
+            console.print(f"\n*Total: {task_count} tasks*")
+        return
+
     if json_output:
-        output = [t.model_dump(mode="json") for t in tasks]
-        console.print(json.dumps(output, indent=2))
+        json_output_data = [t.model_dump(mode="json") for t in tasks]
+        console.print(json.dumps(json_output_data, indent=2))
         return
 
     if not tasks:
@@ -1159,16 +1187,7 @@ def blocked(
     backend = get_backend()
     blocked_tasks = backend.list_blocked_tasks(parent=epic)
 
-    if json_output:
-        output = [t.model_dump(mode="json") for t in blocked_tasks]
-        console.print(json.dumps(output, indent=2))
-        return
-
-    if not blocked_tasks:
-        console.print("[yellow]No blocked tasks found.[/yellow]")
-        return
-
-    # Agent mode: include dependency graph analysis
+    # --agent wins over --json
     if agent:
         # Build dependency graph from all tasks for analysis
         all_tasks = backend.list_tasks()
@@ -1176,16 +1195,24 @@ def blocked(
 
         # Try to import AgentFormatter if available
         try:
-            from cub.core.tasks.agent_formatter import AgentFormatter  # type: ignore[import-untyped]  # noqa: I001
+            from cub.core.services.agent_format import AgentFormatter
 
-            formatter = AgentFormatter()
-            output = formatter.format_blocked(blocked_tasks, graph)
+            output = AgentFormatter.format_blocked(blocked_tasks, graph)
             console.print(output)
             return
         except ImportError:
             # Fallback to markdown table with analysis
             _format_blocked_agent_fallback(blocked_tasks, graph)
             return
+
+    if json_output:
+        json_output_data = [t.model_dump(mode="json") for t in blocked_tasks]
+        console.print(json.dumps(json_output_data, indent=2))
+        return
+
+    if not blocked_tasks:
+        console.print("[yellow]No blocked tasks found.[/yellow]")
+        return
 
     # Rich table output (default)
     table = Table(
