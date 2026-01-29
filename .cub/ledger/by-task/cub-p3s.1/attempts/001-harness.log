@@ -1,0 +1,31 @@
+I'll start by understanding the current task and then implementing the required changes.Let me find the correct working directory:Good! Now let me claim the task and view its details:Good! Now let me read the skill files that need to be updated:Perfect! I can see the issues clearly. Now let me search for all remaining `bd` references in the `.claude/commands` directory:Great! I found the exact locations. Now I need to update both files to use `cub task` equivalents with the `--agent` flag. Let me fix these:
+
+1. First, let's update `.claude/commands/cub.md` - line 23:2. Now let's update `.claude/commands/cub:tasks.md` - line 20:Perfect! Now let me verify there are no other `bd` references in the skill files:Good! There's one reference to `bd` commands being pre-approved in the execution rules. Let me update that to reflect that we're now using cub equivalents:Excellent! Let me verify all changes have been applied correctly:Perfect! Now let me run the feedback loops. Let me check if there are any tests or linting configured:Let me check the pyproject.toml to understand the test setup:Now let me run the tests, type checking, and linting to ensure everything passes:Good! The tests are running. Let me wait for the full test output to complete:I see there's a pre-existing test failure that's unrelated to my changes. The test is checking that `CUB_RUN_ACTIVE` is not set to '1', but it's already set in the environment from the Claude Code SDK. Let me check if this test failure was pre-existing by examining the test:Let me look at the test setup to understand the context better:This test failure is pre-existing and not related to my changes. My changes only updated markdown files in the `.claude/commands` directory. This test is failing because the environment variable `CUB_RUN_ACTIVE` is set to `1` at the start (from Claude Code SDK), but the test expects it to be cleared after running. Since this is a pre-existing issue, I need to fix it as per the instructions.
+
+Let me look at the run_task implementation:The code looks correct - it's saving the old value and restoring it. The issue is that the test is checking if it's NOT "1" after execution, but CUB_RUN_ACTIVE is already "1" from the Claude Code environment. The test was likely written before this started happening. Let me check if this is a known issue by checking the test more carefully:I see the issue. The test needs to be fixed to handle the case where CUB_RUN_ACTIVE was already set before the test started. Let me look at the beginning of the test function:Now let me fix the test to properly handle the case where CUB_RUN_ACTIVE was already set:Let me read the full test to get the exact indentation:Now I'll fix the test with the correct formatting:Perfect! Now let's run the test again to ensure it passes:Excellent! The test passes now. Let me run a broader set of tests to ensure nothing else broke:Good! There's another similar test in the `TestStreamTask` class. Let me find and fix that one:Now let me fix this test too:Good! Now let's test both harness tests to make sure they pass:Perfect! Both tests pass now. Let's run the entire test suite for the harness module to ensure nothing else is broken:Excellent! All tests pass. Now let me verify that the main changes are correct by reading the updated files one more time:Perfect! Both files have been updated correctly. Let me verify there are no more `bd` references in the skill files:Perfect! Now let me commit the changes. First, let me check git status:Now let me create a git commit with the changes:Excellent! Now let me close the task using the bd CLI:Perfect! The task has been closed successfully. Let me verify the task status:Perfect! The task is now closed. Let me run a final comprehensive test to ensure everything is working properly:Perfect! All tests pass. Let me create a summary of what was completed:
+
+## Summary
+
+I have successfully completed task **cub-p3s.1: Update router skill and passthrough skills**. Here's what was done:
+
+### Changes Made:
+
+1. **Updated `.claude/commands/cub.md`**:
+   - Changed the "what's blocked" intent mapping from `bd blocked` to `cub task list --status blocked --agent` (line 23)
+   - Removed `bd` from the pre-approved commands list in execution rules (line 109)
+
+2. **Updated `.claude/commands/cub:tasks.md`**:
+   - Changed the "blocked" / "blockers" intent mapping from `bd blocked` to `cub task list --status blocked --agent` (line 20)
+
+3. **Fixed Pre-existing Test Failures**:
+   - Fixed `test_run_task_sets_cub_run_active_env_var` in `tests/test_harness_claude_sdk.py` to properly handle the case where `CUB_RUN_ACTIVE` is already set in the environment
+   - Fixed `test_stream_task_sets_cub_run_active_env_var` similarly
+   - Both tests now save the original environment variable value and verify restoration instead of checking for a specific value
+
+### Verification:
+✅ All skill file references to `bd` commands have been migrated to `cub task` equivalents
+✅ All tests pass (34 passed, 2 skipped)
+✅ Code committed with proper message format
+✅ Task closed with detailed closure reason
+
+<promise>COMPLETE</promise>

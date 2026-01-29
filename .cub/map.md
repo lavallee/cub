@@ -191,6 +191,7 @@
     │   │   │   ├── cub-p2c.3/
     │   │   │   ├── cub-p2c.4/
     │   │   │   ├── cub-p2c.5/
+    │   │   │   ├── cub-p3s.1/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -315,7 +316,6 @@
     │   │   │   ├── cub-e2p.1.json
     │   │   │   ├── cub-e2p.2.json
     │   │   │   ├── cub-e2p.3.json
-    │   │   │   ├── cub-f7m.1.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols

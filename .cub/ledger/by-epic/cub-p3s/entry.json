@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "cub-p3s",
+  "title": "cub-p3s",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-p3s",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T20:21:38.552185Z",
+    "captured_at": "2026-01-29T20:21:38.552185Z"
+  },
+  "task_ids": [
+    "cub-p3s.1",
+    "cub-p3s.2"
+  ],
+  "aggregates": {
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.7064411999999999,
+    "avg_cost_per_task": 0.35322059999999994,
+    "min_cost_usd": 0.3009652500000001,
+    "max_cost_usd": 0.4054759499999998,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 2,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 3927765,
+    "avg_tokens_per_task": 1963882,
+    "total_duration_seconds": 3424,
+    "avg_duration_seconds": 1712,
+    "models_used": [
+      "haiku"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:28:03.405828Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T19:26:12.303657Z",
+  "completed_at": "2026-01-29T20:27:52.179072Z",
+  "updated_at": "2026-01-29T20:28:03.405830Z",
+  "first_commit": {
+    "hash": "8f86dd87f86f4b7ea6a9501bc44a75c6fe310a97",
+    "message": "task(cub-p3s.1): Update router skill and passthrough skills",
+    "author": "",
+    "timestamp": "2026-01-29T20:20:35Z"
+  },
+  "last_commit": {
+    "hash": "acc3f45044d7e59ada7b1e4ee40d6b9c8fde6225",
+    "message": "task(cub-p3s.2): Update CLAUDE.md and PROMPT.md documentation",
+    "author": "",
+    "timestamp": "2026-01-29T20:27:34Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
