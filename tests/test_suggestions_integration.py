@@ -5,6 +5,7 @@ Tests the full suggestion pipeline from service creation through CLI output,
 validating that suggestions are generated correctly from real project state.
 """
 
+import shutil
 from pathlib import Path
 
 import pytest
@@ -182,6 +183,7 @@ class TestSuggestionServiceIntegration:
         assert isinstance(suggestions, list)
 
 
+@pytest.mark.skipif(not shutil.which("bd"), reason="Requires bd CLI")
 class TestSuggestionServiceRealProject:
     """Integration tests using the actual cub project."""
 

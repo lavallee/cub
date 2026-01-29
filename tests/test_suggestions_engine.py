@@ -5,6 +5,7 @@ Tests the ranking algorithm and SuggestionEngine that composes
 sources and provides the public API.
 """
 
+import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
@@ -325,6 +326,7 @@ class TestSuggestionEngine:
         ):
             yield SuggestionEngine(project_dir=tmp_path)
 
+    @pytest.mark.skipif(not shutil.which("bd"), reason="Requires bd CLI")
     def test_engine_initialization(self, tmp_path):
         """Test engine initializes with default project dir."""
         engine = SuggestionEngine()

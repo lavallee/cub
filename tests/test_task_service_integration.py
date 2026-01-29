@@ -4,6 +4,7 @@ Integration tests for TaskService with real backends.
 Tests that TaskService methods work correctly with both JSONL and Beads backends.
 """
 
+import shutil
 import subprocess
 
 import pytest
@@ -35,7 +36,7 @@ class TestTaskServiceWithJsonBackend:
     @pytest.fixture
     def service(self, backend):
         """Create TaskService with JSONL backend."""
-        service = TaskService()
+        service = TaskService(backend="jsonl")
         service._backend = backend
         return service
 
@@ -183,6 +184,7 @@ class TestTaskServiceWithJsonBackend:
 # ==============================================================================
 
 
+@pytest.mark.skipif(not shutil.which("bd"), reason="Requires bd CLI")
 class TestTaskServiceWithBeadsBackend:
     """Integration tests for TaskService with Beads backend."""
 
@@ -299,7 +301,3 @@ class TestTaskServiceWithBeadsBackend:
         # Should be closed
         assert closed.status == TaskStatus.CLOSED
 
-    @pytest.mark.skip(reason="Requires bd CLI to be available")
-    def test_skip_if_bd_not_available(self):
-        """This test class requires bd CLI to be installed."""
-        pass
