@@ -561,6 +561,10 @@ Generated with [cub](https://github.com/lavallee/cub)
             else:
                 base = "main"
                 logger.debug("Using default base branch: main")
+        # Strip remote prefix (e.g. "origin/main" -> "main") since
+        # gh pr create --base expects a bare branch name
+        if "/" in base:
+            base = base.split("/", 1)[1]
         logger.debug(f"base={base!r}")
 
         # Check for existing PR
