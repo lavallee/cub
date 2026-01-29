@@ -49,6 +49,11 @@ def status(
         "--json",
         help="Output status as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
     session: str | None = typer.Option(
         None,
         "--session",
@@ -69,6 +74,7 @@ def status(
         cub status                      # Show current session
         cub status --verbose            # Show detailed status with per-task cost
         cub status --json               # JSON output
+        cub status --agent              # Agent-friendly markdown output
         cub status --session abc123     # Specific session/run
     """
     debug = ctx.obj.get("debug", False)
@@ -141,9 +147,48 @@ def status(
             if run_status.budget.tokens_used > total_tokens:
                 total_tokens = run_status.budget.tokens_used
 
+        # --agent wins over --json
+        if agent:
+            try:
+                from cub.core.services.agent_format import AgentFormatter
+
+                output = AgentFormatter.format_status(project_stats)
+                console.print(output)
+            except ImportError:
+                # Fallback to simple markdown if AgentFormatter not available
+                total = project_stats.total_tasks
+                closed = project_stats.closed_tasks
+                in_prog = project_stats.in_progress_tasks
+                open_count = project_stats.open_tasks
+                blocked = project_stats.blocked_tasks
+                ready = project_stats.ready_tasks
+                pct = project_stats.completion_percentage
+
+                console.print("# cub status\n")
+                console.print(
+                    f"{total} tasks: {closed} closed ({pct:.0f}%), "
+                    f"{in_prog} in progress, {open_count} open. "
+                    f"{blocked} blocked, {ready} ready.\n"
+                )
+                console.print("## Breakdown\n")
+                console.print("| Status | Count | Pct |")
+                console.print("|--------|-------|-----|")
+                if total > 0:
+                    closed_pct = (closed / total) * 100
+                    in_prog_pct = (in_prog / total) * 100
+                    ready_pct = (ready / total) * 100
+                    blocked_pct = (blocked / total) * 100
+                    console.print(f"| Closed | {closed} | {closed_pct:.0f}% |")
+                    console.print(f"| In Progress | {in_prog} | {in_prog_pct:.0f}% |")
+                    console.print(f"| Ready | {ready} | {ready_pct:.0f}% |")
+                    console.print(f"| Blocked | {blocked} | {blocked_pct:.0f}% |")
+                else:
+                    console.print("| No tasks | 0 | 0% |")
+            raise typer.Exit(0)
+
         if json_output:
             # Output machine-readable JSON
-            output = {
+            json_output_dict = {
                 "task_counts": {
                     "total": project_stats.total_tasks,
                     "open": project_stats.open_tasks,
@@ -170,7 +215,7 @@ def status(
                 },
                 "task_costs": task_costs if verbose else None,
             }
-            console.print(json_module.dumps(output, indent=2))
+            console.print(json_module.dumps(json_output_dict, indent=2))
             raise typer.Exit(0)
 
         # Display human-readable status

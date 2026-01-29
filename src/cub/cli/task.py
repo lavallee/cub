@@ -17,12 +17,32 @@ from cub.cli.errors import (
     print_no_tasks_found_error,
     print_task_not_found_error,
 )
-from cub.core.tasks.backend import get_backend
+from cub.core.tasks.backend import TaskBackend, get_backend
 from cub.core.tasks.graph import DependencyGraph
 from cub.core.tasks.models import Task, TaskStatus
 
 console = Console()
 app = typer.Typer(help="Manage tasks (backend-agnostic)")
+
+
+def _try_build_graph(backend: TaskBackend) -> DependencyGraph | None:
+    """Attempt to build a dependency graph from all tasks.
+
+    Returns None if DependencyGraph is not available yet (e.g., during
+    early development phases).
+
+    Args:
+        backend: Task backend to fetch tasks from
+
+    Returns:
+        DependencyGraph instance or None if unavailable
+    """
+    try:
+        all_tasks = backend.list_tasks()
+        return DependencyGraph(all_tasks)
+    except Exception:
+        # If graph construction fails for any reason, return None
+        return None
 
 
 @app.command()
@@ -108,6 +128,11 @@ def show(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
 ) -> None:
     """
     Show detailed information about a task.
@@ -115,6 +140,7 @@ def show(
     Examples:
         cub task show cub-123
         cub task show cub-123 --json
+        cub task show cub-123 --agent
     """
     backend = get_backend()
     task = backend.get_task(task_id)
@@ -122,6 +148,44 @@ def show(
     if task is None:
         console.print(f"[red]Error:[/red] Task not found: {task_id}")
         raise typer.Exit(1)
+
+    # --agent wins over --json
+    if agent:
+        try:
+            from cub.core.services.agent_format import AgentFormatter
+
+            graph = _try_build_graph(backend)
+
+            # Try to get epic progress if task has parent
+            epic_progress = None
+            if task.parent:
+                try:
+                    from cub.core.services.epic import EpicService  # type: ignore[import-untyped]
+                    from cub.utils.project import get_project_root
+
+                    project_dir = get_project_root()
+                    epic_service = EpicService.from_project_dir(project_dir)
+                    epic_progress = epic_service.get_epic_progress(task.parent)
+                except Exception:
+                    # If we can't get epic progress, proceed without it
+                    pass
+
+            output = AgentFormatter.format_task_detail(task, graph, epic_progress)
+            console.print(output)
+        except ImportError:
+            # Fallback to simple markdown if AgentFormatter not available
+            console.print(f"# cub task show {task.id}\n")
+            console.print(f"## {task.title}\n")
+            console.print(f"- **Priority**: {task.priority.value}")
+            console.print(f"- **Status**: {task.status.value}")
+            console.print(f"- **Type**: {task.type.value}")
+            if task.parent:
+                console.print(f"- **Parent**: {task.parent}")
+            if task.labels:
+                console.print(f"- **Labels**: {', '.join(task.labels)}")
+            if task.description:
+                console.print(f"\n## Description\n\n{task.description}")
+        return
 
     if json_output:
         console.print(json.dumps(task.model_dump(mode="json"), indent=2))
@@ -572,6 +636,11 @@ def ready(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
 ) -> None:
     """
     List tasks ready to work on (no blockers).
@@ -586,6 +655,7 @@ def ready(
         cub task ready --epic cub-123       # Ready tasks under epic (same as --parent)
         cub task ready --by priority        # Sort by priority (default)
         cub task ready --by impact          # Sort by impact (transitive unblocks)
+        cub task ready --agent              # Agent-friendly markdown output
     """
     backend = get_backend()
 
@@ -600,7 +670,11 @@ def ready(
     tasks = backend.get_ready_tasks(parent=parent_filter, label=label)
 
     if not tasks:
-        if json_output:
+        # --agent wins over --json
+        if agent:
+            console.print("# cub task ready\n")
+            console.print("0 tasks ready to work on.")
+        elif json_output:
             console.print(json.dumps([], indent=2))
         else:
             console.print("[yellow]No tasks ready to work on.[/yellow]")
@@ -623,9 +697,36 @@ def ready(
         # Default: sort by priority (already done by backend, but ensure consistency)
         tasks.sort(key=lambda t: t.priority_numeric)
 
+    # --agent wins over --json
+    if agent:
+        try:
+            from cub.core.services.agent_format import AgentFormatter
+
+            graph_result = _try_build_graph(backend)
+            agent_output = AgentFormatter.format_ready(tasks, graph_result)
+            console.print(agent_output)
+        except ImportError:
+            # Fallback to simple markdown if AgentFormatter not available
+            console.print("# cub task ready\n")
+            console.print(f"{len(tasks)} task{'s' if len(tasks) != 1 else ''} ready to work on.\n")
+            console.print("## Ready Tasks\n")
+            console.print("| ID | Title | Pri | Blocks |")
+            console.print("|----|-------|-----|--------|")
+            for task in tasks:
+                blocks_count = len(task.blocks)
+                if blocks_count == 0:
+                    blocks_str = "none"
+                else:
+                    plural = 's' if blocks_count != 1 else ''
+                    blocks_str = f"{blocks_count} task{plural}"
+                console.print(
+                    f"| {task.id} | {task.title} | {task.priority.value} | {blocks_str} |"
+                )
+        return
+
     if json_output:
-        output = [t.model_dump(mode="json") for t in tasks]
-        console.print(json.dumps(output, indent=2))
+        json_output_list = [t.model_dump(mode="json") for t in tasks]
+        console.print(json.dumps(json_output_list, indent=2))
         return
 
     table = Table(

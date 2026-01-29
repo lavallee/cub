@@ -626,3 +626,95 @@ class TestTaskDelete:
         assert result.exit_code == 1
         assert "Error" in result.stdout
         assert "dependents" in result.stdout.lower()
+
+
+class TestTaskShowAgent:
+    """Test cub task show command with --agent flag."""
+
+    def test_show_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test show with --agent flag."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            description="Task description",
+        )
+        mock_backend.list_tasks.return_value = [
+            Task(id="cub-001", title="Test task", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["show", "cub-001", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task show cub-001" in result.stdout
+        assert "Test task" in result.stdout
+
+    def test_show_agent_wins_over_json(self, mock_backend: MagicMock) -> None:
+        """Test that --agent takes precedence over --json."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.list_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["show", "cub-001", "--agent", "--json"])
+
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub task show" in result.stdout
+        assert '"id":' not in result.stdout
+
+
+class TestTaskReadyAgent:
+    """Test cub task ready command with --agent flag."""
+
+    def test_ready_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test ready with --agent flag."""
+        mock_backend.get_ready_tasks.return_value = [
+            Task(
+                id="cub-001",
+                title="Ready task",
+                status=TaskStatus.OPEN,
+                priority=TaskPriority.P1,
+            ),
+        ]
+        mock_backend.list_tasks.return_value = [
+            Task(id="cub-001", title="Ready task", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task ready" in result.stdout
+        assert "Ready task" in result.stdout
+
+    def test_ready_agent_empty(self, mock_backend: MagicMock) -> None:
+        """Test ready with --agent when no tasks are ready."""
+        mock_backend.get_ready_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task ready" in result.stdout
+        assert "0 tasks ready" in result.stdout
+
+    def test_ready_agent_wins_over_json(self, mock_backend: MagicMock) -> None:
+        """Test that --agent takes precedence over --json."""
+        mock_backend.get_ready_tasks.return_value = [
+            Task(id="cub-001", title="Ready task", status=TaskStatus.OPEN),
+        ]
+        mock_backend.list_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent", "--json"])
+
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub task ready" in result.stdout
+        assert '"id":' not in result.stdout

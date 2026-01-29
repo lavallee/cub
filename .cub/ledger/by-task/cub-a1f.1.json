@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-a1f.1",
+  "title": "Build AgentFormatter module with Phase 1 format methods",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a1f"
+  },
+  "task": {
+    "title": "Build AgentFormatter module with Phase 1 format methods",
+    "description": "The AgentFormatter is a collection of static methods that transform service-layer data into structured markdown for LLM consumption. Each method follows the envelope template: heading, summary line, data tables, truncation notice, analysis section. The formatter returns plain strings \u2014 no Rich, no console. DependencyGraph is an optional parameter; when None, analysis hints that require graph queries are omitted.\n\n**Implementation Steps:**\n1. Create `src/cub/core/services/agent_format.py` with `AgentFormatter` class\n2. Implement shared helpers:\n3. Implement `format_ready(tasks, graph=None)`:\n4. Implement `format_task_detail(task, graph=None, epic_progress=None)`:\n5. Implement `format_status(stats, epic_progress=None)`:\n6. Implement `format_suggestions(suggestions)`:\n7. Write snapshot tests for each method with representative inputs (0, 1, 10, 20 items)\n8. Write token budget test: assert output character count < 2000 for representative inputs\n\n**Files:** src/cub/core/services/agent_format.py, tests/test_agent_format.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:high",
+      "epic:cub-a1f",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-29T16:46:50.495070Z",
+    "captured_at": "2026-01-29T20:28:09.374719Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-152809",
+      "started_at": "2026-01-29T15:28:09.381375",
+      "completed_at": "2026-01-29T20:32:33.581596Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 206,
+        "output_tokens": 15330,
+        "cache_read_tokens": 1143477,
+        "cache_creation_tokens": 56132
+      },
+      "cost_usd": 0.8086250999999998,
+      "duration_seconds": 264
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T20:32:33.932815Z",
+    "total_cost_usd": 0.8086250999999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 264,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "3974699ec391153c769dcfcbc98edda2426e6db2",
+        "message": "task(cub-a1f.1): Build AgentFormatter module with Phase 1 format methods",
+        "author": "",
+        "timestamp": "2026-01-29T20:32:20Z"
+      }
+    ],
+    "approach": "Built the AgentFormatter module iteratively by first thoroughly exploring the codebase to understand existing data structures, models, and formatting patterns, then implemented all four Phase 1 format methods following the envelope template specification, and validated with comprehensive tests ensuring token budgets and output quality before running feedback loops.",
+    "decisions": [
+      "Implemented all four Phase 1 methods (`format_ready`, `format_task_detail`, `format_status`, `format_suggestions`) in a single module rather than splitting across files, keeping related formatting logic cohesive",
+      "Made DependencyGraph an optional parameter with explicit None-checks that gracefully omit graph-dependent analysis hints rather than raising errors",
+      "Used shared helper methods (`_truncate_text`, `_get_task_table`, etc.) to avoid duplication and ensure consistent formatting across all format methods",
+      "Set the 2000-character token budget hard limit as a validation constraint in tests rather than a soft guideline, catching regressions early",
+      "Organized tests using snapshot testing for full output validation combined with targeted unit tests for helpers and edge cases"
+    ],
+    "lessons_learned": [
+      "Exploring related code patterns before implementation (existing formatters, test structure, models) significantly reduced iteration cycles and ensured consistency with project conventions",
+      "Snapshot testing is highly effective for maintaining complex output format contracts\u2014catches unintended formatting changes immediately",
+      "Optional parameters with graceful degradation (None-checks) are preferable to requiring all dependencies upfront when some are context-dependent (like DependencyGraph for analysis)",
+      "Running feedback loops early and fixing issues in one pass (mypy, ruff, tests together) is more efficient than sequential cleanup iterations",
+      "Token budget validation as a hard constraint prevents \"scope creep\" where outputs gradually exceed LLM input limits"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:32:33.932815Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:28:09.374719Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:32:33.932815Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T20:28:09.374719Z",
+  "completed_at": "2026-01-29T20:32:33.932815Z",
+  "tokens": {
+    "input_tokens": 206,
+    "output_tokens": 15330,
+    "cache_read_tokens": 1143477,
+    "cache_creation_tokens": 56132
+  },
+  "cost_usd": 0.8086250999999998,
+  "duration_seconds": 264,
+  "iterations": 1,
+  "approach": "Built the AgentFormatter module iteratively by first thoroughly exploring the codebase to understand existing data structures, models, and formatting patterns, then implemented all four Phase 1 format methods following the envelope template specification, and validated with comprehensive tests ensuring token budgets and output quality before running feedback loops.",
+  "decisions": [
+    "Implemented all four Phase 1 methods (`format_ready`, `format_task_detail`, `format_status`, `format_suggestions`) in a single module rather than splitting across files, keeping related formatting logic cohesive",
+    "Made DependencyGraph an optional parameter with explicit None-checks that gracefully omit graph-dependent analysis hints rather than raising errors",
+    "Used shared helper methods (`_truncate_text`, `_get_task_table`, etc.) to avoid duplication and ensure consistent formatting across all format methods",
+    "Set the 2000-character token budget hard limit as a validation constraint in tests rather than a soft guideline, catching regressions early",
+    "Organized tests using snapshot testing for full output validation combined with targeted unit tests for helpers and edge cases"
+  ],
+  "lessons_learned": [
+    "Exploring related code patterns before implementation (existing formatters, test structure, models) significantly reduced iteration cycles and ensured consistency with project conventions",
+    "Snapshot testing is highly effective for maintaining complex output format contracts\u2014catches unintended formatting changes immediately",
+    "Optional parameters with graceful degradation (None-checks) are preferable to requiring all dependencies upfront when some are context-dependent (like DependencyGraph for analysis)",
+    "Running feedback loops early and fixing issues in one pass (mypy, ruff, tests together) is more efficient than sequential cleanup iterations",
+    "Token budget validation as a hard constraint prevents \"scope creep\" where outputs gradually exceed LLM input limits"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "3974699ec391153c769dcfcbc98edda2426e6db2",
+      "message": "task(cub-a1f.1): Build AgentFormatter module with Phase 1 format methods",
+      "author": "",
+      "timestamp": "2026-01-29T20:32:20Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a1f.1",
+  "epic_id": "cub-a1f",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

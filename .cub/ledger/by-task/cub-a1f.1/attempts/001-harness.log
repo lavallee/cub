@@ -1,0 +1,33 @@
+I'll implement the AgentFormatter module with all Phase 1 format methods. Let me start by claiming the task and understanding the codebase structure.Let me check if there's a services directory and look at related models:Good, the services directory exists. Now let me look at the models and understand the data structures:Now let me check the task models and the suggestions models:Now let me check if there's a dependency graph model:Perfect! Now let me check an example of formatted output to understand the style expectations. Let me look at existing test files to understand the patterns:Let me check the spec file to understand the formatting requirements:Excellent! Now I have a complete understanding. Let me create the AgentFormatter module with all the required methods. Let me first create a todo list to track the implementation:Now let me create the AgentFormatter module:Now let me create comprehensive tests:Now let's run the feedback loops - typecheck, tests, and lint:Great! All tests pass. The mypy errors are in unrelated files (pre-existing issues with yaml stubs and backend types). Let me run mypy specifically on just our new file to check it's clean:Let me fix the linting issues:Good, most issues are fixed. Let me manually fix the one remaining line length issue:Now let's check if linting passes:Perfect! All tests pass and linting passes. Let me update the todo list and then close the task:Excellent! All tasks are complete. Let me close the task and commit the changes:Perfect! Task completed successfully. Let me verify the completion:<promise>COMPLETE</promise>
+
+## Summary
+
+I have successfully completed task **cub-a1f.1: Build AgentFormatter module with Phase 1 format methods**.
+
+### What was implemented:
+
+**1. AgentFormatter Module** (`src/cub/core/services/agent_format.py`)
+   - Static methods for transforming service-layer data into structured markdown
+   - Four complete format methods following the envelope template:
+     - `format_ready()` - Ready tasks with impact analysis
+     - `format_task_detail()` - Detailed task view with epic context
+     - `format_status()` - Project status with breakdown tables
+     - `format_suggestions()` - Ranked suggestions in compact format
+   - Shared helper methods for truncation, formatting, and table generation
+   - Optional DependencyGraph parameter - when None, graph-based analysis is omitted
+   - All outputs optimized to stay under 500 tokens (~2000 chars) as per spec
+
+**2. Comprehensive Test Suite** (`tests/test_agent_format.py`)
+   - 34 tests with 100% pass rate
+   - Snapshot tests for 0, 1, 10, and 20 item cases
+   - Token budget tests ensuring <2000 character outputs
+   - Edge case coverage (singular/plural, empty data, minimal inputs)
+   - Helper method unit tests
+
+**3. Quality Checks**
+   - ✅ All 34 tests passing
+   - ✅ Type checking clean (mypy)
+   - ✅ Linting clean (ruff)
+   - ✅ Token budget validated (<2000 chars for all methods)
+
+The implementation follows the spec exactly, providing LLM-optimized markdown output with structured tables, truncation notices, and pre-computed analysis hints. The module is ready for integration with CLI commands in the next task (cub-a1f.2).
