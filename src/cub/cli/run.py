@@ -206,14 +206,18 @@ async def _invoke_harness_async(
 
         collected = ""
         usage = TokenUsage()
+        message_count = 0
         # stream_task yields str chunks and optionally a final TokenUsage sentinel
         stream_it = harness_backend.stream_task(task_input, debug=debug)
         async for chunk in stream_it:  # type: ignore[attr-defined]
             if isinstance(chunk, TokenUsage):
                 usage = chunk
             else:
+                if message_count > 0:
+                    _stream_callback("\n")
                 _stream_callback(chunk)
                 collected += chunk
+                message_count += 1
 
         sys.stdout.write("\n")
         sys.stdout.flush()

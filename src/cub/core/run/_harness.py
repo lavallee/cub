@@ -51,14 +51,18 @@ async def invoke_harness_async(
 
         collected = ""
         usage = TokenUsage()
+        message_count = 0
         stream_it = harness_backend.stream_task(task_input, debug=debug)
         async for chunk in stream_it:  # type: ignore[attr-defined]
             if isinstance(chunk, TokenUsage):
                 usage = chunk
             else:
+                if message_count > 0:
+                    sys.stdout.write("\n")
                 sys.stdout.write(chunk)
                 sys.stdout.flush()
                 collected += chunk
+                message_count += 1
 
         sys.stdout.write("\n")
         sys.stdout.flush()
