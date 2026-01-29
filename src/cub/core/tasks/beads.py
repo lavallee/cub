@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .backend import register_backend
+from .backend import TaskBackendDefaults, register_backend
 from .models import Task, TaskCounts, TaskStatus
 
 
@@ -28,7 +28,7 @@ class BeadsCommandError(Exception):
 
 
 @register_backend("beads")
-class BeadsBackend:
+class BeadsBackend(TaskBackendDefaults):
     """
     Task backend that uses the beads CLI (`bd`).
 
@@ -468,7 +468,7 @@ class BeadsBackend:
         Get count statistics for tasks.
 
         Returns:
-            TaskCounts object with total, open, in_progress, closed counts
+            TaskCounts object with total, open, in_progress, closed, and blocked counts
         """
         try:
             result = self._run_bd(["list", "--json", "--limit", "1000"])
@@ -485,11 +485,28 @@ class BeadsBackend:
             in_progress = sum(1 for t in raw_tasks if t.get("status") == "in_progress")
             closed = sum(1 for t in raw_tasks if t.get("status") == "closed")
 
+            # Count blocked tasks (open tasks with unmet dependencies)
+            blocked_count = 0
+            for raw_task in raw_tasks:
+                if raw_task.get("status") == "open":
+                    # Check if task has dependencies
+                    blocks = raw_task.get("blocks", [])
+                    if blocks:
+                        # Check if any dependency is not closed
+                        for dep_id in blocks:
+                            dep_task_raw = next(
+                                (t for t in raw_tasks if t.get("id") == dep_id), None
+                            )
+                            if dep_task_raw is None or dep_task_raw.get("status") != "closed":
+                                blocked_count += 1
+                                break
+
             return TaskCounts(
                 total=total,
                 open=open_count,
                 in_progress=in_progress,
                 closed=closed,
+                blocked=blocked_count,
             )
 
         except BeadsCommandError:
@@ -678,6 +695,323 @@ class BeadsBackend:
 - `bd ready` - See tasks ready to work on (no blockers)
 
 **Important:** Always run feedback loops (tests, typecheck, lint) BEFORE closing the task."""
+
+    def add_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Add a dependency to a task.
+
+        Makes task_id depend on depends_on_id (task_id cannot start until
+        depends_on_id is closed).
+
+        Args:
+            task_id: Task to add dependency to
+            depends_on_id: Task ID that must be completed first
+
+        Returns:
+            Updated task object with new dependency
+
+        Raises:
+            ValueError: If either task not found or dependency would create a cycle
+        """
+        try:
+            # Verify both tasks exist
+            task = self.get_task(task_id)
+            if task is None:
+                raise ValueError(f"Task {task_id} not found")
+
+            depends_on_task = self.get_task(depends_on_id)
+            if depends_on_task is None:
+                raise ValueError(f"Dependency task {depends_on_id} not found")
+
+            # bd dep add <task_id> <depends_on_id> --type blocks
+            # This adds depends_on_id as a blocker for task_id
+            self._run_bd(
+                ["dep", "add", task_id, depends_on_id, "--type", "blocks"], expect_json=False
+            )
+
+            # Fetch and return the updated task
+            updated_task = self.get_task(task_id)
+            if updated_task is None:
+                raise ValueError(f"Task {task_id} not found after adding dependency")
+
+            return updated_task
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to add dependency: {e}")
+
+    def remove_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Remove a dependency from a task.
+
+        Args:
+            task_id: Task to remove dependency from
+            depends_on_id: Task ID to remove from dependencies
+
+        Returns:
+            Updated task object without the dependency
+
+        Raises:
+            ValueError: If task not found or dependency doesn't exist
+        """
+        try:
+            # Verify task exists
+            task = self.get_task(task_id)
+            if task is None:
+                raise ValueError(f"Task {task_id} not found")
+
+            # Verify dependency exists
+            if depends_on_id not in task.depends_on:
+                raise ValueError(f"Task {task_id} does not depend on {depends_on_id}")
+
+            # bd dep remove <task_id> <depends_on_id>
+            self._run_bd(["dep", "remove", task_id, depends_on_id], expect_json=False)
+
+            # Fetch and return the updated task
+            updated_task = self.get_task(task_id)
+            if updated_task is None:
+                raise ValueError(f"Task {task_id} not found after removing dependency")
+
+            return updated_task
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to remove dependency: {e}")
+
+    def list_blocked_tasks(
+        self,
+        parent: str | None = None,
+        label: str | None = None,
+    ) -> list[Task]:
+        """
+        List all blocked tasks.
+
+        A task is blocked if:
+        - Status is OPEN
+        - Has at least one dependency that is not CLOSED
+
+        Args:
+            parent: Filter by parent epic/task ID
+            label: Filter by label
+
+        Returns:
+            List of blocked tasks
+        """
+        try:
+            # Try using bd blocked command if available
+            args = ["blocked", "--json"]
+
+            # Add filters
+            if label:
+                args.extend(["--label", label])
+
+            result = self._run_bd(args)
+
+            # Handle both list and single-item responses
+            if not isinstance(result, list):
+                raw_tasks = [result] if result else []
+            else:
+                raw_tasks = result
+
+            tasks = [self._transform_beads_task(t) for t in raw_tasks]
+
+            # Filter by parent if specified (Python-side filtering)
+            if parent:
+                filtered_tasks = []
+                for task in tasks:
+                    # Primary check: parent field matches
+                    if task.parent == parent:
+                        filtered_tasks.append(task)
+                        continue
+                    # Fallback check: epic:{parent} label exists
+                    if task.has_label(f"epic:{parent}"):
+                        filtered_tasks.append(task)
+                        continue
+                tasks = filtered_tasks
+
+            return tasks
+
+        except BeadsCommandError:
+            # If bd blocked command doesn't exist, fall back to manual filtering
+            # Get all open tasks and check their dependencies
+            open_tasks = self.list_tasks(status=TaskStatus.OPEN, parent=parent, label=label)
+
+            blocked_tasks = []
+            for task in open_tasks:
+                # Skip tasks with no dependencies
+                if not task.depends_on:
+                    continue
+
+                # Check if any dependency is not closed
+                has_open_dependency = False
+                for dep_id in task.depends_on:
+                    dep_task = self.get_task(dep_id)
+                    if dep_task is None or dep_task.status != TaskStatus.CLOSED:
+                        has_open_dependency = True
+                        break
+
+                if has_open_dependency:
+                    blocked_tasks.append(task)
+
+            return blocked_tasks
+
+    def reopen_task(self, task_id: str, reason: str | None = None) -> Task:
+        """
+        Reopen a closed task.
+
+        Changes task status from CLOSED back to OPEN.
+
+        Args:
+            task_id: Task to reopen
+            reason: Optional reason for reopening
+
+        Returns:
+            Reopened task object
+
+        Raises:
+            ValueError: If task not found or not closed
+        """
+        try:
+            # Verify task exists and is closed
+            task = self.get_task(task_id)
+            if task is None:
+                raise ValueError(f"Task {task_id} not found")
+
+            if task.status != TaskStatus.CLOSED:
+                raise ValueError(f"Task {task_id} is not closed (status: {task.status})")
+
+            # bd update <task_id> --status open
+            self._run_bd(["update", task_id, "--status", "open"], expect_json=False)
+
+            # Add note about reopening if reason provided
+            # add_task_note returns the updated task, so we can return it directly
+            if reason:
+                return self.add_task_note(task_id, f"Reopened: {reason}")
+
+            # Fetch and return the reopened task
+            reopened_task = self.get_task(task_id)
+            if reopened_task is None:
+                raise ValueError(f"Task {task_id} not found after reopening")
+
+            return reopened_task
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to reopen task {task_id}: {e}")
+
+    def delete_task(self, task_id: str) -> bool:
+        """
+        Delete a task permanently.
+
+        WARNING: This is destructive and cannot be undone.
+
+        Args:
+            task_id: Task to delete
+
+        Returns:
+            True if task was deleted, False if not found
+
+        Raises:
+            ValueError: If task has dependents (other tasks depend on it)
+        """
+        try:
+            # Verify task exists
+            task = self.get_task(task_id)
+            if task is None:
+                return False
+
+            # Check if other tasks depend on this one
+            # We need to check all tasks to see if any have this task in their depends_on
+            all_tasks = self.list_tasks()
+            dependents = [t for t in all_tasks if task_id in t.depends_on]
+
+            if dependents:
+                dependent_ids = ", ".join([t.id for t in dependents])
+                raise ValueError(
+                    f"Cannot delete task {task_id}: it has dependents [{dependent_ids}]"
+                )
+
+            # bd delete <task_id>
+            self._run_bd(["delete", task_id], expect_json=False)
+
+            return True
+
+        except BeadsCommandError as e:
+            # If the error is that task doesn't exist, return False
+            if "not found" in str(e).lower():
+                return False
+            raise ValueError(f"Failed to delete task {task_id}: {e}")
+
+    def add_label(self, task_id: str, label: str) -> Task:
+        """
+        Add a label to a task.
+
+        Args:
+            task_id: Task to add label to
+            label: Label to add (e.g., "bug", "model:sonnet")
+
+        Returns:
+            Updated task object with new label
+
+        Raises:
+            ValueError: If task not found
+        """
+        try:
+            # Verify task exists
+            task = self.get_task(task_id)
+            if task is None:
+                raise ValueError(f"Task {task_id} not found")
+
+            # If label already exists, just return the task
+            if label in task.labels:
+                return task
+
+            # bd label add <task_id> <label>
+            self._run_bd(["label", "add", task_id, label], expect_json=False)
+
+            # Fetch and return the updated task
+            updated_task = self.get_task(task_id)
+            if updated_task is None:
+                raise ValueError(f"Task {task_id} not found after adding label")
+
+            return updated_task
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to add label to task {task_id}: {e}")
+
+    def remove_label(self, task_id: str, label: str) -> Task:
+        """
+        Remove a label from a task.
+
+        Args:
+            task_id: Task to remove label from
+            label: Label to remove
+
+        Returns:
+            Updated task object without the label
+
+        Raises:
+            ValueError: If task not found or label doesn't exist
+        """
+        try:
+            # Verify task exists
+            task = self.get_task(task_id)
+            if task is None:
+                raise ValueError(f"Task {task_id} not found")
+
+            # Verify label exists
+            if label not in task.labels:
+                raise ValueError(f"Label '{label}' not found on task {task_id}")
+
+            # bd label remove <task_id> <label>
+            self._run_bd(["label", "remove", task_id, label], expect_json=False)
+
+            # Fetch and return the updated task
+            updated_task = self.get_task(task_id)
+            if updated_task is None:
+                raise ValueError(f"Task {task_id} not found after removing label")
+
+            return updated_task
+
+        except BeadsCommandError as e:
+            raise ValueError(f"Failed to remove label from task {task_id}: {e}")
 
     def bind_branch(
         self,
