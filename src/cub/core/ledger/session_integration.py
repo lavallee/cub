@@ -501,7 +501,7 @@ class SessionLedgerIntegration:
 
             retry_records.append(
                 CIRetryRecord(
-                    attempt_number=retry.get("attempt_number", 0),
+                    attempt_number=retry.get("attempt_number", 1),
                     reason=retry.get("reason", "unknown"),
                     triggered_at=triggered_at,
                     failed_checks=retry.get("failed_checks", []),
@@ -511,7 +511,7 @@ class SessionLedgerIntegration:
 
         monitor_data = state.ci_monitor_result or {}
         return CIMonitorSummary(
-            pr_number=monitor_data.get("pr_number", 0),
+            pr_number=monitor_data.get("pr_number", 1),
             final_state=monitor_data.get("final_state", "unknown"),
             total_retries=monitor_data.get("total_retries", len(retry_records)),
             retry_records=retry_records,
