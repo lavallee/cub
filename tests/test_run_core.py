@@ -1213,6 +1213,51 @@ class TestDisplayTaskInfo:
         # Should handle long titles and different values
         display_task_info(task, iteration=1, max_iterations=1)
 
+    def test_displays_harness_and_model(self, mock_task, capsys):
+        """Test that harness and model info are displayed when provided."""
+        display_task_info(
+            mock_task,
+            iteration=1,
+            max_iterations=5,
+            harness_name="claude",
+            model="sonnet",
+        )
+        output = capsys.readouterr().out
+        assert "claude" in output
+        assert "sonnet" in output
+
+    def test_omits_harness_when_not_provided(self, mock_task, capsys):
+        """Test that harness row is omitted when harness_name is None."""
+        display_task_info(mock_task, iteration=1, max_iterations=5)
+        output = capsys.readouterr().out
+        assert "Harness" not in output
+        assert "Model" not in output
+
+    def test_omits_model_when_not_provided(self, mock_task, capsys):
+        """Test that model row is omitted when model is None but harness is shown."""
+        display_task_info(
+            mock_task,
+            iteration=1,
+            max_iterations=5,
+            harness_name="codex",
+        )
+        output = capsys.readouterr().out
+        assert "codex" in output
+        assert "Model" not in output
+
+    def test_omits_harness_when_empty_string(self, mock_task, capsys):
+        """Test that empty string harness is treated as not configured."""
+        display_task_info(
+            mock_task,
+            iteration=1,
+            max_iterations=5,
+            harness_name="",
+            model="",
+        )
+        output = capsys.readouterr().out
+        assert "Harness" not in output
+        assert "Model" not in output
+
 
 # ==============================================================================
 # Tests for display_summary
