@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "cub-a3r.3",
+  "title": "Add learned routes section to router skill",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a3r"
+  },
+  "task": {
+    "title": "Add learned routes section to router skill",
+    "description": "The router skill needs to reference the compiled routes file so Claude can use frequency data as a tiebreaker for ambiguous intent. This is the only point where LLM judgment enters the route learning system.\n\n**Implementation Steps:**\n1. Add a \"Learned Routes\" section to `.claude/commands/cub.md`:\n2. Place this section after the \"Execution Rules\" section and before \"Examples\"\n3. The `@` prefix ensures Claude Code injects the file content into context\n\n**Files:** .claude/commands/cub.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "epic:cub-a3r",
+      "model:haiku",
+      "phase-3"
+    ],
+    "created_at": "2026-01-29T16:46:50.495168Z",
+    "captured_at": "2026-01-29T20:54:30.286224Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:54:30.286224Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:54:30.286224Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "started_at": "2026-01-29T20:54:30.286224Z",
+  "completed_at": "2026-01-29T20:54:30.286224Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a3r.3",
+  "epic_id": "cub-a3r",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

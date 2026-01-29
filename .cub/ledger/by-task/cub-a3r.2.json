@@ -22,8 +22,62 @@
     "captured_at": "2026-01-29T20:47:56.107746Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-154351",
+      "started_at": "2026-01-29T15:47:56.113122",
+      "completed_at": "2026-01-29T20:54:15.238076Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 8371,
+        "output_tokens": 17886,
+        "cache_read_tokens": 2495228,
+        "cache_creation_tokens": 60980
+      },
+      "cost_usd": 1.307887400000001,
+      "duration_seconds": 379
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T20:54:15.588339Z",
+    "total_cost_usd": 1.307887400000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 379,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "601c350a2fed058ebd3d18eb2022ef9bc909f6f5",
+        "message": "task(cub-a3r.2): Build route compiler and cub routes CLI",
+        "author": "",
+        "timestamp": "2026-01-29T20:53:47Z"
+      }
+    ],
+    "approach": "Implemented the route compiler as a layered feature: created a core domain module (`compiler.py`) with normalization and aggregation logic, built a CLI interface (`routes.py`) with show/compile/clear commands, integrated with the Stop hook for automatic compilation, and established comprehensive test coverage to validate all normalization patterns and edge cases.",
+    "decisions": [
+      "Placed route compilation in a dedicated `src/cub/core/routes/` package rather than embedding in existing modules to maintain separation of concerns and enable future extensibility",
+      "Set minimum frequency threshold to 3 for filtering noise, balancing signal detection while removing one-off anomalies",
+      "Implemented normalization using regex patterns for task IDs, file paths, quoted strings, numbers, and URLs to reduce false variation in command patterns",
+      "Used markdown table format for learned routes output (`.cub/learned-routes.md`) to maintain human-readability and git-track compatibility",
+      "Triggered route compilation automatically via Stop hook with silent error suppression to avoid disrupting normal workflows",
+      "Added `cub routes` commands as utility operations under the CLI rather than as a subcommand of an existing panel, keeping the feature discoverable yet modular"
+    ],
+    "lessons_learned": [
+      "Normalization patterns require iterative refinement: the initial implementation needed adjustments to regex ordering and capture group handling to correctly normalize overlapping patterns (e.g., handling both file paths and task IDs in the same command)",
+      "Hook integration benefits from silent failure modes: the Stop hook implementation suppresses errors to prevent disrupting user workflows, making the feature robust to missing dependencies or temporary issues",
+      "Comprehensive test coverage for pattern matching pays dividends: the 27 tests covering normalization patterns caught edge cases (e.g., quoted strings with special chars, URLs with query parameters) before they surfaced in production",
+      "CLI registration patterns matter: placing the routes command in a discoverable location and registering it consistently with existing patterns reduced friction for users discovering the feature"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +93,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-29T20:47:56.107746Z"
+    "stage_updated_at": "2026-01-29T20:54:15.588339Z"
   },
   "state_history": [
     {
@@ -47,31 +101,56 @@
       "at": "2026-01-29T20:47:56.107746Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:54:15.588339Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-29T20:47:56.107746Z",
-  "completed_at": "2026-01-29T20:47:56.107746Z",
+  "completed_at": "2026-01-29T20:54:15.588339Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 8371,
+    "output_tokens": 17886,
+    "cache_read_tokens": 2495228,
+    "cache_creation_tokens": 60980
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.307887400000001,
+  "duration_seconds": 379,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Implemented the route compiler as a layered feature: created a core domain module (`compiler.py`) with normalization and aggregation logic, built a CLI interface (`routes.py`) with show/compile/clear commands, integrated with the Stop hook for automatic compilation, and established comprehensive test coverage to validate all normalization patterns and edge cases.",
+  "decisions": [
+    "Placed route compilation in a dedicated `src/cub/core/routes/` package rather than embedding in existing modules to maintain separation of concerns and enable future extensibility",
+    "Set minimum frequency threshold to 3 for filtering noise, balancing signal detection while removing one-off anomalies",
+    "Implemented normalization using regex patterns for task IDs, file paths, quoted strings, numbers, and URLs to reduce false variation in command patterns",
+    "Used markdown table format for learned routes output (`.cub/learned-routes.md`) to maintain human-readability and git-track compatibility",
+    "Triggered route compilation automatically via Stop hook with silent error suppression to avoid disrupting normal workflows",
+    "Added `cub routes` commands as utility operations under the CLI rather than as a subcommand of an existing panel, keeping the feature discoverable yet modular"
+  ],
+  "lessons_learned": [
+    "Normalization patterns require iterative refinement: the initial implementation needed adjustments to regex ordering and capture group handling to correctly normalize overlapping patterns (e.g., handling both file paths and task IDs in the same command)",
+    "Hook integration benefits from silent failure modes: the Stop hook implementation suppresses errors to prevent disrupting user workflows, making the feature robust to missing dependencies or temporary issues",
+    "Comprehensive test coverage for pattern matching pays dividends: the 27 tests covering normalization patterns caught edge cases (e.g., quoted strings with special chars, URLs with query parameters) before they surfaced in production",
+    "CLI registration patterns matter: placing the routes command in a discoverable location and registering it consistently with existing patterns reduced friction for users discovering the feature"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "601c350a2fed058ebd3d18eb2022ef9bc909f6f5",
+      "message": "task(cub-a3r.2): Build route compiler and cub routes CLI",
+      "author": "",
+      "timestamp": "2026-01-29T20:53:47Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a3r.2",
   "epic_id": "cub-a3r",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

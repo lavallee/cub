@@ -114,6 +114,10 @@ When routing to a skill, invoke it using the Skill tool. These are conversationa
 5. **ID detection** -- if the input contains something that looks like a task/epic ID (e.g., `cub-xxx`, `beads-xxx`), use it as the target for the matched command.
 6. **No match** -- run `cub suggest --agent` and say "I wasn't sure what you meant, but here's what cub suggests."
 
+## Learned Routes
+
+@.cub/learned-routes.md
+
 ## Examples
 
 ```
