@@ -1,0 +1,56 @@
+I'll implement the `--agent` flag for Phase 1 CLI commands. Let me start by understanding the current codebase structure and then implement the changes.Let me find the correct file locations:Now let me look at the AgentFormatter to understand its API:Let me search for AgentFormatter in the codebase:Now let me check test files to understand the expected behavior better:Now let me look at the task description again and check if there are existing CLI integration tests:Let me check if there are tests for the task command:Now I have all the context I need. Let me implement the changes:
+
+1. Add `_try_build_graph` helper function in `cli/task.py`
+2. Add `--agent` flag to `cub task ready` and `cub task show`
+3. Add `--agent` flag to `cub status` and `cub suggest`
+4. Write tests for each command with `--agent` flag
+
+Let me start:Now let's update the `show` command to add the `--agent` flag:Now let's update the `ready` command:Now let's update the `status.py` file:Now let's add the agent output logic in the status function:Now let's update the `suggest.py` file:Now let's add the agent output logic in the suggest function:Great! Now let's write tests for the CLI integration. I'll add tests to the existing test file:Now let's create tests for status and suggest commands. Let me check if there are existing test files for those:Let me create new test files for the CLI commands:Now let's run the tests to make sure everything works:Perfect! All tests pass. Now let's run the full test suite to ensure we haven't broken anything:Excellent! Now let's run type checking:We have some type errors. Let me fix them:Now let's fix the status.py issues:Now let's fix the suggest.py issue:Now let's run type checking again:Perfect! Now let's run linting:Let's fix the linting errors:Perfect! Now let's run all tests once more to ensure everything still works:Excellent! All tests pass. Let's run the full test suite to ensure we haven't broken anything else:Perfect! Let's now manually test the commands to make sure they work correctly:Perfect! All commands work correctly with the `--agent` flag! Now let's test that `--agent` wins over `--json`:Great! The `--agent` flag is indeed taking precedence over `--json`. Now let's close the task and commit the changes:Perfect! The task is complete. Let me summarize what was implemented:
+
+## Summary
+
+I successfully implemented the `--agent` flag for Phase 1 CLI commands as specified in task cub-a1f.2. Here's what was done:
+
+### Changes Made:
+
+1. **Created `_try_build_graph` helper function** in `cli/task.py`:
+   - Attempts to build a DependencyGraph from all tasks
+   - Returns None if unavailable (graceful fallback)
+   - Used by other commands to get graph context for agent formatting
+
+2. **Added `--agent` flag to `cub task ready`**:
+   - Calls `AgentFormatter.format_ready()` when flag is present
+   - Includes fallback markdown output if AgentFormatter not available
+   - Flag wins over `--json` when both are passed
+
+3. **Added `--agent` flag to `cub task show`**:
+   - Calls `AgentFormatter.format_task_detail()` when flag is present
+   - Attempts to fetch epic progress when task has a parent
+   - Includes fallback markdown output if AgentFormatter not available
+   - Flag wins over `--json` when both are passed
+
+4. **Added `--agent` flag to `cub status`**:
+   - Calls `AgentFormatter.format_status()` when flag is present
+   - Includes fallback markdown output if AgentFormatter not available
+   - Flag wins over `--json` when both are passed
+
+5. **Added `--agent` flag to `cub suggest`**:
+   - Calls `AgentFormatter.format_suggestions()` when flag is present
+   - Includes fallback markdown output if AgentFormatter not available
+   - Flag wins over `--json` when both are passed
+
+6. **Comprehensive Test Coverage**:
+   - Added tests for `cub task show --agent` (2 tests)
+   - Added tests for `cub task ready --agent` (3 tests)
+   - Added tests for `cub status --agent` (2 tests in new file)
+   - Added tests for `cub suggest --agent` (3 tests in new file)
+   - All tests verify that `--agent` wins over `--json`
+
+### Quality Checks:
+- ✅ All 46 CLI tests pass
+- ✅ All 34 AgentFormatter tests pass
+- ✅ Type checking passes (mypy)
+- ✅ Linting passes (ruff)
+- ✅ Manual testing confirms all commands work correctly
+
+The implementation follows the existing `--json` pattern and ensures that `--agent` silently takes precedence when both flags are provided.
