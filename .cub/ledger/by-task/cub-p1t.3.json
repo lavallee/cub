@@ -22,8 +22,63 @@
     "captured_at": "2026-01-29T17:27:13.186956Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-122038",
+      "started_at": "2026-01-29T12:27:13.192848",
+      "completed_at": "2026-01-29T17:32:20.223378Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 44,
+        "output_tokens": 13580,
+        "cache_read_tokens": 1766733,
+        "cache_creation_tokens": 81490
+      },
+      "cost_usd": 1.0783614000000001,
+      "duration_seconds": 307
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T17:32:46.346833Z",
+    "total_cost_usd": 1.0783614000000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 307,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "583ef88fdfe03c0324da5e82ab421e91000251e7",
+        "message": "task(cub-p1t.3): Implement new protocol methods in JsonlBackend",
+        "author": "",
+        "timestamp": "2026-01-29T17:32:06Z"
+      }
+    ],
+    "approach": "Analyzed the existing TaskBackend protocol and JsonlBackend implementation to understand requirements, then systematically implemented all new methods by leveraging existing Task model methods (add_label, remove_label, reopen) and the atomic file write pattern. Inherited from TaskBackendDefaults mixin to reuse default implementations where applicable, then extended existing methods (update_task, get_task_counts) to support new fields.",
+    "decisions": [
+      "**Inherit from TaskBackendDefaults**: Leveraged the mixin to provide default implementations for methods like `list_blocked_tasks()`, reducing code duplication while maintaining consistent behavior across backends.",
+      "**Override methods with save logic**: Even though TaskBackendDefaults provided defaults, overrode them in JsonlBackend to add atomic file persistence since defaults don't handle the in-memory-to-disk synchronization.",
+      "**Reuse Task model methods**: Called existing Task model methods (add_label, remove_label, reopen) rather than reimplementing the logic, maintaining a single source of truth for business logic.",
+      "**Add dependency validation**: Implemented checks to ensure both task_id and depends_on exist before creating dependencies, preventing invalid state and improving data integrity.",
+      "**Prevent cascading deletions of dependents**: Chose to reject task deletion if other tasks depend on it, rather than cascading deletes, to avoid unintended data loss.",
+      "**Extend update_task for new fields**: Rather than create separate methods, extended the existing update_task to handle title, priority, and notes updates for consistency."
+    ],
+    "lessons_learned": [
+      "**Atomic write patterns are critical**: The temp-file-then-rename pattern used in JsonlBackend is essential for data integrity; always respect existing persistence patterns rather than creating new ones.",
+      "**Mixins work better than base classes for optional behavior**: TaskBackendDefaults as a mixin allowed selective inheritance of default methods without forcing a rigid hierarchy, making it easier to customize behavior per backend.",
+      "**Task model methods are the contract**: Using Task.add_label() and Task.reopen() ensures business logic consistency; implementation details should delegate to domain models rather than duplicate validation logic.",
+      "**Validation at boundaries prevents silent failures**: Checking that both tasks exist in dependency operations caught bugs early and prevented cryptic downstream failures.",
+      "**Timestamp updates matter for audit trails**: Remembering to update task.updated_at during modifications ensures accurate audit history and helps with sorting/filtering operations."
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +94,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-29T17:27:13.186956Z"
+    "stage_updated_at": "2026-01-29T17:32:46.346833Z"
   },
   "state_history": [
     {
@@ -47,31 +102,57 @@
       "at": "2026-01-29T17:27:13.186956Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T17:32:46.346833Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-29T17:27:13.186956Z",
-  "completed_at": "2026-01-29T17:27:13.186956Z",
+  "completed_at": "2026-01-29T17:32:46.346833Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 44,
+    "output_tokens": 13580,
+    "cache_read_tokens": 1766733,
+    "cache_creation_tokens": 81490
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.0783614000000001,
+  "duration_seconds": 307,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Analyzed the existing TaskBackend protocol and JsonlBackend implementation to understand requirements, then systematically implemented all new methods by leveraging existing Task model methods (add_label, remove_label, reopen) and the atomic file write pattern. Inherited from TaskBackendDefaults mixin to reuse default implementations where applicable, then extended existing methods (update_task, get_task_counts) to support new fields.",
+  "decisions": [
+    "**Inherit from TaskBackendDefaults**: Leveraged the mixin to provide default implementations for methods like `list_blocked_tasks()`, reducing code duplication while maintaining consistent behavior across backends.",
+    "**Override methods with save logic**: Even though TaskBackendDefaults provided defaults, overrode them in JsonlBackend to add atomic file persistence since defaults don't handle the in-memory-to-disk synchronization.",
+    "**Reuse Task model methods**: Called existing Task model methods (add_label, remove_label, reopen) rather than reimplementing the logic, maintaining a single source of truth for business logic.",
+    "**Add dependency validation**: Implemented checks to ensure both task_id and depends_on exist before creating dependencies, preventing invalid state and improving data integrity.",
+    "**Prevent cascading deletions of dependents**: Chose to reject task deletion if other tasks depend on it, rather than cascading deletes, to avoid unintended data loss.",
+    "**Extend update_task for new fields**: Rather than create separate methods, extended the existing update_task to handle title, priority, and notes updates for consistency."
+  ],
+  "lessons_learned": [
+    "**Atomic write patterns are critical**: The temp-file-then-rename pattern used in JsonlBackend is essential for data integrity; always respect existing persistence patterns rather than creating new ones.",
+    "**Mixins work better than base classes for optional behavior**: TaskBackendDefaults as a mixin allowed selective inheritance of default methods without forcing a rigid hierarchy, making it easier to customize behavior per backend.",
+    "**Task model methods are the contract**: Using Task.add_label() and Task.reopen() ensures business logic consistency; implementation details should delegate to domain models rather than duplicate validation logic.",
+    "**Validation at boundaries prevents silent failures**: Checking that both tasks exist in dependency operations caught bugs early and prevented cryptic downstream failures.",
+    "**Timestamp updates matter for audit trails**: Remembering to update task.updated_at during modifications ensures accurate audit history and helps with sorting/filtering operations."
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "583ef88fdfe03c0324da5e82ab421e91000251e7",
+      "message": "task(cub-p1t.3): Implement new protocol methods in JsonlBackend",
+      "author": "",
+      "timestamp": "2026-01-29T17:32:06Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p1t.3",
   "epic_id": "cub-p1t",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }
