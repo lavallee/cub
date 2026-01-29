@@ -701,6 +701,57 @@ def _is_file_path(arg: str) -> bool:
     return arg.endswith(".md") or "/" in arg or "\\" in arg
 
 
+def _resolve_plan_file(file_path: Path) -> Path:
+    """
+    Resolve a file path to an itemized plan file.
+
+    If the given path is not itself a valid plan file (no '# Itemized Plan'
+    header), checks for a sibling '-plan.md' file. This handles the common
+    case where users pass the original punchlist file instead of the
+    generated plan.
+
+    Args:
+        file_path: Path provided by the user.
+
+    Returns:
+        Resolved path to the plan file.
+
+    Raises:
+        typer.Exit: If no valid plan file can be found.
+    """
+    if not file_path.exists():
+        console.print(f"[red]File not found: {file_path}[/red]")
+        raise typer.Exit(1)
+
+    # Quick check: does the file look like an itemized plan?
+    try:
+        first_lines = file_path.read_text(encoding="utf-8")[:500]
+    except OSError:
+        first_lines = ""
+
+    if "# Itemized Plan:" in first_lines or "## Epic:" in first_lines:
+        return file_path
+
+    # Not a plan file - check for a sibling -plan.md
+    plan_sibling = file_path.parent / f"{file_path.stem}-plan.md"
+    if plan_sibling.exists():
+        console.print(
+            f"[dim]{file_path.name} is not an itemized plan. "
+            f"Using {plan_sibling.name} instead.[/dim]"
+        )
+        return plan_sibling
+
+    # No sibling found - give a helpful error
+    console.print(
+        f"[red]{file_path.name} is not an itemized plan file.[/red]"
+    )
+    console.print(
+        f"[dim]Run 'cub punchlist {file_path}' first to generate "
+        f"a plan, then stage the output.[/dim]"
+    )
+    raise typer.Exit(1)
+
+
 def _stage_standalone_file(
     file_path: Path,
     project_root: Path,
@@ -715,15 +766,7 @@ def _stage_standalone_file(
     This bypasses the PlanContext/plan.json flow and directly parses
     and imports the markdown file.
     """
-    file_path = file_path.resolve() if not file_path.is_absolute() else file_path
-
-    if not file_path.exists():
-        console.print(f"[red]File not found: {file_path}[/red]")
-        raise typer.Exit(1)
-
-    if not file_path.suffix == ".md":
-        console.print(f"[red]Expected a .md file, got: {file_path}[/red]")
-        raise typer.Exit(1)
+    file_path = _resolve_plan_file(file_path)
 
     # Run pre-flight checks
     if not skip_checks and not dry_run:
