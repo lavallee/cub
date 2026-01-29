@@ -22,8 +22,60 @@
     "captured_at": "2026-01-29T17:48:13.532648Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-124742",
+      "started_at": "2026-01-29T12:48:13.539885",
+      "completed_at": "2026-01-29T18:13:28.001710Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 117,
+        "output_tokens": 8369,
+        "cache_read_tokens": 1953977,
+        "cache_creation_tokens": 47855
+      },
+      "cost_usd": 0.9363543500000001,
+      "duration_seconds": 1514
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T18:13:54.139710Z",
+    "total_cost_usd": 0.9363543500000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 1514,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "75476f74b7fb24793e0d52efff5df10bb2469661",
+        "message": "task(cub-p2c.1): Add cub task blocked command",
+        "author": "",
+        "timestamp": "2026-01-29T18:13:06Z"
+      }
+    ],
+    "approach": "Implemented the `cub task blocked` command by first understanding the existing backend API (specifically `list_blocked_tasks()`), then building a CLI command with three output modes (rich table, JSON, and agent-formatted). The implementation leveraged the existing DependencyGraph for analyzing blocker chains in agent mode, with a fallback to markdown tables when the AgentFormatter wasn't available.",
+    "decisions": [
+      "Used the existing backend's `list_blocked_tasks()` method rather than re-implementing blocker detection, ensuring consistency with other commands",
+      "Implemented a fallback to markdown table output when AgentFormatter isn't available, making the agent mode graceful rather than failing",
+      "Built DependencyGraph from all tasks in the system for comprehensive blocker analysis, rather than just using task-level dependency data",
+      "Placed the `--epic` filter logic in the filtering stage after backend retrieval, allowing reuse of the same filtered task list across all output modes"
+    ],
+    "lessons_learned": [
+      "Backend data sync issues (incomplete dependency information) can mask correct command implementation\u2014verify backend data quality separately from CLI correctness",
+      "Graceful fallbacks (markdown table \u2192 AgentFormatter) make features more resilient and easier to evolve incrementally",
+      "Type hints require careful attention in CLI code; using `list[Task]` vs `list` matters for mypy strict mode compliance",
+      "Testing multiple output modes (rich, JSON, agent) early catches formatting and data consistency issues before they reach users"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +91,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-29T17:48:13.532648Z"
+    "stage_updated_at": "2026-01-29T18:13:54.139710Z"
   },
   "state_history": [
     {
@@ -47,31 +99,54 @@
       "at": "2026-01-29T17:48:13.532648Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T18:13:54.139710Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "started_at": "2026-01-29T17:48:13.532648Z",
-  "completed_at": "2026-01-29T17:48:13.532648Z",
+  "completed_at": "2026-01-29T18:13:54.139710Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 117,
+    "output_tokens": 8369,
+    "cache_read_tokens": 1953977,
+    "cache_creation_tokens": 47855
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 0.9363543500000001,
+  "duration_seconds": 1514,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Implemented the `cub task blocked` command by first understanding the existing backend API (specifically `list_blocked_tasks()`), then building a CLI command with three output modes (rich table, JSON, and agent-formatted). The implementation leveraged the existing DependencyGraph for analyzing blocker chains in agent mode, with a fallback to markdown tables when the AgentFormatter wasn't available.",
+  "decisions": [
+    "Used the existing backend's `list_blocked_tasks()` method rather than re-implementing blocker detection, ensuring consistency with other commands",
+    "Implemented a fallback to markdown table output when AgentFormatter isn't available, making the agent mode graceful rather than failing",
+    "Built DependencyGraph from all tasks in the system for comprehensive blocker analysis, rather than just using task-level dependency data",
+    "Placed the `--epic` filter logic in the filtering stage after backend retrieval, allowing reuse of the same filtered task list across all output modes"
+  ],
+  "lessons_learned": [
+    "Backend data sync issues (incomplete dependency information) can mask correct command implementation\u2014verify backend data quality separately from CLI correctness",
+    "Graceful fallbacks (markdown table \u2192 AgentFormatter) make features more resilient and easier to evolve incrementally",
+    "Type hints require careful attention in CLI code; using `list[Task]` vs `list` matters for mypy strict mode compliance",
+    "Testing multiple output modes (rich, JSON, agent) early catches formatting and data consistency issues before they reach users"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "75476f74b7fb24793e0d52efff5df10bb2469661",
+      "message": "task(cub-p2c.1): Add cub task blocked command",
+      "author": "",
+      "timestamp": "2026-01-29T18:13:06Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p2c.1",
   "epic_id": "cub-p2c",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

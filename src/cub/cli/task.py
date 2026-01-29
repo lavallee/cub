@@ -495,6 +495,11 @@ app.add_typer(dep_app, name="dep")
 def dep_add(
     task_id: str = typer.Argument(..., help="Task that depends on another"),
     depends_on: str = typer.Argument(..., help="Task that must be completed first"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
 ) -> None:
     """
     Add a dependency between tasks.
@@ -506,34 +511,57 @@ def dep_add(
     """
     backend = get_backend()
 
-    # Get both tasks to verify they exist
-    task = backend.get_task(task_id)
-    if task is None:
-        console.print(f"[red]Error:[/red] Task not found: {task_id}")
+    try:
+        updated = backend.add_dependency(task_id, depends_on)
+
+        if json_output:
+            console.print(json.dumps(updated.model_dump(mode="json"), indent=2))
+        else:
+            console.print(f"[green]Added dependency:[/green] {task_id} now depends on {depends_on}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
-    blocker = backend.get_task(depends_on)
-    if blocker is None:
-        console.print(f"[red]Error:[/red] Task not found: {depends_on}")
+
+@dep_app.command("remove")
+def dep_remove(
+    task_id: str = typer.Argument(..., help="Task to remove dependency from"),
+    depends_on: str = typer.Argument(..., help="Dependency to remove"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+) -> None:
+    """
+    Remove a dependency from a task.
+
+    Examples:
+        cub task dep remove cub-456 cub-123  # cub-456 no longer depends on cub-123
+    """
+    backend = get_backend()
+
+    try:
+        updated = backend.remove_dependency(task_id, depends_on)
+
+        if json_output:
+            console.print(json.dumps(updated.model_dump(mode="json"), indent=2))
+        else:
+            msg = f"[green]Removed dependency:[/green] {task_id} no longer depends on {depends_on}"
+            console.print(msg)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
-
-    # Add dependency via update
-    new_deps = list(task.depends_on)
-    if depends_on not in new_deps:
-        new_deps.append(depends_on)
-
-    # Note: depends_on is not directly updatable via update_task in the protocol
-    # This would need backend-specific implementation
-    # For now, we'll use create_task with the dep, or suggest using backend directly
-    console.print(
-        f"[yellow]Note:[/yellow] Dependency management varies by backend. "
-        f"Consider using: bd dep add {task_id} {depends_on}"
-    )
 
 
 @dep_app.command("list")
 def dep_list(
     task_id: str = typer.Argument(..., help="Task ID to show dependencies for"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
 ) -> None:
     """
     List dependencies for a task.
@@ -550,6 +578,16 @@ def dep_list(
     if task is None:
         console.print(f"[red]Error:[/red] Task not found: {task_id}")
         raise typer.Exit(1)
+
+    if json_output:
+        # JSON output with both directions
+        output = {
+            "task_id": task.id,
+            "depends_on": task.depends_on,
+            "blocks": task.blocks,
+        }
+        console.print(json.dumps(output, indent=2))
+        return
 
     console.print(f"[bold]Dependencies for {task.id}[/bold]")
 
@@ -576,6 +614,112 @@ def dep_list(
                 console.print(f"  {blocked_id} (not found)")
     else:
         console.print("\n[dim]Not blocking any tasks[/dim]")
+
+
+# Subcommand group for labels
+label_app = typer.Typer(help="Manage task labels")
+app.add_typer(label_app, name="label")
+
+
+@label_app.command("add")
+def label_add(
+    task_id: str = typer.Argument(..., help="Task to add label to"),
+    label: str = typer.Argument(..., help="Label to add"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+) -> None:
+    """
+    Add a label to a task.
+
+    Examples:
+        cub task label add cub-123 bug
+        cub task label add cub-456 "priority:high"
+    """
+    backend = get_backend()
+
+    try:
+        updated = backend.add_label(task_id, label)
+
+        if json_output:
+            console.print(json.dumps(updated.model_dump(mode="json"), indent=2))
+        else:
+            console.print(f"[green]Added label:[/green] '{label}' to {task_id}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@label_app.command("remove")
+def label_remove(
+    task_id: str = typer.Argument(..., help="Task to remove label from"),
+    label: str = typer.Argument(..., help="Label to remove"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+) -> None:
+    """
+    Remove a label from a task.
+
+    Examples:
+        cub task label remove cub-123 bug
+        cub task label remove cub-456 "priority:high"
+    """
+    backend = get_backend()
+
+    try:
+        updated = backend.remove_label(task_id, label)
+
+        if json_output:
+            console.print(json.dumps(updated.model_dump(mode="json"), indent=2))
+        else:
+            console.print(f"[green]Removed label:[/green] '{label}' from {task_id}")
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@label_app.command("list")
+def label_list(
+    task_id: str = typer.Argument(..., help="Task to list labels for"),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Output as JSON",
+    ),
+) -> None:
+    """
+    List labels for a task.
+
+    Examples:
+        cub task label list cub-123
+        cub task label list cub-123 --json
+    """
+    backend = get_backend()
+    task = backend.get_task(task_id)
+
+    if task is None:
+        console.print(f"[red]Error:[/red] Task not found: {task_id}")
+        raise typer.Exit(1)
+
+    if json_output:
+        output = {
+            "task_id": task.id,
+            "labels": task.labels,
+        }
+        console.print(json.dumps(output, indent=2))
+        return
+
+    console.print(f"[bold]Labels for {task.id}[/bold]")
+    if task.labels:
+        for label in task.labels:
+            console.print(f"  • {label}")
+    else:
+        console.print("\n[dim]No labels[/dim]")
 
 
 @app.command()
@@ -630,9 +774,7 @@ def blocked(
 
         # Try to import AgentFormatter if available
         try:
-            from cub.core.tasks.agent_formatter import (
-                AgentFormatter,  # type: ignore[import-untyped]
-            )
+            from cub.core.tasks.agent_formatter import AgentFormatter  # type: ignore[import-untyped]  # noqa: I001
 
             formatter = AgentFormatter()
             output = formatter.format_blocked(blocked_tasks, graph)
