@@ -463,6 +463,8 @@ class TestRunTask:
 
         # Track whether CUB_RUN_ACTIVE was set during mock execution
         cub_run_active_during_execution = False
+        # Save original value to check restoration
+        original_cub_run_active = os.environ.get("CUB_RUN_ACTIVE")
 
         async def mock_query(*args: Any, **kwargs: Any) -> Any:
             nonlocal cub_run_active_during_execution
@@ -498,8 +500,8 @@ class TestRunTask:
             # Verify CUB_RUN_ACTIVE was set during execution
             assert cub_run_active_during_execution is True
             assert result.success is True
-            # Verify it's restored after execution
-            assert os.environ.get("CUB_RUN_ACTIVE") != "1"
+            # Verify it's restored to its original value after execution
+            assert os.environ.get("CUB_RUN_ACTIVE") == original_cub_run_active
 
 
 class TestStreamTask:
@@ -566,6 +568,8 @@ class TestStreamTask:
 
         # Track whether CUB_RUN_ACTIVE was set during mock execution
         cub_run_active_during_execution = False
+        # Save original value to check restoration
+        original_cub_run_active = os.environ.get("CUB_RUN_ACTIVE")
 
         async def mock_query(*args: Any, **kwargs: Any) -> Any:
             nonlocal cub_run_active_during_execution
@@ -598,8 +602,8 @@ class TestStreamTask:
             # Verify CUB_RUN_ACTIVE was set during execution
             assert cub_run_active_during_execution is True
             assert len(chunks) == 2
-            # Verify it's restored after execution
-            assert os.environ.get("CUB_RUN_ACTIVE") != "1"
+            # Verify it's restored to its original value after execution
+            assert os.environ.get("CUB_RUN_ACTIVE") == original_cub_run_active
 
 
 # Integration tests - require ANTHROPIC_API_KEY

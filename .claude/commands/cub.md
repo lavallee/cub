@@ -20,7 +20,7 @@ Match the user's intent to the closest action below. Execute immediately when th
 | "show/describe task \<id\>" / "what is \<id\>" | `cub task show <id> --full` |
 | "work on/start/claim \<id\>" / "let's do \<id\>" | `cub task claim <id>` |
 | "close/finish/done with \<id\>" + reason | `cub task close <id> -r "<reason>"` |
-| "what's blocked" / "blockers" | `bd blocked` |
+| "what's blocked" / "blockers" | `cub task list --status blocked --agent` |
 | "list tasks" / "all tasks" / "open tasks" | `cub task list --status open` |
 
 ### Project Status & History
@@ -106,7 +106,7 @@ When routing to a skill, invoke it using the Skill tool. These are conversationa
 ## Execution Rules
 
 1. **Clear intent** -- execute immediately. Don't ask "did you mean...?" when the match is obvious.
-2. **CLI commands** -- run via Bash and present the output clearly. All `cub` and `bd` commands are pre-approved.
+2. **CLI commands** -- run via Bash and present the output clearly. All `cub` commands are pre-approved.
 3. **Interactive skills** -- invoke via the Skill tool with the extracted topic as args.
 4. **Ambiguous intent** -- present 2-3 most likely interpretations and ask which one.
 5. **ID detection** -- if the input contains something that looks like a task/epic ID (e.g., `cub-xxx`, `beads-xxx`), use it as the target for the matched command.
