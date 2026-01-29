@@ -30,7 +30,10 @@ from cub.core.plan.pipeline import (
     PipelineConfig,
     PipelineConfigError,
     PipelineError,
+    PipelineStepSummary,
     PlanPipeline,
+    StepDetectionStatus,
+    detect_pipeline_steps,
 )
 from cub.utils.handoff import try_handoff_or_message
 
@@ -327,9 +330,10 @@ def orient(
         if result.open_questions:
             console.print(f"  Open questions: {len(result.open_questions)}")
 
-    console.print()
-    _success, next_msg = try_handoff_or_message("plan architect", plan_ctx.plan.slug)
-    console.print(next_msg)
+    # Show pipeline step summary and next actions
+    summary = detect_pipeline_steps(plan_ctx.plan_dir, project_root)
+    _display_step_summary(summary)
+    _prompt_next_action(summary, project_root)
 
 
 @app.command()
@@ -512,9 +516,10 @@ def architect(
         if result.implementation_phases:
             console.print(f"  Implementation phases: {len(result.implementation_phases)}")
 
-    console.print()
-    _success, next_msg = try_handoff_or_message("plan itemize", plan_ctx.plan.slug)
-    console.print(next_msg)
+    # Show pipeline step summary and next actions
+    summary = detect_pipeline_steps(plan_ctx.plan_dir, project_root)
+    _display_step_summary(summary)
+    _prompt_next_action(summary, project_root)
 
 
 @app.command()
@@ -668,9 +673,10 @@ def itemize(
                 task_count = len([t for t in result.tasks if t.epic_id == epic.id])
                 console.print(f"    - {epic.id}: {epic.title} ({task_count} tasks)")
 
-    console.print()
-    _success, next_msg = try_handoff_or_message("stage", plan_ctx.plan.slug)
-    console.print(next_msg)
+    # Show pipeline step summary and next actions
+    summary = detect_pipeline_steps(plan_ctx.plan_dir, project_root)
+    _display_step_summary(summary)
+    _prompt_next_action(summary, project_root)
 
 
 @app.command("run")
@@ -890,28 +896,33 @@ def run_pipeline(
                 relative_new = result.spec_new_path
             console.print(f"[dim]Spec moved to: {relative_new}[/dim]")
 
-        console.print()
-        _success, next_msg = try_handoff_or_message("stage", result.plan.slug)
-        console.print(next_msg)
+        # Show step summary and next actions
+        summary = detect_pipeline_steps(result.plan_dir, project_root)
+        _display_step_summary(summary)
+        _prompt_next_action(summary, project_root)
     else:
         console.print("[bold red]Pipeline failed![/bold red]")
         if result.error:
             console.print(f"[red]{result.error}[/red]")
 
-        # Show which stages completed
-        if result.stage_results:
-            console.print()
-            console.print("[bold]Stage results:[/bold]")
-            for stage_result in result.stage_results:
-                status = "[green]\u2713[/green]" if stage_result.success else "[red]\u2717[/red]"
-                console.print(f"  {status} {stage_result.stage.value}")
+        # Detect steps and show detailed summary instead of basic stage list
+        if result.plan.slug != "error" and result.plan_dir.exists():
+            summary = detect_pipeline_steps(result.plan_dir, project_root)
+            _display_step_summary(summary)
+            _prompt_next_action(summary, project_root)
 
-        # Suggest how to resume
-        if result.plan.slug != "error":
             console.print()
             console.print(
                 f"[dim]Resume with: cub plan run --continue {result.plan.slug}[/dim]"
             )
+        else:
+            # Show basic stage results as fallback
+            if result.stage_results:
+                console.print()
+                console.print("[bold]Stage results:[/bold]")
+                for stage_result in result.stage_results:
+                    icon = "[green]✓[/green]" if stage_result.success else "[red]✗[/red]"
+                    console.print(f"  {icon} {stage_result.stage.value}")
 
         raise typer.Exit(1)
 
@@ -1012,6 +1023,128 @@ def list_plans(
     if verbose:
         console.print()
         console.print("[dim]Legend: \u2713 complete, \u2717 not started, \u25cb in progress[/dim]")
+
+
+def _step_status_indicator(status: StepDetectionStatus) -> str:
+    """Get a visual indicator for step detection status."""
+    if status == StepDetectionStatus.COMPLETE:
+        return "[green]✓ complete[/green]"
+    elif status == StepDetectionStatus.IN_PROGRESS:
+        return "[yellow]◐ in-progress[/yellow]"
+    elif status == StepDetectionStatus.CORRUPTED:
+        return "[red]⚠ corrupted[/red]"
+    else:
+        return "[dim]○ incomplete[/dim]"
+
+
+def _display_step_summary(summary: PipelineStepSummary) -> None:
+    """
+    Display a summary table of pipeline step completion status.
+
+    Args:
+        summary: The pipeline step summary to display.
+    """
+    console.print()
+    console.print(f"[bold]Pipeline status for:[/bold] {summary.plan_slug}")
+    console.print()
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Step", style="bold")
+    table.add_column("Status")
+    table.add_column("Details", style="dim")
+
+    for step in summary.steps:
+        status_str = _step_status_indicator(step.status)
+        table.add_row(step.stage.value.title(), status_str, step.detail)
+
+    console.print(table)
+
+    if summary.is_staged:
+        console.print("[dim]This plan has already been staged to the task backend.[/dim]")
+    elif summary.all_complete:
+        console.print("[green]All steps complete.[/green] Ready for staging.")
+    elif summary.has_corruption:
+        console.print(
+            "[yellow]Warning:[/yellow] Some steps have corrupted artifacts. "
+            "Consider re-running those steps."
+        )
+
+    if summary.next_step and not summary.is_staged:
+        console.print()
+        console.print(
+            f"[bold]Suggested next step:[/bold] {summary.next_step.value}"
+        )
+
+
+def _prompt_next_action(
+    summary: PipelineStepSummary,
+    project_root: Path,
+) -> None:
+    """
+    Prompt the user with options for what to do next after viewing the step summary.
+
+    Shows options to continue to the next incomplete step, re-run a specific step,
+    or exit. Routes the selected action to the appropriate subcommand message.
+
+    Args:
+        summary: The pipeline step summary.
+        project_root: Project root directory.
+    """
+    if summary.is_staged:
+        console.print()
+        console.print("[dim]Plan is already staged. No further pipeline steps needed.[/dim]")
+        return
+
+    if summary.all_complete:
+        _success, next_msg = try_handoff_or_message("stage", summary.plan_slug)
+        console.print(next_msg)
+        return
+
+    # Build the list of actionable options
+    options: list[tuple[str, str, str]] = []
+
+    if summary.next_step:
+        step_name = summary.next_step.value
+        # Map stage to command
+        cmd_map = {
+            "orient": "plan orient",
+            "architect": "plan architect",
+            "itemize": "plan itemize",
+        }
+        cmd = cmd_map.get(step_name, f"plan {step_name}")
+        options.append((
+            f"Continue → {step_name}",
+            cmd,
+            summary.plan_slug,
+        ))
+
+    # Add re-run options for completed or corrupted steps
+    for step in summary.steps:
+        if step.status in (StepDetectionStatus.COMPLETE, StepDetectionStatus.CORRUPTED):
+            step_name = step.stage.value
+            cmd_map = {
+                "orient": "plan orient",
+                "architect": "plan architect",
+                "itemize": "plan itemize",
+            }
+            cmd = cmd_map.get(step_name, f"plan {step_name}")
+            label = "Re-run" if step.status == StepDetectionStatus.COMPLETE else "Fix"
+            options.append((
+                f"{label} → {step_name}",
+                cmd,
+                summary.plan_slug,
+            ))
+
+    if not options:
+        return
+
+    console.print()
+    console.print("[bold]Available actions:[/bold]")
+    for i, (label, cmd, args) in enumerate(options, 1):
+        _success, msg = try_handoff_or_message(cmd, args)
+        console.print(f"  {i}. {label}: {msg}")
+
+    console.print(f"  {len(options) + 1}. Exit")
 
 
 def _stage_indicator(status: object) -> str:

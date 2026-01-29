@@ -33,6 +33,7 @@ import shutil
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
@@ -809,3 +810,245 @@ def continue_pipeline(
     )
     pipeline = PlanPipeline(project_root, config, on_progress)
     return pipeline.run()
+
+
+# ==============================================================================
+# Step Detection
+# ==============================================================================
+
+
+class StepDetectionStatus(str, Enum):
+    """Status of a detected pipeline step."""
+
+    COMPLETE = "complete"
+    IN_PROGRESS = "in_progress"
+    INCOMPLETE = "incomplete"
+    CORRUPTED = "corrupted"
+
+
+@dataclass
+class StepInfo:
+    """Information about a single pipeline step's completion state.
+
+    Attributes:
+        stage: The plan stage this info is about.
+        status: Detected status of the step.
+        artifact_path: Path to the expected output artifact.
+        artifact_exists: Whether the artifact file exists on disk.
+        artifact_size: Size of the artifact in bytes, or 0 if missing.
+        plan_status: Status recorded in plan.json for this stage, if any.
+        detail: Human-readable detail about the step's state.
+    """
+
+    stage: PlanStage
+    status: StepDetectionStatus
+    artifact_path: Path
+    artifact_exists: bool
+    artifact_size: int = 0
+    plan_status: StageStatus | None = None
+    detail: str = ""
+
+
+@dataclass
+class PipelineStepSummary:
+    """Summary of all pipeline steps for a plan.
+
+    Attributes:
+        plan_slug: The plan slug being inspected.
+        plan_dir: Path to the plan directory.
+        steps: Ordered list of step information (orient, architect, itemize).
+        plan_exists: Whether a plan.json was found.
+        next_step: The next step that should be run, or None if all complete.
+        is_staged: Whether the plan has already been staged to a task backend.
+    """
+
+    plan_slug: str
+    plan_dir: Path
+    steps: list[StepInfo]
+    plan_exists: bool
+    next_step: PlanStage | None
+    is_staged: bool = False
+
+    @property
+    def all_complete(self) -> bool:
+        """Check if all steps are complete."""
+        return all(s.status == StepDetectionStatus.COMPLETE for s in self.steps)
+
+    @property
+    def completed_steps(self) -> list[StepInfo]:
+        """Get list of completed steps."""
+        return [s for s in self.steps if s.status == StepDetectionStatus.COMPLETE]
+
+    @property
+    def has_corruption(self) -> bool:
+        """Check if any step has corrupted artifacts."""
+        return any(s.status == StepDetectionStatus.CORRUPTED for s in self.steps)
+
+
+# Minimum artifact sizes (bytes) to consider a file as having real content
+# vs. being a stub or corrupted output.
+_MIN_ARTIFACT_SIZES: dict[PlanStage, int] = {
+    PlanStage.ORIENT: 100,
+    PlanStage.ARCHITECT: 100,
+    PlanStage.ITEMIZE: 100,
+}
+
+
+def detect_pipeline_steps(
+    plan_dir: Path,
+    project_root: Path | None = None,
+) -> PipelineStepSummary:
+    """
+    Detect the completion state of pipeline steps for a plan.
+
+    Examines both plan.json metadata and artifact files on disk to determine
+    which steps are complete, in-progress, incomplete, or corrupted. Handles
+    edge cases like:
+    - plan.json says complete but artifact file is missing
+    - Artifact file exists but plan.json says pending (partial completion)
+    - Artifact file exists but is suspiciously small (corrupted)
+    - Missing plan.json entirely
+
+    Args:
+        plan_dir: Path to the plan directory (containing plan.json).
+        project_root: Project root, inferred from plan_dir if not provided.
+
+    Returns:
+        PipelineStepSummary with detailed step information.
+    """
+    if project_root is None:
+        project_root = plan_dir.parent.parent
+
+    plan_slug = plan_dir.name
+    plan_exists = (plan_dir / "plan.json").exists()
+    is_staged = False
+
+    # Try to load plan.json for metadata
+    plan: Plan | None = None
+    if plan_exists:
+        try:
+            plan = Plan.load(plan_dir)
+            is_staged = plan.status.value == "staged"
+        except (ValueError, OSError):
+            # Corrupted plan.json - continue with file-based detection
+            plan = None
+
+    # Check each stage
+    stage_order = [PlanStage.ORIENT, PlanStage.ARCHITECT, PlanStage.ITEMIZE]
+    steps: list[StepInfo] = []
+
+    for stage in stage_order:
+        artifact_path = plan_dir / stage.output_file
+        artifact_exists = artifact_path.exists()
+        artifact_size = artifact_path.stat().st_size if artifact_exists else 0
+        plan_status = plan.stages.get(stage) if plan else None
+        min_size = _MIN_ARTIFACT_SIZES[stage]
+
+        status, detail = _determine_step_status(
+            stage=stage,
+            plan_status=plan_status,
+            artifact_exists=artifact_exists,
+            artifact_size=artifact_size,
+            min_size=min_size,
+        )
+
+        steps.append(
+            StepInfo(
+                stage=stage,
+                status=status,
+                artifact_path=artifact_path,
+                artifact_exists=artifact_exists,
+                artifact_size=artifact_size,
+                plan_status=plan_status,
+                detail=detail,
+            )
+        )
+
+    # Determine next step
+    next_step = _determine_next_step(steps)
+
+    return PipelineStepSummary(
+        plan_slug=plan_slug,
+        plan_dir=plan_dir,
+        steps=steps,
+        plan_exists=plan_exists,
+        next_step=next_step,
+        is_staged=is_staged,
+    )
+
+
+def _determine_step_status(
+    *,
+    stage: PlanStage,
+    plan_status: StageStatus | None,
+    artifact_exists: bool,
+    artifact_size: int,
+    min_size: int,
+) -> tuple[StepDetectionStatus, str]:
+    """
+    Determine the status of a single step from metadata and file state.
+
+    Returns:
+        Tuple of (status, human-readable detail).
+    """
+    if plan_status == StageStatus.COMPLETE and artifact_exists and artifact_size >= min_size:
+        return StepDetectionStatus.COMPLETE, f"{stage.output_file} ({artifact_size:,} bytes)"
+
+    if plan_status == StageStatus.COMPLETE and not artifact_exists:
+        return StepDetectionStatus.CORRUPTED, (
+            f"plan.json says complete but {stage.output_file} is missing"
+        )
+
+    if plan_status == StageStatus.COMPLETE and artifact_exists and artifact_size < min_size:
+        return StepDetectionStatus.CORRUPTED, (
+            f"{stage.output_file} exists but is suspiciously small ({artifact_size} bytes)"
+        )
+
+    if plan_status == StageStatus.IN_PROGRESS:
+        if artifact_exists and artifact_size >= min_size:
+            return StepDetectionStatus.IN_PROGRESS, (
+                f"{stage.output_file} exists ({artifact_size:,} bytes) but marked in-progress"
+            )
+        return StepDetectionStatus.IN_PROGRESS, "started but not yet finished"
+
+    if artifact_exists and artifact_size >= min_size and plan_status == StageStatus.PENDING:
+        # File exists but plan.json doesn't reflect it - partial completion
+        return StepDetectionStatus.IN_PROGRESS, (
+            f"{stage.output_file} exists ({artifact_size:,} bytes) but plan.json says pending"
+        )
+
+    return StepDetectionStatus.INCOMPLETE, "not started"
+
+
+def _determine_next_step(steps: list[StepInfo]) -> PlanStage | None:
+    """
+    Determine the next step that should be run.
+
+    Prioritizes:
+    1. In-progress steps (resume)
+    2. First incomplete step after the last complete step
+    3. Corrupted steps that need re-running
+
+    Returns:
+        The next PlanStage to run, or None if all complete.
+    """
+    # If everything is complete, nothing to do
+    if all(s.status == StepDetectionStatus.COMPLETE for s in steps):
+        return None
+
+    # Check for in-progress steps first (resume those)
+    for step in steps:
+        if step.status == StepDetectionStatus.IN_PROGRESS:
+            return step.stage
+
+    # Check for corrupted steps (need re-run)
+    for step in steps:
+        if step.status == StepDetectionStatus.CORRUPTED:
+            return step.stage
+
+    # Find first incomplete step
+    for step in steps:
+        if step.status == StepDetectionStatus.INCOMPLETE:
+            return step.stage
+
+    return None
