@@ -971,6 +971,7 @@ The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()
 - **mypy strict mode**: All code must pass `mypy --strict`. Use explicit types, no `Any`.
 - **Relative imports**: Use absolute imports from `cub.core`, not relative imports between packages.
 - **Task management**: Use `cub task` commands for all task operations. Use `cub task close <id> -r "reason"` for task closure. JSONL is the task backend for this project.
+- **Always use `--agent` flag**: When calling cub commands (e.g., `cub task ready`, `cub task list`, `cub task show`, `cub task blocked`, `cub status`, `cub suggest`, `cub doctor`), always pass `--agent` to get markdown output optimized for LLM consumption. Use `--all` to disable truncation when you need the full list.
 - **Epic-task association**: The `parent` field is the canonical source for epic-task relationships. The `epic:{parent}` label is a compatibility layer. **DO NOT flip this** - see `.cub/EPIC_TASK_ASSOCIATION.md` for the rationale.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
