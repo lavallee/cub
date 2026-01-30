@@ -79,6 +79,9 @@ class MockBackend:
         assignee: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        title: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
     ) -> Task:
         self.calls.append(("update_task", (task_id,), {}))
         for t in self._tasks:

@@ -366,6 +366,9 @@ class BothBackend(TaskBackendDefaults):
         assignee: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        title: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -378,6 +381,9 @@ class BothBackend(TaskBackendDefaults):
             assignee: New assignee (optional)
             description: New description (optional)
             labels: New labels (optional)
+            title: New title (optional)
+            priority: New priority (optional)
+            notes: New notes (optional)
 
         Returns:
             Updated task from primary backend
@@ -386,12 +392,14 @@ class BothBackend(TaskBackendDefaults):
             ValueError: If task not found in primary backend
         """
         primary_result = self.primary.update_task(
-            task_id, status=status, assignee=assignee, description=description, labels=labels
+            task_id, status=status, assignee=assignee, description=description,
+            labels=labels, title=title, priority=priority, notes=notes,
         )
 
         try:
             secondary_result = self.secondary.update_task(
-                task_id, status=status, assignee=assignee, description=description, labels=labels
+                task_id, status=status, assignee=assignee, description=description,
+                labels=labels, title=title, priority=priority, notes=notes,
             )
 
             # Compare results
