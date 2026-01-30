@@ -295,16 +295,23 @@ EOF
     log_success "Changes committed"
 }
 
-# Check if an epic is already complete (no open tasks)
+# Check if an epic is already complete (all tasks closed)
 # Returns 0 (true) if complete, 1 (false) if work remains
 is_epic_complete() {
     local epic="$1"
 
-    # Use cub task list to check for open tasks in this epic
-    local open_tasks
-    open_tasks=$(cub task list --epic "$epic" --status open --agent 2>/dev/null | grep -c "^[|]" || echo "0")
+    # Count total tasks and closed tasks in this epic.
+    # Epic is complete only when every task is closed (not open, not in_progress).
+    local total closed
+    total=$(cub task list --epic "$epic" --agent 2>/dev/null | grep -cE "^\| cub-" || echo "0")
+    closed=$(cub task list --epic "$epic" --status closed --agent 2>/dev/null | grep -cE "^\| cub-" || echo "0")
 
-    if [[ "$open_tasks" == "0" ]]; then
+    # No tasks means nothing to do (treat as complete)
+    if [[ "$total" == "0" ]]; then
+        return 0
+    fi
+
+    if [[ "$total" == "$closed" ]]; then
         return 0
     fi
 
