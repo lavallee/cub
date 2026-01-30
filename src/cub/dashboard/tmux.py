@@ -16,6 +16,8 @@ from typing import NoReturn
 
 from rich.console import Console
 
+from cub.core.invoke import cub_python_command
+
 console = Console()
 
 
@@ -87,18 +89,15 @@ def launch_with_dashboard(
         )
         sys.exit(1)
 
-    # Get the python executable
-    python_exec = sys.executable
-
     # Build the cub run command (without --monitor)
     # Filter out --monitor from run_args
     filtered_args = [arg for arg in run_args if arg != "--monitor"]
-    run_cmd_parts = [python_exec, "-m", "cub", "run"] + filtered_args
+    run_cmd_parts = cub_python_command() + ["run"] + filtered_args
     run_cmd = shlex.join(run_cmd_parts)
 
     # Build the cub monitor command
     # The monitor command will read from the status file for this session
-    monitor_cmd_parts = [python_exec, "-m", "cub", "monitor", session_name]
+    monitor_cmd_parts = cub_python_command() + ["monitor", session_name]
     monitor_cmd = shlex.join(monitor_cmd_parts)
 
     # Get project directory for logging

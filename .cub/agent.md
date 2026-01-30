@@ -63,7 +63,7 @@ Cub is a Python-based CLI tool that wraps AI coding assistants (Claude Code, Cod
 - **Test Framework**: pytest with pytest-mock
 - **Type Checking**: mypy (strict mode)
 - **Linting**: ruff
-- **Task Management**: Beads CLI (`bd`) - stores tasks in `.beads/issues.jsonl`
+- **Task Management**: Cub task commands (`cub task`) - JSONL backend
 - **Harnesses**: Claude Code, Codex, Google Gemini, OpenCode
 
 ## Development Setup
@@ -191,7 +191,7 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 | `core/run/` | Run loop logic (prompt building, budget tracking, state machine) |
 | `core/launch/` | Harness detection and environment setup |
 | `core/suggestions/` | Smart recommendation engine for next actions |
-| `core/tasks/` | Task backend abstraction (beads, JSON, JSONL) |
+| `core/tasks/` | Task backend abstraction (JSONL is the task backend) |
 | `core/harness/` | AI harness backends (Claude, Codex, Gemini, OpenCode) |
 | `core/ledger/` | Task completion ledger (models, reader, writer, extractor) |
 | `core/config/` | Configuration loading with layered precedence |
@@ -301,9 +301,6 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 │   ├── test_*.py         # Test files
 │   ├── conftest.py       # pytest fixtures and configuration
 │   └── fixtures/         # Test data files
-├── .beads/              # Beads task tracking
-│   ├── issues.jsonl     # Task database
-│   └── branches.yaml    # Branch-epic bindings
 ├── .cub/                # Cub project metadata and state
 │   ├── agent.md         # Build/run/architecture instructions (this file)
 │   ├── hooks/           # Hook script references (for documentation)
@@ -674,13 +671,13 @@ These commands are not yet ported to Python. They are registered as Typer comman
 - `triage` - Requirements refinement
 - `architect` - Technical design
 - `plan` - Task decomposition
-- `bootstrap` - Initialize beads from prep artifacts
+- `bootstrap` - Initialize tasks from prep artifacts
 - `sessions` - List and manage prep sessions
 
 **Task & Artifact Management:**
 - `explain-task` - Show detailed task information
 - `artifacts` - List task output artifacts
-- `validate` - Validate beads state and configuration
+- `validate` - Validate task state and configuration
 
 **Git Workflow Integration:**
 - `branch` - Create and bind branch to epic
@@ -849,14 +846,14 @@ cub branches --sync
 cub branches --unbind cub-vd6
 ```
 
-Branch bindings are stored in `.beads/branches.yaml`.
+Branch bindings are stored in `.cub/branches.yaml`.
 
 ### Checkpoints
 
 Checkpoints are review/approval gates that block downstream tasks:
 
 ```bash
-# Create a checkpoint (gate type in beads)
+# Create a checkpoint (gate type)
 cub task create "Review: feature complete" --type gate
 
 # List checkpoints
@@ -899,14 +896,6 @@ All `gh` (GitHub CLI) commands are pre-approved for this project. These are used
 - Querying repository information (`gh api`)
 
 When running `cub pr` or any command that uses `gh` internally, allow the `gh` subprocess calls to proceed.
-
-### Beads CLI (`bd`)
-
-All `bd` (Beads CLI) commands are pre-approved for power users and advanced task management:
-- `bd list`, `bd show`, `bd create`, `bd update`, `bd close`
-- `bd sync`, `bd ready`, `bd blocked`
-
-**Note:** For most workflows, use the `cub task` equivalents documented above (e.g., `cub task list`, `cub task close`). `bd` is available for power users who need direct access to the Beads backend.
 
 ### Cub CLI
 
@@ -960,7 +949,7 @@ In addition to the system prompt, `cub run` injects task-specific context into e
 
 - **CURRENT TASK section** - Task ID, title, description, files, dependencies
 - **Epic context** - Parent epic details if the task is part of an epic
-- **Task closure instructions** - How to mark the task complete (beads backend-specific)
+- **Task closure instructions** - How to mark the task complete
 
 ### Customizing Your Project's Prompt
 
@@ -981,7 +970,7 @@ The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()
 - **Protocol classes**: Harness and task backends use `typing.Protocol` for pluggability. No ABC inheritance.
 - **mypy strict mode**: All code must pass `mypy --strict`. Use explicit types, no `Any`.
 - **Relative imports**: Use absolute imports from `cub.core`, not relative imports between packages.
-- **Task management**: This project uses `bd` (beads) as the primary backend. JSON backend is legacy. Use `bd close <id> -r "reason"` for task closure.
+- **Task management**: Use `cub task` commands for all task operations. Use `cub task close <id> -r "reason"` for task closure. JSONL is the task backend for this project.
 - **Epic-task association**: The `parent` field is the canonical source for epic-task relationships. The `epic:{parent}` label is a compatibility layer. **DO NOT flip this** - see `.cub/EPIC_TASK_ASSOCIATION.md` for the rationale.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
@@ -1109,7 +1098,7 @@ The dashboard consists of four layers:
 1. **Sync Phase** - Parse entities from multiple sources
    - Specs from `specs/**/*.md` using frontmatter markers
    - Plans from `plans/*/plan.jsonl`
-   - Tasks from beads or JSON backend
+   - Tasks from JSONL backend
    - Ledger entries from `.cub/ledger/`
    - Release info from `CHANGELOG.md`
 
@@ -1158,7 +1147,7 @@ spec_id: cub-abc
 - **Spec**: Detailed requirements documentation
 - **Plan**: Implementation strategy and task breakdown
 - **Epic**: Group of related tasks
-- **Task**: Individual work item (from beads or JSON)
+- **Task**: Individual work item (from JSONL backend)
 - **Ledger**: Task completion record
 - **Release**: Released version in CHANGELOG
 
@@ -1176,7 +1165,7 @@ orchestrator = SyncOrchestrator(
     db_path=Path(".cub/dashboard.db"),
     specs_root=Path("./specs"),
     plans_root=Path(".cub/sessions"),
-    tasks_backend="beads",
+    tasks_backend="jsonl",
     ledger_path=Path(".cub/ledger"),
     changelog_path=Path("CHANGELOG.md")
 )

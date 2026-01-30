@@ -659,6 +659,101 @@ class TestRunLoopTaskExecution:
         call_args = mock_task_backend.update_task.call_args
         assert call_args.kwargs.get("status") == TaskStatus.IN_PROGRESS
 
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_epic_auto_closed_when_all_tasks_complete(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        base_config: RunConfig,
+    ) -> None:
+        """Completing last task in epic yields EPIC_CLOSED event."""
+        task = _make_task()
+        task.parent = "epic-001"
+        mock_task_backend.get_ready_tasks.return_value = [task]
+        mock_task_backend.try_close_epic.return_value = (True, "Epic epic-001 closed")
+
+        loop = RunLoop(
+            config=base_config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(loop, "_invoke_harness", return_value=_make_harness_result()):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.EPIC_CLOSED in event_types
+
+        epic_event = next(e for e in events if e.event_type == RunEventType.EPIC_CLOSED)
+        assert epic_event.task_id == "epic-001"
+        assert "closed" in epic_event.message.lower()
+
+        mock_task_backend.try_close_epic.assert_called_once_with("epic-001")
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_epic_not_closed_when_tasks_remain(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        base_config: RunConfig,
+    ) -> None:
+        """Epic stays open when other tasks are still incomplete."""
+        task = _make_task()
+        task.parent = "epic-001"
+        mock_task_backend.get_ready_tasks.return_value = [task]
+        mock_task_backend.try_close_epic.return_value = (
+            False,
+            "Epic epic-001 has 2 remaining tasks",
+        )
+
+        loop = RunLoop(
+            config=base_config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(loop, "_invoke_harness", return_value=_make_harness_result()):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.EPIC_CLOSED not in event_types
+
+        mock_task_backend.try_close_epic.assert_called_once_with("epic-001")
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_no_epic_check_when_task_has_no_parent(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        base_config: RunConfig,
+    ) -> None:
+        """No try_close_epic call when task has no parent epic."""
+        task = _make_task()
+        task.parent = None
+        mock_task_backend.get_ready_tasks.return_value = [task]
+
+        loop = RunLoop(
+            config=base_config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(loop, "_invoke_harness", return_value=_make_harness_result()):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.EPIC_CLOSED not in event_types
+        mock_task_backend.try_close_epic.assert_not_called()
+
 
 # ===========================================================================
 # RunLoop - Budget tracking tests

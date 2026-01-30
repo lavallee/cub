@@ -98,6 +98,23 @@ class TestLoadJsonFile:
 class TestApplyEnvOverrides:
     """Test environment variable override logic."""
 
+    def test_cub_dev_mode_true(self, monkeypatch):
+        """Test CUB_DEV_MODE=true sets dev_mode."""
+        monkeypatch.setenv("CUB_DEV_MODE", "true")
+        config = {}
+
+        result = apply_env_overrides(config)
+        assert result["dev_mode"] is True
+
+    def test_cub_dev_mode_false(self, monkeypatch):
+        """Test CUB_DEV_MODE=false/0 sets dev_mode to false."""
+        for value in ["false", "0"]:
+            monkeypatch.setenv("CUB_DEV_MODE", value)
+            config = {}
+
+            result = apply_env_overrides(config)
+            assert result["dev_mode"] is False
+
     def test_cub_budget_override(self, monkeypatch):
         """Test CUB_BUDGET env var overrides budget.default."""
         monkeypatch.setenv("CUB_BUDGET", "100")

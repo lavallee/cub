@@ -121,6 +121,7 @@ def apply_env_overrides(config_dict: dict[str, Any]) -> dict[str, Any]:
     Env vars have the highest precedence and override all config files.
 
     Supported env vars:
+        CUB_DEV_MODE - overrides dev_mode
         CUB_BUDGET - overrides budget.default
         CUB_REVIEW_STRICT - overrides review.plan_strict
         CUB_CIRCUIT_BREAKER_ENABLED - overrides circuit_breaker.enabled
@@ -133,6 +134,10 @@ def apply_env_overrides(config_dict: dict[str, Any]) -> dict[str, Any]:
         Configuration dictionary with env var overrides applied
     """
     result = config_dict.copy()
+
+    # CUB_DEV_MODE overrides dev_mode
+    if dev_mode_str := os.environ.get("CUB_DEV_MODE"):
+        result["dev_mode"] = dev_mode_str.lower() not in ("false", "0", "")
 
     # CUB_BUDGET overrides budget.default
     if budget_str := os.environ.get("CUB_BUDGET"):

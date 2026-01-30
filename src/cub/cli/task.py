@@ -256,6 +256,11 @@ def list_tasks(
         "--agent",
         help="Output in agent-friendly markdown format",
     ),
+    show_all: bool = typer.Option(
+        False,
+        "--all",
+        help="Show all tasks (disable truncation in --agent mode)",
+    ),
 ) -> None:
     """
     List tasks with optional filters.
@@ -267,6 +272,7 @@ def list_tasks(
         cub task list --epic cub-123            # Tasks under epic (same as --parent)
         cub task list --label bug               # Tasks with label
         cub task list --assignee agent-001      # Tasks assigned to agent-001
+        cub task list --agent --all             # Show all tasks (no truncation)
     """
     backend = get_backend()
 
@@ -296,7 +302,9 @@ def list_tasks(
         try:
             from cub.core.services.agent_format import AgentFormatter
 
-            agent_output = AgentFormatter.format_list(tasks)
+            agent_output = AgentFormatter.format_list(
+                tasks, limit=0 if show_all else None
+            )
             console.print(agent_output)
         except ImportError:
             # Fallback to simple markdown if AgentFormatter not available
@@ -669,6 +677,11 @@ def ready(
         "--agent",
         help="Output in agent-friendly markdown format",
     ),
+    show_all: bool = typer.Option(
+        False,
+        "--all",
+        help="Show all tasks (disable truncation in --agent mode)",
+    ),
 ) -> None:
     """
     List tasks ready to work on (no blockers).
@@ -684,6 +697,7 @@ def ready(
         cub task ready --by priority        # Sort by priority (default)
         cub task ready --by impact          # Sort by impact (transitive unblocks)
         cub task ready --agent              # Agent-friendly markdown output
+        cub task ready --agent --all        # Show all tasks (no truncation)
     """
     backend = get_backend()
 
@@ -731,7 +745,9 @@ def ready(
             from cub.core.services.agent_format import AgentFormatter
 
             graph_result = _try_build_graph(backend)
-            agent_output = AgentFormatter.format_ready(tasks, graph_result)
+            agent_output = AgentFormatter.format_ready(
+                tasks, graph_result, limit=0 if show_all else None
+            )
             console.print(agent_output)
         except ImportError:
             # Fallback to simple markdown if AgentFormatter not available
@@ -1169,6 +1185,11 @@ def blocked(
         "--agent",
         help="Include agent analysis (root blockers, chain lengths)",
     ),
+    show_all: bool = typer.Option(
+        False,
+        "--all",
+        help="Show all tasks (disable truncation in --agent mode)",
+    ),
 ) -> None:
     """
     Show blocked tasks (tasks with unresolved dependencies).
@@ -1181,6 +1202,7 @@ def blocked(
         cub task blocked                # All blocked tasks
         cub task blocked --epic cub-123 # Blocked tasks under epic
         cub task blocked --agent        # Include dependency analysis
+        cub task blocked --agent --all  # Show all blocked tasks (no truncation)
     """
     from cub.core.tasks.graph import DependencyGraph
 
@@ -1197,7 +1219,9 @@ def blocked(
         try:
             from cub.core.services.agent_format import AgentFormatter
 
-            output = AgentFormatter.format_blocked(blocked_tasks, graph)
+            output = AgentFormatter.format_blocked(
+                blocked_tasks, graph, limit=0 if show_all else None
+            )
             console.print(output)
             return
         except ImportError:

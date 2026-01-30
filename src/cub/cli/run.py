@@ -1590,6 +1590,10 @@ def _render_run_event(
         status.add_event("Budget exhausted", EventLevel.WARNING)
         status.mark_completed()
 
+    elif et == RunEventType.EPIC_CLOSED:
+        console.print(f"[green]{event.message}[/green]")
+        status.add_event(event.message, EventLevel.INFO, task_id=event.task_id)
+
     elif et == RunEventType.ALL_TASKS_COMPLETE:
         console.print("[green]All tasks complete![/green]")
         # Fire on-all-tasks-complete hook (async)

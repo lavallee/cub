@@ -61,7 +61,7 @@ class AgentFormatter:
 
         Args:
             items: List of table rows (already formatted as markdown)
-            limit: Maximum items to show (None = show all)
+            limit: Maximum items to show (None = use DEFAULT_LIMIT, 0 = no limit)
             total: Total items available (for truncation notice)
 
         Returns:
@@ -69,6 +69,8 @@ class AgentFormatter:
         """
         if limit is None:
             limit = AgentFormatter.DEFAULT_LIMIT
+        elif limit == 0:
+            limit = len(items)
 
         total = total or len(items)
         rows = items[:limit]
@@ -100,7 +102,11 @@ class AgentFormatter:
     # ============================================================================
 
     @staticmethod
-    def format_ready(tasks: list[Task], graph: DependencyGraph | None = None) -> str:
+    def format_ready(
+        tasks: list[Task],
+        graph: DependencyGraph | None = None,
+        limit: int | None = None,
+    ) -> str:
         """Format ready tasks as structured markdown.
 
         Args:
@@ -159,7 +165,7 @@ class AgentFormatter:
             blocks_str = AgentFormatter._format_blocks_count(blocks_count)
             rows.append(f"| {task.id} | {task.title} | {task.priority.value} | {blocks_str} |")
 
-        output += AgentFormatter._truncate_table(rows, total=count)
+        output += AgentFormatter._truncate_table(rows, limit=limit, total=count)
 
         # Add analysis section if we have a graph
         if graph:
@@ -505,7 +511,11 @@ class AgentFormatter:
     # ============================================================================
 
     @staticmethod
-    def format_blocked(tasks: list[Task], graph: DependencyGraph | None = None) -> str:
+    def format_blocked(
+        tasks: list[Task],
+        graph: DependencyGraph | None = None,
+        limit: int | None = None,
+    ) -> str:
         """Format blocked tasks as structured markdown.
 
         Args:
@@ -575,7 +585,7 @@ class AgentFormatter:
                 blocked_by_str = f"{deps_count} tasks"
             rows.append(f"| {task.id} | {task.title} | {task.priority.value} | {blocked_by_str} |")
 
-        output += AgentFormatter._truncate_table(rows, total=count)
+        output += AgentFormatter._truncate_table(rows, limit=limit, total=count)
 
         # Add analysis section if we have a graph
         if graph:
@@ -613,7 +623,7 @@ class AgentFormatter:
     # ============================================================================
 
     @staticmethod
-    def format_list(tasks: list[Task]) -> str:
+    def format_list(tasks: list[Task], limit: int | None = None) -> str:
         """Format task list as structured markdown.
 
         Args:
@@ -669,7 +679,7 @@ class AgentFormatter:
                 f"{task.priority.value} | {blocks_str} | {blocked_by_str} |"
             )
 
-        output += AgentFormatter._truncate_table(rows, total=count)
+        output += AgentFormatter._truncate_table(rows, limit=limit, total=count)
 
         return output.rstrip()
 

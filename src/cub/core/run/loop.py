@@ -643,6 +643,19 @@ class RunLoop:
             except Exception:
                 pass  # Non-fatal, work is done
 
+            # Auto-close parent epic if all its tasks are complete
+            if task.parent:
+                try:
+                    closed, message = self.task_backend.try_close_epic(task.parent)
+                    if closed:
+                        yield self._make_event(
+                            RunEventType.EPIC_CLOSED,
+                            message,
+                            task_id=task.parent,
+                        )
+                except Exception:
+                    pass  # Non-fatal
+
             # Auto-sync
             if self.sync_service and self.config.sync_enabled:
                 try:
