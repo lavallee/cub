@@ -191,6 +191,11 @@ def show(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
 ) -> None:
     """
     Show detailed ledger entry for a task.
@@ -220,6 +225,71 @@ def show(
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    # --agent wins over --json
+    if agent:
+        # Agent-friendly markdown output for a single ledger entry
+        output = f"# cub ledger show {entry.id}\n\n"
+        output += f"## {entry.title}\n\n"
+
+        # Summary
+        if entry.outcome:
+            status = "Success" if entry.outcome.success else "Failed"
+            if entry.outcome.partial:
+                status = "Partial"
+            output += f"**Status**: {status}  \n"
+            output += f"**Cost**: ${entry.outcome.total_cost_usd:.2f}  \n"
+            output += f"**Duration**: {_format_duration(entry.outcome.total_duration_seconds)}  \n"
+            output += f"**Attempts**: {entry.outcome.total_attempts}  \n"
+        else:
+            output += f"**Cost**: ${entry.cost_usd:.2f}  \n"
+            output += f"**Duration**: {_format_duration(entry.duration_seconds)}  \n"
+
+        # Verification
+        if entry.verification:
+            output += f"**Verification**: {entry.verification.status}  \n"
+        else:
+            output += f"**Verification**: {entry.verification_status.value}  \n"
+
+        # Workflow stage
+        current_stage = entry.workflow.stage if entry.workflow else "dev_complete"
+        output += f"**Workflow Stage**: {current_stage}  \n"
+
+        # Approach
+        approach_text = (
+            entry.outcome.approach
+            if entry.outcome and entry.outcome.approach
+            else entry.approach
+        )
+        if approach_text:
+            output += f"\n## Approach\n\n{approach_text}\n"
+
+        # Decisions
+        decisions_list = (
+            entry.outcome.decisions
+            if entry.outcome and entry.outcome.decisions
+            else entry.decisions
+        )
+        if decisions_list:
+            output += "\n## Key Decisions\n\n"
+            for decision in decisions_list:
+                output += f"- {decision}\n"
+
+        # Files changed
+        files_list = (
+            entry.outcome.files_changed
+            if entry.outcome and entry.outcome.files_changed
+            else entry.files_changed
+        )
+        if files_list:
+            output += f"\n## Files Changed ({len(files_list)})\n\n"
+            for file in files_list[:10]:
+                output += f"- {file}\n"
+            if len(files_list) > 10:
+                output += f"\n*... and {len(files_list) - 10} more*\n"
+
+        console.print(output.rstrip())
+        return
 
     if json_output:
         console.print(entry.model_dump_json(indent=2))

@@ -1141,3 +1141,418 @@ class TestTryCloseEpic:
         closed, message = backend.try_close_epic("epic-001")
 
         assert closed is True
+
+
+# ==============================================================================
+# New Protocol Methods Tests
+# ==============================================================================
+
+
+class TestAddDependency:
+    """Test adding dependencies to tasks."""
+
+    def test_add_dependency_success(self, temp_dir):
+        """Test successfully adding a dependency."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "open"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.add_dependency("test-002", "test-001")
+
+        assert "test-001" in updated.depends_on
+
+        # Verify persisted
+        saved = backend.get_task("test-002")
+        assert saved.depends_on == ["test-001"]
+
+    def test_add_dependency_idempotent(self, temp_dir):
+        """Test that adding same dependency twice is idempotent."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1"}\n'
+            '{"id": "test-002", "title": "Task 2", "depends_on": ["test-001"]}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.add_dependency("test-002", "test-001")
+
+        # Should only have one instance
+        assert updated.depends_on.count("test-001") == 1
+
+    def test_add_dependency_task_not_found(self, temp_dir):
+        """Test adding dependency to non-existent task fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Task nonexistent not found"):
+            backend.add_dependency("nonexistent", "test-001")
+
+    def test_add_dependency_depends_on_not_found(self, temp_dir):
+        """Test adding non-existent dependency fails."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Dependency task nonexistent not found"):
+            backend.add_dependency("test-001", "nonexistent")
+
+
+class TestRemoveDependency:
+    """Test removing dependencies from tasks."""
+
+    def test_remove_dependency_success(self, temp_dir):
+        """Test successfully removing a dependency."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1"}\n'
+            '{"id": "test-002", "title": "Task 2", "depends_on": ["test-001"]}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.remove_dependency("test-002", "test-001")
+
+        assert "test-001" not in updated.depends_on
+
+        # Verify persisted
+        saved = backend.get_task("test-002")
+        assert saved.depends_on == []
+
+    def test_remove_dependency_task_not_found(self, temp_dir):
+        """Test removing dependency from non-existent task fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Task nonexistent not found"):
+            backend.remove_dependency("nonexistent", "test-001")
+
+    def test_remove_dependency_not_exists(self, temp_dir):
+        """Test removing non-existent dependency fails."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="does not depend on"):
+            backend.remove_dependency("test-001", "test-002")
+
+
+class TestListBlockedTasks:
+    """Test listing blocked tasks."""
+
+    def test_list_blocked_tasks_basic(self, temp_dir):
+        """Test listing blocked tasks."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "open", "depends_on": ["test-001"]}\n'
+            '{"id": "test-003", "title": "Task 3", "status": "closed"}\n'
+            '{"id": "test-004", "title": "Task 4", "status": "open", "depends_on": ["test-003"]}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        blocked = backend.list_blocked_tasks()
+
+        # test-002 is blocked (depends on open test-001)
+        # test-004 is NOT blocked (depends on closed test-003)
+        assert len(blocked) == 1
+        assert blocked[0].id == "test-002"
+
+    def test_list_blocked_tasks_no_blocked(self, temp_dir):
+        """Test listing when no tasks are blocked."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "open"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        blocked = backend.list_blocked_tasks()
+
+        assert blocked == []
+
+    def test_list_blocked_tasks_by_parent(self, temp_dir):
+        """Test filtering blocked tasks by parent."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "open", "depends_on": ["test-001"], "parent": "epic-001"}\n'
+            '{"id": "test-003", "title": "Task 3", "status": "open", "depends_on": ["test-001"]}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        blocked = backend.list_blocked_tasks(parent="epic-001")
+
+        assert len(blocked) == 1
+        assert blocked[0].id == "test-002"
+
+
+class TestReopenTask:
+    """Test reopening closed tasks."""
+
+    def test_reopen_task_success(self, temp_dir):
+        """Test successfully reopening a task."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "status": "closed"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        reopened = backend.reopen_task("test-001")
+
+        assert reopened.status == TaskStatus.OPEN
+        assert reopened.closed_at is None
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert saved.status == TaskStatus.OPEN
+
+    def test_reopen_task_with_reason(self, temp_dir):
+        """Test reopening task with reason."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "status": "closed"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        reopened = backend.reopen_task("test-001", reason="Found a bug")
+
+        assert "Found a bug" in reopened.notes
+        assert "Reopened" in reopened.notes
+
+    def test_reopen_task_not_found(self, temp_dir):
+        """Test reopening non-existent task fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Task nonexistent not found"):
+            backend.reopen_task("nonexistent")
+
+    def test_reopen_task_not_closed(self, temp_dir):
+        """Test reopening non-closed task fails."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "status": "open"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="is not closed"):
+            backend.reopen_task("test-001")
+
+
+class TestDeleteTask:
+    """Test deleting tasks."""
+
+    def test_delete_task_success(self, temp_dir):
+        """Test successfully deleting a task."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1"}\n' '{"id": "test-002", "title": "Task 2"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        result = backend.delete_task("test-001")
+
+        assert result is True
+
+        # Verify deleted
+        assert backend.get_task("test-001") is None
+        assert backend.get_task("test-002") is not None
+
+    def test_delete_task_not_found(self, temp_dir):
+        """Test deleting non-existent task returns False."""
+        backend = JsonlBackend(project_dir=temp_dir)
+        result = backend.delete_task("nonexistent")
+
+        assert result is False
+
+    def test_delete_task_with_dependents(self, temp_dir):
+        """Test deleting task with dependents fails."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1"}\n'
+            '{"id": "test-002", "title": "Task 2", "depends_on": ["test-001"]}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="task test-002 depends on it"):
+            backend.delete_task("test-001")
+
+
+class TestAddLabel:
+    """Test adding labels to tasks."""
+
+    def test_add_label_success(self, temp_dir):
+        """Test successfully adding a label."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "labels": []}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.add_label("test-001", "bug")
+
+        assert "bug" in updated.labels
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert "bug" in saved.labels
+
+    def test_add_label_idempotent(self, temp_dir):
+        """Test that adding same label twice is idempotent."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "labels": ["bug"]}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.add_label("test-001", "bug")
+
+        # Should only have one instance
+        assert updated.labels.count("bug") == 1
+
+    def test_add_label_task_not_found(self, temp_dir):
+        """Test adding label to non-existent task fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Task nonexistent not found"):
+            backend.add_label("nonexistent", "bug")
+
+
+class TestRemoveLabel:
+    """Test removing labels from tasks."""
+
+    def test_remove_label_success(self, temp_dir):
+        """Test successfully removing a label."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "labels": ["bug", "urgent"]}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.remove_label("test-001", "bug")
+
+        assert "bug" not in updated.labels
+        assert "urgent" in updated.labels
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert "bug" not in saved.labels
+
+    def test_remove_label_task_not_found(self, temp_dir):
+        """Test removing label from non-existent task fails."""
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Task nonexistent not found"):
+            backend.remove_label("nonexistent", "bug")
+
+    def test_remove_label_not_exists(self, temp_dir):
+        """Test removing non-existent label fails."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1", "labels": []}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        with pytest.raises(ValueError, match="Label 'bug' not found"):
+            backend.remove_label("test-001", "bug")
+
+
+class TestUpdateTaskExtended:
+    """Test extended update_task with new fields."""
+
+    def test_update_task_title(self, temp_dir):
+        """Test updating task title."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Old Title"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.update_task("test-001", title="New Title")
+
+        assert updated.title == "New Title"
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert saved.title == "New Title"
+
+    def test_update_task_priority(self, temp_dir):
+        """Test updating task priority."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task", "priority": "P2"}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.update_task("test-001", priority=0)
+
+        assert updated.priority == TaskPriority.P0
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert saved.priority == TaskPriority.P0
+
+    def test_update_task_notes(self, temp_dir):
+        """Test updating task notes."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task", "notes": ""}\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        updated = backend.update_task("test-001", notes="New notes")
+
+        assert updated.notes == "New notes"
+
+        # Verify persisted
+        saved = backend.get_task("test-001")
+        assert saved.notes == "New notes"
+
+
+class TestGetTaskCountsExtended:
+    """Test get_task_counts with blocked count."""
+
+    def test_get_task_counts_with_blocked(self, temp_dir):
+        """Test getting task counts including blocked."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Open 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Open 2 (blocked)", "status": "open", "depends_on": ["test-001"]}\n'
+            '{"id": "test-003", "title": "In Progress", "status": "in_progress"}\n'
+            '{"id": "test-004", "title": "Closed", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        counts = backend.get_task_counts()
+
+        assert counts.total == 4
+        assert counts.open == 2
+        assert counts.in_progress == 1
+        assert counts.closed == 1
+        assert counts.blocked == 1  # test-002 is blocked

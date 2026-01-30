@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-a2s.1",
+  "title": "Update passthrough skills and router to use --agent",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-a2s"
+  },
+  "task": {
+    "title": "Update passthrough skills and router to use --agent",
+    "description": "Seven passthrough skills exist and the router skill maps intent to CLI commands. Update all command invocations to include `--agent` so Claude always gets structured output when routing through skills. The router skill needs `--agent` on all CLI command mappings.\n\n**Implementation Steps:**\n1. Update `.claude/commands/cub:tasks.md`:\n2. Update `.claude/commands/cub:status.md`:\n3. Update `.claude/commands/cub:suggest.md`:\n4. Update `.claude/commands/cub:ledger.md`:\n5. Update `.claude/commands/cub:doctor.md`:\n6. Update `.claude/commands/cub.md` (router):\n7. Add instruction in router skill about how Claude should treat `--agent` output:\n\n**Files:** .claude/commands/cub.md, .claude/commands/cub:tasks.md, .claude/commands/cub:status.md, .claude/commands/cub:suggest.md, .claude/commands/cub:ledger.md, .claude/commands/cub:doctor.md",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:low",
+      "epic:cub-a2s",
+      "model:haiku",
+      "phase-2"
+    ],
+    "created_at": "2026-01-29T16:46:50.495139Z",
+    "captured_at": "2026-01-29T20:39:53.145003Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-153952",
+      "started_at": "2026-01-29T15:39:53.151581",
+      "completed_at": "2026-01-29T20:43:35.652811Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 329,
+        "cache_read_tokens": 37346,
+        "cache_creation_tokens": 3646
+      },
+      "cost_usd": 0.1846957,
+      "duration_seconds": 222
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T20:43:35.996661Z",
+    "total_cost_usd": 0.1846957,
+    "total_attempts": 1,
+    "total_duration_seconds": 222,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9a476a8399e2d6b17791a48878c99289f7f7f5bd",
+        "message": "task(cub-a2s.1): Update passthrough skills and router to use --agent",
+        "author": "",
+        "timestamp": "2026-01-29T20:43:14Z"
+      }
+    ],
+    "approach": "The agent systematically identified all seven passthrough skills and the router skill that needed updating, then added the `--agent` flag to every CLI command invocation across all files. The approach involved reading each file to understand the current structure, making targeted edits to add the flag, validating changes by running the full test suite (5006 tests), and closing the task through the beads task management system.",
+    "decisions": [
+      "Added `--agent` flag consistently to all CLI commands across passthrough skills and the router, rather than selectively applying it only to commands that parse output, ensuring uniform behavior across the skill interface.",
+      "Included documentation in the router's Execution Rules section explaining how Claude should treat `--agent` structured output as the source of truth, providing clarity on the intended behavior change.",
+      "Ran the entire test suite to validate changes rather than running targeted tests, ensuring no unexpected side effects from the modifications."
+    ],
+    "lessons_learned": [
+      "Systematic file-by-file analysis before making changes helps catch all instances that need updating and prevents missed edge cases across a distributed set of related files.",
+      "Adding documentation alongside implementation changes (explaining _why_ the `--agent` flag matters) makes the feature more discoverable and maintainable for future developers.",
+      "A large, passing test suite (5006 tests) provides strong validation that structural changes to CLI invocations don't break downstream functionality, reducing regression risk in tool integration work."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:43:35.996661Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:39:53.145003Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:43:35.996661Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T20:39:53.145003Z",
+  "completed_at": "2026-01-29T20:43:35.996661Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 329,
+    "cache_read_tokens": 37346,
+    "cache_creation_tokens": 3646
+  },
+  "cost_usd": 0.1846957,
+  "duration_seconds": 222,
+  "iterations": 1,
+  "approach": "The agent systematically identified all seven passthrough skills and the router skill that needed updating, then added the `--agent` flag to every CLI command invocation across all files. The approach involved reading each file to understand the current structure, making targeted edits to add the flag, validating changes by running the full test suite (5006 tests), and closing the task through the beads task management system.",
+  "decisions": [
+    "Added `--agent` flag consistently to all CLI commands across passthrough skills and the router, rather than selectively applying it only to commands that parse output, ensuring uniform behavior across the skill interface.",
+    "Included documentation in the router's Execution Rules section explaining how Claude should treat `--agent` structured output as the source of truth, providing clarity on the intended behavior change.",
+    "Ran the entire test suite to validate changes rather than running targeted tests, ensuring no unexpected side effects from the modifications."
+  ],
+  "lessons_learned": [
+    "Systematic file-by-file analysis before making changes helps catch all instances that need updating and prevents missed edge cases across a distributed set of related files.",
+    "Adding documentation alongside implementation changes (explaining _why_ the `--agent` flag matters) makes the feature more discoverable and maintainable for future developers.",
+    "A large, passing test suite (5006 tests) provides strong validation that structural changes to CLI invocations don't break downstream functionality, reducing regression risk in tool integration work."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "9a476a8399e2d6b17791a48878c99289f7f7f5bd",
+      "message": "task(cub-a2s.1): Update passthrough skills and router to use --agent",
+      "author": "",
+      "timestamp": "2026-01-29T20:43:14Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-a2s.1",
+  "epic_id": "cub-a2s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-p1t.2",
+  "title": "Implement new protocol methods in BeadsBackend",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p1t"
+  },
+  "task": {
+    "title": "Implement new protocol methods in BeadsBackend",
+    "description": "BeadsBackend wraps the `bd` CLI. Each new protocol method needs a corresponding `bd` command wrapper. Follow the existing `_run_bd` pattern \u2014 bd commands that don't return JSON need a follow-up `get_task()` call.\n\n**Implementation Steps:**\n1. `add_dependency(task_id, depends_on)` \u2014 run `bd dep add <task_id> <depends_on>`, then `get_task(task_id)`\n2. `remove_dependency(task_id, depends_on)` \u2014 run `bd dep remove <task_id> <depends_on>`, then `get_task(task_id)`\n3. `list_blocked_tasks(parent?)` \u2014 run `bd blocked --json` (or `bd list --status open --json` and filter), parse JSON output\n4. `reopen_task(task_id)` \u2014 run `bd update <id> --status open`, then `get_task(task_id)`\n5. `delete_task(task_id)` \u2014 run `bd delete <id>`, return True on success\n6. `add_label(task_id, label)` \u2014 run `bd label add <id> <label>`, then `get_task(task_id)`\n7. `remove_label(task_id, label)` \u2014 run `bd label remove <id> <label>`, then `get_task(task_id)`\n8. Extend `update_task` to pass `--title`, `--priority`, `--notes` flags when provided\n9. Update `get_task_counts` to include blocked count\n\n**Files:** src/cub/core/tasks/beads.py, tests/test_beads_backend.py",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-p1t",
+      "model:sonnet",
+      "phase-1"
+    ],
+    "created_at": "2026-01-29T16:45:10.094128Z",
+    "captured_at": "2026-01-29T17:21:09.528860Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-122038",
+      "started_at": "2026-01-29T12:21:09.535988",
+      "completed_at": "2026-01-29T17:26:11.739204Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 94,
+        "output_tokens": 17030,
+        "cache_read_tokens": 2026301,
+        "cache_creation_tokens": 81664
+      },
+      "cost_usd": 1.1865693,
+      "duration_seconds": 302
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T17:26:37.604810Z",
+    "total_cost_usd": 1.1865693,
+    "total_attempts": 1,
+    "total_duration_seconds": 302,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d36f57b6981687c0138bacb4622139ac502e1cc6",
+        "message": "task(cub-p1t.2): Implement new protocol methods in BeadsBackend",
+        "author": "",
+        "timestamp": "2026-01-29T17:26:00Z"
+      }
+    ],
+    "approach": "The task was completed by first understanding the existing BeadsBackend implementation and TaskBackend protocol interface, then systematically implementing all missing protocol methods by following the established `_run_bd` pattern (wrapping bd CLI commands and calling `get_task()` for commands without JSON output). Comprehensive tests were written for each new method, validated with type checking and linting, then committed.",
+    "decisions": [
+      "Extended `BeadsBackend` to inherit from `TaskBackendDefaults` mixin for consistency and code reuse, rather than implementing all defaults manually",
+      "For `list_blocked_tasks()`, implemented a two-tier approach using `bd blocked --json` with fallback to manual filtering when the command doesn't exist, providing graceful degradation",
+      "Followed the existing pattern of always calling `get_task()` after bd commands that modify state but don't return the full task object, ensuring consistent return types",
+      "Implemented `reopen_task()` to accept an optional reason parameter that gets added as a task note via `add_task_note()`, providing audit trail capability",
+      "Added `get_task_counts()` return value enhancement to include blocked task count by querying `list_blocked_tasks()`, improving project visibility",
+      "Used `bd dep add ... --type blocks` for dependency direction clarity rather than ambiguous parameter ordering"
+    ],
+    "lessons_learned": [
+      "The TaskBackend protocol uses a consistent pattern: bd commands that modify state but don't return JSON should be followed by `get_task()` to fetch the updated state. This keeps the protocol interface clean (always returning Task objects) while wrapping stateless CLI commands.",
+      "Mixin inheritance (`TaskBackendDefaults`) is valuable for protocol implementations to reduce duplication\u2014methods that can be implemented generically from other protocol methods should be centralized there rather than reimplemented in each backend.",
+      "Testing bd CLI wrappers requires careful mock ordering: each `_run_bd()` call and subsequent `get_task()` call must have corresponding mock return values sequenced in the right order, or tests will fail with \"not enough values to unpack\" errors.",
+      "Two-tier fallback implementations (try new command, fall back to manual approach) provide compatibility across bd versions and make backends more resilient to external tool changes."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T17:26:37.604810Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T17:21:09.528860Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T17:26:37.604810Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T17:21:09.528860Z",
+  "completed_at": "2026-01-29T17:26:37.604810Z",
+  "tokens": {
+    "input_tokens": 94,
+    "output_tokens": 17030,
+    "cache_read_tokens": 2026301,
+    "cache_creation_tokens": 81664
+  },
+  "cost_usd": 1.1865693,
+  "duration_seconds": 302,
+  "iterations": 1,
+  "approach": "The task was completed by first understanding the existing BeadsBackend implementation and TaskBackend protocol interface, then systematically implementing all missing protocol methods by following the established `_run_bd` pattern (wrapping bd CLI commands and calling `get_task()` for commands without JSON output). Comprehensive tests were written for each new method, validated with type checking and linting, then committed.",
+  "decisions": [
+    "Extended `BeadsBackend` to inherit from `TaskBackendDefaults` mixin for consistency and code reuse, rather than implementing all defaults manually",
+    "For `list_blocked_tasks()`, implemented a two-tier approach using `bd blocked --json` with fallback to manual filtering when the command doesn't exist, providing graceful degradation",
+    "Followed the existing pattern of always calling `get_task()` after bd commands that modify state but don't return the full task object, ensuring consistent return types",
+    "Implemented `reopen_task()` to accept an optional reason parameter that gets added as a task note via `add_task_note()`, providing audit trail capability",
+    "Added `get_task_counts()` return value enhancement to include blocked task count by querying `list_blocked_tasks()`, improving project visibility",
+    "Used `bd dep add ... --type blocks` for dependency direction clarity rather than ambiguous parameter ordering"
+  ],
+  "lessons_learned": [
+    "The TaskBackend protocol uses a consistent pattern: bd commands that modify state but don't return JSON should be followed by `get_task()` to fetch the updated state. This keeps the protocol interface clean (always returning Task objects) while wrapping stateless CLI commands.",
+    "Mixin inheritance (`TaskBackendDefaults`) is valuable for protocol implementations to reduce duplication\u2014methods that can be implemented generically from other protocol methods should be centralized there rather than reimplemented in each backend.",
+    "Testing bd CLI wrappers requires careful mock ordering: each `_run_bd()` call and subsequent `get_task()` call must have corresponding mock return values sequenced in the right order, or tests will fail with \"not enough values to unpack\" errors.",
+    "Two-tier fallback implementations (try new command, fall back to manual approach) provide compatibility across bd versions and make backends more resilient to external tool changes."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d36f57b6981687c0138bacb4622139ac502e1cc6",
+      "message": "task(cub-p1t.2): Implement new protocol methods in BeadsBackend",
+      "author": "",
+      "timestamp": "2026-01-29T17:26:00Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p1t.2",
+  "epic_id": "cub-p1t",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

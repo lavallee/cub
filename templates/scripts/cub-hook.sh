@@ -135,6 +135,10 @@ case "$HOOK_EVENT" in
                 # Check if command contains tracked patterns
                 COMMAND=$(extract_command)
                 if [[ -n "$COMMAND" ]] && is_tracked_command "$COMMAND"; then
+                    # Log cub commands to route-log.jsonl
+                    if [[ "$COMMAND" == *"cub "* ]]; then
+                        echo "{\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"command\": \"$COMMAND\"}" >> .cub/route-log.jsonl
+                    fi
                     # Relevant: pass to Python handler
                     invoke_python_handler
                 else

@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "id": "cub-p2c.4",
+  "title": "Enhance existing cub task list, ready, create, update commands",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p2c"
+  },
+  "task": {
+    "title": "Enhance existing cub task list, ready, create, update commands",
+    "description": "Existing commands need additional filters and flags to reach parity. `list` and `ready` need `--epic` and `--assignee` filters. `create` needs full flag exposure. `update` needs `--title`, `--priority`, `--notes`.\n\n**Implementation Steps:**\n1. `cub task list`: add `--epic` (filter by parent), `--assignee` (filter by assignee) options\n2. `cub task ready`: add `--epic` filter, add `--by impact|priority` ordering option (impact uses DependencyGraph)\n3. `cub task create`: ensure CLI exposes `--type`, `--priority`, `--epic` (as `--parent`), `--description`, `--depends-on` (comma-separated list)\n4. `cub task update`: add `--title`, `--priority`, `--notes` flags alongside existing `--description`, `--assignee`, `--status`\n5. For `ready --by impact`: build DependencyGraph, sort tasks by `transitive_unblocks` count descending\n\n**Files:** src/cub/cli/task.py",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "complexity:medium",
+      "epic:cub-p2c",
+      "model:sonnet",
+      "phase-2"
+    ],
+    "created_at": "2026-01-29T16:45:10.094200Z",
+    "captured_at": "2026-01-29T18:45:02.049372Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-124742",
+      "started_at": "2026-01-29T13:45:02.055329",
+      "completed_at": "2026-01-29T19:12:12.132608Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 65,
+        "output_tokens": 8914,
+        "cache_read_tokens": 1395843,
+        "cache_creation_tokens": 56330
+      },
+      "cost_usd": 0.7884313999999996,
+      "duration_seconds": 1630
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T19:12:37.895929Z",
+    "total_cost_usd": 0.7884313999999996,
+    "total_attempts": 1,
+    "total_duration_seconds": 1630,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "f5a9521b37e22197af9e1e386f24d2e1c2836d0d",
+        "message": "task(cub-p2c.4): Enhance existing cub task list, ready, create, update commands",
+        "author": "",
+        "timestamp": "2026-01-29T18:50:29Z"
+      }
+    ],
+    "approach": "The task was completed by systematically examining the existing CLI command implementations, understanding the backend protocol and data models, then incrementally adding the requested filters and flags to each command. The implementation leveraged existing infrastructure (DependencyGraph for impact sorting, backend protocol for filtering) and followed the established CLI patterns to maintain consistency.",
+    "decisions": [
+      "**Client-side assignee filtering**: Since the backend protocol doesn't natively support assignee filtering, assignee filtering was implemented at the CLI level by post-processing the full task list rather than extending the backend interface.",
+      "**Impact sorting via DependencyGraph**: Rather than creating new sorting logic, the existing DependencyGraph class was reused to calculate impact (transitive unblocks count), avoiding code duplication and leveraging battle-tested logic.",
+      "**`--epic` as alias for `--parent`**: Used `--epic` as a semantic alias for the internal `--parent` field in list/ready commands, improving UX without requiring backend changes.",
+      "**Deferred backend protocol extension**: Identified that assignee filtering would ideally be a backend operation but chose not to extend the protocol mid-task to maintain scope and minimize surface area changes."
+    ],
+    "lessons_learned": [
+      "**Protocol gaps are OK to work around at the CLI layer**: When the backend protocol doesn't support a feature, client-side filtering can be a pragmatic interim solution if performance isn't critical, avoiding premature protocol expansion.",
+      "**Verify existing feature completeness before implementing**: The `create` command already had full flag exposure, so time was saved by checking first rather than assuming gaps.",
+      "**Leverage existing abstractions**: The DependencyGraph class was already available; reusing it for impact sorting avoided reinventing transitive dependency calculation and ensured consistency with other parts of the codebase.",
+      "**Test coverage catches unrelated issues**: The test suite flagged an unrelated harness test failure, demonstrating the value of comprehensive testing even when modifying isolated features."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T19:12:37.895929Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T18:45:02.049372Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T19:12:37.895929Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T18:45:02.049372Z",
+  "completed_at": "2026-01-29T19:12:37.895929Z",
+  "tokens": {
+    "input_tokens": 65,
+    "output_tokens": 8914,
+    "cache_read_tokens": 1395843,
+    "cache_creation_tokens": 56330
+  },
+  "cost_usd": 0.7884313999999996,
+  "duration_seconds": 1630,
+  "iterations": 1,
+  "approach": "The task was completed by systematically examining the existing CLI command implementations, understanding the backend protocol and data models, then incrementally adding the requested filters and flags to each command. The implementation leveraged existing infrastructure (DependencyGraph for impact sorting, backend protocol for filtering) and followed the established CLI patterns to maintain consistency.",
+  "decisions": [
+    "**Client-side assignee filtering**: Since the backend protocol doesn't natively support assignee filtering, assignee filtering was implemented at the CLI level by post-processing the full task list rather than extending the backend interface.",
+    "**Impact sorting via DependencyGraph**: Rather than creating new sorting logic, the existing DependencyGraph class was reused to calculate impact (transitive unblocks count), avoiding code duplication and leveraging battle-tested logic.",
+    "**`--epic` as alias for `--parent`**: Used `--epic` as a semantic alias for the internal `--parent` field in list/ready commands, improving UX without requiring backend changes.",
+    "**Deferred backend protocol extension**: Identified that assignee filtering would ideally be a backend operation but chose not to extend the protocol mid-task to maintain scope and minimize surface area changes."
+  ],
+  "lessons_learned": [
+    "**Protocol gaps are OK to work around at the CLI layer**: When the backend protocol doesn't support a feature, client-side filtering can be a pragmatic interim solution if performance isn't critical, avoiding premature protocol expansion.",
+    "**Verify existing feature completeness before implementing**: The `create` command already had full flag exposure, so time was saved by checking first rather than assuming gaps.",
+    "**Leverage existing abstractions**: The DependencyGraph class was already available; reusing it for impact sorting avoided reinventing transitive dependency calculation and ensured consistency with other parts of the codebase.",
+    "**Test coverage catches unrelated issues**: The test suite flagged an unrelated harness test failure, demonstrating the value of comprehensive testing even when modifying isolated features."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "f5a9521b37e22197af9e1e386f24d2e1c2836d0d",
+      "message": "task(cub-p2c.4): Enhance existing cub task list, ready, create, update commands",
+      "author": "",
+      "timestamp": "2026-01-29T18:50:29Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p2c.4",
+  "epic_id": "cub-p2c",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

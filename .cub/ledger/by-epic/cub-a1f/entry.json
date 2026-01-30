@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "cub-a1f",
+  "title": "cub-a1f",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-a1f",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T20:32:45.888013Z",
+    "captured_at": "2026-01-29T20:32:45.888013Z"
+  },
+  "task_ids": [
+    "cub-a1f.1",
+    "cub-a1f.2"
+  ],
+  "aggregates": {
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
+    "tasks_failed": 0,
+    "total_cost_usd": 2.65000605,
+    "avg_cost_per_task": 1.325003025,
+    "min_cost_usd": 0.8086250999999998,
+    "max_cost_usd": 1.8413809500000002,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 2,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 5247718,
+    "avg_tokens_per_task": 2623859,
+    "total_duration_seconds": 670,
+    "avg_duration_seconds": 335,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:39:47.755166Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T20:28:09.374719Z",
+  "completed_at": "2026-01-29T20:39:35.060932Z",
+  "updated_at": "2026-01-29T20:39:47.755167Z",
+  "first_commit": {
+    "hash": "3974699ec391153c769dcfcbc98edda2426e6db2",
+    "message": "task(cub-a1f.1): Build AgentFormatter module with Phase 1 format methods",
+    "author": "",
+    "timestamp": "2026-01-29T20:32:20Z"
+  },
+  "last_commit": {
+    "hash": "4b944ef367a23699da2a503fa51b3d1199de3d0f",
+    "message": "task(cub-a1f.2): Wire --agent flag into Phase 1 CLI commands",
+    "author": "",
+    "timestamp": "2026-01-29T20:39:23Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

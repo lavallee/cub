@@ -1,6 +1,6 @@
-# Project Map: cub
+# Project Map: cub_sat
 
-**Project Directory:** `/home/lavallee/clawdbot/cub`
+**Project Directory:** `/Users/lavallee/Experiments/cub_sat`
 
 ## Tech Stacks
 
@@ -19,15 +19,12 @@
 
 ## Modules
 
-- **cub**: `src/cub` (259 files) (entry: __init__.py)
+- **cub**: `src/cub` (258 files) (entry: __init__.py)
 
 ## Directory Structure
 
-└── cub/
+└── cub_sat/
     ├── .beads/
-    │   ├── export-state/
-    │   │   ├── 1e122c54fe76f139.json
-    │   │   └── 7e7081d5443c1bc3.json
     │   ├── .gitignore
     │   ├── .local_version
     │   ├── README.md
@@ -37,7 +34,6 @@
     │   ├── beads.db-wal
     │   ├── beads.left.jsonl
     │   ├── beads.left.meta.json
-    │   ├── branches.yaml
     │   ├── config.yaml
     │   ├── daemon.lock
     │   ├── daemon.log
@@ -51,17 +47,30 @@
     │   ├── commands/
     │   │   ├── cub.md
     │   │   ├── cub:architect.md
+    │   │   ├── cub:audit.md
     │   │   ├── cub:capture.md
+    │   │   ├── cub:doctor.md
     │   │   ├── cub:itemize.md
+    │   │   ├── cub:ledger.md
     │   │   ├── cub:orient.md
+    │   │   ├── cub:plan.md
+    │   │   ├── cub:run.md
     │   │   ├── cub:spec-to-issues.md
-    │   │   └── cub:spec.md
-    │   └── settings.json
+    │   │   ├── cub:spec.md
+    │   │   ├── cub:status.md
+    │   │   ├── cub:suggest.md
+    │   │   ├── cub:tasks.md
+    │   │   └── cub:triage.md
+    │   ├── settings.json
+    │   └── settings.local.json
     ├── .cub/
     │   ├── cache/
     │   │   └── code_intel/
     │   │       ├── 68/
-    │   │       └── cache.db
+    │   │       ├── a1/
+    │   │       ├── cache.db
+    │   │       ├── cache.db-shm
+    │   │       └── cache.db-wal
     │   ├── docs/
     │   │   ├── claude-code-hooks.md
     │   │   └── run-exit-paths.md
@@ -73,6 +82,10 @@
     │   │   └── stop.sh
     │   ├── ledger/
     │   │   ├── by-epic/
+    │   │   │   ├── cub-a1f/
+    │   │   │   ├── cub-a2s/
+    │   │   │   ├── cub-a3r/
+    │   │   │   ├── cub-a4e/
     │   │   │   ├── cub-b1a/
     │   │   │   ├── cub-b1b/
     │   │   │   ├── cub-b1c/
@@ -88,7 +101,9 @@
     │   │   │   ├── cub-j1e/
     │   │   │   ├── cub-j1f/
     │   │   │   ├── cub-m3k/
-    │   │   │   ├── cub-n6x/
+    │   │   │   ├── cub-p1t/
+    │   │   │   ├── cub-p2c/
+    │   │   │   ├── cub-p3s/
     │   │   │   ├── cub-p9q/
     │   │   │   ├── cub-q2j/
     │   │   │   ├── cub-r1a/
@@ -107,6 +122,15 @@
     │   │   │   └── cub-x7f/
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
+    │   │   │   ├── cub-a1f.1/
+    │   │   │   ├── cub-a1f.2/
+    │   │   │   ├── cub-a2s.1/
+    │   │   │   ├── cub-a3r.1/
+    │   │   │   ├── cub-a3r.2/
+    │   │   │   ├── cub-a3r.3/
+    │   │   │   ├── cub-a4e.1/
+    │   │   │   ├── cub-a4e.2/
+    │   │   │   ├── cub-a4e.3/
     │   │   │   ├── cub-b1a.1/
     │   │   │   ├── cub-b1a.2/
     │   │   │   ├── cub-b1a.3/
@@ -171,16 +195,18 @@
     │   │   │   ├── cub-m3k.5/
     │   │   │   ├── cub-m3k.6/
     │   │   │   ├── cub-m3k.7/
-    │   │   │   ├── cub-n6x.1/
-    │   │   │   ├── cub-n6x.10/
-    │   │   │   ├── cub-n6x.2/
-    │   │   │   ├── cub-n6x.3/
-    │   │   │   ├── cub-n6x.4/
-    │   │   │   ├── cub-n6x.5/
-    │   │   │   ├── cub-n6x.6/
-    │   │   │   ├── cub-n6x.7/
-    │   │   │   ├── cub-n6x.8/
-    │   │   │   ├── cub-n6x.9/
+    │   │   │   ├── cub-p1t.1/
+    │   │   │   ├── cub-p1t.2/
+    │   │   │   ├── cub-p1t.3/
+    │   │   │   ├── cub-p1t.4/
+    │   │   │   ├── cub-p1t.5/
+    │   │   │   ├── cub-p2c.1/
+    │   │   │   ├── cub-p2c.2/
+    │   │   │   ├── cub-p2c.3/
+    │   │   │   ├── cub-p2c.4/
+    │   │   │   ├── cub-p2c.5/
+    │   │   │   ├── cub-p3s.1/
+    │   │   │   ├── cub-p3s.2/
     │   │   │   ├── cub-p9q.1/
     │   │   │   ├── cub-p9q.3/
     │   │   │   ├── cub-p9q.4/
@@ -258,6 +284,15 @@
     │   │   │   ├── cub-12be.json
     │   │   │   ├── cub-4eyt.json
     │   │   │   ├── cub-4fma.json
+    │   │   │   ├── cub-a1f.1.json
+    │   │   │   ├── cub-a1f.2.json
+    │   │   │   ├── cub-a2s.1.json
+    │   │   │   ├── cub-a3r.1.json
+    │   │   │   ├── cub-a3r.2.json
+    │   │   │   ├── cub-a3r.3.json
+    │   │   │   ├── cub-a4e.1.json
+    │   │   │   ├── cub-a4e.2.json
+    │   │   │   ├── cub-a4e.3.json
     │   │   │   ├── cub-a7f.1.json
     │   │   │   ├── cub-a7f.2.json
     │   │   │   ├── cub-a7f.3.json
@@ -280,40 +315,6 @@
     │   │   │   ├── cub-b1c.4.json
     │   │   │   ├── cub-b1d.1.json
     │   │   │   ├── cub-b1d.2.json
-    │   │   │   ├── cub-b1d.3.json
-    │   │   │   ├── cub-b1e.1.json
-    │   │   │   ├── cub-b1e.2.json
-    │   │   │   ├── cub-b1e.3.json
-    │   │   │   ├── cub-b1f.1.json
-    │   │   │   ├── cub-b1f.2.json
-    │   │   │   ├── cub-b1f.3.json
-    │   │   │   ├── cub-c5i.1.json
-    │   │   │   ├── cub-c5i.2.json
-    │   │   │   ├── cub-c5i.3.json
-    │   │   │   ├── cub-c5i.4.json
-    │   │   │   ├── cub-c5i.5.json
-    │   │   │   ├── cub-d2v.1.json
-    │   │   │   ├── cub-d2v.2.json
-    │   │   │   ├── cub-d2v.3.json
-    │   │   │   ├── cub-d2v.4.json
-    │   │   │   ├── cub-d2v.5.json
-    │   │   │   ├── cub-d2v.6.json
-    │   │   │   ├── cub-d8b.1.json
-    │   │   │   ├── cub-d8b.2.json
-    │   │   │   ├── cub-d8b.3.json
-    │   │   │   ├── cub-dmxf.json
-    │   │   │   ├── cub-e2p.1.json
-    │   │   │   ├── cub-e2p.2.json
-    │   │   │   ├── cub-e2p.3.json
-    │   │   │   ├── cub-f7m.1.json
-    │   │   │   ├── cub-f7m.2.json
-    │   │   │   ├── cub-f7m.3.json
-    │   │   │   ├── cub-f7m.4.json
-    │   │   │   ├── cub-fail.json
-    │   │   │   ├── cub-hj6j.json
-    │   │   │   ├── cub-j1a.1.json
-    │   │   │   ├── cub-j1a.2.json
-    │   │   │   ├── cub-j1a.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -426,16 +427,16 @@ Symbols ranked by importance (PageRank score):
 - **LinkFinding** (def, line 59, score: 0.0025)
 - **findings_by_kind** (def, line 51, score: 0.0025)
 - **has_failures** (def, line 161, score: 0.0025)
-- **has_findings** (def, line 99, score: 0.0025)
 - **has_findings** (def, line 46, score: 0.0025)
-- **total_issues** (def, line 104, score: 0.0025)
+- **has_findings** (def, line 99, score: 0.0025)
 - **total_issues** (def, line 151, score: 0.0025)
+- **total_issues** (def, line 104, score: 0.0025)
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 285, score: 0.0025)
-- **main** (def, line 79, score: 0.0025)
-- **version** (def, line 259, score: 0.0025)
+- **cli_main** (def, line 287, score: 0.0025)
+- **main** (def, line 80, score: 0.0025)
+- **version** (def, line 261, score: 0.0025)
 
 ### src/cub/cli/argv.py
 
@@ -529,12 +530,16 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/doctor.py
 
-- **_check_command** (def, line 175, score: 0.0025)
-- **_get_command_version** (def, line 189, score: 0.0025)
-- **check_environment** (def, line 125, score: 0.0025)
-- **check_hooks** (def, line 211, score: 0.0025)
-- **check_stale_epics** (def, line 28, score: 0.0025)
-- **doctor** (def, line 352, score: 0.0025)
+- **DiagnosticResult** (def, line 29, score: 0.0025)
+- **_check_command** (def, line 40, score: 0.0025)
+- **_get_command_version** (def, line 54, score: 0.0025)
+- **check_environment** (def, line 560, score: 0.0025)
+- **check_hooks** (def, line 610, score: 0.0025)
+- **check_stale_epics** (def, line 463, score: 0.0025)
+- **collect_environment_checks** (def, line 76, score: 0.0025)
+- **collect_hooks_check** (def, line 163, score: 0.0025)
+- **collect_stale_epics_check** (def, line 348, score: 0.0025)
+- **doctor** (def, line 751, score: 0.0025)
 
 ### src/cub/cli/errors.py
 
@@ -553,10 +558,6 @@ Symbols ranked by importance (PageRank score):
 - **print_not_project_root_error** (def, line 104, score: 0.0025)
 - **print_sync_not_initialized_error** (def, line 135, score: 0.0025)
 - **print_task_not_found_error** (def, line 126, score: 0.0025)
-
-### src/cub/cli/guidance.py
-
-- **render_guidance** (def, line 15, score: 0.0025)
 
 ### src/cub/cli/hooks.py
 
@@ -583,10 +584,5 @@ Symbols ranked by importance (PageRank score):
 - **detect_project_type** (def, line 172, score: 0.0025)
 - **generate_instruction_files** (def, line 390, score: 0.0025)
 - **init_project** (def, line 517, score: 0.0025)
-- **main** (def, line 616, score: 0.0025)
 
-### src/cub/cli/investigate.py
-
-- **CaptureCategory** (def, line 28, score: 0.0025)
-
-... (216 more symbols omitted to fit budget)
+... (215 more symbols omitted to fit budget)

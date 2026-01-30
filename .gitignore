@@ -1,26 +1,13 @@
 # Runtime artifacts - .cub/ directory structure
 # Session runs with logs, output, etc.
 .cub/runs/
-# Log files
-.cub/*.log
-# Temporary files
-.cub/*.tmp
-# Cache directory
-.cub/cache/
-# Temporary working directory
-.cub/temp/
-.cub/logs/
-# Auto-generated project config (project_id)
-.cub/config.json
-# Toolsmith local catalog/cache + adoptions + runs (project-scoped)
-.cub/toolsmith/
-# Development progress tracking (stale)
-.cub/progress.txt
-.cub/progress.md
-# Development guardrails (stale)
-.cub/guardrails.md
-# Development fix plan (stale)
-.cub/fix_plan.md
+.cub/config.json            # Auto-generated project config (project_id)
+.cub/toolsmith/             # Toolsmith local catalog/cache + adoptions + runs (project-scoped)
+.cub/progress.txt           # Development progress tracking (stale)
+.cub/progress.md            # Development progress tracking (stale)
+.cub/guardrails.md          # Development guardrails (stale)
+.cub/fix_plan.md            # Development fix plan (stale)
+.cub/route-log.jsonl        # Route observation log (local-only)
 progress.txt                # Root-level progress tracking (stale)
 
 # Beads viewer local config and caches

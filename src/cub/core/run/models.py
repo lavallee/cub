@@ -128,6 +128,7 @@ class RunEventType(str, Enum):
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
     TASK_FAILED = "task_failed"
+    EPIC_CLOSED = "epic_closed"
 
     # Budget events
     BUDGET_UPDATED = "budget_updated"

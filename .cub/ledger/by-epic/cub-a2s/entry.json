@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "id": "cub-a2s",
+  "title": "cub-a2s",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-a2s",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T20:43:46.747764Z",
+    "captured_at": "2026-01-29T20:43:46.747764Z"
+  },
+  "task_ids": [
+    "cub-a2s.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.1846957,
+    "avg_cost_per_task": 0.1846957,
+    "min_cost_usd": 0.1846957,
+    "max_cost_usd": 0.1846957,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 41321,
+    "avg_tokens_per_task": 41321,
+    "total_duration_seconds": 222,
+    "avg_duration_seconds": 222,
+    "models_used": [
+      "haiku"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:43:46.785031Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T20:39:53.145003Z",
+  "completed_at": "2026-01-29T20:43:35.996661Z",
+  "updated_at": "2026-01-29T20:43:46.785035Z",
+  "first_commit": {
+    "hash": "9a476a8399e2d6b17791a48878c99289f7f7f5bd",
+    "message": "task(cub-a2s.1): Update passthrough skills and router to use --agent",
+    "author": "",
+    "timestamp": "2026-01-29T20:43:14Z"
+  },
+  "last_commit": {
+    "hash": "9a476a8399e2d6b17791a48878c99289f7f7f5bd",
+    "message": "task(cub-a2s.1): Update passthrough skills and router to use --agent",
+    "author": "",
+    "timestamp": "2026-01-29T20:43:14Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

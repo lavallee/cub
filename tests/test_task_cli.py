@@ -430,3 +430,388 @@ class TestTaskDep:
 
         assert result.exit_code == 1
         assert "not found" in result.stdout.lower()
+
+
+class TestTaskReopen:
+    """Test cub task reopen command."""
+
+    def test_reopen_task(self, mock_backend: MagicMock) -> None:
+        """Test reopening a closed task."""
+        mock_backend.reopen_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["reopen", "cub-001"])
+
+        assert result.exit_code == 0
+        assert "Reopened" in result.stdout
+        assert "cub-001" in result.stdout
+        assert "Test task" in result.stdout
+        mock_backend.reopen_task.assert_called_once_with("cub-001", reason=None)
+
+    def test_reopen_with_reason(self, mock_backend: MagicMock) -> None:
+        """Test reopening a task with reason."""
+        mock_backend.reopen_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(
+                app, ["reopen", "cub-001", "--reason", "Issue not fully resolved"]
+            )
+
+        assert result.exit_code == 0
+        assert "Reopened" in result.stdout
+        mock_backend.reopen_task.assert_called_once_with(
+            "cub-001", reason="Issue not fully resolved"
+        )
+
+    def test_reopen_json_output(self, mock_backend: MagicMock) -> None:
+        """Test reopen with JSON output."""
+        mock_backend.reopen_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["reopen", "cub-001", "--json"])
+
+        assert result.exit_code == 0
+        assert '"id": "cub-001"' in result.stdout
+        assert '"status": "open"' in result.stdout
+
+    def test_reopen_not_found(self, mock_backend: MagicMock) -> None:
+        """Test reopening non-existent task."""
+        mock_backend.reopen_task.side_effect = ValueError("Task cub-999 not found")
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["reopen", "cub-999"])
+
+        assert result.exit_code == 1
+        assert "Error" in result.stdout
+
+    def test_reopen_not_closed(self, mock_backend: MagicMock) -> None:
+        """Test reopening a task that is not closed."""
+        mock_backend.reopen_task.side_effect = ValueError(
+            "Task cub-001 is not closed (status: open)"
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["reopen", "cub-001"])
+
+        assert result.exit_code == 1
+        assert "Error" in result.stdout
+        assert "not closed" in result.stdout.lower()
+
+
+class TestTaskDelete:
+    """Test cub task delete command."""
+
+    def test_delete_with_confirmation_yes(self, mock_backend: MagicMock) -> None:
+        """Test deleting a task with confirmation (yes)."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.delete_task.return_value = True
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(
+                app, ["delete", "cub-001"], input="y\n"  # Confirm deletion
+            )
+
+        assert result.exit_code == 0
+        assert "Deleted" in result.stdout
+        assert "cub-001" in result.stdout
+        mock_backend.delete_task.assert_called_once_with("cub-001")
+
+    def test_delete_with_confirmation_no(self, mock_backend: MagicMock) -> None:
+        """Test deleting a task with confirmation (no)."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(
+                app, ["delete", "cub-001"], input="n\n"  # Decline deletion
+            )
+
+        assert result.exit_code == 0
+        assert "Cancelled" in result.stdout
+        mock_backend.delete_task.assert_not_called()
+
+    def test_delete_force_skip_confirmation(self, mock_backend: MagicMock) -> None:
+        """Test deleting a task with --force flag."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.delete_task.return_value = True
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["delete", "cub-001", "--force"])
+
+        assert result.exit_code == 0
+        assert "Deleted" in result.stdout
+        mock_backend.delete_task.assert_called_once_with("cub-001")
+
+    def test_delete_force_shorthand(self, mock_backend: MagicMock) -> None:
+        """Test deleting a task with -f shorthand."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.delete_task.return_value = True
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["delete", "cub-001", "-f"])
+
+        assert result.exit_code == 0
+        assert "Deleted" in result.stdout
+        mock_backend.delete_task.assert_called_once_with("cub-001")
+
+    def test_delete_json_output(self, mock_backend: MagicMock) -> None:
+        """Test delete with JSON output."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.delete_task.return_value = True
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["delete", "cub-001", "--force", "--json"])
+
+        assert result.exit_code == 0
+        assert '"deleted": true' in result.stdout
+        assert '"task_id": "cub-001"' in result.stdout
+        assert '"title": "Test task"' in result.stdout
+
+    def test_delete_not_found(self, mock_backend: MagicMock) -> None:
+        """Test deleting non-existent task."""
+        mock_backend.get_task.return_value = None
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["delete", "cub-999", "--force"])
+
+        assert result.exit_code == 2  # ExitCode.USER_ERROR
+        assert "not found" in result.stdout.lower()
+        mock_backend.delete_task.assert_not_called()
+
+    def test_delete_with_dependents(self, mock_backend: MagicMock) -> None:
+        """Test deleting a task that has dependents."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.delete_task.side_effect = ValueError(
+            "Task cub-001 has dependents (other tasks depend on it)"
+        )
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["delete", "cub-001", "--force"])
+
+        assert result.exit_code == 1
+        assert "Error" in result.stdout
+        assert "dependents" in result.stdout.lower()
+
+
+class TestTaskShowAgent:
+    """Test cub task show command with --agent flag."""
+
+    def test_show_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test show with --agent flag."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+            priority=TaskPriority.P1,
+            description="Task description",
+        )
+        mock_backend.list_tasks.return_value = [
+            Task(id="cub-001", title="Test task", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["show", "cub-001", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task show cub-001" in result.stdout
+        assert "Test task" in result.stdout
+
+    def test_show_agent_wins_over_json(self, mock_backend: MagicMock) -> None:
+        """Test that --agent takes precedence over --json."""
+        mock_backend.get_task.return_value = Task(
+            id="cub-001",
+            title="Test task",
+            status=TaskStatus.OPEN,
+        )
+        mock_backend.list_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["show", "cub-001", "--agent", "--json"])
+
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub task show" in result.stdout
+        assert '"id":' not in result.stdout
+
+
+class TestTaskReadyAgent:
+    """Test cub task ready command with --agent flag."""
+
+    def test_ready_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test ready with --agent flag."""
+        mock_backend.get_ready_tasks.return_value = [
+            Task(
+                id="cub-001",
+                title="Ready task",
+                status=TaskStatus.OPEN,
+                priority=TaskPriority.P1,
+            ),
+        ]
+        mock_backend.list_tasks.return_value = [
+            Task(id="cub-001", title="Ready task", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task ready" in result.stdout
+        assert "Ready task" in result.stdout
+
+    def test_ready_agent_empty(self, mock_backend: MagicMock) -> None:
+        """Test ready with --agent when no tasks are ready."""
+        mock_backend.get_ready_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task ready" in result.stdout
+        assert "0 tasks ready" in result.stdout
+
+    def test_ready_agent_wins_over_json(self, mock_backend: MagicMock) -> None:
+        """Test that --agent takes precedence over --json."""
+        mock_backend.get_ready_tasks.return_value = [
+            Task(id="cub-001", title="Ready task", status=TaskStatus.OPEN),
+        ]
+        mock_backend.list_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["ready", "--agent", "--json"])
+
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub task ready" in result.stdout
+        assert '"id":' not in result.stdout
+
+
+class TestTaskListAgent:
+    """Test cub task list command with --agent flag."""
+
+    def test_list_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test list with --agent flag."""
+        mock_backend.list_tasks.return_value = [
+            Task(
+                id="cub-001",
+                title="Task 1",
+                status=TaskStatus.OPEN,
+                priority=TaskPriority.P1,
+            ),
+            Task(
+                id="cub-002",
+                title="Task 2",
+                status=TaskStatus.CLOSED,
+                priority=TaskPriority.P2,
+            ),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["list", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task list" in result.stdout
+        assert "Task 1" in result.stdout
+        assert "Task 2" in result.stdout
+
+    def test_list_agent_empty(self, mock_backend: MagicMock) -> None:
+        """Test list with --agent when no tasks found."""
+        mock_backend.list_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["list", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task list" in result.stdout
+        assert "0 tasks" in result.stdout
+
+    def test_list_agent_wins_over_json(self, mock_backend: MagicMock) -> None:
+        """Test that --agent takes precedence over --json."""
+        mock_backend.list_tasks.return_value = [
+            Task(id="cub-001", title="Task 1", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["list", "--agent", "--json"])
+
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub task list" in result.stdout
+        assert '"id":' not in result.stdout
+
+
+class TestTaskBlockedAgent:
+    """Test cub task blocked command with --agent flag."""
+
+    def test_blocked_agent_basic(self, mock_backend: MagicMock) -> None:
+        """Test blocked with --agent flag."""
+        mock_backend.list_blocked_tasks.return_value = [
+            Task(
+                id="cub-001",
+                title="Blocked task",
+                status=TaskStatus.OPEN,
+                priority=TaskPriority.P1,
+                depends_on=["cub-002"],
+            ),
+        ]
+        mock_backend.list_tasks.return_value = [
+            Task(
+                id="cub-001",
+                title="Blocked task",
+                status=TaskStatus.OPEN,
+                depends_on=["cub-002"],
+            ),
+            Task(id="cub-002", title="Blocker task", status=TaskStatus.OPEN),
+        ]
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["blocked", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task blocked" in result.stdout
+        assert "Blocked task" in result.stdout
+
+    def test_blocked_agent_empty(self, mock_backend: MagicMock) -> None:
+        """Test blocked with --agent when no tasks are blocked."""
+        mock_backend.list_blocked_tasks.return_value = []
+
+        with patch("cub.cli.task.get_backend", return_value=mock_backend):
+            result = runner.invoke(app, ["blocked", "--agent"])
+
+        assert result.exit_code == 0
+        assert "# cub task blocked" in result.stdout
+        assert "0 tasks blocked" in result.stdout

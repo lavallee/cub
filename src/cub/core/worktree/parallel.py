@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-import sys
 import threading
 import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
@@ -18,6 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
+from cub.core.invoke import cub_python_command
 from cub.core.worktree.manager import Worktree, WorktreeError, WorktreeManager
 
 if TYPE_CHECKING:
@@ -441,8 +441,8 @@ class ParallelRunner:
             Command list for subprocess
         """
         # Get the path to cub executable
-        # Use sys.executable to ensure we use the same Python
-        cmd = [sys.executable, "-m", "cub", "run"]
+        # Uses uv run in dev mode, sys.executable otherwise
+        cmd = cub_python_command() + ["run"]
 
         # Always run single task, single iteration
         cmd.extend(["--task", task_id])

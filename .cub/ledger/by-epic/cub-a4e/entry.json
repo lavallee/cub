@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "cub-a4e",
+  "title": "cub-a4e",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-a4e",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-01-29T21:02:22.455525Z",
+    "captured_at": "2026-01-29T21:02:22.455525Z"
+  },
+  "task_ids": [
+    "cub-a4e.1",
+    "cub-a4e.2",
+    "cub-a4e.3"
+  ],
+  "aggregates": {
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
+    "tasks_failed": 0,
+    "total_cost_usd": 4.572218050000001,
+    "avg_cost_per_task": 1.5240726833333336,
+    "min_cost_usd": 0.9670816999999999,
+    "max_cost_usd": 2.1157868000000004,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 3,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 3391661,
+    "avg_tokens_per_task": 1130553,
+    "total_duration_seconds": 1367,
+    "avg_duration_seconds": 455,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T21:19:58.670348Z"
+  },
+  "state_history": [],
+  "started_at": "2026-01-29T20:56:27.089920Z",
+  "completed_at": "2026-01-29T21:19:45.896328Z",
+  "updated_at": "2026-01-29T21:19:58.670349Z",
+  "first_commit": {
+    "hash": "65dd6e36611d564c745ef4935d22ab69a6279437",
+    "message": "task(cub-a4e.1): Add AgentFormatter methods for blocked, list, and ledger",
+    "author": "",
+    "timestamp": "2026-01-29T21:01:43Z"
+  },
+  "last_commit": {
+    "hash": "cfa1a61532bc009041788cf4065bd9a0e8ceea86",
+    "message": "task(cub-a4e.3): Add --agent support for doctor command (requires refactor)",
+    "author": "",
+    "timestamp": "2026-01-29T21:19:03Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

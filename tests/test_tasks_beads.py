@@ -414,7 +414,12 @@ class TestGetReadyTasks:
             # Task with parent field matching
             {"id": "task-1", "title": "Task 1", "parent": "epic-001", "labels": ["backend"]},
             # Task with epic: label matching (fallback)
-            {"id": "task-2", "title": "Task 2", "parent": None, "labels": ["backend", "epic:epic-001"]},
+            {
+                "id": "task-2",
+                "title": "Task 2",
+                "parent": None,
+                "labels": ["backend", "epic:epic-001"],
+            },
             # Task with neither (should be filtered out)
             {"id": "task-3", "title": "Task 3", "parent": "epic-002", "labels": ["backend"]},
         ])
@@ -579,6 +584,470 @@ class TestGetTaskCounts:
 
                 assert counts.total == 0
                 assert counts.open == 0
+
+
+# ==============================================================================
+# Dependency Management Tests
+# ==============================================================================
+
+
+class TestDependencyManagement:
+    """Test adding and removing task dependencies."""
+
+    def test_add_dependency_success(self, project_dir):
+        """Test adding a dependency between two tasks."""
+        # Mock get_task calls for both tasks
+        task1_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+        task2_json = json.dumps({"id": "task-2", "title": "Task 2", "status": "open"})
+        updated_task1_json = json.dumps(
+            {"id": "task-1", "title": "Task 1", "status": "open", "blocks": ["task-2"]}
+        )
+
+        mock_results = [
+            Mock(stdout=task1_json, returncode=0),  # get_task for task-1
+            Mock(stdout=task2_json, returncode=0),  # get_task for task-2
+            Mock(stdout="", returncode=0),  # dep add command
+            Mock(stdout=updated_task1_json, returncode=0),  # get_task after update
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.add_dependency("task-1", "task-2")
+
+                assert task.id == "task-1"
+                assert "task-2" in task.depends_on
+
+                # Verify dep add command was called
+                dep_add_args = mock_run.call_args_list[2][0][0]
+                assert dep_add_args == ["bd", "dep", "add", "task-1", "task-2", "--type", "blocks"]
+
+    def test_add_dependency_task_not_found(self, project_dir):
+        """Test adding dependency when task doesn't exist."""
+        error = subprocess.CalledProcessError(1, ["bd", "show"], stderr="Not found")
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=error):
+                backend = BeadsBackend(project_dir=project_dir)
+                with pytest.raises(ValueError) as exc_info:
+                    backend.add_dependency("task-1", "task-2")
+                assert "not found" in str(exc_info.value).lower()
+
+    def test_remove_dependency_success(self, project_dir):
+        """Test removing a dependency from a task."""
+        task_json = json.dumps(
+            {"id": "task-1", "title": "Task 1", "status": "open", "blocks": ["task-2"]}
+        )
+        updated_task_json = json.dumps(
+            {"id": "task-1", "title": "Task 1", "status": "open", "blocks": []}
+        )
+
+        mock_results = [
+            Mock(stdout=task_json, returncode=0),  # get_task
+            Mock(stdout="", returncode=0),  # dep remove command
+            Mock(stdout=updated_task_json, returncode=0),  # get_task after update
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.remove_dependency("task-1", "task-2")
+
+                assert task.id == "task-1"
+                assert "task-2" not in task.depends_on
+
+                # Verify dep remove command was called
+                dep_remove_args = mock_run.call_args_list[1][0][0]
+                assert dep_remove_args == ["bd", "dep", "remove", "task-1", "task-2"]
+
+    def test_remove_dependency_not_exists(self, project_dir):
+        """Test removing dependency that doesn't exist."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open", "blocks": []})
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=task_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                with pytest.raises(ValueError) as exc_info:
+                    backend.remove_dependency("task-1", "task-2")
+                assert "does not depend on" in str(exc_info.value)
+
+
+# ==============================================================================
+# Blocked Tasks Tests
+# ==============================================================================
+
+
+class TestListBlockedTasks:
+    """Test listing blocked tasks."""
+
+    def test_list_blocked_tasks_using_bd_command(self, project_dir):
+        """Test listing blocked tasks using bd blocked command."""
+        blocked_tasks_json = json.dumps(
+            [
+                {"id": "task-1", "title": "Task 1", "status": "open", "blocks": ["task-0"]},
+                {"id": "task-2", "title": "Task 2", "status": "open", "blocks": ["task-0"]},
+            ]
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch(
+                "subprocess.run", return_value=Mock(stdout=blocked_tasks_json, returncode=0)
+            ) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                tasks = backend.list_blocked_tasks()
+
+                assert len(tasks) == 2
+                assert tasks[0].id == "task-1"
+                assert tasks[1].id == "task-2"
+
+                # Verify blocked command was called
+                args = mock_run.call_args[0][0]
+                assert args == ["bd", "blocked", "--json"]
+
+    def test_list_blocked_tasks_fallback(self, project_dir):
+        """Test falling back to manual filtering when bd blocked fails."""
+        # First call fails (bd blocked doesn't exist)
+        # Second call returns open tasks
+        # Third, fourth calls get dependency tasks
+        error = subprocess.CalledProcessError(1, ["bd", "blocked"], stderr="Command not found")
+        open_tasks_json = json.dumps(
+            [
+                {"id": "task-1", "title": "Task 1", "status": "open", "blocks": ["task-0"]},
+                {"id": "task-2", "title": "Task 2", "status": "open", "blocks": []},
+            ]
+        )
+        dep_task_json = json.dumps({"id": "task-0", "title": "Dependency", "status": "open"})
+
+        mock_results = [
+            error,  # bd blocked fails
+            Mock(stdout=open_tasks_json, returncode=0),  # list_tasks
+            Mock(stdout=dep_task_json, returncode=0),  # get_task for dependency
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                tasks = backend.list_blocked_tasks()
+
+                # Only task-1 should be blocked (has open dependency)
+                assert len(tasks) == 1
+                assert tasks[0].id == "task-1"
+
+
+# ==============================================================================
+# Reopen Task Tests
+# ==============================================================================
+
+
+class TestReopenTask:
+    """Test reopening closed tasks."""
+
+    def test_reopen_task_success(self, project_dir):
+        """Test successfully reopening a closed task."""
+        closed_task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "closed"})
+        reopened_task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+
+        mock_results = [
+            Mock(stdout=closed_task_json, returncode=0),  # get_task
+            Mock(stdout="", returncode=0),  # update command
+            Mock(stdout=reopened_task_json, returncode=0),  # get_task after update
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.reopen_task("task-1")
+
+                assert task.status == TaskStatus.OPEN
+
+                # Verify update command was called
+                update_args = mock_run.call_args_list[1][0][0]
+                assert update_args == ["bd", "update", "task-1", "--status", "open"]
+
+    def test_reopen_task_with_reason(self, project_dir):
+        """Test reopening a task with a reason."""
+        closed_task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "closed"})
+        reopened_task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+
+        mock_results = [
+            Mock(stdout=closed_task_json, returncode=0),  # get_task (initial check)
+            Mock(stdout="", returncode=0),  # update command
+            Mock(stdout="", returncode=0),  # comment command
+            # get_task (after comment in add_task_note)
+            Mock(stdout=reopened_task_json, returncode=0),
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.reopen_task("task-1", reason="Found a bug")
+
+                assert task.status == TaskStatus.OPEN
+
+                # Verify comment command was called
+                comment_args = mock_run.call_args_list[2][0][0]
+                assert comment_args == ["bd", "comment", "task-1", "Reopened: Found a bug"]
+
+    def test_reopen_task_not_closed(self, project_dir):
+        """Test error when trying to reopen a task that's not closed."""
+        open_task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=open_task_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                with pytest.raises(ValueError) as exc_info:
+                    backend.reopen_task("task-1")
+                assert "not closed" in str(exc_info.value)
+
+
+# ==============================================================================
+# Delete Task Tests
+# ==============================================================================
+
+
+class TestDeleteTask:
+    """Test deleting tasks."""
+
+    def test_delete_task_success(self, project_dir):
+        """Test successfully deleting a task."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+        all_tasks_json = json.dumps(
+            [
+                {"id": "task-1", "title": "Task 1", "status": "open", "blocks": []},
+                {"id": "task-2", "title": "Task 2", "status": "open", "blocks": []},
+            ]
+        )
+
+        mock_results = [
+            Mock(stdout=task_json, returncode=0),  # get_task
+            Mock(stdout=all_tasks_json, returncode=0),  # list_tasks to check dependents
+            Mock(stdout="", returncode=0),  # delete command
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                result = backend.delete_task("task-1")
+
+                assert result is True
+
+                # Verify delete command was called
+                delete_args = mock_run.call_args_list[2][0][0]
+                assert delete_args == ["bd", "delete", "task-1"]
+
+    def test_delete_task_not_found(self, project_dir):
+        """Test deleting a non-existent task."""
+        error = subprocess.CalledProcessError(1, ["bd", "show"], stderr="Not found")
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=error):
+                backend = BeadsBackend(project_dir=project_dir)
+                result = backend.delete_task("nonexistent")
+
+                assert result is False
+
+    def test_delete_task_with_dependents(self, project_dir):
+        """Test error when deleting a task that has dependents."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "status": "open"})
+        all_tasks_json = json.dumps(
+            [
+                {"id": "task-1", "title": "Task 1", "status": "open", "blocks": []},
+                {"id": "task-2", "title": "Task 2", "status": "open", "blocks": ["task-1"]},
+            ]
+        )
+
+        mock_results = [
+            Mock(stdout=task_json, returncode=0),  # get_task
+            Mock(stdout=all_tasks_json, returncode=0),  # list_tasks to check dependents
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results):
+                backend = BeadsBackend(project_dir=project_dir)
+                with pytest.raises(ValueError) as exc_info:
+                    backend.delete_task("task-1")
+                assert "has dependents" in str(exc_info.value)
+                assert "task-2" in str(exc_info.value)
+
+
+# ==============================================================================
+# Label Management Tests
+# ==============================================================================
+
+
+class TestLabelManagement:
+    """Test adding and removing labels."""
+
+    def test_add_label_success(self, project_dir):
+        """Test adding a label to a task."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": []})
+        updated_task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": ["bug"]})
+
+        mock_results = [
+            Mock(stdout=task_json, returncode=0),  # get_task
+            Mock(stdout="", returncode=0),  # label add command
+            Mock(stdout=updated_task_json, returncode=0),  # get_task after update
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.add_label("task-1", "bug")
+
+                assert "bug" in task.labels
+
+                # Verify label add command was called
+                label_add_args = mock_run.call_args_list[1][0][0]
+                assert label_add_args == ["bd", "label", "add", "task-1", "bug"]
+
+    def test_add_label_already_exists(self, project_dir):
+        """Test adding a label that already exists."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": ["bug"]})
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=task_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.add_label("task-1", "bug")
+
+                # Should return task without calling bd label add
+                assert "bug" in task.labels
+
+    def test_remove_label_success(self, project_dir):
+        """Test removing a label from a task."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": ["bug", "urgent"]})
+        updated_task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": ["urgent"]})
+
+        mock_results = [
+            Mock(stdout=task_json, returncode=0),  # get_task
+            Mock(stdout="", returncode=0),  # label remove command
+            Mock(stdout=updated_task_json, returncode=0),  # get_task after update
+        ]
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=mock_results) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.remove_label("task-1", "bug")
+
+                assert "bug" not in task.labels
+                assert "urgent" in task.labels
+
+                # Verify label remove command was called
+                label_remove_args = mock_run.call_args_list[1][0][0]
+                assert label_remove_args == ["bd", "label", "remove", "task-1", "bug"]
+
+    def test_remove_label_not_exists(self, project_dir):
+        """Test error when removing label that doesn't exist."""
+        task_json = json.dumps({"id": "task-1", "title": "Task 1", "labels": []})
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=task_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                with pytest.raises(ValueError) as exc_info:
+                    backend.remove_label("task-1", "bug")
+                assert "not found" in str(exc_info.value)
+
+
+# ==============================================================================
+# Update Task Extended Tests
+# ==============================================================================
+
+
+class TestUpdateTaskExtended:
+    """Test extended update_task functionality."""
+
+    def test_update_task_with_title(self, project_dir):
+        """Test updating task title."""
+        update_result = Mock(stdout="", returncode=0)
+        get_result = Mock(
+            stdout=json.dumps({"id": "task-1", "title": "New Title", "status": "open"}),
+            returncode=0,
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=[update_result, get_result]) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.update_task("task-1", title="New Title")
+
+                assert task.title == "New Title"
+
+                # Verify update command
+                update_args = mock_run.call_args_list[0][0][0]
+                assert "--title" in update_args
+                assert "New Title" in update_args
+
+    def test_update_task_with_priority(self, project_dir):
+        """Test updating task priority."""
+        update_result = Mock(stdout="", returncode=0)
+        get_result = Mock(
+            stdout=json.dumps({"id": "task-1", "title": "Task", "status": "open", "priority": 0}),
+            returncode=0,
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=[update_result, get_result]) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.update_task("task-1", priority=0)
+
+                assert task.priority == TaskPriority.P0
+
+                # Verify update command
+                update_args = mock_run.call_args_list[0][0][0]
+                assert "--priority" in update_args
+                assert "0" in update_args
+
+    def test_update_task_with_notes(self, project_dir):
+        """Test updating task notes."""
+        update_result = Mock(stdout="", returncode=0)
+        get_result = Mock(
+            stdout=json.dumps(
+                {"id": "task-1", "title": "Task", "status": "open", "notes": "Important note"}
+            ),
+            returncode=0,
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", side_effect=[update_result, get_result]) as mock_run:
+                backend = BeadsBackend(project_dir=project_dir)
+                task = backend.update_task("task-1", notes="Important note")
+
+                assert task.notes == "Important note"
+
+                # Verify update command
+                update_args = mock_run.call_args_list[0][0][0]
+                assert "--notes" in update_args
+                assert "Important note" in update_args
+
+
+# ==============================================================================
+# Task Counts Extended Tests
+# ==============================================================================
+
+
+class TestGetTaskCountsExtended:
+    """Test extended task counts functionality."""
+
+    def test_get_task_counts_with_blocked(self, project_dir):
+        """Test getting task counts including blocked tasks."""
+        tasks_json = json.dumps(
+            [
+                {"id": "task-0", "status": "open"},
+                {"id": "task-1", "status": "open", "blocks": ["task-0"]},  # blocked
+                {"id": "task-2", "status": "open", "blocks": []},  # not blocked
+                {"id": "task-3", "status": "in_progress"},
+                {"id": "task-4", "status": "closed"},
+            ]
+        )
+
+        with patch("shutil.which", return_value="/usr/local/bin/bd"):
+            with patch("subprocess.run", return_value=Mock(stdout=tasks_json, returncode=0)):
+                backend = BeadsBackend(project_dir=project_dir)
+                counts = backend.get_task_counts()
+
+                assert counts.total == 5
+                assert counts.open == 3
+                assert counts.in_progress == 1
+                assert counts.closed == 1
+                assert counts.blocked == 1  # task-1 is blocked
 
 
 # ==============================================================================

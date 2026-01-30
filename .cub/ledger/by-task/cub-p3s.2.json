@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "id": "cub-p3s.2",
+  "title": "Update CLAUDE.md and PROMPT.md documentation",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-p3s"
+  },
+  "task": {
+    "title": "Update CLAUDE.md and PROMPT.md documentation",
+    "description": "CLAUDE.md (agent instructions) and `.cub/PROMPT.md` (runloop instructions) reference `bd` commands in examples. Update all examples to use `cub task` equivalents. Keep `bd` mentioned only in the \"Pre-approved Commands\" section (bd is still available for power users).\n\n**Implementation Steps:**\n1. In CLAUDE.md:\n2. In `.cub/PROMPT.md`:\n3. Audit all `.md` files in `.cub/` directory for stale `bd` references\n\n**Files:** CLAUDE.md, .cub/PROMPT.md",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "complexity:low",
+      "epic:cub-p3s",
+      "model:haiku",
+      "phase-3"
+    ],
+    "created_at": "2026-01-29T16:45:10.094223Z",
+    "captured_at": "2026-01-29T20:25:36.113903Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260129-142540",
+      "started_at": "2026-01-29T15:25:36.119769",
+      "completed_at": "2026-01-29T20:27:51.733698Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2586,
+        "output_tokens": 8100,
+        "cache_read_tokens": 2402177,
+        "cache_creation_tokens": 64893
+      },
+      "cost_usd": 0.4054759499999998,
+      "duration_seconds": 135
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-01-29T20:27:52.179072Z",
+    "total_cost_usd": 0.4054759499999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 135,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "acc3f45044d7e59ada7b1e4ee40d6b9c8fde6225",
+        "message": "task(cub-p3s.2): Update CLAUDE.md and PROMPT.md documentation",
+        "author": "",
+        "timestamp": "2026-01-29T20:27:34Z"
+      }
+    ],
+    "approach": "Systematically searched for all `bd` command references in documentation files, identified which ones were example commands versus architectural discussions, and replaced example commands with `cub task` equivalents while preserving `bd` mentions in the \"Pre-approved Commands\" section and technical documentation.",
+    "decisions": [
+      "Focused updates on CLAUDE.md/.cub/agent.md and .cub/README.md, leaving .cub/PROMPT.md unchanged since it had no `bd` examples",
+      "Preserved `bd` references in bug reports (.cub/beads-import-bug-report.md) and technical docs (.cub/EPIC_TASK_ASSOCIATION.md) since they document actual `bd` functionality rather than provide examples",
+      "Enhanced the \"Pre-approved Commands\" section to clarify that `cub task` is the recommended user-facing equivalent while `bd` remains available for power users",
+      "Treated CLAUDE.md's symlink relationship (.cub/agent.md) correctly by modifying the actual file rather than attempting to edit through the symlink"
+    ],
+    "lessons_learned": [
+      "Documentation updates should distinguish between examples (which should use recommended commands) and technical discussions (which may reference lower-level tools for educational purposes)",
+      "Symlinked files in git repos modify the target file directly; check symlink targets when making documentation updates to avoid confusion about which file actually changed",
+      "Auditing all related files in a directory (not just the explicitly mentioned ones) catches inconsistencies and ensures comprehensive documentation updates",
+      "Preserving context for \"power user\" tooling while guiding typical users toward simplified APIs requires careful section organization in documentation"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-01-29T20:27:52.179072Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:25:36.113903Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-01-29T20:27:52.179072Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "started_at": "2026-01-29T20:25:36.113903Z",
+  "completed_at": "2026-01-29T20:27:52.179072Z",
+  "tokens": {
+    "input_tokens": 2586,
+    "output_tokens": 8100,
+    "cache_read_tokens": 2402177,
+    "cache_creation_tokens": 64893
+  },
+  "cost_usd": 0.4054759499999998,
+  "duration_seconds": 135,
+  "iterations": 1,
+  "approach": "Systematically searched for all `bd` command references in documentation files, identified which ones were example commands versus architectural discussions, and replaced example commands with `cub task` equivalents while preserving `bd` mentions in the \"Pre-approved Commands\" section and technical documentation.",
+  "decisions": [
+    "Focused updates on CLAUDE.md/.cub/agent.md and .cub/README.md, leaving .cub/PROMPT.md unchanged since it had no `bd` examples",
+    "Preserved `bd` references in bug reports (.cub/beads-import-bug-report.md) and technical docs (.cub/EPIC_TASK_ASSOCIATION.md) since they document actual `bd` functionality rather than provide examples",
+    "Enhanced the \"Pre-approved Commands\" section to clarify that `cub task` is the recommended user-facing equivalent while `bd` remains available for power users",
+    "Treated CLAUDE.md's symlink relationship (.cub/agent.md) correctly by modifying the actual file rather than attempting to edit through the symlink"
+  ],
+  "lessons_learned": [
+    "Documentation updates should distinguish between examples (which should use recommended commands) and technical discussions (which may reference lower-level tools for educational purposes)",
+    "Symlinked files in git repos modify the target file directly; check symlink targets when making documentation updates to avoid confusion about which file actually changed",
+    "Auditing all related files in a directory (not just the explicitly mentioned ones) catches inconsistencies and ensures comprehensive documentation updates",
+    "Preserving context for \"power user\" tooling while guiding typical users toward simplified APIs requires careful section organization in documentation"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "acc3f45044d7e59ada7b1e4ee40d6b9c8fde6225",
+      "message": "task(cub-p3s.2): Update CLAUDE.md and PROMPT.md documentation",
+      "author": "",
+      "timestamp": "2026-01-29T20:27:34Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/Users/lavallee/Experiments/cub_sat/.cub/ledger/by-task/cub-p3s.2",
+  "epic_id": "cub-p3s",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

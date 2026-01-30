@@ -63,7 +63,7 @@ Cub is a Python-based CLI tool that wraps AI coding assistants (Claude Code, Cod
 - **Test Framework**: pytest with pytest-mock
 - **Type Checking**: mypy (strict mode)
 - **Linting**: ruff
-- **Task Management**: Beads CLI (`bd`) - stores tasks in `.beads/issues.jsonl`
+- **Task Management**: Cub task commands (`cub task`) - JSONL backend
 - **Harnesses**: Claude Code, Codex, Google Gemini, OpenCode
 
 ## Development Setup
@@ -191,7 +191,7 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 | `core/run/` | Run loop logic (prompt building, budget tracking, state machine) |
 | `core/launch/` | Harness detection and environment setup |
 | `core/suggestions/` | Smart recommendation engine for next actions |
-| `core/tasks/` | Task backend abstraction (beads, JSON, JSONL) |
+| `core/tasks/` | Task backend abstraction (JSONL is the task backend) |
 | `core/harness/` | AI harness backends (Claude, Codex, Gemini, OpenCode) |
 | `core/ledger/` | Task completion ledger (models, reader, writer, extractor) |
 | `core/config/` | Configuration loading with layered precedence |
@@ -301,9 +301,6 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 │   ├── test_*.py         # Test files
 │   ├── conftest.py       # pytest fixtures and configuration
 │   └── fixtures/         # Test data files
-├── .beads/              # Beads task tracking
-│   ├── issues.jsonl     # Task database
-│   └── branches.yaml    # Branch-epic bindings
 ├── .cub/                # Cub project metadata and state
 │   ├── agent.md         # Build/run/architecture instructions (this file)
 │   ├── hooks/           # Hook script references (for documentation)
@@ -674,13 +671,13 @@ These commands are not yet ported to Python. They are registered as Typer comman
 - `triage` - Requirements refinement
 - `architect` - Technical design
 - `plan` - Task decomposition
-- `bootstrap` - Initialize beads from prep artifacts
+- `bootstrap` - Initialize tasks from prep artifacts
 - `sessions` - List and manage prep sessions
 
 **Task & Artifact Management:**
 - `explain-task` - Show detailed task information
 - `artifacts` - List task output artifacts
-- `validate` - Validate beads state and configuration
+- `validate` - Validate task state and configuration
 
 **Git Workflow Integration:**
 - `branch` - Create and bind branch to epic
@@ -790,7 +787,7 @@ cub interview --all --auto --skip-review --update-task
 - `--skip-review`: Skip interactive review (for autonomous operation)
 - `--update-task`: Append generated specs to task descriptions
 
-Batch mode uses `bd list --status open` to find tasks and processes them sequentially with AI-generated answers.
+Batch mode uses `cub task list --status open` to find tasks and processes them sequentially with AI-generated answers.
 
 ### Custom Questions Support
 
@@ -849,15 +846,15 @@ cub branches --sync
 cub branches --unbind cub-vd6
 ```
 
-Branch bindings are stored in `.beads/branches.yaml`.
+Branch bindings are stored in `.cub/branches.yaml`.
 
 ### Checkpoints
 
 Checkpoints are review/approval gates that block downstream tasks:
 
 ```bash
-# Create a checkpoint (gate type in beads)
-bd create "Review: feature complete" --type gate
+# Create a checkpoint (gate type)
+cub task create "Review: feature complete" --type gate
 
 # List checkpoints
 cub checkpoints
@@ -899,12 +896,6 @@ All `gh` (GitHub CLI) commands are pre-approved for this project. These are used
 - Querying repository information (`gh api`)
 
 When running `cub pr` or any command that uses `gh` internally, allow the `gh` subprocess calls to proceed.
-
-### Beads CLI (`bd`)
-
-All `bd` (Beads CLI) commands are pre-approved for task management:
-- `bd list`, `bd show`, `bd create`, `bd update`, `bd close`
-- `bd sync`, `bd ready`, `bd blocked`
 
 ### Cub CLI
 
@@ -958,7 +949,7 @@ In addition to the system prompt, `cub run` injects task-specific context into e
 
 - **CURRENT TASK section** - Task ID, title, description, files, dependencies
 - **Epic context** - Parent epic details if the task is part of an epic
-- **Task closure instructions** - How to mark the task complete (beads backend-specific)
+- **Task closure instructions** - How to mark the task complete
 
 ### Customizing Your Project's Prompt
 
@@ -979,7 +970,8 @@ The lookup logic is implemented in `src/cub/cli/run.py::generate_system_prompt()
 - **Protocol classes**: Harness and task backends use `typing.Protocol` for pluggability. No ABC inheritance.
 - **mypy strict mode**: All code must pass `mypy --strict`. Use explicit types, no `Any`.
 - **Relative imports**: Use absolute imports from `cub.core`, not relative imports between packages.
-- **Task management**: This project uses `bd` (beads) as the primary backend. JSON backend is legacy. Use `bd close <id> -r "reason"` for task closure.
+- **Task management**: Use `cub task` commands for all task operations. Use `cub task close <id> -r "reason"` for task closure. JSONL is the task backend for this project.
+- **Always use `--agent` flag**: When calling cub commands (e.g., `cub task ready`, `cub task list`, `cub task show`, `cub task blocked`, `cub status`, `cub suggest`, `cub doctor`), always pass `--agent` to get markdown output optimized for LLM consumption. Use `--all` to disable truncation when you need the full list.
 - **Epic-task association**: The `parent` field is the canonical source for epic-task relationships. The `epic:{parent}` label is a compatibility layer. **DO NOT flip this** - see `.cub/EPIC_TASK_ASSOCIATION.md` for the rationale.
 - **Config precedence**: CLI flags > env vars > project config > global config > hardcoded defaults
 - **Test isolation**: pytest tests use temporary directories via `tmp_path` fixture.
@@ -1010,11 +1002,11 @@ mypy src/cub
 ruff check src/ tests/
 ruff format src/ tests/
 
-# Task management (beads)
-bd list                    # List all tasks
-bd list --status open     # List open tasks
-bd close <task-id> -r "reason"  # Close a task
-bd show <task-id>          # View task details
+# Task management
+cub task list                    # List all tasks
+cub task list --status open     # List open tasks
+cub task close <task-id> -r "reason"  # Close a task
+cub task show <task-id>          # View task details
 
 # Run cub from source
 cub run --once            # Single iteration
@@ -1034,7 +1026,7 @@ cub init --global         # Set up global config
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
+   cub task ready              # Verify no pending task state issues
    git push
    git status  # MUST show "up to date with origin"
    ```
@@ -1107,7 +1099,7 @@ The dashboard consists of four layers:
 1. **Sync Phase** - Parse entities from multiple sources
    - Specs from `specs/**/*.md` using frontmatter markers
    - Plans from `plans/*/plan.jsonl`
-   - Tasks from beads or JSON backend
+   - Tasks from JSONL backend
    - Ledger entries from `.cub/ledger/`
    - Release info from `CHANGELOG.md`
 
@@ -1156,7 +1148,7 @@ spec_id: cub-abc
 - **Spec**: Detailed requirements documentation
 - **Plan**: Implementation strategy and task breakdown
 - **Epic**: Group of related tasks
-- **Task**: Individual work item (from beads or JSON)
+- **Task**: Individual work item (from JSONL backend)
 - **Ledger**: Task completion record
 - **Release**: Released version in CHANGELOG
 
@@ -1174,7 +1166,7 @@ orchestrator = SyncOrchestrator(
     db_path=Path(".cub/dashboard.db"),
     specs_root=Path("./specs"),
     plans_root=Path(".cub/sessions"),
-    tasks_backend="beads",
+    tasks_backend="jsonl",
     ledger_path=Path(".cub/ledger"),
     changelog_path=Path("CHANGELOG.md")
 )
@@ -1475,10 +1467,10 @@ cub doctor
 # All hook events configured: Yes/No
 ```
 <!-- BEGIN CUB MANAGED SECTION v1 -->
-<!-- sha256:cb43dee7c868ba02c061efa07d13ebec49607e2aef56977944ecd8f51ceb4210 -->
+<!-- sha256:6b072b437675300492667ad4800391c4c5dc3160e8c5df8a185c85f3d7378c61 -->
 # Cub Task Workflow (Claude Code)
 
-**Project:** `cub` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+**Project:** `cub_sat` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
 
 ## Quick Start
 

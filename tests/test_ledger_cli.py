@@ -92,7 +92,9 @@ def sample_entry() -> LedgerEntry:
 
 
 @pytest.fixture
-def populated_ledger(ledger_dir: Path, sample_entry: LedgerEntry, monkeypatch: pytest.MonkeyPatch) -> Path:
+def populated_ledger(
+    ledger_dir: Path, sample_entry: LedgerEntry, monkeypatch: pytest.MonkeyPatch
+) -> Path:
     """Create a ledger with sample entries."""
     writer = LedgerWriter(ledger_dir)
     writer.create_entry(sample_entry)
@@ -171,6 +173,22 @@ class TestShowCommand:
         result = runner.invoke(app, ["show", "cub-test-1", "--attempt", "99"])
         # Should handle gracefully
         assert "99" in result.output or result.exit_code != 0
+
+    def test_show_agent_output(self, populated_ledger: Path) -> None:
+        """Test show command with --agent flag."""
+        result = runner.invoke(app, ["show", "cub-test-1", "--agent"])
+        assert result.exit_code == 0
+        # Should output markdown format
+        assert "# cub ledger show cub-test-1" in result.output
+        assert "Test Task" in result.output
+
+    def test_show_agent_wins_over_json(self, populated_ledger: Path) -> None:
+        """Test that --agent takes precedence over --json."""
+        result = runner.invoke(app, ["show", "cub-test-1", "--agent", "--json"])
+        assert result.exit_code == 0
+        # Should be markdown, not JSON
+        assert "# cub ledger show" in result.output
+        assert '"id":' not in result.output
 
 
 class TestUpdateCommand:

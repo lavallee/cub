@@ -89,6 +89,9 @@ class TaskBackend(Protocol):
         assignee: str | None = None,
         description: str | None = None,
         labels: list[str] | None = None,
+        title: str | None = None,
+        priority: int | None = None,
+        notes: str | None = None,
     ) -> Task:
         """
         Update a task's fields.
@@ -99,6 +102,9 @@ class TaskBackend(Protocol):
             assignee: New assignee
             description: New description
             labels: New labels list
+            title: New title
+            priority: New priority (0-4, where 0 is highest)
+            notes: New notes/comments
 
         Returns:
             Updated task object
@@ -275,6 +281,397 @@ class TaskBackend(Protocol):
             - message: Human-readable explanation of the result
         """
         ...
+
+    def add_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Add a dependency to a task.
+
+        Makes task_id depend on depends_on_id (task_id cannot start until
+        depends_on_id is closed).
+
+        Args:
+            task_id: Task to add dependency to
+            depends_on_id: Task ID that must be completed first
+
+        Returns:
+            Updated task object with new dependency
+
+        Raises:
+            ValueError: If either task not found or dependency would create a cycle
+        """
+        ...
+
+    def remove_dependency(self, task_id: str, depends_on_id: str) -> Task:
+        """
+        Remove a dependency from a task.
+
+        Args:
+            task_id: Task to remove dependency from
+            depends_on_id: Task ID to remove from dependencies
+
+        Returns:
+            Updated task object without the dependency
+
+        Raises:
+            ValueError: If task not found or dependency doesn't exist
+        """
+        ...
+
+    def list_blocked_tasks(
+        self,
+        parent: str | None = None,
+        label: str | None = None,
+    ) -> list[Task]:
+        """
+        List all blocked tasks.
+
+        A task is blocked if:
+        - Status is OPEN
+        - Has at least one dependency that is not CLOSED
+
+        Args:
+            parent: Filter by parent epic/task ID
+            label: Filter by label
+
+        Returns:
+            List of blocked tasks
+        """
+        ...
+
+    def reopen_task(self, task_id: str, reason: str | None = None) -> Task:
+        """
+        Reopen a closed task.
+
+        Changes task status from CLOSED back to OPEN.
+
+        Args:
+            task_id: Task to reopen
+            reason: Optional reason for reopening
+
+        Returns:
+            Reopened task object
+
+        Raises:
+            ValueError: If task not found or not closed
+        """
+        ...
+
+    def delete_task(self, task_id: str) -> bool:
+        """
+        Delete a task permanently.
+
+        WARNING: This is destructive and cannot be undone.
+
+        Args:
+            task_id: Task to delete
+
+        Returns:
+            True if task was deleted, False if not found
+
+        Raises:
+            ValueError: If task has dependents (other tasks depend on it)
+        """
+        ...
+
+    def add_label(self, task_id: str, label: str) -> Task:
+        """
+        Add a label to a task.
+
+        Args:
+            task_id: Task to add label to
+            label: Label to add (e.g., "bug", "model:sonnet")
+
+        Returns:
+            Updated task object with new label
+
+        Raises:
+            ValueError: If task not found
+        """
+        ...
+
+    def remove_label(self, task_id: str, label: str) -> Task:
+        """
+        Remove a label from a task.
+
+        Args:
+            task_id: Task to remove label from
+            label: Label to remove
+
+        Returns:
+            Updated task object without the label
+
+        Raises:
+            ValueError: If task not found or label doesn't exist
+        """
+        ...
+
+    def search_tasks(self, query: str) -> list[Task]:
+        """
+        Search for tasks by query string.
+
+        Searches across task titles and descriptions. The search behavior
+        depends on the backend:
+        - BeadsBackend: Uses `bd search` for full-text search
+        - JsonlBackend: Case-insensitive substring match on title and description
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        ...
+
+
+class TaskBackendDefaults:
+    """
+    Mixin providing default implementations for TaskBackend methods.
+
+    This mixin provides default implementations for methods that can be
+    derived from existing backend operations. Backends can inherit from
+    this mixin to avoid reimplementing common functionality.
+
+    Methods with default implementations:
+    - add_label: Implemented via update_task with labels
+    - remove_label: Implemented via update_task with labels
+    - reopen_task: Implemented via update_task with status change
+    - add_dependency: Implemented via get_task + update_task
+    - remove_dependency: Implemented via get_task + update_task
+    - list_blocked_tasks: Implemented via list_tasks + dependency checking
+
+    Methods that must still be implemented by backends:
+    - delete_task: Requires backend-specific deletion logic
+    """
+
+    def add_label(self: "TaskBackend", task_id: str, label: str) -> Task:
+        """
+        Add a label to a task.
+
+        Default implementation using update_task.
+
+        Args:
+            task_id: Task to add label to
+            label: Label to add
+
+        Returns:
+            Updated task object with new label
+
+        Raises:
+            ValueError: If task not found
+        """
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        if label not in task.labels:
+            new_labels = task.labels + [label]
+            return self.update_task(task_id, labels=new_labels)
+
+        return task
+
+    def remove_label(self: "TaskBackend", task_id: str, label: str) -> Task:
+        """
+        Remove a label from a task.
+
+        Default implementation using update_task.
+
+        Args:
+            task_id: Task to remove label from
+            label: Label to remove
+
+        Returns:
+            Updated task object without the label
+
+        Raises:
+            ValueError: If task not found or label doesn't exist
+        """
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        if label not in task.labels:
+            raise ValueError(f"Label '{label}' not found on task {task_id}")
+
+        new_labels = [lbl for lbl in task.labels if lbl != label]
+        return self.update_task(task_id, labels=new_labels)
+
+    def search_tasks(self: "TaskBackend", query: str) -> list[Task]:
+        """
+        Search for tasks by query string.
+
+        Searches across task titles and descriptions using case-insensitive
+        substring matching. This is a default implementation that can be
+        overridden by backends for more sophisticated search.
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of tasks matching the query
+
+        Raises:
+            ValueError: If search fails
+        """
+        # Default implementation: case-insensitive substring search
+        all_tasks = self.list_tasks()
+        query_lower = query.lower()
+
+        matching_tasks = []
+        for task in all_tasks:
+            # Search in title
+            if query_lower in task.title.lower():
+                matching_tasks.append(task)
+                continue
+
+            # Search in description
+            if task.description and query_lower in task.description.lower():
+                matching_tasks.append(task)
+                continue
+
+        return matching_tasks
+
+    def reopen_task(self: "TaskBackend", task_id: str, reason: str | None = None) -> Task:
+        """
+        Reopen a closed task.
+
+        Default implementation using update_task.
+
+        Args:
+            task_id: Task to reopen
+            reason: Optional reason for reopening
+
+        Returns:
+            Reopened task object
+
+        Raises:
+            ValueError: If task not found or not closed
+        """
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        if task.status != TaskStatus.CLOSED:
+            raise ValueError(f"Task {task_id} is not closed (status: {task.status})")
+
+        # Update status to OPEN
+        reopened_task = self.update_task(task_id, status=TaskStatus.OPEN)
+
+        # Add note about reopening if reason provided
+        if reason:
+            reopened_task = self.add_task_note(task_id, f"Reopened: {reason}")
+
+        return reopened_task
+
+    def add_dependency(self: "TaskBackend", task_id: str, depends_on_id: str) -> Task:
+        """
+        Add a dependency to a task.
+
+        Default implementation using get_task and update_task.
+        Does not perform cycle detection - backends should override
+        if they need strict validation.
+
+        Args:
+            task_id: Task to add dependency to
+            depends_on_id: Task ID that must be completed first
+
+        Returns:
+            Updated task object with new dependency
+
+        Raises:
+            ValueError: If either task not found
+        """
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        depends_on_task = self.get_task(depends_on_id)
+        if depends_on_task is None:
+            raise ValueError(f"Dependency task {depends_on_id} not found")
+
+        # Add dependency if not already present
+        if depends_on_id not in task.depends_on:
+            # Note: This is a simplified implementation that doesn't use update_task
+            # because the protocol doesn't have a depends_on parameter.
+            # Backends may need to override this with backend-specific logic.
+            task.depends_on.append(depends_on_id)
+
+        return task
+
+    def remove_dependency(self: "TaskBackend", task_id: str, depends_on_id: str) -> Task:
+        """
+        Remove a dependency from a task.
+
+        Default implementation using get_task.
+
+        Args:
+            task_id: Task to remove dependency from
+            depends_on_id: Task ID to remove from dependencies
+
+        Returns:
+            Updated task object without the dependency
+
+        Raises:
+            ValueError: If task not found or dependency doesn't exist
+        """
+        task = self.get_task(task_id)
+        if task is None:
+            raise ValueError(f"Task {task_id} not found")
+
+        if depends_on_id not in task.depends_on:
+            raise ValueError(f"Task {task_id} does not depend on {depends_on_id}")
+
+        # Note: This is a simplified implementation that doesn't use update_task
+        # because the protocol doesn't have a depends_on parameter.
+        # Backends may need to override this with backend-specific logic.
+        task.depends_on.remove(depends_on_id)
+
+        return task
+
+    def list_blocked_tasks(
+        self: "TaskBackend",
+        parent: str | None = None,
+        label: str | None = None,
+    ) -> list[Task]:
+        """
+        List all blocked tasks.
+
+        Default implementation using list_tasks and dependency checking.
+
+        A task is blocked if:
+        - Status is OPEN
+        - Has at least one dependency that is not CLOSED
+
+        Args:
+            parent: Filter by parent epic/task ID
+            label: Filter by label
+
+        Returns:
+            List of blocked tasks
+        """
+        # Get all open tasks
+        open_tasks = self.list_tasks(status=TaskStatus.OPEN, parent=parent, label=label)
+
+        blocked_tasks = []
+        for task in open_tasks:
+            # Skip tasks with no dependencies
+            if not task.depends_on:
+                continue
+
+            # Check if any dependency is not closed
+            has_open_dependency = False
+            for dep_id in task.depends_on:
+                dep_task = self.get_task(dep_id)
+                if dep_task is None or dep_task.status != TaskStatus.CLOSED:
+                    has_open_dependency = True
+                    break
+
+            if has_open_dependency:
+                blocked_tasks.append(task)
+
+        return blocked_tasks
 
 
 # Backend registry

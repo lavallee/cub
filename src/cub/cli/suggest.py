@@ -44,6 +44,11 @@ def suggest(
         "--json",
         help="Output suggestions as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
     show_action: bool = typer.Option(
         True,
         "--show-action/--no-action",
@@ -61,6 +66,7 @@ def suggest(
         cub suggest -n 10               # Show top 10 suggestions
         cub suggest -c task             # Only show task suggestions
         cub suggest --json              # JSON output for automation
+        cub suggest --agent             # Agent-friendly markdown output
         cub suggest --no-action         # Hide action commands
     """
     debug = ctx.obj.get("debug", False)
@@ -98,7 +104,11 @@ def suggest(
         suggestions = suggestions[:limit]
 
         if not suggestions:
-            if category:
+            # --agent wins over --json
+            if agent:
+                console.print("# cub suggest\n")
+                console.print("0 recommendations based on current project state.")
+            elif category:
                 console.print(
                     f"[yellow]No suggestions found for category '{category}'[/yellow]"
                 )
@@ -108,9 +118,34 @@ def suggest(
                 )
             raise typer.Exit(0)
 
+        # --agent wins over --json
+        if agent:
+            try:
+                from cub.core.services.agent_format import AgentFormatter
+
+                output = AgentFormatter.format_suggestions(suggestions)
+                console.print(output)
+            except ImportError:
+                # Fallback to simple markdown if AgentFormatter not available
+                count = len(suggestions)
+                console.print("# cub suggest\n")
+                plural = 's' if count != 1 else ''
+                console.print(
+                    f"{count} recommendation{plural} based on current project state.\n"
+                )
+                console.print("## Suggestions\n")
+                console.print("| Priority | Category | Title | Rationale |")
+                console.print("|----------|----------|-------|-----------|")
+                for i, sug in enumerate(suggestions, 1):
+                    rationale = sug.rationale
+                    if len(rationale) > 80:
+                        rationale = rationale[:77] + "..."
+                    console.print(f"| {i} | {sug.category.value} | {sug.title} | {rationale} |")
+            raise typer.Exit(0)
+
         if json_output:
             # Output machine-readable JSON
-            output = {
+            json_output_dict = {
                 "total_suggestions": len(suggestions),
                 "suggestions": [
                     {
@@ -128,7 +163,7 @@ def suggest(
                     for s in suggestions
                 ],
             }
-            console.print(json_module.dumps(output, indent=2))
+            console.print(json_module.dumps(json_output_dict, indent=2))
             raise typer.Exit(0)
 
         # Display human-readable suggestions
