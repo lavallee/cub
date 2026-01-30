@@ -354,15 +354,19 @@ run_epic() {
         # Run cub for this epic
         # shellcheck disable=SC2046
         if cub run --epic "$epic" $(build_run_flags) 2>&1 | tee -a "$log_file"; then
-            # cub exited cleanly - check if epic is actually complete
-            if is_epic_complete "$epic"; then
-                epic_complete=true
-                break
-            else
-                log_warn "cub exited but tasks still open for ${epic}"
-            fi
+            log_info "cub run exited cleanly"
         else
-            log_warn "cub run exited with error for ${epic}"
+            log_warn "cub run exited with non-zero status for ${epic}"
+        fi
+
+        # Always check completion after each attempt - cub run may exit
+        # non-zero when no ready tasks remain (e.g. all epic tasks done
+        # but tasks in other epics are still blocked)
+        if is_epic_complete "$epic"; then
+            epic_complete=true
+            break
+        else
+            log_warn "Tasks still open for ${epic}"
         fi
 
         # Commit any uncommitted changes before retry
