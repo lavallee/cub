@@ -12,32 +12,29 @@ If provided, this is a spec file path or spec ID to orient from. The spec provid
 
 ## Instructions
 
-### Step 1: Assess Idea
+### Step 1: Locate Vision Input
 
-The provided $ARGUMENT could be a spec in our format, a spec ID pointing to a file in the project's /specs directory, a reference to another file, directory or URL containing the starting point (a PRD, for instance), or the text of an idea. If this is provided, we should expect it to have the grounding information we need to get started. 
-
-If we do not have an $ARGUMENT or other input that serves as a starting point, ask the user to describe their idea.
-
-### Step 2: Assess Project Context
-
-Look for relevant docs describing the project in this priority order:
-
+Find the vision document in this priority order:
 1. `VISION.md` in project root
 2. `docs/PRD.md`
 3. `README.md`
 
-Read and internalize these docs.
+If no vision document found, ask the user to describe their idea.
+
+Read and internalize the vision document.
+
+### Step 2: Assess Project Context
 
 Determine if this is a new project or extending an existing one by checking for:
 - Existing source code directories (`src/`, `lib/`, `app/`, etc.)
 - `package.json`, `Cargo.toml`, `go.mod`, `requirements.txt`, etc.
 - `CLAUDE.md` or existing architecture docs
 
-If extending an existing project, look for a .cub/map.md, and briefly explore the codebase to understand the current state.
+If extending an existing project, briefly explore the codebase to understand the current state.
 
 ### Step 3: Conduct Interview
 
-Use the AskUserQuestion tool to ask the user the following questions:
+Ask the user the following questions, **waiting for a response after each one**:
 
 **Question 1 - Orient Depth:**
 > How thorough should this product review be?
@@ -174,7 +171,7 @@ Use this template:
 
 ---
 
-**Next Step:** Run `/cub:architect` to proceed to technical design.
+**Next Step:** Run `cub architect` to proceed to technical design.
 ```
 
 ### Step 9: Handoff
@@ -185,7 +182,7 @@ After writing the output file, tell the user:
 >
 > Output saved to: `{output_path}`
 >
-> **Next step:** Run `/cub:architect` to design the technical architecture.
+> **Next step:** Run `cub architect` to design the technical architecture.
 
 ---
 
