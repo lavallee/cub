@@ -376,7 +376,7 @@ def update(
         scripts_target = Path(".cub") / "scripts"
         if scripts_source.is_dir():
             scripts_target.mkdir(parents=True, exist_ok=True)
-            for script_file in scripts_source.glob("*.py"):
+            for script_file in sorted(scripts_source.glob("*.*")):
                 target_path = scripts_target / script_file.name
                 if not target_path.exists():
                     updates.append((str(script_file), str(target_path), "new"))
@@ -430,7 +430,7 @@ def update(
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_bytes(source_path.read_bytes())
                 # Set executable for scripts
-                if target_path.suffix == ".py" and "scripts" in target_path.parts:
+                if target_path.suffix in (".py", ".sh") and "scripts" in target_path.parts:
                     target_path.chmod(0o755)
 
             console.print()
