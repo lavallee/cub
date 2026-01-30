@@ -156,21 +156,7 @@ def show(
 
             graph = _try_build_graph(backend)
 
-            # Try to get epic progress if task has parent
-            epic_progress = None
-            if task.parent:
-                try:
-                    from cub.core.services.epic import EpicService  # type: ignore[import-untyped]
-                    from cub.utils.project import get_project_root
-
-                    project_dir = get_project_root()
-                    epic_service = EpicService.from_project_dir(project_dir)
-                    epic_progress = epic_service.get_epic_progress(task.parent)
-                except Exception:
-                    # If we can't get epic progress, proceed without it
-                    pass
-
-            output = AgentFormatter.format_task_detail(task, graph, epic_progress)
+            output = AgentFormatter.format_task_detail(task, graph)
             console.print(output)
         except ImportError:
             # Fallback to simple markdown if AgentFormatter not available
