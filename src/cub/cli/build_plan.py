@@ -80,6 +80,22 @@ def main(
         "--retry-delay",
         help="Seconds between retries",
     ),
+    main_ok: bool = typer.Option(
+        False,
+        "--main-ok",
+        help="Allow running on main/master branch",
+    ),
+    stream: bool = typer.Option(
+        True,
+        "--stream/--no-stream",
+        help="Stream harness output in real-time (default: on)",
+    ),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="Model to use (e.g., sonnet, opus, haiku)",
+    ),
 ) -> None:
     """
     Execute a staged plan by running cub for each epic.
@@ -93,6 +109,7 @@ def main(
         cub build-plan my-feature --start-epic cub-d2v
         cub build-plan my-feature --only-epic cub-k8d
         cub build-plan my-feature --no-branch
+        cub build-plan my-feature --no-branch --main-ok
     """
     script = _find_build_plan_script()
     if script is None:
@@ -112,6 +129,12 @@ def main(
         cmd.append("--no-branch")
     cmd.extend(["--max-retries", str(max_retries)])
     cmd.extend(["--retry-delay", str(retry_delay)])
+    if main_ok:
+        cmd.append("--main-ok")
+    if not stream:
+        cmd.append("--no-stream")
+    if model:
+        cmd.extend(["--model", model])
 
     # Pass through environment
     env = os.environ.copy()

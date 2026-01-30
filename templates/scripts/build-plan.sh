@@ -36,6 +36,9 @@ DRY_RUN=false
 START_EPIC=""
 ONLY_EPIC=""
 NO_BRANCH=false
+MAIN_OK=false
+STREAM=true
+MODEL=""
 
 # Retry configuration
 MAX_RETRIES="${CUB_MAX_RETRIES:-3}"
@@ -81,6 +84,18 @@ while [[ $# -gt 0 ]]; do
             ;;
         --retry-delay)
             RETRY_DELAY="$2"
+            shift 2
+            ;;
+        --main-ok)
+            MAIN_OK=true
+            shift
+            ;;
+        --no-stream)
+            STREAM=false
+            shift
+            ;;
+        --model)
+            MODEL="$2"
             shift 2
             ;;
         --help|-h)
@@ -296,6 +311,21 @@ is_epic_complete() {
     return 1
 }
 
+# Build flags to pass to cub run
+build_run_flags() {
+    local flags="--use-current-branch"
+    if [[ "$STREAM" == "true" ]]; then
+        flags="$flags --stream"
+    fi
+    if [[ "$MAIN_OK" == "true" ]]; then
+        flags="$flags --main-ok"
+    fi
+    if [[ -n "$MODEL" ]]; then
+        flags="$flags --model $MODEL"
+    fi
+    echo "$flags"
+}
+
 # Run cub for a single epic
 run_epic() {
     local epic="$1"
@@ -309,7 +339,7 @@ run_epic() {
     log_step "---"
 
     if [[ "$DRY_RUN" == "true" ]]; then
-        log_info "[DRY-RUN] Would run: cub run --epic ${epic} --stream --use-current-branch"
+        log_info "[DRY-RUN] Would run: cub run --epic ${epic} $(build_run_flags)"
         return 0
     fi
 
@@ -322,7 +352,8 @@ run_epic() {
         log_info "--- Attempt ${attempt}/${MAX_RETRIES} ---"
 
         # Run cub for this epic
-        if cub run --epic "$epic" --stream --use-current-branch 2>&1 | tee -a "$log_file"; then
+        # shellcheck disable=SC2046
+        if cub run --epic "$epic" $(build_run_flags) 2>&1 | tee -a "$log_file"; then
             # cub exited cleanly - check if epic is actually complete
             if is_epic_complete "$epic"; then
                 epic_complete=true
