@@ -384,14 +384,16 @@ wait_for_ci() {
 
     while [[ $elapsed -lt $timeout ]]; do
         local status
-        status=$(gh pr checks "$RELEASE_BRANCH" 2>&1 || true)
+        local rc=0
+        status=$(gh pr checks "$RELEASE_BRANCH" 2>&1) || rc=$?
 
-        if echo "$status" | grep -q "All checks were successful"; then
+        if [[ $rc -eq 0 ]]; then
             log_success "All CI checks passed"
             return 0
         fi
 
-        if echo "$status" | grep -q "some checks were not successful"; then
+        # rc=1 means some checks failed (not pending)
+        if echo "$status" | grep -q "fail"; then
             log_error "CI checks failed:"
             echo "$status"
             exit 1
@@ -621,14 +623,16 @@ finish_release() {
 
             while [[ $elapsed -lt $timeout ]]; do
                 local status
-                status=$(gh pr checks "$FINISH_PR" 2>&1 || true)
+                local rc=0
+                status=$(gh pr checks "$FINISH_PR" 2>&1) || rc=$?
 
-                if echo "$status" | grep -q "All checks were successful"; then
+                if [[ $rc -eq 0 ]]; then
                     log_success "All CI checks passed"
                     break
                 fi
 
-                if echo "$status" | grep -q "some checks were not successful"; then
+                # rc=1 means some checks failed (not pending)
+                if echo "$status" | grep -q "fail"; then
                     log_error "CI checks failed:"
                     echo "$status"
                     exit 1
