@@ -424,7 +424,6 @@ def generate_instruction_files(
         console.print("[green]v[/green] Constitution ready")
     except Exception as e:
         console.print(f"[red]Error ensuring constitution: {e}[/red]")
-        raise typer.Exit(1)
 
     # Copy runloop template
     try:
@@ -432,7 +431,6 @@ def generate_instruction_files(
         console.print("[green]v[/green] Runloop ready")
     except Exception as e:
         console.print(f"[red]Error ensuring runloop: {e}[/red]")
-        raise typer.Exit(1)
 
     # Generate managed section content for AGENTS.md
     try:
@@ -452,7 +450,6 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating AGENTS.md: {e}[/red]")
-        raise typer.Exit(1)
 
     # Generate managed section content for CLAUDE.md
     try:
@@ -472,7 +469,6 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating CLAUDE.md: {e}[/red]")
-        raise typer.Exit(1)
 
     # Generate project map
     try:

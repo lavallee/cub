@@ -79,13 +79,12 @@ class TestEnsureConstitution:
         project_dir = tmp_path / "project"
         project_dir.mkdir()
 
-        # Mock __file__ to point to a location without template
-        mock_file = tmp_path / "fake" / "cub" / "core" / "constitution.py"
-        mock_file.parent.mkdir(parents=True)
+        # Mock _find_templates_dir to return a directory without constitution.md
+        empty_templates = tmp_path / "empty_templates"
+        empty_templates.mkdir()
 
-        # Patch the module-level __file__
         import cub.core.constitution as const_mod
-        monkeypatch.setattr(const_mod, "__file__", str(mock_file))
+        monkeypatch.setattr(const_mod, "_find_templates_dir", lambda: empty_templates)
 
         with pytest.raises(FileNotFoundError, match="Constitution template not found"):
             ensure_constitution(project_dir)

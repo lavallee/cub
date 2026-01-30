@@ -9,6 +9,28 @@ import shutil
 from pathlib import Path
 
 
+def _find_templates_dir() -> Path:
+    """Locate the cub templates directory with fallback logic.
+
+    Searches in order:
+    1. Source layout (editable install): cub package → ../../templates
+    2. Package layout (pip install): cub package → templates/
+    3. Raises FileNotFoundError if not found
+    """
+    import cub
+
+    cub_path = Path(cub.__file__).parent
+    # Try src layout first (editable install)
+    templates_dir = cub_path.parent.parent / "templates"
+    if templates_dir.is_dir():
+        return templates_dir
+    # Try package layout (pip install)
+    templates_dir = cub_path / "templates"
+    if templates_dir.is_dir():
+        return templates_dir
+    raise FileNotFoundError("Could not locate cub templates directory")
+
+
 def ensure_constitution(project_dir: Path, force: bool = False) -> Path:
     """
     Ensure constitution.md exists in the project's .cub/ directory.
@@ -31,9 +53,9 @@ def ensure_constitution(project_dir: Path, force: bool = False) -> Path:
 
     constitution_path = cub_dir / "constitution.md"
 
-    # Find template - it should be in the package's templates directory
-    # templates/ is a sibling of src/cub/core/
-    template_path = Path(__file__).parent.parent.parent.parent / "templates" / "constitution.md"
+    # Find template via standard templates directory lookup
+    templates_dir = _find_templates_dir()
+    template_path = templates_dir / "constitution.md"
 
     if not template_path.exists():
         raise FileNotFoundError(f"Constitution template not found at {template_path}")
