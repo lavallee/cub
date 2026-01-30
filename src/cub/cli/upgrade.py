@@ -124,8 +124,11 @@ def detect_install_method() -> InstallMethod:
         InstallMethod indicating how cub was installed
     """
     # Check if installed via uv tool (sys.executable lives under uv/tools/)
-    exe_path = Path(sys.executable).resolve()
-    if "uv/tools" in str(exe_path) or "uv" + os.sep + "tools" in str(exe_path):
+    # Check both the raw path and resolved path — the raw path may be a symlink
+    # inside uv/tools/ that resolves to uv/python/cpython-*/
+    exe_str = str(Path(sys.executable))
+    exe_resolved = str(Path(sys.executable).resolve())
+    if any("uv" + os.sep + "tools" in p or "uv/tools" in p for p in (exe_str, exe_resolved)):
         return InstallMethod.UV_TOOL
 
     # Check if pipx is available and has cub installed
