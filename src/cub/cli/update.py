@@ -310,6 +310,33 @@ def update(
             elif debug:
                 console.print(f"[dim]Map generation would fail: {e}[/dim]")
 
+    # Refresh hooks (script + settings.json)
+    if not skills_only:
+        try:
+            from cub.core.hooks.installer import install_hooks
+
+            if not dry_run:
+                hook_result = install_hooks(project_dir, force=force)
+                if hook_result.success:
+                    if hook_result.hooks_installed:
+                        console.print(
+                            f"[green]✓[/green] Updated hooks: "
+                            f"{', '.join(hook_result.hooks_installed)}"
+                        )
+                    elif debug:
+                        console.print("[dim]Hooks already up to date[/dim]")
+                    for issue in hook_result.issues:
+                        if issue.severity == "warning":
+                            console.print(f"[yellow]Warning: {issue.message}[/yellow]")
+                else:
+                    console.print(
+                        f"[yellow]Warning: Hook update issue: {hook_result.message}[/yellow]"
+                    )
+            else:
+                console.print("[dim]Would refresh hooks[/dim]")
+        except Exception as e:
+            console.print(f"[yellow]Warning: Could not update hooks: {e}[/yellow]")
+
     # Track updates
     updates: list[tuple[str, str, str]] = []  # (source, target, status)
     skipped: list[tuple[str, str]] = []  # (target, reason)

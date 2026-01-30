@@ -49,6 +49,22 @@ class HookInstallResult(BaseModel):
     message: str | None = Field(default=None, description="Summary message")
 
 
+def _find_hook_template() -> Path | None:
+    """Locate the cub-hook.sh template with fallback logic."""
+    import cub
+
+    cub_path = Path(cub.__file__).parent
+    # Try src layout first (editable install)
+    candidate = cub_path.parent.parent / "templates" / "scripts" / "cub-hook.sh"
+    if candidate.exists():
+        return candidate
+    # Try package layout (pip install / uv tool)
+    candidate = cub_path / "templates" / "scripts" / "cub-hook.sh"
+    if candidate.exists():
+        return candidate
+    return None
+
+
 def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallResult:
     """
     Install Claude Code hooks configuration.
@@ -79,9 +95,8 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
     # Validate hook script exists
     if not hook_script.exists():
         # Try to copy from templates
-        template_path = Path(__file__).parent.parent.parent.parent.parent
-        template_hook = template_path / "templates" / "scripts" / "cub-hook.sh"
-        if template_hook.exists():
+        template_hook = _find_hook_template()
+        if template_hook is not None:
             # Create target directory
             hook_script.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(template_hook, hook_script)
