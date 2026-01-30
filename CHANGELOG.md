@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.29.0] - 2026-01-30
+
+### Breaking Changes
+
+- Feature/bare-cub-command (#66)
+
+### Changed
+
+- Scooping up task logs
+- Feature/cub-nl-router (#68)
+- 2026-01-28-assorted Bug Fixes (#67)
+- Added adventure game
+- Updated plan and scooping up runs
+- Auto-resolve punchlist source files to their -plan.md sibling
+- Support staging standalone .md files in cub stage
+- Extract reusable hydrate package, punchlist writes itemized-plan.md
+- Adjusted plan.json and got tasks going
+- Adjusted plan.json
+- Spec and plans for bare cub command
+- Punchlist for small bugs
+- Feature/bare-cub-command (#66)
+- Feature/claude-integration (#65)
+- CLI polish: new commands, test hardening, and developer experience (#64)
+- More pm pain point sketches
+- Update webpage for v0.28.0
+
+### Fixed
+
+- Add missing title/priority/notes params to BothBackend.update_task()
+
+---
+
 ## [0.28.0] - 2026-01-27
 
 ### Added
