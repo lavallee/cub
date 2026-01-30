@@ -318,6 +318,23 @@ is_epic_complete() {
     return 1
 }
 
+# Reset any stuck in_progress tasks back to open so cub run can pick them up.
+# Tasks left in_progress from a previous run attempt are effectively abandoned.
+reset_stuck_tasks() {
+    local epic="$1"
+    local stuck_tasks
+    stuck_tasks=$(cub task list --epic "$epic" --status in_progress --agent 2>/dev/null | grep -oE "^\| (cub-[^ |]+)" | sed 's/^| //' || true)
+
+    if [[ -z "$stuck_tasks" ]]; then
+        return 0
+    fi
+
+    for task_id in $stuck_tasks; do
+        log_warn "Resetting stuck task ${task_id} from in_progress → open"
+        cub task update "$task_id" --status open 2>/dev/null || true
+    done
+}
+
 # Build flags to pass to cub run
 build_run_flags() {
     local flags="--use-current-branch"
@@ -357,6 +374,9 @@ run_epic() {
 
     while [[ $attempt -le $MAX_RETRIES ]]; do
         log_info "--- Attempt ${attempt}/${MAX_RETRIES} ---"
+
+        # Reset any tasks stuck in_progress from previous attempts
+        reset_stuck_tasks "$epic"
 
         # Run cub for this epic
         # shellcheck disable=SC2046
