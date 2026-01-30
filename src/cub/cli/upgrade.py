@@ -243,7 +243,7 @@ def run_uv_tool_install_local(path: Path, force: bool = False) -> bool:
 
     cmd = ["uv", "tool", "install", str(path)]
     if force:
-        cmd.append("--force")
+        cmd.extend(["--force", "--reinstall"])
 
     try:
         result = subprocess.run(
@@ -258,8 +258,8 @@ def run_uv_tool_install_local(path: Path, force: bool = False) -> bool:
 
         # If failed without --force, try with --force
         if not force and "already installed" in result.stderr.lower():
-            console.print("[dim]Already installed, using --force...[/dim]")
-            cmd.append("--force")
+            console.print("[dim]Already installed, retrying with --force...[/dim]")
+            cmd.extend(["--force", "--reinstall"] if "uv" in cmd[0] else ["--force"])
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -310,8 +310,8 @@ def run_pipx_install_local(path: Path, force: bool = False) -> bool:
 
         # If failed without --force, try with --force
         if not force and "already installed" in result.stderr.lower():
-            console.print("[dim]Already installed, using --force...[/dim]")
-            cmd.append("--force")
+            console.print("[dim]Already installed, retrying with --force...[/dim]")
+            cmd.extend(["--force", "--reinstall"] if "uv" in cmd[0] else ["--force"])
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -581,7 +581,7 @@ def upgrade(
         console.print(f"Installing version v{version}...")
 
         if install_method == InstallMethod.UV_TOOL:
-            cmd = ["uv", "tool", "install", f"cub=={version}", "--force"]
+            cmd = ["uv", "tool", "install", f"cub=={version}", "--force", "--reinstall"]
         elif install_method == InstallMethod.PIPX:
             cmd = ["pipx", "install", f"cub=={version}", "--force"]
         else:
@@ -626,7 +626,7 @@ def upgrade(
     if install_method == InstallMethod.UV_TOOL:
         cmd = ["uv", "tool", "upgrade", "cub"]
         if force:
-            cmd = ["uv", "tool", "install", "cub", "--force"]
+            cmd = ["uv", "tool", "install", "cub", "--force", "--reinstall"]
     elif install_method == InstallMethod.PIPX:
         cmd = ["pipx", "upgrade", "cub"]
         if force:
