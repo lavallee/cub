@@ -77,11 +77,12 @@ def install_missing_dependencies(path: Path | None = None) -> bool:
     console.print("[dim]Installing missing dependencies...[/dim]")
 
     # Install from the package to get proper versions
+    pip = _pip_cmd()
     if path:
-        cmd = [sys.executable, "-m", "pip", "install", str(path), "--quiet"]
+        cmd = [*pip, "install", str(path), "--quiet"]
     else:
         # Install cub to get its dependencies
-        cmd = [sys.executable, "-m", "pip", "install", "cub", "--quiet"]
+        cmd = [*pip, "install", "cub", "--quiet"]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -327,9 +328,29 @@ def run_pipx_install_local(path: Path, force: bool = False) -> bool:
         return False
 
 
+def _has_pip() -> bool:
+    """Check if python -m pip is available in the current interpreter."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "--version"],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _pip_cmd() -> list[str]:
+    """Return the pip command prefix: either [sys.executable, -m, pip] or [uv, pip]."""
+    if _has_pip():
+        return [sys.executable, "-m", "pip"]
+    if shutil.which("uv"):
+        return ["uv", "pip"]
+    # Fall back and let it fail with a clear error
+    return [sys.executable, "-m", "pip"]
+
+
 def run_pip_install_local(path: Path, force: bool = False) -> bool:
     """
-    Install cub from local path using pip.
+    Install cub from local path using pip (or uv pip).
 
     Uses a clean reinstall approach when force=True to ensure all dependencies
     (including newly added ones) are properly installed.
@@ -342,15 +363,15 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
         True if installation succeeded
     """
     console.print(f"[dim]Installing from {path}...[/dim]")
+    pip = _pip_cmd()
 
     # When forcing, do a clean uninstall first to ensure deps are properly resolved
     if force:
         console.print("[dim]Uninstalling existing version first...[/dim]")
-        uninstall_cmd = [sys.executable, "-m", "pip", "uninstall", "cub", "-y"]
-        subprocess.run(uninstall_cmd, capture_output=True, check=False)
+        subprocess.run([*pip, "uninstall", "cub", "-y"], capture_output=True, check=False)
 
     # Install fresh - this properly resolves all dependencies from pyproject.toml
-    cmd = [sys.executable, "-m", "pip", "install", str(path)]
+    cmd = [*pip, "install", str(path)]
 
     try:
         result = subprocess.run(
@@ -363,7 +384,7 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print("[red]pip install failed:[/red]")
+        console.print(f"[red]{' '.join(pip)} install failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -375,7 +396,7 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
 
 def run_pip_install_editable(path: Path, force: bool = False) -> bool:
     """
-    Install cub from local path in editable mode using pip.
+    Install cub from local path in editable mode using pip (or uv pip).
 
     Args:
         path: Path to cub repository
@@ -385,14 +406,14 @@ def run_pip_install_editable(path: Path, force: bool = False) -> bool:
         True if installation succeeded
     """
     console.print(f"[dim]Installing in editable mode from {path}...[/dim]")
+    pip = _pip_cmd()
 
     # When forcing, uninstall first to ensure all deps are properly resolved
     if force:
         console.print("[dim]Uninstalling existing version first...[/dim]")
-        uninstall_cmd = [sys.executable, "-m", "pip", "uninstall", "cub", "-y"]
-        subprocess.run(uninstall_cmd, capture_output=True, check=False)
+        subprocess.run([*pip, "uninstall", "cub", "-y"], capture_output=True, check=False)
 
-    cmd = [sys.executable, "-m", "pip", "install", "-e", str(path)]
+    cmd = [*pip, "install", "-e", str(path)]
 
     try:
         result = subprocess.run(
@@ -405,7 +426,7 @@ def run_pip_install_editable(path: Path, force: bool = False) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print("[red]pip install -e failed:[/red]")
+        console.print(f"[red]{' '.join(pip)} install -e failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
