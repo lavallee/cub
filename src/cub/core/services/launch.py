@@ -183,13 +183,26 @@ class LaunchService:
         """
         # Resolve harness name
         if harness_name is None:
-            harness_name = self._config.harness.name or "claude-code"
+            harness_name = self._config.harness.name or "auto"
 
-        # Resolve binary path
-        try:
-            binary_path = resolve_harness_binary(harness_name)
-        except HarnessBinaryNotFoundError as e:
-            raise HarnessNotFoundError(harness_name) from e
+        # Auto-detect: try priority list to find an available harness
+        if harness_name == "auto":
+            priority = self._config.harness.priority or ["claude", "codex"]
+            for candidate in priority:
+                try:
+                    binary_path = resolve_harness_binary(candidate)
+                    harness_name = candidate
+                    break
+                except HarnessBinaryNotFoundError:
+                    continue
+            else:
+                raise HarnessNotFoundError("auto")
+        else:
+            # Resolve binary path for explicit harness
+            try:
+                binary_path = resolve_harness_binary(harness_name)
+            except HarnessBinaryNotFoundError as e:
+                raise HarnessNotFoundError(harness_name) from e
 
         # Build launch config
         config = LaunchConfig(
