@@ -137,7 +137,7 @@ def format_for_harness(welcome: WelcomeMessage) -> str:
         ===============
         1. [HIGH] Work on task cub-123: Implement feature X
            Rationale: This task is ready and unblocked
-           Action: bd update cub-123 --status in_progress
+           Action: cub task claim cub-123
 
         2. [MEDIUM] Push uncommitted changes
            Rationale: Avoid losing work

@@ -81,7 +81,7 @@ class TaskSource:
                     description=task.description or "No description available",
                     rationale=self._generate_task_rationale(task, is_ready=True),
                     priority_score=priority_score,
-                    action=f"bd update {task.id} --status in_progress && cub run {task.id}",
+                    action=f"cub task claim {task.id} && cub run --task {task.id}",
                     source="task_backend",
                     context={
                         "task_id": task.id,
@@ -105,7 +105,7 @@ class TaskSource:
                         "or moving it back to open status if work hasn't started."
                     ),
                     priority_score=0.7,
-                    action=f"bd show {task.id}",
+                    action=f"cub task show {task.id}",
                     source="task_backend",
                     context={
                         "task_id": task.id,
@@ -128,7 +128,7 @@ class TaskSource:
                             "Consider completing blocking tasks or breaking down dependencies."
                         ),
                         priority_score=0.65,
-                        action="bd list --status open",
+                        action="cub task list --status open",
                         source="task_backend",
                         context={
                             "blocked_tasks": blocked_count,
@@ -552,7 +552,7 @@ class MilestoneSource:
                                 "Continuing focused work on an epic helps build momentum."
                             ),
                             priority_score=0.7,
-                            action=f"bd list --parent {epic.id}",
+                            action=f"cub task list --epic {epic.id}",
                             source="milestone",
                             context={
                                 "epic_id": epic.id,
@@ -582,7 +582,7 @@ class MilestoneSource:
                                     "to mark this milestone as complete."
                                 ),
                                 priority_score=0.65,
-                                action=f"bd close {epic.id} -r 'All tasks complete'",
+                                action=f"cub task close {epic.id} -r 'All tasks complete'",
                                 source="milestone",
                                 context={
                                     "epic_id": epic.id,
