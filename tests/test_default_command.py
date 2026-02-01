@@ -205,6 +205,7 @@ class TestDefaultCommand:
         mock_service.launch.assert_called_once_with(
             resume=False,
             continue_session=False,
+            auto_approve=True,
             debug=False,
         )
 
@@ -230,6 +231,7 @@ class TestDefaultCommand:
         mock_service.launch.assert_called_once_with(
             resume=True,
             continue_session=False,
+            auto_approve=True,
             debug=False,
         )
 
@@ -255,6 +257,7 @@ class TestDefaultCommand:
         mock_service.launch.assert_called_once_with(
             resume=False,
             continue_session=True,
+            auto_approve=True,
             debug=False,
         )
 

@@ -424,7 +424,6 @@ def generate_instruction_files(
         console.print("[green]v[/green] Constitution ready")
     except Exception as e:
         console.print(f"[red]Error ensuring constitution: {e}[/red]")
-        raise typer.Exit(1)
 
     # Copy runloop template
     try:
@@ -432,7 +431,25 @@ def generate_instruction_files(
         console.print("[green]v[/green] Runloop ready")
     except Exception as e:
         console.print(f"[red]Error ensuring runloop: {e}[/red]")
-        raise typer.Exit(1)
+
+    # Ensure .cub/agent.md exists (from template, don't overwrite)
+    try:
+        agent_path = project_dir / ".cub" / "agent.md"
+        if not agent_path.exists():
+            from cub.cli.update import get_templates_dir
+
+            templates_dir = get_templates_dir()
+            template_path = templates_dir / "agent.md"
+            if template_path.exists():
+                agent_path.parent.mkdir(parents=True, exist_ok=True)
+                agent_path.write_text(
+                    template_path.read_text(encoding="utf-8"), encoding="utf-8"
+                )
+                console.print("[green]v[/green] Created .cub/agent.md")
+            else:
+                console.print("[yellow]Warning: agent.md template not found[/yellow]")
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not create agent.md: {e}[/yellow]")
 
     # Generate managed section content for AGENTS.md
     try:
@@ -452,7 +469,6 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating AGENTS.md: {e}[/red]")
-        raise typer.Exit(1)
 
     # Generate managed section content for CLAUDE.md
     try:
@@ -472,7 +488,6 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating CLAUDE.md: {e}[/red]")
-        raise typer.Exit(1)
 
     # Generate project map
     try:

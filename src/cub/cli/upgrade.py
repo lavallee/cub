@@ -4,6 +4,7 @@ Cub CLI - Upgrade command.
 Upgrade cub to a new version or reinstall from local source.
 """
 
+import os
 import shutil
 import subprocess
 import sys
@@ -76,11 +77,12 @@ def install_missing_dependencies(path: Path | None = None) -> bool:
     console.print("[dim]Installing missing dependencies...[/dim]")
 
     # Install from the package to get proper versions
+    pip = _pip_cmd()
     if path:
-        cmd = [sys.executable, "-m", "pip", "install", str(path), "--quiet"]
+        cmd = [*pip, "install", str(path), "--quiet"]
     else:
         # Install cub to get its dependencies
-        cmd = [sys.executable, "-m", "pip", "install", "cub", "--quiet"]
+        cmd = [*pip, "install", "cub", "--quiet"]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -107,6 +109,7 @@ def install_missing_dependencies(path: Path | None = None) -> bool:
 class InstallMethod(Enum):
     """How cub was installed."""
 
+    UV_TOOL = "uv tool"
     PIPX = "pipx"
     PIP = "pip"
     EDITABLE = "editable"
@@ -120,6 +123,14 @@ def detect_install_method() -> InstallMethod:
     Returns:
         InstallMethod indicating how cub was installed
     """
+    # Check if installed via uv tool (sys.executable lives under uv/tools/)
+    # Check both the raw path and resolved path — the raw path may be a symlink
+    # inside uv/tools/ that resolves to uv/python/cpython-*/
+    exe_str = str(Path(sys.executable))
+    exe_resolved = str(Path(sys.executable).resolve())
+    if any("uv" + os.sep + "tools" in p or "uv/tools" in p for p in (exe_str, exe_resolved)):
+        return InstallMethod.UV_TOOL
+
     # Check if pipx is available and has cub installed
     if shutil.which("pipx"):
         try:
@@ -217,6 +228,57 @@ def get_local_version(path: Path) -> str | None:
     return None
 
 
+def run_uv_tool_install_local(path: Path, force: bool = False) -> bool:
+    """
+    Install cub from local path using uv tool.
+
+    Args:
+        path: Path to cub repository
+        force: Force reinstall even if same version
+
+    Returns:
+        True if installation succeeded
+    """
+    console.print(f"[dim]Installing from {path}...[/dim]")
+
+    cmd = ["uv", "tool", "install", str(path)]
+    if force:
+        cmd.extend(["--force", "--reinstall"])
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        if result.returncode == 0:
+            return True
+
+        # If failed without --force, try with --force
+        if not force and "already installed" in result.stderr.lower():
+            console.print("[dim]Already installed, retrying with --force...[/dim]")
+            cmd.extend(["--force", "--reinstall"] if "uv" in cmd[0] else ["--force"])
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                return True
+
+        console.print("[red]uv tool install failed:[/red]")
+        if result.stderr:
+            console.print(f"[dim]{result.stderr}[/dim]")
+        return False
+
+    except Exception as e:
+        console.print(f"[red]Error running uv: {e}[/red]")
+        return False
+
+
 def run_pipx_install_local(path: Path, force: bool = False) -> bool:
     """
     Install cub from local path using pipx.
@@ -248,8 +310,8 @@ def run_pipx_install_local(path: Path, force: bool = False) -> bool:
 
         # If failed without --force, try with --force
         if not force and "already installed" in result.stderr.lower():
-            console.print("[dim]Already installed, using --force...[/dim]")
-            cmd.append("--force")
+            console.print("[dim]Already installed, retrying with --force...[/dim]")
+            cmd.extend(["--force", "--reinstall"] if "uv" in cmd[0] else ["--force"])
             result = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -269,9 +331,29 @@ def run_pipx_install_local(path: Path, force: bool = False) -> bool:
         return False
 
 
+def _has_pip() -> bool:
+    """Check if python -m pip is available in the current interpreter."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "--version"],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def _pip_cmd() -> list[str]:
+    """Return the pip command prefix: either [sys.executable, -m, pip] or [uv, pip]."""
+    if _has_pip():
+        return [sys.executable, "-m", "pip"]
+    if shutil.which("uv"):
+        return ["uv", "pip"]
+    # Fall back and let it fail with a clear error
+    return [sys.executable, "-m", "pip"]
+
+
 def run_pip_install_local(path: Path, force: bool = False) -> bool:
     """
-    Install cub from local path using pip.
+    Install cub from local path using pip (or uv pip).
 
     Uses a clean reinstall approach when force=True to ensure all dependencies
     (including newly added ones) are properly installed.
@@ -284,15 +366,15 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
         True if installation succeeded
     """
     console.print(f"[dim]Installing from {path}...[/dim]")
+    pip = _pip_cmd()
 
     # When forcing, do a clean uninstall first to ensure deps are properly resolved
     if force:
         console.print("[dim]Uninstalling existing version first...[/dim]")
-        uninstall_cmd = [sys.executable, "-m", "pip", "uninstall", "cub", "-y"]
-        subprocess.run(uninstall_cmd, capture_output=True, check=False)
+        subprocess.run([*pip, "uninstall", "cub", "-y"], capture_output=True, check=False)
 
     # Install fresh - this properly resolves all dependencies from pyproject.toml
-    cmd = [sys.executable, "-m", "pip", "install", str(path)]
+    cmd = [*pip, "install", str(path)]
 
     try:
         result = subprocess.run(
@@ -305,7 +387,7 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print("[red]pip install failed:[/red]")
+        console.print(f"[red]{' '.join(pip)} install failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -317,7 +399,7 @@ def run_pip_install_local(path: Path, force: bool = False) -> bool:
 
 def run_pip_install_editable(path: Path, force: bool = False) -> bool:
     """
-    Install cub from local path in editable mode using pip.
+    Install cub from local path in editable mode using pip (or uv pip).
 
     Args:
         path: Path to cub repository
@@ -327,14 +409,14 @@ def run_pip_install_editable(path: Path, force: bool = False) -> bool:
         True if installation succeeded
     """
     console.print(f"[dim]Installing in editable mode from {path}...[/dim]")
+    pip = _pip_cmd()
 
     # When forcing, uninstall first to ensure all deps are properly resolved
     if force:
         console.print("[dim]Uninstalling existing version first...[/dim]")
-        uninstall_cmd = [sys.executable, "-m", "pip", "uninstall", "cub", "-y"]
-        subprocess.run(uninstall_cmd, capture_output=True, check=False)
+        subprocess.run([*pip, "uninstall", "cub", "-y"], capture_output=True, check=False)
 
-    cmd = [sys.executable, "-m", "pip", "install", "-e", str(path)]
+    cmd = [*pip, "install", "-e", str(path)]
 
     try:
         result = subprocess.run(
@@ -347,7 +429,7 @@ def run_pip_install_editable(path: Path, force: bool = False) -> bool:
         if result.returncode == 0:
             return True
 
-        console.print("[red]pip install -e failed:[/red]")
+        console.print(f"[red]{' '.join(pip)} install -e failed:[/red]")
         if result.stderr:
             console.print(f"[dim]{result.stderr}[/dim]")
         return False
@@ -459,6 +541,8 @@ def upgrade(
         if editable:
             # Editable mode always uses pip
             success = run_pip_install_editable(cwd, force=force)
+        elif install_method == InstallMethod.UV_TOOL:
+            success = run_uv_tool_install_local(cwd, force=force)
         elif install_method == InstallMethod.PIPX:
             success = run_pipx_install_local(cwd, force=force)
         else:
@@ -496,7 +580,9 @@ def upgrade(
     if version:
         console.print(f"Installing version v{version}...")
 
-        if install_method == InstallMethod.PIPX:
+        if install_method == InstallMethod.UV_TOOL:
+            cmd = ["uv", "tool", "install", f"cub=={version}", "--force", "--reinstall"]
+        elif install_method == InstallMethod.PIPX:
             cmd = ["pipx", "install", f"cub=={version}", "--force"]
         else:
             cmd = [sys.executable, "-m", "pip", "install", f"cub=={version}", "--force-reinstall"]
@@ -537,7 +623,11 @@ def upgrade(
 
     console.print("Upgrading to latest version...")
 
-    if install_method == InstallMethod.PIPX:
+    if install_method == InstallMethod.UV_TOOL:
+        cmd = ["uv", "tool", "upgrade", "cub"]
+        if force:
+            cmd = ["uv", "tool", "install", "cub", "--force", "--reinstall"]
+    elif install_method == InstallMethod.PIPX:
         cmd = ["pipx", "upgrade", "cub"]
         if force:
             cmd = ["pipx", "install", "cub", "--force"]

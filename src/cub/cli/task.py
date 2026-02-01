@@ -87,6 +87,11 @@ def create(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output markdown optimized for LLM consumption",
+    ),
 ) -> None:
     """
     Create a new task.
@@ -114,6 +119,17 @@ def create(
 
     if json_output:
         console.print(json.dumps(task.model_dump(mode="json"), indent=2))
+    elif agent:
+        lines = [f"Created task **{task.id}**: {task.title}"]
+        lines.append(f"- **Type**: {task.type.value}")
+        lines.append(f"- **Priority**: P{task.priority.value}")
+        if task.parent:
+            lines.append(f"- **Parent**: {task.parent}")
+        if task.labels:
+            lines.append(f"- **Labels**: {', '.join(task.labels)}")
+        if task.depends_on:
+            lines.append(f"- **Depends on**: {', '.join(task.depends_on)}")
+        console.print("\n".join(lines))
     else:
         console.print(f"[green]Created:[/green] {task.id}")
         if task.parent:
@@ -393,6 +409,11 @@ def update(
         "--notes",
         help="Update notes/comments",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output markdown optimized for LLM consumption",
+    ),
 ) -> None:
     """
     Update a task's fields.
@@ -449,7 +470,10 @@ def update(
             priority=priority,
             notes=notes,
         )
-        console.print(f"[green]Updated:[/green] {updated.id}")
+        if agent:
+            console.print(f"Updated task **{updated.id}**: {updated.title}")
+        else:
+            console.print(f"[green]Updated:[/green] {updated.id}")
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -464,6 +488,11 @@ def close(
         "-r",
         help="Reason for closing the task",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output markdown optimized for LLM consumption",
+    ),
 ) -> None:
     """
     Close a task.
@@ -476,7 +505,13 @@ def close(
 
     try:
         task = backend.close_task(task_id, reason=reason)
-        console.print(f"[green]Closed:[/green] {task.id}")
+        if agent:
+            msg = f"Closed task **{task.id}**: {task.title}"
+            if reason:
+                msg += f"\n- **Reason**: {reason}"
+            console.print(msg)
+        else:
+            console.print(f"[green]Closed:[/green] {task.id}")
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -588,6 +623,11 @@ def delete(
 @app.command()
 def claim(
     task_id: str = typer.Argument(..., help="Task ID to claim"),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output markdown optimized for LLM consumption",
+    ),
 ) -> None:
     """
     Claim a task (set status to in_progress).
@@ -624,7 +664,10 @@ def claim(
             task_id=task_id,
             status=TaskStatus.IN_PROGRESS,
         )
-        console.print(f"[green]Claimed:[/green] {updated.id}")
+        if agent:
+            console.print(f"Claimed task **{updated.id}**: {updated.title}")
+        else:
+            console.print(f"[green]Claimed:[/green] {updated.id}")
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -805,6 +848,11 @@ def counts(
         "--json",
         help="Output as JSON",
     ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output markdown optimized for LLM consumption",
+    ),
 ) -> None:
     """
     Show task statistics.
@@ -818,6 +866,16 @@ def counts(
 
     if json_output:
         console.print(json.dumps(stats.model_dump(), indent=2))
+        return
+
+    if agent:
+        console.print("# Task Statistics\n")
+        console.print(f"- **Total**: {stats.total}")
+        console.print(f"- **Open**: {stats.open}")
+        console.print(f"- **In Progress**: {stats.in_progress}")
+        console.print(f"- **Closed**: {stats.closed}")
+        console.print(f"- **Remaining**: {stats.remaining}")
+        console.print(f"- **Completion**: {stats.completion_percentage:.1f}%")
         return
 
     console.print("[bold]Task Statistics[/bold]")

@@ -230,7 +230,7 @@ Use this template:
 
 ---
 
-**Next Step:** Run `cub plan` to generate implementation tasks.
+**Next Step:** Run `cub itemize` to generate implementation tasks.
 ```
 
 ### Step 9: Handoff
@@ -241,7 +241,7 @@ After writing the output file, tell the user:
 >
 > Output saved to: `{output_path}`
 >
-> **Next step:** Run `cub plan` to break this into executable tasks.
+> **Next step:** Run `cub itemize` to break this into executable tasks.
 
 ---
 

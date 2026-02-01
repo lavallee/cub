@@ -12,6 +12,7 @@ from rich.console import Console
 from cub import __version__
 from cub.cli import (
     audit,
+    build_plan,
     capture,
     captures,
     dashboard,
@@ -223,6 +224,7 @@ app.add_typer(worktree.app, name="worktree", rich_help_panel=PANEL_EPICS)
 app.command(name="checkpoints", rich_help_panel=PANEL_EPICS)(delegated.checkpoints)
 app.add_typer(pr.app, name="pr", rich_help_panel=PANEL_EPICS)
 app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
+app.command(name="build-plan", rich_help_panel=PANEL_EPICS)(build_plan.main)
 
 
 # =============================================================================

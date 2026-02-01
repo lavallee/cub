@@ -223,6 +223,7 @@ def default_command(
         launch_service.launch(
             resume=resume,
             continue_session=continue_session,
+            auto_approve=True,
             debug=debug,
         )
         # launch() calls os.execve() and does not return on success
@@ -282,6 +283,7 @@ def _handle_no_project(
         launch_service.launch(
             resume=resume,
             continue_session=continue_session,
+            auto_approve=True,
             debug=debug,
         )
     except HarnessNotFoundError as e:

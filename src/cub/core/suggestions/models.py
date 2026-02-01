@@ -51,7 +51,7 @@ class Suggestion(BaseModel):
         ...     description="Implement the suggestion ranking engine",
         ...     rationale="This task is ready and continues work on suggestions",
         ...     priority_score=0.85,
-        ...     action="bd update cub-b1d.2 --status in_progress && cub run cub-b1d.2"
+        ...     action="cub task claim cub-b1d.2 && cub run --task cub-b1d.2"
         ... )
     """
 
