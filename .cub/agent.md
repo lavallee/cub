@@ -402,6 +402,7 @@ Cub provides a comprehensive set of commands organized by use case. These comman
 - `cub worktree` - Manage git worktrees for parallel task execution
 - `cub pr <epic-id>` - Create and manage pull requests
 - `cub merge <pr-number>` - Merge pull requests
+- `cub build-plan` - Execute a staged plan by running cub for each epic in order
 
 ### Planning & Roadmap Commands
 
@@ -586,6 +587,7 @@ These commands have been migrated to Python and execute directly without bash:
 - **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`, `update`, `export`, `gc`)
 - **`review`** - Assess task implementations against requirements
 - **`session`** - Track work in direct harness sessions (subcommands: `log`, `done`, `wip`)
+- **`build-plan`** - Execute a staged plan by running cub for each epic in order
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
@@ -599,6 +601,7 @@ These commands are fully implemented in Python under `src/cub/cli/`:
 - `session.py` - Direct session workflow commands
 - `task.py` - Task management for direct sessions and reconciliation
 - `reconcile.py` - Post-hoc session reconciliation from hooks
+- `build_plan.py` - Plan execution orchestrator
 
 #### Task Management Subcommands (`cub task`)
 
@@ -1467,10 +1470,10 @@ cub doctor
 # All hook events configured: Yes/No
 ```
 <!-- BEGIN CUB MANAGED SECTION v1 -->
-<!-- sha256:6b072b437675300492667ad4800391c4c5dc3160e8c5df8a185c85f3d7378c61 -->
+<!-- sha256:cb43dee7c868ba02c061efa07d13ebec49607e2aef56977944ecd8f51ceb4210 -->
 # Cub Task Workflow (Claude Code)
 
-**Project:** `cub_sat` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+**Project:** `cub` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
 
 ## Quick Start
 
