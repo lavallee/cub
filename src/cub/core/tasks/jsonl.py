@@ -32,7 +32,11 @@ class TasksFileNotFoundError(Exception):
 class TasksFileCorruptedError(Exception):
     """Raised when tasks.jsonl file is malformed."""
 
-    pass
+    def __init__(self, message: str, line_num: int | None = None):
+        self.line_num = line_num
+        # Add helpful hint about cub doctor
+        hint = "\n\nRun 'cub doctor --fix' to attempt automatic repair."
+        super().__init__(message + hint)
 
 
 @register_backend("jsonl")
@@ -113,11 +117,15 @@ class JsonlBackend(TaskBackendDefaults):
                         if not isinstance(task_data, dict):
                             type_name = type(task_data).__name__
                             raise TasksFileCorruptedError(
-                                f"Line {line_num}: expected JSON object, got {type_name}"
+                                f"Line {line_num}: expected JSON object, got {type_name}",
+                                line_num=line_num,
                             )
                         tasks.append(task_data)
                     except json.JSONDecodeError as e:
-                        raise TasksFileCorruptedError(f"Line {line_num}: invalid JSON - {e}") from e
+                        raise TasksFileCorruptedError(
+                            f"Line {line_num}: invalid JSON - {e}",
+                            line_num=line_num,
+                        ) from e
         except OSError as e:
             raise TasksFileNotFoundError(f"Failed to read {self.tasks_file}: {e}") from e
 
@@ -126,6 +134,131 @@ class JsonlBackend(TaskBackendDefaults):
         self._cache_mtime = current_mtime
 
         return tasks
+
+    def repair_corrupted_file(self) -> tuple[bool, str, int]:
+        """
+        Attempt to repair a corrupted tasks.jsonl file.
+
+        This method handles the most common corruption case: JSON objects that
+        have been split across multiple lines (e.g., when \\n escape sequences
+        were converted to actual newlines by an editor or copy-paste).
+
+        The repair process:
+        1. Creates a backup of the corrupted file (.jsonl.bak)
+        2. Reads the file and attempts to rejoin split lines
+        3. Validates each repaired JSON object
+        4. Writes the repaired file
+
+        Returns:
+            Tuple of (success: bool, message: str, tasks_recovered: int)
+        """
+        if not self.tasks_file.exists():
+            return False, "Tasks file does not exist", 0
+
+        # Create backup
+        backup_path = self.tasks_file.with_suffix(".jsonl.bak")
+        try:
+            shutil.copy2(self.tasks_file, backup_path)
+        except OSError as e:
+            return False, f"Failed to create backup: {e}", 0
+
+        # Read all lines
+        try:
+            with open(self.tasks_file, encoding="utf-8") as f:
+                lines = f.readlines()
+        except OSError as e:
+            return False, f"Failed to read tasks file: {e}", 0
+
+        # Attempt to repair by joining fragmented lines
+        repaired_tasks: list[dict[str, Any]] = []
+        current_fragment = ""
+        line_num = 0
+        errors: list[str] = []
+
+        for line in lines:
+            line_num += 1
+            stripped = line.rstrip("\n\r")
+
+            # Add to current fragment (empty lines become escaped newlines too)
+            if current_fragment:
+                # Join with escaped newline (this is the key repair)
+                # Empty lines become double newlines in the content
+                current_fragment += "\\n" + stripped
+            else:
+                if not stripped:
+                    # Skip leading empty lines
+                    continue
+                current_fragment = stripped
+
+            # Try to parse the current fragment
+            try:
+                task_data = json.loads(current_fragment)
+                if isinstance(task_data, dict):
+                    repaired_tasks.append(task_data)
+                    current_fragment = ""
+                else:
+                    # Valid JSON but not an object - error
+                    type_name = type(task_data).__name__
+                    errors.append(f"Line {line_num}: parsed as {type_name}, not object")
+                    current_fragment = ""
+            except json.JSONDecodeError:
+                # Not valid yet - might need more lines
+                # Check if it looks like we're accumulating too much
+                if current_fragment.count("\\n") > 100:
+                    errors.append(f"Line {line_num}: fragment too long, likely unrecoverable")
+                    current_fragment = ""
+
+        # Handle any remaining fragment
+        if current_fragment:
+            errors.append("File ended with incomplete JSON fragment")
+
+        if not repaired_tasks:
+            return False, f"No tasks could be recovered. Errors: {'; '.join(errors)}", 0
+
+        # Save repaired file
+        try:
+            self._save_tasks(repaired_tasks)
+        except Exception as e:
+            return False, f"Failed to save repaired file: {e}", 0
+
+        # Invalidate cache
+        self._cache = None
+        self._cache_mtime = None
+
+        msg = f"Recovered {len(repaired_tasks)} task(s). Backup saved to {backup_path.name}"
+        if errors:
+            msg += f". Warnings: {'; '.join(errors[:3])}"
+            if len(errors) > 3:
+                msg += f" (+{len(errors) - 3} more)"
+
+        return True, msg, len(repaired_tasks)
+
+    def validate_file(self) -> tuple[bool, str | None]:
+        """
+        Validate the tasks.jsonl file without loading into cache.
+
+        Returns:
+            Tuple of (is_valid: bool, error_message: str | None)
+        """
+        if not self.tasks_file.exists():
+            return True, None  # Non-existent file is valid (will be created)
+
+        try:
+            with open(self.tasks_file, encoding="utf-8") as f:
+                for line_num, line in enumerate(f, start=1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        task_data = json.loads(line)
+                        if not isinstance(task_data, dict):
+                            type_name = type(task_data).__name__
+                            return False, f"Line {line_num}: expected JSON object, got {type_name}"
+                    except json.JSONDecodeError as e:
+                        return False, f"Line {line_num}: invalid JSON - {e}"
+            return True, None
+        except OSError as e:
+            return False, f"Failed to read file: {e}"
 
     def _migrate_from_prd_json(self, prd_file: Path) -> None:
         """
@@ -197,25 +330,34 @@ class JsonlBackend(TaskBackendDefaults):
 
     def _save_tasks(self, tasks: list[dict[str, Any]]) -> None:
         """
-        Save tasks.jsonl file atomically.
+        Save tasks.jsonl file atomically with validation.
 
         Uses a temporary file and atomic rename to prevent corruption
-        on write failures.
+        on write failures. Validates the written file before committing
+        to catch any serialization issues.
 
         Args:
             tasks: List of task dictionaries to save
+
+        Raises:
+            TasksFileCorruptedError: If the written file fails validation
         """
         # Ensure .cub directory exists
         self.cub_dir.mkdir(parents=True, exist_ok=True)
 
         # Write to temporary file first
         fd, temp_path = tempfile.mkstemp(dir=self.cub_dir, prefix=".tasks_", suffix=".jsonl.tmp")
+        temp_path_obj = Path(temp_path)
 
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 for task in tasks:
-                    json.dump(task, f, ensure_ascii=False)
+                    # Use compact separators to ensure single-line output
+                    json.dump(task, f, ensure_ascii=False, separators=(",", ":"))
                     f.write("\n")
+
+            # Validate the temp file before committing
+            self._validate_written_file(temp_path_obj, len(tasks))
 
             # Atomic rename (replaces existing file)
             os.replace(temp_path, self.tasks_file)
@@ -231,6 +373,47 @@ class JsonlBackend(TaskBackendDefaults):
             except OSError:
                 pass
             raise
+
+    def _validate_written_file(self, file_path: Path, expected_count: int) -> None:
+        """
+        Validate a written JSONL file before committing.
+
+        Args:
+            file_path: Path to the file to validate
+            expected_count: Expected number of task objects
+
+        Raises:
+            TasksFileCorruptedError: If validation fails
+        """
+        actual_count = 0
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                for line_num, line in enumerate(f, start=1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        task_data = json.loads(line)
+                        if not isinstance(task_data, dict):
+                            raise TasksFileCorruptedError(
+                                f"Write validation failed: line {line_num} is not a JSON object",
+                                line_num=line_num,
+                            )
+                        actual_count += 1
+                    except json.JSONDecodeError as e:
+                        raise TasksFileCorruptedError(
+                            f"Write validation failed: line {line_num} has invalid JSON - {e}",
+                            line_num=line_num,
+                        ) from e
+        except OSError as e:
+            raise TasksFileCorruptedError(
+                f"Write validation failed: could not read file - {e}"
+            ) from e
+
+        if actual_count != expected_count:
+            raise TasksFileCorruptedError(
+                f"Write validation failed: expected {expected_count} tasks, got {actual_count}"
+            )
 
     def _parse_task(self, raw_task: dict[str, Any]) -> Task:
         """

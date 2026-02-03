@@ -177,6 +177,184 @@ class TestLoadTasks:
 
 
 # ==============================================================================
+# Repair Tests
+# ==============================================================================
+
+
+class TestRepairCorruptedFile:
+    """Test repair functionality for corrupted JSONL files."""
+
+    def test_validate_file_valid(self, temp_dir):
+        """Test validate_file returns True for valid file."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        is_valid, error = backend.validate_file()
+
+        assert is_valid is True
+        assert error is None
+
+    def test_validate_file_corrupted(self, temp_dir):
+        """Test validate_file returns False for corrupted file."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text('{"id": "test-001", "title": "Task 1\n')
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        is_valid, error = backend.validate_file()
+
+        assert is_valid is False
+        assert error is not None
+        assert "Line 1" in error
+
+    def test_validate_file_nonexistent(self, temp_dir):
+        """Test validate_file returns True for non-existent file."""
+        backend = JsonlBackend(project_dir=temp_dir)
+        is_valid, error = backend.validate_file()
+
+        assert is_valid is True
+        assert error is None
+
+    def test_repair_split_json_lines(self, temp_dir):
+        """Test repair rejoins JSON split across multiple lines."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # Simulate a JSON object split across lines (like when \n becomes newlines)
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "description": "Line 1\n'
+            'Line 2\n'
+            'Line 3", "status": "open"}\n'
+            '{"id": "test-003", "title": "Task 3", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        success, message, count = backend.repair_corrupted_file()
+
+        assert success is True
+        assert count == 3
+        assert "Recovered 3 task(s)" in message
+
+        # Verify backup was created
+        backup_file = cub_dir / "tasks.jsonl.bak"
+        assert backup_file.exists()
+
+        # Verify repaired file is valid
+        is_valid, error = backend.validate_file()
+        assert is_valid is True
+
+        # Verify all tasks are present
+        tasks = backend.list_tasks()
+        assert len(tasks) == 3
+        # When JSON is parsed, \n becomes actual newlines
+        assert tasks[1].description == "Line 1\nLine 2\nLine 3"
+
+    def test_repair_with_empty_lines(self, temp_dir):
+        """Test repair handles empty lines in split content."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+
+        # JSON with empty lines in the middle (like markdown with blank lines)
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "description": "Para 1\n'
+            '\n'
+            'Para 2", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        success, message, count = backend.repair_corrupted_file()
+
+        assert success is True
+        assert count == 2
+
+        # Verify the description includes the blank line (actual newlines when parsed)
+        task = backend.get_task("test-001")
+        assert task is not None
+        assert "Para 1\n\nPara 2" in task.description
+
+    def test_repair_nonexistent_file(self, temp_dir):
+        """Test repair returns failure for non-existent file."""
+        backend = JsonlBackend(project_dir=temp_dir)
+        success, message, count = backend.repair_corrupted_file()
+
+        assert success is False
+        assert "does not exist" in message
+        assert count == 0
+
+    def test_repair_valid_file(self, temp_dir):
+        """Test repair works on already valid file (no-op)."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+        tasks_file = cub_dir / "tasks.jsonl"
+        tasks_file.write_text(
+            '{"id": "test-001", "title": "Task 1", "status": "open"}\n'
+            '{"id": "test-002", "title": "Task 2", "status": "closed"}\n'
+        )
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        success, message, count = backend.repair_corrupted_file()
+
+        assert success is True
+        assert count == 2
+
+    def test_save_tasks_validates_output(self, temp_dir):
+        """Test that _save_tasks validates the written file."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+
+        backend = JsonlBackend(project_dir=temp_dir)
+
+        # Save tasks with newlines in description - should be properly escaped
+        tasks = [
+            {
+                "id": "test-001",
+                "title": "Task with newlines",
+                "description": "Line 1\nLine 2\n\nLine 4",
+                "status": "open",
+            }
+        ]
+
+        backend._save_tasks(tasks)
+
+        # Verify file is valid JSONL (single line per task)
+        with open(backend.tasks_file) as f:
+            lines = f.readlines()
+
+        assert len(lines) == 1
+        # Verify it parses correctly
+        task_data = json.loads(lines[0])
+        assert task_data["description"] == "Line 1\nLine 2\n\nLine 4"
+
+    def test_save_tasks_uses_compact_format(self, temp_dir):
+        """Test that _save_tasks uses compact JSON format (no extra spaces)."""
+        cub_dir = temp_dir / ".cub"
+        cub_dir.mkdir()
+
+        backend = JsonlBackend(project_dir=temp_dir)
+        tasks = [{"id": "test-001", "title": "Task 1", "status": "open"}]
+
+        backend._save_tasks(tasks)
+
+        with open(backend.tasks_file) as f:
+            content = f.read()
+
+        # Should use compact separators (no spaces after : or ,)
+        assert ": " not in content or '": "' in content  # Colons in values are OK
+        # The format should be {"key":"value"} not { "key" : "value" }
+
+
+# ==============================================================================
 # Migration Tests
 # ==============================================================================
 

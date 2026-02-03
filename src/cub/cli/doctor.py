@@ -14,6 +14,7 @@ from rich.panel import Panel
 
 from cub.core.hooks.installer import validate_hooks
 from cub.core.tasks.backend import get_backend
+from cub.core.tasks.jsonl import JsonlBackend
 from cub.core.tasks.models import TaskStatus, TaskType
 from cub.utils.project import get_project_root
 
@@ -343,6 +344,125 @@ def collect_hooks_check(project_dir: Path, fix: bool = False) -> list[Diagnostic
                 )
 
     return results
+
+
+def collect_tasks_file_check(project_dir: Path, fix: bool = False) -> DiagnosticResult:
+    """
+    Check if the tasks.jsonl file is valid and attempt repair if corrupted.
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, attempt to repair corrupted file
+
+    Returns:
+        DiagnosticResult with tasks file status
+    """
+    tasks_file = project_dir / ".cub" / "tasks.jsonl"
+
+    # Check if file exists
+    if not tasks_file.exists():
+        return DiagnosticResult(
+            category="Task State",
+            name="Tasks File",
+            status="info",
+            message="No tasks file found (will be created on first use)",
+        )
+
+    # Try to validate the file
+    backend = JsonlBackend(project_dir=project_dir)
+    is_valid, error_msg = backend.validate_file()
+
+    if is_valid:
+        return DiagnosticResult(
+            category="Task State",
+            name="Tasks File",
+            status="pass",
+            message="Tasks file is valid",
+        )
+
+    # File is corrupted
+    if not fix:
+        return DiagnosticResult(
+            category="Task State",
+            name="Tasks File",
+            status="fail",
+            message=f"Tasks file is corrupted: {error_msg}",
+            details=[
+                "Common causes: editor auto-formatting, copy-paste with newlines",
+                "The file has JSON objects split across multiple lines",
+            ],
+            fix_command="cub doctor --fix",
+        )
+
+    # Attempt repair
+    success, repair_msg, tasks_recovered = backend.repair_corrupted_file()
+
+    if success:
+        return DiagnosticResult(
+            category="Task State",
+            name="Tasks File",
+            status="pass",
+            message=f"Tasks file repaired: {repair_msg}",
+            details=[f"Recovered {tasks_recovered} task(s)"],
+        )
+    else:
+        return DiagnosticResult(
+            category="Task State",
+            name="Tasks File",
+            status="fail",
+            message=f"Failed to repair tasks file: {repair_msg}",
+            details=[
+                "Manual repair may be required",
+                "Check .cub/tasks.jsonl.bak for the original file",
+            ],
+        )
+
+
+def check_tasks_file(project_dir: Path, fix: bool = False) -> int:
+    """
+    Check if the tasks.jsonl file is valid (legacy Rich output version).
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, attempt to repair corrupted file
+
+    Returns:
+        Number of issues found
+    """
+    tasks_file = project_dir / ".cub" / "tasks.jsonl"
+
+    if not tasks_file.exists():
+        console.print("[dim]ℹ[/dim] No tasks file found (will be created on first use)")
+        return 0
+
+    # Try to validate the file
+    backend = JsonlBackend(project_dir=project_dir)
+    is_valid, error_msg = backend.validate_file()
+
+    if is_valid:
+        console.print("[green]✓[/green] Tasks file is valid")
+        return 0
+
+    # File is corrupted
+    console.print(f"[red]✗[/red] Tasks file is corrupted: {error_msg}")
+    console.print("[dim]  Common causes: editor auto-formatting, copy-paste with newlines[/dim]")
+
+    if not fix:
+        console.print("[dim]  → Run 'cub doctor --fix' to attempt automatic repair[/dim]")
+        return 1
+
+    # Attempt repair
+    console.print("\n[blue]Attempting to repair tasks file...[/blue]")
+    success, repair_msg, tasks_recovered = backend.repair_corrupted_file()
+
+    if success:
+        console.print(f"[green]✓[/green] {repair_msg}")
+        return 0
+    else:
+        console.print(f"[red]✗[/red] Repair failed: {repair_msg}")
+        console.print("[dim]  Manual repair may be required[/dim]")
+        console.print("[dim]  Check .cub/tasks.jsonl.bak for the original file[/dim]")
+        return 1
 
 
 def collect_stale_epics_check(project_dir: Path, fix: bool = False) -> DiagnosticResult:
@@ -772,10 +892,11 @@ def doctor(
 
     Checks:
     - Environment: git, harness availability
-    - Task state: stale epics (epics where all subtasks are complete)
+    - Task state: corrupted tasks file, stale epics
 
     Fix Actions:
     --fix will:
+    - Repair corrupted tasks.jsonl file (rejoins split JSON lines)
     - Auto-close stale epics with "Auto-closed: all subtasks complete"
 
     Examples:
@@ -807,8 +928,26 @@ def doctor(
             # Hooks checks
             checks.extend(collect_hooks_check(project_dir, fix=fix))
 
-            # Stale epics check
-            checks.append(collect_stale_epics_check(project_dir, fix=fix))
+            # Tasks file check (run before stale epics since stale epics needs valid file)
+            checks.append(collect_tasks_file_check(project_dir, fix=fix))
+
+            # Stale epics check (only if tasks file is valid)
+            tasks_file_ok = all(
+                c.status != "fail"
+                for c in checks
+                if c.name == "Tasks File"
+            )
+            if tasks_file_ok:
+                checks.append(collect_stale_epics_check(project_dir, fix=fix))
+            else:
+                checks.append(
+                    DiagnosticResult(
+                        category="Task State",
+                        name="Stale Epics",
+                        status="info",
+                        message="Skipped (tasks file is corrupted)",
+                    )
+                )
 
             # Format and print
             from cub.core.services.agent_format import AgentFormatter
@@ -832,10 +971,18 @@ def doctor(
         # Check hooks
         total_issues += check_hooks(project_dir, fix=fix)
 
-        # Check stale epics
+        # Check tasks file
+        console.print("\n[bold]Tasks File:[/bold]")
+        tasks_file_issues = check_tasks_file(project_dir, fix=fix)
+        total_issues += tasks_file_issues
+
+        # Check stale epics (only if tasks file is valid)
         console.print("\n[bold]Stale Epics:[/bold]")
-        stale_count, fixed_epics = check_stale_epics(project_dir, fix=fix)
-        total_issues += stale_count
+        if tasks_file_issues == 0:
+            stale_count, fixed_epics = check_stale_epics(project_dir, fix=fix)
+            total_issues += stale_count
+        else:
+            console.print("[dim]ℹ[/dim] Skipped (tasks file is corrupted)")
 
         # Summary
         console.print("\n" + "=" * 60)
