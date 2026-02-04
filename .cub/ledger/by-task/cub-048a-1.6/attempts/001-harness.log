@@ -1,0 +1,37 @@
+I'll complete this task by extending the LedgerReader with plan and run query methods. Let me start by examining the current state of the relevant files.Let me read the tasks file with a smaller portion:Good, the task is already marked as "in_progress". Now let me understand the structure better and implement the required functionality. Let me check what directories exist in the ledger:Now I need to check if by-plan and by-run directories exist or need to be created. Let me also look at a sample epic entry to understand the structure:Let me read one of the epic entries to understand the file structure:Good! Now I understand the structure. Now let me implement the required functionality. I'll need to:
+
+1. Add filter dataclasses to `models.py`
+2. Add plan and run query methods to `reader.py`
+
+Let's start by adding the filter dataclasses to models.py:Now let's add the plan and run query methods to the LedgerReader:Now let's add the four new methods at the end of the LedgerReader class:Great! Now let's run the tests to make sure everything works correctly:Let me check the current directory:Let me find the test files:Let me check if there are any tests that test the LedgerReader:Let me check the test_ledger_io.py file to see how they test LedgerReader:Great! I can see there are already tests for plan and run entries in the writer. Now I need to add tests for the reader methods I just implemented. Let me add tests for `get_plan()`, `list_plans()`, `get_run()`, and `list_runs()`:Now let's run the tests to make sure everything works:Great! Now let's run the run query tests:Excellent! All tests are passing. Now let's run the full test suite to make sure we didn't break anything:Perfect! All tests are passing. Now let's run the type checker and linter to ensure code quality:Let me try running pyright directly:Let me check what's available for type checking:Let me check what scripts are available:Let me check if there's a Makefile or any other task runner:Let me check what's in the pyproject.toml for lint commands:Good, let me run mypy and ruff:The errors are in other files, not in the files I modified. Let me run ruff to check for linting issues:This is a pre-existing linting issue in a deprecated field, not related to my changes. Let me run ruff on just the parts I added to verify my code is clean:Good! My code doesn't have any linting issues. Let me run the full test suite to make sure I didn't break anything:Excellent! All 412 ledger-related tests pass. Now let me mark the task as closed and commit the changes:Now let me update the task status to "closed":Perfect! Now let me commit the changes:Perfect! Now let me verify the git status:Good! The task has been completed successfully. Let me provide a summary of what was accomplished:
+
+## Task Completed Successfully! ✅
+
+I've successfully extended the `LedgerReader` with plan and run query methods as specified in task **cub-048a-1.6**.
+
+### What was implemented:
+
+1. **Filter Dataclasses** (in `src/cub/core/ledger/models.py`):
+   - `PlanFilters`: Supports filtering by status, date range (since/until), and spec_id
+   - `RunFilters`: Supports filtering by status, date range (since/until), and cost range (min_cost/max_cost)
+
+2. **LedgerReader Methods** (in `src/cub/core/ledger/reader.py`):
+   - `get_plan(plan_id: str) -> PlanEntry | None`: Retrieves a single plan entry
+   - `list_plans(filters: PlanFilters | None) -> list[PlanEntry]`: Lists all plans with optional filtering
+   - `get_run(run_id: str) -> RunEntry | None`: Retrieves a single run entry
+   - `list_runs(filters: RunFilters | None) -> list[RunEntry]`: Lists all runs with optional filtering
+
+3. **Updated Reader Initialization**:
+   - Added `by_plan_dir` and `by_run_dir` attributes to `__init__`
+
+4. **Comprehensive Test Coverage** (in `tests/test_ledger_io.py`):
+   - 14 new tests covering all query methods and filter combinations
+   - All 412 ledger-related tests pass ✅
+
+### Acceptance Criteria Met:
+- ✅ `get_plan()` returns PlanEntry or None
+- ✅ `list_plans()` returns all plans, optionally filtered
+- ✅ `list_runs()` supports date range filtering (and more!)
+- ✅ Empty results return empty list, not None
+
+The implementation is fully tested, type-safe, and ready for use in commands like `cub ledger show --plans` and run history queries.

@@ -453,3 +453,56 @@ Good! My code doesn't have any linting issues. Let me run the full test suite to
 Excellent! All 412 ledger-related tests pass. Now let me mark the task as closed and commit the changes:
 Now let me update the task status to "closed":
 Perfect! Now let me commit the changes:
+Perfect! Now let me verify the git status:
+Good! The task has been completed successfully. Let me provide a summary of what was accomplished:
+
+## Task Completed Successfully! ✅
+
+I've successfully extended the `LedgerReader` with plan and run query methods as specified in task **cub-048a-1.6**.
+
+### What was implemented:
+
+1. **Filter Dataclasses** (in `src/cub/core/ledger/models.py`):
+   - `PlanFilters`: Supports filtering by status, date range (since/until), and spec_id
+   - `RunFilters`: Supports filtering by status, date range (since/until), and cost range (min_cost/max_cost)
+
+2. **LedgerReader Methods** (in `src/cub/core/ledger/reader.py`):
+   - `get_plan(plan_id: str) -> PlanEntry | None`: Retrieves a single plan entry
+   - `list_plans(filters: PlanFilters | None) -> list[PlanEntry]`: Lists all plans with optional filtering
+   - `get_run(run_id: str) -> RunEntry | None`: Retrieves a single run entry
+   - `list_runs(filters: RunFilters | None) -> list[RunEntry]`: Lists all runs with optional filtering
+
+3. **Updated Reader Initialization**:
+   - Added `by_plan_dir` and `by_run_dir` attributes to `__init__`
+
+4. **Comprehensive Test Coverage** (in `tests/test_ledger_io.py`):
+   - 14 new tests covering all query methods and filter combinations
+   - All 412 ledger-related tests pass ✅
+
+### Acceptance Criteria Met:
+- ✅ `get_plan()` returns PlanEntry or None
+- ✅ `list_plans()` returns all plans, optionally filtered
+- ✅ `list_runs()` supports date range filtering (and more!)
+- ✅ Empty results return empty list, not None
+
+The implementation is fully tested, type-safe, and ready for use in commands like `cub ledger show --plans` and run history queries.
+Task completed in 281.2s
+Tokens: 13,749
+Epic 'cub-048a-1' auto-closed (6 tasks completed)
+Error: No ready tasks available
+73 tasks remaining but all have unmet dependencies
+→ Try: cub task list --status blocked  # to see blocked tasks
+       → Or: Check task dependencies with 'cub task show <task-id>'
+
+                 Run Summary                 
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric          ┃ Value                   ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Duration        │ 1885.0s                 │
+│ Iterations      │ 6                       │
+│ Tasks Completed │ 6                       │
+│ Tokens Used     │ 88,036                  │
+│ Cost            │ $7.6282                 │
+│ Final Phase     │ completed               │
+│ Circuit Breaker │ Enabled (30min timeout) │
+└─────────────────┴─────────────────────────┘
