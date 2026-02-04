@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-5.1",
+  "title": "Add consistency checks to cub doctor",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T18:06:34.031589",
+  "completed_at": "2026-02-04T18:06:34.031592",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 363.56824946403503
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-5.3",
+  "title": "Remove deprecated code paths",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T18:21:26.385922",
+  "completed_at": "2026-02-04T18:21:26.385925",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 667.6556673049927
+}

@@ -2,69 +2,69 @@
   "run_id": "cub-20260204-180030",
   "session_name": "cub-20260204-180030",
   "started_at": "2026-02-04T18:00:30.420362",
-  "updated_at": "2026-02-04T18:00:30.432894",
-  "completed_at": null,
+  "updated_at": "2026-02-04T18:25:06.861012",
+  "completed_at": "2026-02-04T18:25:06.860394",
   "epic": "cub-048a-5",
   "label": null,
   "branch": "feature/cub-048-ledger-consolidation-and-id-system",
   "circuit_breaker_enabled": true,
   "circuit_breaker_timeout": 30,
-  "phase": "running",
-  "current_task_id": "cub-048a-5.1",
-  "current_task_title": "Add consistency checks to cub doctor",
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
   "iteration": {
-    "current": 1,
+    "current": 4,
     "max": 100,
     "task_iteration": 0,
     "max_task_iteration": 3,
-    "percentage": 1.0,
+    "percentage": 4.0,
     "task_percentage": 0.0,
     "is_near_limit": false
   },
   "budget": {
-    "tokens_used": 0,
+    "tokens_used": 63790,
     "tokens_limit": 500000,
-    "cost_usd": 0.0,
+    "cost_usd": 4.672263900000002,
     "cost_limit": null,
-    "tasks_completed": 0,
+    "tasks_completed": 4,
     "tasks_limit": null,
-    "tokens_percentage": 0.0,
+    "tokens_percentage": 12.758,
     "cost_percentage": null,
     "tasks_percentage": null,
     "is_over_budget": false
   },
-  "tasks_open": 57,
+  "tasks_open": 53,
   "tasks_in_progress": 0,
-  "tasks_closed": 100,
+  "tasks_closed": 104,
   "tasks_total": 157,
   "task_entries": [
     {
       "task_id": "cub-048a-5.1",
       "title": "Add consistency checks to cub doctor",
-      "state": "doing",
+      "state": "done",
       "started_at": "2026-02-04T18:00:30.432870",
-      "completed_at": null
+      "completed_at": "2026-02-04T18:06:34.030201"
     },
     {
       "task_id": "cub-048a-5.2",
       "title": "Add pre-run consistency check",
-      "state": "todo",
-      "started_at": null,
-      "completed_at": null
+      "state": "done",
+      "started_at": "2026-02-04T18:06:44.426068",
+      "completed_at": "2026-02-04T18:10:08.978433"
     },
     {
       "task_id": "cub-048a-5.3",
       "title": "Remove deprecated code paths",
-      "state": "todo",
-      "started_at": null,
-      "completed_at": null
+      "state": "done",
+      "started_at": "2026-02-04T18:10:18.701989",
+      "completed_at": "2026-02-04T18:21:26.384753"
     },
     {
       "task_id": "cub-048a-5.4",
       "title": "Update documentation and gitignore",
-      "state": "todo",
-      "started_at": null,
-      "completed_at": null
+      "state": "done",
+      "started_at": "2026-02-04T18:21:37.251961",
+      "completed_at": "2026-02-04T18:24:57.716203"
     }
   ],
   "events": [
@@ -81,12 +81,87 @@
       "message": "Starting task: Add consistency checks to cub doctor",
       "task_id": "cub-048a-5.1",
       "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:06:34.030227",
+      "level": "info",
+      "message": "Task completed: Add consistency checks to cub doctor",
+      "task_id": "cub-048a-5.1",
+      "metadata": {
+        "duration": 363.56824946403503,
+        "tokens": 16341
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:06:44.426083",
+      "level": "info",
+      "message": "Starting task: Add pre-run consistency check",
+      "task_id": "cub-048a-5.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:10:08.978459",
+      "level": "info",
+      "message": "Task completed: Add pre-run consistency check",
+      "task_id": "cub-048a-5.2",
+      "metadata": {
+        "duration": 204.46962451934814,
+        "tokens": 4334
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:10:18.702004",
+      "level": "info",
+      "message": "Starting task: Remove deprecated code paths",
+      "task_id": "cub-048a-5.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:21:26.384770",
+      "level": "info",
+      "message": "Task completed: Remove deprecated code paths",
+      "task_id": "cub-048a-5.3",
+      "metadata": {
+        "duration": 667.6556673049927,
+        "tokens": 26798
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:21:37.251974",
+      "level": "info",
+      "message": "Starting task: Update documentation and gitignore",
+      "task_id": "cub-048a-5.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:24:57.716220",
+      "level": "info",
+      "message": "Task completed: Update documentation and gitignore",
+      "task_id": "cub-048a-5.4",
+      "metadata": {
+        "duration": 200.4376437664032,
+        "tokens": 16317
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:25:04.785430",
+      "level": "info",
+      "message": "Epic 'cub-048a-5' auto-closed (4 tasks completed)",
+      "task_id": "cub-048a-5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:25:06.860433",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
     }
   ],
   "last_error": null,
-  "is_active": true,
-  "is_finished": false,
-  "tasks_remaining": 57,
-  "completion_percentage": 63.69426751592356,
-  "duration_seconds": 0.012575
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 53,
+  "completion_percentage": 66.2420382165605,
+  "duration_seconds": 1476.440032
 }

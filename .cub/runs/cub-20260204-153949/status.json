@@ -1,0 +1,191 @@
+{
+  "run_id": "cub-20260204-153949",
+  "session_name": "cub-20260204-153949",
+  "started_at": "2026-02-04T15:39:49.096703",
+  "updated_at": "2026-02-04T16:18:47.642482",
+  "completed_at": "2026-02-04T16:18:47.641814",
+  "epic": "cub-048a-0",
+  "label": null,
+  "branch": "feature/cub-048-ledger-consolidation-and-id-system",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 101922,
+    "tokens_limit": 500000,
+    "cost_usd": 8.5210677,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": 20.3844,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 81,
+  "tasks_in_progress": 0,
+  "tasks_closed": 76,
+  "tasks_total": 157,
+  "task_entries": [
+    {
+      "task_id": "cub-048a-0.1",
+      "title": "Create core/ids/ package with ID models",
+      "state": "done",
+      "started_at": "2026-02-04T15:39:49.106945",
+      "completed_at": "2026-02-04T15:45:34.226950"
+    },
+    {
+      "task_id": "cub-048a-0.2",
+      "title": "Implement ID parser and validator",
+      "state": "done",
+      "started_at": "2026-02-04T15:45:42.214866",
+      "completed_at": "2026-02-04T15:58:15.340094"
+    },
+    {
+      "task_id": "cub-048a-0.3",
+      "title": "Implement counter management on sync branch",
+      "state": "done",
+      "started_at": "2026-02-04T15:58:27.111275",
+      "completed_at": "2026-02-04T16:05:42.437014"
+    },
+    {
+      "task_id": "cub-048a-0.4",
+      "title": "Implement ID generator with counter integration",
+      "state": "done",
+      "started_at": "2026-02-04T16:05:51.461554",
+      "completed_at": "2026-02-04T16:10:47.342998"
+    },
+    {
+      "task_id": "cub-048a-0.5",
+      "title": "Create pre-push hook and update cub init",
+      "state": "done",
+      "started_at": "2026-02-04T16:10:56.588971",
+      "completed_at": "2026-02-04T16:18:37.448176"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-04T15:39:49.103560",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T15:39:49.106962",
+      "level": "info",
+      "message": "Starting task: Create core/ids/ package with ID models",
+      "task_id": "cub-048a-0.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T15:45:34.226982",
+      "level": "info",
+      "message": "Task completed: Create core/ids/ package with ID models",
+      "task_id": "cub-048a-0.1",
+      "metadata": {
+        "duration": 345.0934588909149,
+        "tokens": 11238
+      }
+    },
+    {
+      "timestamp": "2026-02-04T15:45:42.214888",
+      "level": "info",
+      "message": "Starting task: Implement ID parser and validator",
+      "task_id": "cub-048a-0.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T15:58:15.340115",
+      "level": "info",
+      "message": "Task completed: Implement ID parser and validator",
+      "task_id": "cub-048a-0.2",
+      "metadata": {
+        "duration": 753.0456337928772,
+        "tokens": 507
+      }
+    },
+    {
+      "timestamp": "2026-02-04T15:58:27.111290",
+      "level": "info",
+      "message": "Starting task: Implement counter management on sync branch",
+      "task_id": "cub-048a-0.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:05:42.437036",
+      "level": "info",
+      "message": "Task completed: Implement counter management on sync branch",
+      "task_id": "cub-048a-0.3",
+      "metadata": {
+        "duration": 435.29876470565796,
+        "tokens": 31477
+      }
+    },
+    {
+      "timestamp": "2026-02-04T16:05:51.461569",
+      "level": "info",
+      "message": "Starting task: Implement ID generator with counter integration",
+      "task_id": "cub-048a-0.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:10:47.343022",
+      "level": "info",
+      "message": "Task completed: Implement ID generator with counter integration",
+      "task_id": "cub-048a-0.4",
+      "metadata": {
+        "duration": 295.8550868034363,
+        "tokens": 18657
+      }
+    },
+    {
+      "timestamp": "2026-02-04T16:10:56.588987",
+      "level": "info",
+      "message": "Starting task: Create pre-push hook and update cub init",
+      "task_id": "cub-048a-0.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:18:37.448198",
+      "level": "info",
+      "message": "Task completed: Create pre-push hook and update cub init",
+      "task_id": "cub-048a-0.5",
+      "metadata": {
+        "duration": 460.8329679965973,
+        "tokens": 40043
+      }
+    },
+    {
+      "timestamp": "2026-02-04T16:18:37.467444",
+      "level": "info",
+      "message": "Epic 'cub-048a-0' auto-closed (5 tasks completed)",
+      "task_id": "cub-048a-0",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:18:47.641856",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 81,
+  "completion_percentage": 48.40764331210191,
+  "duration_seconds": 2338.545111
+}

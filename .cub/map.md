@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (280 files) (entry: __init__.py)
+- **cub**: `src/cub` (289 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -78,6 +78,8 @@
     │   │   │   ├── cub-048a-1/
     │   │   │   ├── cub-048a-2/
     │   │   │   ├── cub-048a-3/
+    │   │   │   ├── cub-048a-4/
+    │   │   │   ├── cub-048a-5/
     │   │   │   ├── cub-a1f/
     │   │   │   ├── cub-a2s/
     │   │   │   ├── cub-a3r/
@@ -122,7 +124,7 @@
     │   │   │   ├── cub-20260204-165022/
     │   │   │   ├── cub-20260204-170945/
     │   │   │   ├── cub-20260204-172822/
-    │   │   │   ├── active-run.json
+    │   │   │   ├── cub-20260204-180030/
     │   │   │   ├── cub-20260204-215022.json
     │   │   │   ├── cub-20260204-215514.json
     │   │   │   ├── cub-20260204-215515.json
@@ -130,7 +132,13 @@
     │   │   │   ├── cub-20260204-221940.json
     │   │   │   ├── cub-20260204-221941.json
     │   │   │   ├── cub-20260204-222516.json
-    │   │   │   └── cub-20260204-222822.json
+    │   │   │   ├── cub-20260204-222822.json
+    │   │   │   ├── cub-20260204-223355.json
+    │   │   │   ├── cub-20260204-223356.json
+    │   │   │   ├── cub-20260204-230030.json
+    │   │   │   ├── cub-20260204-231705.json
+    │   │   │   ├── cub-20260204-231706.json
+    │   │   │   └── cub-20260204-231848.json
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
@@ -153,6 +161,13 @@
     │   │   │   ├── cub-048a-3.3/
     │   │   │   ├── cub-048a-3.4/
     │   │   │   ├── cub-048a-4.1/
+    │   │   │   ├── cub-048a-4.2/
+    │   │   │   ├── cub-048a-4.3/
+    │   │   │   ├── cub-048a-4.4/
+    │   │   │   ├── cub-048a-4.5/
+    │   │   │   ├── cub-048a-5.1/
+    │   │   │   ├── cub-048a-5.2/
+    │   │   │   ├── cub-048a-5.3/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -297,21 +312,6 @@
     │   │   │   ├── cub-r9d.2/
     │   │   │   ├── cub-r9d.3/
     │   │   │   ├── cub-r9d.4/
-    │   │   │   ├── cub-specific/
-    │   │   │   ├── cub-success/
-    │   │   │   ├── cub-t44.1/
-    │   │   │   ├── cub-t44.10/
-    │   │   │   ├── cub-t44.11/
-    │   │   │   ├── cub-t44.12/
-    │   │   │   ├── cub-t44.2/
-    │   │   │   ├── cub-t44.3/
-    │   │   │   ├── cub-t44.4/
-    │   │   │   ├── cub-t44.5/
-    │   │   │   ├── cub-t44.6/
-    │   │   │   ├── cub-t44.7/
-    │   │   │   ├── cub-t44.8/
-    │   │   │   ├── cub-t44.9/
-    │   │   │   ├── cub-t5w.1/
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -463,9 +463,9 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 289, score: 0.0023)
-- **main** (def, line 81, score: 0.0023)
-- **version** (def, line 263, score: 0.0023)
+- **cli_main** (def, line 295, score: 0.0023)
+- **main** (def, line 84, score: 0.0023)
+- **version** (def, line 269, score: 0.0023)
 
 ### src/cub/cli/argv.py
 
@@ -559,24 +559,21 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/doctor.py
 
-- **DiagnosticResult** (def, line 30, score: 0.0023)
-- **_check_command** (def, line 41, score: 0.0023)
-- **_get_command_version** (def, line 55, score: 0.0023)
-- **check_environment** (def, line 680, score: 0.0023)
-- **check_hooks** (def, line 730, score: 0.0023)
-- **check_stale_epics** (def, line 583, score: 0.0023)
-- **check_tasks_file** (def, line 421, score: 0.0023)
-- **collect_environment_checks** (def, line 77, score: 0.0023)
-- **collect_hooks_check** (def, line 164, score: 0.0023)
-- **collect_stale_epics_check** (def, line 468, score: 0.0023)
-- **collect_tasks_file_check** (def, line 349, score: 0.0023)
-- **doctor** (def, line 871, score: 0.0023)
-
-### src/cub/cli/errors.py
-
-- **ExitCode** (def, line 15, score: 0.0023)
-- **print_backend_not_initialized_error** (def, line 144, score: 0.0023)
-- **print_dirty_working_tree_error** (def, line 153, score: 0.0023)
-- **print_error** (def, line 31, score: 0.0023)
+- **DiagnosticResult** (def, line 31, score: 0.0023)
+- **_check_command** (def, line 42, score: 0.0023)
+- **_get_command_version** (def, line 56, score: 0.0023)
+- **check_counter_sync** (def, line 963, score: 0.0023)
+- **check_environment** (def, line 1011, score: 0.0023)
+- **check_hooks** (def, line 1061, score: 0.0023)
+- **check_id_integrity** (def, line 915, score: 0.0023)
+- **check_ledger_health** (def, line 867, score: 0.0023)
+- **check_stale_epics** (def, line 770, score: 0.0023)
+- **check_tasks_file** (def, line 422, score: 0.0023)
+- **collect_counter_sync_check** (def, line 708, score: 0.0023)
+- **collect_environment_checks** (def, line 78, score: 0.0023)
+- **collect_hooks_check** (def, line 165, score: 0.0023)
+- **collect_id_integrity_check** (def, line 646, score: 0.0023)
+- **collect_ledger_health_check** (def, line 584, score: 0.0023)
+- **collect_stale_epics_check** (def, line 469, score: 0.0023)
 
 ... (215 more symbols omitted to fit budget)

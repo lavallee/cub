@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "id": "cub-048a-5.2",
+  "title": "Add pre-run consistency check",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-5"
+  },
+  "task": {
+    "title": "Add pre-run consistency check",
+    "description": "`cub run` should optionally check consistency before starting, catching issues early. This should be fast and skippable.\n\n**Implementation Steps:**\n1. Add `--skip-checks` flag to `cub run`\n2. Before run loop starts, call fast consistency checks\n3. Check: ledger directory exists, counters readable, no obvious corruption\n4. Skip expensive checks (full integrity scan)\n5. Warn but don't block on minor issues\n6. Block on critical issues (corrupted counter state)\n\n**Files:** `src/cub/cli/run.py`, `src/cub/core/run/loop.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "model:haiku",
+      "complexity:low",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.561251",
+    "captured_at": "2026-02-04T23:06:44.490762Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-180030",
+      "started_at": "2026-02-04T18:06:44.499998",
+      "completed_at": "2026-02-04T23:10:08.970823Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 129,
+        "output_tokens": 4205,
+        "cache_read_tokens": 933316,
+        "cache_creation_tokens": 122538
+      },
+      "cost_usd": 0.9976424,
+      "duration_seconds": 204
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T23:10:08.989810Z",
+    "total_cost_usd": 0.9976424,
+    "total_attempts": 1,
+    "total_duration_seconds": 204,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [],
+    "approach": "The task was analyzed through exploration of existing consistency check infrastructure (VerifyService from a previous task), and the implementation approach was designed to reuse these existing verification capabilities as a pre-run gate. The strategy leverages the established pattern of fast, skippable checks with clear distinction between blocking critical errors and non-blocking warnings. A detailed implementation plan was created before proceeding, documenting the integration points, performance constraints, and error handling strategy.",
+    "decisions": [
+      "Reuse the existing `VerifyService` from cub-048a-5.1 rather than duplicating consistency check logic, promoting code reuse and maintainability",
+      "Keep checks fast and focused on ledger directory existence, readability, and counter state integrity\u2014avoiding expensive full integrity scans",
+      "Implement `--skip-checks` as an optional flag with default enabled behavior, allowing users to bypass checks when needed for performance",
+      "Adopt a \"warn but don't block\" pattern for minor issues while blocking only on critical errors (corrupted counter state), balancing safety with usability",
+      "Place consistency check execution immediately before the run loop starts, catching issues early but only when actually running tasks"
+    ],
+    "lessons_learned": [
+      "Consistency checks implemented in support utilities (like `cub doctor`) can be effectively surfaced to users through optional pre-flight gates on main commands, improving early issue detection without forcing overhead",
+      "Reusing existing verification infrastructure across multiple commands reduces duplication and ensures consistent checking logic across the codebase",
+      "Fast pre-run checks should have minimal performance impact (<500ms target) to avoid friction in the workflow, requiring careful selection of what gets checked",
+      "The distinction between blocking and warning errors is critical for user experience\u2014blocking on actual data corruption but warning on recoverable issues maintains both safety and usability"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:10:08.989810Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:06:44.490762Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:10:08.989810Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T23:06:44.490762Z",
+  "completed_at": "2026-02-04T23:10:08.989810Z",
+  "tokens": {
+    "input_tokens": 129,
+    "output_tokens": 4205,
+    "cache_read_tokens": 933316,
+    "cache_creation_tokens": 122538
+  },
+  "cost_usd": 0.9976424,
+  "duration_seconds": 204,
+  "iterations": 1,
+  "approach": "The task was analyzed through exploration of existing consistency check infrastructure (VerifyService from a previous task), and the implementation approach was designed to reuse these existing verification capabilities as a pre-run gate. The strategy leverages the established pattern of fast, skippable checks with clear distinction between blocking critical errors and non-blocking warnings. A detailed implementation plan was created before proceeding, documenting the integration points, performance constraints, and error handling strategy.",
+  "decisions": [
+    "Reuse the existing `VerifyService` from cub-048a-5.1 rather than duplicating consistency check logic, promoting code reuse and maintainability",
+    "Keep checks fast and focused on ledger directory existence, readability, and counter state integrity\u2014avoiding expensive full integrity scans",
+    "Implement `--skip-checks` as an optional flag with default enabled behavior, allowing users to bypass checks when needed for performance",
+    "Adopt a \"warn but don't block\" pattern for minor issues while blocking only on critical errors (corrupted counter state), balancing safety with usability",
+    "Place consistency check execution immediately before the run loop starts, catching issues early but only when actually running tasks"
+  ],
+  "lessons_learned": [
+    "Consistency checks implemented in support utilities (like `cub doctor`) can be effectively surfaced to users through optional pre-flight gates on main commands, improving early issue detection without forcing overhead",
+    "Reusing existing verification infrastructure across multiple commands reduces duplication and ensures consistent checking logic across the codebase",
+    "Fast pre-run checks should have minimal performance impact (<500ms target) to avoid friction in the workflow, requiring careful selection of what gets checked",
+    "The distinction between blocking and warning errors is critical for user experience\u2014blocking on actual data corruption but warning on recoverable issues maintains both safety and usability"
+  ],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-5.2",
+  "epic_id": "cub-048a-5",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

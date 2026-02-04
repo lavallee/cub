@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-0.1",
+  "title": "Create core/ids/ package with ID models",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-02-04T15:45:34.228451",
+  "completed_at": "2026-02-04T15:45:34.228453",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 345.0934588909149
+}

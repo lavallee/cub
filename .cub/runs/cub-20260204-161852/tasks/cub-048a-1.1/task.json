@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-1.1",
+  "title": "Add PlanEntry and RunEntry models",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-02-04T16:21:48.130951",
+  "completed_at": "2026-02-04T16:21:48.130953",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 176.01385521888733
+}
