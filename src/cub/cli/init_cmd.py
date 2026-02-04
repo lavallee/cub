@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 GITIGNORE_PATTERNS = [
     "# cub",
     ".cub/ledger/forensics/",
+    ".cub/ledger/by-run/",
     ".cub/dashboard.db",
     ".cub/map.md",
 ]
