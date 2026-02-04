@@ -412,8 +412,17 @@ def _ensure_project_config(
         except (json.JSONDecodeError, OSError):
             legacy_config = {}
 
-    # If config exists and not forcing, just return
+    # If config exists and not forcing, check if we need to update backend
     if config_file.exists() and not force and not migrated:
+        # Still need to set backend if specified and not already set
+        if backend and existing_config.get("backend", {}).get("mode") != backend:
+            existing_config.setdefault("backend", {})["mode"] = backend
+            try:
+                with open(config_file, "w", encoding="utf-8") as f:
+                    json.dump(existing_config, f, indent=2)
+                    f.write("\n")
+            except OSError as e:
+                console.print(f"[yellow]Warning: Could not update backend in config: {e}[/yellow]")
         return False
 
     # Build the default config template (without JSON comments)

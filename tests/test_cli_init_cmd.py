@@ -435,3 +435,87 @@ class TestInitProject:
 
         with pytest.raises(Exit):
             init_project(tmp_path / "does-not-exist")
+
+    def test_init_project_writes_explicit_backend_to_config(self, tmp_path: Path) -> None:
+        """Test that cub init writes explicit backend.mode to config."""
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Verify config has backend.mode set
+        config_file = tmp_path / ".cub" / "config.json"
+        assert config_file.exists()
+
+        config = json.loads(config_file.read_text())
+        assert "backend" in config
+        assert config["backend"]["mode"] == "jsonl"
+
+    def test_init_project_backend_config_used_by_detect_backend(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that backend loading respects explicit config setting over auto-detection."""
+        from cub.core.config.loader import clear_cache
+        from cub.core.tasks.backend import detect_backend as detect_backend_runtime
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Clear config cache so it re-reads
+        clear_cache()
+
+        # Detect backend should return the configured value
+        detected = detect_backend_runtime(project_dir=tmp_path)
+        assert detected == "jsonl"
+
+    def test_init_project_jsonl_backend_followed_by_task_list(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that cub init followed by task list uses the configured backend."""
+        from cub.core.config.loader import clear_cache
+        from cub.core.tasks.backend import get_backend
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Clear config cache
+        clear_cache()
+
+        # Get backend and verify it's the JSONL backend
+        backend = get_backend(project_dir=tmp_path)
+        assert backend.backend_name == "jsonl"
+
+        # Verify we can list tasks (should return empty list for new project)
+        tasks = backend.list_tasks()
+        assert tasks == []
