@@ -524,7 +524,7 @@ class LedgerEntry(BaseModel):
     )
     run_log_path: str | None = Field(
         default=None,
-        description="Path to run log directory (e.g., '.cub/runs/session-123/tasks/beads-abc')",
+        description="Path to run log directory (e.g., '.cub/ledger/by-run/session-123/tasks/beads-abc')",
     )
     epic_id: str | None = Field(
         default=None,

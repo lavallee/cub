@@ -17,11 +17,11 @@ class TestStatusWriter:
     """Tests for StatusWriter class."""
 
     def test_init_creates_run_directory(self, temp_dir):
-        """Test StatusWriter creates .cub/runs/{run_id} directory."""
+        """Test StatusWriter creates .cub/ledger/by-run/{run_id} directory."""
         writer = StatusWriter(temp_dir, "test-run-001")
 
         assert writer.run_dir.exists()
-        assert writer.run_dir == temp_dir / ".cub" / "runs" / "test-run-001"
+        assert writer.run_dir == temp_dir / ".cub" / "ledger" / "by-run" / "test-run-001"
         assert writer.status_path == writer.run_dir / "status.json"
 
     def test_write_creates_status_file(self, temp_dir):
@@ -324,7 +324,7 @@ class TestStatusWriter:
         writer = StatusWriter(temp_dir, "test-run-001")
         prompt_path = writer.get_prompt_path("cub-123")
 
-        assert prompt_path == temp_dir / ".cub" / "runs" / "test-run-001" / "tasks" / "cub-123" / "prompt.md"
+        assert prompt_path == temp_dir / ".cub" / "ledger" / "by-run" / "test-run-001" / "tasks" / "cub-123" / "prompt.md"
 
     def test_write_prompt_creates_file(self, temp_dir):
         """Test write_prompt() creates prompt.md file."""
@@ -444,7 +444,7 @@ class TestGetLatestStatus:
         assert status is None
 
     def test_get_latest_status_no_runs_dir(self, temp_dir):
-        """Test get_latest_status returns None when .cub/runs doesn't exist."""
+        """Test get_latest_status returns None when .cub/ledger/by-run doesn't exist."""
         status = get_latest_status(temp_dir)
 
         assert status is None
@@ -499,7 +499,7 @@ class TestGetLatestStatus:
 
     def test_get_latest_status_invalid_json(self, temp_dir):
         """Test get_latest_status returns None if latest status is invalid."""
-        runs_dir = temp_dir / ".cub" / "runs" / "run-001"
+        runs_dir = temp_dir / ".cub" / "ledger" / "by-run" / "run-001"
         runs_dir.mkdir(parents=True)
         status_file = runs_dir / "status.json"
         status_file.write_text("{ invalid json }")
@@ -513,14 +513,14 @@ class TestListRuns:
     """Tests for list_runs function."""
 
     def test_list_runs_no_runs_dir(self, temp_dir):
-        """Test list_runs returns empty list when .cub/runs doesn't exist."""
+        """Test list_runs returns empty list when .cub/ledger/by-run doesn't exist."""
         runs = list_runs(temp_dir)
 
         assert runs == []
 
     def test_list_runs_empty_dir(self, temp_dir):
         """Test list_runs returns empty list when no runs exist."""
-        runs_dir = temp_dir / ".cub" / "runs"
+        runs_dir = temp_dir / ".cub" / "ledger" / "by-run"
         runs_dir.mkdir(parents=True)
 
         runs = list_runs(temp_dir)
@@ -589,7 +589,7 @@ class TestListRuns:
         writer.write(status)
 
         # Invalid run
-        runs_dir = temp_dir / ".cub" / "runs" / "run-002"
+        runs_dir = temp_dir / ".cub" / "ledger" / "by-run" / "run-002"
         runs_dir.mkdir(parents=True)
         (runs_dir / "status.json").write_text("{ invalid }")
 
@@ -618,7 +618,7 @@ class TestListRuns:
 
     def test_list_runs_handles_missing_budget(self, temp_dir):
         """Test list_runs handles runs without budget data."""
-        runs_dir = temp_dir / ".cub" / "runs" / "run-001"
+        runs_dir = temp_dir / ".cub" / "ledger" / "by-run" / "run-001"
         runs_dir.mkdir(parents=True)
 
         # Write minimal status without budget

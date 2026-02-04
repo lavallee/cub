@@ -18,25 +18,27 @@
   },
   "task_ids": [
     "cub-048a-1.1",
-    "cub-048a-1.2"
+    "cub-048a-1.2",
+    "cub-048a-1.3",
+    "cub-048a-1.4"
   ],
   "aggregates": {
-    "total_tasks": 2,
-    "tasks_completed": 2,
-    "tasks_successful": 2,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
-    "total_cost_usd": 1.7326784500000003,
-    "avg_cost_per_task": 0.8663392250000002,
+    "total_cost_usd": 3.8378068499999998,
+    "avg_cost_per_task": 0.9594517124999999,
     "min_cost_usd": 0.6536362500000003,
-    "max_cost_usd": 1.0790422,
+    "max_cost_usd": 1.2725575999999998,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 2,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 3461542,
-    "avg_tokens_per_task": 1730771,
-    "total_duration_seconds": 409,
-    "avg_duration_seconds": 204,
+    "total_tokens": 7512833,
+    "avg_tokens_per_task": 1878208,
+    "total_duration_seconds": 940,
+    "avg_duration_seconds": 235,
     "models_used": [
       "sonnet"
     ],
@@ -44,12 +46,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T21:25:57.784320Z"
+    "stage_updated_at": "2026-02-04T21:35:08.587609Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T21:18:52.096259Z",
-  "completed_at": "2026-02-04T21:25:50.093782Z",
-  "updated_at": "2026-02-04T21:25:57.784324Z",
+  "completed_at": "2026-02-04T21:35:01.833168Z",
+  "updated_at": "2026-02-04T21:35:08.587613Z",
   "first_commit": {
     "hash": "a4475e7e3a2a58a8a805c356be08ffbaf5e81585",
     "message": "task(cub-048a-1.1): Add PlanEntry and RunEntry models",
@@ -57,10 +59,10 @@
     "timestamp": "2026-02-04T21:21:34Z"
   },
   "last_commit": {
-    "hash": "88af0eb3a90b9b8941f7fe2273e8a83a8e749532",
-    "message": "task(cub-048a-1.2): Extend LedgerWriter with plan and run methods",
+    "hash": "d3e58707f2cba60270e07f69b012f5a773a1cddb",
+    "message": "task(cub-048a-1.4): Create ArtifactManager for flattened numbering",
     "author": "",
-    "timestamp": "2026-02-04T21:25:09Z"
+    "timestamp": "2026-02-04T21:34:48Z"
   },
   "drift": {
     "additions": [],

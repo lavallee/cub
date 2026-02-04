@@ -218,7 +218,7 @@ class RunService:
         if should_enable_ledger:
             ledger_dir = resolved_dir / ".cub" / "ledger"
             ledger_writer = LedgerWriter(ledger_dir)
-            ledger_integration = LedgerIntegration(ledger_writer)
+            ledger_integration = LedgerIntegration(ledger_writer, task_backend)
 
         # Initialize sync service
         sync_service: SyncService | None = None

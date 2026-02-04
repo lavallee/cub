@@ -1168,7 +1168,7 @@ def run(
     ledger_writer = LedgerWriter(ledger_dir)
 
     # Initialize ledger integration
-    ledger_integration = LedgerIntegration(ledger_writer)
+    ledger_integration = LedgerIntegration(ledger_writer, task_backend)
 
     # Update task counts
     counts = task_backend.get_task_counts()

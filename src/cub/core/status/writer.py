@@ -16,13 +16,13 @@ class StatusWriter:
     """
     Writer for run status to JSON files.
 
-    Writes status.json to .cub/runs/{session}/status.json for
+    Writes status.json to .cub/ledger/by-run/{session}/status.json for
     consumption by the dashboard UI or other monitoring tools.
 
     Example:
         >>> writer = StatusWriter(project_dir, "camel-20260114")
         >>> writer.write(status)
-        >>> # status.json is now at .cub/runs/camel-20260114/status.json
+        >>> # status.json is now at .cub/ledger/by-run/camel-20260114/status.json
     """
 
     def __init__(self, project_dir: Path, run_id: str):
@@ -36,8 +36,8 @@ class StatusWriter:
         self.project_dir = project_dir
         self.run_id = run_id
 
-        # Create the run directory
-        self.run_dir = project_dir / ".cub" / "runs" / run_id
+        # Create the run directory in the new ledger structure
+        self.run_dir = project_dir / ".cub" / "ledger" / "by-run" / run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
 
         self.status_path = self.run_dir / "status.json"
@@ -140,7 +140,7 @@ class StatusWriter:
             task_id: Task identifier (e.g., "cub-r7k.5")
 
         Returns:
-            Path to task directory (.cub/runs/{session}/tasks/{task-id}/)
+            Path to task directory (.cub/ledger/by-run/{session}/tasks/{task-id}/)
         """
         task_dir = self.run_dir / "tasks" / task_id
         task_dir.mkdir(parents=True, exist_ok=True)
@@ -301,7 +301,7 @@ def get_latest_status(project_dir: Path) -> RunStatus | None:
     """
     Get the most recent run status from the project.
 
-    Searches .cub/runs/ for the most recently modified status.json.
+    Searches .cub/ledger/by-run/ for the most recently modified status.json.
 
     Args:
         project_dir: Project root directory
@@ -309,7 +309,7 @@ def get_latest_status(project_dir: Path) -> RunStatus | None:
     Returns:
         RunStatus from most recent run, or None if no runs found
     """
-    runs_dir = project_dir / ".cub" / "runs"
+    runs_dir = project_dir / ".cub" / "ledger" / "by-run"
     if not runs_dir.exists():
         return None
 
@@ -340,7 +340,7 @@ def list_runs(project_dir: Path) -> list[dict[str, Any]]:
     Returns:
         List of run summaries (run_id, phase, started_at, etc.)
     """
-    runs_dir = project_dir / ".cub" / "runs"
+    runs_dir = project_dir / ".cub" / "ledger" / "by-run"
     if not runs_dir.exists():
         return []
 

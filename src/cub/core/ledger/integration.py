@@ -55,6 +55,7 @@ from cub.core.ledger.models import (
 from cub.core.ledger.writer import LedgerWriter
 
 if TYPE_CHECKING:
+    from cub.core.tasks.backend import TaskBackend
     from cub.core.tasks.models import Task
 
 
@@ -66,17 +67,22 @@ class LedgerIntegration:
 
     Attributes:
         writer: The underlying LedgerWriter for file operations
+        task_backend: Optional task backend for fetching task metadata
         _active_entries: Cache of in-progress ledger entries keyed by task_id
         _task_snapshots: Original task snapshots for drift detection
     """
 
-    def __init__(self, writer: LedgerWriter) -> None:
+    def __init__(
+        self, writer: LedgerWriter, task_backend: TaskBackend | None = None
+    ) -> None:
         """Initialize the ledger integration.
 
         Args:
             writer: LedgerWriter instance for file operations
+            task_backend: Optional task backend for fetching task metadata
         """
         self.writer = writer
+        self.task_backend = task_backend
         self._active_entries: dict[str, LedgerEntry] = {}
         self._task_snapshots: dict[str, TaskSnapshot] = {}
 
@@ -605,14 +611,33 @@ class LedgerIntegration:
 
         if not epic_entry:
             # Auto-create epic entry if it doesn't exist
-            # Try to get epic metadata from the task if available
+            # Try to get epic metadata from the task backend first
             epic_title = epic_id  # Default fallback
             epic_description = ""
             epic_status = "in_progress"
             epic_priority = 0
             epic_labels: list[str] = []
 
-            if current_task and hasattr(current_task, "parent_task"):
+            # First, try to fetch the epic from the task backend
+            if self.task_backend:
+                try:
+                    epic_task = self.task_backend.get_task(epic_id)
+                    if epic_task:
+                        epic_title = epic_task.title
+                        epic_description = epic_task.description
+                        epic_status = (
+                            epic_task.status.value
+                            if hasattr(epic_task.status, "value")
+                            else str(epic_task.status)
+                        )
+                        epic_priority = epic_task.priority_numeric
+                        epic_labels = list(epic_task.labels)
+                except Exception:
+                    # If fetching fails, fall back to other methods
+                    pass
+
+            # If we didn't get epic info from backend, try parent_task attribute
+            if epic_title == epic_id and current_task and hasattr(current_task, "parent_task"):
                 # If we have access to the parent epic task, use its metadata
                 parent = current_task.parent_task
                 if parent:
