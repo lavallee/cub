@@ -249,4 +249,92 @@ def init(
         raise typer.Exit(1)
 
 
+@app.command()
+def agent(
+    push: bool = typer.Option(
+        False,
+        "--push",
+        help="Push local managed sections to sync branch",
+    ),
+    pull: bool = typer.Option(
+        False,
+        "--pull",
+        help="Pull managed sections from sync branch",
+    ),
+) -> None:
+    """
+    Sync managed sections in agent.md across worktrees and branches.
+
+    Managed sections are marked with special comments and contain content
+    that should be synchronized across different worktrees (e.g., task
+    workflow instructions, project-specific conventions).
+
+    By default (no flags), pulls managed sections from sync branch.
+
+    Examples:
+        cub sync agent              # Pull managed sections from sync branch
+        cub sync agent --pull       # Explicitly pull from sync branch
+        cub sync agent --push       # Push local sections to sync branch
+    """
+    try:
+        sync_service = SyncService()
+
+        # Check if initialized
+        if not sync_service.is_initialized():
+            print_sync_not_initialized_error()
+            raise typer.Exit(ExitCode.USER_ERROR)
+
+        # Default to pull if no direction specified
+        if not push and not pull:
+            pull = True
+
+        # Handle push
+        if push:
+            console.print("[blue]Pushing managed sections to sync branch...[/blue]")
+            result = sync_service.sync_agent_push()
+
+            if not result.success:
+                console.print(f"[red]Push failed:[/red] {result.message}")
+                if result.conflicts:
+                    console.print("[yellow]Conflicts:[/yellow]")
+                    for conflict in result.conflicts:
+                        console.print(f"  - {conflict.task_id}")
+                raise typer.Exit(1)
+
+            if result.tasks_updated > 0:
+                console.print(
+                    f"[green]✓[/green] {result.message} (commit: {result.commit_sha[:8] if result.commit_sha else 'N/A'})"  # noqa: E501
+                )
+            else:
+                console.print(f"[blue]{result.message}[/blue]")
+
+        # Handle pull
+        if pull:
+            console.print("[blue]Pulling managed sections from sync branch...[/blue]")
+            result = sync_service.sync_agent_pull()
+
+            if not result.success:
+                console.print(f"[red]Pull failed:[/red] {result.message}")
+                if result.conflicts:
+                    console.print("[yellow]Conflicts detected:[/yellow]")
+                    for conflict in result.conflicts:
+                        console.print(f"  - {conflict.task_id}")
+                    console.print(
+                        "\n[dim]Resolve conflicts manually and try again.[/dim]"
+                    )
+                raise typer.Exit(1)
+
+            if result.tasks_updated > 0:
+                console.print(f"[green]✓[/green] {result.message}")
+            else:
+                console.print(f"[blue]{result.message}[/blue]")
+
+    except GitError as e:
+        console.print(f"[red]Git error:[/red] {e.stderr or str(e)}")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
 __all__ = ["app"]

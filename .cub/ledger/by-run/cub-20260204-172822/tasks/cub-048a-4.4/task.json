@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-4.4",
+  "title": "Implement cub learn extract command",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T17:54:50.301611",
+  "completed_at": "2026-02-04T17:54:50.301612",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 429.8087019920349
+}
