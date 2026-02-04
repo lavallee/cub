@@ -4,7 +4,7 @@ Init command implementation for cub project initialization.
 This module provides the native Python ``cub init`` command, handling:
 - Project type detection (python, node, react, nextjs, go, rust, generic)
 - Task backend initialization (beads or jsonl)
-- Template copying (runloop.md, .cub.json, commands/)
+- Template copying (runloop.md, prompt.md, .cub.json, commands/)
 - .gitignore updating with cub patterns
 - Global configuration setup (``cub init --global``)
 - Instruction file generation (CLAUDE.md with AGENTS.md as symlink)
@@ -12,7 +12,8 @@ This module provides the native Python ``cub init`` command, handling:
 - Statusline installation
 
 System Prompt Architecture:
-- runloop.md is the ONLY system-managed prompt template (immutable by features)
+- runloop.md is the system-managed prompt template (immutable by features)
+- prompt.md is user-customizable and preserved across re-init (unless --force)
 - Plan-level context is injected at runtime, not persisted globally
 - See prompt_builder.py for context composition logic
 
@@ -20,6 +21,7 @@ Note: CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
 symlink to CLAUDE.md to ensure consistency without duplication.
 """
 
+import hashlib
 import json
 import os
 import shutil
@@ -222,6 +224,104 @@ def _ensure_runloop(project_dir: Path, force: bool = False) -> None:
         shutil.copy2(source_path, target_path)
 
 
+def _file_hash(path: Path) -> str:
+    """Calculate MD5 hash of a file for content comparison."""
+    return hashlib.md5(path.read_bytes()).hexdigest()
+
+
+def _ensure_prompt_md(project_dir: Path, force: bool = False) -> str:
+    """
+    Ensure prompt.md exists in .cub/ directory, preserving user modifications.
+
+    This function handles the user-customizable prompt.md file with careful
+    preservation of user modifications:
+
+    1. If prompt.md doesn't exist: Create from template
+    2. If prompt.md exists and matches template: No action needed
+    3. If prompt.md exists and differs from template:
+       - Without --force: Skip with warning (preserve user modifications)
+       - With --force: Overwrite with template
+
+    The PROMPT.md symlink in project root is also maintained.
+
+    Args:
+        project_dir: Project directory path
+        force: If True, overwrite even if user has modified the file
+
+    Returns:
+        Status message indicating what action was taken:
+        - "created": New file was created from template
+        - "skipped_modified": User-modified file was preserved
+        - "skipped_unchanged": File already matches template
+        - "overwritten": User-modified file was overwritten (force=True)
+    """
+    cub_dir = project_dir / ".cub"
+    cub_dir.mkdir(exist_ok=True)
+    target_path = cub_dir / "prompt.md"
+
+    templates_dir = _get_templates_dir()
+    source_path = templates_dir / "PROMPT.md"
+    if not source_path.exists():
+        raise FileNotFoundError(f"Template not found: {source_path}")
+
+    # Determine action based on file state
+    if not target_path.exists():
+        # New file - create from template
+        shutil.copy2(source_path, target_path)
+        _ensure_prompt_symlink(project_dir)
+        return "created"
+
+    # File exists - check if it matches template
+    source_hash = _file_hash(source_path)
+    target_hash = _file_hash(target_path)
+
+    if source_hash == target_hash:
+        # File matches template - no action needed
+        _ensure_prompt_symlink(project_dir)
+        return "skipped_unchanged"
+
+    # File differs from template
+    if force:
+        # Force flag - overwrite user modifications
+        shutil.copy2(source_path, target_path)
+        _ensure_prompt_symlink(project_dir)
+        return "overwritten"
+    else:
+        # Preserve user modifications
+        _ensure_prompt_symlink(project_dir)
+        return "skipped_modified"
+
+
+def _ensure_prompt_symlink(project_dir: Path) -> None:
+    """
+    Ensure PROMPT.md symlink exists in project root pointing to .cub/prompt.md.
+
+    Creates the symlink if it doesn't exist. If a regular file exists at
+    PROMPT.md, it is NOT converted to a symlink (user may have intentionally
+    created a separate file).
+    """
+    symlink_path = project_dir / "PROMPT.md"
+    target = Path(".cub/prompt.md")
+
+    if symlink_path.is_symlink():
+        # Already a symlink - verify it points to correct location
+        try:
+            current_target = symlink_path.readlink()
+            if current_target != target:
+                symlink_path.unlink()
+                symlink_path.symlink_to(target)
+        except OSError:
+            pass  # Symlink issues are non-fatal
+    elif not symlink_path.exists():
+        # No file exists - create symlink
+        try:
+            symlink_path.symlink_to(target)
+        except OSError:
+            # Symlink creation failed (e.g., Windows without admin)
+            pass
+    # If a regular file exists, leave it alone (user's choice)
+
+
 # ---------------------------------------------------------------------------
 # Project type detection
 # ---------------------------------------------------------------------------
@@ -316,8 +416,9 @@ def _init_backend(project_dir: Path, backend: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-# NOTE: _ensure_prompt_md() was removed in the consolidation of runloop.md and
-# PROMPT.md. The runloop.md is now the single system-managed prompt template.
+# NOTE: _ensure_prompt_md() is defined above and handles user-customizable
+# prompt.md with modification detection. runloop.md is the system-managed
+# template, while prompt.md is intended for user customization.
 # Plan-level context is injected at runtime via prompt_builder.py.
 
 
@@ -612,6 +713,22 @@ def generate_instruction_files(
     except Exception as e:
         console.print(f"[red]Error ensuring runloop: {e}[/red]")
 
+    # Ensure prompt.md exists (user-customizable, preserve modifications)
+    try:
+        prompt_status = _ensure_prompt_md(project_dir, force=force)
+        if prompt_status == "created":
+            console.print("[green]v[/green] Created .cub/prompt.md")
+        elif prompt_status == "skipped_modified":
+            console.print(
+                "[yellow]i[/yellow] Preserved user-modified .cub/prompt.md "
+                "(use --force to overwrite)"
+            )
+        elif prompt_status == "overwritten":
+            console.print("[green]v[/green] Overwrote .cub/prompt.md with template")
+        # skipped_unchanged: no message needed
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not ensure prompt.md: {e}[/yellow]")
+
     # Ensure .cub/agent.md exists (from template, don't overwrite)
     try:
         agent_path = project_dir / ".cub" / "agent.md"
@@ -770,8 +887,8 @@ def init_project(
     else:
         console.print("[green]v[/green] Project config ready at .cub/config.json")
 
-    # 5. REMOVED: _ensure_prompt_md no longer called
-    # runloop.md is the single system-managed prompt; plan context injected at runtime
+    # 5. prompt.md is now handled in generate_instruction_files()
+    # It preserves user modifications unless --force is used
 
     # 6. Install Claude Code commands/skills
     cmd_count = _install_claude_commands(project_dir)
