@@ -1,0 +1,92 @@
+{
+  "run_id": "cub-20260204-170945",
+  "session_name": "cub-20260204-170945",
+  "started_at": "2026-02-04T17:09:45.512313",
+  "updated_at": "2026-02-04T17:09:45.522804",
+  "completed_at": null,
+  "epic": "cub-048a-3",
+  "label": null,
+  "branch": "feature/cub-048-ledger-consolidation-and-id-system",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "running",
+  "current_task_id": "cub-048a-3.1",
+  "current_task_title": "Create core/hooks/ package with context models",
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": 500000,
+    "cost_usd": 0.0,
+    "cost_limit": null,
+    "tasks_completed": 0,
+    "tasks_limit": null,
+    "tokens_percentage": 0.0,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 68,
+  "tasks_in_progress": 0,
+  "tasks_closed": 89,
+  "tasks_total": 157,
+  "task_entries": [
+    {
+      "task_id": "cub-048a-3.1",
+      "title": "Create core/hooks/ package with context models",
+      "state": "doing",
+      "started_at": "2026-02-04T17:09:45.522767",
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-3.2",
+      "title": "Implement hook executor and discovery",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-3.3",
+      "title": "Integrate lifecycle hooks into run loop",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-3.4",
+      "title": "Update cub init for hook directories and tests",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-04T17:09:45.519294",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:09:45.522791",
+      "level": "info",
+      "message": "Starting task: Create core/hooks/ package with context models",
+      "task_id": "cub-048a-3.1",
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": true,
+  "is_finished": false,
+  "tasks_remaining": 68,
+  "completion_percentage": 56.68789808917197,
+  "duration_seconds": 0.010552
+}

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cub-048a-3",
+  "title": "ledger-consolidation #4: Lifecycle Hooks",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "ledger-consolidation #4: Lifecycle Hooks",
+    "description": "Extend the hooks infrastructure with four new lifecycle events: pre-session, end-of-task, end-of-epic, end-of-plan. Each provides rich context for user-defined scripts.",
+    "status": "open",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "complexity:medium",
+      "slice:hooks"
+    ],
+    "created_at": "2026-02-04T22:14:02.574398Z",
+    "captured_at": "2026-02-04T22:14:02.574398Z"
+  },
+  "task_ids": [
+    "cub-048a-3.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 0.8757106,
+    "avg_cost_per_task": 0.8757106,
+    "min_cost_usd": 0.8757106,
+    "max_cost_usd": 0.8757106,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 1720749,
+    "avg_tokens_per_task": 1720749,
+    "total_duration_seconds": 250,
+    "avg_duration_seconds": 250,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:14:02.593584Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T22:09:45.530580Z",
+  "completed_at": "2026-02-04T22:13:56.391459Z",
+  "updated_at": "2026-02-04T22:14:02.593590Z",
+  "first_commit": {
+    "hash": "224a409c4ae39d7b513683e8932318723d935336",
+    "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+    "author": "",
+    "timestamp": "2026-02-04T22:13:31Z"
+  },
+  "last_commit": {
+    "hash": "224a409c4ae39d7b513683e8932318723d935336",
+    "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+    "author": "",
+    "timestamp": "2026-02-04T22:13:31Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
