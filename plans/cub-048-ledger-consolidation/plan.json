@@ -1,0 +1,13 @@
+{
+  "slug": "cub-048-ledger-consolidation",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "cub-048-ledger-consolidation-and-id-system.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-02-04T14:30:00+00:00",
+  "updated": "2026-02-04T20:37:04.566805+00:00"
+}
