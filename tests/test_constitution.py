@@ -24,7 +24,7 @@ class TestEnsureConstitution:
 
         # Verify content was copied from template
         content = result.read_text()
-        assert "A constitution for developing software with AI" in content
+        assert "# Project Constitution" in content
         assert "Serve, don't extract" in content
 
     def test_creates_cub_dir_if_missing(self, tmp_path: Path) -> None:
@@ -70,7 +70,7 @@ class TestEnsureConstitution:
         # Should now contain template content
         content = result.read_text()
         assert content != original_content
-        assert "A constitution for developing software with AI" in content
+        assert "# Project Constitution" in content
 
     def test_raises_if_template_missing(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

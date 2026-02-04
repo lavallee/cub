@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-t44.4",
+  "title": "Consolidate runloop.md and PROMPT.md initialization",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Consolidate runloop.md and PROMPT.md initialization",
+    "description": "The project creates two overlapping system prompt files during init (`.cub/runloop.md` and `.cub/prompt.md`), creating confusion about their purpose and proper usage. The runloop.md contains core loop instructions while PROMPT.md is a larger template with customization guidance. This dual-file approach leads to unclear ownership: cub stage should not modify prompt.md, but instead plan-level context should be injected at runtime. Clear separation between system-managed core runloop instructions and user-customizable additions is needed to prevent improper file mutations and enable proper prompt composition.\n\n**Implementation Steps:**\n1. Audit current usage: Review how init_cmd.py creates both files, how prompt.md is generated, and where prompt.md is referenced/mutated (especially in cub stage)\n2. Define file roles: Establish that `runloop.md` = system-managed core loop instructions (immutable by features), `prompt.md` = user-customizable additions or consider removal if redundant\n3. Create plan-level context: Introduce pattern for capturing plan-scoped system context (e.g., `plan-prompt-context.md` in plan directories) that gets injected at runtime rather than persisted globally\n4. Update init_cmd.py: Create only the primary file (runloop.md), remove prompt.md generation unless there's clear use case for user customization zone\n5. Remove prompt.md mutations: Audit codebase for code that writes to prompt.md (especially cub stage) and replace with plan-directory context mechanism\n6. Update CLAUDE.md: Document final file structure, roles, and context composition hierarchy (system runloop \u2192 user prompt.md if kept \u2192 plan context at runtime)",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664812",
+    "captured_at": "2026-02-04T03:44:44.049603Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T22:44:44.073179",
+      "completed_at": "2026-02-04T03:59:23.163706Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5775,
+        "output_tokens": 22566,
+        "cache_read_tokens": 5357963,
+        "cache_creation_tokens": 125220
+      },
+      "cost_usd": 4.111012500000001,
+      "duration_seconds": 879
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T03:59:23.290254Z",
+    "total_cost_usd": 4.111012500000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 879,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "75aa9ed7739933daf1ed346ddfd6a75b5d50f6ae",
+        "message": "task(cub-t44.4): Consolidate runloop.md and PROMPT.md initialization",
+        "author": "",
+        "timestamp": "2026-02-04T03:59:03Z"
+      }
+    ],
+    "approach": "The task consolidated overlapping system prompt files by removing the dual-file pattern (.cub/runloop.md and .cub/prompt.md) and establishing a single source of truth (runloop.md) with runtime-injected plan context. The implementation involved removing initialization and mutation code, adding a plan-level context generation function, and updating the prompt builder to support runtime composition instead of file mutation.",
+    "decisions": [
+      "Made `runloop.md` the only system-managed file by removing `_ensure_prompt_md()` from initialization, establishing a clear ownership model where cub controls only the core loop instructions",
+      "Created `_generate_plan_context()` to write plan-level context to `plans/<slug>/prompt-context.md` instead of mutating `.cub/prompt.md` during staging, enabling non-destructive context composition",
+      "Added a `plan_slug` parameter to `generate_system_prompt()` for runtime injection rather than pre-computing context, allowing dynamic composition based on the current execution context",
+      "Simplified the prompt search path to only check `.cub/runloop.md` and template fallback, removing the legacy PROMPT.md chain that created confusion",
+      "Updated all tests to reflect the new architecture rather than maintaining backwards compatibility with the old dual-file system"
+    ],
+    "lessons_learned": [
+      "Dual-file patterns create ownership confusion and should be consolidated early\u2014when multiple files serve overlapping purposes, establish a clear separation between system-managed (immutable) and user-customizable (mutable) files",
+      "Runtime composition (injecting context at execution time) is more flexible than compile-time mutation (rewriting files during prep stages), as it allows context to be dynamic based on current state",
+      "Comprehensive test updates are essential when removing features\u2014the 3 failing tests caught the PROMPT.md references and ensured the new architecture was tested rather than just removing old code",
+      "Documentation in agent.md should be updated immediately when changing core patterns to prevent future confusion, especially for context composition which is central to the autonomous workflow",
+      "Plan-level context files should live in plan directories (not global) to keep context scoped and decoupled from features that might add or remove plans"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T03:59:23.290254Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:44:44.049603Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:59:23.290254Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T03:44:44.049603Z",
+  "completed_at": "2026-02-04T03:59:23.290254Z",
+  "tokens": {
+    "input_tokens": 5775,
+    "output_tokens": 22566,
+    "cache_read_tokens": 5357963,
+    "cache_creation_tokens": 125220
+  },
+  "cost_usd": 4.111012500000001,
+  "duration_seconds": 879,
+  "iterations": 1,
+  "approach": "The task consolidated overlapping system prompt files by removing the dual-file pattern (.cub/runloop.md and .cub/prompt.md) and establishing a single source of truth (runloop.md) with runtime-injected plan context. The implementation involved removing initialization and mutation code, adding a plan-level context generation function, and updating the prompt builder to support runtime composition instead of file mutation.",
+  "decisions": [
+    "Made `runloop.md` the only system-managed file by removing `_ensure_prompt_md()` from initialization, establishing a clear ownership model where cub controls only the core loop instructions",
+    "Created `_generate_plan_context()` to write plan-level context to `plans/<slug>/prompt-context.md` instead of mutating `.cub/prompt.md` during staging, enabling non-destructive context composition",
+    "Added a `plan_slug` parameter to `generate_system_prompt()` for runtime injection rather than pre-computing context, allowing dynamic composition based on the current execution context",
+    "Simplified the prompt search path to only check `.cub/runloop.md` and template fallback, removing the legacy PROMPT.md chain that created confusion",
+    "Updated all tests to reflect the new architecture rather than maintaining backwards compatibility with the old dual-file system"
+  ],
+  "lessons_learned": [
+    "Dual-file patterns create ownership confusion and should be consolidated early\u2014when multiple files serve overlapping purposes, establish a clear separation between system-managed (immutable) and user-customizable (mutable) files",
+    "Runtime composition (injecting context at execution time) is more flexible than compile-time mutation (rewriting files during prep stages), as it allows context to be dynamic based on current state",
+    "Comprehensive test updates are essential when removing features\u2014the 3 failing tests caught the PROMPT.md references and ensured the new architecture was tested rather than just removing old code",
+    "Documentation in agent.md should be updated immediately when changing core patterns to prevent future confusion, especially for context composition which is central to the autonomous workflow",
+    "Plan-level context files should live in plan directories (not global) to keep context scoped and decoupled from features that might add or remove plans"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "75aa9ed7739933daf1ed346ddfd6a75b5d50f6ae",
+      "message": "task(cub-t44.4): Consolidate runloop.md and PROMPT.md initialization",
+      "author": "",
+      "timestamp": "2026-02-04T03:59:03Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.4",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

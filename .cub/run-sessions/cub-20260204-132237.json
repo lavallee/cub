@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260204-132237",
+  "started_at": "2026-02-04T13:22:37.941515Z",
+  "project_dir": "/home/lavallee/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 300,
+    "tokens_limit": 500000,
+    "cost_usd": 0.0,
+    "cost_limit": 50.0
+  },
+  "tasks_completed": 1,
+  "tasks_failed": 0,
+  "current_task": null,
+  "status": "completed",
+  "ended_at": "2026-02-04T13:22:37.962038Z",
+  "orphaned_at": null,
+  "orphaned_reason": null
+}

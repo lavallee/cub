@@ -17,3 +17,10 @@ bindings:
   merged: false
   pr_number: null
   status: active
+- epic_id: cub-t44
+  branch_name: feature/cub-t44
+  base_branch: origin/main
+  status: active
+  created_at: '2026-02-03T22:14:01Z'
+  pr_number: null
+  merged: false

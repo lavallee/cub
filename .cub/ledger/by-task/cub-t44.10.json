@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "id": "cub-t44.10",
+  "title": "Fix plan.json generation through planning pipeline",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Fix plan.json generation through planning pipeline",
+    "description": "The planning workflow (`cub plan orient`, `cub plan architect`, `cub plan itemize`) fails to properly generate and update plan.json at each phase, breaking the downstream `cub stage` command which depends on reading a complete plan.json file. This blocks the entire planning-to-tasks pipeline. The issue spans multiple phases and requires auditing each command to ensure plan.json is created on first phase, updated by subsequent phases, and in a format that `cub stage` can consume.\n\n**Implementation Steps:**\n1. Audit `cub plan orient` command to ensure it creates `.cub/sessions/{session}/plan.json` with orient-phase output\n2. Audit `cub plan architect` command to ensure it reads the existing plan.json and appends/updates architect-phase output\n3. Audit `cub plan itemize` command to ensure it reads the existing plan.json and appends/updates itemize-phase output\n4. Verify plan.json schema is consistent and readable by `cub stage` at each phase\n5. Add integration test covering the full pipeline: orient \u2192 architect \u2192 itemize \u2192 stage\n6. Fix any serialization, path resolution, or state accumulation bugs discovered",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.665069",
+    "captured_at": "2026-02-04T13:31:18.792382Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-081646",
+      "started_at": "2026-02-04T08:31:18.814150",
+      "completed_at": "2026-02-04T13:36:29.352390Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 9732,
+        "output_tokens": 12823,
+        "cache_read_tokens": 4957376,
+        "cache_creation_tokens": 133695
+      },
+      "cost_usd": 3.7262397499999995,
+      "duration_seconds": 310
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T13:36:29.431749Z",
+    "total_cost_usd": 3.7262397499999995,
+    "total_attempts": 1,
+    "total_duration_seconds": 310,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "fc6bc20cc95ea0fbf10adefc1f9800498b5e1d1d",
+        "message": "task(cub-t44.10): Fix plan.json generation through planning pipeline",
+        "author": "",
+        "timestamp": "2026-02-04T13:36:02Z"
+      }
+    ],
+    "approach": "Audited the planning pipeline codebase to verify that `plan.json` generation and updates were working correctly at each phase (orient, architect, itemize), then added comprehensive integration tests to validate the full pipeline from plan creation through task staging. This addressed the task description's concern about missing or malformed plan.json files by confirming the existing implementation was sound and adding test coverage to prevent regressions.",
+    "decisions": [
+      "Created integration tests rather than fixing bugs, since code audit revealed the implementation was already correct\u2014the tests serve as regression prevention and documentation of expected behavior",
+      "Placed integration tests in a new file (`tests/integration/test_plan_to_stage_pipeline.py`) to keep plan-to-stage pipeline tests organized separately from unit tests",
+      "Tested both happy path (complete pipeline) and edge cases (missing files, corrupted state) to ensure robustness",
+      "Fixed pre-existing import sorting issues in new test code rather than leaving style inconsistencies"
+    ],
+    "lessons_learned": [
+      "The planning pipeline uses a consistent pattern: `start_stage()` \u2192 `ensure_plan_dir()` \u2192 `save_plan()` \u2192 [work] \u2192 `complete_stage()` \u2192 `save_plan()`. This pattern ensures plan.json is always written and should be maintained for future extensions",
+      "Integration tests covering the full pipeline (orient \u2192 architect \u2192 itemize \u2192 stage) are valuable for catching breakages in the planning-to-tasks workflow, which has multiple interdependencies",
+      "When a task description claims a feature is broken but tests pass, the code may be correct\u2014audit the code path thoroughly before assuming the issue exists",
+      "Tests that verify both file persistence (plan.json exists and is readable) and semantic correctness (data survives round-trips) are more robust than tests that only check in-memory state"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:36:29.431749Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:31:18.792382Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:36:29.431749Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T13:31:18.792382Z",
+  "completed_at": "2026-02-04T13:36:29.431749Z",
+  "tokens": {
+    "input_tokens": 9732,
+    "output_tokens": 12823,
+    "cache_read_tokens": 4957376,
+    "cache_creation_tokens": 133695
+  },
+  "cost_usd": 3.7262397499999995,
+  "duration_seconds": 310,
+  "iterations": 1,
+  "approach": "Audited the planning pipeline codebase to verify that `plan.json` generation and updates were working correctly at each phase (orient, architect, itemize), then added comprehensive integration tests to validate the full pipeline from plan creation through task staging. This addressed the task description's concern about missing or malformed plan.json files by confirming the existing implementation was sound and adding test coverage to prevent regressions.",
+  "decisions": [
+    "Created integration tests rather than fixing bugs, since code audit revealed the implementation was already correct\u2014the tests serve as regression prevention and documentation of expected behavior",
+    "Placed integration tests in a new file (`tests/integration/test_plan_to_stage_pipeline.py`) to keep plan-to-stage pipeline tests organized separately from unit tests",
+    "Tested both happy path (complete pipeline) and edge cases (missing files, corrupted state) to ensure robustness",
+    "Fixed pre-existing import sorting issues in new test code rather than leaving style inconsistencies"
+  ],
+  "lessons_learned": [
+    "The planning pipeline uses a consistent pattern: `start_stage()` \u2192 `ensure_plan_dir()` \u2192 `save_plan()` \u2192 [work] \u2192 `complete_stage()` \u2192 `save_plan()`. This pattern ensures plan.json is always written and should be maintained for future extensions",
+    "Integration tests covering the full pipeline (orient \u2192 architect \u2192 itemize \u2192 stage) are valuable for catching breakages in the planning-to-tasks workflow, which has multiple interdependencies",
+    "When a task description claims a feature is broken but tests pass, the code may be correct\u2014audit the code path thoroughly before assuming the issue exists",
+    "Tests that verify both file persistence (plan.json exists and is readable) and semantic correctness (data survives round-trips) are more robust than tests that only check in-memory state"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "fc6bc20cc95ea0fbf10adefc1f9800498b5e1d1d",
+      "message": "task(cub-t44.10): Fix plan.json generation through planning pipeline",
+      "author": "",
+      "timestamp": "2026-02-04T13:36:02Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.10",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

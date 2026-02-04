@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-t44.5",
+  "title": "Consolidate config files into single .cub/config.json",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Consolidate config files into single .cub/config.json",
+    "description": "The project has two config files with overlapping purposes: `.cub.json` (project root) for user settings like harness and budget, and `.cub/config.json` (internal state) for dev_mode flags. This split is confusing for users who don't know which file to edit. Consolidating all config into `.cub/config.json` simplifies the mental model, reduces maintenance burden, and makes configuration self-discoverable in the `.cub/` directory structure.\n\n**Implementation Steps:**\n1. Audit current config usage in `src/cub/core/config/loader.py` to identify all fields in `.cub.json` and `.cub/config.json`, document which are user-facing vs internal\n2. Design unified config schema in `.cub/config.json` with clear separation between user settings (harness, budget, state checks) and internal state (dev_mode, etc.) via top-level sections\n3. Update `src/cub/cli/init_cmd.py` to write all config to `.cub/config.json` and stop creating `.cub.json`\n4. Update `src/cub/core/config/loader.py` to read from `.cub/config.json` with fallback to `.cub.json` for backwards compatibility, issue deprecation warning if `.cub.json` is found\n5. Update template in `src/cub/templates/.cub.json` to add migration note or convert to `.cub/config.json` template\n6. Add migration logic to detect existing `.cub.json` files and warn users to run `cub init` to consolidate\n7. Write tests for backwards-compatible config loading and deprecation warnings\n8. Update CLAUDE.md documentation to explain the consolidated config structure",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664857",
+    "captured_at": "2026-02-04T03:59:36.780453Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T22:59:36.802392",
+      "completed_at": "2026-02-04T04:12:44.523721Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 22875,
+        "output_tokens": 22729,
+        "cache_read_tokens": 6580434,
+        "cache_creation_tokens": 116650
+      },
+      "cost_usd": 4.758638500000003,
+      "duration_seconds": 787
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T04:12:44.615114Z",
+    "total_cost_usd": 4.758638500000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 787,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "4c93120c8f3f71a3695d3a225a24ba1f59a32fc4",
+        "message": "task(cub-t44.5): Consolidate config files into single .cub/config.json",
+        "author": "",
+        "timestamp": "2026-02-04T04:12:19Z"
+      }
+    ],
+    "approach": "Consolidated the config system by making `.cub/config.json` the primary location, implementing backwards-compatible reading of the legacy `.cub.json` file with deprecation warnings, and updating initialization logic to merge and migrate settings into the unified config file. This approach preserves backwards compatibility while guiding users toward the new structure.",
+    "decisions": [
+      "Made `.cub/config.json` the primary config location while keeping `.cub.json` readable for backwards compatibility, rather than forcing an immediate migration that would break existing projects",
+      "Implemented deprecation warnings that appear only once per session using a cache flag, avoiding log spam while still alerting users to migrate",
+      "Consolidated all config (user-facing and internal) into a single file with logical grouping, rather than maintaining separate internal/external configs",
+      "Updated `cub init` to create only `.cub/config.json` going forward and migrate existing `.cub.json` settings on init, rather than requiring manual user migration",
+      "Added comprehensive test coverage for the backwards compatibility path before removing the legacy code path, ensuring the migration works correctly"
+    ],
+    "lessons_learned": [
+      "When consolidating legacy systems, providing deprecation warnings and backwards compatibility is critical for not breaking existing users' workflows, and warnings should be shown sparingly (once per session) to avoid fatigue",
+      "Testing the fallback/migration path thoroughly before deprecating old code paths prevents subtle bugs where the legacy path isn't exercised in practice",
+      "Documenting configuration changes in the project's architectural documentation (CLAUDE.md) helps future developers understand the rationale and structure, reducing confusion when there are multiple config locations",
+      "Large test suites (5242 tests) are valuable for validating refactors\u2014running the full suite caught that no new regressions were introduced despite touching config initialization in multiple places",
+      "When updating templates and initialization logic, it's important to also update test fixtures and e2e test projects to stay in sync, otherwise tests become unreliable signals of real-world behavior"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T04:12:44.615114Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:59:36.780453Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T04:12:44.615114Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T03:59:36.780453Z",
+  "completed_at": "2026-02-04T04:12:44.615114Z",
+  "tokens": {
+    "input_tokens": 22875,
+    "output_tokens": 22729,
+    "cache_read_tokens": 6580434,
+    "cache_creation_tokens": 116650
+  },
+  "cost_usd": 4.758638500000003,
+  "duration_seconds": 787,
+  "iterations": 1,
+  "approach": "Consolidated the config system by making `.cub/config.json` the primary location, implementing backwards-compatible reading of the legacy `.cub.json` file with deprecation warnings, and updating initialization logic to merge and migrate settings into the unified config file. This approach preserves backwards compatibility while guiding users toward the new structure.",
+  "decisions": [
+    "Made `.cub/config.json` the primary config location while keeping `.cub.json` readable for backwards compatibility, rather than forcing an immediate migration that would break existing projects",
+    "Implemented deprecation warnings that appear only once per session using a cache flag, avoiding log spam while still alerting users to migrate",
+    "Consolidated all config (user-facing and internal) into a single file with logical grouping, rather than maintaining separate internal/external configs",
+    "Updated `cub init` to create only `.cub/config.json` going forward and migrate existing `.cub.json` settings on init, rather than requiring manual user migration",
+    "Added comprehensive test coverage for the backwards compatibility path before removing the legacy code path, ensuring the migration works correctly"
+  ],
+  "lessons_learned": [
+    "When consolidating legacy systems, providing deprecation warnings and backwards compatibility is critical for not breaking existing users' workflows, and warnings should be shown sparingly (once per session) to avoid fatigue",
+    "Testing the fallback/migration path thoroughly before deprecating old code paths prevents subtle bugs where the legacy path isn't exercised in practice",
+    "Documenting configuration changes in the project's architectural documentation (CLAUDE.md) helps future developers understand the rationale and structure, reducing confusion when there are multiple config locations",
+    "Large test suites (5242 tests) are valuable for validating refactors\u2014running the full suite caught that no new regressions were introduced despite touching config initialization in multiple places",
+    "When updating templates and initialization logic, it's important to also update test fixtures and e2e test projects to stay in sync, otherwise tests become unreliable signals of real-world behavior"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "4c93120c8f3f71a3695d3a225a24ba1f59a32fc4",
+      "message": "task(cub-t44.5): Consolidate config files into single .cub/config.json",
+      "author": "",
+      "timestamp": "2026-02-04T04:12:19Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.5",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

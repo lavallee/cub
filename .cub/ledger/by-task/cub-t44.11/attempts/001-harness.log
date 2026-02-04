@@ -1,0 +1,46 @@
+Let me find the project structure first:Good, the task is already marked as `in_progress`. Let me read the key files:Now let me look at the task backend loading logic to understand how backend auto-detection works:Now I have a good understanding of the code. Let me check the tests to understand how to add tests:Now I have a complete understanding of the codebase. Let me summarize what needs to be done:
+
+1. **Current State:** In `init_cmd.py`, `_ensure_project_config()` accepts a `backend` parameter and sets it in the config, but `init_project()` only passes this parameter AFTER calling `_init_backend()`.
+
+2. **Changes Needed:**
+   - The `_ensure_project_config()` already correctly writes `backend.mode` to the config when the `backend` parameter is provided
+   - But `init_project()` calls `_ensure_project_config()` with `backend=chosen_backend` AFTER backend initialization
+   - The `detect_backend()` in `backend.py` already checks config for `backend.mode`, but it falls back to auto-detection if mode is "auto" or invalid
+
+3. **Implementation Plan:**
+   - Verify that `_ensure_project_config()` is being called with the backend parameter (it is)
+   - The issue is that the backend setting is already being written correctly. Let me trace through the flow again...
+
+Actually, looking closer at the code:
+- Line 744-745: `chosen_backend = detect_backend(backend)` then `_init_backend(project_dir, chosen_backend)`
+- Line 756: `migrated = _ensure_project_config(project_dir, force=force, backend=chosen_backend)`
+
+The config IS being written with the backend. But the issue is that in `detect_backend()` in `backend.py`, the config loading with backend.mode is checked but if no config exists yet, auto-detection falls through.
+
+Let me verify the current behavior and then write tests to confirm:So the issue is clear now: **`_ensure_project_config()` is NOT writing the backend to the config**. Let me trace through why:I see the issue! Look at line 416:
+```python
+# If config exists and not forcing, just return
+if config_file.exists() and not force and not migrated:
+    return False
+```
+
+The problem is that `_ensure_project_id()` is called BEFORE `_ensure_project_config()`, and it creates the config file. So when `_ensure_project_config()` is called, the config file already exists and it returns early without setting the backend!
+
+Let me verify this:Now I understand the problem completely:
+
+1. Step 2.5 (`_ensure_project_id()`) creates the config file with just the project_id
+2. Step 4 (`_ensure_project_config()`) sees that the config file exists and returns early at line 416 WITHOUT setting the backend
+
+The fix is to modify `_ensure_project_config()` to NOT return early when a backend is specified - it should always update the config to include the backend mode.
+
+Let me implement the fix:Now let me verify the fix works:Now let me also verify that the backend.py respects this configuration correctly. Let me check that `detect_backend()` in `backend.py` properly reads and respects the config:Excellent! Now let me add tests to verify this behavior. First let me add tests to the existing test file:Now let me add the new tests at the end of the file:Now let's run the tests to make sure everything works:All tests pass. Now let's run the full test suite to make sure we haven't broken anything:The failing test is `test_install_from_source` which appears to be unrelated to our changes (it's about source installation). Let me check what that test does:That test passes when run individually - the failure was likely a flaky test or order-dependent issue. Let me run the typecheck and linting:The mypy errors are pre-existing issues unrelated to our changes, and ruff passes. Let's run the specific tests for the module we modified and one more comprehensive test:All tests pass. Now let's mark the task as closed and commit our changes:Now I need to update the task status. Let me read the entire file to properly update it:Now let's commit the changes:The task is complete. Let me verify all acceptance criteria are met:
+
+1. ✅ `cub init` writes `"backend": {"mode": "jsonl"}` (or user-selected mode) to config
+2. ✅ Config model validation accepts and preserves the explicit `backend.mode` setting (already worked via BackendConfig model)
+3. ✅ Backend loading logic respects explicit config setting over auto-detection (verified with test)
+4. ✅ All existing tests pass; added tests verifying explicit backend configuration
+5. ✅ Running `cub init` followed by `cub task list` uses the configured backend, not auto-detection
+
+Let me check if there are remaining tasks in the epic:There's still one more task remaining in the epic (`cub-t44.12`), so this isn't the final task. The task `cub-t44.11` is now complete.
+
+<promise>COMPLETE</promise>

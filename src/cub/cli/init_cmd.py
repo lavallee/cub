@@ -4,14 +4,24 @@ Init command implementation for cub project initialization.
 This module provides the native Python ``cub init`` command, handling:
 - Project type detection (python, node, react, nextjs, go, rust, generic)
 - Task backend initialization (beads or jsonl)
-- Template copying (PROMPT.md, .cub.json, commands/)
+- Template copying (runloop.md, prompt.md, .cub.json, commands/)
 - .gitignore updating with cub patterns
 - Global configuration setup (``cub init --global``)
-- Instruction file generation (AGENTS.md, CLAUDE.md)
+- Instruction file generation (CLAUDE.md with AGENTS.md as symlink)
 - Claude Code hook installation
 - Statusline installation
+
+System Prompt Architecture:
+- runloop.md is the system-managed prompt template (immutable by features)
+- prompt.md is user-customizable and preserved across re-init (unless --force)
+- Plan-level context is injected at runtime, not persisted globally
+- See prompt_builder.py for context composition logic
+
+Note: CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
+symlink to CLAUDE.md to ensure consistency without duplication.
 """
 
+import hashlib
 import json
 import os
 import shutil
@@ -28,7 +38,7 @@ from cub.core.constitution import ensure_constitution
 from cub.core.hooks.installer import install_hooks
 from cub.core.instructions import (
     UpsertAction,
-    generate_agents_md,
+    create_agents_symlink,
     generate_claude_md,
     upsert_managed_section,
 )
@@ -104,6 +114,56 @@ def _detect_dev_mode(project_dir: Path) -> bool:
         return False
 
 
+def _generate_project_id(project_dir: Path) -> str:
+    """
+    Generate a unique project_id from the project directory name.
+
+    Uses the first 3 lowercase characters of the directory name.
+    Falls back to "cub" if the name is too short.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        A 3-character project_id prefix
+    """
+    name = project_dir.name.lower()
+    # Strip common prefixes that might cause collisions
+    if name.startswith("cub-"):
+        # Use the part after "cub-" for better uniqueness
+        name = name[4:]
+    prefix = name[:3]
+    return prefix if prefix else "cub"
+
+
+def _ensure_project_id(project_dir: Path, project_id: str | None = None) -> str:
+    """
+    Ensure project_id is set in .cub/config.json.
+
+    If project_id is not already set, generates one from the directory name
+    or uses the provided value.
+
+    Args:
+        project_dir: Project directory path
+        project_id: Optional explicit project_id to use
+
+    Returns:
+        The project_id that was set or already exists
+    """
+    config = _load_project_config(project_dir) or {}
+
+    # If already set and no override provided, keep existing
+    if config.get("project_id") and project_id is None:
+        return str(config["project_id"])
+
+    # Generate or use provided
+    final_id = project_id if project_id else _generate_project_id(project_dir)
+    config["project_id"] = final_id
+    _save_project_config(project_dir, config)
+
+    return final_id
+
+
 def _ensure_dev_mode_config(project_dir: Path, dev_mode_override: bool | None = None) -> None:
     """Ensure dev_mode is set in .cub/config.json."""
     config = _load_project_config(project_dir) or {}
@@ -162,6 +222,104 @@ def _ensure_runloop(project_dir: Path, force: bool = False) -> None:
 
     if not target_path.exists() or force:
         shutil.copy2(source_path, target_path)
+
+
+def _file_hash(path: Path) -> str:
+    """Calculate MD5 hash of a file for content comparison."""
+    return hashlib.md5(path.read_bytes()).hexdigest()
+
+
+def _ensure_prompt_md(project_dir: Path, force: bool = False) -> str:
+    """
+    Ensure prompt.md exists in .cub/ directory, preserving user modifications.
+
+    This function handles the user-customizable prompt.md file with careful
+    preservation of user modifications:
+
+    1. If prompt.md doesn't exist: Create from template
+    2. If prompt.md exists and matches template: No action needed
+    3. If prompt.md exists and differs from template:
+       - Without --force: Skip with warning (preserve user modifications)
+       - With --force: Overwrite with template
+
+    The PROMPT.md symlink in project root is also maintained.
+
+    Args:
+        project_dir: Project directory path
+        force: If True, overwrite even if user has modified the file
+
+    Returns:
+        Status message indicating what action was taken:
+        - "created": New file was created from template
+        - "skipped_modified": User-modified file was preserved
+        - "skipped_unchanged": File already matches template
+        - "overwritten": User-modified file was overwritten (force=True)
+    """
+    cub_dir = project_dir / ".cub"
+    cub_dir.mkdir(exist_ok=True)
+    target_path = cub_dir / "prompt.md"
+
+    templates_dir = _get_templates_dir()
+    source_path = templates_dir / "PROMPT.md"
+    if not source_path.exists():
+        raise FileNotFoundError(f"Template not found: {source_path}")
+
+    # Determine action based on file state
+    if not target_path.exists():
+        # New file - create from template
+        shutil.copy2(source_path, target_path)
+        _ensure_prompt_symlink(project_dir)
+        return "created"
+
+    # File exists - check if it matches template
+    source_hash = _file_hash(source_path)
+    target_hash = _file_hash(target_path)
+
+    if source_hash == target_hash:
+        # File matches template - no action needed
+        _ensure_prompt_symlink(project_dir)
+        return "skipped_unchanged"
+
+    # File differs from template
+    if force:
+        # Force flag - overwrite user modifications
+        shutil.copy2(source_path, target_path)
+        _ensure_prompt_symlink(project_dir)
+        return "overwritten"
+    else:
+        # Preserve user modifications
+        _ensure_prompt_symlink(project_dir)
+        return "skipped_modified"
+
+
+def _ensure_prompt_symlink(project_dir: Path) -> None:
+    """
+    Ensure PROMPT.md symlink exists in project root pointing to .cub/prompt.md.
+
+    Creates the symlink if it doesn't exist. If a regular file exists at
+    PROMPT.md, it is NOT converted to a symlink (user may have intentionally
+    created a separate file).
+    """
+    symlink_path = project_dir / "PROMPT.md"
+    target = Path(".cub/prompt.md")
+
+    if symlink_path.is_symlink():
+        # Already a symlink - verify it points to correct location
+        try:
+            current_target = symlink_path.readlink()
+            if current_target != target:
+                symlink_path.unlink()
+                symlink_path.symlink_to(target)
+        except OSError:
+            pass  # Symlink issues are non-fatal
+    elif not symlink_path.exists():
+        # No file exists - create symlink
+        try:
+            symlink_path.symlink_to(target)
+        except OSError:
+            # Symlink creation failed (e.g., Windows without admin)
+            pass
+    # If a regular file exists, leave it alone (user's choice)
 
 
 # ---------------------------------------------------------------------------
@@ -258,33 +416,10 @@ def _init_backend(project_dir: Path, backend: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _ensure_prompt_md(project_dir: Path, backend: str, force: bool = False) -> None:
-    """Copy and customize PROMPT.md template for the project."""
-    target = project_dir / ".cub" / "prompt.md"
-    if target.exists() and not force:
-        return
-
-    templates_dir = _get_templates_dir()
-    source = templates_dir / "PROMPT.md"
-    if not source.exists():
-        return
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    content = source.read_text(encoding="utf-8")
-
-    # Customize backend-specific closure instructions
-    if backend == "beads":
-        content = content.replace(
-            "{{TASK_CLOSURE}}",
-            'bd close <task-id> -r "reason"',
-        )
-    else:
-        content = content.replace(
-            "{{TASK_CLOSURE}}",
-            'cub task close <task-id> -r "reason"',
-        )
-
-    target.write_text(content, encoding="utf-8")
+# NOTE: _ensure_prompt_md() is defined above and handles user-customizable
+# prompt.md with modification detection. runloop.md is the system-managed
+# template, while prompt.md is intended for user customization.
+# Plan-level context is injected at runtime via prompt_builder.py.
 
 
 def _install_claude_commands(project_dir: Path) -> int:
@@ -328,16 +463,159 @@ def _ensure_specs_dir(project_dir: Path) -> None:
     specs_dir.mkdir(exist_ok=True)
 
 
-def _ensure_cub_json(project_dir: Path, force: bool = False) -> None:
-    """Copy .cub.json template if not already present."""
-    target = project_dir / ".cub.json"
-    if target.exists() and not force:
-        return
+def _ensure_project_config(
+    project_dir: Path, force: bool = False, backend: str | None = None
+) -> bool:
+    """
+    Ensure project configuration exists in .cub/config.json.
 
-    templates_dir = _get_templates_dir()
-    source = templates_dir / ".cub.json"
-    if source.exists():
-        shutil.copy2(source, target)
+    This is the consolidated project configuration file that contains both
+    user-facing settings (harness, budget, state, loop, hooks, interview)
+    and internal state (project_id, dev_mode, backend).
+
+    If a legacy .cub.json exists, migrates its settings to .cub/config.json.
+
+    Args:
+        project_dir: Project directory
+        force: If True, overwrite existing config with defaults
+        backend: Optional backend mode to set
+
+    Returns:
+        True if migration from legacy config occurred
+    """
+    config_dir = project_dir / ".cub"
+    config_file = config_dir / "config.json"
+    legacy_file = project_dir / ".cub.json"
+
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check if we need to migrate from legacy config
+    migrated = False
+    existing_config: dict[str, Any] = {}
+    legacy_config: dict[str, Any] = {}
+
+    # Load existing .cub/config.json if present
+    if config_file.exists() and not force:
+        try:
+            with open(config_file, encoding="utf-8") as f:
+                existing_config = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            existing_config = {}
+
+    # Load legacy .cub.json if present (for migration)
+    if legacy_file.exists():
+        try:
+            with open(legacy_file, encoding="utf-8") as f:
+                legacy_config = json.load(f)
+            # Filter out comment block (<!-- key)
+            legacy_config = {k: v for k, v in legacy_config.items() if not k.startswith("<!--")}
+            migrated = True
+        except (json.JSONDecodeError, OSError):
+            legacy_config = {}
+
+    # If config exists and not forcing, check if we need to update backend
+    if config_file.exists() and not force and not migrated:
+        # Still need to set backend if specified and not already set
+        if backend and existing_config.get("backend", {}).get("mode") != backend:
+            existing_config.setdefault("backend", {})["mode"] = backend
+            try:
+                with open(config_file, "w", encoding="utf-8") as f:
+                    json.dump(existing_config, f, indent=2)
+                    f.write("\n")
+            except OSError as e:
+                console.print(f"[yellow]Warning: Could not update backend in config: {e}[/yellow]")
+        return False
+
+    # Build the default config template (without JSON comments)
+    default_config: dict[str, Any] = {
+        "harness": "claude",
+        "budget": {
+            "max_tokens_per_task": 500000,
+            "max_tasks_per_session": None,
+            "max_total_cost": None,
+        },
+        "state": {
+            "require_clean": True,
+            "run_tests": True,
+            "run_typecheck": False,
+            "run_lint": False,
+        },
+        "loop": {
+            "max_iterations": 100,
+            "on_task_failure": "stop",
+        },
+        "hooks": {
+            "enabled": True,
+            "fail_fast": False,
+        },
+        "interview": {
+            "custom_questions": [],
+        },
+    }
+
+    # Merge in order: default -> legacy -> existing -> backend override
+    merged: dict[str, Any] = default_config.copy()
+
+    # Deep merge legacy config (migrating from .cub.json)
+    if legacy_config:
+        for key, value in legacy_config.items():
+            if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
+                merged[key].update(value)
+            else:
+                merged[key] = value
+
+    # Deep merge existing .cub/config.json (preserves internal state like project_id, dev_mode)
+    for key, value in existing_config.items():
+        if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
+            merged[key].update(value)
+        else:
+            merged[key] = value
+
+    # Set backend if specified
+    if backend:
+        if "backend" not in merged:
+            merged["backend"] = {}
+        merged["backend"]["mode"] = backend
+
+    # Write the consolidated config
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(merged, f, indent=2)
+            f.write("\n")
+    except OSError as e:
+        console.print(f"[yellow]Warning: Could not write config: {e}[/yellow]")
+
+    return migrated
+
+
+def _migrate_legacy_config(project_dir: Path) -> bool:
+    """
+    Migrate settings from legacy .cub.json to .cub/config.json.
+
+    This is called during init to consolidate config files. The legacy
+    .cub.json file is NOT deleted to allow users to verify the migration.
+
+    Args:
+        project_dir: Project directory
+
+    Returns:
+        True if migration occurred
+    """
+    legacy_file = project_dir / ".cub.json"
+    if not legacy_file.exists():
+        return False
+
+    migrated = _ensure_project_config(project_dir, force=False)
+
+    if migrated:
+        console.print(
+            "[yellow]i[/yellow] Migrated settings from .cub.json to .cub/config.json"
+        )
+        console.print(
+            "[yellow]i[/yellow] You can safely delete .cub.json after verifying the migration"
+        )
+
+    return migrated
 
 
 # ---------------------------------------------------------------------------
@@ -394,10 +672,13 @@ def generate_instruction_files(
     dev_mode_override: bool | None = None,
 ) -> None:
     """
-    Generate AGENTS.md and CLAUDE.md instruction files at project root.
+    Generate CLAUDE.md instruction file and AGENTS.md symlink at project root.
+
+    CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
+    symlink to CLAUDE.md to ensure consistency without duplication.
 
     Uses the managed section upsert engine to non-destructively update
-    instruction files. Also ensures constitution and runloop are in place.
+    CLAUDE.md. Also ensures constitution and runloop are in place.
     """
     # Ensure dev_mode is configured
     _ensure_dev_mode_config(project_dir, dev_mode_override)
@@ -432,6 +713,22 @@ def generate_instruction_files(
     except Exception as e:
         console.print(f"[red]Error ensuring runloop: {e}[/red]")
 
+    # Ensure prompt.md exists (user-customizable, preserve modifications)
+    try:
+        prompt_status = _ensure_prompt_md(project_dir, force=force)
+        if prompt_status == "created":
+            console.print("[green]v[/green] Created .cub/prompt.md")
+        elif prompt_status == "skipped_modified":
+            console.print(
+                "[yellow]i[/yellow] Preserved user-modified .cub/prompt.md "
+                "(use --force to overwrite)"
+            )
+        elif prompt_status == "overwritten":
+            console.print("[green]v[/green] Overwrote .cub/prompt.md with template")
+        # skipped_unchanged: no message needed
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not ensure prompt.md: {e}[/yellow]")
+
     # Ensure .cub/agent.md exists (from template, don't overwrite)
     try:
         agent_path = project_dir / ".cub" / "agent.md"
@@ -442,35 +739,14 @@ def generate_instruction_files(
             template_path = templates_dir / "agent.md"
             if template_path.exists():
                 agent_path.parent.mkdir(parents=True, exist_ok=True)
-                agent_path.write_text(
-                    template_path.read_text(encoding="utf-8"), encoding="utf-8"
-                )
+                agent_path.write_text(template_path.read_text(encoding="utf-8"), encoding="utf-8")
                 console.print("[green]v[/green] Created .cub/agent.md")
             else:
                 console.print("[yellow]Warning: agent.md template not found[/yellow]")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not create agent.md: {e}[/yellow]")
 
-    # Generate managed section content for AGENTS.md
-    try:
-        agents_content = generate_agents_md(project_dir, config)
-        agents_path = project_dir / "AGENTS.md"
-        result = upsert_managed_section(agents_path, agents_content, version=1)
-
-        if result.action == UpsertAction.CREATED:
-            console.print("[green]v[/green] Created AGENTS.md")
-        elif result.action == UpsertAction.APPENDED:
-            console.print("[green]v[/green] Added managed section to AGENTS.md")
-        elif result.action == UpsertAction.REPLACED:
-            console.print("[green]v[/green] Updated managed section in AGENTS.md")
-
-        if result.warnings:
-            for warning in result.warnings:
-                console.print(f"[yellow]Warning: {warning}[/yellow]")
-    except Exception as e:
-        console.print(f"[red]Error creating AGENTS.md: {e}[/red]")
-
-    # Generate managed section content for CLAUDE.md
+    # Generate managed section content for CLAUDE.md (canonical instruction file)
     try:
         claude_content = generate_claude_md(project_dir, config)
         claude_path = project_dir / "CLAUDE.md"
@@ -488,6 +764,33 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating CLAUDE.md: {e}[/red]")
+
+    # Create AGENTS.md as symlink to CLAUDE.md (single source of truth)
+    try:
+        agents_path = project_dir / "AGENTS.md"
+        if agents_path.is_symlink():
+            # Already a symlink, update if needed
+            if create_agents_symlink(project_dir, force=True):
+                console.print("[green]v[/green] AGENTS.md symlink ready")
+        elif agents_path.exists():
+            # Existing file - convert to symlink with backup
+            import shutil as shutil_backup
+
+            backup_path = project_dir / "AGENTS.md.backup"
+            shutil_backup.move(str(agents_path), str(backup_path))
+            console.print("[yellow]i[/yellow] Backed up existing AGENTS.md to AGENTS.md.backup")
+            if create_agents_symlink(project_dir, force=True):
+                console.print("[green]v[/green] Created AGENTS.md symlink (-> CLAUDE.md)")
+        else:
+            # No existing file, create symlink
+            if create_agents_symlink(project_dir, force=False):
+                console.print("[green]v[/green] Created AGENTS.md symlink (-> CLAUDE.md)")
+    except OSError as e:
+        # Symlink creation failed (e.g., Windows without admin)
+        console.print(f"[yellow]Warning: Could not create AGENTS.md symlink: {e}[/yellow]")
+        console.print(
+            "[yellow]i[/yellow] On Windows, symlinks require Developer Mode or admin rights"
+        )
 
     # Generate project map
     try:
@@ -538,6 +841,7 @@ def init_project(
     install_hooks_flag: bool = True,
     dev_mode_override: bool | None = None,
     quiet: bool = False,
+    project_id: str | None = None,
 ) -> None:
     """
     Full project initialization sequence.
@@ -566,14 +870,25 @@ def init_project(
     chosen_backend = detect_backend(backend)
     _init_backend(project_dir, chosen_backend)
 
+    # 2.5. Ensure project_id is set for task ID prefixes
+    final_project_id = _ensure_project_id(project_dir, project_id)
+    console.print(f"[green]v[/green] Project ID set to: {final_project_id}")
+
     # 3. Create specs/ directory
     _ensure_specs_dir(project_dir)
 
-    # 4. Copy .cub.json template
-    _ensure_cub_json(project_dir, force=force)
+    # 4. Ensure consolidated project config in .cub/config.json
+    # This also migrates settings from legacy .cub.json if present
+    migrated = _ensure_project_config(project_dir, force=force, backend=chosen_backend)
+    if migrated:
+        console.print(
+            "[yellow]i[/yellow] Migrated settings from .cub.json to .cub/config.json"
+        )
+    else:
+        console.print("[green]v[/green] Project config ready at .cub/config.json")
 
-    # 5. Copy PROMPT.md template
-    _ensure_prompt_md(project_dir, chosen_backend, force=force)
+    # 5. prompt.md is now handled in generate_instruction_files()
+    # It preserves user modifications unless --force is used
 
     # 6. Install Claude Code commands/skills
     cmd_count = _install_claude_commands(project_dir)
@@ -679,6 +994,12 @@ def main(
         "-q",
         help="Suppress post-command guidance messages",
     ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        "-p",
+        help="Project ID prefix for task IDs (auto-generated if not specified)",
+    ),
 ) -> None:
     """
     Initialize cub in a project or globally.
@@ -696,6 +1017,7 @@ def main(
         cub init --no-hooks         # Skip hook installation
         cub init --backend beads    # Force beads backend
         cub init --type python      # Force Python project type
+        cub init --project-id myp   # Set explicit project ID prefix
     """
     if global_:
         _init_global(force=force)
@@ -712,6 +1034,7 @@ def main(
         install_hooks_flag=hooks,
         dev_mode_override=dev_mode,
         quiet=quiet,
+        project_id=project_id,
     )
 
 

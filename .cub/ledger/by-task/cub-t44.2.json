@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "id": "cub-t44.2",
+  "title": "Add explicit project_id to prevent task ID prefix collisions",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Add explicit project_id to prevent task ID prefix collisions",
+    "description": "The current `_get_prefix()` method in jsonl.py derives task ID prefixes from the first 3 characters of the project directory name, causing collisions when multiple projects share the same prefix (e.g., both \"cub\" and \"cub-roundabout\" get prefix \"cub\"). This results in task IDs like `cub-a1x` in the roundabout project instead of the intended `rou-a1x`, making task IDs non-unique across projects. The fix requires adding an explicit `project_id` setting to `.cub/config.json` that persists a unique prefix, with `cub init` prompting users to set or auto-generating one if not provided.\n\n**Implementation Steps:**\n1. Modify `.cub.json` template to include a `project_id` field with a unique prefix (auto-generated if not provided during init)\n2. Update `src/cub/cli/init_cmd.py` to prompt for or auto-generate a project_id during initialization, ensuring uniqueness\n3. Update `src/cub/core/tasks/jsonl.py::_get_prefix()` to read the project_id from config instead of deriving from directory name\n4. Update config loading in `src/cub/core/config/loader.py` to handle the new `project_id` field\n5. Add migration logic to detect old projects without `project_id` and auto-populate based on directory name on first use\n6. Update tests to verify prefix comes from config, not directory name",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664711",
+    "captured_at": "2026-02-04T03:22:06.871625Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T22:22:06.893785",
+      "completed_at": "2026-02-04T03:31:17.148010Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 54,
+        "output_tokens": 12131,
+        "cache_read_tokens": 3329222,
+        "cache_creation_tokens": 92329
+      },
+      "cost_usd": 2.6031822499999984,
+      "duration_seconds": 550
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T03:31:17.541082Z",
+    "total_cost_usd": 2.6031822499999984,
+    "total_attempts": 1,
+    "total_duration_seconds": 550,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9f806a7b42d9586a09da896ee92830c45b2ec698",
+        "message": "task(cub-t44.2): Add explicit project_id to prevent task ID prefix collisions",
+        "author": "",
+        "timestamp": "2026-02-04T03:31:05Z"
+      }
+    ],
+    "approach": "The task was completed by adding an explicit `project_id` configuration field to prevent task ID prefix collisions. The implementation involved updating the config model to support `project_id`, modifying the prefix derivation logic to check this field first before falling back to directory names, and enhancing the initialization process to generate and persist unique project IDs during `cub init`.",
+    "decisions": [
+      "**Config layering strategy**: Check `.cub/config.json` first (internal cub state), then `.cub.json` (root config), then fall back to directory name. This respects the distinction between internal state and user-facing config while maintaining backwards compatibility.",
+      "**Project ID generation**: Derived from directory name using first 3 non-\"cub-\" characters (e.g., \"cub-roundabout\" \u2192 \"rou\"). This avoids prefix collisions for projects with common base names.",
+      "**Migration approach**: No explicit migration needed\u2014the fallback to directory name handles legacy projects seamlessly. New projects get explicit project_id on init.",
+      "**CLI flexibility**: Added `--project-id` flag to `cub init` to allow users to override the auto-generated prefix if needed."
+    ],
+    "lessons_learned": [
+      "**Config model boundaries matter**: The codebase cleanly separates `.cub/config.json` (internal state like `dev_mode`, `project_id`) from `.cub.json` (user-facing config). Understanding this distinction was crucial for placing the fix in the right location.",
+      "**Backwards compatibility through fallback**: Rather than forcing migration, falling back to directory name preserves existing behavior for legacy projects while enabling the fix for new ones. This reduces operational burden.",
+      "**Test coverage for layering**: When implementing config layering with multiple sources, explicit tests for priority ordering catch subtle bugs where the wrong source takes precedence.",
+      "**Prefix collision prevention through truncation**: Generating only the first 3 characters of the project name creates short, memorable IDs while reducing collision surface area compared to full names."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T03:31:17.541082Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:22:06.871625Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:31:17.541082Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T03:22:06.871625Z",
+  "completed_at": "2026-02-04T03:31:17.541082Z",
+  "tokens": {
+    "input_tokens": 54,
+    "output_tokens": 12131,
+    "cache_read_tokens": 3329222,
+    "cache_creation_tokens": 92329
+  },
+  "cost_usd": 2.6031822499999984,
+  "duration_seconds": 550,
+  "iterations": 1,
+  "approach": "The task was completed by adding an explicit `project_id` configuration field to prevent task ID prefix collisions. The implementation involved updating the config model to support `project_id`, modifying the prefix derivation logic to check this field first before falling back to directory names, and enhancing the initialization process to generate and persist unique project IDs during `cub init`.",
+  "decisions": [
+    "**Config layering strategy**: Check `.cub/config.json` first (internal cub state), then `.cub.json` (root config), then fall back to directory name. This respects the distinction between internal state and user-facing config while maintaining backwards compatibility.",
+    "**Project ID generation**: Derived from directory name using first 3 non-\"cub-\" characters (e.g., \"cub-roundabout\" \u2192 \"rou\"). This avoids prefix collisions for projects with common base names.",
+    "**Migration approach**: No explicit migration needed\u2014the fallback to directory name handles legacy projects seamlessly. New projects get explicit project_id on init.",
+    "**CLI flexibility**: Added `--project-id` flag to `cub init` to allow users to override the auto-generated prefix if needed."
+  ],
+  "lessons_learned": [
+    "**Config model boundaries matter**: The codebase cleanly separates `.cub/config.json` (internal state like `dev_mode`, `project_id`) from `.cub.json` (user-facing config). Understanding this distinction was crucial for placing the fix in the right location.",
+    "**Backwards compatibility through fallback**: Rather than forcing migration, falling back to directory name preserves existing behavior for legacy projects while enabling the fix for new ones. This reduces operational burden.",
+    "**Test coverage for layering**: When implementing config layering with multiple sources, explicit tests for priority ordering catch subtle bugs where the wrong source takes precedence.",
+    "**Prefix collision prevention through truncation**: Generating only the first 3 characters of the project name creates short, memorable IDs while reducing collision surface area compared to full names."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "9f806a7b42d9586a09da896ee92830c45b2ec698",
+      "message": "task(cub-t44.2): Add explicit project_id to prevent task ID prefix collisions",
+      "author": "",
+      "timestamp": "2026-02-04T03:31:05Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.2",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,13 @@
+Let me research the `cub stage` command and examine existing skill templates:Let me find the templates directory structure:Let me read a few existing skill templates to understand the format:Now I have a good understanding of the skill template format and the `cub stage` command functionality. Let me create the skill template:Now let me run the feedback loops (typecheck, lint, tests):The typecheck errors are pre-existing and not related to my change (the stage skill template is a markdown file, not Python). Let me run the linter:The linter errors are all pre-existing issues unrelated to my markdown file change. Let me run the tests to make sure everything still works:All tests pass. Now let me update the task status to closed:Now let me commit the changes:I have successfully completed task cub-t44.8. Let me verify there are more tasks remaining:There are still open tasks, but they are not part of the epic I was assigned (cub-t44). Let me check if there are remaining sibling tasks in cub-t44:There are still 4 remaining sibling tasks in the cub-t44 epic (cub-t44.9 through cub-t44.12), so the loop should continue. I've completed my assigned task (cub-t44.8).
+
+**Summary of completed work:**
+
+- Created `/home/lavallee/cub/templates/commands/cub:stage.md` skill template
+- The skill documents:
+  - Command purpose (bridging planning and execution by importing tasks)
+  - Available flags (`--list`, `--dry-run`, `--verbose`)
+  - Usage examples for common scenarios
+  - Prerequisites and post-staging workflow
+- All tests pass (5242 passed)
+- Task marked as closed in `.cub/tasks.jsonl`
+- Changes committed with message: `task(cub-t44.8): Create cub:stage skill template`

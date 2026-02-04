@@ -445,6 +445,16 @@ class CubConfig(BaseModel):
         True
     """
 
+    # Project identification
+    project_id: str | None = Field(
+        default=None,
+        description=(
+            "Unique project identifier used as prefix for task IDs. "
+            "This prevents collisions when multiple projects share similar names. "
+            "Auto-generated during 'cub init' if not specified."
+        ),
+    )
+
     # Core settings
     dev_mode: bool = Field(
         default=False,

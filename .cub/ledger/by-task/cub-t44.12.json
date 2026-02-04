@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "id": "cub-t44.12",
+  "title": "Preserve user-modified prompt.md on init",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Preserve user-modified prompt.md on init",
+    "description": "The `cub init` command currently overwrites prompt.md unconditionally, destroying user customizations. Since prompt.md is intended to be user-customizable (as documented in CLAUDE.md's context composition section), this breaks the workflow where users tailor the autonomous coding experience for their project. The fix should detect when prompt.md has been modified and either skip overwriting it or prompt the user to choose.\n\n**Implementation Steps:**\n1. Read the template prompt.md from the package templates directory\n2. Check if prompt.md already exists in the project root\n3. If it exists, compare the user's version with the template version (byte-for-byte or hash-based comparison)\n4. If they differ, either: (a) skip the write with a log message, or (b) prompt the user with options to keep/replace/review\n5. Only write the template if the file doesn't exist or the user explicitly approves overwriting\n6. Add clear logging to indicate which action was taken (skipped, wrote, or prompted)",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.665141",
+    "captured_at": "2026-02-04T13:43:29.624318Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-081646",
+      "started_at": "2026-02-04T08:43:29.647868",
+      "completed_at": "2026-02-04T13:49:54.240260Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2415,
+        "output_tokens": 17147,
+        "cache_read_tokens": 4322132,
+        "cache_creation_tokens": 76622
+      },
+      "cost_usd": 3.1277055000000007,
+      "duration_seconds": 384
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T13:49:54.325276Z",
+    "total_cost_usd": 3.1277055000000007,
+    "total_attempts": 1,
+    "total_duration_seconds": 384,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "beee5f34ae0e6b3f9fe5c382f0c1a384e86a1128",
+        "message": "task(cub-t44.12): Preserve user-modified prompt.md on init",
+        "author": "",
+        "timestamp": "2026-02-04T13:49:40Z"
+      }
+    ],
+    "approach": "Added prompt.md preservation logic to the Python `cub init` command by implementing a `_ensure_prompt_md()` function that checks if the file exists and differs from the template before overwriting, matching the protection pattern already used in `cub update`. This makes `cub init` idempotent and safe to re-run without destroying user customizations.",
+    "decisions": [
+      "Reused the existing `files_differ()` utility function rather than creating new logic, maintaining consistency with `cub update`'s approach",
+      "Placed `_ensure_prompt_md()` call in `generate_instruction_files()` alongside other template file handling functions, keeping related logic together",
+      "Used MD5 hashing (consistent with `files_differ()` implementation) for efficient file comparison rather than reading full file contents into memory",
+      "Added comprehensive test coverage with three test cases: new file creation, preservation of unmodified files, and preservation of user modifications"
+    ],
+    "lessons_learned": [
+      "File preservation logic should be centralized and consistent across commands (init, update) to prevent user confusion about which command has safe behavior",
+      "When a function is \"removed\" in comments (as `_ensure_prompt_md()` was), verify whether that removal was intended or if the functionality was missed during refactoring",
+      "The existing `update.py` already had the correct diff-based protection pattern\u2014the fix was to apply that same pattern to `init.py` for consistency",
+      "Utility functions like `files_differ()` should be shared across modules to maintain behavioral consistency and reduce duplication"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:49:54.325276Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:43:29.624318Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:49:54.325276Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T13:43:29.624318Z",
+  "completed_at": "2026-02-04T13:49:54.325276Z",
+  "tokens": {
+    "input_tokens": 2415,
+    "output_tokens": 17147,
+    "cache_read_tokens": 4322132,
+    "cache_creation_tokens": 76622
+  },
+  "cost_usd": 3.1277055000000007,
+  "duration_seconds": 384,
+  "iterations": 1,
+  "approach": "Added prompt.md preservation logic to the Python `cub init` command by implementing a `_ensure_prompt_md()` function that checks if the file exists and differs from the template before overwriting, matching the protection pattern already used in `cub update`. This makes `cub init` idempotent and safe to re-run without destroying user customizations.",
+  "decisions": [
+    "Reused the existing `files_differ()` utility function rather than creating new logic, maintaining consistency with `cub update`'s approach",
+    "Placed `_ensure_prompt_md()` call in `generate_instruction_files()` alongside other template file handling functions, keeping related logic together",
+    "Used MD5 hashing (consistent with `files_differ()` implementation) for efficient file comparison rather than reading full file contents into memory",
+    "Added comprehensive test coverage with three test cases: new file creation, preservation of unmodified files, and preservation of user modifications"
+  ],
+  "lessons_learned": [
+    "File preservation logic should be centralized and consistent across commands (init, update) to prevent user confusion about which command has safe behavior",
+    "When a function is \"removed\" in comments (as `_ensure_prompt_md()` was), verify whether that removal was intended or if the functionality was missed during refactoring",
+    "The existing `update.py` already had the correct diff-based protection pattern\u2014the fix was to apply that same pattern to `init.py` for consistency",
+    "Utility functions like `files_differ()` should be shared across modules to maintain behavioral consistency and reduce duplication"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "beee5f34ae0e6b3f9fe5c382f0c1a384e86a1128",
+      "message": "task(cub-t44.12): Preserve user-modified prompt.md on init",
+      "author": "",
+      "timestamp": "2026-02-04T13:49:40Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.12",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

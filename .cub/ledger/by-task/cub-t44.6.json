@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-t44.6",
+  "title": "Enhance agent.md template with richer cub workflow documentation",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Enhance agent.md template with richer cub workflow documentation",
+    "description": "The current `templates/agent.md` provides functional setup instructions but lacks comprehensive guidance for developers using cub effectively during sessions. It misses quick-start workflows, common command patterns, troubleshooting resources, and pointers to diagnostic tools like hook logs. Enriching this template will improve developer experience by providing self-contained guidance within each project's agent context, reducing friction when switching between projects and enabling better autonomous coding sessions.\n\n**Implementation Steps:**\n1. Review current `templates/agent.md` and identify gaps in workflow guidance\n2. Add a \"Quick Start Workflow\" section covering task discovery, claiming, and completion patterns\n3. Add a \"Common Command Patterns\" section with practical examples of cub task, status, and suggest commands\n4. Add a \"Troubleshooting\" section including hook verification, forensics log locations (.cub/ledger/forensics/), and common issues\n5. Add a \"Reading Task Output\" section explaining task metadata, blockers, and dependencies\n6. Add cross-references to full documentation with @.cub/agent.md links and cub docs pointers\n7. Ensure template preserves the existing structure and remains under ~500 lines total\n8. Test that generated CLAUDE.md files in new projects include the enhanced content",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664897",
+    "captured_at": "2026-02-04T04:12:56.762362Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T23:12:56.802877",
+      "completed_at": "2026-02-04T04:16:44.280443Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2,
+        "output_tokens": 6682,
+        "cache_read_tokens": 1632599,
+        "cache_creation_tokens": 54962
+      },
+      "cost_usd": 1.4836772500000004,
+      "duration_seconds": 227
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T04:16:44.366027Z",
+    "total_cost_usd": 1.4836772500000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 227,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "1514cc33f363f025e472c990a1b710aee889e15b",
+        "message": "task(cub-t44.6): Enhance agent.md template with richer cub workflow documentation",
+        "author": "",
+        "timestamp": "2026-02-04T04:16:24Z"
+      }
+    ],
+    "approach": "The approach was to analyze the cub project's comprehensive agent.md file to identify documentation patterns and best practices, then enhance the templates/agent.md template with equivalent sections tailored for new projects. The enhanced template includes quick-start workflows, common command patterns, troubleshooting guidance, and cross-references to documentation while maintaining a manageable ~283 line length suitable for template use.",
+    "decisions": [
+      "Structured the template with a \"Quick Start Workflow\" section listing 5 sequential steps (find work \u2192 claim \u2192 build/test \u2192 complete \u2192 log) to guide developers through the task lifecycle immediately upon project creation",
+      "Included \"Common Command Patterns\" with real-world examples for discovery, run loop execution, monitoring, and session tracking rather than just listing available commands, providing context for when to use each",
+      "Placed troubleshooting guidance in its own section with specific actionable items (hook verification, forensics log location at `.cub/ledger/forensics/`) rather than burying it in other sections",
+      "Used @-syntax cross-references (e.g., @.cub/agent.md, @.cub/map.md) to link to external documentation patterns, reducing duplication while enabling projects to customize their own context",
+      "Added a \"Reading Task Output\" section explaining task metadata interpretation (blockers, epic relationships) since developers encounter this immediately when running `cub task` commands",
+      "Kept template at 283 lines (well under the ~500 line limit) to remain lightweight while being sufficiently comprehensive"
+    ],
+    "lessons_learned": [
+      "Template enrichment should focus on reducing cognitive load for first-time users by providing guided workflows (quick start) before comprehensive reference material (command patterns)",
+      "Cross-referencing via @-syntax enables templates to point to project-specific customization points without requiring template changes, improving maintainability across many projects",
+      "Including concrete command examples with context (when/why to use) is more valuable than command lists alone; developers benefit from understanding the workflow, not just the syntax",
+      "Verification of template changes requires testing the full lifecycle (template \u2192 new project creation \u2192 generated content) rather than just checking template syntax, since templates are primarily useful when instantiated",
+      "Pre-existing code quality issues in a repo should be documented and separated from task-specific changes to avoid conflating unrelated problems"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T04:16:44.366027Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T04:12:56.762362Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T04:16:44.366027Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T04:12:56.762362Z",
+  "completed_at": "2026-02-04T04:16:44.366027Z",
+  "tokens": {
+    "input_tokens": 2,
+    "output_tokens": 6682,
+    "cache_read_tokens": 1632599,
+    "cache_creation_tokens": 54962
+  },
+  "cost_usd": 1.4836772500000004,
+  "duration_seconds": 227,
+  "iterations": 1,
+  "approach": "The approach was to analyze the cub project's comprehensive agent.md file to identify documentation patterns and best practices, then enhance the templates/agent.md template with equivalent sections tailored for new projects. The enhanced template includes quick-start workflows, common command patterns, troubleshooting guidance, and cross-references to documentation while maintaining a manageable ~283 line length suitable for template use.",
+  "decisions": [
+    "Structured the template with a \"Quick Start Workflow\" section listing 5 sequential steps (find work \u2192 claim \u2192 build/test \u2192 complete \u2192 log) to guide developers through the task lifecycle immediately upon project creation",
+    "Included \"Common Command Patterns\" with real-world examples for discovery, run loop execution, monitoring, and session tracking rather than just listing available commands, providing context for when to use each",
+    "Placed troubleshooting guidance in its own section with specific actionable items (hook verification, forensics log location at `.cub/ledger/forensics/`) rather than burying it in other sections",
+    "Used @-syntax cross-references (e.g., @.cub/agent.md, @.cub/map.md) to link to external documentation patterns, reducing duplication while enabling projects to customize their own context",
+    "Added a \"Reading Task Output\" section explaining task metadata interpretation (blockers, epic relationships) since developers encounter this immediately when running `cub task` commands",
+    "Kept template at 283 lines (well under the ~500 line limit) to remain lightweight while being sufficiently comprehensive"
+  ],
+  "lessons_learned": [
+    "Template enrichment should focus on reducing cognitive load for first-time users by providing guided workflows (quick start) before comprehensive reference material (command patterns)",
+    "Cross-referencing via @-syntax enables templates to point to project-specific customization points without requiring template changes, improving maintainability across many projects",
+    "Including concrete command examples with context (when/why to use) is more valuable than command lists alone; developers benefit from understanding the workflow, not just the syntax",
+    "Verification of template changes requires testing the full lifecycle (template \u2192 new project creation \u2192 generated content) rather than just checking template syntax, since templates are primarily useful when instantiated",
+    "Pre-existing code quality issues in a repo should be documented and separated from task-specific changes to avoid conflating unrelated problems"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "1514cc33f363f025e472c990a1b710aee889e15b",
+      "message": "task(cub-t44.6): Enhance agent.md template with richer cub workflow documentation",
+      "author": "",
+      "timestamp": "2026-02-04T04:16:24Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.6",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

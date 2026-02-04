@@ -1,0 +1,51 @@
+Let me explore the project structure first:Let me find the actual project location:Good, the task is already in_progress. Now let me read the relevant source files:Now let me read init_cmd.py and look at the config loader:Now let me look at the .cub/config.json file that's used for project-level config and check for existing tests:Interesting! The `.cub/config.json` already has a `project_id` field. Let me check the test file for jsonl and templates:Now I have a full picture of the codebase. Let me update my todo list and implement the changes:Based on my analysis:
+
+1. The `.cub/config.json` already has a `project_id` field (set to `"cub"`)
+2. The `jsonl.py::_get_prefix()` currently derives the prefix from the directory name (first 3 chars)
+3. The `init_cmd.py` writes to `.cub/config.json` but doesn't set `project_id`
+4. The `config/loader.py` reads from `.cub.json` (the root file), not `.cub/config.json`
+
+There's a distinction between:
+- `.cub.json` (root) - project configuration merged with global config
+- `.cub/config.json` - internal cub state (dev_mode, project_id)
+
+I need to:
+1. Add `project_id` to the CubConfig model so it can be read from `.cub.json` 
+2. Update `_get_prefix()` to read from config (checking both `.cub/config.json` and `.cub.json`)
+3. Update `init_cmd.py` to generate and store a project_id on init
+4. Add migration logic for existing projects
+
+Let me start:Now let me update the `_get_prefix()` method in jsonl.py to read from the config:Now let me update the init_cmd.py to set project_id during initialization. I need to:
+1. Generate a project_id (from directory name or let the user specify)
+2. Store it in `.cub/config.json`Now I need to call `_ensure_project_id` during initialization. Let me update the `init_project` function:I can see the structure. Now let me find the right place to add the project_id initialization. I'll add it after the backend initialization:Now let me also add a CLI option to allow users to explicitly set the project_id during init. Let me check the CLI function:Let me add the `--project-id` option to the CLI and update the function signatures:Now let me update the `init_project` function signature to accept the project_id and pass it through, and update the call to `init_project`:Now update the call to `_ensure_project_id`:Now update the CLI call to `init_project`:Now let me add tests for the new functionality. First, I need to update the existing test and add new ones:Now let me run the type checker to catch any issues:Good, no type errors. Now let me run the tests:All 105 tests pass. Now let me run the full test suite to make sure nothing is broken:All 5206 tests pass. Now let me run the linter:The lint errors are pre-existing in the test file (not from my changes). Let me verify this by checking what I actually changed:My changes don't introduce any lint errors - the errors are pre-existing in the test file. Let me verify by checking just the files I changed:All my source code changes pass linting. Now let me close the task by updating the status in the tasks.jsonl file:Now let me commit the changes:The task is complete. Let me verify the commit and provide a summary:## Summary
+
+I've successfully completed the task **cub-t44.2: Add explicit project_id to prevent task ID prefix collisions**. Here's what was implemented:
+
+### Changes Made:
+
+1. **`src/cub/core/config/models.py`**: Added `project_id` field to `CubConfig` model with documentation explaining its purpose.
+
+2. **`src/cub/core/tasks/jsonl.py`**: Updated `_get_prefix()` method to:
+   - First check `.cub/config.json` for `project_id`
+   - Fall back to `.cub.json` for `project_id`
+   - Finally fall back to directory name (for legacy compatibility)
+
+3. **`src/cub/cli/init_cmd.py`**: 
+   - Added `_generate_project_id()` function that derives a prefix from the directory name, stripping "cub-" prefix to avoid collisions
+   - Added `_ensure_project_id()` function that ensures project_id is set in config
+   - Added `--project-id` CLI option to `cub init` for explicit prefix setting
+   - Integrated project_id initialization into the init sequence
+
+4. **`tests/test_jsonl_backend.py`**: Added 5 new tests covering:
+   - Directory-based prefix fallback
+   - Config-based project_id usage
+   - `.cub.json` project_id usage
+   - Priority ordering (`.cub/config.json` > `.cub.json`)
+   - Long project_id truncation
+
+### Verification:
+- ✅ Type checking passes (mypy)
+- ✅ All 5206 tests pass
+- ✅ Linting passes for changed source files
+- ✅ Task marked as closed in tasks.jsonl
+- ✅ Changes committed

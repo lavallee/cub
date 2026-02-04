@@ -1,1 +1,1 @@
-.cub/agent.md
+CLAUDE.md

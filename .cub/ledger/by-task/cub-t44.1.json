@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-t44.1",
+  "title": "Fix statusline to support JSONL task backend",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Fix statusline to support JSONL task backend",
+    "description": "The statusline script hardcodes reading task counts from the Beads backend (`.beads/issues.jsonl`) and ignores the JSONL backend (`.cub/tasks.jsonl`). This causes projects using the JSONL backend to show 0/0/0 task counts in their statusline, providing no visibility into task progress. The fix should detect the available backend at runtime using the same logic as the core tasks module, ensuring statusline works consistently across both backends.\n\n**Implementation Steps:**\n1. Examine `src/cub/core/tasks/backend.py` to understand the `get_backend()` detection logic and how it determines which backend is available\n2. Review `templates/scripts/statusline.py` line 35 and surrounding code to understand the current hardcoded Beads path\n3. Import or replicate the backend detection logic in statusline.py\n4. Update the task count reading code to use the detected backend instead of hardcoding `.beads/issues.jsonl`\n5. Test with both Beads and JSONL backends to verify task counts display correctly",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664509",
+    "captured_at": "2026-02-04T03:14:03.484268Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T22:14:03.512517",
+      "completed_at": "2026-02-04T03:21:55.082001Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 40,
+        "output_tokens": 4146,
+        "cache_read_tokens": 826312,
+        "cache_creation_tokens": 25263
+      },
+      "cost_usd": 0.6994827499999998,
+      "duration_seconds": 471
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T03:21:55.175410Z",
+    "total_cost_usd": 0.6994827499999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 471,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "93a0b987eaa723192b759307d3c27525fa55dffb",
+        "message": "fix(cub-t44.1): statusline supports JSONL task backend",
+        "author": "",
+        "timestamp": "2026-02-04T03:21:47Z"
+      }
+    ],
+    "approach": "Analyzed the task backend detection logic in the core module and replicated it in the statusline script to support both Beads and JSONL backends. Updated the script to check for `.beads/issues.jsonl` first (existing behavior) and fall back to `.cub/tasks.jsonl`, matching the detection precedence used throughout the codebase. Verified the fix works by testing against the current project's JSONL backend and confirming all tests pass.",
+    "decisions": [
+      "Maintained detection order consistency with `core/tasks/backend.py` (Beads first, JSONL second) to ensure statusline behavior matches the rest of the application",
+      "Kept the existing `.beads/issues.jsonl` path check first to preserve backwards compatibility with projects using the older Beads backend",
+      "Implemented fallback logic directly in the statusline script rather than importing from core to avoid introducing new module dependencies"
+    ],
+    "lessons_learned": [
+      "Backend detection logic should be consistent across all components that reference task state; inconsistency causes visibility problems (0/0/0 counts)",
+      "Template scripts distributed with the package need the same runtime detection capabilities as the core modules, not hardcoded assumptions",
+      "Testing with actual backend files (running the script directly against `.cub/tasks.jsonl`) provides better validation than just running unit tests",
+      "Changes to distributed template scripts may need corresponding updates in build output directories (`build/lib/`) to stay synchronized"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T03:21:55.175410Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:14:03.484268Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:21:55.175410Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T03:14:03.484268Z",
+  "completed_at": "2026-02-04T03:21:55.175410Z",
+  "tokens": {
+    "input_tokens": 40,
+    "output_tokens": 4146,
+    "cache_read_tokens": 826312,
+    "cache_creation_tokens": 25263
+  },
+  "cost_usd": 0.6994827499999998,
+  "duration_seconds": 471,
+  "iterations": 1,
+  "approach": "Analyzed the task backend detection logic in the core module and replicated it in the statusline script to support both Beads and JSONL backends. Updated the script to check for `.beads/issues.jsonl` first (existing behavior) and fall back to `.cub/tasks.jsonl`, matching the detection precedence used throughout the codebase. Verified the fix works by testing against the current project's JSONL backend and confirming all tests pass.",
+  "decisions": [
+    "Maintained detection order consistency with `core/tasks/backend.py` (Beads first, JSONL second) to ensure statusline behavior matches the rest of the application",
+    "Kept the existing `.beads/issues.jsonl` path check first to preserve backwards compatibility with projects using the older Beads backend",
+    "Implemented fallback logic directly in the statusline script rather than importing from core to avoid introducing new module dependencies"
+  ],
+  "lessons_learned": [
+    "Backend detection logic should be consistent across all components that reference task state; inconsistency causes visibility problems (0/0/0 counts)",
+    "Template scripts distributed with the package need the same runtime detection capabilities as the core modules, not hardcoded assumptions",
+    "Testing with actual backend files (running the script directly against `.cub/tasks.jsonl`) provides better validation than just running unit tests",
+    "Changes to distributed template scripts may need corresponding updates in build output directories (`build/lib/`) to stay synchronized"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "93a0b987eaa723192b759307d3c27525fa55dffb",
+      "message": "fix(cub-t44.1): statusline supports JSONL task backend",
+      "author": "",
+      "timestamp": "2026-02-04T03:21:47Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.1",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

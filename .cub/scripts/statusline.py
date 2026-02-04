@@ -31,12 +31,21 @@ def main():
     # Project name (cyan)
     parts.append(f"\033[0;36m{project_dir.name}\033[0m")
 
-    # Task counts from beads (open/doing/done)
-    issues_file = project_dir / ".beads" / "issues.jsonl"
+    # Task counts (open/doing/done) - detect backend
+    # Detection order: .beads/ directory (beads), then .cub/tasks.jsonl (jsonl)
+    beads_file = project_dir / ".beads" / "issues.jsonl"
+    jsonl_file = project_dir / ".cub" / "tasks.jsonl"
+
+    tasks_file = None
+    if beads_file.exists():
+        tasks_file = beads_file
+    elif jsonl_file.exists():
+        tasks_file = jsonl_file
+
     counts = {"open": 0, "in_progress": 0, "closed": 0}
-    if issues_file.exists():
+    if tasks_file:
         try:
-            for line in open(issues_file):
+            for line in open(tasks_file):
                 line = line.strip()
                 if not line:
                     continue

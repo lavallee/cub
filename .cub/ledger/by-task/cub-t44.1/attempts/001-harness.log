@@ -1,0 +1,26 @@
+Let me search for these files in the codebase:Now I have the correct paths. Let me read both files:Now I understand both files. The `detect_backend` function in `backend.py` (lines 758-843) shows the detection logic:
+1. Check `CUB_BACKEND` environment variable
+2. Check `.cub.json` config file for `backend.mode` setting
+3. Check for `.beads/` directory → beads backend
+4. Check for `.cub/tasks.jsonl` → jsonl backend
+5. Default to jsonl
+
+The `statusline.py` currently only reads from `.beads/issues.jsonl` (line 35). I need to update it to also check for `.cub/tasks.jsonl` when the beads file doesn't exist.
+
+Let me also check the current tasks file to update my task status:Good, the task is already marked as `in_progress`. Now let me implement the fix for `statusline.py`. The key changes:
+
+1. The statusline needs to detect which backend to use (similar to `detect_backend` logic)
+2. Read from the appropriate file (`.beads/issues.jsonl` for beads, `.cub/tasks.jsonl` for jsonl)
+
+Let me create an updated version of the statusline:Now let me verify the change was applied correctly:The change looks good. Now I need to also update the `build/lib/cub/templates/scripts/statusline.py` file to keep it in sync. Let me check if there are any tests for this file and run the feedback loops:Let me check if there's a test for statusline in that file:There doesn't appear to be a dedicated test for the statusline functionality itself, just mocking. Now let me run the feedback loops to ensure the changes don't break anything:The import ordering lint error was pre-existing (not from my changes). Let me check if this is an issue in the original file:Good, the diff looks correct. The lint error about imports is pre-existing and not related to my changes. Let me run the full test suite to make sure nothing is broken:All 5216 tests passed. Now let me also test the statusline script directly to verify it works with the current project (which uses JSONL backend):The statusline now shows 79 open, 2 in_progress, and 351 closed tasks - which means it's correctly reading from the `.cub/tasks.jsonl` file. Previously this would have shown 0/0/0 because `.beads/issues.jsonl` doesn't exist in this project.
+
+Now let me mark the task as closed and commit:The task is complete. Let me verify the task was closed properly:The task `cub-t44.1` has been completed:
+
+**Summary:**
+- Fixed `templates/scripts/statusline.py` to detect and read from the JSONL backend (`.cub/tasks.jsonl`) when the Beads backend (`.beads/issues.jsonl`) is not available
+- Detection order matches the core tasks module: beads first, then jsonl fallback
+- Tested with the current project which uses JSONL backend - task counts now display correctly (79/2/351 vs 0/0/0 before)
+- All 5216 tests pass
+- Committed as `fix(cub-t44.1): statusline supports JSONL task backend`
+
+<promise>COMPLETE</promise>

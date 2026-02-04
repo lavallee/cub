@@ -10,6 +10,9 @@ from unittest.mock import patch
 import pytest
 
 from cub.cli.init_cmd import (
+    _ensure_prompt_md,
+    _ensure_prompt_symlink,
+    _file_hash,
     _init_global,
     _update_gitignore,
     detect_backend,
@@ -22,8 +25,8 @@ from cub.cli.init_cmd import (
 class TestGenerateInstructionFiles:
     """Tests for generate_instruction_files function."""
 
-    def test_creates_both_files(self, tmp_path: Path) -> None:
-        """Test that both AGENTS.md and CLAUDE.md are created."""
+    def test_creates_claude_and_symlink(self, tmp_path: Path) -> None:
+        """Test that CLAUDE.md is created and AGENTS.md is a symlink to it."""
         generate_instruction_files(tmp_path, force=False)
 
         agents_file = tmp_path / "AGENTS.md"
@@ -31,21 +34,23 @@ class TestGenerateInstructionFiles:
         constitution_file = tmp_path / ".cub" / "constitution.md"
         runloop_file = tmp_path / ".cub" / "runloop.md"
 
-        assert agents_file.exists()
         assert claude_file.exists()
+        assert agents_file.exists()
+        assert agents_file.is_symlink()  # AGENTS.md should be a symlink
         assert constitution_file.exists()
         assert runloop_file.exists()
-        assert len(agents_file.read_text()) > 0
         assert len(claude_file.read_text()) > 0
 
-        # Check for managed section markers
-        agents_content = agents_file.read_text()
+        # Content accessible through symlink should match CLAUDE.md
+        assert agents_file.read_text() == claude_file.read_text()
+
+        # Check for managed section markers in CLAUDE.md
         claude_content = claude_file.read_text()
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
+        assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
         assert "<!-- END CUB MANAGED SECTION" in claude_content
 
-    def test_skips_existing_files_without_force(self, tmp_path: Path) -> None:
-        """Test that managed sections are appended to existing files."""
+    def test_appends_to_claude_and_backs_up_agents(self, tmp_path: Path) -> None:
+        """Test managed section appends to CLAUDE.md and AGENTS.md is backed up then symlinked."""
         # Create initial files with user content
         agents_file = tmp_path / "AGENTS.md"
         claude_file = tmp_path / "CLAUDE.md"
@@ -53,17 +58,23 @@ class TestGenerateInstructionFiles:
         agents_file.write_text("Original AGENTS content\n")
         claude_file.write_text("Original CLAUDE content\n")
 
-        # Generate without force - should APPEND managed section
+        # Generate without force - should APPEND managed section to CLAUDE.md
+        # and backup+convert AGENTS.md to symlink
         generate_instruction_files(tmp_path, force=False)
 
-        # Files should have both original content AND managed section
-        agents_content = agents_file.read_text()
+        # CLAUDE.md should have both original content AND managed section
         claude_content = claude_file.read_text()
-
-        assert "Original AGENTS content" in agents_content
         assert "Original CLAUDE content" in claude_content
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
         assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
+
+        # AGENTS.md should now be a symlink to CLAUDE.md
+        assert agents_file.is_symlink()
+        assert agents_file.read_text() == claude_content
+
+        # Original AGENTS.md should be backed up
+        backup_file = tmp_path / "AGENTS.md.backup"
+        assert backup_file.exists()
+        assert backup_file.read_text() == "Original AGENTS content\n"
 
     def test_overwrites_with_force_flag(self, tmp_path: Path) -> None:
         """Test that constitution and runloop are overwritten with force=True."""
@@ -95,21 +106,23 @@ class TestGenerateInstructionFiles:
         assert (tmp_path / "CLAUDE.md").exists()
 
     def test_creates_valid_markdown_files(self, tmp_path: Path) -> None:
-        """Test that generated files contain valid markdown with managed sections."""
+        """Test that generated CLAUDE.md contains valid markdown with managed sections."""
         generate_instruction_files(tmp_path, force=False)
 
-        agents_content = (tmp_path / "AGENTS.md").read_text()
         claude_content = (tmp_path / "CLAUDE.md").read_text()
 
-        # Check for managed section markers
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
-        assert "<!-- END CUB MANAGED SECTION" in agents_content
+        # Check for managed section markers in CLAUDE.md
         assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
         assert "<!-- END CUB MANAGED SECTION" in claude_content
 
         # Check for key content (using actual content from managed sections)
-        assert "**Context:**" in agents_content or "context" in agents_content.lower()
+        assert "**Context:**" in claude_content or "context" in claude_content.lower()
         assert "workflow" in claude_content.lower()
+
+        # AGENTS.md should be a symlink with identical content
+        agents_path = tmp_path / "AGENTS.md"
+        assert agents_path.is_symlink()
+        assert agents_path.read_text() == claude_content
 
     def test_includes_project_specific_info(self, tmp_path: Path) -> None:
         """Test that generated files include project-specific information."""
@@ -118,12 +131,15 @@ class TestGenerateInstructionFiles:
 
         generate_instruction_files(project_dir, force=False)
 
-        agents_content = (project_dir / "AGENTS.md").read_text()
         claude_content = (project_dir / "CLAUDE.md").read_text()
 
-        # Should include project name
-        assert "my-test-project" in agents_content
+        # Should include project name in CLAUDE.md
         assert "my-test-project" in claude_content
+
+        # AGENTS.md is a symlink, so content is identical
+        agents_path = project_dir / "AGENTS.md"
+        assert agents_path.is_symlink()
+        assert agents_path.read_text() == claude_content
 
     def test_installs_hooks_when_flag_set(self, tmp_path: Path) -> None:
         """Test that hooks are installed when install_hooks_flag=True."""
@@ -171,9 +187,10 @@ class TestGenerateInstructionFiles:
             # Should not raise exception
             generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
 
-            # Main files should still be created
-            assert (tmp_path / "AGENTS.md").exists()
+            # Main files should still be created (CLAUDE.md and AGENTS.md symlink)
             assert (tmp_path / "CLAUDE.md").exists()
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "AGENTS.md").is_symlink()
 
     def test_reports_hook_installation_warnings(self, tmp_path: Path) -> None:
         """Test that hook installation warnings are displayed."""
@@ -196,9 +213,10 @@ class TestGenerateInstructionFiles:
             # Should not raise exception
             generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
 
-            # Main files should still be created
-            assert (tmp_path / "AGENTS.md").exists()
+            # Main files should still be created (CLAUDE.md and AGENTS.md symlink)
             assert (tmp_path / "CLAUDE.md").exists()
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "AGENTS.md").is_symlink()
 
 
 class TestDetectProjectType:
@@ -373,8 +391,9 @@ class TestInitProject:
             )
 
         # Core files should exist
-        assert (tmp_path / "AGENTS.md").exists()
         assert (tmp_path / "CLAUDE.md").exists()
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / "AGENTS.md").is_symlink()  # AGENTS.md should be symlink
         assert (tmp_path / ".cub" / "constitution.md").exists()
         assert (tmp_path / ".cub" / "runloop.md").exists()
         assert (tmp_path / "specs").is_dir()
@@ -419,3 +438,306 @@ class TestInitProject:
 
         with pytest.raises(Exit):
             init_project(tmp_path / "does-not-exist")
+
+    def test_init_project_writes_explicit_backend_to_config(self, tmp_path: Path) -> None:
+        """Test that cub init writes explicit backend.mode to config."""
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Verify config has backend.mode set
+        config_file = tmp_path / ".cub" / "config.json"
+        assert config_file.exists()
+
+        config = json.loads(config_file.read_text())
+        assert "backend" in config
+        assert config["backend"]["mode"] == "jsonl"
+
+    def test_init_project_backend_config_used_by_detect_backend(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that backend loading respects explicit config setting over auto-detection."""
+        from cub.core.config.loader import clear_cache
+        from cub.core.tasks.backend import detect_backend as detect_backend_runtime
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Clear config cache so it re-reads
+        clear_cache()
+
+        # Detect backend should return the configured value
+        detected = detect_backend_runtime(project_dir=tmp_path)
+        assert detected == "jsonl"
+
+    def test_init_project_jsonl_backend_followed_by_task_list(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that cub init followed by task list uses the configured backend."""
+        from cub.core.config.loader import clear_cache
+        from cub.core.tasks.backend import get_backend
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        # Clear config cache
+        clear_cache()
+
+        # Get backend and verify it's the JSONL backend
+        backend = get_backend(project_dir=tmp_path)
+        assert backend.backend_name == "jsonl"
+
+        # Verify we can list tasks (should return empty list for new project)
+        tasks = backend.list_tasks()
+        assert tasks == []
+
+
+class TestEnsurePromptMd:
+    """Tests for _ensure_prompt_md function and prompt.md preservation."""
+
+    def test_creates_prompt_md_if_missing(self, tmp_path: Path) -> None:
+        """Test that prompt.md is created from template if it doesn't exist."""
+        result = _ensure_prompt_md(tmp_path)
+
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+        assert prompt_file.exists()
+        assert result == "created"
+        # Should contain template content
+        assert len(prompt_file.read_text()) > 100
+
+    def test_creates_prompt_symlink(self, tmp_path: Path) -> None:
+        """Test that PROMPT.md symlink is created pointing to .cub/prompt.md."""
+        _ensure_prompt_md(tmp_path)
+
+        symlink_path = tmp_path / "PROMPT.md"
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+
+        # Symlink should exist
+        assert symlink_path.exists() or symlink_path.is_symlink()
+
+        # If it's a symlink, verify it points to the right place
+        if symlink_path.is_symlink():
+            assert symlink_path.read_text() == prompt_file.read_text()
+
+    def test_preserves_user_modified_prompt_md(self, tmp_path: Path) -> None:
+        """Test that user modifications to prompt.md are preserved without --force."""
+        # Create .cub directory and user-modified prompt.md
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir(parents=True)
+        prompt_file = cub_dir / "prompt.md"
+        user_content = "# My Custom Prompt\n\nUser customizations here.\n"
+        prompt_file.write_text(user_content)
+
+        # Run without force
+        result = _ensure_prompt_md(tmp_path, force=False)
+
+        # Should be skipped (modified)
+        assert result == "skipped_modified"
+        # Content should be unchanged
+        assert prompt_file.read_text() == user_content
+
+    def test_overwrites_with_force_flag(self, tmp_path: Path) -> None:
+        """Test that prompt.md is overwritten when --force is used."""
+        # Create .cub directory and user-modified prompt.md
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir(parents=True)
+        prompt_file = cub_dir / "prompt.md"
+        user_content = "# My Custom Prompt\n\nUser customizations here.\n"
+        prompt_file.write_text(user_content)
+
+        # Run with force
+        result = _ensure_prompt_md(tmp_path, force=True)
+
+        # Should be overwritten
+        assert result == "overwritten"
+        # Content should be template content (different from user content)
+        new_content = prompt_file.read_text()
+        assert new_content != user_content
+        assert len(new_content) > 100  # Template is much longer
+
+    def test_skips_unchanged_prompt_md(self, tmp_path: Path) -> None:
+        """Test that prompt.md is skipped if it matches the template."""
+        # First create the prompt.md from template
+        result1 = _ensure_prompt_md(tmp_path, force=False)
+        assert result1 == "created"
+
+        # Run again - should skip since it matches template
+        result2 = _ensure_prompt_md(tmp_path, force=False)
+        assert result2 == "skipped_unchanged"
+
+    def test_file_hash_function(self, tmp_path: Path) -> None:
+        """Test that _file_hash produces consistent hashes."""
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("hello world")
+
+        hash1 = _file_hash(test_file)
+        hash2 = _file_hash(test_file)
+
+        assert hash1 == hash2
+        assert len(hash1) == 32  # MD5 hash length
+
+        # Different content should produce different hash
+        test_file.write_text("different content")
+        hash3 = _file_hash(test_file)
+        assert hash3 != hash1
+
+
+class TestEnsurePromptSymlink:
+    """Tests for _ensure_prompt_symlink function."""
+
+    def test_creates_symlink_when_missing(self, tmp_path: Path) -> None:
+        """Test that symlink is created when it doesn't exist."""
+        # Create .cub/prompt.md first
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir(parents=True)
+        (cub_dir / "prompt.md").write_text("content")
+
+        _ensure_prompt_symlink(tmp_path)
+
+        symlink_path = tmp_path / "PROMPT.md"
+        # Should be a symlink (or not exist on systems without symlink support)
+        if symlink_path.exists():
+            assert symlink_path.is_symlink() or symlink_path.is_file()
+
+    def test_preserves_regular_file(self, tmp_path: Path) -> None:
+        """Test that a regular PROMPT.md file is not converted to symlink."""
+        # Create regular file at PROMPT.md
+        prompt_file = tmp_path / "PROMPT.md"
+        user_content = "User's custom PROMPT.md content"
+        prompt_file.write_text(user_content)
+
+        _ensure_prompt_symlink(tmp_path)
+
+        # Should still be a regular file with original content
+        assert prompt_file.exists()
+        assert not prompt_file.is_symlink()
+        assert prompt_file.read_text() == user_content
+
+
+class TestGenerateInstructionFilesPromptMd:
+    """Tests for prompt.md handling in generate_instruction_files."""
+
+    def test_creates_prompt_md_on_init(self, tmp_path: Path) -> None:
+        """Test that generate_instruction_files creates prompt.md."""
+        generate_instruction_files(tmp_path, force=False)
+
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+        assert prompt_file.exists()
+        assert len(prompt_file.read_text()) > 100
+
+    def test_preserves_prompt_md_on_reinit(self, tmp_path: Path) -> None:
+        """Test that prompt.md is preserved on re-initialization."""
+        # First init
+        generate_instruction_files(tmp_path, force=False)
+
+        # Modify prompt.md
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+        user_content = "# My Custom Prompt\n\nUser customizations.\n"
+        prompt_file.write_text(user_content)
+
+        # Re-init without force
+        generate_instruction_files(tmp_path, force=False)
+
+        # User content should be preserved
+        assert prompt_file.read_text() == user_content
+
+    def test_force_overwrites_prompt_md_on_reinit(self, tmp_path: Path) -> None:
+        """Test that force=True overwrites prompt.md on re-initialization."""
+        # First init
+        generate_instruction_files(tmp_path, force=False)
+
+        # Modify prompt.md
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+        user_content = "# My Custom Prompt\n\nUser customizations.\n"
+        prompt_file.write_text(user_content)
+
+        # Re-init with force
+        generate_instruction_files(tmp_path, force=True)
+
+        # User content should be overwritten
+        new_content = prompt_file.read_text()
+        assert new_content != user_content
+        assert len(new_content) > 100
+
+
+class TestInitProjectPromptMd:
+    """Tests for prompt.md handling in init_project."""
+
+    def test_init_project_creates_prompt_md(self, tmp_path: Path) -> None:
+        """Test that init_project creates prompt.md."""
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+            )
+
+        prompt_file = tmp_path / ".cub" / "prompt.md"
+        assert prompt_file.exists()
+        assert len(prompt_file.read_text()) > 100
+
+    def test_init_project_preserves_modified_prompt_md(self, tmp_path: Path) -> None:
+        """Test that init_project preserves user-modified prompt.md."""
+        # Create initial structure with modified prompt.md
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir(parents=True)
+        prompt_file = cub_dir / "prompt.md"
+        user_content = "# My Custom Prompt\n\nCustomizations.\n"
+        prompt_file.write_text(user_content)
+
+        with (
+            patch("cub.cli.init_cmd.install_hooks") as mock_hooks,
+            patch("cub.cli.statusline.install_statusline", return_value=False),
+        ):
+            from cub.core.hooks.installer import HookInstallResult
+
+            mock_hooks.return_value = HookInstallResult(success=True, message="ok")
+
+            init_project(
+                tmp_path,
+                backend="jsonl",
+                install_hooks_flag=False,
+                force=False,
+            )
+
+        # User content should be preserved
+        assert prompt_file.read_text() == user_content

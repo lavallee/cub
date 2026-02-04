@@ -882,8 +882,8 @@ class TestCreateTask:
         assert task2.id.endswith("-002")
         assert task3.id.endswith("-003")
 
-    def test_create_task_uses_prefix(self, temp_dir):
-        """Test that created tasks use directory-based prefix."""
+    def test_create_task_uses_directory_prefix(self, temp_dir):
+        """Test that created tasks use directory-based prefix when no config."""
         project_dir = temp_dir / "myapp"
         project_dir.mkdir()
 
@@ -891,6 +891,73 @@ class TestCreateTask:
         task = backend.create_task(title="Test")
 
         assert task.id.startswith("mya-")  # First 3 chars of "myapp"
+
+    def test_create_task_uses_config_project_id(self, temp_dir):
+        """Test that created tasks use project_id from .cub/config.json."""
+        project_dir = temp_dir / "myapp"
+        project_dir.mkdir()
+        cub_dir = project_dir / ".cub"
+        cub_dir.mkdir()
+
+        # Set project_id in config
+        config_file = cub_dir / "config.json"
+        config_file.write_text('{"project_id": "xyz"}')
+
+        backend = JsonlBackend(project_dir=project_dir)
+        task = backend.create_task(title="Test")
+
+        assert task.id.startswith("xyz-")  # Uses config project_id
+
+    def test_create_task_uses_cub_json_project_id(self, temp_dir):
+        """Test that created tasks use project_id from .cub.json."""
+        project_dir = temp_dir / "myapp"
+        project_dir.mkdir()
+
+        # Set project_id in .cub.json (root config)
+        cub_json = project_dir / ".cub.json"
+        cub_json.write_text('{"project_id": "abc"}')
+
+        backend = JsonlBackend(project_dir=project_dir)
+        task = backend.create_task(title="Test")
+
+        assert task.id.startswith("abc-")  # Uses .cub.json project_id
+
+    def test_create_task_config_json_takes_priority(self, temp_dir):
+        """Test that .cub/config.json takes priority over .cub.json."""
+        project_dir = temp_dir / "myapp"
+        project_dir.mkdir()
+        cub_dir = project_dir / ".cub"
+        cub_dir.mkdir()
+
+        # Set different project_ids in both files
+        config_file = cub_dir / "config.json"
+        config_file.write_text('{"project_id": "pri"}')
+
+        cub_json = project_dir / ".cub.json"
+        cub_json.write_text('{"project_id": "sec"}')
+
+        backend = JsonlBackend(project_dir=project_dir)
+        task = backend.create_task(title="Test")
+
+        # .cub/config.json should take priority
+        assert task.id.startswith("pri-")
+
+    def test_create_task_long_project_id_truncated(self, temp_dir):
+        """Test that long project_id is truncated to 3 chars."""
+        project_dir = temp_dir / "myapp"
+        project_dir.mkdir()
+        cub_dir = project_dir / ".cub"
+        cub_dir.mkdir()
+
+        # Set a long project_id
+        config_file = cub_dir / "config.json"
+        config_file.write_text('{"project_id": "verylongid"}')
+
+        backend = JsonlBackend(project_dir=project_dir)
+        task = backend.create_task(title="Test")
+
+        # Should be truncated to first 3 chars
+        assert task.id.startswith("ver-")
 
 
 # ==============================================================================

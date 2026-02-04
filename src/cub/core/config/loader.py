@@ -5,10 +5,20 @@ Implements the configuration precedence chain:
     defaults < user config < project config < env vars
 
 This matches the behavior of the Bash lib/config.sh implementation.
+
+Config File Locations:
+    Primary: .cub/config.json (consolidated project config)
+    Legacy:  .cub.json (deprecated, read for backwards compatibility)
+    User:    ~/.config/cub/config.json (global user config)
+
+The .cub/config.json file contains both user-facing settings (harness, budget,
+state, loop, hooks, interview) and internal state (project_id, dev_mode, backend).
 """
 
 import json
+import logging
 import os
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +26,11 @@ from .models import CubConfig
 
 # Global cache to avoid reloading config multiple times per session
 _config_cache: CubConfig | None = None
+
+# Track if we've already warned about legacy config in this session
+_legacy_warning_shown: bool = False
+
+logger = logging.getLogger(__name__)
 
 
 def get_xdg_config_home() -> Path:
@@ -42,13 +57,30 @@ def get_user_config_path() -> Path:
 
 def get_project_config_path(cwd: Path | None = None) -> Path:
     """
-    Get path to project configuration file.
+    Get path to project configuration file (primary location).
 
     Args:
         cwd: Working directory to search from (defaults to current directory)
 
     Returns:
-        Path to .cub.json in the project root
+        Path to .cub/config.json in the project root
+    """
+    if cwd is None:
+        cwd = Path.cwd()
+    return cwd / ".cub" / "config.json"
+
+
+def get_legacy_config_path(cwd: Path | None = None) -> Path:
+    """
+    Get path to legacy project configuration file.
+
+    This location is deprecated. Use .cub/config.json instead.
+
+    Args:
+        cwd: Working directory to search from (defaults to current directory)
+
+    Returns:
+        Path to .cub.json in the project root (legacy location)
     """
     if cwd is None:
         cwd = Path.cwd()
@@ -212,18 +244,94 @@ def get_default_config() -> dict[str, Any]:
     }
 
 
+def _load_project_config_with_fallback(
+    project_dir: Path | None,
+) -> tuple[dict[str, Any] | None, bool]:
+    """
+    Load project config from primary or legacy location.
+
+    Tries .cub/config.json first, then falls back to .cub.json (deprecated).
+
+    Args:
+        project_dir: Project directory to load config from
+
+    Returns:
+        Tuple of (config_dict, used_legacy) where used_legacy is True if
+        the config was loaded from .cub.json (deprecated location)
+    """
+    # Try primary location first: .cub/config.json
+    primary_path = get_project_config_path(project_dir)
+    if primary_config := load_json_file(primary_path):
+        return primary_config, False
+
+    # Fallback to legacy location: .cub.json
+    legacy_path = get_legacy_config_path(project_dir)
+    if legacy_config := load_json_file(legacy_path):
+        return legacy_config, True
+
+    return None, False
+
+
+def _warn_legacy_config(project_dir: Path | None) -> None:
+    """
+    Issue deprecation warning for legacy .cub.json config file.
+
+    Only warns once per session to avoid spam.
+    """
+    global _legacy_warning_shown
+    if _legacy_warning_shown:
+        return
+
+    _legacy_warning_shown = True
+    legacy_path = get_legacy_config_path(project_dir)
+
+    # Use warnings module for proper deprecation handling
+    warnings.warn(
+        f"Config file '{legacy_path}' is deprecated. "
+        "Configuration has been consolidated into '.cub/config.json'. "
+        "Run 'cub init' to migrate, or manually move your settings to '.cub/config.json'.",
+        DeprecationWarning,
+        stacklevel=4,  # Point to the caller of load_config
+    )
+
+    # Also print to console for visibility in CLI usage
+    print(
+        f"[Deprecated] Config file '{legacy_path.name}' is deprecated. "
+        "Run 'cub init' to migrate to '.cub/config.json'."
+    )
+
+
+def has_legacy_config(project_dir: Path | None = None) -> bool:
+    """
+    Check if a legacy .cub.json config file exists.
+
+    This can be used to detect projects that need migration.
+
+    Args:
+        project_dir: Project directory to check (defaults to cwd)
+
+    Returns:
+        True if .cub.json exists in the project root
+    """
+    legacy_path = get_legacy_config_path(project_dir)
+    return legacy_path.exists()
+
+
 def load_config(project_dir: Path | None = None, use_cache: bool = True) -> CubConfig:
     """
     Load configuration with multi-layer merging.
 
     Configuration precedence (highest to lowest):
         1. Environment variables (CUB_*)
-        2. Project config (.cub.json)
+        2. Project config (.cub/config.json or .cub.json for backwards compatibility)
         3. User config (~/.config/cub/config.json)
         4. Hardcoded defaults
 
+    The primary project config location is .cub/config.json. If not found, falls
+    back to .cub.json (deprecated) and issues a deprecation warning.
+
     Args:
-        project_dir: Project directory to load .cub.json from (defaults to cwd)
+        project_dir: Project directory to load config from (defaults to cwd)
         use_cache: If True, return cached config from previous load
 
     Returns:
@@ -254,9 +362,12 @@ def load_config(project_dir: Path | None = None, use_cache: bool = True) -> CubC
         merged = deep_merge(merged, user_config)
 
     # Merge project config (higher priority than user config)
-    project_config_path = get_project_config_path(project_dir)
-    if project_config := load_json_file(project_config_path):
+    # Try primary location (.cub/config.json) first, fallback to legacy (.cub.json)
+    project_config, used_legacy = _load_project_config_with_fallback(project_dir)
+    if project_config is not None:
         merged = deep_merge(merged, project_config)
+        if used_legacy:
+            _warn_legacy_config(project_dir)
 
     # Apply environment variable overrides (highest priority)
     merged = apply_env_overrides(merged)
@@ -275,6 +386,8 @@ def clear_cache() -> None:
     Clear the cached configuration.
 
     Useful for testing or when config files change during execution.
+    Also resets the legacy config warning flag so warnings can be shown again.
     """
-    global _config_cache
+    global _config_cache, _legacy_warning_shown
     _config_cache = None
+    _legacy_warning_shown = False
