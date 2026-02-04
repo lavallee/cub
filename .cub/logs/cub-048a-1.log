@@ -30,3 +30,83 @@ Great! Now let's run a broader test suite to make sure nothing is broken:
 Perfect! All tests pass. Now let's run the linter:
 Great! All linting checks pass. Now let me mark the task as closed:
 Now let's commit the changes:
+Perfect! Let me verify the changes were committed correctly:
+Excellent! The task has been completed successfully. Let me create a quick summary of what was accomplished:
+
+## Task Completed Successfully ✓
+
+I have successfully implemented the `PlanEntry` and `RunEntry` models for the ledger consolidation effort.
+
+### What was implemented:
+
+1. **PlanEntry Model** - Plan-level aggregation stored in `by-plan/{plan_id}/entry.json`:
+   - Core fields: `plan_id`, `spec_id`, `title`, `epics` list
+   - Status: `Literal["in_progress", "completed", "released"]` with validation
+   - Timestamps: `started_at`, `completed_at`
+   - Aggregated metrics: `total_cost`, `total_tokens`, `total_tasks`, `completed_tasks`
+   - Computed properties: `completion_percentage`, `is_complete`
+   - Includes `model_config` for JSON serialization
+
+2. **RunEntry Model** - Run session record stored in `by-run/{run_id}.json`:
+   - Core fields: `run_id` with timestamps
+   - Status: `Literal["running", "completed", "failed", "interrupted"]` with validation
+   - Configuration: Typed `config` dict for run parameters
+   - Task tracking: `tasks_attempted`, `tasks_completed` lists
+   - Resource metrics: `total_cost`, `total_tokens`, `iterations`
+   - Computed properties: `duration_seconds`, `success_rate`
+   - Includes `model_config` for JSON serialization
+
+3. **Package Exports**: Both models exported from `cub.core.ledger` package
+
+### Validation completed:
+- ✅ Type checking passes (mypy)
+- ✅ Status field validation works (Literal types reject invalid values)
+- ✅ JSON serialization/deserialization works correctly
+- ✅ All existing tests pass (56 model tests, 66 integration/IO tests)
+- ✅ Linting passes (ruff)
+- ✅ Task marked as closed in `.cub/tasks.jsonl`
+- ✅ Changes committed with proper commit message
+
+The models are now ready to be used by the LedgerWriter and LedgerReader in subsequent tasks of this epic.
+Task completed in 176.0s
+Tokens: 7,868
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-1.2                                                           │
+│  Title      Extend LedgerWriter with plan and run methods                          │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  2/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      sonnet                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll start by understanding the current state of the codebase and then implement the required methods for LedgerWriter.
+Now let me check the tasks.jsonl file with offset and limit:
+Good! The task is already marked as "in_progress". Now let me look at the existing writer structure to understand the patterns used, and then implement the required methods for `PlanEntry` and `RunEntry`. Let me check if there are any tests for the writer:
+Perfect! Now I understand the patterns used in the LedgerWriter. Let me now implement the required methods. Based on the existing patterns, I need to:
+
+1. Add `by_plan_dir` and `by_run_dir` to `__init__`
+2. Implement `create_plan_entry()` - similar to `create_epic_entry()` 
+3. Implement `update_plan_entry()` - will need to read, update, and write
+4. Implement `create_run_entry()` - simpler, writes directly to `by-run/{run_id}.json`
+5. Implement `update_run_entry()` - similar pattern
+6. Implement `get_plan_entry()` and `get_run_entry()` for reading back
+
+Let me now implement these methods:
+Now let's add the new methods at the end of the class:
+Great! Now let's write tests for the new methods. Let me create a test file:
+Now let me add tests for the new plan and run entry methods:
+Perfect! Now let's run the tests to make sure everything works:
+Excellent! All tests pass. Now let's run the full ledger test suite to make sure we didn't break anything:
+Perfect! All tests pass. Now let's run type checking and linting:
+Let me fix the type annotations:
+Now let me check with mypy again. First, let me check what typing is available:
+I need to use `Any` (capital A) from typing. Let me check the imports in the file:
+I need to import `Any` from typing:
+Now let's run mypy again:
+The only remaining error is about the yaml import, which is a pre-existing issue. Let me check if the full mypy check passes:
+Good! The yaml error is pre-existing and not something I introduced. Let's verify the tests still pass:
+Perfect! Now let's run linting:
+Excellent! Let's also run a broader test to make sure we didn't break anything:
+Excellent! All tests pass. Now let's update the task status to closed and commit the changes:
+Now let's commit the changes:

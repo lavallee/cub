@@ -8,6 +8,8 @@ import pytest
 
 from cub.core.ledger.models import (
     LedgerEntry,
+    PlanEntry,
+    RunEntry,
     TokenUsage,
     VerificationStatus,
 )
@@ -651,3 +653,248 @@ class TestLedgerPromptAndLogWriting:
         assert attempts_dir.exists()
         assert task_dir.is_dir()
         assert attempts_dir.is_dir()
+
+
+class TestLedgerPlanEntries:
+    """Tests for plan entry read/write operations."""
+
+    def test_create_plan_entry(self, ledger_dir: Path) -> None:
+        """Test creating a plan ledger entry."""
+        writer = LedgerWriter(ledger_dir)
+        plan = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Ledger Consolidation Plan A",
+            epics=["cub-054A-0", "cub-054A-1"],
+            status="in_progress",
+            total_cost=1.23,
+            total_tokens=150000,
+            total_tasks=10,
+            completed_tasks=5,
+        )
+
+        writer.create_plan_entry(plan)
+
+        # Verify file structure
+        plan_dir = ledger_dir / "by-plan" / "cub-054A"
+        entry_file = plan_dir / "entry.json"
+        assert plan_dir.exists()
+        assert entry_file.exists()
+
+        # Verify content
+        with open(entry_file) as f:
+            data = json.load(f)
+        assert data["plan_id"] == "cub-054A"
+        assert data["spec_id"] == "cub-054"
+        assert data["title"] == "Ledger Consolidation Plan A"
+        assert data["epics"] == ["cub-054A-0", "cub-054A-1"]
+        assert data["status"] == "in_progress"
+        assert data["total_cost"] == 1.23
+        assert data["total_tokens"] == 150000
+        assert data["total_tasks"] == 10
+        assert data["completed_tasks"] == 5
+
+    def test_get_plan_entry(self, ledger_dir: Path) -> None:
+        """Test getting a plan entry."""
+        writer = LedgerWriter(ledger_dir)
+        plan = PlanEntry(
+            plan_id="cub-055B",
+            spec_id="cub-055",
+            title="Test Plan B",
+        )
+
+        writer.create_plan_entry(plan)
+        retrieved = writer.get_plan_entry("cub-055B")
+
+        assert retrieved is not None
+        assert retrieved.plan_id == "cub-055B"
+        assert retrieved.spec_id == "cub-055"
+        assert retrieved.title == "Test Plan B"
+
+    def test_get_plan_entry_not_found(self, ledger_dir: Path) -> None:
+        """Test getting nonexistent plan entry returns None."""
+        writer = LedgerWriter(ledger_dir)
+        retrieved = writer.get_plan_entry("nonexistent")
+        assert retrieved is None
+
+    def test_update_plan_entry(self, ledger_dir: Path) -> None:
+        """Test updating an existing plan entry."""
+        writer = LedgerWriter(ledger_dir)
+        plan = PlanEntry(
+            plan_id="cub-056C",
+            spec_id="cub-056",
+            title="Test Plan C",
+            status="in_progress",
+            total_tasks=10,
+            completed_tasks=3,
+        )
+
+        writer.create_plan_entry(plan)
+
+        # Update the plan
+        writer.update_plan_entry(
+            "cub-056C",
+            {
+                "status": "completed",
+                "completed_tasks": 10,
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        # Verify update
+        updated = writer.get_plan_entry("cub-056C")
+        assert updated is not None
+        assert updated.status == "completed"
+        assert updated.completed_tasks == 10
+        assert updated.completed_at is not None
+
+    def test_update_plan_entry_not_found(self, ledger_dir: Path) -> None:
+        """Test updating nonexistent plan entry raises error."""
+        writer = LedgerWriter(ledger_dir)
+
+        with pytest.raises(FileNotFoundError, match="Plan entry .* not found"):
+            writer.update_plan_entry("nonexistent", {"status": "completed"})
+
+    def test_update_plan_entry_atomic_write(self, ledger_dir: Path) -> None:
+        """Test that plan update uses atomic write pattern."""
+        writer = LedgerWriter(ledger_dir)
+        plan = PlanEntry(
+            plan_id="cub-057D",
+            spec_id="cub-057",
+            title="Atomic Test Plan",
+        )
+
+        writer.create_plan_entry(plan)
+        entry_file = ledger_dir / "by-plan" / "cub-057D" / "entry.json"
+        temp_file = entry_file.with_suffix(".tmp")
+
+        # Update should not leave temp file behind
+        writer.update_plan_entry("cub-057D", {"total_tasks": 5})
+        assert not temp_file.exists()
+        assert entry_file.exists()
+
+
+class TestLedgerRunEntries:
+    """Tests for run entry read/write operations."""
+
+    def test_create_run_entry(self, ledger_dir: Path) -> None:
+        """Test creating a run session ledger entry."""
+        writer = LedgerWriter(ledger_dir)
+        run = RunEntry(
+            run_id="cub-20260204-161800",
+            status="running",
+            config={"harness": "claude", "model": "sonnet"},
+            tasks_attempted=["cub-054A-1.1", "cub-054A-1.2"],
+            tasks_completed=["cub-054A-1.1"],
+            total_cost=0.15,
+            total_tokens=25000,
+            iterations=1,
+        )
+
+        writer.create_run_entry(run)
+
+        # Verify file structure
+        entry_file = ledger_dir / "by-run" / "cub-20260204-161800.json"
+        assert entry_file.exists()
+
+        # Verify content
+        with open(entry_file) as f:
+            data = json.load(f)
+        assert data["run_id"] == "cub-20260204-161800"
+        assert data["status"] == "running"
+        assert data["config"] == {"harness": "claude", "model": "sonnet"}
+        assert data["tasks_attempted"] == ["cub-054A-1.1", "cub-054A-1.2"]
+        assert data["tasks_completed"] == ["cub-054A-1.1"]
+        assert data["total_cost"] == 0.15
+        assert data["total_tokens"] == 25000
+        assert data["iterations"] == 1
+
+    def test_get_run_entry(self, ledger_dir: Path) -> None:
+        """Test getting a run entry."""
+        writer = LedgerWriter(ledger_dir)
+        run = RunEntry(
+            run_id="cub-20260204-120000",
+            status="completed",
+        )
+
+        writer.create_run_entry(run)
+        retrieved = writer.get_run_entry("cub-20260204-120000")
+
+        assert retrieved is not None
+        assert retrieved.run_id == "cub-20260204-120000"
+        assert retrieved.status == "completed"
+
+    def test_get_run_entry_not_found(self, ledger_dir: Path) -> None:
+        """Test getting nonexistent run entry returns None."""
+        writer = LedgerWriter(ledger_dir)
+        retrieved = writer.get_run_entry("nonexistent")
+        assert retrieved is None
+
+    def test_update_run_entry(self, ledger_dir: Path) -> None:
+        """Test updating an existing run entry."""
+        writer = LedgerWriter(ledger_dir)
+        run = RunEntry(
+            run_id="cub-20260204-130000",
+            status="running",
+            tasks_attempted=["task-1"],
+            tasks_completed=[],
+        )
+
+        writer.create_run_entry(run)
+
+        # Update the run
+        writer.update_run_entry(
+            "cub-20260204-130000",
+            {
+                "status": "completed",
+                "tasks_completed": ["task-1"],
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+
+        # Verify update
+        updated = writer.get_run_entry("cub-20260204-130000")
+        assert updated is not None
+        assert updated.status == "completed"
+        assert updated.tasks_completed == ["task-1"]
+        assert updated.completed_at is not None
+
+    def test_update_run_entry_not_found(self, ledger_dir: Path) -> None:
+        """Test updating nonexistent run entry raises error."""
+        writer = LedgerWriter(ledger_dir)
+
+        with pytest.raises(FileNotFoundError, match="Run entry .* not found"):
+            writer.update_run_entry("nonexistent", {"status": "completed"})
+
+    def test_update_run_entry_atomic_write(self, ledger_dir: Path) -> None:
+        """Test that run update uses atomic write pattern."""
+        writer = LedgerWriter(ledger_dir)
+        run = RunEntry(
+            run_id="cub-20260204-140000",
+            status="running",
+        )
+
+        writer.create_run_entry(run)
+        entry_file = ledger_dir / "by-run" / "cub-20260204-140000.json"
+        temp_file = entry_file.with_suffix(".tmp")
+
+        # Update should not leave temp file behind
+        writer.update_run_entry("cub-20260204-140000", {"status": "completed"})
+        assert not temp_file.exists()
+        assert entry_file.exists()
+
+    def test_create_run_entry_creates_directory(self, ledger_dir: Path) -> None:
+        """Test that creating run entry creates by-run directory."""
+        writer = LedgerWriter(ledger_dir)
+        run_dir = ledger_dir / "by-run"
+
+        # Verify directory doesn't exist yet
+        assert not run_dir.exists()
+
+        # Create run entry
+        run = RunEntry(run_id="cub-20260204-150000", status="running")
+        writer.create_run_entry(run)
+
+        # Verify directory was created
+        assert run_dir.exists()
+        assert run_dir.is_dir()
