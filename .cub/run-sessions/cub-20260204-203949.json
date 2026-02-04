@@ -4,16 +4,16 @@
   "project_dir": "/home/marc/Projects/cub",
   "harness": "claude",
   "budget": {
-    "tokens_used": 61879,
+    "tokens_used": 101922,
     "tokens_limit": 500000,
-    "cost_usd": 6.697492549999999,
+    "cost_usd": 8.5210677,
     "cost_limit": 0.0
   },
-  "tasks_completed": 4,
+  "tasks_completed": 5,
   "tasks_failed": 71,
   "current_task": null,
-  "status": "orphaned",
-  "ended_at": "2026-02-04T20:44:26.346219Z",
+  "status": "completed",
+  "ended_at": "2026-02-04T21:18:47.642248Z",
   "orphaned_at": "2026-02-04T20:44:26.346219Z",
   "orphaned_reason": "Session was still running but not active (process died or crash)"
 }
