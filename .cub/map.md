@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (268 files) (entry: __init__.py)
+- **cub**: `src/cub` (269 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -53,6 +53,7 @@
     ├── .cub/
     │   ├── cache/
     │   │   └── code_intel/
+    │   │       ├── 0f/
     │   │       ├── 68/
     │   │       ├── 69/
     │   │       ├── a1/
@@ -69,6 +70,7 @@
     │   │   └── stop.sh
     │   ├── ledger/
     │   │   ├── by-epic/
+    │   │   │   ├── cub-048a-0/
     │   │   │   ├── cub-a1f/
     │   │   │   ├── cub-a2s/
     │   │   │   ├── cub-a3r/
@@ -112,6 +114,7 @@
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
+    │   │   │   ├── cub-048a-0.2/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -294,6 +297,7 @@
     │   │   │   ├── cub-x7f.5/
     │   │   │   ├── cub-001.json
     │   │   │   ├── cub-048a-0.1.json
+    │   │   │   ├── cub-048a-0.2.json
     │   │   │   ├── cub-0qf0.json
     │   │   │   ├── cub-12be.json
     │   │   │   ├── cub-4eyt.json
@@ -310,10 +314,6 @@
     │   │   │   ├── cub-a7f.1.json
     │   │   │   ├── cub-a7f.2.json
     │   │   │   ├── cub-a7f.3.json
-    │   │   │   ├── cub-a7f.4.json
-    │   │   │   ├── cub-a7f.5.json
-    │   │   │   ├── cub-aeim.json
-    │   │   │   ├── cub-b1a.1.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
