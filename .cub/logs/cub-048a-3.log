@@ -247,3 +247,82 @@ Let me find tests related to the run loop:
 Perfect! All the run loop tests pass. Now let's run a final comprehensive test to make sure we haven't broken anything:
 Excellent! All tests pass. Now I need to mark the task as closed. Let me update the tasks.jsonl file:
 Now let's commit the changes:
+Perfect! The task has been completed successfully. Let me provide a summary:
+
+## Summary
+
+I've successfully integrated lifecycle hooks into the run loop. Here's what was implemented:
+
+### 1. **Created `src/cub/core/hooks/lifecycle.py`**
+   - `invoke_pre_session_hook()`: Runs before harness session starts, provides session context with task/epic counts
+   - `invoke_end_of_task_hook()`: Runs after task completion (success or failure), provides task details and execution metrics
+   - `invoke_end_of_epic_hook()`: Runs after all tasks in an epic complete, provides epic-level aggregates
+   - `invoke_end_of_plan_hook()`: Runs after all epics in a plan complete, provides plan-level aggregates
+
+### 2. **Integrated hooks into `src/cub/core/run/loop.py`**
+   - Pre-session hook invoked after `RUN_STARTED` event
+   - End-of-task hook invoked after task completion (for both success and failure cases)
+   - End-of-epic hook invoked when an epic is auto-closed after its last task completes
+
+### 3. **Integrated end-of-plan hook into `src/cub/cli/run.py`**
+   - Invoked after plan execution completes successfully
+   - Builds comprehensive context with all plan statistics
+
+### Key Features:
+- ✅ Hooks can be disabled via `RunConfig.hooks_enabled`
+- ✅ Hooks respect `hooks_fail_fast` configuration for error handling
+- ✅ Rich context objects built from run loop state
+- ✅ Proper error handling and logging
+- ✅ Backwards compatible with existing hook system
+- ✅ All feedback loops passed (typecheck, tests, lint)
+
+### Test Results:
+- `test_run_loop.py`: 44 passed
+- `test_run_core.py`: 101 passed, 1 skipped
+- `test_hooks_lifecycle.py`: 21 passed
+
+The implementation follows the acceptance criteria and provides a solid foundation for user-defined lifecycle hooks at all key execution points.
+Task completed in 284.7s
+Tokens: 21,774
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-3.4                                                           │
+│  Title      Update cub init for hook directories and tests                         │
+│  Priority   P1                                                                     │
+│  Type       task                                                                   │
+│  Iteration  4/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      haiku                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll start by understanding the current state of the codebase and then implement the required changes for this task.
+Let me find the tasks.jsonl file in the project directory:
+Now let me read the tasks.jsonl file and examine the existing test file to understand what's already there:
+Good! The test file already exists. Now let me check what hook-related templates exist and understand the current hooks structure:
+Let me check the hooks directory templates and the lifecycle hooks implementation:
+Now let me check the task status to mark it in_progress and understand the requirements better:
+Good, the task is already marked as `in_progress`. Now let me analyze what needs to be done and create a plan:
+Now let me start implementing. First, let me create the hooks README template:
+Now let me update the todo and work on updating init_cmd.py to create the hook directories:
+Now let me update the init_cmd.py to create hook directories. I'll add a function to ensure hook directories and call it in the init sequence:
+Now I need to call this function in the init_project function. Let me find where to add it:
+Now let me update the todo list and run the tests to make sure everything is working:
+Now let me run the hook lifecycle tests:
+Excellent! All hook lifecycle tests pass. Now let me test the init command to verify it creates the directories properly, and then run the full test suite:
+Let me search for init tests:
+Let me run the init command tests:
+Great! The tests are passing. Let me continue checking more tests and then run the complete feedback loop:
+Perfect! All the init tests are passing. Now let me verify the hook directories are being created properly by checking one of the tests:
+Excellent! Now let me update the todo and run the full feedback loop (type checking, linting, tests):
+Now let me run the full test suite and type checking:
+Perfect! All tests are passing. Now let me check type checking with pyright:
+Let me try a simpler type check:
+Let me check what type checking tools are available:
+Great! Let me also check linting. First, let me look at the pyproject.toml to see what tools are used:
+Let me run ruff linting on the modified files:
+Excellent! Now let me also run a quick test to verify the hook directories are properly created in the actual system when init is run. Let me also verify the README exists:
+Perfect! The README.md file has been created. Now let's verify by examining the actual init process with a test:
+Perfect! All hook directories are being created correctly. Now let me verify the README content:
+Excellent! Everything is working correctly. Now let me run the complete test suite one more time to verify nothing is broken:
+Perfect! All tests are passing. Let me update the todo list and then mark the task as closed and commit:
+Now let me update the task status to closed in tasks.jsonl:
+Perfect! Now let me commit the changes:

@@ -4,12 +4,12 @@
   "project_dir": "/home/marc/Projects/cub",
   "harness": "claude",
   "budget": {
-    "tokens_used": 27025,
+    "tokens_used": 48799,
     "tokens_limit": 500000,
-    "cost_usd": 1.9574515,
+    "cost_usd": 3.1676494500000003,
     "cost_limit": 0.0
   },
-  "tasks_completed": 2,
+  "tasks_completed": 3,
   "tasks_failed": 89,
   "current_task": null,
   "status": "orphaned",

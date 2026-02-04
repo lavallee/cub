@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-048a-3.4",
+  "title": "Update cub init for hook directories and tests",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-3"
+  },
+  "task": {
+    "title": "Update cub init for hook directories and tests",
+    "description": "`cub init` should create the hook directories so users know where to place their scripts. Tests verify hook functionality.\n\n**Implementation Steps:**\n1. Update `cub init` to create `.cub/hooks/` directory\n2. Create subdirectories for each hook point\n3. Add README.md in hooks directory explaining usage\n4. Create `tests/test_hooks_lifecycle.py`\n5. Test hook discovery with mock scripts\n6. Test hook execution with context passing\n7. Test hook failure handling\n\n**Files:** `src/cub/cli/init_cmd.py`, `templates/hooks/README.md`, `tests/test_hooks_lifecycle.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "model:haiku",
+      "complexity:low",
+      "domain:setup",
+      "domain:test"
+    ],
+    "created_at": "2026-02-04T15:37:04.560836",
+    "captured_at": "2026-02-04T22:25:54.181610Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-170945",
+      "started_at": "2026-02-04T17:25:54.191356",
+      "completed_at": "2026-02-04T22:28:08.591828Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 12966,
+        "output_tokens": 10402,
+        "cache_read_tokens": 2012304,
+        "cache_creation_tokens": 54329
+      },
+      "cost_usd": 0.39145665,
+      "duration_seconds": 134
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:28:08.611751Z",
+    "total_cost_usd": 0.39145665,
+    "total_attempts": 1,
+    "total_duration_seconds": 134,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6fdf7f8a7ab2079a7ca348136ff0425a4eece7d3",
+        "message": "task(cub-048a-3.4): Update cub init for hook directories and tests",
+        "author": "",
+        "timestamp": "2026-02-04T22:27:46Z"
+      }
+    ],
+    "approach": "The task was completed through incremental development: first understanding the existing hook system and test infrastructure, then adding the directory creation logic to `cub init`, creating comprehensive documentation in a template README, and finally validating through the existing test suite. The implementation leveraged existing patterns in the codebase (template copying, directory creation utilities) to ensure consistency.",
+    "decisions": [
+      "Created hook directories at four specific lifecycle points (pre-session, end-of-task, end-of-epic, end-of-plan) rather than a single generic hooks directory, providing clearer organization and context for users",
+      "Placed the comprehensive README documentation in a template file (`templates/hooks/README.md`) that gets copied during `cub init`, keeping documentation co-located with initialization logic and ensuring it's always present for users",
+      "Integrated hook directory creation into the existing `init_project()` flow rather than as a separate command, maintaining consistency with how other project artifacts (config, ledger directories) are initialized",
+      "Included context variable documentation (CUB_HOOK_CONTEXT environment variable) in the README to guide users on how to access hook-specific data, addressing the symbiotic workflow's information-passing needs"
+    ],
+    "lessons_learned": [
+      "Hook lifecycle points benefit from clear naming and documentation placed at the point where users first encounter them (during `cub init`), reducing discovery friction",
+      "Organizing directory structures by hook point (rather than by concern) makes it immediately obvious to users where to place their scripts for specific workflow events",
+      "Template-based documentation that gets copied during initialization ensures users have reference material available locally without requiring external lookups, improving adoption and reducing support burden",
+      "Tests for initialization should verify both that directories are created AND that documentation files are present with correct content, catching not just structural issues but also documentation decay"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:28:08.611751Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:25:54.181610Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:28:08.611751Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:25:54.181610Z",
+  "completed_at": "2026-02-04T22:28:08.611751Z",
+  "tokens": {
+    "input_tokens": 12966,
+    "output_tokens": 10402,
+    "cache_read_tokens": 2012304,
+    "cache_creation_tokens": 54329
+  },
+  "cost_usd": 0.39145665,
+  "duration_seconds": 134,
+  "iterations": 1,
+  "approach": "The task was completed through incremental development: first understanding the existing hook system and test infrastructure, then adding the directory creation logic to `cub init`, creating comprehensive documentation in a template README, and finally validating through the existing test suite. The implementation leveraged existing patterns in the codebase (template copying, directory creation utilities) to ensure consistency.",
+  "decisions": [
+    "Created hook directories at four specific lifecycle points (pre-session, end-of-task, end-of-epic, end-of-plan) rather than a single generic hooks directory, providing clearer organization and context for users",
+    "Placed the comprehensive README documentation in a template file (`templates/hooks/README.md`) that gets copied during `cub init`, keeping documentation co-located with initialization logic and ensuring it's always present for users",
+    "Integrated hook directory creation into the existing `init_project()` flow rather than as a separate command, maintaining consistency with how other project artifacts (config, ledger directories) are initialized",
+    "Included context variable documentation (CUB_HOOK_CONTEXT environment variable) in the README to guide users on how to access hook-specific data, addressing the symbiotic workflow's information-passing needs"
+  ],
+  "lessons_learned": [
+    "Hook lifecycle points benefit from clear naming and documentation placed at the point where users first encounter them (during `cub init`), reducing discovery friction",
+    "Organizing directory structures by hook point (rather than by concern) makes it immediately obvious to users where to place their scripts for specific workflow events",
+    "Template-based documentation that gets copied during initialization ensures users have reference material available locally without requiring external lookups, improving adoption and reducing support burden",
+    "Tests for initialization should verify both that directories are created AND that documentation files are present with correct content, catching not just structural issues but also documentation decay"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "6fdf7f8a7ab2079a7ca348136ff0425a4eece7d3",
+      "message": "task(cub-048a-3.4): Update cub init for hook directories and tests",
+      "author": "",
+      "timestamp": "2026-02-04T22:27:46Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-3.4",
+  "epic_id": "cub-048a-3",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

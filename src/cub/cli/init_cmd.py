@@ -465,6 +465,42 @@ def _ensure_specs_dir(project_dir: Path) -> None:
     specs_dir.mkdir(exist_ok=True)
 
 
+def _ensure_hook_directories(project_dir: Path) -> None:
+    """
+    Create hook directories for each lifecycle hook point.
+
+    Creates .cub/hooks/ and subdirectories for:
+    - pre-session
+    - end-of-task
+    - end-of-epic
+    - end-of-plan
+
+    These directories help users understand where to place their hook scripts.
+    """
+    hooks_base = project_dir / ".cub" / "hooks"
+    hooks_base.mkdir(parents=True, exist_ok=True)
+
+    # Create subdirectories for each hook point
+    hook_points = [
+        "pre-session",
+        "end-of-task",
+        "end-of-epic",
+        "end-of-plan",
+    ]
+
+    for hook_point in hook_points:
+        hook_dir = hooks_base / hook_point
+        hook_dir.mkdir(exist_ok=True)
+
+    # Copy README.md into hooks directory
+    templates_dir = _get_templates_dir()
+    readme_template = templates_dir / "hooks" / "README.md"
+
+    if readme_template.exists():
+        target_readme = hooks_base / "README.md"
+        shutil.copy2(readme_template, target_readme)
+
+
 def _install_pre_push_hook(project_dir: Path, force: bool = False) -> bool:
     """
     Install pre-push hook for counter verification.
@@ -939,6 +975,10 @@ def init_project(
 
     # 3. Create specs/ directory
     _ensure_specs_dir(project_dir)
+
+    # 3.5. Create hook directories
+    _ensure_hook_directories(project_dir)
+    console.print("[green]v[/green] Created hook directories")
 
     # 4. Ensure consolidated project config in .cub/config.json
     # This also migrates settings from legacy .cub.json if present
