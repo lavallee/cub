@@ -21,25 +21,26 @@
     "cub-048a-1.2",
     "cub-048a-1.3",
     "cub-048a-1.4",
-    "cub-048a-1.5"
+    "cub-048a-1.5",
+    "cub-048a-1.6"
   ],
   "aggregates": {
-    "total_tasks": 5,
-    "tasks_completed": 5,
-    "tasks_successful": 5,
+    "total_tasks": 6,
+    "tasks_completed": 6,
+    "tasks_successful": 6,
     "tasks_failed": 0,
-    "total_cost_usd": 6.551611549999999,
-    "avg_cost_per_task": 1.3103223099999997,
+    "total_cost_usd": 7.628198899999998,
+    "avg_cost_per_task": 1.2713664833333331,
     "min_cost_usd": 0.6536362500000003,
     "max_cost_usd": 2.713804699999999,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 5,
+    "total_attempts": 6,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 14359147,
-    "avg_tokens_per_task": 2871829,
-    "total_duration_seconds": 1541,
-    "avg_duration_seconds": 308,
+    "total_tokens": 16501598,
+    "avg_tokens_per_task": 2750266,
+    "total_duration_seconds": 1822,
+    "avg_duration_seconds": 303,
     "models_used": [
       "sonnet"
     ],
@@ -47,12 +48,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T21:45:18.400537Z"
+    "stage_updated_at": "2026-02-04T21:50:15.072286Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T21:18:52.096259Z",
-  "completed_at": "2026-02-04T21:45:12.364498Z",
-  "updated_at": "2026-02-04T21:45:18.400540Z",
+  "completed_at": "2026-02-04T21:50:01.629422Z",
+  "updated_at": "2026-02-04T21:50:15.072289Z",
   "first_commit": {
     "hash": "a4475e7e3a2a58a8a805c356be08ffbaf5e81585",
     "message": "task(cub-048a-1.1): Add PlanEntry and RunEntry models",
@@ -60,10 +61,10 @@
     "timestamp": "2026-02-04T21:21:34Z"
   },
   "last_commit": {
-    "hash": "ad225cd9b2162d794563cd87dc02312d3c906861",
-    "message": "task(cub-048a-1.5): Remove runs/ and run-sessions/ writes, fix epic title",
+    "hash": "cb77cf9e0691e49e4a2a3d896effb9095ec20239",
+    "message": "task(cub-048a-1.6): Extend LedgerReader with plan and run queries",
     "author": "",
-    "timestamp": "2026-02-04T21:44:03Z"
+    "timestamp": "2026-02-04T21:49:47Z"
   },
   "drift": {
     "additions": [],
