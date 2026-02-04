@@ -555,6 +555,82 @@ def update_tasks_file(
     return updated_tasks
 
 
+def rename_spec_files(
+    specs: list[tuple[Path, datetime]],
+    spec_slug_to_id: dict[str, str],
+    dry_run: bool
+) -> dict[str, Path]:
+    """Rename spec files to include ID prefix.
+
+    Example: capture.md → cub-011-capture.md
+
+    Returns mapping of old paths to new paths.
+    """
+    renames = {}
+
+    for spec_path, _ in specs:
+        slug = spec_path.stem
+        spec_id = spec_slug_to_id.get(slug)
+
+        if not spec_id:
+            continue
+
+        # Check if already has ID prefix
+        if spec_path.stem.startswith(spec_id):
+            continue
+
+        new_name = f"{spec_id}-{slug}.md"
+        new_path = spec_path.parent / new_name
+
+        if dry_run:
+            print(f"  [DRY RUN] Would rename {spec_path.name} → {new_name}")
+        else:
+            spec_path.rename(new_path)
+            print(f"  Renamed {spec_path.name} → {new_name}")
+
+        renames[str(spec_path)] = new_path
+
+    return renames
+
+
+def rename_plan_directories(
+    plans: list[tuple[Path, dict[str, Any]]],
+    plan_slug_to_id: dict[str, str],
+    dry_run: bool
+) -> dict[str, Path]:
+    """Rename plan directories to include ID prefix.
+
+    Example: symbiotic-workflow/ → cub-038A-symbiotic-workflow/
+
+    Returns mapping of old paths to new paths.
+    """
+    renames = {}
+
+    for plan_dir, metadata in plans:
+        slug = plan_dir.name
+        plan_id = plan_slug_to_id.get(slug)
+
+        if not plan_id:
+            continue
+
+        # Check if already has ID prefix
+        if plan_dir.name.startswith(plan_id):
+            continue
+
+        new_name = f"{plan_id}-{slug}"
+        new_path = plan_dir.parent / new_name
+
+        if dry_run:
+            print(f"  [DRY RUN] Would rename {plan_dir.name}/ → {new_name}/")
+        else:
+            plan_dir.rename(new_path)
+            print(f"  Renamed {plan_dir.name}/ → {new_name}/")
+
+        renames[str(plan_dir)] = new_path
+
+    return renames
+
+
 def initialize_counters(
     specs: list[tuple[Path, datetime]],
     standalone_count: int,
@@ -689,7 +765,13 @@ def main():
     print("\nStep 6: Updating tasks file...")
     update_tasks_file(tasks, old_to_new_task_id, tasks_file, args.dry_run)
 
-    print("\nStep 7: Initializing counters...")
+    print("\nStep 7: Renaming spec files...")
+    rename_spec_files(specs, spec_slug_to_id, args.dry_run)
+
+    print("\nStep 8: Renaming plan directories...")
+    rename_plan_directories(plans, plan_slug_to_id, args.dry_run)
+
+    print("\nStep 9: Initializing counters...")
     initialize_counters(specs, standalone_count, counters_file, args.dry_run)
 
     print("\n" + "=" * 60)
@@ -699,7 +781,7 @@ def main():
     else:
         print("MIGRATION COMPLETE")
         print("\nNext steps:")
-        print("  1. Review the changes: git diff")
+        print("  1. Review the changes: git diff --name-status")
         print("  2. Commit the changes: git add -A && git commit -m 'chore: migrate to hierarchical ID system'")
         print("  3. Push counters to sync branch: cub sync --push")
 
