@@ -21,25 +21,26 @@
     "captured_at": "2026-02-04T22:14:02.574398Z"
   },
   "task_ids": [
-    "cub-048a-3.1"
+    "cub-048a-3.1",
+    "cub-048a-3.2"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 2,
+    "tasks_completed": 2,
+    "tasks_successful": 2,
     "tasks_failed": 0,
-    "total_cost_usd": 0.8757106,
-    "avg_cost_per_task": 0.8757106,
+    "total_cost_usd": 1.9574515,
+    "avg_cost_per_task": 0.97872575,
     "min_cost_usd": 0.8757106,
-    "max_cost_usd": 0.8757106,
+    "max_cost_usd": 1.0817409,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 2,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 1720749,
-    "avg_tokens_per_task": 1720749,
-    "total_duration_seconds": 250,
-    "avg_duration_seconds": 250,
+    "total_tokens": 3729236,
+    "avg_tokens_per_task": 1864618,
+    "total_duration_seconds": 655,
+    "avg_duration_seconds": 327,
     "models_used": [
       "sonnet"
     ],
@@ -47,12 +48,12 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T22:14:02.593584Z"
+    "stage_updated_at": "2026-02-04T22:20:58.306722Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T22:09:45.530580Z",
-  "completed_at": "2026-02-04T22:13:56.391459Z",
-  "updated_at": "2026-02-04T22:14:02.593590Z",
+  "completed_at": "2026-02-04T22:20:50.393104Z",
+  "updated_at": "2026-02-04T22:20:58.306725Z",
   "first_commit": {
     "hash": "224a409c4ae39d7b513683e8932318723d935336",
     "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
@@ -60,10 +61,10 @@
     "timestamp": "2026-02-04T22:13:31Z"
   },
   "last_commit": {
-    "hash": "224a409c4ae39d7b513683e8932318723d935336",
-    "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+    "hash": "6a01945844182a13085b4c5e9c9568189176c0de",
+    "message": "task(cub-048a-3.2): Implement hook executor and discovery",
     "author": "",
-    "timestamp": "2026-02-04T22:13:31Z"
+    "timestamp": "2026-02-04T22:20:37Z"
   },
   "drift": {
     "additions": [],

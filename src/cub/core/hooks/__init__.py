@@ -12,6 +12,8 @@ Key Functions:
     install_hooks: Install or update hook configuration
     validate_hooks: Check hook configuration integrity
     uninstall_hooks: Remove hook configuration
+    discover_hooks: Find executable hook scripts
+    HookExecutor: Execute hooks with context
 
 Key Models:
     SessionContext: Context for pre-session hook
@@ -40,8 +42,8 @@ Usage:
         for issue in issues:
             print(f"Warning: {issue.message}")
 
-    # Use context models
-    from cub.core.hooks import TaskContext, HookResult
+    # Use context models and executor
+    from cub.core.hooks import TaskContext, HookExecutor
 
     context = TaskContext(
         task_id="cub-123",
@@ -50,9 +52,13 @@ Usage:
         success=True,
         project_dir="/path/to/project"
     )
-    json_str = context.to_json()  # Serialize for env var
+
+    executor = HookExecutor(project_dir)
+    results = executor.run("end-of-task", context)
 """
 
+from cub.core.hooks.discovery import discover_hooks
+from cub.core.hooks.executor import HookExecutor
 from cub.core.hooks.installer import (
     HookInstallResult,
     HookIssue,
@@ -76,6 +82,9 @@ __all__ = [
     "uninstall_hooks",
     "HookInstallResult",
     "HookIssue",
+    # Discovery and execution
+    "discover_hooks",
+    "HookExecutor",
     # Context models
     "SessionContext",
     "TaskContext",

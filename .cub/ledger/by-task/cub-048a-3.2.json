@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "id": "cub-048a-3.2",
+  "title": "Implement hook executor and discovery",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-3"
+  },
+  "task": {
+    "title": "Implement hook executor and discovery",
+    "description": "The hook executor runs user scripts with context passed via environment variables. Discovery finds scripts in project and global hook directories.\n\n**Implementation Steps:**\n1. Create `src/cub/core/hooks/discovery.py`\n2. Implement `discover_hooks(hook_name: str) -> list[Path]`\n3. Create `src/cub/core/hooks/executor.py`\n4. Implement `HookExecutor.run(hook_name: str, context: BaseModel) -> HookResult`\n\n**Files:** `src/cub/core/hooks/discovery.py`, `src/cub/core/hooks/executor.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560800",
+    "captured_at": "2026-02-04T22:14:04.652708Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-170945",
+      "started_at": "2026-02-04T17:14:04.717904",
+      "completed_at": "2026-02-04T22:20:50.372851Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 120,
+        "output_tokens": 16420,
+        "cache_read_tokens": 1938023,
+        "cache_creation_tokens": 53924
+      },
+      "cost_usd": 1.0817409,
+      "duration_seconds": 405
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:20:50.393104Z",
+    "total_cost_usd": 1.0817409,
+    "total_attempts": 1,
+    "total_duration_seconds": 405,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "6a01945844182a13085b4c5e9c9568189176c0de",
+        "message": "task(cub-048a-3.2): Implement hook executor and discovery",
+        "author": "",
+        "timestamp": "2026-02-04T22:20:37Z"
+      }
+    ],
+    "approach": "Analyzed the existing hook infrastructure and context-passing patterns in the codebase, then implemented a clean lifecycle hook system in `core/hooks/` that discovers executable scripts in project and global directories and executes them with context passed via JSON-serialized environment variables. The implementation followed test-driven development, writing comprehensive tests alongside the code to ensure correctness.",
+    "decisions": [
+      "**Separate lifecycle hooks from legacy utilities**: Created a new `core/hooks/` package rather than extending the existing `utils/hooks.py`, providing a cleaner separation of concerns between the old hook system and the new lifecycle-based approach.",
+      "**JSON serialization for context passing**: Used `CUB_HOOK_CONTEXT` environment variable with full JSON serialization of Pydantic models rather than individual env vars, enabling rich context with arbitrary data structures and cleaner handling in hook scripts.",
+      "**Default global hooks directory**: When `global_hooks_dir` is not specified in HookConfig, automatically resolve to `~/.config/cub/hooks/{hook_name}`, establishing a sensible default without requiring explicit configuration.",
+      "**Ordered script discovery**: Return scripts in sorted order (global hooks first, then project hooks) to provide predictable execution order and allow project hooks to override global defaults.",
+      "**Graceful failure handling**: Made hook execution failures non-blocking by default (configurable via `fail_on_error`), preventing hook bugs from crashing the run loop while still allowing strict mode for critical hooks."
+    ],
+    "lessons_learned": [
+      "**Test-driven discovery**: Writing tests first revealed that the HookConfig default for `global_hooks_dir` was None, which required handling in the discovery function\u2014this pattern of \"test first\" catches incomplete specifications early.",
+      "**Executable script filtering is critical**: Only returning executable files (checking `os.access(..., os.X_OK)`) prevents accidentally running non-executable scripts and provides clear signal to users that scripts need `chmod +x`.",
+      "**Timeout configurability matters**: Setting a reasonable default (30s) but making it configurable ensures both safety (prevents hanging hooks) and flexibility for slow-running operations.",
+      "**Pydantic model context is powerful**: Passing entire Pydantic models serialized as JSON is more flexible than individual env vars, as it scales to arbitrary context structures without modifying the interface."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:20:50.393104Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:14:04.652708Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:20:50.393104Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:14:04.652708Z",
+  "completed_at": "2026-02-04T22:20:50.393104Z",
+  "tokens": {
+    "input_tokens": 120,
+    "output_tokens": 16420,
+    "cache_read_tokens": 1938023,
+    "cache_creation_tokens": 53924
+  },
+  "cost_usd": 1.0817409,
+  "duration_seconds": 405,
+  "iterations": 1,
+  "approach": "Analyzed the existing hook infrastructure and context-passing patterns in the codebase, then implemented a clean lifecycle hook system in `core/hooks/` that discovers executable scripts in project and global directories and executes them with context passed via JSON-serialized environment variables. The implementation followed test-driven development, writing comprehensive tests alongside the code to ensure correctness.",
+  "decisions": [
+    "**Separate lifecycle hooks from legacy utilities**: Created a new `core/hooks/` package rather than extending the existing `utils/hooks.py`, providing a cleaner separation of concerns between the old hook system and the new lifecycle-based approach.",
+    "**JSON serialization for context passing**: Used `CUB_HOOK_CONTEXT` environment variable with full JSON serialization of Pydantic models rather than individual env vars, enabling rich context with arbitrary data structures and cleaner handling in hook scripts.",
+    "**Default global hooks directory**: When `global_hooks_dir` is not specified in HookConfig, automatically resolve to `~/.config/cub/hooks/{hook_name}`, establishing a sensible default without requiring explicit configuration.",
+    "**Ordered script discovery**: Return scripts in sorted order (global hooks first, then project hooks) to provide predictable execution order and allow project hooks to override global defaults.",
+    "**Graceful failure handling**: Made hook execution failures non-blocking by default (configurable via `fail_on_error`), preventing hook bugs from crashing the run loop while still allowing strict mode for critical hooks."
+  ],
+  "lessons_learned": [
+    "**Test-driven discovery**: Writing tests first revealed that the HookConfig default for `global_hooks_dir` was None, which required handling in the discovery function\u2014this pattern of \"test first\" catches incomplete specifications early.",
+    "**Executable script filtering is critical**: Only returning executable files (checking `os.access(..., os.X_OK)`) prevents accidentally running non-executable scripts and provides clear signal to users that scripts need `chmod +x`.",
+    "**Timeout configurability matters**: Setting a reasonable default (30s) but making it configurable ensures both safety (prevents hanging hooks) and flexibility for slow-running operations.",
+    "**Pydantic model context is powerful**: Passing entire Pydantic models serialized as JSON is more flexible than individual env vars, as it scales to arbitrary context structures without modifying the interface."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "6a01945844182a13085b4c5e9c9568189176c0de",
+      "message": "task(cub-048a-3.2): Implement hook executor and discovery",
+      "author": "",
+      "timestamp": "2026-02-04T22:20:37Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-3.2",
+  "epic_id": "cub-048a-3",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
