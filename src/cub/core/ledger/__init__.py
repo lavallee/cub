@@ -48,6 +48,8 @@ from cub.core.ledger.models import (
     LedgerStats,
     Lineage,
     Outcome,
+    PlanEntry,
+    RunEntry,
     StateTransition,
     TaskChanged,
     TaskSnapshot,
@@ -70,6 +72,8 @@ __all__ = [
     "CommitRef",
     "EpicSummary",
     "LedgerStats",
+    "PlanEntry",
+    "RunEntry",
     # CI monitoring models
     "CICheckRecord",
     "CIMonitorSummary",

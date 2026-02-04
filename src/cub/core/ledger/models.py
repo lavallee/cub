@@ -9,6 +9,7 @@ in specs/researching/knowledge-retention-system.md.
 
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -1062,3 +1063,152 @@ def compute_aggregates(task_entries: list[LedgerEntry]) -> EpicAggregates:
         models_used=models_used,
         most_common_model=most_common_model,
     )
+
+
+class PlanEntry(BaseModel):
+    """Plan-level aggregation record.
+
+    Stored in .cub/ledger/by-plan/{plan_id}/entry.json.
+    Aggregates metrics from all epics in a plan, providing visibility
+    into overall plan progress, costs, and completion status.
+
+    Example:
+        >>> entry = PlanEntry(
+        ...     plan_id="cub-054A",
+        ...     spec_id="cub-054",
+        ...     title="Ledger Consolidation",
+        ...     epics=["cub-054A-0", "cub-054A-1"],
+        ...     status="in_progress",
+        ...     started_at=datetime.now(timezone.utc),
+        ...     total_cost=1.23,
+        ...     total_tokens=150000,
+        ...     total_tasks=10,
+        ...     completed_tasks=5
+        ... )
+    """
+
+    # Schema version for backward compatibility
+    version: int = Field(default=1, description="Schema version number")
+
+    # Core identification
+    plan_id: str = Field(..., description="Plan ID (e.g., 'cub-054A')")
+    spec_id: str = Field(..., description="Parent spec ID (e.g., 'cub-054')")
+    title: str = Field(..., min_length=1, description="Plan title")
+
+    # Epic tracking
+    epics: list[str] = Field(default_factory=list, description="List of epic IDs in this plan")
+
+    # Status tracking
+    status: Literal["in_progress", "completed", "released"] = Field(
+        default="in_progress", description="Plan completion status"
+    )
+
+    # Temporal tracking
+    started_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When first epic in plan started (UTC)",
+    )
+    completed_at: datetime | None = Field(
+        default=None, description="When last epic in plan completed (UTC)"
+    )
+
+    # Aggregated metrics
+    total_cost: float = Field(default=0.0, ge=0.0, description="Total cost across all epics in USD")
+    total_tokens: int = Field(default=0, ge=0, description="Total tokens consumed across all epics")
+    total_tasks: int = Field(default=0, ge=0, description="Total number of tasks in plan")
+    completed_tasks: int = Field(default=0, ge=0, description="Number of completed tasks in plan")
+
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both snake_case and camelCase
+    )
+
+    @property
+    def completion_percentage(self) -> float:
+        """Calculate completion percentage (0-100)."""
+        if self.total_tasks == 0:
+            return 0.0
+        return (self.completed_tasks / self.total_tasks) * 100
+
+    @property
+    def is_complete(self) -> bool:
+        """Check if all tasks in plan are complete."""
+        return self.total_tasks > 0 and self.completed_tasks == self.total_tasks
+
+
+class RunEntry(BaseModel):
+    """Run session record.
+
+    Stored in .cub/ledger/by-run/{run_id}.json.
+    Captures metadata and metrics for a single execution of the run loop,
+    whether running a single task, an epic, or an entire plan.
+
+    Example:
+        >>> entry = RunEntry(
+        ...     run_id="cub-20260204-161800",
+        ...     started_at=datetime.now(timezone.utc),
+        ...     status="running",
+        ...     config={"harness": "claude", "model": "sonnet"},
+        ...     tasks_attempted=["cub-054A-1.1", "cub-054A-1.2"],
+        ...     tasks_completed=["cub-054A-1.1"],
+        ...     total_cost=0.15,
+        ...     total_tokens=25000,
+        ...     iterations=1
+        ... )
+    """
+
+    # Schema version for backward compatibility
+    version: int = Field(default=1, description="Schema version number")
+
+    # Core identification
+    run_id: str = Field(..., description="Run session ID (e.g., 'cub-20260204-161800')")
+
+    # Temporal tracking
+    started_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="When run session started (UTC)",
+    )
+    completed_at: datetime | None = Field(
+        default=None, description="When run session completed (UTC)"
+    )
+
+    # Status tracking
+    status: Literal["running", "completed", "failed", "interrupted"] = Field(
+        default="running", description="Run session status"
+    )
+
+    # Configuration
+    config: dict[str, str | int | bool | None] = Field(
+        default_factory=dict,
+        description="Serialized run configuration (harness, model, flags, etc.)",
+    )
+
+    # Task tracking
+    tasks_attempted: list[str] = Field(
+        default_factory=list, description="List of task IDs that were attempted"
+    )
+    tasks_completed: list[str] = Field(
+        default_factory=list, description="List of task IDs that were completed successfully"
+    )
+
+    # Resource tracking
+    total_cost: float = Field(default=0.0, ge=0.0, description="Total cost for this run in USD")
+    total_tokens: int = Field(default=0, ge=0, description="Total tokens consumed in this run")
+    iterations: int = Field(default=0, ge=0, description="Number of task iterations in this run")
+
+    model_config = ConfigDict(
+        populate_by_name=True,  # Allow both snake_case and camelCase
+    )
+
+    @property
+    def duration_seconds(self) -> int:
+        """Calculate duration in seconds if completed."""
+        if self.completed_at is None or self.started_at is None:
+            return 0
+        return int((self.completed_at - self.started_at).total_seconds())
+
+    @property
+    def success_rate(self) -> float:
+        """Calculate task success rate (0.0-1.0)."""
+        if not self.tasks_attempted:
+            return 0.0
+        return len(self.tasks_completed) / len(self.tasks_attempted)
