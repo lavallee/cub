@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "id": "cub-048a-5.3",
+  "title": "Remove deprecated code paths",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-5"
+  },
+  "task": {
+    "title": "Remove deprecated code paths",
+    "description": "With the new ledger structure in place, code that reads from or writes to the old directories should be removed.\n\n**Implementation Steps:**\n1. Search for references to `.cub/runs/` and remove\n2. Search for references to `.cub/run-sessions/` and remove\n3. Search for references to `.cub/logs/` and remove\n4. Remove `attempts/` directory handling in artifact code\n5. Remove any backward-compatibility shims added during migration\n6. Run tests to ensure nothing breaks\n\n**Files:** Various (search and remove)",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "model:haiku",
+      "complexity:low",
+      "domain:cleanup"
+    ],
+    "created_at": "2026-02-04T15:37:04.561268",
+    "captured_at": "2026-02-04T23:10:18.710258Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-180030",
+      "started_at": "2026-02-04T18:10:18.720069",
+      "completed_at": "2026-02-04T23:21:26.376848Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 120,
+        "output_tokens": 26678,
+        "cache_read_tokens": 7879226,
+        "cache_creation_tokens": 99876
+      },
+      "cost_usd": 1.1259426000000003,
+      "duration_seconds": 667
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T23:21:26.397115Z",
+    "total_cost_usd": 1.1259426000000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 667,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d2d6b050d4edc5bce3cc633522f4a4882224ccc8",
+        "message": "task(cub-048a-5.3): Remove deprecated code paths",
+        "author": "",
+        "timestamp": "2026-02-04T23:21:14Z"
+      }
+    ],
+    "approach": "Systematically identified and removed all references to deprecated directory structures (`.cub/runs/`, `.cub/run-sessions/`, `.cub/logs/`, and `attempts/` subdirectories) by searching the codebase, understanding the migration from the old to new ledger structure, updating source code to use the new flattened paths, and then comprehensively updating all affected tests to match the new structure.",
+    "decisions": [
+      "**Consolidated artifact storage**: Transitioned from nested `by-task/{task_id}/attempts/{NNN}/` structure to flattened `by-task/{task_id}/{NNN}-{type}.{ext}` by leveraging the existing `ArtifactManager` class instead of creating new abstraction layers.",
+      "**Removed backward-compatibility code in monitor.py**: Eliminated the `_find_active_run()` function that looked in old directories, choosing to rely solely on the new `.cub/ledger/by-run/` location rather than maintaining dual-path support.",
+      "**Updated retry context generation**: Modified `generate_retry_context()` to use `ArtifactManager.get_artifact_path()` for artifact discovery instead of hardcoding old path patterns, ensuring future flexibility.",
+      "**Comprehensive test updates**: Rather than skipping or patching tests, updated 8+ test files to use new paths, ensuring tests validate the actual system behavior rather than legacy expectations."
+    ],
+    "lessons_learned": [
+      "**Path consolidation simplifies debugging**: Moving from three separate directory hierarchies (`.cub/runs/`, `.cub/run-sessions/`, `.cub/logs/`) to a single unified structure under `.cub/ledger/` significantly reduces cognitive load when tracking execution state and makes the system easier to reason about.",
+      "**Abstraction layers enable clean migrations**: The `ArtifactManager` class provided a clean interface that allowed wholesale replacement of path-building logic throughout the codebase\u2014updating one class updated behavior everywhere it was used.",
+      "**Tests are the migration blueprint**: Test failures immediately revealed all the places where old paths were still assumed; fixing tests forced exposure of every code path that needed updating, preventing silent failures later.",
+      "**Flattening hierarchies reduces edge cases**: Removing the `attempts/` subdirectory eliminated complexity around attempt numbering, iteration tracking, and nested path management, making the artifact storage system easier to reason about and less error-prone."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:21:26.397115Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:10:18.710258Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:21:26.397115Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T23:10:18.710258Z",
+  "completed_at": "2026-02-04T23:21:26.397115Z",
+  "tokens": {
+    "input_tokens": 120,
+    "output_tokens": 26678,
+    "cache_read_tokens": 7879226,
+    "cache_creation_tokens": 99876
+  },
+  "cost_usd": 1.1259426000000003,
+  "duration_seconds": 667,
+  "iterations": 1,
+  "approach": "Systematically identified and removed all references to deprecated directory structures (`.cub/runs/`, `.cub/run-sessions/`, `.cub/logs/`, and `attempts/` subdirectories) by searching the codebase, understanding the migration from the old to new ledger structure, updating source code to use the new flattened paths, and then comprehensively updating all affected tests to match the new structure.",
+  "decisions": [
+    "**Consolidated artifact storage**: Transitioned from nested `by-task/{task_id}/attempts/{NNN}/` structure to flattened `by-task/{task_id}/{NNN}-{type}.{ext}` by leveraging the existing `ArtifactManager` class instead of creating new abstraction layers.",
+    "**Removed backward-compatibility code in monitor.py**: Eliminated the `_find_active_run()` function that looked in old directories, choosing to rely solely on the new `.cub/ledger/by-run/` location rather than maintaining dual-path support.",
+    "**Updated retry context generation**: Modified `generate_retry_context()` to use `ArtifactManager.get_artifact_path()` for artifact discovery instead of hardcoding old path patterns, ensuring future flexibility.",
+    "**Comprehensive test updates**: Rather than skipping or patching tests, updated 8+ test files to use new paths, ensuring tests validate the actual system behavior rather than legacy expectations."
+  ],
+  "lessons_learned": [
+    "**Path consolidation simplifies debugging**: Moving from three separate directory hierarchies (`.cub/runs/`, `.cub/run-sessions/`, `.cub/logs/`) to a single unified structure under `.cub/ledger/` significantly reduces cognitive load when tracking execution state and makes the system easier to reason about.",
+    "**Abstraction layers enable clean migrations**: The `ArtifactManager` class provided a clean interface that allowed wholesale replacement of path-building logic throughout the codebase\u2014updating one class updated behavior everywhere it was used.",
+    "**Tests are the migration blueprint**: Test failures immediately revealed all the places where old paths were still assumed; fixing tests forced exposure of every code path that needed updating, preventing silent failures later.",
+    "**Flattening hierarchies reduces edge cases**: Removing the `attempts/` subdirectory eliminated complexity around attempt numbering, iteration tracking, and nested path management, making the artifact storage system easier to reason about and less error-prone."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d2d6b050d4edc5bce3cc633522f4a4882224ccc8",
+      "message": "task(cub-048a-5.3): Remove deprecated code paths",
+      "author": "",
+      "timestamp": "2026-02-04T23:21:14Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-5.3",
+  "epic_id": "cub-048a-5",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

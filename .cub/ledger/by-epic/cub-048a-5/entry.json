@@ -21,38 +21,41 @@
     "captured_at": "2026-02-04T23:06:42.351141Z"
   },
   "task_ids": [
-    "cub-048a-5.1"
+    "cub-048a-5.1",
+    "cub-048a-5.2",
+    "cub-048a-5.3"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
-    "total_cost_usd": 1.6884931500000007,
-    "avg_cost_per_task": 1.6884931500000007,
-    "min_cost_usd": 1.6884931500000007,
+    "total_cost_usd": 3.812078150000001,
+    "avg_cost_per_task": 1.270692716666667,
+    "min_cost_usd": 0.9976424,
     "max_cost_usd": 1.6884931500000007,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 3683011,
-    "avg_tokens_per_task": 3683011,
-    "total_duration_seconds": 363,
-    "avg_duration_seconds": 363,
+    "total_tokens": 12749099,
+    "avg_tokens_per_task": 4249699,
+    "total_duration_seconds": 1234,
+    "avg_duration_seconds": 411,
     "models_used": [
+      "haiku",
       "sonnet"
     ],
-    "most_common_model": "sonnet"
+    "most_common_model": "haiku"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T23:06:42.370717Z"
+    "stage_updated_at": "2026-02-04T23:21:35.197592Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T23:00:30.440542Z",
-  "completed_at": "2026-02-04T23:06:34.042640Z",
-  "updated_at": "2026-02-04T23:06:42.370724Z",
+  "completed_at": "2026-02-04T23:21:26.397115Z",
+  "updated_at": "2026-02-04T23:21:35.197595Z",
   "first_commit": {
     "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
     "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
@@ -60,10 +63,10 @@
     "timestamp": "2026-02-04T23:06:15Z"
   },
   "last_commit": {
-    "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
-    "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+    "hash": "d2d6b050d4edc5bce3cc633522f4a4882224ccc8",
+    "message": "task(cub-048a-5.3): Remove deprecated code paths",
     "author": "",
-    "timestamp": "2026-02-04T23:06:15Z"
+    "timestamp": "2026-02-04T23:21:14Z"
   },
   "drift": {
     "additions": [],

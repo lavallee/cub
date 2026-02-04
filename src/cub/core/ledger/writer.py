@@ -12,6 +12,7 @@ from typing import Any
 
 import yaml
 
+from cub.core.ledger.artifacts import ArtifactManager
 from cub.core.ledger.models import (
     EpicEntry,
     LedgerEntry,
@@ -46,6 +47,7 @@ class LedgerWriter:
         self.by_epic_dir = ledger_dir / "by-epic"
         self.by_plan_dir = ledger_dir / "by-plan"
         self.by_run_dir = ledger_dir / "by-run"
+        self.artifact_manager = ArtifactManager(ledger_dir)
 
     def create_entry(self, entry: LedgerEntry) -> None:
         """Create a new ledger entry.
@@ -295,8 +297,8 @@ class LedgerWriter:
     ) -> Path:
         """Write a prompt file with YAML frontmatter for an attempt.
 
-        Creates the attempts directory if needed and writes a prompt file
-        with YAML frontmatter containing execution context metadata.
+        Writes a prompt file with YAML frontmatter containing execution
+        context metadata using the flattened artifact structure.
 
         Args:
             task_id: Task ID (e.g., 'cub-abc')
@@ -316,19 +318,15 @@ class LedgerWriter:
             ...     "cub-abc", 1, "# Task: Fix login\\n...",
             ...     harness="claude", model="haiku", run_id="cub-20260124-123456"
             ... )
-            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-prompt.md
+            >>> # Creates: .cub/ledger/by-task/cub-abc/001-prompt.md
         """
         # Ensure task directory exists
-        task_dir = self.by_task_dir / task_id
-        task_dir.mkdir(parents=True, exist_ok=True)
+        self.artifact_manager.ensure_task_dir(task_id)
 
-        # Ensure attempts directory exists
-        attempts_dir = task_dir / "attempts"
-        attempts_dir.mkdir(parents=True, exist_ok=True)
-
-        # Format attempt number as zero-padded 3 digits
-        attempt_str = f"{attempt_number:03d}"
-        prompt_file = attempts_dir / f"{attempt_str}-prompt.md"
+        # Get artifact path using the flattened structure
+        prompt_file = self.artifact_manager.get_artifact_path(
+            task_id, attempt_number, "prompt"
+        )
 
         # Prepare frontmatter
         frontmatter = {
@@ -362,8 +360,7 @@ class LedgerWriter:
     ) -> Path:
         """Write a harness log file for an attempt.
 
-        Creates the attempts directory if needed and writes the harness
-        output log.
+        Writes the harness output log using the flattened artifact structure.
 
         Args:
             task_id: Task ID (e.g., 'cub-abc')
@@ -378,19 +375,15 @@ class LedgerWriter:
             >>> path = writer.write_harness_log(
             ...     "cub-abc", 1, "Harness output here..."
             ... )
-            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-harness.log
+            >>> # Creates: .cub/ledger/by-task/cub-abc/001-harness.jsonl
         """
         # Ensure task directory exists
-        task_dir = self.by_task_dir / task_id
-        task_dir.mkdir(parents=True, exist_ok=True)
+        self.artifact_manager.ensure_task_dir(task_id)
 
-        # Ensure attempts directory exists
-        attempts_dir = task_dir / "attempts"
-        attempts_dir.mkdir(parents=True, exist_ok=True)
-
-        # Format attempt number as zero-padded 3 digits
-        attempt_str = f"{attempt_number:03d}"
-        log_file = attempts_dir / f"{attempt_str}-harness.log"
+        # Get artifact path using the flattened structure
+        log_file = self.artifact_manager.get_artifact_path(
+            task_id, attempt_number, "harness"
+        )
 
         # Write log content
         log_file.write_text(log_content, encoding="utf-8")

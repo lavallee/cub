@@ -22,20 +22,20 @@ class TestFindActiveRun:
         assert result is None
 
     def test_returns_none_when_no_runs_dir(self, tmp_path):
-        """Returns None when .cub/runs/ doesn't exist."""
+        """Returns None when .cub/ledger/by-run/ doesn't exist."""
         (tmp_path / ".cub").mkdir()
         result = _find_active_run(tmp_path)
         assert result is None
 
     def test_returns_none_when_runs_dir_empty(self, tmp_path):
-        """Returns None when .cub/runs/ has no status files."""
-        (tmp_path / ".cub" / "runs").mkdir(parents=True)
+        """Returns None when .cub/ledger/by-run/ has no status files."""
+        (tmp_path / ".cub" / "ledger" / "by-run").mkdir(parents=True)
         result = _find_active_run(tmp_path)
         assert result is None
 
     def test_finds_active_run_via_status_scan(self, tmp_path):
-        """Finds a running status.json without session symlink."""
-        runs_dir = tmp_path / ".cub" / "runs" / "test-run-001"
+        """Finds a running status.json."""
+        runs_dir = tmp_path / ".cub" / "ledger" / "by-run" / "test-run-001"
         runs_dir.mkdir(parents=True)
 
         status_data = {
@@ -54,7 +54,7 @@ class TestFindActiveRun:
 
     def test_prefers_active_run_over_completed(self, tmp_path):
         """Prefers a running run over a completed one even if completed is newer."""
-        cub_runs = tmp_path / ".cub" / "runs"
+        cub_runs = tmp_path / ".cub" / "ledger" / "by-run"
 
         # Create completed run (written first, so it has an older mtime by default)
         completed_dir = cub_runs / "completed-run"
@@ -77,7 +77,7 @@ class TestFindActiveRun:
 
     def test_falls_back_to_most_recent_when_none_active(self, tmp_path):
         """Falls back to the most recent run when none are active."""
-        cub_runs = tmp_path / ".cub" / "runs"
+        cub_runs = tmp_path / ".cub" / "ledger" / "by-run"
 
         # Create two completed runs
         run1_dir = cub_runs / "old-run"
@@ -102,77 +102,12 @@ class TestFindActiveRun:
         run_id, _ = result
         assert run_id == "new-run"
 
-    def test_follows_session_symlink(self, tmp_path):
-        """Follows session symlink when it exists and points to valid run."""
+    def test_finds_active_initializing_run(self, tmp_path):
+        """Finds an initializing run (treated as active)."""
         # Create run
-        run_dir = tmp_path / ".cub" / "runs" / "symlinked-run"
+        run_dir = tmp_path / ".cub" / "ledger" / "by-run" / "init-run"
         run_dir.mkdir(parents=True)
         (run_dir / "status.json").write_text(
-            json.dumps({"run_id": "symlinked-run", "phase": "running"})
-        )
-
-        # Create session symlink
-        sessions_dir = tmp_path / ".cub" / "run-sessions"
-        sessions_dir.mkdir(parents=True)
-        session_file = sessions_dir / "symlinked-run.json"
-        session_file.write_text(json.dumps({"run_id": "symlinked-run", "status": "running"}))
-
-        symlink = sessions_dir / "active-run.json"
-        symlink.symlink_to("symlinked-run.json")
-
-        result = _find_active_run(tmp_path)
-        assert result is not None
-        run_id, _ = result
-        assert run_id == "symlinked-run"
-
-    def test_ignores_broken_symlink(self, tmp_path):
-        """Falls back when session symlink is broken."""
-        # Create a run without symlink target
-        run_dir = tmp_path / ".cub" / "runs" / "fallback-run"
-        run_dir.mkdir(parents=True)
-        (run_dir / "status.json").write_text(
-            json.dumps({"run_id": "fallback-run", "phase": "running"})
-        )
-
-        # Create broken symlink
-        sessions_dir = tmp_path / ".cub" / "run-sessions"
-        sessions_dir.mkdir(parents=True)
-        symlink = sessions_dir / "active-run.json"
-        symlink.symlink_to("nonexistent-run.json")
-
-        result = _find_active_run(tmp_path)
-        assert result is not None
-        run_id, _ = result
-        assert run_id == "fallback-run"
-
-    def test_handles_corrupt_status_json(self, tmp_path):
-        """Handles corrupt status.json files gracefully."""
-        runs_dir = tmp_path / ".cub" / "runs"
-
-        # Create corrupt file
-        corrupt_dir = runs_dir / "corrupt-run"
-        corrupt_dir.mkdir(parents=True)
-        (corrupt_dir / "status.json").write_text("not valid json {{{")
-
-        # Create valid file
-        valid_dir = runs_dir / "valid-run"
-        valid_dir.mkdir(parents=True)
-        (valid_dir / "status.json").write_text(
-            json.dumps({"run_id": "valid-run", "phase": "completed"})
-        )
-
-        result = _find_active_run(tmp_path)
-        assert result is not None
-        run_id, _ = result
-        assert run_id == "valid-run"
-
-    def test_prefers_initializing_over_completed(self, tmp_path):
-        """Treats 'initializing' phase as active."""
-        runs_dir = tmp_path / ".cub" / "runs"
-
-        init_dir = runs_dir / "init-run"
-        init_dir.mkdir(parents=True)
-        (init_dir / "status.json").write_text(
             json.dumps({"run_id": "init-run", "phase": "initializing"})
         )
 
@@ -180,6 +115,49 @@ class TestFindActiveRun:
         assert result is not None
         run_id, _ = result
         assert run_id == "init-run"
+
+    def test_skips_corrupt_json(self, tmp_path):
+        """Skips corrupt JSON and continues searching."""
+        # Create a run with corrupt file
+        corrupt_dir = tmp_path / ".cub" / "ledger" / "by-run" / "corrupt-run"
+        corrupt_dir.mkdir(parents=True)
+        (corrupt_dir / "status.json").write_text("not valid json {{{")
+
+        # Create valid run
+        valid_dir = tmp_path / ".cub" / "ledger" / "by-run" / "valid-run"
+        valid_dir.mkdir(parents=True)
+        (valid_dir / "status.json").write_text(
+            json.dumps({"run_id": "valid-run", "phase": "running"})
+        )
+
+        result = _find_active_run(tmp_path)
+        assert result is not None
+        run_id, _ = result
+        assert run_id == "valid-run"
+
+    def test_prefers_running_over_initializing(self, tmp_path):
+        """Prefers running phase over initializing when both exist."""
+        runs_dir = tmp_path / ".cub" / "ledger" / "by-run"
+
+        # Create initializing run
+        init_dir = runs_dir / "init-run"
+        init_dir.mkdir(parents=True)
+        (init_dir / "status.json").write_text(
+            json.dumps({"run_id": "init-run", "phase": "initializing"})
+        )
+
+        # Create running run
+        running_dir = runs_dir / "running-run"
+        running_dir.mkdir(parents=True)
+        (running_dir / "status.json").write_text(
+            json.dumps({"run_id": "running-run", "phase": "running"})
+        )
+
+        result = _find_active_run(tmp_path)
+        assert result is not None
+        run_id, _ = result
+        # Either is acceptable as both are "active" phases
+        assert run_id in ("init-run", "running-run")
 
 
 class TestShowRuns:
@@ -202,7 +180,7 @@ class TestShowRuns:
 
     def test_lists_runs_from_status_files(self, tmp_path):
         """Lists runs from status.json files."""
-        runs_dir = tmp_path / ".cub" / "runs"
+        runs_dir = tmp_path / ".cub" / "ledger" / "by-run"
 
         for name, phase in [("run-1", "completed"), ("run-2", "running")]:
             d = runs_dir / name

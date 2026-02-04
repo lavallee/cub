@@ -216,7 +216,7 @@ class TestLedgerEntry:
             files_changed=["src/auth/middleware.ts", "src/auth/jwt.ts"],
             commits=[CommitRef(hash="abc123f", message="feat: implement auth")],
             spec_file="specs/planned/auth.md",
-            run_log_path=".cub/runs/session-123/tasks/beads-abc",
+            run_log_path=".cub/ledger/by-run/session-123/tasks/beads-abc",
             epic_id="auth-epic",
             verification_status=VerificationStatus.PASS,
             verification_notes=["Tests pass", "Build succeeds"],

@@ -496,8 +496,8 @@ class TestLedgerPromptAndLogWriting:
             run_id="cub-20260124-123456",
         )
 
-        # Verify file was created
-        expected_path = ledger_dir / "by-task" / task_id / "attempts" / "001-prompt.md"
+        # Verify file was created (flattened structure)
+        expected_path = ledger_dir / "by-task" / task_id / "001-prompt.md"
         assert prompt_path == expected_path
         assert prompt_path.exists()
 
@@ -527,10 +527,10 @@ class TestLedgerPromptAndLogWriting:
         assert path1.name == "001-prompt.md"
         assert path2.name == "002-prompt.md"
 
-        # Verify directory structure
-        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
-        assert attempts_dir.exists()
-        assert len(list(attempts_dir.glob("*-prompt.md"))) == 2
+        # Verify files exist at task level (flattened structure)
+        task_dir = ledger_dir / "by-task" / task_id
+        assert task_dir.exists()
+        assert len(list(task_dir.glob("*-prompt.md"))) == 2
 
     def test_write_prompt_file_with_custom_started_at(self, ledger_dir: Path) -> None:
         """Test writing prompt file with custom started_at timestamp."""
@@ -575,8 +575,8 @@ class TestLedgerPromptAndLogWriting:
 
         log_path = writer.write_harness_log(task_id, 1, log_content)
 
-        # Verify file was created
-        expected_path = ledger_dir / "by-task" / task_id / "attempts" / "001-harness.log"
+        # Verify file was created (flattened structure)
+        expected_path = ledger_dir / "by-task" / task_id / "001-harness.jsonl"
         assert log_path == expected_path
         assert log_path.exists()
 
@@ -598,14 +598,14 @@ class TestLedgerPromptAndLogWriting:
         assert path1.exists()
         assert path2.exists()
         assert path3.exists()
-        assert path1.name == "001-harness.log"
-        assert path2.name == "002-harness.log"
-        assert path3.name == "003-harness.log"
+        assert path1.name == "001-harness.jsonl"
+        assert path2.name == "002-harness.jsonl"
+        assert path3.name == "003-harness.jsonl"
 
-        # Verify directory structure
-        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
-        assert attempts_dir.exists()
-        assert len(list(attempts_dir.glob("*-harness.log"))) == 3
+        # Verify files exist at task level (flattened structure)
+        task_dir = ledger_dir / "by-task" / task_id
+        assert task_dir.exists()
+        assert len(list(task_dir.glob("*-harness.jsonl"))) == 3
 
     def test_write_prompt_and_log_together(self, ledger_dir: Path) -> None:
         """Test writing both prompt and log files for the same attempt."""
@@ -623,16 +623,16 @@ class TestLedgerPromptAndLogWriting:
         )
         log_path = writer.write_harness_log(task_id, 1, "Harness output")
 
-        # Verify both exist in the same directory
-        attempts_dir = ledger_dir / "by-task" / task_id / "attempts"
-        assert prompt_path.parent == attempts_dir
-        assert log_path.parent == attempts_dir
+        # Verify both exist in the task directory (flattened structure)
+        task_dir = ledger_dir / "by-task" / task_id
+        assert prompt_path.parent == task_dir
+        assert log_path.parent == task_dir
         assert prompt_path.exists()
         assert log_path.exists()
 
         # Verify both have matching attempt numbers
         assert prompt_path.name == "001-prompt.md"
-        assert log_path.name == "001-harness.log"
+        assert log_path.name == "001-harness.jsonl"
 
     def test_write_files_creates_directories(self, ledger_dir: Path) -> None:
         """Test that write methods create necessary directories."""
@@ -641,18 +641,14 @@ class TestLedgerPromptAndLogWriting:
 
         # Verify directories don't exist yet
         task_dir = ledger_dir / "by-task" / task_id
-        attempts_dir = task_dir / "attempts"
         assert not task_dir.exists()
-        assert not attempts_dir.exists()
 
         # Write a prompt file
         writer.write_prompt_file(task_id, 1, "Test prompt")
 
-        # Verify directories were created
+        # Verify directories were created (flattened structure, no attempts/)
         assert task_dir.exists()
-        assert attempts_dir.exists()
         assert task_dir.is_dir()
-        assert attempts_dir.is_dir()
 
 
 class TestLedgerPlanEntries:

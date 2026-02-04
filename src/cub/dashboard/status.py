@@ -23,7 +23,7 @@ class StatusWatcher:
         >>> def on_change(status: RunStatus) -> None:
         ...     print(f"Phase: {status.phase}")
         >>> watcher = StatusWatcher(
-        ...     status_path=Path(".cub/runs/camel-20260115/status.json"),
+        ...     status_path=Path(".cub/ledger/by-run/camel-20260115/status.json"),
         ...     on_change=on_change
         ... )
         >>> status = watcher.poll()  # Returns latest status

@@ -252,8 +252,8 @@ class TestOnAttemptEnd:
             model="haiku",
         )
 
-        # Verify log file was created
-        log_path = ledger_dir / "by-task" / task_id / "attempts" / "001-harness.log"
+        # Verify log file was created (using new flattened structure)
+        log_path = ledger_dir / "by-task" / task_id / "001-harness.jsonl"
         assert log_path.exists()
         assert log_path.read_text() == log_content
 
