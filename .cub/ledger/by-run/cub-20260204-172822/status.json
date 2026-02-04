@@ -2,16 +2,16 @@
   "run_id": "cub-20260204-172822",
   "session_name": "cub-20260204-172822",
   "started_at": "2026-02-04T17:28:22.108298",
-  "updated_at": "2026-02-04T17:54:59.439352",
-  "completed_at": null,
+  "updated_at": "2026-02-04T18:00:25.759594",
+  "completed_at": "2026-02-04T18:00:25.758926",
   "epic": "cub-048a-4",
   "label": null,
   "branch": "feature/cub-048-ledger-consolidation-and-id-system",
   "circuit_breaker_enabled": true,
   "circuit_breaker_timeout": 30,
-  "phase": "running",
-  "current_task_id": "cub-048a-4.5",
-  "current_task_title": "Implement cub sync agent command",
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
   "iteration": {
     "current": 5,
     "max": 100,
@@ -22,20 +22,20 @@
     "is_near_limit": false
   },
   "budget": {
-    "tokens_used": 110959,
+    "tokens_used": 153965,
     "tokens_limit": 500000,
-    "cost_usd": 8.8291595,
+    "cost_usd": 10.41667445,
     "cost_limit": null,
-    "tasks_completed": 4,
+    "tasks_completed": 5,
     "tasks_limit": null,
-    "tokens_percentage": 22.1918,
+    "tokens_percentage": 30.793,
     "cost_percentage": null,
     "tasks_percentage": null,
     "is_over_budget": false
   },
-  "tasks_open": 59,
+  "tasks_open": 58,
   "tasks_in_progress": 0,
-  "tasks_closed": 98,
+  "tasks_closed": 99,
   "tasks_total": 157,
   "task_entries": [
     {
@@ -69,9 +69,9 @@
     {
       "task_id": "cub-048a-4.5",
       "title": "Implement cub sync agent command",
-      "state": "doing",
+      "state": "done",
       "started_at": "2026-02-04T17:54:59.439327",
-      "completed_at": null
+      "completed_at": "2026-02-04T18:00:15.696409"
     }
   ],
   "events": [
@@ -156,12 +156,36 @@
       "message": "Starting task: Implement cub sync agent command",
       "task_id": "cub-048a-4.5",
       "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:00:15.696431",
+      "level": "info",
+      "message": "Task completed: Implement cub sync agent command",
+      "task_id": "cub-048a-4.5",
+      "metadata": {
+        "duration": 316.2289617061615,
+        "tokens": 43006
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:00:23.703779",
+      "level": "info",
+      "message": "Epic 'cub-048a-4' auto-closed (5 tasks completed)",
+      "task_id": "cub-048a-4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:00:25.758959",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
     }
   ],
   "last_error": null,
-  "is_active": true,
-  "is_finished": false,
-  "tasks_remaining": 59,
-  "completion_percentage": 62.42038216560509,
-  "duration_seconds": 1597.331156
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 58,
+  "completion_percentage": 63.05732484076433,
+  "duration_seconds": 1923.650628
 }
