@@ -643,11 +643,20 @@ class RunLoop:
             except Exception:
                 pass  # Non-fatal, work is done
 
+            # Finalize ledger entry BEFORE committing so it's included
+            self._finalize_ledger(
+                task, success=True, task_model=task_model,
+                task_start_commit=task_start_commit,
+            )
+
             # Auto-close parent epic if all its tasks are complete
             if task.parent:
                 try:
                     closed, message = self.task_backend.try_close_epic(task.parent)
                     if closed:
+                        # Finalize epic ledger entry before committing
+                        self._finalize_epic_ledger(task.parent)
+
                         yield self._make_event(
                             RunEventType.EPIC_CLOSED,
                             message,
@@ -656,18 +665,19 @@ class RunLoop:
                 except Exception:
                     pass  # Non-fatal
 
-            # Auto-sync
+            # Commit code changes and ledger files to working tree
+            # This ensures ledger files are included in the task completion commit
+            try:
+                self._commit_task_completion(task.id, task.parent)
+            except Exception:
+                pass  # Non-fatal
+
+            # Auto-sync task state to sync branch (if enabled)
             if self.sync_service and self.config.sync_enabled:
                 try:
                     self.sync_service.commit(message=f"Task {task.id} completed")
                 except Exception:
                     pass  # Non-fatal
-
-            # Finalize ledger entry
-            self._finalize_ledger(
-                task, success=True, task_model=task_model,
-                task_start_commit=task_start_commit,
-            )
 
             # Run post-task hooks
             if self.config.hooks_enabled:
@@ -886,6 +896,119 @@ class RunLoop:
                 final_model=task_model or "",
                 commits=task_commits,
                 current_task=current_task_state,
+            )
+        except Exception:
+            pass  # Non-fatal
+
+    def _finalize_epic_ledger(self, epic_id: str) -> None:
+        """Finalize epic ledger entry when all tasks complete."""
+        if not self.ledger_integration or not self.config.ledger_enabled:
+            return
+
+        try:
+            # Update epic aggregates from all completed child tasks
+            self.ledger_integration.writer.update_epic_aggregates(epic_id)
+        except Exception:
+            pass  # Non-fatal
+
+    def _commit_task_completion(self, task_id: str, epic_id: str | None) -> None:
+        """Amend the task completion commit to include ledger files.
+
+        After the agent commits their changes, this method:
+        - Stages ledger entry file (.cub/ledger/by-task/{id}.json)
+        - Stages index file (.cub/ledger/index.jsonl)
+        - Stages epic entry file if epic was closed
+        - Amends the last commit to include these files
+        - Updates commit message to mention ledger update
+
+        Args:
+            task_id: Task ID that was completed
+            epic_id: Optional epic ID if epic was also closed
+        """
+        import subprocess
+
+        project_dir = Path(self.config.project_dir)
+
+        # Check if we're in a git repo
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=project_dir,
+                capture_output=True,
+                check=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return  # Not a git repo, skip
+
+        # Get the last commit message to check if it's the task commit
+        try:
+            result = subprocess.run(
+                ["git", "log", "-1", "--pretty=%B"],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            last_commit_msg = result.stdout.strip()
+        except Exception:
+            return  # Can't get last commit, skip
+
+        # Only amend if the last commit is for this task
+        # (format: "type(task-id): description" per runloop.md)
+        if not last_commit_msg or f"({task_id})" not in last_commit_msg:
+            return  # Last commit isn't for this task, don't amend
+
+        # Add ledger files to staging
+        ledger_files = [
+            f".cub/ledger/by-task/{task_id}.json",
+            ".cub/ledger/index.jsonl",
+        ]
+
+        if epic_id:
+            ledger_files.append(f".cub/ledger/by-epic/{epic_id}/entry.json")
+
+        files_to_stage = []
+        for ledger_file in ledger_files:
+            file_path = project_dir / ledger_file
+            if file_path.exists():
+                files_to_stage.append(ledger_file)
+                try:
+                    subprocess.run(
+                        ["git", "add", ledger_file],
+                        cwd=project_dir,
+                        capture_output=True,
+                        check=False,  # Don't fail if file isn't tracked
+                    )
+                except Exception:
+                    pass  # Non-fatal
+
+        # Check if there are staged changes
+        try:
+            diff_result = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
+                cwd=project_dir,
+                capture_output=True,
+            )
+            # Exit code 1 means there are changes, 0 means no changes
+            if diff_result.returncode == 0:
+                return  # No ledger files to add
+        except Exception:
+            return  # Can't determine status, skip
+
+        # Amend the commit to include ledger files
+        # Append ledger update info to the commit message
+        updated_msg = last_commit_msg
+        if epic_id:
+            updated_msg += f"\n\nIncludes ledger updates for task {task_id} and epic {epic_id}"
+        else:
+            updated_msg += f"\n\nIncludes ledger update for task {task_id}"
+
+        try:
+            subprocess.run(
+                ["git", "commit", "--amend", "-m", updated_msg, "--no-verify"],
+                cwd=project_dir,
+                capture_output=True,
+                check=False,  # Don't fail on commit errors
             )
         except Exception:
             pass  # Non-fatal
