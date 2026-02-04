@@ -1,1 +1,0 @@
-.cub/prompt.md

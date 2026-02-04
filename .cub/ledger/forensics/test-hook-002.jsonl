@@ -1,1 +1,0 @@
-{"event_type": "file_write", "timestamp": "2026-01-28T12:54:42.440543+00:00", "session_id": "test-hook-002", "file_path": "/home/lavallee/clawdbot/cub/plans/test/plan.md", "tool_name": "Write", "file_category": "plan"}

@@ -1,6 +1,0 @@
-
-==========================================
-Iteration: 1
-Timestamp: 2026-01-14T04:43:41Z
-==========================================
-{"type":"result","subtype":"success","is_error":false,"duration_ms":1946,"duration_api_ms":221235,"num_turns":1,"result":"<promise>COMPLETE</promise>","session_id":"3866484e-c575-4326-90f4-df3a597d2b0b","total_cost_usd":0.7898105000000003,"usage":{"input_tokens":0,"cache_creation_input_tokens":9704,"cache_read_input_tokens":108426,"output_tokens":11,"server_tool_use":{"web_search_requests":0,"web_fetch_requests":0},"service_tier":"standard","cache_creation":{"ephemeral_1h_input_tokens":0,"ephemeral_5m_input_tokens":9704}},"modelUsage":{"claude-haiku-4-5-20251001":{"inputTokens":59713,"outputTokens":21339,"cacheReadInputTokens":4110100,"cacheCreationInputTokens":169914,"webSearchRequests":0,"costUSD":0.7898105000000003,"contextWindow":200000,"maxOutputTokens":64000}},"permission_denials":[],"uuid":"381ee5a3-4482-4fe3-96a0-97810d20b0be"}
