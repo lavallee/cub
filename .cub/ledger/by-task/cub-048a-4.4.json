@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-048a-4.4",
+  "title": "Implement cub learn extract command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-4"
+  },
+  "task": {
+    "title": "Implement cub learn extract command",
+    "description": "The learn extract command analyzes ledger entries to extract patterns and lessons, updating guardrails.md and CLAUDE.md with discovered knowledge.\n\n**Implementation Steps:**\n1. Create `src/cub/core/learn/` package with `service.py`\n2. Implement `LearnService` with methods:\n3. Create `Pattern` model for extracted patterns\n4. Create `src/cub/cli/learn.py` with Typer command\n5. Support `--dry-run` to preview changes\n6. Support `--since` to limit analysis window\n\n**Files:** `src/cub/core/learn/__init__.py`, `src/cub/core/learn/service.py`, `src/cub/cli/learn.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-5",
+      "model:opus",
+      "complexity:high",
+      "domain:logic",
+      "domain:api"
+    ],
+    "created_at": "2026-02-04T15:37:04.560903",
+    "captured_at": "2026-02-04T22:47:40.473575Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-172822",
+      "started_at": "2026-02-04T17:47:40.483101",
+      "completed_at": "2026-02-04T22:54:50.292767Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 21859,
+        "output_tokens": 24247,
+        "cache_read_tokens": 5377889,
+        "cache_creation_tokens": 94351
+      },
+      "cost_usd": 4.053492249999999,
+      "duration_seconds": 429
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:54:50.312597Z",
+    "total_cost_usd": 4.053492249999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 429,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b64954cdb4c8415c3db1364c52f4e59f4fce7023",
+        "message": "task(cub-048a-4.4): Implement cub learn extract command",
+        "author": "",
+        "timestamp": "2026-02-04T22:54:31Z"
+      }
+    ],
+    "approach": "The implementation followed established cub patterns by creating a service layer (`LearnService`) to handle pattern detection logic, then wrapping it in a CLI command. The service analyzes ledger entries to identify repeated failures, cost/duration outliers, escalation patterns, and recurring lessons, then generates actionable suggestions for guardrails.md and CLAUDE.md.",
+    "decisions": [
+      "Modeled `LearnService` after sibling services (`ReleaseService`, `RetroService`, `VerifyService`) using service layer architecture with typed inputs/outputs and factory construction",
+      "Pattern detection focuses on statistically significant outliers (> 1.5 standard deviations) rather than arbitrary thresholds to avoid noise",
+      "Supported both `--since` (days) and `--since-date` (ISO format) flags for flexible time windowing, with `--dry-run` as default to preview before applying changes",
+      "Separated concerns by having service return structured `Pattern` objects with metadata, letting CLI format output and decide file writes",
+      "Registered command in \"Improve Your Project\" section of CLI alongside other project improvement tools (audit, guardrails, map)"
+    ],
+    "lessons_learned": [
+      "When working with datetime comparisons in ledger entries, ensure timezone-aware datetimes are normalized (strip timezone info) before range calculations to avoid comparison failures",
+      "Pydantic `ConfigDict` field definitions can return union types (e.g., `str | int | float` for metadata dicts), requiring explicit type casting when performing numeric operations rather than assuming types",
+      "Service layer patterns already established in the codebase make new feature implementation faster\u2014follow existing sibling implementations as templates rather than designing from scratch",
+      "Ledger entries may have optional fields (like dates); handle missing data gracefully rather than failing, defaulting to reasonable values for statistics calculations"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:54:50.312597Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:47:40.473575Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:54:50.312597Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:47:40.473575Z",
+  "completed_at": "2026-02-04T22:54:50.312597Z",
+  "tokens": {
+    "input_tokens": 21859,
+    "output_tokens": 24247,
+    "cache_read_tokens": 5377889,
+    "cache_creation_tokens": 94351
+  },
+  "cost_usd": 4.053492249999999,
+  "duration_seconds": 429,
+  "iterations": 1,
+  "approach": "The implementation followed established cub patterns by creating a service layer (`LearnService`) to handle pattern detection logic, then wrapping it in a CLI command. The service analyzes ledger entries to identify repeated failures, cost/duration outliers, escalation patterns, and recurring lessons, then generates actionable suggestions for guardrails.md and CLAUDE.md.",
+  "decisions": [
+    "Modeled `LearnService` after sibling services (`ReleaseService`, `RetroService`, `VerifyService`) using service layer architecture with typed inputs/outputs and factory construction",
+    "Pattern detection focuses on statistically significant outliers (> 1.5 standard deviations) rather than arbitrary thresholds to avoid noise",
+    "Supported both `--since` (days) and `--since-date` (ISO format) flags for flexible time windowing, with `--dry-run` as default to preview before applying changes",
+    "Separated concerns by having service return structured `Pattern` objects with metadata, letting CLI format output and decide file writes",
+    "Registered command in \"Improve Your Project\" section of CLI alongside other project improvement tools (audit, guardrails, map)"
+  ],
+  "lessons_learned": [
+    "When working with datetime comparisons in ledger entries, ensure timezone-aware datetimes are normalized (strip timezone info) before range calculations to avoid comparison failures",
+    "Pydantic `ConfigDict` field definitions can return union types (e.g., `str | int | float` for metadata dicts), requiring explicit type casting when performing numeric operations rather than assuming types",
+    "Service layer patterns already established in the codebase make new feature implementation faster\u2014follow existing sibling implementations as templates rather than designing from scratch",
+    "Ledger entries may have optional fields (like dates); handle missing data gracefully rather than failing, defaulting to reasonable values for statistics calculations"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "b64954cdb4c8415c3db1364c52f4e59f4fce7023",
+      "message": "task(cub-048a-4.4): Implement cub learn extract command",
+      "author": "",
+      "timestamp": "2026-02-04T22:54:31Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-4.4",
+  "epic_id": "cub-048a-4",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "opus",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

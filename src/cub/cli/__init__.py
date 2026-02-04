@@ -20,6 +20,7 @@ from cub.cli import (
     doctor,
     hooks,
     init_cmd,
+    learn,
     ledger,
     map,
     merge,
@@ -235,6 +236,7 @@ app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
 app.command(name="guardrails", rich_help_panel=PANEL_PROJECT)(delegated.guardrails)
 app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
 app.add_typer(verify.app, name="verify", rich_help_panel=PANEL_PROJECT)
+app.add_typer(learn.app, name="learn", rich_help_panel=PANEL_PROJECT)
 app.command(name="map", rich_help_panel=PANEL_PROJECT)(map.main)
 app.add_typer(routes.app, name="routes", rich_help_panel=PANEL_PROJECT)
 

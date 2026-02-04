@@ -23,38 +23,40 @@
   "task_ids": [
     "cub-048a-4.1",
     "cub-048a-4.2",
-    "cub-048a-4.3"
+    "cub-048a-4.3",
+    "cub-048a-4.4"
   ],
   "aggregates": {
-    "total_tasks": 3,
-    "tasks_completed": 3,
-    "tasks_successful": 3,
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
     "tasks_failed": 0,
-    "total_cost_usd": 4.7756672500000015,
-    "avg_cost_per_task": 1.591889083333334,
+    "total_cost_usd": 8.8291595,
+    "avg_cost_per_task": 2.207289875,
     "min_cost_usd": 1.1352471999999998,
-    "max_cost_usd": 1.8787243000000005,
+    "max_cost_usd": 4.053492249999999,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 3,
+    "total_attempts": 4,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 10475598,
-    "avg_tokens_per_task": 3491866,
-    "total_duration_seconds": 1129,
-    "avg_duration_seconds": 376,
+    "total_tokens": 15993944,
+    "avg_tokens_per_task": 3998486,
+    "total_duration_seconds": 1558,
+    "avg_duration_seconds": 389,
     "models_used": [
+      "opus",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T22:47:38.400303Z"
+    "stage_updated_at": "2026-02-04T22:54:57.386980Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T22:28:22.128505Z",
-  "completed_at": "2026-02-04T22:47:31.910046Z",
-  "updated_at": "2026-02-04T22:47:38.400307Z",
+  "completed_at": "2026-02-04T22:54:50.312597Z",
+  "updated_at": "2026-02-04T22:54:57.386982Z",
   "first_commit": {
     "hash": "9492596c9612ba9338dbad4feeacbc3d70374be9",
     "message": "task(cub-048a-4.1): Implement cub release command",
@@ -62,10 +64,10 @@
     "timestamp": "2026-02-04T22:34:45Z"
   },
   "last_commit": {
-    "hash": "d2da057891db30cebb64a65dade6a55f0c76549f",
-    "message": "task(cub-048a-4.3): Implement cub verify command",
+    "hash": "b64954cdb4c8415c3db1364c52f4e59f4fce7023",
+    "message": "task(cub-048a-4.4): Implement cub learn extract command",
     "author": "",
-    "timestamp": "2026-02-04T22:47:07Z"
+    "timestamp": "2026-02-04T22:54:31Z"
   },
   "drift": {
     "additions": [],
