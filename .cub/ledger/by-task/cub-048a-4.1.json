@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-048a-4.1",
+  "title": "Implement cub release command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-4"
+  },
+  "task": {
+    "title": "Implement cub release command",
+    "description": "The release command marks a plan as released, updates CHANGELOG, creates a git tag, and moves specs to the released/ directory.\n\n**Implementation Steps:**\n1. Create `src/cub/core/release/` package with `service.py`\n2. Implement `ReleaseService` with methods:\n3. Create `src/cub/cli/release.py` with Typer command\n4. Add `--dry-run` flag to preview changes\n5. Add `--no-tag` flag to skip git tag creation\n\n**Files:** `src/cub/core/release/__init__.py`, `src/cub/core/release/service.py`, `src/cub/cli/release.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-5",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic",
+      "domain:api"
+    ],
+    "created_at": "2026-02-04T15:37:04.560854",
+    "captured_at": "2026-02-04T22:28:22.128505Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-172822",
+      "started_at": "2026-02-04T17:28:22.139457",
+      "completed_at": "2026-02-04T22:34:58.174931Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 5806,
+        "output_tokens": 14013,
+        "cache_read_tokens": 3809650,
+        "cache_creation_tokens": 93089
+      },
+      "cost_usd": 1.7616957500000008,
+      "duration_seconds": 396
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:34:58.194554Z",
+    "total_cost_usd": 1.7616957500000008,
+    "total_attempts": 1,
+    "total_duration_seconds": 396,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "9492596c9612ba9338dbad4feeacbc3d70374be9",
+        "message": "task(cub-048a-4.1): Implement cub release command",
+        "author": "",
+        "timestamp": "2026-02-04T22:34:45Z"
+      }
+    ],
+    "approach": "Implemented the `cub release` command by creating a service layer (`ReleaseService`) to handle release logic independently, then exposing it through a CLI command with `--dry-run` and `--no-tag` flags. The service handles moving specs to `specs/released/`, updating CHANGELOG.md, creating git tags, and updating ledger status\u2014all with clear separation of concerns between domain logic and CLI presentation.",
+    "decisions": [
+      "**Service-first pattern**: Implemented business logic in `ReleaseService` before CLI to maintain testability and enable reuse by other interfaces (API, skills)",
+      "**Ledger-driven release tracking**: Stored release status in the task ledger rather than a separate release tracking system, leveraging existing infrastructure",
+      "**Dry-run by default approach**: Implemented `--dry-run` to preview changes and `--no-tag` to skip tag creation, providing flexibility while keeping the common path simple",
+      "**Moved specs to `specs/released/`**: Organized released specs into a subdirectory for clear distinction from active/researching specs",
+      "**CHANGELOG format**: Auto-generated CHANGELOG entries from plan data to ensure consistency and reduce manual maintenance"
+    ],
+    "lessons_learned": [
+      "**Understand existing patterns before coding**: Examining existing services (RunService, LaunchService) and CLI commands (status.py, init_cmd.py) early prevented rework and ensured consistency with project conventions",
+      "**Separate domain logic from presentation**: Placing release logic in a service layer (not CLI) made the code testable and reusable\u2014the CLI became a thin wrapper around service methods",
+      "**Pre-existing test failures are common**: Multiple unrelated test failures existed in the codebase; verifying failures were pre-existing before committing changes prevented false negatives",
+      "**Type checking strictness prevents bugs**: Running mypy early caught issues that linting alone wouldn't find, and the strict mode enforced clear interfaces"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:34:58.194554Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:28:22.128505Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:34:58.194554Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:28:22.128505Z",
+  "completed_at": "2026-02-04T22:34:58.194554Z",
+  "tokens": {
+    "input_tokens": 5806,
+    "output_tokens": 14013,
+    "cache_read_tokens": 3809650,
+    "cache_creation_tokens": 93089
+  },
+  "cost_usd": 1.7616957500000008,
+  "duration_seconds": 396,
+  "iterations": 1,
+  "approach": "Implemented the `cub release` command by creating a service layer (`ReleaseService`) to handle release logic independently, then exposing it through a CLI command with `--dry-run` and `--no-tag` flags. The service handles moving specs to `specs/released/`, updating CHANGELOG.md, creating git tags, and updating ledger status\u2014all with clear separation of concerns between domain logic and CLI presentation.",
+  "decisions": [
+    "**Service-first pattern**: Implemented business logic in `ReleaseService` before CLI to maintain testability and enable reuse by other interfaces (API, skills)",
+    "**Ledger-driven release tracking**: Stored release status in the task ledger rather than a separate release tracking system, leveraging existing infrastructure",
+    "**Dry-run by default approach**: Implemented `--dry-run` to preview changes and `--no-tag` to skip tag creation, providing flexibility while keeping the common path simple",
+    "**Moved specs to `specs/released/`**: Organized released specs into a subdirectory for clear distinction from active/researching specs",
+    "**CHANGELOG format**: Auto-generated CHANGELOG entries from plan data to ensure consistency and reduce manual maintenance"
+  ],
+  "lessons_learned": [
+    "**Understand existing patterns before coding**: Examining existing services (RunService, LaunchService) and CLI commands (status.py, init_cmd.py) early prevented rework and ensured consistency with project conventions",
+    "**Separate domain logic from presentation**: Placing release logic in a service layer (not CLI) made the code testable and reusable\u2014the CLI became a thin wrapper around service methods",
+    "**Pre-existing test failures are common**: Multiple unrelated test failures existed in the codebase; verifying failures were pre-existing before committing changes prevented false negatives",
+    "**Type checking strictness prevents bugs**: Running mypy early caught issues that linting alone wouldn't find, and the strict mode enforced clear interfaces"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "9492596c9612ba9338dbad4feeacbc3d70374be9",
+      "message": "task(cub-048a-4.1): Implement cub release command",
+      "author": "",
+      "timestamp": "2026-02-04T22:34:45Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-4.1",
+  "epic_id": "cub-048a-4",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -30,6 +30,7 @@ from cub.cli import (
     pr,
     punchlist,
     reconcile,
+    release,
     review,
     routes,
     run,
@@ -247,6 +248,7 @@ app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
+app.add_typer(release.app, name="release", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(workbench.app, name="workbench", rich_help_panel=PANEL_ROADMAP)
