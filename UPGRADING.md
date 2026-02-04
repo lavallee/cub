@@ -2,6 +2,37 @@
 
 This guide helps you migrate between major versions of Cub.
 
+## Upcoming: Plan Execution Unified (build-plan → run --plan)
+
+### What Changed
+
+The separate `cub build-plan` command has been removed. Plan execution is now integrated into `cub run --plan`.
+
+| Old Command | New Command | Notes |
+|-------------|-------------|-------|
+| `cub build-plan <plan-slug>` | `cub run --plan <plan-slug>` | Unified into run command |
+
+### Why the Change
+
+- Reduced command fragmentation - all task execution goes through `cub run`
+- Cleaner CLI interface with fewer top-level commands
+- Better integration with task iteration and ledger system
+- Easier for users to understand the main execution flow
+
+### Migration Steps
+
+If you have scripts or aliases using the old command:
+
+```bash
+# Old
+cub build-plan my-feature
+
+# New
+cub run --plan my-feature
+```
+
+---
+
 ## v0.27.0: Plan Flow Rename (prep → plan)
 
 ### What Changed
