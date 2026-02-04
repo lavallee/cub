@@ -1,6 +1,6 @@
 # Project Map: cub
 
-**Project Directory:** `/home/lavallee/cub`
+**Project Directory:** `/home/marc/Projects/cub`
 
 ## Tech Stacks
 
@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (266 files) (entry: __init__.py)
+- **cub**: `src/cub` (268 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -49,8 +49,7 @@
     │   │   ├── cub:status.md
     │   │   ├── cub:suggest.md
     │   │   └── cub:tasks.md
-    │   ├── settings.json
-    │   └── settings.local.json
+    │   └── settings.json
     ├── .cub/
     │   ├── cache/
     │   │   └── code_intel/
@@ -112,6 +111,7 @@
     │   │   │   └── cub-x7f/
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
+    │   │   │   ├── cub-048a-0.1/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -261,6 +261,7 @@
     │   │   │   ├── cub-t44.1/
     │   │   │   ├── cub-t44.10/
     │   │   │   ├── cub-t44.11/
+    │   │   │   ├── cub-t44.12/
     │   │   │   ├── cub-t44.2/
     │   │   │   ├── cub-t44.3/
     │   │   │   ├── cub-t44.4/
@@ -292,6 +293,7 @@
     │   │   │   ├── cub-x7f.4/
     │   │   │   ├── cub-x7f.5/
     │   │   │   ├── cub-001.json
+    │   │   │   ├── cub-048a-0.1.json
     │   │   │   ├── cub-0qf0.json
     │   │   │   ├── cub-12be.json
     │   │   │   ├── cub-4eyt.json
@@ -312,8 +314,6 @@
     │   │   │   ├── cub-a7f.5.json
     │   │   │   ├── cub-aeim.json
     │   │   │   ├── cub-b1a.1.json
-    │   │   │   ├── cub-b1a.2.json
-    │   │   │   ├── cub-b1a.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -349,6 +349,38 @@ Symbols ranked by importance (PageRank score):
 - **parse_conventional_commit** (def, line 96, score: 0.0024)
 - **prepend_to_changelog** (def, line 286, score: 0.0024)
 - **should_skip_commit** (def, line 147, score: 0.0024)
+
+### scripts/migrate-to-hierarchical-ids.py
+
+- **build_old_to_new_task_id** (def, line 326, score: 0.0024)
+- **build_plan_slug_to_id** (def, line 272, score: 0.0024)
+- **build_spec_slug_to_id** (def, line 213, score: 0.0024)
+- **discover_plans** (def, line 170, score: 0.0024)
+- **discover_specs** (def, line 125, score: 0.0024)
+- **format_epic_id** (def, line 241, score: 0.0024)
+- **format_plan_id** (def, line 229, score: 0.0024)
+- **format_standalone_id** (def, line 263, score: 0.0024)
+- **format_task_id** (def, line 254, score: 0.0024)
+- **get_epic_char** (def, line 42, score: 0.0024)
+- **get_plan_char** (def, line 35, score: 0.0024)
+- **get_sequence_char** (def, line 49, score: 0.0024)
+- **get_sequence_index** (def, line 54, score: 0.0024)
+- **get_spec_created_date** (def, line 105, score: 0.0024)
+- **initialize_counters** (def, line 634, score: 0.0024)
+- **load_tasks** (def, line 191, score: 0.0024)
+- **main** (def, line 655, score: 0.0024)
+- **parse_yaml_frontmatter** (def, line 65, score: 0.0024)
+- **rename_plan_directories** (def, line 596, score: 0.0024)
+- **rename_spec_files** (def, line 558, score: 0.0024)
+- **save_tasks** (def, line 207, score: 0.0024)
+- **sort_key** (def, line 155, score: 0.0024)
+- **sort_key** (def, line 182, score: 0.0024)
+- **str_representer** (def, line 94, score: 0.0024)
+- **task_sort_key** (def, line 403, score: 0.0024)
+- **update_plan_files** (def, line 458, score: 0.0024)
+- **update_spec_files** (def, line 427, score: 0.0024)
+- **update_tasks_file** (def, line 505, score: 0.0024)
+- **write_yaml_frontmatter** (def, line 89, score: 0.0024)
 
 ### scripts/move_specs_released.py
 
@@ -551,42 +583,5 @@ Symbols ranked by importance (PageRank score):
 
 - **ExitCode** (def, line 15, score: 0.0024)
 - **print_backend_not_initialized_error** (def, line 144, score: 0.0024)
-- **print_dirty_working_tree_error** (def, line 153, score: 0.0024)
-- **print_error** (def, line 31, score: 0.0024)
-- **print_harness_not_found_error** (def, line 67, score: 0.0024)
-- **print_harness_not_installed_error** (def, line 77, score: 0.0024)
-- **print_incompatible_flags_error** (def, line 162, score: 0.0024)
-- **print_invalid_option_error** (def, line 194, score: 0.0024)
-- **print_main_branch_error** (def, line 184, score: 0.0024)
-- **print_missing_dependency_error** (def, line 172, score: 0.0024)
-- **print_no_tasks_found_error** (def, line 113, score: 0.0024)
-- **print_not_git_repo_error** (def, line 95, score: 0.0024)
-- **print_not_project_root_error** (def, line 104, score: 0.0024)
-- **print_sync_not_initialized_error** (def, line 135, score: 0.0024)
-- **print_task_not_found_error** (def, line 126, score: 0.0024)
 
-### src/cub/cli/guidance.py
-
-- **render_guidance** (def, line 15, score: 0.0024)
-
-### src/cub/cli/hooks.py
-
-- **_format_event_type** (def, line 237, score: 0.0024)
-- **_format_timestamp** (def, line 228, score: 0.0024)
-- **_get_event_details** (def, line 252, score: 0.0024)
-- **check** (def, line 143, score: 0.0024)
-- **install** (def, line 33, score: 0.0024)
-- **log_cmd** (def, line 297, score: 0.0024)
-- **uninstall** (def, line 108, score: 0.0024)
-
-### src/cub/cli/init_cmd.py
-
-- **_detect_dev_mode** (def, line 91, score: 0.0024)
-- **_ensure_dev_mode_config** (def, line 165, score: 0.0024)
-- **_ensure_project_config** (def, line 365, score: 0.0024)
-- **_ensure_project_id** (def, line 137, score: 0.0024)
-- **_ensure_runloop** (def, line 210, score: 0.0024)
-- **_ensure_specs_dir** (def, line 359, score: 0.0024)
-- **_generate_project_id** (def, line 115, score: 0.0024)
-
-... (216 more symbols omitted to fit budget)
+... (215 more symbols omitted to fit budget)

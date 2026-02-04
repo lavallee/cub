@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-048a-0.1",
+  "title": "Create core/ids/ package with ID models",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-0"
+  },
+  "task": {
+    "title": "Create core/ids/ package with ID models",
+    "description": "The ID models are the foundation of the hierarchical ID system. They provide type-safe representations of spec, plan, epic, task, and standalone IDs with validation and string conversion.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ids/` directory with `__init__.py`\n2. Create `models.py` with Pydantic models: `SpecId`, `PlanId`, `EpicId`, `TaskId`, `StandaloneTaskId`\n3. Implement `__str__` methods for each model following the format spec\n4. Add validation for letter/char fields (A-Z, a-z, 0-9 sequences)\n5. Export public API from `__init__.py`\n\n**Files:** `src/cub/core/ids/__init__.py`, `src/cub/core/ids/models.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-1",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:model"
+    ],
+    "created_at": "2026-02-04T15:37:04.560490",
+    "captured_at": "2026-02-04T20:39:49.114741Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T20:39:49.114741Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T20:39:49.114741Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T20:39:49.114741Z",
+  "completed_at": "2026-02-04T20:39:49.114741Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.1",
+  "epic_id": "cub-048a-0",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}
