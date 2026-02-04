@@ -1,0 +1,14 @@
+{
+  "slug": "project-kanban-dashboard",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "project-kanban-dashboard.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-23T12:00:00+00:00",
+  "updated": "2026-01-23T18:13:31.790134+00:00",
+  "plan_id": "cub-035A"
+}

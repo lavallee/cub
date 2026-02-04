@@ -1,0 +1,22 @@
+{
+  "slug": "unified-tracking-model",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "unified-tracking-model.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-24T20:22:29.987909+00:00",
+  "updated": "2026-01-24T21:12:36.139027+00:00",
+  "epic_ids": [
+    "cub-r4n",
+    "cub-l7e",
+    "cub-e2p",
+    "cub-c5i",
+    "cub-d8b",
+    "cub-x3s"
+  ],
+  "plan_id": "cub-043A"
+}

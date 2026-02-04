@@ -1,0 +1,14 @@
+{
+  "slug": "agent-output-and-nl-routing",
+  "project": "cub",
+  "status": "in_progress",
+  "spec_file": "agent-output-and-nl-routing.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "in_progress",
+    "itemize": "pending"
+  },
+  "created": "2026-01-29T15:21:37.234232+00:00",
+  "updated": "2026-01-29T16:47:55.476500+00:00",
+  "plan_id": "cub-046A"
+}

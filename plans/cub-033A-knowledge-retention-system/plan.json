@@ -1,0 +1,14 @@
+{
+  "slug": "knowledge-retention-system",
+  "project": "cub",
+  "status": "staged",
+  "spec_file": "knowledge-retention-system.md",
+  "stages": {
+    "orient": "complete",
+    "architect": "complete",
+    "itemize": "complete"
+  },
+  "created": "2026-01-22T17:08:28+00:00",
+  "updated": "2026-01-22T23:23:03.763537+00:00",
+  "plan_id": "cub-033A"
+}
