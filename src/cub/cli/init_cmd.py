@@ -4,12 +4,17 @@ Init command implementation for cub project initialization.
 This module provides the native Python ``cub init`` command, handling:
 - Project type detection (python, node, react, nextjs, go, rust, generic)
 - Task backend initialization (beads or jsonl)
-- Template copying (PROMPT.md, .cub.json, commands/)
+- Template copying (runloop.md, .cub.json, commands/)
 - .gitignore updating with cub patterns
 - Global configuration setup (``cub init --global``)
 - Instruction file generation (CLAUDE.md with AGENTS.md as symlink)
 - Claude Code hook installation
 - Statusline installation
+
+System Prompt Architecture:
+- runloop.md is the ONLY system-managed prompt template (immutable by features)
+- Plan-level context is injected at runtime, not persisted globally
+- See prompt_builder.py for context composition logic
 
 Note: CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
 symlink to CLAUDE.md to ensure consistency without duplication.
@@ -311,33 +316,9 @@ def _init_backend(project_dir: Path, backend: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _ensure_prompt_md(project_dir: Path, backend: str, force: bool = False) -> None:
-    """Copy and customize PROMPT.md template for the project."""
-    target = project_dir / ".cub" / "prompt.md"
-    if target.exists() and not force:
-        return
-
-    templates_dir = _get_templates_dir()
-    source = templates_dir / "PROMPT.md"
-    if not source.exists():
-        return
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    content = source.read_text(encoding="utf-8")
-
-    # Customize backend-specific closure instructions
-    if backend == "beads":
-        content = content.replace(
-            "{{TASK_CLOSURE}}",
-            'bd close <task-id> -r "reason"',
-        )
-    else:
-        content = content.replace(
-            "{{TASK_CLOSURE}}",
-            'cub task close <task-id> -r "reason"',
-        )
-
-    target.write_text(content, encoding="utf-8")
+# NOTE: _ensure_prompt_md() was removed in the consolidation of runloop.md and
+# PROMPT.md. The runloop.md is now the single system-managed prompt template.
+# Plan-level context is injected at runtime via prompt_builder.py.
 
 
 def _install_claude_commands(project_dir: Path) -> int:
@@ -639,8 +620,8 @@ def init_project(
     # 4. Copy .cub.json template
     _ensure_cub_json(project_dir, force=force)
 
-    # 5. Copy PROMPT.md template
-    _ensure_prompt_md(project_dir, chosen_backend, force=force)
+    # 5. REMOVED: _ensure_prompt_md no longer called
+    # runloop.md is the single system-managed prompt; plan context injected at runtime
 
     # 6. Install Claude Code commands/skills
     cmd_count = _install_claude_commands(project_dir)

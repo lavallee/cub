@@ -171,13 +171,15 @@ def mock_run_status():
 
 
 @pytest.fixture
-def project_with_prompt(tmp_path):
-    """Create a project directory with a PROMPT.md file."""
+def project_with_runloop(tmp_path):
+    """Create a project directory with a .cub/runloop.md file."""
     project = tmp_path / "project"
     project.mkdir()
 
-    # Create PROMPT.md
-    prompt_content = """# Custom Project Prompt
+    # Create .cub/runloop.md (the new single prompt file)
+    cub_dir = project / ".cub"
+    cub_dir.mkdir()
+    prompt_content = """# Custom Project Runloop
 
 You are working on a custom project.
 
@@ -185,7 +187,7 @@ You are working on a custom project.
 - Follow project conventions
 - Write tests for all code
 """
-    (project / "PROMPT.md").write_text(prompt_content)
+    (cub_dir / "runloop.md").write_text(prompt_content)
 
     # Create minimal structure
     (project / ".git").mkdir()
@@ -201,22 +203,26 @@ You are working on a custom project.
 
 
 class TestGenerateSystemPrompt:
-    """Tests for generate_system_prompt function."""
+    """Tests for generate_system_prompt function.
 
-    def test_reads_project_prompt_file(self, project_with_prompt):
-        """Test that project PROMPT.md is read when present."""
-        result = generate_system_prompt(project_with_prompt)
+    After the runloop.md/PROMPT.md consolidation, only .cub/runloop.md
+    is checked (no more PROMPT.md in the chain). Plan context is
+    injected at runtime via the plan_slug parameter.
+    """
 
-        assert "Custom Project Prompt" in result
+    def test_reads_project_runloop_file(self, project_with_runloop):
+        """Test that project .cub/runloop.md is read when present."""
+        result = generate_system_prompt(project_with_runloop)
+
+        assert "Custom Project Runloop" in result
         assert "working on a custom project" in result
         assert "Follow project conventions" in result
 
-    def test_fallback_when_no_prompt_file(self, tmp_path, monkeypatch):
-        """Test fallback prompt when no PROMPT.md exists."""
+    def test_fallback_when_no_runloop_file(self, tmp_path, monkeypatch):
+        """Test fallback prompt when no .cub/runloop.md exists."""
         project = tmp_path / "empty_project"
         project.mkdir()
 
-        # Temporarily move the bundled PROMPT.md if it exists to test fallback
         # Since the bundled template exists, we test that SOME prompt is returned
         result = generate_system_prompt(project)
 
@@ -225,49 +231,38 @@ class TestGenerateSystemPrompt:
         assert "autonomous coding agent" in result
         assert len(result) > 100  # Should have substantial content
 
-    def test_checks_multiple_locations(self, tmp_path):
-        """Test that multiple prompt file locations are checked."""
+    def test_only_runloop_checked(self, tmp_path):
+        """Test that only runloop.md is checked (legacy PROMPT.md is not used)."""
         project = tmp_path / "project"
         project.mkdir()
 
-        # Create in templates subdirectory
+        # Create PROMPT.md (should be IGNORED now)
+        (project / "PROMPT.md").write_text("# Legacy Prompt\nShould not be used")
+
+        # Create templates/PROMPT.md (should also be IGNORED)
         templates_dir = project / "templates"
         templates_dir.mkdir()
-        (templates_dir / "PROMPT.md").write_text("# Templates Prompt\nFrom templates dir")
+        (templates_dir / "PROMPT.md").write_text("# Templates Prompt\nShould not be used")
 
         result = generate_system_prompt(project)
 
-        assert "Templates Prompt" in result
-        assert "From templates dir" in result
-
-    def test_project_prompt_takes_precedence(self, tmp_path):
-        """Test that project PROMPT.md takes precedence over templates."""
-        project = tmp_path / "project"
-        project.mkdir()
-
-        # Create both files
-        (project / "PROMPT.md").write_text("# Project Level Prompt")
-
-        templates_dir = project / "templates"
-        templates_dir.mkdir()
-        (templates_dir / "PROMPT.md").write_text("# Templates Prompt")
-
-        result = generate_system_prompt(project)
-
-        assert "Project Level Prompt" in result
+        # Neither PROMPT.md should be used - falls back to bundled template
+        assert "Legacy Prompt" not in result
         assert "Templates Prompt" not in result
+        # Bundled template should be used
+        assert "autonomous coding agent" in result
 
-    def test_cub_runloop_takes_precedence(self, tmp_path):
-        """Test that .cub/runloop.md takes precedence over PROMPT.md."""
+    def test_cub_runloop_is_primary(self, tmp_path):
+        """Test that .cub/runloop.md is the primary prompt source."""
         project = tmp_path / "project"
         project.mkdir()
 
-        # Create .cub/runloop.md (highest priority)
+        # Create .cub/runloop.md (the only source now)
         cub_dir = project / ".cub"
         cub_dir.mkdir()
         (cub_dir / "runloop.md").write_text("# Cub Runloop Prompt\nFrom .cub/runloop.md")
 
-        # Create PROMPT.md (lower priority)
+        # Create legacy PROMPT.md (should be ignored)
         (project / "PROMPT.md").write_text("# Project Level Prompt")
 
         result = generate_system_prompt(project)
@@ -275,6 +270,27 @@ class TestGenerateSystemPrompt:
         assert "Cub Runloop Prompt" in result
         assert "From .cub/runloop.md" in result
         assert "Project Level Prompt" not in result
+
+    def test_plan_context_injection(self, tmp_path):
+        """Test that plan context is injected when plan_slug is provided."""
+        project = tmp_path / "project"
+        project.mkdir()
+
+        # Create .cub/runloop.md
+        cub_dir = project / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Core Runloop\nBase instructions.")
+
+        # Create plan context
+        plan_dir = project / "plans" / "my-feature"
+        plan_dir.mkdir(parents=True)
+        (plan_dir / "prompt-context.md").write_text("# Plan Context\nFeature requirements here.")
+
+        result = generate_system_prompt(project, plan_slug="my-feature")
+
+        assert "Core Runloop" in result
+        assert "Plan Context" in result
+        assert "Feature requirements here" in result
 
 
 # ==============================================================================

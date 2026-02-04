@@ -20,6 +20,7 @@ from cub.core.run.prompt_builder import (
     generate_retry_context,
     generate_system_prompt,
     generate_task_prompt,
+    load_plan_context,
 )
 from cub.core.tasks.models import Task, TaskPriority, TaskStatus, TaskType
 
@@ -78,17 +79,32 @@ class TestPromptConfig:
         assert isinstance(config.package_root, Path)
 
     def test_prompt_search_paths_order(self, tmp_path: Path) -> None:
-        """Search paths are returned in documented priority order."""
+        """Search paths are returned in documented priority order.
+
+        After the runloop.md/PROMPT.md consolidation, only runloop.md paths
+        are searched (no more PROMPT.md in the chain).
+        """
         config = PromptConfig(project_dir=tmp_path, package_root=tmp_path / "pkg")
         paths = config.prompt_search_paths
-        assert len(paths) == 5
-        # First three are project-relative
+        assert len(paths) == 2
+        # Project-level runloop (highest priority)
         assert paths[0] == tmp_path / ".cub" / "runloop.md"
-        assert paths[1] == tmp_path / "PROMPT.md"
-        assert paths[2] == tmp_path / "templates" / "PROMPT.md"
-        # Last two are package-relative
-        assert paths[3] == tmp_path / "pkg" / "templates" / "runloop.md"
-        assert paths[4] == tmp_path / "pkg" / "templates" / "PROMPT.md"
+        # Package-bundled fallback
+        assert paths[1] == tmp_path / "pkg" / "templates" / "runloop.md"
+
+    def test_plan_context_path_with_slug(self, tmp_path: Path) -> None:
+        """Plan context path is derived from plan_slug."""
+        config = PromptConfig(
+            project_dir=tmp_path,
+            package_root=tmp_path / "pkg",
+            plan_slug="my-feature",
+        )
+        assert config.plan_context_path == tmp_path / "plans" / "my-feature" / "prompt-context.md"
+
+    def test_plan_context_path_without_slug(self, tmp_path: Path) -> None:
+        """Plan context path is None when no plan_slug provided."""
+        config = PromptConfig(project_dir=tmp_path, package_root=tmp_path / "pkg")
+        assert config.plan_context_path is None
 
     def test_frozen(self) -> None:
         """PromptConfig is immutable."""
@@ -136,21 +152,56 @@ class TestGenerateSystemPrompt:
         assert "Runloop from .cub" in result
         assert "Legacy prompt" not in result
 
-    def test_reads_project_prompt_md(self, tmp_path: Path) -> None:
-        """Second priority: PROMPT.md at project root."""
-        (tmp_path / "PROMPT.md").write_text("# Project PROMPT")
-
+    def test_reads_bundled_runloop(self, tmp_path: Path) -> None:
+        """Falls back to bundled runloop when project runloop missing."""
+        # When no .cub/runloop.md exists, the bundled template is used
+        # (or the hardcoded fallback if that's also missing)
         result = generate_system_prompt(tmp_path)
-        assert "Project PROMPT" in result
+        # Either the bundled template or fallback - both mention autonomous coding
+        assert "autonomous" in result.lower() or "Autonomous" in result
 
-    def test_reads_templates_prompt(self, tmp_path: Path) -> None:
-        """Third priority: templates/PROMPT.md."""
-        tpl = tmp_path / "templates"
-        tpl.mkdir()
-        (tpl / "PROMPT.md").write_text("# Templates prompt")
+    def test_injects_plan_context(self, tmp_path: Path) -> None:
+        """Plan context is appended when plan_slug is provided."""
+        # Create runloop
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Core Runloop\n\nBase instructions.")
 
-        result = generate_system_prompt(tmp_path)
-        assert "Templates prompt" in result
+        # Create plan context
+        plan_dir = tmp_path / "plans" / "my-feature"
+        plan_dir.mkdir(parents=True)
+        (plan_dir / "prompt-context.md").write_text("# Plan Context\n\nFeature requirements.")
+
+        result = generate_system_prompt(tmp_path, plan_slug="my-feature")
+        assert "Core Runloop" in result
+        assert "Plan Context" in result
+        assert "Feature requirements" in result
+
+    def test_no_plan_context_without_slug(self, tmp_path: Path) -> None:
+        """Plan context is not included when no plan_slug."""
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Core Runloop\n\nBase instructions.")
+
+        # Create plan context that should NOT be loaded
+        plan_dir = tmp_path / "plans" / "my-feature"
+        plan_dir.mkdir(parents=True)
+        (plan_dir / "prompt-context.md").write_text("# Plan Context\n\nFeature requirements.")
+
+        result = generate_system_prompt(tmp_path)  # No plan_slug
+        assert "Core Runloop" in result
+        assert "Plan Context" not in result
+
+    def test_handles_missing_plan_context(self, tmp_path: Path) -> None:
+        """Gracefully handles missing prompt-context.md file."""
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        (cub_dir / "runloop.md").write_text("# Core Runloop\n\nBase instructions.")
+
+        # No plan directory exists
+        result = generate_system_prompt(tmp_path, plan_slug="nonexistent")
+        assert "Core Runloop" in result
+        # Should not error, just skip plan context
 
     def test_fallback_prompt(self, tmp_path: Path) -> None:
         """When no file exists AND bundled templates don't exist, return fallback."""
