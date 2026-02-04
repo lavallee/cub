@@ -1212,3 +1212,88 @@ class RunEntry(BaseModel):
         if not self.tasks_attempted:
             return 0.0
         return len(self.tasks_completed) / len(self.tasks_attempted)
+
+
+class PlanFilters(BaseModel):
+    """Filter criteria for querying plan entries.
+
+    Allows filtering plans by status, date range, and spec_id.
+
+    Example:
+        >>> filters = PlanFilters(
+        ...     status="in_progress",
+        ...     since="2026-01-01",
+        ...     spec_id="cub-054"
+        ... )
+    """
+
+    status: Literal["in_progress", "completed", "released"] | None = Field(
+        default=None, description="Filter by plan status"
+    )
+    since: str | None = Field(
+        default=None,
+        description="Filter to plans started on or after this date (YYYY-MM-DD)",
+    )
+    until: str | None = Field(
+        default=None,
+        description="Filter to plans started on or before this date (YYYY-MM-DD)",
+    )
+    spec_id: str | None = Field(
+        default=None, description="Filter to plans with this spec ID"
+    )
+
+    @field_validator("since", "until")
+    @classmethod
+    def validate_date_format(cls, v: str | None) -> str | None:
+        """Validate date is in YYYY-MM-DD format."""
+        if v is None:
+            return v
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+            return v
+        except ValueError as e:
+            raise ValueError("Date must be in YYYY-MM-DD format") from e
+
+
+class RunFilters(BaseModel):
+    """Filter criteria for querying run entries.
+
+    Allows filtering runs by status, date range, and other criteria.
+
+    Example:
+        >>> filters = RunFilters(
+        ...     status="completed",
+        ...     since="2026-02-01",
+        ...     min_cost=0.10
+        ... )
+    """
+
+    status: Literal["running", "completed", "failed", "interrupted"] | None = Field(
+        default=None, description="Filter by run status"
+    )
+    since: str | None = Field(
+        default=None,
+        description="Filter to runs started on or after this date (YYYY-MM-DD)",
+    )
+    until: str | None = Field(
+        default=None,
+        description="Filter to runs started on or before this date (YYYY-MM-DD)",
+    )
+    min_cost: float | None = Field(
+        default=None, ge=0.0, description="Filter to runs with cost >= this value (USD)"
+    )
+    max_cost: float | None = Field(
+        default=None, ge=0.0, description="Filter to runs with cost <= this value (USD)"
+    )
+
+    @field_validator("since", "until")
+    @classmethod
+    def validate_date_format(cls, v: str | None) -> str | None:
+        """Validate date is in YYYY-MM-DD format."""
+        if v is None:
+            return v
+        try:
+            datetime.strptime(v, "%Y-%m-%d")
+            return v
+        except ValueError as e:
+            raise ValueError("Date must be in YYYY-MM-DD format") from e

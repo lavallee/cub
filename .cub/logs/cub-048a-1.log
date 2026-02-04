@@ -357,3 +357,99 @@ Perfect! Now let me update the task status to closed and create a commit:
 Now let me verify the changes are correct by checking if there are any deprecated references to the old directories:
 These are just comments/docstrings, which is fine. Let me update them for consistency:
 Now let's commit the changes:
+Perfect! Let me verify the task was successfully closed:
+Excellent! Let me also check if there are any other remaining tasks in this epic:
+Let me check by the task ID pattern:
+Perfect! Task `cub-048a-1.5` has been successfully completed. There's one remaining task (`cub-048a-1.6`) in the epic.
+
+## Summary
+
+I have successfully completed task `cub-048a-1.5`:
+
+### Changes Made:
+
+1. **Updated StatusWriter** (`src/cub/core/status/writer.py`):
+   - Changed directory from `.cub/runs/` to `.cub/ledger/by-run/`
+   - Updated all path references and docstrings
+   - Updated `get_latest_status()` and `list_runs()` functions
+
+2. **Updated RunSessionManager** (`src/cub/core/session/manager.py`):
+   - Changed directory from `.cub/run-sessions/` to `.cub/ledger/by-run/`
+   - Updated `SESSIONS_DIR` constant
+   - Updated docstrings
+
+3. **Fixed Epic Title Bug** (`src/cub/core/ledger/integration.py`):
+   - Added `task_backend` parameter to `LedgerIntegration.__init__()`
+   - Modified `_update_or_create_epic()` to fetch epic title from task backend
+   - Now uses `task_backend.get_task(epic_id)` to get the actual epic title instead of using the ID as a fallback
+
+4. **Updated Callers**:
+   - Updated `src/cub/core/services/run.py` to pass `task_backend` when creating `LedgerIntegration`
+   - Updated `src/cub/cli/run.py` to pass `task_backend` when creating `LedgerIntegration`
+
+5. **Updated Tests**:
+   - Updated `tests/test_status_writer.py` to expect new directory structure
+   - Updated `tests/test_session_manager.py` to expect new directory structure
+
+6. **Updated Documentation**:
+   - Updated docstrings in `src/cub/core/ledger/models.py` and `src/cub/core/status/models.py`
+
+### Results:
+
+✅ All acceptance criteria met:
+- `cub run` no longer creates `.cub/runs/` directory
+- `cub run` no longer creates `.cub/run-sessions/` directory  
+- Run data appears in `.cub/ledger/by-run/`
+- Epic entries have `title` field with actual title (fetched from task backend), not ID
+- All tests pass (107 tests)
+- Type checking passes
+- Linting passes
+
+The commit has been created with a detailed message explaining all changes.
+Task completed in 601.7s
+Tokens: 23,795
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-1.6                                                           │
+│  Title      Extend LedgerReader with plan and run queries                          │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  6/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      sonnet                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll complete this task by extending the LedgerReader with plan and run query methods. Let me start by examining the current state of the relevant files.
+Let me read the tasks file with a smaller portion:
+Good, the task is already marked as "in_progress". Now let me understand the structure better and implement the required functionality. Let me check what directories exist in the ledger:
+Now I need to check if by-plan and by-run directories exist or need to be created. Let me also look at a sample epic entry to understand the structure:
+Let me read one of the epic entries to understand the file structure:
+Good! Now I understand the structure. Now let me implement the required functionality. I'll need to:
+
+1. Add filter dataclasses to `models.py`
+2. Add plan and run query methods to `reader.py`
+
+Let's start by adding the filter dataclasses to models.py:
+Now let's add the plan and run query methods to the LedgerReader:
+Now let's add the four new methods at the end of the LedgerReader class:
+Great! Now let's run the tests to make sure everything works correctly:
+Let me check the current directory:
+Let me find the test files:
+Let me check if there are any tests that test the LedgerReader:
+Let me check the test_ledger_io.py file to see how they test LedgerReader:
+Great! I can see there are already tests for plan and run entries in the writer. Now I need to add tests for the reader methods I just implemented. Let me add tests for `get_plan()`, `list_plans()`, `get_run()`, and `list_runs()`:
+Now let's run the tests to make sure everything works:
+Great! Now let's run the run query tests:
+Excellent! All tests are passing. Now let's run the full test suite to make sure we didn't break anything:
+Perfect! All tests are passing. Now let's run the type checker and linter to ensure code quality:
+Let me try running pyright directly:
+Let me check what's available for type checking:
+Let me check what scripts are available:
+Let me check if there's a Makefile or any other task runner:
+Let me check what's in the pyproject.toml for lint commands:
+Good, let me run mypy and ruff:
+The errors are in other files, not in the files I modified. Let me run ruff to check for linting issues:
+This is a pre-existing linting issue in a deprecated field, not related to my changes. Let me run ruff on just the parts I added to verify my code is clean:
+Good! My code doesn't have any linting issues. Let me run the full test suite to make sure I didn't break anything:
+Excellent! All 412 ledger-related tests pass. Now let me mark the task as closed and commit the changes:
+Now let me update the task status to "closed":
+Perfect! Now let me commit the changes:

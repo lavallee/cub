@@ -23,8 +23,60 @@
     "captured_at": "2026-02-04T21:35:10.601303Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-161852",
+      "started_at": "2026-02-04T16:35:10.610278",
+      "completed_at": "2026-02-04T21:45:12.326815Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 3982,
+        "output_tokens": 19813,
+        "cache_read_tokens": 6737679,
+        "cache_creation_tokens": 84840
+      },
+      "cost_usd": 2.713804699999999,
+      "duration_seconds": 601
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:45:12.364498Z",
+    "total_cost_usd": 2.713804699999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 601,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "ad225cd9b2162d794563cd87dc02312d3c906861",
+        "message": "task(cub-048a-1.5): Remove runs/ and run-sessions/ writes, fix epic title",
+        "author": "",
+        "timestamp": "2026-02-04T21:44:03Z"
+      }
+    ],
+    "approach": "Systematically identified all locations where runs and run-sessions directories were created and redirected them to the new ledger structure. Fixed the epic title bug by passing the task backend to the ledger integration layer so it could fetch actual epic titles instead of using IDs as fallbacks. Updated all affected tests and callers to use the new paths.",
+    "decisions": [
+      "Pass `task_backend` as a constructor parameter to `LedgerIntegration` rather than attempting to access it globally, maintaining clean dependency injection",
+      "Update both `StatusWriter` and `RunSessionManager` to use the same `ledger/by-run/` directory rather than separate legacy directories, consolidating the ledger structure",
+      "Update affected tests immediately after changing paths rather than discovering test failures later, catching regressions early",
+      "Update docstrings and comments referring to old directory paths for consistency, preventing confusion in future maintenance"
+    ],
+    "lessons_learned": [
+      "Epic title resolution requires fetching metadata from the task backend\u2014storing just IDs is insufficient; when optional metadata isn't available, fall back to the authoritative source",
+      "The task backend is a critical dependency that should be threaded through service layer constructors early rather than added later, avoiding refactoring churn",
+      "Type checking and linting should be run after each logical change group to catch issues immediately, not batched at the end",
+      "Consolidating multiple legacy directories (runs/, run-sessions/) into a single ledger structure simplifies the data model and reduces maintenance surface area"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +92,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T21:35:10.601303Z"
+    "stage_updated_at": "2026-02-04T21:45:12.364498Z"
   },
   "state_history": [
     {
@@ -48,32 +100,55 @@
       "at": "2026-02-04T21:35:10.601303Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:45:12.364498Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "ci_monitor": null,
   "started_at": "2026-02-04T21:35:10.601303Z",
-  "completed_at": "2026-02-04T21:35:10.601303Z",
+  "completed_at": "2026-02-04T21:45:12.364498Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 3982,
+    "output_tokens": 19813,
+    "cache_read_tokens": 6737679,
+    "cache_creation_tokens": 84840
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.713804699999999,
+  "duration_seconds": 601,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Systematically identified all locations where runs and run-sessions directories were created and redirected them to the new ledger structure. Fixed the epic title bug by passing the task backend to the ledger integration layer so it could fetch actual epic titles instead of using IDs as fallbacks. Updated all affected tests and callers to use the new paths.",
+  "decisions": [
+    "Pass `task_backend` as a constructor parameter to `LedgerIntegration` rather than attempting to access it globally, maintaining clean dependency injection",
+    "Update both `StatusWriter` and `RunSessionManager` to use the same `ledger/by-run/` directory rather than separate legacy directories, consolidating the ledger structure",
+    "Update affected tests immediately after changing paths rather than discovering test failures later, catching regressions early",
+    "Update docstrings and comments referring to old directory paths for consistency, preventing confusion in future maintenance"
+  ],
+  "lessons_learned": [
+    "Epic title resolution requires fetching metadata from the task backend\u2014storing just IDs is insufficient; when optional metadata isn't available, fall back to the authoritative source",
+    "The task backend is a critical dependency that should be threaded through service layer constructors early rather than added later, avoiding refactoring churn",
+    "Type checking and linting should be run after each logical change group to catch issues immediately, not batched at the end",
+    "Consolidating multiple legacy directories (runs/, run-sessions/) into a single ledger structure simplifies the data model and reduces maintenance surface area"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "ad225cd9b2162d794563cd87dc02312d3c906861",
+      "message": "task(cub-048a-1.5): Remove runs/ and run-sessions/ writes, fix epic title",
+      "author": "",
+      "timestamp": "2026-02-04T21:44:03Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-1.5",
   "epic_id": "cub-048a-1",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

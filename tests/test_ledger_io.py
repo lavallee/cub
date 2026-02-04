@@ -898,3 +898,348 @@ class TestLedgerRunEntries:
         # Verify directory was created
         assert run_dir.exists()
         assert run_dir.is_dir()
+
+
+class TestLedgerReaderPlanQueries:
+    """Tests for LedgerReader plan query methods."""
+
+    def test_get_plan(self, ledger_dir: Path) -> None:
+        """Test getting a plan entry."""
+        writer = LedgerWriter(ledger_dir)
+        plan = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Ledger Consolidation",
+            epics=["cub-054A-0", "cub-054A-1"],
+            status="in_progress",
+            total_cost=1.23,
+            total_tokens=150000,
+            total_tasks=10,
+            completed_tasks=5,
+        )
+
+        writer.create_plan_entry(plan)
+
+        reader = LedgerReader(ledger_dir)
+        retrieved = reader.get_plan("cub-054A")
+
+        assert retrieved is not None
+        assert retrieved.plan_id == "cub-054A"
+        assert retrieved.spec_id == "cub-054"
+        assert retrieved.title == "Ledger Consolidation"
+        assert retrieved.epics == ["cub-054A-0", "cub-054A-1"]
+        assert retrieved.status == "in_progress"
+        assert retrieved.total_cost == 1.23
+
+    def test_get_plan_not_found(self, ledger_dir: Path) -> None:
+        """Test getting nonexistent plan returns None."""
+        reader = LedgerReader(ledger_dir)
+        retrieved = reader.get_plan("nonexistent")
+        assert retrieved is None
+
+    def test_list_plans_empty(self, ledger_dir: Path) -> None:
+        """Test listing plans from empty ledger."""
+        reader = LedgerReader(ledger_dir)
+        plans = reader.list_plans()
+        assert plans == []
+
+    def test_list_plans(self, ledger_dir: Path) -> None:
+        """Test listing all plans."""
+        writer = LedgerWriter(ledger_dir)
+
+        plan1 = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Plan A",
+            status="in_progress",
+        )
+        plan2 = PlanEntry(
+            plan_id="cub-055B",
+            spec_id="cub-055",
+            title="Plan B",
+            status="completed",
+        )
+
+        writer.create_plan_entry(plan1)
+        writer.create_plan_entry(plan2)
+
+        reader = LedgerReader(ledger_dir)
+        plans = reader.list_plans()
+
+        assert len(plans) == 2
+        plan_ids = {p.plan_id for p in plans}
+        assert plan_ids == {"cub-054A", "cub-055B"}
+
+    def test_list_plans_filter_by_status(self, ledger_dir: Path) -> None:
+        """Test filtering plans by status."""
+        from cub.core.ledger.models import PlanFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        plan1 = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Plan A",
+            status="in_progress",
+        )
+        plan2 = PlanEntry(
+            plan_id="cub-055B",
+            spec_id="cub-055",
+            title="Plan B",
+            status="completed",
+        )
+
+        writer.create_plan_entry(plan1)
+        writer.create_plan_entry(plan2)
+
+        reader = LedgerReader(ledger_dir)
+        filters = PlanFilters(status="completed")
+        plans = reader.list_plans(filters)
+
+        assert len(plans) == 1
+        assert plans[0].plan_id == "cub-055B"
+
+    def test_list_plans_filter_by_spec_id(self, ledger_dir: Path) -> None:
+        """Test filtering plans by spec_id."""
+        from cub.core.ledger.models import PlanFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        plan1 = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Plan A",
+        )
+        plan2 = PlanEntry(
+            plan_id="cub-054B",
+            spec_id="cub-054",
+            title="Plan B",
+        )
+        plan3 = PlanEntry(
+            plan_id="cub-055A",
+            spec_id="cub-055",
+            title="Plan C",
+        )
+
+        writer.create_plan_entry(plan1)
+        writer.create_plan_entry(plan2)
+        writer.create_plan_entry(plan3)
+
+        reader = LedgerReader(ledger_dir)
+        filters = PlanFilters(spec_id="cub-054")
+        plans = reader.list_plans(filters)
+
+        assert len(plans) == 2
+        plan_ids = {p.plan_id for p in plans}
+        assert plan_ids == {"cub-054A", "cub-054B"}
+
+    def test_list_plans_filter_by_date_range(self, ledger_dir: Path) -> None:
+        """Test filtering plans by date range."""
+        from cub.core.ledger.models import PlanFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        plan1 = PlanEntry(
+            plan_id="cub-054A",
+            spec_id="cub-054",
+            title="Plan A",
+            started_at=datetime(2026, 1, 15, tzinfo=timezone.utc),
+        )
+        plan2 = PlanEntry(
+            plan_id="cub-055B",
+            spec_id="cub-055",
+            title="Plan B",
+            started_at=datetime(2026, 2, 1, tzinfo=timezone.utc),
+        )
+
+        writer.create_plan_entry(plan1)
+        writer.create_plan_entry(plan2)
+
+        reader = LedgerReader(ledger_dir)
+
+        # Test since filter
+        filters = PlanFilters(since="2026-01-20")
+        plans = reader.list_plans(filters)
+        assert len(plans) == 1
+        assert plans[0].plan_id == "cub-055B"
+
+        # Test until filter
+        filters = PlanFilters(until="2026-01-20")
+        plans = reader.list_plans(filters)
+        assert len(plans) == 1
+        assert plans[0].plan_id == "cub-054A"
+
+
+class TestLedgerReaderRunQueries:
+    """Tests for LedgerReader run query methods."""
+
+    def test_get_run(self, ledger_dir: Path) -> None:
+        """Test getting a run entry."""
+        writer = LedgerWriter(ledger_dir)
+        run = RunEntry(
+            run_id="cub-20260204-161800",
+            status="running",
+            config={"harness": "claude", "model": "sonnet"},
+            tasks_attempted=["task-1", "task-2"],
+            tasks_completed=["task-1"],
+            total_cost=0.15,
+            total_tokens=25000,
+        )
+
+        writer.create_run_entry(run)
+
+        reader = LedgerReader(ledger_dir)
+        retrieved = reader.get_run("cub-20260204-161800")
+
+        assert retrieved is not None
+        assert retrieved.run_id == "cub-20260204-161800"
+        assert retrieved.status == "running"
+        assert retrieved.total_cost == 0.15
+        assert retrieved.total_tokens == 25000
+
+    def test_get_run_not_found(self, ledger_dir: Path) -> None:
+        """Test getting nonexistent run returns None."""
+        reader = LedgerReader(ledger_dir)
+        retrieved = reader.get_run("nonexistent")
+        assert retrieved is None
+
+    def test_list_runs_empty(self, ledger_dir: Path) -> None:
+        """Test listing runs from empty ledger."""
+        reader = LedgerReader(ledger_dir)
+        runs = reader.list_runs()
+        assert runs == []
+
+    def test_list_runs(self, ledger_dir: Path) -> None:
+        """Test listing all runs."""
+        writer = LedgerWriter(ledger_dir)
+
+        run1 = RunEntry(
+            run_id="cub-20260204-120000",
+            status="completed",
+        )
+        run2 = RunEntry(
+            run_id="cub-20260204-130000",
+            status="running",
+        )
+
+        writer.create_run_entry(run1)
+        writer.create_run_entry(run2)
+
+        reader = LedgerReader(ledger_dir)
+        runs = reader.list_runs()
+
+        assert len(runs) == 2
+        run_ids = {r.run_id for r in runs}
+        assert run_ids == {"cub-20260204-120000", "cub-20260204-130000"}
+
+    def test_list_runs_filter_by_status(self, ledger_dir: Path) -> None:
+        """Test filtering runs by status."""
+        from cub.core.ledger.models import RunFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        run1 = RunEntry(
+            run_id="cub-20260204-120000",
+            status="completed",
+        )
+        run2 = RunEntry(
+            run_id="cub-20260204-130000",
+            status="running",
+        )
+        run3 = RunEntry(
+            run_id="cub-20260204-140000",
+            status="failed",
+        )
+
+        writer.create_run_entry(run1)
+        writer.create_run_entry(run2)
+        writer.create_run_entry(run3)
+
+        reader = LedgerReader(ledger_dir)
+        filters = RunFilters(status="completed")
+        runs = reader.list_runs(filters)
+
+        assert len(runs) == 1
+        assert runs[0].run_id == "cub-20260204-120000"
+
+    def test_list_runs_filter_by_date_range(self, ledger_dir: Path) -> None:
+        """Test filtering runs by date range."""
+        from cub.core.ledger.models import RunFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        run1 = RunEntry(
+            run_id="cub-20260115-120000",
+            status="completed",
+            started_at=datetime(2026, 1, 15, tzinfo=timezone.utc),
+        )
+        run2 = RunEntry(
+            run_id="cub-20260201-120000",
+            status="completed",
+            started_at=datetime(2026, 2, 1, tzinfo=timezone.utc),
+        )
+
+        writer.create_run_entry(run1)
+        writer.create_run_entry(run2)
+
+        reader = LedgerReader(ledger_dir)
+
+        # Test since filter
+        filters = RunFilters(since="2026-01-20")
+        runs = reader.list_runs(filters)
+        assert len(runs) == 1
+        assert runs[0].run_id == "cub-20260201-120000"
+
+        # Test until filter
+        filters = RunFilters(until="2026-01-20")
+        runs = reader.list_runs(filters)
+        assert len(runs) == 1
+        assert runs[0].run_id == "cub-20260115-120000"
+
+    def test_list_runs_filter_by_cost(self, ledger_dir: Path) -> None:
+        """Test filtering runs by cost range."""
+        from cub.core.ledger.models import RunFilters
+
+        writer = LedgerWriter(ledger_dir)
+
+        run1 = RunEntry(
+            run_id="cub-20260204-120000",
+            status="completed",
+            total_cost=0.10,
+        )
+        run2 = RunEntry(
+            run_id="cub-20260204-130000",
+            status="completed",
+            total_cost=0.50,
+        )
+        run3 = RunEntry(
+            run_id="cub-20260204-140000",
+            status="completed",
+            total_cost=1.00,
+        )
+
+        writer.create_run_entry(run1)
+        writer.create_run_entry(run2)
+        writer.create_run_entry(run3)
+
+        reader = LedgerReader(ledger_dir)
+
+        # Test min_cost filter
+        filters = RunFilters(min_cost=0.40)
+        runs = reader.list_runs(filters)
+        assert len(runs) == 2
+        run_ids = {r.run_id for r in runs}
+        assert run_ids == {"cub-20260204-130000", "cub-20260204-140000"}
+
+        # Test max_cost filter
+        filters = RunFilters(max_cost=0.60)
+        runs = reader.list_runs(filters)
+        assert len(runs) == 2
+        run_ids = {r.run_id for r in runs}
+        assert run_ids == {"cub-20260204-120000", "cub-20260204-130000"}
+
+        # Test both min and max
+        filters = RunFilters(min_cost=0.20, max_cost=0.80)
+        runs = reader.list_runs(filters)
+        assert len(runs) == 1
+        assert runs[0].run_id == "cub-20260204-130000"

@@ -15,6 +15,10 @@ from cub.core.ledger.models import (
     LedgerEntry,
     LedgerIndex,
     LedgerStats,
+    PlanEntry,
+    PlanFilters,
+    RunEntry,
+    RunFilters,
     VerificationStatus,
 )
 
@@ -43,6 +47,8 @@ class LedgerReader:
         self.ledger_dir = ledger_dir
         self.index_file = ledger_dir / "index.jsonl"
         self.by_task_dir = ledger_dir / "by-task"
+        self.by_plan_dir = ledger_dir / "by-plan"
+        self.by_run_dir = ledger_dir / "by-run"
 
     def exists(self) -> bool:
         """Check if ledger directory exists."""
@@ -291,3 +297,160 @@ class LedgerReader:
         )
 
         return stats
+
+    def get_plan(self, plan_id: str) -> PlanEntry | None:
+        """Get full plan entry for a plan.
+
+        Args:
+            plan_id: Plan ID to retrieve (e.g., 'cub-054A')
+
+        Returns:
+            Full PlanEntry or None if not found
+        """
+        # Check if plan directory exists
+        plan_dir = self.by_plan_dir / plan_id
+        if not plan_dir.exists():
+            return None
+
+        # Read the plan entry file
+        plan_file = plan_dir / "entry.json"
+        if not plan_file.exists():
+            return None
+
+        # Read and parse the full entry
+        with open(plan_file, encoding="utf-8") as f:
+            data = json.load(f)
+            return PlanEntry.model_validate(data)
+
+    def list_plans(self, filters: PlanFilters | None = None) -> list[PlanEntry]:
+        """List plans from the ledger.
+
+        Args:
+            filters: Optional filters for status, date range, spec_id
+
+        Returns:
+            List of PlanEntry records matching the filters
+        """
+        # Check if by-plan directory exists
+        if not self.by_plan_dir.exists():
+            return []
+
+        plans = []
+
+        # Iterate through all plan directories
+        for plan_dir in self.by_plan_dir.iterdir():
+            if not plan_dir.is_dir():
+                continue
+
+            plan_file = plan_dir / "entry.json"
+            if not plan_file.exists():
+                continue
+
+            # Read and parse plan entry
+            with open(plan_file, encoding="utf-8") as f:
+                data = json.load(f)
+                plan = PlanEntry.model_validate(data)
+
+            # Apply filters
+            if filters:
+                # Filter by status
+                if filters.status and plan.status != filters.status:
+                    continue
+
+                # Filter by spec_id
+                if filters.spec_id and plan.spec_id != filters.spec_id:
+                    continue
+
+                # Filter by date range (since)
+                if filters.since:
+                    since_date = datetime.strptime(filters.since, "%Y-%m-%d").date()
+                    plan_start_date = plan.started_at.date()
+                    if plan_start_date < since_date:
+                        continue
+
+                # Filter by date range (until)
+                if filters.until:
+                    until_date = datetime.strptime(filters.until, "%Y-%m-%d").date()
+                    plan_start_date = plan.started_at.date()
+                    if plan_start_date > until_date:
+                        continue
+
+            plans.append(plan)
+
+        return plans
+
+    def get_run(self, run_id: str) -> RunEntry | None:
+        """Get full run entry for a run session.
+
+        Args:
+            run_id: Run session ID to retrieve (e.g., 'cub-20260204-161800')
+
+        Returns:
+            Full RunEntry or None if not found
+        """
+        # Check if run file exists
+        run_file = self.by_run_dir / f"{run_id}.json"
+        if not run_file.exists():
+            return None
+
+        # Read and parse the full entry
+        with open(run_file, encoding="utf-8") as f:
+            data = json.load(f)
+            return RunEntry.model_validate(data)
+
+    def list_runs(self, filters: RunFilters | None = None) -> list[RunEntry]:
+        """List run sessions from the ledger.
+
+        Args:
+            filters: Optional filters for status, date range, cost
+
+        Returns:
+            List of RunEntry records matching the filters
+        """
+        # Check if by-run directory exists
+        if not self.by_run_dir.exists():
+            return []
+
+        runs = []
+
+        # Iterate through all run files
+        for run_file in self.by_run_dir.iterdir():
+            if not run_file.is_file() or not run_file.name.endswith(".json"):
+                continue
+
+            # Read and parse run entry
+            with open(run_file, encoding="utf-8") as f:
+                data = json.load(f)
+                run = RunEntry.model_validate(data)
+
+            # Apply filters
+            if filters:
+                # Filter by status
+                if filters.status and run.status != filters.status:
+                    continue
+
+                # Filter by date range (since)
+                if filters.since:
+                    since_date = datetime.strptime(filters.since, "%Y-%m-%d").date()
+                    run_start_date = run.started_at.date()
+                    if run_start_date < since_date:
+                        continue
+
+                # Filter by date range (until)
+                if filters.until:
+                    until_date = datetime.strptime(filters.until, "%Y-%m-%d").date()
+                    run_start_date = run.started_at.date()
+                    if run_start_date > until_date:
+                        continue
+
+                # Filter by minimum cost
+                if filters.min_cost is not None and run.total_cost < filters.min_cost:
+                    continue
+
+                # Filter by maximum cost
+                if filters.max_cost is not None and run.total_cost > filters.max_cost:
+                    continue
+
+            runs.append(run)
+
+        return runs
