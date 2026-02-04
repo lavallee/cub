@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (276 files) (entry: __init__.py)
+- **cub**: `src/cub` (280 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -63,6 +63,10 @@
     │   │   ├── claude-code-hooks.md
     │   │   └── run-exit-paths.md
     │   ├── hooks/
+    │   │   ├── end-of-epic/
+    │   │   ├── end-of-plan/
+    │   │   ├── end-of-task/
+    │   │   ├── pre-session/
     │   │   ├── README.md
     │   │   ├── post-tool-use.sh
     │   │   ├── session-end.sh
@@ -117,11 +121,16 @@
     │   │   ├── by-run/
     │   │   │   ├── cub-20260204-165022/
     │   │   │   ├── cub-20260204-170945/
+    │   │   │   ├── cub-20260204-172822/
     │   │   │   ├── active-run.json
     │   │   │   ├── cub-20260204-215022.json
     │   │   │   ├── cub-20260204-215514.json
     │   │   │   ├── cub-20260204-215515.json
-    │   │   │   └── cub-20260204-220945.json
+    │   │   │   ├── cub-20260204-220945.json
+    │   │   │   ├── cub-20260204-221940.json
+    │   │   │   ├── cub-20260204-221941.json
+    │   │   │   ├── cub-20260204-222516.json
+    │   │   │   └── cub-20260204-222822.json
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
@@ -141,6 +150,9 @@
     │   │   │   ├── cub-048a-2.4/
     │   │   │   ├── cub-048a-3.1/
     │   │   │   ├── cub-048a-3.2/
+    │   │   │   ├── cub-048a-3.3/
+    │   │   │   ├── cub-048a-3.4/
+    │   │   │   ├── cub-048a-4.1/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -300,19 +312,6 @@
     │   │   │   ├── cub-t44.8/
     │   │   │   ├── cub-t44.9/
     │   │   │   ├── cub-t5w.1/
-    │   │   │   ├── cub-t5w.2/
-    │   │   │   ├── cub-t5w.3/
-    │   │   │   ├── cub-t5w.4/
-    │   │   │   ├── cub-v8n.1/
-    │   │   │   ├── cub-v8n.2/
-    │   │   │   ├── cub-v8n.3/
-    │   │   │   ├── cub-v8n.4/
-    │   │   │   ├── cub-w3f.1/
-    │   │   │   ├── cub-w3f.2/
-    │   │   │   ├── cub-w3f.3/
-    │   │   │   ├── cub-w3f.4/
-    │   │   │   ├── cub-w3f.5/
-    │   │   │   ├── cub-x3s.1/
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -464,9 +463,9 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 287, score: 0.0023)
-- **main** (def, line 80, score: 0.0023)
-- **version** (def, line 261, score: 0.0023)
+- **cli_main** (def, line 289, score: 0.0023)
+- **main** (def, line 81, score: 0.0023)
+- **version** (def, line 263, score: 0.0023)
 
 ### src/cub/cli/argv.py
 

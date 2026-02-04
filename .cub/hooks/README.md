@@ -1,207 +1,223 @@
-# Cub Hook Scripts
+# Lifecycle Hooks
 
-This directory contains hook scripts for auto-capturing artifacts when running harnesses directly (Claude Code, Codex, OpenCode) instead of via `cub run`.
+Cub supports custom hooks that execute at key points during autonomous execution. This directory contains hook scripts that run automatically during the session lifecycle.
 
-## Overview
+## Hook Points
 
-When you run Claude Code or other harnesses directly, these hooks automatically:
-- Track file writes to `plans/` directory
-- Log session start/end events
-- Capture artifacts to `.cub/ledger/forensics/`
-- Maintain records roughly equivalent to `cub run`
+Cub provides four lifecycle hooks that you can use to integrate external tools or monitoring systems:
 
-## Installation
+### pre-session
+Runs **before** the harness session starts, before any tasks are executed.
 
-### For Claude Code
+**Use cases:**
+- Notify external systems that a session is starting
+- Set up monitoring or logging
+- Perform initial validation or setup
 
-Copy or symlink these hooks to your Claude Code hooks directory:
+**Context available via environment variables:**
+- `CUB_HOOK_NAME`: "pre-session"
+- `CUB_PROJECT_DIR`: Project directory path
+- `CUB_HOOK_CONTEXT`: JSON object containing:
+  - `session_id`: Unique session identifier
+  - `harness_name`: Name of the harness being used (e.g., "claude")
+  - `model`: Model name being used
+  - `task_count`: Total number of tasks to execute
+  - `epic_count`: Total number of epics
+  - `project_dir`: Project directory path
 
-```bash
-# Global installation (all projects)
-mkdir -p ~/.claude/hooks
-cp .cub/hooks/*.sh ~/.claude/hooks/
+### end-of-task
+Runs **after** a task completes, whether it succeeded or failed.
 
-# Or symlink for automatic updates
-ln -sf "$(pwd)/.cub/hooks"/*.sh ~/.claude/hooks/
+**Use cases:**
+- Post-task analysis or reporting
+- Trigger dependent tasks in external systems
+- Update progress dashboards
+- Log task results to centralized systems
 
-# Project-specific installation
-mkdir -p .claude/hooks
-cp .cub/hooks/*.sh .claude/hooks/
+**Context available via environment variables:**
+- `CUB_HOOK_NAME`: "end-of-task"
+- `CUB_PROJECT_DIR`: Project directory path
+- `CUB_HOOK_CONTEXT`: JSON object containing:
+  - `task_id`: Task identifier
+  - `task_title`: Task title/description
+  - `status`: Task status ("closed" or "failed")
+  - `success`: Boolean indicating success
+  - `project_dir`: Project directory path
+  - `session_id`: Session identifier
+  - `parent_epic`: Parent epic ID if any
+  - `duration_seconds`: How long the task took
+  - `iterations`: Number of iterations/attempts
+  - `error_message`: Error message if task failed
+
+### end-of-epic
+Runs **after** all tasks within an epic are completed.
+
+**Use cases:**
+- Generate epic completion reports
+- Trigger post-epic analysis
+- Update roadmap tracking systems
+- Notify stakeholders of epic completion
+
+**Context available via environment variables:**
+- `CUB_HOOK_NAME`: "end-of-epic"
+- `CUB_PROJECT_DIR`: Project directory path
+- `CUB_HOOK_CONTEXT`: JSON object containing:
+  - `epic_id`: Epic identifier
+  - `epic_title`: Epic title
+  - `project_dir`: Project directory path
+  - `session_id`: Session identifier
+  - `parent_plan`: Parent plan ID if any
+  - `total_tasks`: Total number of tasks in epic
+  - `completed_tasks`: Number of completed tasks
+  - `failed_tasks`: Number of failed tasks
+  - `skipped_tasks`: Number of skipped tasks
+  - `duration_seconds`: Total time for the epic
+
+### end-of-plan
+Runs **after** all epics and tasks in a plan are completed.
+
+**Use cases:**
+- Generate comprehensive plan completion reports
+- Post-execution analysis and metrics
+- Release notifications
+- Archive or finalize project deliverables
+
+**Context available via environment variables:**
+- `CUB_HOOK_NAME`: "end-of-plan"
+- `CUB_PROJECT_DIR`: Project directory path
+- `CUB_HOOK_CONTEXT`: JSON object containing:
+  - `plan_id`: Plan identifier
+  - `plan_title`: Plan title
+  - `project_dir`: Project directory path
+  - `session_id`: Session identifier
+  - `total_epics`: Total number of epics
+  - `completed_epics`: Number of completed epics
+  - `total_tasks`: Total number of tasks
+  - `completed_tasks`: Number of completed tasks
+  - `failed_tasks`: Number of failed tasks
+  - `duration_seconds`: Total time for the plan
+
+## Hook Script Placement
+
+Each hook point has its own subdirectory:
+
+```
+.cub/hooks/
+├── pre-session/
+│   ├── 01-setup.sh
+│   └── 02-notify.sh
+├── end-of-task/
+│   ├── slack-notify.py
+│   └── log-results.sh
+├── end-of-epic/
+│   └── update-dashboard.sh
+└── end-of-plan/
+    └── generate-report.sh
 ```
 
-Then configure hooks in `.claude/settings.json` or `.claude/settings.local.json`:
+### Naming Convention
+
+- Script files should be **executable** (have the execute permission bit set)
+- Scripts are discovered and run in **sorted filename order** (alphanumeric)
+- Use numbered prefixes (01-, 02-, etc.) to control execution order
+- Only files with execute permission are run; non-executable files are ignored
+- Hidden files (starting with `.`) are ignored
+
+### Example Script
+
+Create a simple hook script with a `.sh` extension:
+
+```bash
+#!/bin/bash
+# .cub/hooks/end-of-task/01-notify.sh
+
+# The hook context is available as JSON in an environment variable
+CONTEXT="$CUB_HOOK_CONTEXT"
+
+# Extract fields from the context (requires `jq`)
+TASK_ID=$(echo "$CONTEXT" | jq -r '.task_id')
+TASK_TITLE=$(echo "$CONTEXT" | jq -r '.task_title')
+STATUS=$(echo "$CONTEXT" | jq -r '.status')
+
+echo "Task $TASK_ID ($TASK_TITLE) completed with status: $STATUS"
+
+# Example: Send notification to Slack
+# curl -X POST -H 'Content-type: application/json' \
+#     --data "{\"text\":\"Task $TASK_TITLE completed with status $STATUS\"}" \
+#     $SLACK_WEBHOOK_URL
+
+exit 0
+```
+
+### Debugging Hooks
+
+To debug a hook script, you can:
+
+1. Run it manually with sample context:
+   ```bash
+   export CUB_HOOK_NAME="end-of-task"
+   export CUB_PROJECT_DIR="$(pwd)"
+   export CUB_HOOK_CONTEXT='{"task_id":"test-1","task_title":"Test","status":"closed","success":true}'
+   .cub/hooks/end-of-task/01-notify.sh
+   ```
+
+2. Add debugging to your script:
+   ```bash
+   #!/bin/bash
+   set -x  # Enable debug output
+   # ... rest of script
+   ```
+
+3. Check hook execution logs in the session logs
+
+## Hook Configuration
+
+Hooks are configured in `.cub/config.json` under the `hooks` section:
 
 ```json
 {
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.cub/hooks/post-tool-use.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.cub/hooks/stop.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.cub/hooks/session-start.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.cub/hooks/session-end.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
+    "enabled": true,
+    "fail_fast": false
   }
 }
 ```
 
-### For Other Harnesses
+- `enabled`: Set to `false` to disable all hooks
+- `fail_fast`: If `true`, hook failures will stop execution (default: `false`)
 
-Hooks can be adapted for other harnesses that support similar hook mechanisms.
-Check the harness documentation for hook installation instructions.
+## Best Practices
 
-## Available Hooks
-
-### post-tool-use.sh
-
-Captures file writes, especially to `plans/` directory.
-
-**Triggers:** After Write, Edit, or NotebookEdit tool execution
-**Captures:** File paths, timestamps
-**Logs to:** `.cub/ledger/forensics/{session_id}.jsonl`
-
-### stop.sh
-
-Finalizes session and captures artifacts when Claude finishes responding.
-
-**Triggers:** When Claude completes a response
-**Captures:** Session end timestamp, transcript path
-**Logs to:** `.cub/ledger/forensics/{session_id}.jsonl`
-
-### session-start.sh
-
-Initializes session tracking when Claude Code starts or resumes.
-
-**Triggers:** Session startup, resume, or clear
-**Captures:** Session start timestamp
-**Logs to:** `.cub/ledger/forensics/{session_id}.jsonl`
-
-**Note:** Only available in Claude Code TypeScript SDK, not Python SDK.
-
-### session-end.sh
-
-Finalizes session when Claude Code terminates.
-
-**Triggers:** Session logout, clear, or exit
-**Captures:** Session end timestamp, reason
-**Logs to:** `.cub/ledger/forensics/{session_id}.jsonl`
-
-**Note:** Only available in Claude Code TypeScript SDK, not Python SDK.
-
-## Forensic Logs
-
-Hooks write to `.cub/ledger/forensics/{session_id}.jsonl` in JSONL format:
-
-```json
-{"event": "session_start", "timestamp": "2026-01-26T20:30:00Z"}
-{"event": "plan_write", "file_path": "plans/plan.md", "timestamp": "2026-01-26T20:35:00Z"}
-{"event": "session_finalize", "transcript_path": "/path/to/transcript", "timestamp": "2026-01-26T20:45:00Z"}
-```
-
-These logs can be processed later to reconstruct work done in direct sessions.
-
-## Behavior
-
-- **Non-blocking:** Hooks never block Claude Code execution
-- **Defensive:** Malformed inputs are skipped, not crashed
-- **Conditional:** Only run if cub is installed and `.cub/config.yml` exists
-- **Silent:** Failures are logged but don't interrupt workflow
-
-## Testing
-
-Test hooks locally:
-
-```bash
-# Test PostToolUse hook
-echo '{
-  "hook_event_name": "PostToolUse",
-  "session_id": "test-123",
-  "tool_name": "Write",
-  "tool_input": {"file_path": "plans/plan.md"},
-  "cwd": "'$(pwd)'"
-}' | .cub/hooks/post-tool-use.sh
-
-# Check forensic log
-cat .cub/ledger/forensics/test-123.jsonl
-```
+1. **Keep hooks lightweight**: Hooks should complete quickly to avoid slowing down execution
+2. **Handle failures gracefully**: Use `exit 0` for non-critical hooks
+3. **Log important events**: Write to files or external systems for auditing
+4. **Use consistent naming**: Prefix scripts with numbers for execution order
+5. **Document your hooks**: Add comments explaining what the hook does
+6. **Test your hooks**: Run them manually to ensure they work as expected
+7. **Avoid side effects**: Don't modify project files from hooks unless necessary
+8. **Set proper permissions**: Use `chmod +x script.sh` to make scripts executable
 
 ## Troubleshooting
 
 ### Hooks not running
+- Check that `enabled: true` in `.cub/config.json`
+- Verify scripts have execute permission: `chmod +x .cub/hooks/*/script.sh`
+- Check hook script directory exists: `.cub/hooks/{hook_name}/`
 
-1. Check that scripts are executable: `chmod +x .cub/hooks/*.sh`
-2. Verify `.claude/settings.json` or `.claude/settings.local.json` has hooks configured
-3. Check Claude Code verbose output (Ctrl+O) for hook execution logs
+### Hook script fails silently
+- Set `fail_fast: true` in config to see hook errors
+- Add `set -e` at the top of shell scripts to exit on errors
+- Check stderr output from hook execution
 
-### No forensic logs created
+### Context not available
+- Verify you're reading from `CUB_HOOK_CONTEXT` environment variable (not stdin)
+- Use `jq` or your language's JSON parser to extract fields
+- Check that hook point provides the fields you need (see context sections above)
 
-1. Ensure `.cub/config.yml` exists (run `cub init` if needed)
-2. Check that cub is in PATH: `which cub`
-3. Verify Python module can be imported: `python3 -m cub.core.harness.hooks --help`
+## Global Hooks
 
-### Hook timeouts
+In addition to project-level hooks in `.cub/hooks/`, cub also supports global hooks in:
+- **macOS/Linux**: `~/.config/cub/hooks/`
+- **Windows**: `%APPDATA%\cub\hooks\`
 
-If hooks timeout, increase the timeout in settings.json:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "...",
-            "timeout": 30  // Increased from 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-## Further Reading
-
-- [Claude Code Hooks Documentation](.cub/docs/claude-code-hooks.md)
-- [Ledger System](../../src/cub/core/ledger/)
-- [Hook Handlers](../../src/cub/core/harness/hooks.py)
+Global hooks run before project hooks, allowing you to set up organization-wide automation while projects can override with their own hooks.
