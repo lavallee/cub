@@ -22,8 +22,61 @@
     "captured_at": "2026-02-04T20:45:42.223431Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-153949",
+      "started_at": "2026-02-04T15:45:42.286197",
+      "completed_at": "2026-02-04T20:58:15.333018Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 507,
+        "cache_read_tokens": 99193,
+        "cache_creation_tokens": 5669
+      },
+      "cost_usd": 2.0458983,
+      "duration_seconds": 753
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T20:58:15.370368Z",
+    "total_cost_usd": 2.0458983,
+    "total_attempts": 1,
+    "total_duration_seconds": 753,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "c983ae0c9add4d4b8c80d001a9d310028915865c",
+        "message": "task(cub-048a-0.2): Implement ID parser and validator",
+        "author": "",
+        "timestamp": "2026-02-04T20:57:45Z"
+      }
+    ],
+    "approach": "Built a regex-based parser that converts string IDs back into typed Pydantic models by checking hierarchical patterns in order (most specific first), with fallback to legacy format detection. Resolved ambiguity in IDs ending with digits by preferring the plan interpretation to support the full character range of plan letters (0-9).",
+    "decisions": [
+      "**Ambiguity Resolution**: When an ID could match multiple patterns (e.g., `cub-1000` as spec `1000` OR plan `100`+`0`), prefer the plan interpretation to maximize supported ID space rather than arbitrarily restricting to one interpretation.",
+      "**Legacy ID Handling**: Legacy random IDs like `cub-k7m` are validated but raise descriptive `ValueError` on parsing rather than silently returning a default type, preventing accidental misinterpretation of old format IDs.",
+      "**Pattern Order in Parsing**: Check task \u2192 epic \u2192 plan \u2192 standalone \u2192 spec \u2192 legacy (most specific hierarchical structures first), ensuring the longest/deepest nested IDs are matched before simpler ones.",
+      "**Project Name Constraint**: Restrict legacy ID pattern to project names ending in letters (not digits) using negative lookahead to prevent ambiguity with hierarchical IDs like `cub-054-extra`.",
+      "**Fast-Path Validation**: Implement separate `validate_id()` function that avoids full parsing overhead, useful for format checking without object construction."
+    ],
+    "lessons_learned": [
+      "**Regex Ambiguity Requires Design Choices**: When a regex pattern can match in multiple ways (greedy vs. backtracking), the parsing algorithm must explicitly choose a priority rule. Document this priority clearly as it affects all downstream code interpreting IDs.",
+      "**Test Expectations Drive Design Clarity**: Writing test cases first revealed the ambiguity issue (e.g., should `cub-0549` be spec or plan) and forced a deliberate design decision rather than accidental inconsistency in implementation.",
+      "**Backward Compatibility Needs Error Boundaries**: Supporting legacy IDs while preferring new ones requires clear error handling (raising exceptions rather than silent fallbacks) to prevent legacy IDs from masquerading as valid hierarchical IDs.",
+      "**Project Name Patterns Create Hidden Ambiguities**: Allowing hyphens in project names combined with digit-based hierarchical IDs can create false matches (e.g., `cub-054-extra` looking like `project=\"cub-054\"+suffix=\"extra\"`). Validate early that project patterns don't accidentally consume ID structure markers."
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +92,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T20:45:42.223431Z"
+    "stage_updated_at": "2026-02-04T20:58:15.370368Z"
   },
   "state_history": [
     {
@@ -47,32 +100,56 @@
       "at": "2026-02-04T20:45:42.223431Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T20:58:15.370368Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "ci_monitor": null,
   "started_at": "2026-02-04T20:45:42.223431Z",
-  "completed_at": "2026-02-04T20:45:42.223431Z",
+  "completed_at": "2026-02-04T20:58:15.370368Z",
   "tokens": {
     "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "output_tokens": 507,
+    "cache_read_tokens": 99193,
+    "cache_creation_tokens": 5669
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 2.0458983,
+  "duration_seconds": 753,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Built a regex-based parser that converts string IDs back into typed Pydantic models by checking hierarchical patterns in order (most specific first), with fallback to legacy format detection. Resolved ambiguity in IDs ending with digits by preferring the plan interpretation to support the full character range of plan letters (0-9).",
+  "decisions": [
+    "**Ambiguity Resolution**: When an ID could match multiple patterns (e.g., `cub-1000` as spec `1000` OR plan `100`+`0`), prefer the plan interpretation to maximize supported ID space rather than arbitrarily restricting to one interpretation.",
+    "**Legacy ID Handling**: Legacy random IDs like `cub-k7m` are validated but raise descriptive `ValueError` on parsing rather than silently returning a default type, preventing accidental misinterpretation of old format IDs.",
+    "**Pattern Order in Parsing**: Check task \u2192 epic \u2192 plan \u2192 standalone \u2192 spec \u2192 legacy (most specific hierarchical structures first), ensuring the longest/deepest nested IDs are matched before simpler ones.",
+    "**Project Name Constraint**: Restrict legacy ID pattern to project names ending in letters (not digits) using negative lookahead to prevent ambiguity with hierarchical IDs like `cub-054-extra`.",
+    "**Fast-Path Validation**: Implement separate `validate_id()` function that avoids full parsing overhead, useful for format checking without object construction."
+  ],
+  "lessons_learned": [
+    "**Regex Ambiguity Requires Design Choices**: When a regex pattern can match in multiple ways (greedy vs. backtracking), the parsing algorithm must explicitly choose a priority rule. Document this priority clearly as it affects all downstream code interpreting IDs.",
+    "**Test Expectations Drive Design Clarity**: Writing test cases first revealed the ambiguity issue (e.g., should `cub-0549` be spec or plan) and forced a deliberate design decision rather than accidental inconsistency in implementation.",
+    "**Backward Compatibility Needs Error Boundaries**: Supporting legacy IDs while preferring new ones requires clear error handling (raising exceptions rather than silent fallbacks) to prevent legacy IDs from masquerading as valid hierarchical IDs.",
+    "**Project Name Patterns Create Hidden Ambiguities**: Allowing hyphens in project names combined with digit-based hierarchical IDs can create false matches (e.g., `cub-054-extra` looking like `project=\"cub-054\"+suffix=\"extra\"`). Validate early that project patterns don't accidentally consume ID structure markers."
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "c983ae0c9add4d4b8c80d001a9d310028915865c",
+      "message": "task(cub-048a-0.2): Implement ID parser and validator",
+      "author": "",
+      "timestamp": "2026-02-04T20:57:45Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.2",
   "epic_id": "cub-048a-0",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

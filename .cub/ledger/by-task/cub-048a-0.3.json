@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-048a-0.3",
+  "title": "Implement counter management on sync branch",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-0"
+  },
+  "task": {
+    "title": "Implement counter management on sync branch",
+    "description": "Counters track the next available spec number and standalone task number. They live on the sync branch to enable collision-free allocation across worktrees. This integrates with the existing sync branch infrastructure.\n\n**Implementation Steps:**\n1. Add `CounterState` model to `src/cub/core/sync/models.py`\n2. Create `src/cub/core/ids/counters.py` for counter operations\n3. Implement `read_counters(sync_service: SyncService) -> CounterState`\n4. Implement `allocate_spec_number(sync_service: SyncService) -> int` with optimistic locking\n5. Implement `allocate_standalone_number(sync_service: SyncService) -> int`\n6. Handle case where counters.json doesn't exist (initialize with defaults)\n7. Implement retry logic for concurrent allocation conflicts\n\n**Files:** `src/cub/core/sync/models.py`, `src/cub/core/ids/counters.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-1",
+      "model:opus",
+      "complexity:high",
+      "domain:logic",
+      "risk:medium"
+    ],
+    "created_at": "2026-02-04T15:37:04.560556",
+    "captured_at": "2026-02-04T20:58:27.119656Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-153949",
+      "started_at": "2026-02-04T15:58:27.128705",
+      "completed_at": "2026-02-04T21:05:42.428745Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 11648,
+        "output_tokens": 19829,
+        "cache_read_tokens": 3591454,
+        "cache_creation_tokens": 89622
+      },
+      "cost_usd": 2.944779499999999,
+      "duration_seconds": 435
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:05:42.467630Z",
+    "total_cost_usd": 2.944779499999999,
+    "total_attempts": 1,
+    "total_duration_seconds": 435,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "37b71f941116b4bd5cf17f0f5e863989a91eb0cb",
+        "message": "task(cub-048a-0.3): Implement counter management on sync branch",
+        "author": "",
+        "timestamp": "2026-02-04T21:05:17Z"
+      }
+    ],
+    "approach": "Implemented counter management for the sync branch by creating a `CounterState` model to track spec and standalone task numbers, then building counter operations with optimistic locking and retry logic to handle concurrent allocations across worktrees. The implementation was guided by existing sync service infrastructure and integrated seamlessly with the codebase through comprehensive testing and validation.",
+    "decisions": [
+      "Used optimistic locking with exponential backoff for concurrent counter allocations rather than pessimistic locking, to avoid blocking multiple worktrees trying to allocate simultaneously",
+      "Auto-initialized missing `counters.json` files with default values instead of failing, to reduce setup friction and enable graceful degradation",
+      "Stored counters as a separate `counters.json` file on the sync branch rather than embedding in the sync state, to keep concerns separated and simplify atomic increments",
+      "Made counter reads local-only (no network) by reading from local sync branch state, ensuring fast operations without external dependencies",
+      "Included retry logic with exponential backoff in allocation functions to handle transient allocation conflicts in high-concurrency scenarios"
+    ],
+    "lessons_learned": [
+      "Comprehensive pre-implementation exploration of existing infrastructure (sync service, models, tests) was critical to designing integrations that fit naturally with the codebase patterns",
+      "Validating code early and often through multiple feedback loops (tests, type checking, linting) caught issues before they accumulated, making final cleanup straightforward",
+      "Auto-initialization of missing state files significantly improves the user experience compared to explicit setup steps\u2014consider this pattern for other collision-prone resources",
+      "Optimistic locking with retries is preferable to pessimistic approaches in distributed scenarios (worktrees) where blocking causes friction; the retry logic makes failures transient rather than hard failures"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:05:42.467630Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T20:58:27.119656Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:05:42.467630Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T20:58:27.119656Z",
+  "completed_at": "2026-02-04T21:05:42.467630Z",
+  "tokens": {
+    "input_tokens": 11648,
+    "output_tokens": 19829,
+    "cache_read_tokens": 3591454,
+    "cache_creation_tokens": 89622
+  },
+  "cost_usd": 2.944779499999999,
+  "duration_seconds": 435,
+  "iterations": 1,
+  "approach": "Implemented counter management for the sync branch by creating a `CounterState` model to track spec and standalone task numbers, then building counter operations with optimistic locking and retry logic to handle concurrent allocations across worktrees. The implementation was guided by existing sync service infrastructure and integrated seamlessly with the codebase through comprehensive testing and validation.",
+  "decisions": [
+    "Used optimistic locking with exponential backoff for concurrent counter allocations rather than pessimistic locking, to avoid blocking multiple worktrees trying to allocate simultaneously",
+    "Auto-initialized missing `counters.json` files with default values instead of failing, to reduce setup friction and enable graceful degradation",
+    "Stored counters as a separate `counters.json` file on the sync branch rather than embedding in the sync state, to keep concerns separated and simplify atomic increments",
+    "Made counter reads local-only (no network) by reading from local sync branch state, ensuring fast operations without external dependencies",
+    "Included retry logic with exponential backoff in allocation functions to handle transient allocation conflicts in high-concurrency scenarios"
+  ],
+  "lessons_learned": [
+    "Comprehensive pre-implementation exploration of existing infrastructure (sync service, models, tests) was critical to designing integrations that fit naturally with the codebase patterns",
+    "Validating code early and often through multiple feedback loops (tests, type checking, linting) caught issues before they accumulated, making final cleanup straightforward",
+    "Auto-initialization of missing state files significantly improves the user experience compared to explicit setup steps\u2014consider this pattern for other collision-prone resources",
+    "Optimistic locking with retries is preferable to pessimistic approaches in distributed scenarios (worktrees) where blocking causes friction; the retry logic makes failures transient rather than hard failures"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "37b71f941116b4bd5cf17f0f5e863989a91eb0cb",
+      "message": "task(cub-048a-0.3): Implement counter management on sync branch",
+      "author": "",
+      "timestamp": "2026-02-04T21:05:17Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.3",
+  "epic_id": "cub-048a-0",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "opus",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

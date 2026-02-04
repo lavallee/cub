@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-048a-0.4",
+  "title": "Implement ID generator with counter integration",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-0"
+  },
+  "task": {
+    "title": "Implement ID generator with counter integration",
+    "description": "The generator creates new IDs by combining counter allocation with the ID models. It provides the primary API for creating new specs, plans, epics, and tasks.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ids/generator.py`\n2. Implement `generate_spec_id(project: str, sync_service: SyncService) -> SpecId`\n3. Implement `generate_plan_id(spec: SpecId, letter: str) -> PlanId` (letter is explicit)\n4. Implement `generate_epic_id(plan: PlanId, char: str) -> EpicId` (char is explicit)\n5. Implement `generate_task_id(epic: EpicId, number: int) -> TaskId` (number is explicit)\n6. Implement `generate_standalone_id(project: str, sync_service: SyncService) -> StandaloneTaskId`\n7. Add helper `next_plan_letter(existing: list[str]) -> str` for auto-selection\n8. Add helper `next_epic_char(existing: list[str]) -> str` for auto-selection\n\n**Files:** `src/cub/core/ids/generator.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-1",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560575",
+    "captured_at": "2026-02-04T21:05:51.470232Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:05:51.470232Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:05:51.470232Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:05:51.470232Z",
+  "completed_at": "2026-02-04T21:05:51.470232Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.4",
+  "epic_id": "cub-048a-0",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -24,6 +24,15 @@ Public API:
         - allocate_standalone_number: Allocate next standalone number
         - CounterAllocationError: Exception for allocation failures
 
+    Generator functions:
+        - generate_spec_id: Generate new spec ID with counter allocation
+        - generate_plan_id: Generate new plan ID from spec
+        - generate_epic_id: Generate new epic ID from plan
+        - generate_task_id: Generate new task ID from epic
+        - generate_standalone_id: Generate new standalone task ID with counter allocation
+        - next_plan_letter: Auto-select next available plan letter
+        - next_epic_char: Auto-select next available epic char
+
 Example:
     >>> from cub.core.ids import SpecId, PlanId, EpicId, TaskId, parse_id
     >>> spec = SpecId(project="cub", number=54)
@@ -49,6 +58,15 @@ from cub.core.ids.counters import (
     allocate_standalone_number,
     read_counters,
 )
+from cub.core.ids.generator import (
+    generate_epic_id,
+    generate_plan_id,
+    generate_spec_id,
+    generate_standalone_id,
+    generate_task_id,
+    next_epic_char,
+    next_plan_letter,
+)
 from cub.core.ids.models import EpicId, PlanId, SpecId, StandaloneTaskId, TaskId
 from cub.core.ids.parser import get_id_type, get_parent_id, parse_id, validate_id
 
@@ -69,4 +87,12 @@ __all__ = [
     "allocate_spec_number",
     "allocate_standalone_number",
     "CounterAllocationError",
+    # Generator functions
+    "generate_spec_id",
+    "generate_plan_id",
+    "generate_epic_id",
+    "generate_task_id",
+    "generate_standalone_id",
+    "next_plan_letter",
+    "next_epic_char",
 ]

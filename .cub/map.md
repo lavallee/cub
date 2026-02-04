@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (269 files) (entry: __init__.py)
+- **cub**: `src/cub` (271 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -115,6 +115,8 @@
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
     │   │   │   ├── cub-048a-0.2/
+    │   │   │   ├── cub-048a-0.3/
+    │   │   │   ├── cub-048a-0.4/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -298,6 +300,8 @@
     │   │   │   ├── cub-001.json
     │   │   │   ├── cub-048a-0.1.json
     │   │   │   ├── cub-048a-0.2.json
+    │   │   │   ├── cub-048a-0.3.json
+    │   │   │   ├── cub-048a-0.4.json
     │   │   │   ├── cub-0qf0.json
     │   │   │   ├── cub-12be.json
     │   │   │   ├── cub-4eyt.json
@@ -310,10 +314,6 @@
     │   │   │   ├── cub-a3r.3.json
     │   │   │   ├── cub-a4e.1.json
     │   │   │   ├── cub-a4e.2.json
-    │   │   │   ├── cub-a4e.3.json
-    │   │   │   ├── cub-a7f.1.json
-    │   │   │   ├── cub-a7f.2.json
-    │   │   │   ├── cub-a7f.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols

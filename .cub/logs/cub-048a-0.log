@@ -291,3 +291,185 @@ Excellent! All tests pass. Now let's run the full test suite to make sure we did
 Perfect! Now let's run the full feedback loop: typecheck, lint, and all tests:
 Perfect! All tests pass. Now let's mark the task as closed and commit the changes:
 Now let's commit the changes:
+Perfect! The task is complete. Let me provide a summary:
+
+## Summary
+
+Successfully implemented the ID parser and validator for the hierarchical ID system in `src/cub/core/ids/parser.py`.
+
+### Implemented Functions
+
+1. **`parse_id(id_str: str)`** - Parses string IDs into typed Pydantic models with full parent chain composition
+2. **`validate_id(id_str: str) -> bool`** - Fast format validation without full parsing
+3. **`get_id_type(id_str: str)`** - Determines ID type without parsing
+4. **`get_parent_id(id_str: str)`** - Extracts parent ID from hierarchical structure
+
+### Key Design Decisions
+
+1. **Ambiguity Resolution**: When IDs ending in digits could be either spec or plan (e.g., `cub-1000` could be spec `1000` or plan `100` + letter `0`), the parser prefers the plan interpretation to allow full range of plan letters (0-9).
+
+2. **Legacy ID Support**: Old random IDs like `cub-k7m` are detected by `validate_id()` and return `None` from `get_id_type()`, but raise a descriptive `ValueError` when passed to `parse_id()`.
+
+3. **Project Name Constraint**: Legacy ID pattern requires project names to end in a letter (not digit) to avoid ambiguity with hierarchical IDs like `cub-054-extra`.
+
+### All Acceptance Criteria Met ✓
+
+- ✅ `parse_id("cub-054")` returns `SpecId(project="cub", number=54)`
+- ✅ `parse_id("cub-054A-0.1")` returns fully nested `TaskId` with complete parent chain
+- ✅ `get_parent_id("cub-054A-0.1")` returns `"cub-054A-0"`
+- ✅ Legacy IDs like `cub-k7m` are detected but raise `ValueError` on parse
+- ✅ Invalid formats raise `ValueError` with descriptive error messages
+
+### Testing
+
+- Created comprehensive test suite with 45 tests covering all functions
+- All tests pass (75 total including model tests)
+- Full codebase test suite passes (5355 passed)
+- Type checking and linting clean
+
+The implementation is complete, tested, and committed.
+Perfect! The task has been successfully completed. Here's what was accomplished:
+
+## Task Complete: ID Parser and Validator ✅
+
+Successfully implemented a comprehensive ID parser and validator system for the hierarchical ID architecture.
+
+### Implementation Highlights
+
+**Core Functions:**
+- `parse_id()` - Converts string IDs to typed Pydantic models with full parent chain
+- `validate_id()` - Fast format validation (no parsing overhead)
+- `get_id_type()` - Determines ID type without full object construction
+- `get_parent_id()` - Extracts parent ID from hierarchical relationships
+
+**Supported Formats:**
+- Spec: `cub-054` (3+ digit numbers)
+- Plan: `cub-054A` (spec + single alphanumeric)
+- Epic: `cub-054A-0` (plan + hyphen + single alphanumeric)
+- Task: `cub-054A-0.1` (epic + dot + number)
+- Standalone: `cub-s017` (project + 's' + 3+ digits)
+- Legacy: `cub-k7m` (detected but not parseable)
+
+### Design Decisions
+
+1. **Ambiguity Handling**: IDs like `cub-1000` could be spec(1000) or plan(100,'0'). The parser prefers plan interpretation to support the full range of plan letters (0-9).
+
+2. **Legacy Support**: Old random IDs are validated but raise descriptive errors when parsing, ensuring backward compatibility while preventing accidental usage.
+
+3. **Project Name Constraint**: Legacy IDs require project names ending in letters (not digits) to avoid confusion with hierarchical formats.
+
+### Quality Metrics
+
+- ✅ All 5 acceptance criteria met
+- ✅ 45 comprehensive tests added (all passing)
+- ✅ Full test suite: 5,355 tests passing
+- ✅ Type checking clean (mypy)
+- ✅ Linting clean (ruff)
+- ✅ Code committed with detailed documentation
+
+The parser is production-ready and provides a solid foundation for the counter management and ID generation features in the next tasks.
+Task completed in 753.0s
+Tokens: 507
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-0.3                                                           │
+│  Title      Implement counter management on sync branch                            │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  3/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      opus                                                                   │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+Let me adjust the path and explore the project structure:
+Now let me check if there's an existing sync service and models to understand the infrastructure:
+Now I have a good understanding of the existing code. Let me also check the tasks file and look at the tests:
+Now I have a comprehensive understanding of the codebase. Let me set up the task tracking and start implementing:
+Good, I can see that task cub-048a-0.3 is marked as in_progress. Now let me implement the solution. First, I'll add the `CounterState` model to `src/cub/core/sync/models.py`:
+Now update the `__init__.py` to export `CounterState`:
+Now let me create the `counters.py` module with all the counter operations:
+Now update the `src/cub/core/ids/__init__.py` to export the counter functions:
+Now let's create comprehensive tests for the counter operations:
+Now let's run the feedback loops - type checking, tests, and linting:
+All 27 tests pass. Now let's run the linter:
+Let me fix these linting issues:
+Now also remove the unused import:
+Now fix the line-too-long issues in models.py:
+Now let's run the linter again to verify all issues are fixed:
+All linting checks pass. Now let's run the tests again to make sure everything still works:
+Excellent! All 102 tests pass (27 new counter tests + 75 existing sync service tests). Let's run the full type check to ensure everything is consistent:
+Type checking passed with no output. Let me run the complete project test suite to make sure nothing was broken:
+All 5371 tests pass. Now let me update the task file to close the task:
+Now let's commit the changes:
+The task has been completed and committed. Let me verify the task is closed:
+The task `cub-048a-0.3` is now closed. Here's a summary of what was implemented:
+
+## Summary
+
+Successfully implemented counter management on the sync branch for task `cub-048a-0.3`. 
+
+### Files Created/Modified:
+
+1. **`src/cub/core/sync/models.py`** - Added `CounterState` model with:
+   - `spec_number`: Next available spec number (0-indexed)
+   - `standalone_task_number`: Next available standalone task number
+   - `updated_at`: Timestamp of last counter update
+   - `increment_spec_number()` and `increment_standalone_number()` methods
+
+2. **`src/cub/core/ids/counters.py`** - New module with:
+   - `read_counters(sync_service)`: Read counter state from sync branch (local, no network)
+   - `allocate_spec_number(sync_service)`: Allocate next spec number with optimistic locking
+   - `allocate_standalone_number(sync_service)`: Allocate next standalone number
+   - `CounterAllocationError`: Exception for allocation failures
+   - Auto-initialization when `counters.json` doesn't exist
+   - Retry logic with exponential backoff for concurrent allocations
+
+3. **`src/cub/core/sync/__init__.py`** - Exported `CounterState`
+
+4. **`src/cub/core/ids/__init__.py`** - Exported counter functions
+
+5. **`tests/test_counters.py`** - Comprehensive test suite with 27 tests covering:
+   - CounterState model validation
+   - Reading counters from sync branch
+   - Allocating spec and standalone numbers
+   - Handling missing/corrupted counters.json
+   - Retry logic
+   - Persistence and file preservation
+
+### Acceptance Criteria Met:
+- `CounterState` model has `spec_number`, `standalone_task_number`, `updated_at`
+- `allocate_spec_number()` increments counter and commits to sync branch
+- Concurrent allocations protected by optimistic locking with retries
+- Missing `counters.json` is auto-initialized with defaults
+- Counter reads don't require network (use local sync branch state)
+Task completed in 435.3s
+Tokens: 31,477
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-0.4                                                           │
+│  Title      Implement ID generator with counter integration                        │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  4/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      sonnet                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll implement the ID generator with counter integration. Let me start by reading the existing task file and related code.
+Now let me check if there's a counter.py file (it wasn't found in the previous read):
+Let me read the counters.py file:
+Now let me check if there's a SyncService to understand its interface:
+Now let me update the task status to in_progress and create the generator.py file:
+Let me continue reading the tasks file to find the current task:
+Good! Now let me create the generator.py file. First, let me look at the sync service to understand its interface better:
+Now let me create the generator.py file with all the required functions:
+Now let me update the `__init__.py` to export the new generator functions:
+Now let me run the feedback loops to ensure everything works correctly:
+Good! Tests are passing. Now let me create tests for the generator module:
+Now let me run the tests for the generator module:
+Perfect! All tests pass. Now let me run the full test suite to ensure we didn't break anything:
+Excellent! All 5416 tests pass. Now let's run the linter:
+Let me fix the linting issues:
+Now let's run the linter again:
+Great! Let's run mypy to double-check type checking:
+Perfect! Now let's run the tests one more time to ensure everything still works after the lint fixes:
+Excellent! All tests pass. Now let's update the task status to closed:
+Now let's commit the changes:

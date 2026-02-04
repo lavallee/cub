@@ -17,38 +17,41 @@
     "captured_at": "2026-02-04T20:45:40.193110Z"
   },
   "task_ids": [
-    "cub-048a-0.1"
+    "cub-048a-0.1",
+    "cub-048a-0.2",
+    "cub-048a-0.3"
   ],
   "aggregates": {
-    "total_tasks": 1,
-    "tasks_completed": 1,
-    "tasks_successful": 1,
+    "total_tasks": 3,
+    "tasks_completed": 3,
+    "tasks_successful": 3,
     "tasks_failed": 0,
-    "total_cost_usd": 0.79675535,
-    "avg_cost_per_task": 0.79675535,
+    "total_cost_usd": 5.787433149999999,
+    "avg_cost_per_task": 1.929144383333333,
     "min_cost_usd": 0.79675535,
-    "max_cost_usd": 0.79675535,
+    "max_cost_usd": 2.944779499999999,
     "total_escalations": 0,
     "escalation_rate": 0.0,
-    "total_attempts": 1,
+    "total_attempts": 3,
     "avg_attempts_per_task": 1.0,
-    "total_tokens": 1453429,
-    "avg_tokens_per_task": 1453429,
-    "total_duration_seconds": 345,
-    "avg_duration_seconds": 345,
+    "total_tokens": 5271351,
+    "avg_tokens_per_task": 1757117,
+    "total_duration_seconds": 1533,
+    "avg_duration_seconds": 511,
     "models_used": [
+      "opus",
       "sonnet"
     ],
     "most_common_model": "sonnet"
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T20:45:40.210828Z"
+    "stage_updated_at": "2026-02-04T21:05:49.457777Z"
   },
   "state_history": [],
   "started_at": "2026-02-04T20:39:49.114741Z",
-  "completed_at": "2026-02-04T20:45:34.256766Z",
-  "updated_at": "2026-02-04T20:45:40.210834Z",
+  "completed_at": "2026-02-04T21:05:42.467630Z",
+  "updated_at": "2026-02-04T21:05:49.457780Z",
   "first_commit": {
     "hash": "847184570fd0b7cef74e391e2c8c3401315a51b9",
     "message": "task(cub-048a-0.1): Create core/ids/ package with ID models",
@@ -56,10 +59,10 @@
     "timestamp": "2026-02-04T20:45:17Z"
   },
   "last_commit": {
-    "hash": "847184570fd0b7cef74e391e2c8c3401315a51b9",
-    "message": "task(cub-048a-0.1): Create core/ids/ package with ID models",
+    "hash": "37b71f941116b4bd5cf17f0f5e863989a91eb0cb",
+    "message": "task(cub-048a-0.3): Implement counter management on sync branch",
     "author": "",
-    "timestamp": "2026-02-04T20:45:17Z"
+    "timestamp": "2026-02-04T21:05:17Z"
   },
   "drift": {
     "additions": [],
