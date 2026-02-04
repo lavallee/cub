@@ -424,3 +424,93 @@ Great! Now let's run the existing sync tests to make sure we didn't break anythi
 Perfect! All existing tests are passing. Now let's update the task status to mark it as complete:
 Now let's update the task status to closed:
 Now let's commit the changes:
+Perfect! The task has been completed successfully. Let me create a quick summary of what was implemented:
+
+## Summary
+
+I've successfully implemented the `cub sync agent` command for syncing managed sections in agent.md/CLAUDE.md across worktrees and branches. Here's what was delivered:
+
+### Features Implemented
+
+1. **Managed Section Parsing**: Parses sections marked with `<!-- BEGIN CUB MANAGED SECTION v1 -->` and `<!-- END CUB MANAGED SECTION -->` markers, extracting content and position information.
+
+2. **Section Injection**: Replaces managed sections in content while preserving non-managed text, with automatic hash generation for conflict detection.
+
+3. **Conflict Detection**: Detects when both local and remote have modified the same section (different sha256 hashes), preventing data loss.
+
+4. **Pull Operation** (`cub sync agent` or `cub sync agent --pull`):
+   - Pulls managed sections from sync branch to local agent.md
+   - Updates local file while preserving non-managed content
+   - Detects and reports conflicts
+
+5. **Push Operation** (`cub sync agent --push`):
+   - Pushes local managed sections to sync branch
+   - Creates git commit on sync branch without affecting working tree
+   - Supports multiple section versions
+
+6. **Agent File Discovery**: Automatically finds agent.md variants (agent.md, AGENT.md, AGENTS.md, CLAUDE.md) in `.cub/` directory.
+
+### Implementation Details
+
+- **Service Layer**: Extended `SyncService` in `src/cub/core/sync/service.py` with:
+  - `_parse_managed_sections()`: Extract sections with version and position info
+  - `_inject_managed_sections()`: Replace sections while preserving structure
+  - `_detect_agent_sync_conflicts()`: Hash-based conflict detection
+  - `sync_agent_pull()`: Pull operation
+  - `sync_agent_push()`: Push operation
+  - `_find_agent_file()`: Auto-discovery of agent.md variants
+
+- **CLI**: Added `agent` subcommand to `src/cub/cli/sync.py` with `--push` and `--pull` flags (defaults to pull).
+
+### Testing
+
+- **23 comprehensive tests** covering:
+  - Section parsing (single, multiple, positions)
+  - Section injection (single, multiple, preserving non-managed)
+  - Conflict detection (same content, different hashes, different versions)
+  - Pull operations (not initialized, no file, updates, conflicts)
+  - Push operations (not initialized, no file, creates commit, multiple sections)
+  - File discovery (agent.md variants, precedence, missing files)
+
+- **All existing tests pass** (103 sync-related tests)
+- **Code quality**: Passes mypy type checking and ruff linting
+
+### Usage Examples
+
+```bash
+# Pull managed sections from sync branch (default)
+cub sync agent
+
+# Explicitly pull
+cub sync agent --pull
+
+# Push local sections to sync branch
+cub sync agent --push
+```
+
+The implementation fulfills all acceptance criteria:
+✅ `cub sync agent` pulls managed sections from sync branch
+✅ `cub sync agent --push` pushes local sections to sync branch
+✅ Managed section markers are preserved
+✅ Non-managed content is not affected
+✅ Conflict detection if both sides changed (via sha256 hash comparison)
+Task completed in 316.2s
+Tokens: 43,006
+Epic 'cub-048a-4' auto-closed (5 tasks completed)
+Error: No ready tasks available
+57 tasks remaining but all have unmet dependencies
+→ Try: cub task list --status blocked  # to see blocked tasks
+       → Or: Check task dependencies with 'cub task show <task-id>'
+
+                 Run Summary                 
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric          ┃ Value                   ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Duration        │ 1923.7s                 │
+│ Iterations      │ 5                       │
+│ Tasks Completed │ 5                       │
+│ Tokens Used     │ 153,965                 │
+│ Cost            │ $10.4167                │
+│ Final Phase     │ completed               │
+│ Circuit Breaker │ Enabled (30min timeout) │
+└─────────────────┴─────────────────────────┘
