@@ -21,7 +21,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -565,7 +565,7 @@ def initialize_counters(
     counters = {
         "spec_number": len(specs),
         "standalone_task_number": standalone_count,
-        "updated_at": datetime.now().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
 
     if dry_run:
