@@ -33,6 +33,7 @@ Example:
     57000
 """
 
+from cub.core.ledger.artifacts import ArtifactManager
 from cub.core.ledger.extractor import InsightExtraction, extract_insights
 from cub.core.ledger.harness_log import (
     HarnessLogEvent,
@@ -100,6 +101,8 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Artifacts
+    "ArtifactManager",
     # Harness log
     "HarnessLogEvent",
     "HarnessLogWriter",
