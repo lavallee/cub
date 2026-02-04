@@ -1,0 +1,92 @@
+{
+  "run_id": "cub-20260204-165022",
+  "session_name": "cub-20260204-165022",
+  "started_at": "2026-02-04T16:50:22.061554",
+  "updated_at": "2026-02-04T16:50:22.072031",
+  "completed_at": null,
+  "epic": "cub-048a-2",
+  "label": null,
+  "branch": "feature/cub-048-ledger-consolidation-and-id-system",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "running",
+  "current_task_id": "cub-048a-2.1",
+  "current_task_title": "Add --plan flag and plan iteration logic",
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": 500000,
+    "cost_usd": 0.0,
+    "cost_limit": null,
+    "tasks_completed": 0,
+    "tasks_limit": null,
+    "tokens_percentage": 0.0,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 73,
+  "tasks_in_progress": 0,
+  "tasks_closed": 84,
+  "tasks_total": 157,
+  "task_entries": [
+    {
+      "task_id": "cub-048a-2.1",
+      "title": "Add --plan flag and plan iteration logic",
+      "state": "doing",
+      "started_at": "2026-02-04T16:50:22.072007",
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-2.2",
+      "title": "Update ledger commit timing",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-2.3",
+      "title": "Remove build-plan command",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-048a-2.4",
+      "title": "Tests for run loop changes",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-04T16:50:22.068620",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:50:22.072022",
+      "level": "info",
+      "message": "Starting task: Add --plan flag and plan iteration logic",
+      "task_id": "cub-048a-2.1",
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": true,
+  "is_finished": false,
+  "tasks_remaining": 73,
+  "completion_percentage": 53.503184713375795,
+  "duration_seconds": 0.010536
+}

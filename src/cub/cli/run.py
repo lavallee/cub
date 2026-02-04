@@ -542,6 +542,21 @@ def run(
         "-l",
         help="Only work on tasks with this label",
     ),
+    plan: str | None = typer.Option(
+        None,
+        "--plan",
+        help="Execute a staged plan by iterating through all its epics",
+    ),
+    start_epic: str | None = typer.Option(
+        None,
+        "--start-epic",
+        help="Start plan execution from this epic (skip earlier ones, requires --plan)",
+    ),
+    only_epic: str | None = typer.Option(
+        None,
+        "--only-epic",
+        help="Only execute this specific epic within the plan (requires --plan)",
+    ),
     model: str | None = typer.Option(
         None,
         "--model",
@@ -788,6 +803,58 @@ def run(
             )
             raise typer.Exit(ExitCode.USER_ERROR)
 
+    # --plan flag validation
+    if plan:
+        # --plan is incompatible with other execution mode flags
+        if task_id:
+            print_incompatible_flags_error(
+                "--plan", "--task", reason="Plan mode executes full epics, not individual tasks"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if epic:
+            print_incompatible_flags_error(
+                "--plan", "--epic", reason="Use --only-epic with --plan to run a specific epic"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if label:
+            print_incompatible_flags_error(
+                "--plan", "--label", reason="Plan mode executes all tasks in each epic"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if direct:
+            print_incompatible_flags_error(
+                "--plan", "--direct", reason="Plan mode uses staged plan tasks"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if gh_issue is not None:
+            print_incompatible_flags_error(
+                "--plan", "--gh-issue", reason="Plan mode uses staged plan tasks"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if ready:
+            print_incompatible_flags_error(
+                "--plan", "--ready", reason="Plan mode doesn't support ready listing"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+        if parallel:
+            print_incompatible_flags_error(
+                "--plan", "--parallel", reason="Plan mode runs epics sequentially"
+            )
+            raise typer.Exit(ExitCode.USER_ERROR)
+
+    # --start-epic and --only-epic require --plan
+    if start_epic and not plan:
+        console.print("[red]Error: --start-epic requires --plan[/red]")
+        raise typer.Exit(ExitCode.USER_ERROR)
+    if only_epic and not plan:
+        console.print("[red]Error: --only-epic requires --plan[/red]")
+        raise typer.Exit(ExitCode.USER_ERROR)
+    if start_epic and only_epic:
+        print_incompatible_flags_error(
+            "--start-epic", "--only-epic", reason="Use one or the other, not both"
+        )
+        raise typer.Exit(ExitCode.USER_ERROR)
+
     # ==========================================================================
     # Branch protection and auto-branch creation
     # ==========================================================================
@@ -983,6 +1050,12 @@ def run(
             run_args.extend(["--epic", epic])
         if label:
             run_args.extend(["--label", label])
+        if plan:
+            run_args.extend(["--plan", plan])
+        if start_epic:
+            run_args.extend(["--start-epic", start_epic])
+        if only_epic:
+            run_args.extend(["--only-epic", only_epic])
         if model:
             run_args.extend(["--model", model])
         if session_name:
@@ -1049,6 +1122,29 @@ def run(
             budget=budget,
             budget_tokens=budget_tokens,
             session_name=session_name,
+            debug=debug,
+        )
+        raise typer.Exit(exit_code)
+
+    # Handle --plan flag: execute a staged plan
+    if plan:
+        exit_code = _run_plan(
+            plan_slug=plan,
+            project_dir=project_dir,
+            config=config,
+            harness=harness,
+            model=model,
+            stream=stream,
+            budget=budget,
+            budget_tokens=budget_tokens,
+            session_name=session_name,
+            start_epic=start_epic,
+            only_epic=only_epic,
+            main_ok=main_ok,
+            use_current_branch=use_current_branch,
+            from_branch=from_branch,
+            no_sync=no_sync,
+            no_circuit_breaker=no_circuit_breaker,
             debug=debug,
         )
         raise typer.Exit(exit_code)
@@ -1706,6 +1802,371 @@ def _update_status_after_task(
     except Exception as e:
         if debug:
             console.print(f"[dim]Warning: Failed to update run session: {e}[/dim]")
+
+
+def _run_plan(
+    plan_slug: str,
+    project_dir: Path,
+    config: object,
+    harness: str | None,
+    model: str | None,
+    stream: bool,
+    budget: float | None,
+    budget_tokens: int | None,
+    session_name: str | None,
+    start_epic: str | None,
+    only_epic: str | None,
+    main_ok: bool,
+    use_current_branch: bool,
+    from_branch: str | None,
+    no_sync: bool,
+    no_circuit_breaker: bool,
+    debug: bool,
+) -> int:
+    """
+    Execute a staged plan by iterating through its epics.
+
+    This implements the functionality of the build-plan command as an integrated
+    part of cub run. It iterates through all epics in a plan, running `cub run --epic`
+    for each one, and creates appropriate ledger entries.
+
+    Args:
+        plan_slug: The plan slug (directory name under plans/)
+        project_dir: Project directory
+        config: Loaded configuration
+        harness: AI harness to use
+        model: Model to use
+        stream: Stream output
+        budget: Budget limit (USD)
+        budget_tokens: Token budget limit
+        session_name: Session name
+        start_epic: Start from this epic (skip earlier ones)
+        only_epic: Only run this specific epic
+        main_ok: Allow running on main/master branch
+        use_current_branch: Use current branch instead of creating new one
+        from_branch: Base branch for new feature branch
+        no_sync: Disable auto-sync
+        no_circuit_breaker: Disable circuit breaker
+        debug: Debug mode
+
+    Returns:
+        Exit code (0 = success, 1 = failure)
+    """
+    from cub.core.config.models import CubConfig
+    from cub.core.ledger.models import EpicEntry, PlanEntry
+    from cub.core.plan.models import Plan, PlanStatus
+    from cub.core.prep.plan_markdown import parse_plan_markdown
+
+    # Type narrow config
+    if not isinstance(config, CubConfig):
+        console.print("[red]Invalid configuration[/red]")
+        return 1
+
+    # Validate plan exists
+    plan_dir = project_dir / "plans" / plan_slug
+    itemized_plan_path = plan_dir / "itemized-plan.md"
+    plan_json_path = plan_dir / "plan.json"
+
+    if not plan_dir.exists():
+        console.print(f"[red]Plan directory not found: {plan_dir}[/red]")
+        return 1
+
+    if not itemized_plan_path.exists():
+        console.print(f"[red]Itemized plan not found: {itemized_plan_path}[/red]")
+        console.print("[dim]Run 'cub plan itemize' first[/dim]")
+        return 1
+
+    if not plan_json_path.exists():
+        console.print(f"[red]Plan metadata not found: {plan_json_path}[/red]")
+        console.print("[dim]Run 'cub stage' first[/dim]")
+        return 1
+
+    # Load plan
+    try:
+        plan = Plan.load(plan_dir)
+    except Exception as e:
+        console.print(f"[red]Failed to load plan: {e}[/red]")
+        return 1
+
+    if plan.status not in (PlanStatus.STAGED, PlanStatus.COMPLETE):
+        console.print(
+            f"[yellow]Warning: Plan status is '{plan.status.value}', expected 'staged'[/yellow]"
+        )
+
+    # Parse epics from itemized plan
+    itemized_content = itemized_plan_path.read_text(encoding="utf-8")
+    epics = parse_plan_markdown(itemized_content)
+
+    if not epics:
+        console.print("[red]No epics found in itemized plan[/red]")
+        return 1
+
+    epic_ids = [epic.epic_id for epic in epics]
+    console.print(f"[bold]Plan: {plan_slug}[/bold]")
+    console.print(f"Epics: {len(epic_ids)}")
+
+    if debug:
+        for i, epic in enumerate(epics, 1):
+            console.print(f"[dim]  {i}. {epic.epic_id}: {epic.title}[/dim]")
+
+    # Setup harness
+    harness_result = _setup_harness(harness, config.harness.priority, debug)
+    if harness_result is None:
+        return 1
+    harness_name, harness_backend = harness_result
+
+    # Initialize task backend
+    try:
+        task_backend = get_task_backend(project_dir=project_dir)
+    except Exception as e:
+        console.print(f"[red]Failed to initialize task backend: {e}[/red]")
+        return 1
+
+    # Initialize ledger
+    ledger_dir = project_dir / ".cub" / "ledger"
+    ledger_writer = LedgerWriter(ledger_dir)
+    ledger_integration = LedgerIntegration(ledger_writer, task_backend)
+
+    # Generate session/plan ID
+    plan_session_id = session_name or f"plan-{plan_slug}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    start_time = datetime.now()
+
+    # Create/update PlanEntry in ledger
+    plan_entry = PlanEntry(
+        plan_id=plan_session_id,
+        spec_id=plan.spec_file or plan_slug,
+        title=plan_slug,
+        epics=epic_ids,
+        status="in_progress",
+        started_at=start_time,
+    )
+    try:
+        ledger_writer.create_plan_entry(plan_entry)
+        if debug:
+            console.print(f"[dim]Created plan entry: {plan_session_id}[/dim]")
+    except Exception as e:
+        if debug:
+            console.print(f"[dim]Warning: Failed to write plan entry: {e}[/dim]")
+
+    # Track overall progress
+    processed_epics = 0
+    failed_epic: str | None = None
+    total_tasks_completed = 0
+    total_cost = 0.0
+    total_tokens = 0
+
+    # Determine which epics to process
+    epic_started = start_epic is None  # If no start_epic, start from beginning
+
+    console.print()
+    for i, epic in enumerate(epics, 1):
+        epic_id = epic.epic_id
+
+        # Handle --only-epic
+        if only_epic and epic_id != only_epic:
+            continue
+
+        # Handle --start-epic
+        if start_epic:
+            if epic_id == start_epic:
+                epic_started = True
+            if not epic_started:
+                console.print(f"[dim]Skipping {epic_id} (before start epic)[/dim]")
+                continue
+
+        # Check if epic is already complete (all tasks closed)
+        epic_tasks = task_backend.list_tasks(parent=epic_id)
+        open_tasks = [t for t in epic_tasks if t.status.value != "closed"]
+
+        if not open_tasks and epic_tasks:
+            console.print(f"[green]✓ Skipping {epic_id} (already complete)[/green]")
+            processed_epics += 1
+            continue
+
+        console.print()
+        console.print(f"[bold cyan]═══ Epic {i}/{len(epics)}: {epic_id} ═══[/bold cyan]")
+        console.print(f"[bold]{epic.title}[/bold]")
+        console.print(f"Tasks: {len(open_tasks)} open / {len(epic_tasks)} total")
+        console.print()
+
+        # Run cub for this epic using RunService
+        try:
+            # Initialize sync service
+            sync_service: SyncService | None = None
+            backend_name = task_backend.backend_name
+            should_auto_sync = (
+                not no_sync
+                and config.sync.enabled
+                and config.sync.auto_sync in ("run", "always")
+                and ("jsonl" in backend_name or "both" in backend_name)
+            )
+            if should_auto_sync:
+                sync_service = SyncService(project_dir=project_dir)
+                if not sync_service.is_initialized():
+                    try:
+                        sync_service.initialize()
+                    except Exception:
+                        sync_service = None
+
+            # Initialize status writer
+            epic_run_id = f"{plan_session_id}-{epic_id}"
+            status_writer = StatusWriter(project_dir, epic_run_id)
+
+            # Initialize interrupt handler
+            interrupt_handler = InterruptHandler()
+
+            # Build RunService
+            run_service = RunService(
+                config=config,
+                project_dir=project_dir,
+                task_backend=task_backend,
+                harness_name=harness_name,
+                harness_backend=harness_backend,
+                ledger_integration=ledger_integration,
+                sync_service=sync_service,
+                status_writer=status_writer,
+                interrupt_handler=interrupt_handler,
+            )
+
+            # Build RunConfig for this epic
+            run_config = run_service.build_run_config(
+                epic=epic_id,
+                model=model,
+                stream=stream,
+                debug=debug,
+                budget_tokens=budget_tokens,
+                budget_cost=budget,
+                no_circuit_breaker=no_circuit_breaker,
+                no_sync=no_sync,
+            )
+
+            # Execute the epic
+            epic_start_time = datetime.now()
+            epic_success = True
+            epic_tasks_completed = 0
+            epic_cost = 0.0
+            epic_tokens = 0
+
+            for event in run_service.execute(run_config, run_id=epic_run_id):
+                # Track metrics from events
+                if event.event_type == RunEventType.TASK_COMPLETED:
+                    epic_tasks_completed += 1
+                    total_tasks_completed += 1
+                    if event.cost_usd:
+                        epic_cost += event.cost_usd
+                        total_cost += event.cost_usd
+                    if event.tokens_used:
+                        epic_tokens += event.tokens_used
+                        total_tokens += event.tokens_used
+                    console.print(f"[green]✓ {event.task_id}: {event.task_title}[/green]")
+                elif event.event_type == RunEventType.TASK_FAILED:
+                    epic_success = False
+                    console.print(f"[red]✗ {event.task_id}: {event.error or 'Failed'}[/red]")
+                elif event.event_type == RunEventType.BUDGET_EXHAUSTED:
+                    console.print("[yellow]Budget exhausted[/yellow]")
+                    break
+                elif event.event_type == RunEventType.INTERRUPT_RECEIVED:
+                    console.print("[yellow]Interrupted[/yellow]")
+                    break
+                elif event.event_type == RunEventType.ALL_TASKS_COMPLETE:
+                    console.print(f"[green]All tasks in epic {epic_id} complete[/green]")
+                elif event.event_type == RunEventType.NO_TASKS_AVAILABLE:
+                    if debug:
+                        console.print(f"[dim]No more ready tasks in {epic_id}[/dim]")
+                elif event.event_type == RunEventType.RUN_FAILED:
+                    epic_success = False
+                    console.print(f"[red]Epic run failed: {event.error}[/red]")
+                elif debug and event.event_type == RunEventType.BUDGET_UPDATED:
+                    tokens = event.tokens_used or 0
+                    cost = event.cost_usd or 0.0
+                    console.print(f"[dim]Tokens: {tokens:,}, Cost: ${cost:.4f}[/dim]")
+
+            result = run_service.get_result()
+
+            # Create EpicEntry in ledger
+            try:
+                from cub.core.ledger.models import EpicAggregates, Lineage
+
+                epic_aggregates = EpicAggregates(
+                    total_tasks=len(epic_tasks),
+                    tasks_completed=epic_tasks_completed,
+                    tasks_successful=epic_tasks_completed if epic_success else 0,
+                    total_cost_usd=epic_cost,
+                    total_tokens=epic_tokens,
+                )
+                is_complete = epic_success and result.tasks_failed == 0
+                epic_entry = EpicEntry(
+                    id=epic_id,
+                    title=epic.title,
+                    lineage=Lineage(plan_file=plan_slug),
+                    aggregates=epic_aggregates,
+                    started_at=epic_start_time,
+                    completed_at=datetime.now() if is_complete else None,
+                )
+                ledger_writer.create_epic_entry(epic_entry)
+            except Exception as e:
+                if debug:
+                    console.print(f"[dim]Warning: Failed to write epic entry: {e}[/dim]")
+
+            # Check if epic completed
+            if not epic_success or result.tasks_failed > 0:
+                failed_epic = epic_id
+                console.print(f"[red]Epic {epic_id} failed[/red]")
+                break
+
+            # Try to close epic in task backend
+            closed, message = task_backend.try_close_epic(epic_id)
+            if closed:
+                console.print(f"[green]{message}[/green]")
+
+            processed_epics += 1
+            console.print(f"[green]✓ Epic {epic_id} complete[/green]")
+
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Interrupted by user[/yellow]")
+            failed_epic = epic_id
+            break
+        except Exception as e:
+            console.print(f"[red]Error running epic {epic_id}: {e}[/red]")
+            if debug:
+                import traceback
+                console.print(f"[dim]{traceback.format_exc()}[/dim]")
+            failed_epic = epic_id
+            break
+
+    # Update PlanEntry with final status
+    try:
+        plan_entry.status = "completed" if failed_epic is None else "in_progress"
+        plan_entry.completed_at = datetime.now() if failed_epic is None else None
+        plan_entry.total_cost = total_cost
+        plan_entry.total_tokens = total_tokens
+        plan_entry.completed_tasks = total_tasks_completed
+        plan_entry.total_tasks = sum(
+            len(task_backend.list_tasks(parent=e.epic_id)) for e in epics
+        )
+        ledger_writer.create_plan_entry(plan_entry)
+    except Exception as e:
+        if debug:
+            console.print(f"[dim]Warning: Failed to update plan entry: {e}[/dim]")
+
+    # Summary
+    console.print()
+    console.print("─" * 60)
+    if failed_epic:
+        console.print(f"[red]Plan execution stopped at epic: {failed_epic}[/red]")
+        console.print(
+            f"[dim]To resume: cub run --plan {plan_slug} --start-epic {failed_epic}[/dim]"
+        )
+        return 1
+    else:
+        console.print(f"[green]Plan '{plan_slug}' completed successfully![/green]")
+        console.print(f"Epics processed: {processed_epics}")
+        console.print(f"Tasks completed: {total_tasks_completed}")
+        if total_cost > 0:
+            console.print(f"Total cost: ${total_cost:.4f}")
+        if total_tokens > 0:
+            console.print(f"Total tokens: {total_tokens:,}")
+        return 0
 
 
 def _run_direct(
