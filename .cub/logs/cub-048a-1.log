@@ -110,3 +110,89 @@ Perfect! Now let's run linting:
 Excellent! Let's also run a broader test to make sure we didn't break anything:
 Excellent! All tests pass. Now let's update the task status to closed and commit the changes:
 Now let's commit the changes:
+Perfect! Let's verify the commit and check the git status:
+Excellent! The task has been completed successfully. Let me verify one more time that all feedback loops pass:
+The tests pass but there are some pre-existing lint errors in the test file (lines are too long). Let me check if these are pre-existing:
+These are pre-existing lint errors (lines 426, 428, 439, 450). Let me check if my new code has any lint errors:
+Perfect! My new code has no lint errors. The lint errors are pre-existing in the test file and are not related to my changes. Let me verify the git status:
+The only unstaged change is the log file which is expected. Let me verify the task status in the tasks file:
+Perfect! The task is marked as closed. Let me create a summary of what was accomplished:
+
+## Summary
+
+I have successfully completed task **cub-048a-1.2: Extend LedgerWriter with plan and run methods**.
+
+### What was implemented:
+
+1. **Added new directory paths** to `LedgerWriter.__init__()`:
+   - `by_plan_dir` for plan entries
+   - `by_run_dir` for run entries
+
+2. **Plan entry methods**:
+   - `create_plan_entry(entry: PlanEntry)` - Creates a new plan entry in `.cub/ledger/by-plan/{plan_id}/entry.json`
+   - `update_plan_entry(plan_id: str, updates: dict[str, Any])` - Updates existing plan entry with atomic write pattern
+   - `get_plan_entry(plan_id: str)` - Retrieves plan entry by ID
+
+3. **Run entry methods**:
+   - `create_run_entry(entry: RunEntry)` - Creates a new run entry in `.cub/ledger/by-run/{run_id}.json`
+   - `update_run_entry(run_id: str, updates: dict[str, Any])` - Updates existing run entry with atomic write pattern
+   - `get_run_entry(run_id: str)` - Retrieves run entry by ID
+
+4. **Key features**:
+   - All update methods use atomic write pattern (temp file + rename)
+   - Missing parent directories are created automatically
+   - Proper error handling with FileNotFoundError for missing entries
+   - Comprehensive docstrings with examples
+
+5. **Tests**:
+   - Added 13 new tests covering all functionality
+   - All tests pass (49 total in test_ledger_io.py)
+   - Tests verify atomic writes, directory creation, CRUD operations, and error handling
+
+### All acceptance criteria met:
+✅ `create_plan_entry()` writes to `.cub/ledger/by-plan/{plan_id}/entry.json`  
+✅ `create_run_entry()` writes to `.cub/ledger/by-run/{run_id}.json`  
+✅ Updates use atomic write pattern (temp file + rename)  
+✅ Missing parent directories are created automatically
+
+### Feedback loops passed:
+✅ Tests: All 49 tests pass  
+✅ Type checking: No new mypy errors (pre-existing yaml warning)  
+✅ Linting: No lint errors in new code  
+
+The changes have been committed with a descriptive commit message following the project's conventions.
+
+<promise>COMPLETE</promise>
+Task completed in 233.6s
+Tokens: 10,873
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-1.3                                                           │
+│  Title      Create HarnessLogWriter for JSONL format                               │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  3/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      sonnet                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll complete this task by creating the HarnessLogWriter for JSONL format. Let me start by understanding the codebase structure and then implementing the required functionality.
+Now let me look at existing test files to understand the testing patterns:
+Now let me check if there are any existing test files to understand the testing patterns:
+Now I understand the structure. Let me create the `harness_log.py` file with the JSONL format support:
+Now let's create comprehensive tests for the harness log module:
+Now let's update the `__init__.py` to export the new classes:
+Now let's run the feedback loops (tests, typecheck, lint):
+Great! All tests pass. Now let's run type checking:
+I need to fix the type errors. Let me update the harness_log.py file:
+I need to use a more specific type for the file handle. Let me fix this:
+Good! The only error is in a different file (writer.py) about yaml stubs, which is not related to my changes. Let's run mypy without --strict to see if there are other issues:
+Perfect! The only error is in writer.py which is pre-existing. Let me check if there's a broader typecheck script:
+Let me just run the tests for the entire ledger module to make sure nothing broke:
+Great! Let's continue watching the tests:
+Perfect! All ledger tests pass. Now let's run our specific harness log tests once more to confirm:
+Excellent! Now let's run lint to ensure code quality:
+Let me fix the linting issues:
+Good! The auto-fixable ones are fixed. Now I need to manually fix the line length issues:
+Perfect! All checks passed. Now let's run the tests one final time to make sure everything still works:
+Perfect! All tests pass. Now I need to update the task status to closed and commit the changes. Let me first update the task status:
+Now let's commit the changes:

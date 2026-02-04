@@ -22,8 +22,62 @@
     "captured_at": "2026-02-04T21:21:56.378372Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-161852",
+      "started_at": "2026-02-04T16:21:56.440954",
+      "completed_at": "2026-02-04T21:25:50.054936Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 31,
+        "output_tokens": 10842,
+        "cache_read_tokens": 2199489,
+        "cache_creation_tokens": 59078
+      },
+      "cost_usd": 1.0790422,
+      "duration_seconds": 233
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:25:50.093782Z",
+    "total_cost_usd": 1.0790422,
+    "total_attempts": 1,
+    "total_duration_seconds": 233,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "88af0eb3a90b9b8941f7fe2273e8a83a8e749532",
+        "message": "task(cub-048a-1.2): Extend LedgerWriter with plan and run methods",
+        "author": "",
+        "timestamp": "2026-02-04T21:25:09Z"
+      }
+    ],
+    "approach": "Examined the existing LedgerWriter patterns by reviewing the task and epic entry implementations, then extended the class with parallel methods for plan and run entries. Implemented create/update/get methods for both entry types following the same atomic write pattern (temp file + rename), created comprehensive test coverage, and verified all feedback loops before committing.",
+    "decisions": [
+      "Used atomic write pattern (temp file + rename) for all update operations to ensure consistency, matching the existing task/epic entry implementation",
+      "Created separate `by-plan/{plan_id}/entry.json` and `by-run/{run_id}.json` file structures to follow the existing ledger directory conventions",
+      "Added both CRUD methods (create/update/get) rather than just create/update, enabling callers to read entries without re-parsing the filesystem",
+      "Used `dict[str, Any]` for update parameters to allow flexible partial updates, matching the pattern used elsewhere in the codebase",
+      "Included automatic parent directory creation in all write methods to reduce caller burden and prevent FileNotFoundError surprises"
+    ],
+    "lessons_learned": [
+      "Atomic writes (temp + rename) are critical for ledger systems to prevent corruption if writes are interrupted mid-operation; always implement this pattern for persistence layers",
+      "Following existing patterns exactly (including docstring style, parameter naming, error handling) makes code more maintainable and reduces the cognitive load for future developers",
+      "Comprehensive test coverage at the implementation stage (13 tests for 6 methods) catches edge cases early and provides confidence in refactoring; this paid off when verifying no regressions occurred",
+      "The atomic write pattern provides both correctness and a natural place to handle missing directories, eliminating the need for separate directory setup code",
+      "Testing both positive cases (successful operations) and negative cases (missing entries, file I/O errors) is essential for verifying error handling behavior"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -39,7 +93,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T21:21:56.378372Z"
+    "stage_updated_at": "2026-02-04T21:25:50.093782Z"
   },
   "state_history": [
     {
@@ -47,32 +101,57 @@
       "at": "2026-02-04T21:21:56.378372Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:25:50.093782Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "ci_monitor": null,
   "started_at": "2026-02-04T21:21:56.378372Z",
-  "completed_at": "2026-02-04T21:21:56.378372Z",
+  "completed_at": "2026-02-04T21:25:50.093782Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 31,
+    "output_tokens": 10842,
+    "cache_read_tokens": 2199489,
+    "cache_creation_tokens": 59078
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.0790422,
+  "duration_seconds": 233,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Examined the existing LedgerWriter patterns by reviewing the task and epic entry implementations, then extended the class with parallel methods for plan and run entries. Implemented create/update/get methods for both entry types following the same atomic write pattern (temp file + rename), created comprehensive test coverage, and verified all feedback loops before committing.",
+  "decisions": [
+    "Used atomic write pattern (temp file + rename) for all update operations to ensure consistency, matching the existing task/epic entry implementation",
+    "Created separate `by-plan/{plan_id}/entry.json` and `by-run/{run_id}.json` file structures to follow the existing ledger directory conventions",
+    "Added both CRUD methods (create/update/get) rather than just create/update, enabling callers to read entries without re-parsing the filesystem",
+    "Used `dict[str, Any]` for update parameters to allow flexible partial updates, matching the pattern used elsewhere in the codebase",
+    "Included automatic parent directory creation in all write methods to reduce caller burden and prevent FileNotFoundError surprises"
+  ],
+  "lessons_learned": [
+    "Atomic writes (temp + rename) are critical for ledger systems to prevent corruption if writes are interrupted mid-operation; always implement this pattern for persistence layers",
+    "Following existing patterns exactly (including docstring style, parameter naming, error handling) makes code more maintainable and reduces the cognitive load for future developers",
+    "Comprehensive test coverage at the implementation stage (13 tests for 6 methods) catches edge cases early and provides confidence in refactoring; this paid off when verifying no regressions occurred",
+    "The atomic write pattern provides both correctness and a natural place to handle missing directories, eliminating the need for separate directory setup code",
+    "Testing both positive cases (successful operations) and negative cases (missing entries, file I/O errors) is essential for verifying error handling behavior"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "88af0eb3a90b9b8941f7fe2273e8a83a8e749532",
+      "message": "task(cub-048a-1.2): Extend LedgerWriter with plan and run methods",
+      "author": "",
+      "timestamp": "2026-02-04T21:25:09Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-1.2",
   "epic_id": "cub-048a-1",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "sonnet",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

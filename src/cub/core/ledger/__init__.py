@@ -34,6 +34,11 @@ Example:
 """
 
 from cub.core.ledger.extractor import InsightExtraction, extract_insights
+from cub.core.ledger.harness_log import (
+    HarnessLogEvent,
+    HarnessLogReader,
+    HarnessLogWriter,
+)
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import (
     Attempt,
@@ -95,6 +100,10 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Harness log
+    "HarnessLogEvent",
+    "HarnessLogWriter",
+    "HarnessLogReader",
     # Integration
     "LedgerIntegration",
     "SessionLedgerIntegration",
