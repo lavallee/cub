@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-t44.3",
+  "title": "Consolidate AGENTS.md and CLAUDE.md into single source",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Consolidate AGENTS.md and CLAUDE.md into single source",
+    "description": "The `cub init` command currently generates both AGENTS.md and CLAUDE.md as separate files with identical content, creating maintenance burden and risk of drift. This violates DRY principle and causes confusion about which file is canonical. The solution is to generate CLAUDE.md as the single source of truth and create AGENTS.md as a symlink, ensuring consistency across the codebase and simplifying future updates.\n\n**Implementation Steps:**\n1. Examine current implementation in `src/cub/cli/init_cmd.py` and `src/cub/core/instructions.py` to understand how both files are currently generated\n2. Modify `src/cub/core/instructions.py` to have a single template/function that generates CLAUDE.md content\n3. Update `src/cub/cli/init_cmd.py` to write CLAUDE.md and create AGENTS.md as a symlink pointing to CLAUDE.md instead of generating duplicate content\n4. Handle edge cases: Windows (symlinks require admin/developer mode), existing files (backup if needed), and git tracking (ensure .gitignore doesn't prevent symlink tracking)\n5. Add tests to verify symlink creation and content consistency between the two logical references",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664762",
+    "captured_at": "2026-02-04T03:31:29.260169Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T22:31:29.282379",
+      "completed_at": "2026-02-04T03:44:29.215049Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 219,
+        "output_tokens": 22143,
+        "cache_read_tokens": 4025371,
+        "cache_creation_tokens": 79362
+      },
+      "cost_usd": 3.1339234999999994,
+      "duration_seconds": 779
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T03:44:29.369810Z",
+    "total_cost_usd": 3.1339234999999994,
+    "total_attempts": 1,
+    "total_duration_seconds": 779,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "aaa45a46d245ec6a1f6a983b5a1a4e02ab63017a",
+        "message": "task(cub-t44.3): Consolidate AGENTS.md and CLAUDE.md into single source",
+        "author": "",
+        "timestamp": "2026-02-04T03:43:50Z"
+      }
+    ],
+    "approach": "Modified the instruction generation system to consolidate CLAUDE.md and AGENTS.md by making CLAUDE.md the canonical source with identical content for all harness types, then creating AGENTS.md as a symlink to it. This eliminates duplication while maintaining backward compatibility through symlink creation and graceful fallback handling for edge cases like existing files or Windows systems.",
+    "decisions": [
+      "Made both harness types (\"generic\" and \"claude\") generate identical content branded as \"Claude Code\" since the task emphasized DRY principle and the practical difference was minimal",
+      "Implemented symlink creation in `create_agents_symlink()` as a separate, reusable function rather than inlining it in the init command, improving testability and modularity",
+      "Added backup-and-symlink behavior when AGENTS.md already exists as a regular file, preserving user data by creating AGENTS.md.backup before replacing with symlink",
+      "Gracefully handled Windows limitation (OSError during symlink creation) with a helpful message suggesting developer mode, rather than failing the entire init command",
+      "Created comprehensive test coverage for symlink scenarios including non-existent file, existing symlink, and existing regular file cases"
+    ],
+    "lessons_learned": [
+      "Consolidating duplicate content generation requires careful handling of edge cases (existing files, platform differences) - test these explicitly rather than assuming the happy path",
+      "Using relative symlinks (`CLAUDE.md` vs absolute path) is more portable across cloned repositories and different working directories",
+      "When eliminating duplication, preserve backward compatibility through symlinks rather than renaming, allowing existing scripts/references to continue working",
+      "Symlink verification tests should check both existence and target correctness, not just file presence, to catch silent failures where symlinks point to wrong targets",
+      "Gradual fallback strategies (symlink \u2192 backup \u2192 error message) improve user experience when operations can't fully succeed, especially across platforms"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T03:44:29.369810Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:31:29.260169Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T03:44:29.369810Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T03:31:29.260169Z",
+  "completed_at": "2026-02-04T03:44:29.369810Z",
+  "tokens": {
+    "input_tokens": 219,
+    "output_tokens": 22143,
+    "cache_read_tokens": 4025371,
+    "cache_creation_tokens": 79362
+  },
+  "cost_usd": 3.1339234999999994,
+  "duration_seconds": 779,
+  "iterations": 1,
+  "approach": "Modified the instruction generation system to consolidate CLAUDE.md and AGENTS.md by making CLAUDE.md the canonical source with identical content for all harness types, then creating AGENTS.md as a symlink to it. This eliminates duplication while maintaining backward compatibility through symlink creation and graceful fallback handling for edge cases like existing files or Windows systems.",
+  "decisions": [
+    "Made both harness types (\"generic\" and \"claude\") generate identical content branded as \"Claude Code\" since the task emphasized DRY principle and the practical difference was minimal",
+    "Implemented symlink creation in `create_agents_symlink()` as a separate, reusable function rather than inlining it in the init command, improving testability and modularity",
+    "Added backup-and-symlink behavior when AGENTS.md already exists as a regular file, preserving user data by creating AGENTS.md.backup before replacing with symlink",
+    "Gracefully handled Windows limitation (OSError during symlink creation) with a helpful message suggesting developer mode, rather than failing the entire init command",
+    "Created comprehensive test coverage for symlink scenarios including non-existent file, existing symlink, and existing regular file cases"
+  ],
+  "lessons_learned": [
+    "Consolidating duplicate content generation requires careful handling of edge cases (existing files, platform differences) - test these explicitly rather than assuming the happy path",
+    "Using relative symlinks (`CLAUDE.md` vs absolute path) is more portable across cloned repositories and different working directories",
+    "When eliminating duplication, preserve backward compatibility through symlinks rather than renaming, allowing existing scripts/references to continue working",
+    "Symlink verification tests should check both existence and target correctness, not just file presence, to catch silent failures where symlinks point to wrong targets",
+    "Gradual fallback strategies (symlink \u2192 backup \u2192 error message) improve user experience when operations can't fully succeed, especially across platforms"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "aaa45a46d245ec6a1f6a983b5a1a4e02ab63017a",
+      "message": "task(cub-t44.3): Consolidate AGENTS.md and CLAUDE.md into single source",
+      "author": "",
+      "timestamp": "2026-02-04T03:43:50Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.3",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "id": "cub-t44.7",
+  "title": "Expand constitution.md template with principles and examples",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Expand constitution.md template with principles and examples",
+    "description": "The constitution.md template currently provides minimal guidance, making it difficult for projects to establish meaningful engineering principles. This feature adds detailed principle examples, code pattern comparisons (good vs. bad), and step-by-step customization guidance so projects can create constitutions aligned with their specific values and constraints.\n\n**Implementation Steps:**\n1. Read the current constitution.md template to understand its structure\n2. Expand the principles section with 4-5 example principles (testing, performance, security, documentation, collaboration) including descriptions and rationale\n3. Add \"Good Pattern vs. Bad Pattern\" subsections showing concrete code examples for each principle\n4. Create a \"Customizing for Your Project\" section with step-by-step guidance on identifying and defining custom principles\n5. Add an \"Anti-patterns to Avoid\" section documenting common pitfalls when establishing engineering culture\n6. Include a \"Living Document\" section explaining how to evolve the constitution over time\n7. Verify template formatting, ensure markdown is valid, and check for clarity",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664938",
+    "captured_at": "2026-02-04T04:16:58.444891Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260203-221403",
+      "started_at": "2026-02-03T23:16:58.466914",
+      "completed_at": "2026-02-04T04:46:58.655778Z",
+      "harness": "claude",
+      "model": "",
+      "success": false,
+      "error_category": "circuit_breaker_timeout",
+      "error_summary": "Circuit breaker tripped: No activity for 30 minutes. The harness appears to be hung or unresponsive.",
+      "tokens": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_creation_tokens": 0
+      },
+      "cost_usd": 0.0,
+      "duration_seconds": 0
+    }
+  ],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T04:16:58.444891Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T04:16:58.444891Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T04:16:58.444891Z",
+  "completed_at": "2026-02-04T04:16:58.444891Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.7",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

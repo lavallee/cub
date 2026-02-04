@@ -1,0 +1,98 @@
+Let me start by auditing the current config usage. I'll read the relevant files in parallel:Let me find the correct file paths:Good, now let me read the relevant files:Now let me read the models.py file to understand the full CubConfig schema, and search for other places that read/write config:Now let me also look at the test files for the config loader and check how the e2e test project is structured:Now I have a complete understanding of the current config system. Let me update my todo list and design the unified config schema:## Summary of Current Config System
+
+**Files and their contents:**
+
+1. **`.cub.json` (project root)** - User-facing settings:
+   - `harness` - AI assistant choice
+   - `budget` - Token/cost limits  
+   - `state` - Pre-flight checks
+   - `loop` - Autonomous loop control
+   - `hooks` - Lifecycle hooks
+   - `interview` - Custom questions
+
+2. **`.cub/config.json` (internal state)** - Internal settings:
+   - `project_id` - Task ID prefix
+   - `dev_mode` - Development mode flag
+   - `backend.mode` - Task backend type
+
+3. **`~/.config/cub/config.json`** - Global user config (unchanged by this task)
+
+**The Plan:**
+- Consolidate all config into `.cub/config.json`
+- Read `.cub.json` for backwards compatibility with deprecation warning
+- Use sections in the unified config:
+  - Top-level "user" fields (harness, budget, state, etc.) 
+  - Internal fields (project_id, dev_mode, backend)
+  
+Let me start by updating the loader.py to support both locations with backwards compatibility:Now I need to update the `load_config` function to handle both the new and legacy locations with deprecation warnings:Now I need to update the `clear_cache` function to also reset the warning flag:Now let me also update the `__init__.py` to export the new functions:Now let me update the `init_cmd.py` to:
+1. Stop creating `.cub.json`
+2. Consolidate all config into `.cub/config.json`
+3. Migrate existing `.cub.json` settings on initNow I need to replace the `_ensure_cub_json` function and add a new `_ensure_project_config` function that consolidates all config into `.cub/config.json`:Now I need to update the `init_project` function to use the new `_ensure_project_config` instead of `_ensure_cub_json`:Now I need to update the init_project function:Now I need to update the template files. First, let me create a new template for `.cub/config.json` and remove the `.cub.json` template or add a migration note:I'll update the template to add a deprecation notice and then create a README file in the templates directory explaining the migration:Now I need to update the e2e test project and write new tests for backwards-compatible config loading. Let me first update the e2e project to use the new config location:The e2e project has `.cub.json` but no `.cub/config.json`. Let me create one:Now let me add tests for backwards-compatible config loading. I'll add a new test class to the existing test file:Now let me add new tests for backwards compatibility and deprecation warnings:Now add tests at the end of the file:Now I also need to update existing tests that reference `.cub.json` to use the new location. Let me search for tests that need updating:There are many test files that reference `.cub.json`. The tests are testing the actual config system behavior, so many will now expect the new location. Let me look at a few key files to understand what needs updating:I need to update these tests to use the new config location. Since there are many files, let me update them programmatically by checking which ones need updating and fixing them systematically.
+
+First, let me run the tests to see what currently breaks:I need to fix the two tests that now expect the old path. Let me update them:Now let's run all the config tests again to make sure they pass:All 60 tests pass. The deprecation warnings showing are expected - those tests are intentionally using the legacy `.cub.json` location to test that the backwards compatibility and deprecation warnings work correctly.Now let me update the CLAUDE.md documentation to explain the consolidated config structure. First let me find the section that documents configuration:Let me find the section about configuration more specifically:I need to add a section documenting the config consolidation. Let me add it to the Project Structure section and update the custom questions reference:Now update the custom questions section to reference the new config location:Now let me add a dedicated section about configuration to CLAUDE.md. Let me find a good place to add it:Let me add a dedicated configuration section before "Gotchas & Learnings":Now let me run the feedback loops - typecheck, tests, and lint:All 81 tests pass. Now let me run the full test suite to make sure nothing else is broken:All 5242 tests pass! The deprecation warnings are expected since some tests are still using the legacy `.cub.json` location (which is intentional for backwards compatibility testing).
+
+Now let me run mypy on the full codebase to make sure everything type-checks:The mypy errors are pre-existing and not related to my changes. The errors are about:
+1. Missing return type annotations in template scripts
+2. Missing yaml stubs (types-PyYAML)
+3. Some other pre-existing issues
+
+Let me verify that the changes I made don't introduce any new mypy errors by checking just the files I modified:All the errors shown are from OTHER files (not the config/ or init_cmd.py I modified) - they're just being type-checked as dependencies. The files I modified pass mypy:The errors are all from OTHER dependent files (yaml stubs, tasks/both.py, tasks/json.py, run.py), not from the files I modified. These are pre-existing issues that are not part of my change. The 4 source files that were checked (my modified files) don't have any errors themselves.
+
+Let me check with --ignore-missing-imports to confirm:There are 2 pre-existing "unused ignore" comments in init_cmd.py that are unrelated to my changes. Let me look at them:These are pre-existing issues with tomllib imports. Since Python 3.11+, tomllib is in the standard library, so the ignore comment is no longer needed. But this is a pre-existing issue, not something I introduced.
+
+Let me run the full linting to make sure:The linting issues are pre-existing and not related to my changes. The warning about top-level linter settings is a configuration note for the project maintainers.All tasks are complete. Now let me close the task in the JSONL file and commit:Now let me update the task status to closed:Now let me create the commit:Now let me add the relevant files and commit:I notice CLAUDE.md wasn't added because it's a symlink. Let me also add .cub/agent.md which is the actual file:The commit was successfully made. The task is complete. Let me verify the task is closed:The task is closed. Let me provide a summary:
+
+## Summary
+
+Successfully completed task **cub-t44.5: Consolidate config files into single .cub/config.json**.
+
+### Changes Made:
+
+1. **Updated `src/cub/core/config/loader.py`**:
+   - Changed `get_project_config_path()` to return `.cub/config.json` (new primary location)
+   - Added `get_legacy_config_path()` for backwards compatibility to `.cub.json`
+   - Added `has_legacy_config()` helper function
+   - Added `_load_project_config_with_fallback()` to try new location first, then legacy
+   - Added `_warn_legacy_config()` with deprecation warning (shown once per session)
+   - Updated `load_config()` to use the new fallback mechanism
+
+2. **Updated `src/cub/core/config/__init__.py`**:
+   - Exported `get_legacy_config_path` and `has_legacy_config` functions
+
+3. **Updated `src/cub/cli/init_cmd.py`**:
+   - Added `_ensure_project_config()` that consolidates all config into `.cub/config.json`
+   - Handles migration from legacy `.cub.json` by merging settings
+   - Removed `_ensure_cub_json()` (no longer creates `.cub.json`)
+   - Added `_migrate_legacy_config()` helper
+
+4. **Updated `templates/.cub.json`**:
+   - Added deprecation notice and migration instructions
+
+5. **Added tests in `tests/test_config_loader.py`**:
+   - `TestConfigConsolidation` class with 10 new tests for:
+     - Path functions returning correct locations
+     - Legacy config detection
+     - Primary location preference
+     - Fallback to legacy with deprecation warning
+     - Warning only shown once per session
+     - Cache clear resets warning flag
+
+6. **Created `tests/e2e/project/.cub/config.json`**:
+   - Updated e2e test project to use new config location
+
+7. **Updated `CLAUDE.md`**:
+   - Added "Configuration" section documenting file locations and schema
+   - Updated project structure to show `.cub/config.json`
+   - Updated custom questions section to reference new location
+
+### Acceptance Criteria Met:
+- ✅ All config read/write operations use `.cub/config.json` as primary location
+- ✅ `.cub.json` is read for backwards compatibility with deprecation warning logged
+- ✅ `cub init` creates only `.cub/config.json`, no `.cub.json`
+- ✅ Unified config schema documented with clear user vs internal sections
+- ✅ Migration path works: existing `.cub.json` projects are readable and warned to consolidate
+- ✅ All tests pass (5242 passed, 17 skipped)
+- ✅ mypy passes (no new errors in modified files)
+- ✅ CLAUDE.md updated with config structure and consolidation rationale
+
+<promise>COMPLETE</promise>

@@ -1,0 +1,49 @@
+Now let me look for the existing CLAUDE.md and AGENTS.md files, and understand what tests exist for the init functionality:Interesting! It looks like the repo already uses symlinks in a similar way. Let me check the current setup and the tests:Now I have a clear understanding of the current implementation. Let me also look at the actual line with the task in the tasks.jsonl file:Good - the task is already marked as in_progress. Now I understand the full context:
+
+1. Currently `generate_agents_md` and `generate_claude_md` produce slightly different content (generic vs Claude-specific)
+2. The repo already uses symlinks (AGENTS.md -> .cub/agent.md, CLAUDE.md -> .cub/agent.md) 
+3. The task wants us to generate CLAUDE.md as the single source and AGENTS.md as a symlink
+
+Looking at the current implementation, I see that:
+- `generate_agents_md` produces "# Cub Task Workflow" (generic)  
+- `generate_claude_md` produces "# Cub Task Workflow (Claude Code)" with Claude-specific tips
+
+The task description says "identical content" but looking at the code, they're slightly different. The task wants CLAUDE.md as canonical and AGENTS.md as a symlink. This means we should generate CLAUDE.md with the full Claude Code content, and then AGENTS.md points to it.
+
+Let me update my todo list and start implementing:Now let me update `instructions.py` to consolidate the content generation:Now let me update the docstrings for `generate_agents_md` and `generate_claude_md` to reflect the new behavior:Now I need to update the `__all__` export list:Now let me update `init_cmd.py` to use the new symlink approach:Now let me update the `generate_instruction_files` function to use symlinks:Now let me update the docstring at the top of init_cmd.py to reflect the change:Also need to update the docstring for `generate_instruction_files`:Now I need to update the tests to work with the new symlink-based approach. Let me update the test files:Now let me update the tests that assume different content between AGENTS.md and CLAUDE.md:Now let me update the test that checks for different content between files:Now I need to add tests for the new `create_agents_symlink` function:Now I'll add new tests for the `create_agents_symlink` function at the end of the test file:Now let me also update the `test_cli_init_cmd.py` tests to work with the new symlink approach:Now let me run the feedback loops:All instruction tests pass. Now let's run the init_cmd tests:All tests pass. Now let's run type checking:Let's also run the linter:Let me also run the format checker to ensure proper formatting:Let me run the tests again to ensure formatting didn't break anything:All 116 tests pass. Let me also run a broader test to ensure I didn't break anything else:All 5228 tests passed. Now let me update the todo and close the task:Now let me update the task status in the JSONL file:Now let me commit the changes:Let me verify the task was closed properly:Good. The task is closed. Let me check the remaining tasks in the epic:The task `cub-t44.3` is now closed. There are still 9 remaining sibling tasks in the epic, so we're not yet done with the epic.
+
+## Summary
+
+I successfully completed task **cub-t44.3: Consolidate AGENTS.md and CLAUDE.md into single source**.
+
+### Changes Made:
+
+1. **`src/cub/core/instructions.py`**:
+   - Modified `generate_managed_section()` to return identical content for both `"generic"` and `"claude"` harness types (Claude Code branding is now used for both)
+   - Added new `create_agents_symlink()` function that creates AGENTS.md as a symlink to CLAUDE.md
+   - Updated docstrings to reflect that CLAUDE.md is the canonical file
+   - Exported `create_agents_symlink` in `__all__`
+
+2. **`src/cub/cli/init_cmd.py`**:
+   - Changed from generating two separate files to generating CLAUDE.md + AGENTS.md symlink
+   - Added edge case handling:
+     - If AGENTS.md is already a symlink, update it if needed
+     - If AGENTS.md is a regular file, back it up to AGENTS.md.backup and create symlink
+     - On Windows (OSError), gracefully fall back with helpful message about developer mode
+   - Updated docstrings and comments
+
+3. **`tests/test_instructions.py`**:
+   - Updated tests to expect identical content from both harness types
+   - Added comprehensive `TestCreateAgentsSymlink` test class with 8 tests
+
+4. **`tests/test_cli_init_cmd.py`**:
+   - Updated tests to verify AGENTS.md is created as a symlink
+   - Added test for backup behavior when existing AGENTS.md file is converted
+
+### Acceptance Criteria Met:
+- ✅ CLAUDE.md is generated with full content from single source
+- ✅ AGENTS.md exists as symlink to CLAUDE.md (not duplicate file)
+- ✅ `cub init` creates both files without errors on Linux/macOS
+- ✅ Symlink points to correct relative path (CLAUDE.md)
+- ✅ Existing tests pass (116 affected tests + full suite of 5228 tests)
+- ✅ No duplicate content generation remains

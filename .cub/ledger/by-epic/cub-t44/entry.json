@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-t44",
+  "title": "cub-t44",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-t44",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-02-04T03:22:04.729841Z",
+    "captured_at": "2026-02-04T03:22:04.729841Z"
+  },
+  "task_ids": [
+    "cub-t44.12",
+    "cub-t44.5",
+    "cub-t44.8",
+    "cub-t44.3",
+    "cub-t44.11",
+    "cub-t44.2",
+    "cub-t44.1",
+    "cub-t44.10",
+    "cub-t44.4",
+    "cub-t44.7",
+    "cub-t44.9",
+    "cub-t44.6"
+  ],
+  "aggregates": {
+    "total_tasks": 12,
+    "tasks_completed": 11,
+    "tasks_successful": 11,
+    "tasks_failed": 1,
+    "total_cost_usd": 30.208797000000004,
+    "avg_cost_per_task": 2.5173997500000005,
+    "min_cost_usd": 0.0,
+    "max_cost_usd": 4.758638500000003,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 12,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 40794531,
+    "avg_tokens_per_task": 3399544,
+    "total_duration_seconds": 5633,
+    "avg_duration_seconds": 469,
+    "models_used": [],
+    "most_common_model": ""
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:50:02.541461Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T03:14:03.484268Z",
+  "completed_at": "2026-02-04T13:49:54.325276Z",
+  "updated_at": "2026-02-04T13:50:02.541464Z",
+  "first_commit": {
+    "hash": "93a0b987eaa723192b759307d3c27525fa55dffb",
+    "message": "fix(cub-t44.1): statusline supports JSONL task backend",
+    "author": "",
+    "timestamp": "2026-02-04T03:21:47Z"
+  },
+  "last_commit": {
+    "hash": "beee5f34ae0e6b3f9fe5c382f0c1a384e86a1128",
+    "message": "task(cub-t44.12): Preserve user-modified prompt.md on init",
+    "author": "",
+    "timestamp": "2026-02-04T13:49:40Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

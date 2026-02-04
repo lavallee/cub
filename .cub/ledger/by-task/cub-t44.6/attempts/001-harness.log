@@ -1,0 +1,32 @@
+Now let me also look at the cub project's own agent.md to understand the comprehensive workflow documentation pattern I should follow:Let me also check what sections are missing from the template by examining cub's own comprehensive agent.md for patterns:Now let me check the troubleshooting/hook forensics section:Now I have a good understanding of the patterns. Let me update the template to add the requested sections while keeping it organized and within ~500 lines. I'll enhance the template with:
+
+1. Quick Start Workflow section
+2. Common Command Patterns section  
+3. Troubleshooting section
+4. Reading Task Output section
+5. Cross-references to documentationNow let me update my todo list and run the feedback loops:The template is 283 lines, well under the ~500 line limit. Now let me run the feedback loops:The mypy errors are pre-existing issues in the codebase, not related to my template changes. Let me verify ruff passes and run a subset of tests to ensure the template changes work:The ruff errors are all pre-existing in the codebase and not related to my template changes (templates/agent.md is a markdown file, not Python). Let me verify there are no ruff errors specifically related to my changes, then test that `cub new` produces the enhanced content:The only ruff error is in a pre-existing Python statusline script, not related to my markdown template changes. Now let me test that `cub new` produces the enhanced CLAUDE.md content:I see - the CLAUDE.md is generated from a template in the cub managed section, but it should also include the `.cub/agent.md` content. Let me check the `.cub/agent.md`:The `.cub/agent.md` file in the new project has all the enhanced content. Let me verify the acceptance criteria are met:
+
+1. ✅ Template includes a "Quick Start Workflow" section with 5 key steps for claiming and completing tasks (lines 49-60)
+2. ✅ Template includes "Common Command Patterns" with more than 5 real-world command examples (lines 100-153)
+3. ✅ Template includes "Troubleshooting" section with hook verification and forensics log location (lines 192-242)
+4. ✅ Template includes "Reading Task Output" section explaining task metadata interpretation (lines 157-188)
+5. ✅ All sections reference external docs using @-syntax (lines 44-47, 270-274)
+6. ✅ Template is well-organized and at 283 lines (well under ~500)
+7. ✅ Generated `.cub/agent.md` files in new projects include the enhanced content
+
+Now let me run the pytest tests to make sure nothing is broken:Tests are passing. Let me clean up the test directory and complete the task:Now let me mark the task as closed in the JSONL file and commit:Task cub-t44.6 is complete. Let me verify there are more tasks remaining in the epic:There are still 6 tasks remaining in the epic, so I cannot output `<promise>COMPLETE</promise>`. My task cub-t44.6 is successfully completed and committed.
+
+**Summary of completed work:**
+
+- **Enhanced `templates/agent.md`** with comprehensive cub workflow documentation:
+  - **Quick Start Workflow** section (5 key steps for task lifecycle)
+  - **Common Command Patterns** section (multiple command examples for discovery, run loop, monitoring, session tracking)
+  - **Troubleshooting** section (hook verification, forensics log location at `.cub/ledger/forensics/`)
+  - **Reading Task Output** section (task fields, blockers, epic-task relationships)
+  - **Cross-references** using @-syntax to `.cub/agent.md`, `.cub/map.md`, `.cub/constitution.md`
+  - **Additional Resources** section with documentation pointers
+
+- Template is **283 lines** (well under ~500 limit)
+- Verified new projects (`cub new`) include the enhanced content in `.cub/agent.md`
+- All feedback loops pass (mypy/ruff errors are pre-existing, not related to template changes)
+- Task closed and committed: `task(cub-t44.6): Enhance agent.md template with richer cub workflow documentation`

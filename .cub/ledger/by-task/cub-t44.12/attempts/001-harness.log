@@ -1,0 +1,117 @@
+Let me check the actual location of the tasks file and the project structure:Let me find the init command implementation:Now I need to understand the context better. Looking at the init code, I see that `_ensure_prompt_md()` was already removed. However, looking at the task description, it seems the issue is about prompt.md being managed. Let me check the template and any related code:Now I understand the situation better. Looking at the code, I see that:
+
+1. In `init_cmd.py`, the comment says `_ensure_prompt_md()` was removed
+2. But in `update.py`, line 351, there's still `"PROMPT.md": layout_root / "prompt.md"` which maps the template `PROMPT.md` to `.cub/prompt.md`
+
+So the issue is that the `cub update` command is copying `PROMPT.md` to `.cub/prompt.md`. Let me also check `stage.py` and `run.py` for how they handle this file:Now I understand the codebase structure better. Looking at this task, the issue is about `prompt.md` being overwritten. Let me trace where this happens:
+
+1. The `cub update` command has code that maps `PROMPT.md` template to `.cub/prompt.md` (line 351 in update.py)
+2. The init command removed `_ensure_prompt_md()` but the `cub update` still handles it
+
+Let me check where exactly in the system the `prompt.md` is created/managed:Both files look identical in the first 50 lines. Let me check if there's any difference:Now I understand the situation. The task is to modify the `cub init` and `cub update` commands to preserve user-modified `prompt.md`. Let me trace where `prompt.md` can be written:
+
+1. **`cub update`** - in `update.py`, line 351 maps `PROMPT.md` template to `.cub/prompt.md`
+2. The `cub init` command doesn't explicitly handle prompt.md anymore (the `_ensure_prompt_md` was removed)
+
+But wait, looking at the code more closely:
+
+- In `update.py`, line 351-372, the template mapping happens with the file-diff protection (only updates if files differ and force is used)
+
+Let me check if there's any place in `init_cmd.py` where `prompt.md` could be written:Looking at the code structure:
+1. `cub init` doesn't write `prompt.md` anymore - it was removed
+2. `cub update` DOES handle `prompt.md` - it copies `PROMPT.md` template to `.cub/prompt.md`
+
+The task description says "The `cub init` command currently overwrites prompt.md unconditionally" - but looking at the code, `cub init` does NOT write prompt.md. Let me double check by re-reading the update.py more carefully and looking at the bash init too:I found it! The bash init script (`cmd_init.sh`) DOES handle `prompt.md`:
+- Line 490: It checks if the file exists
+- Lines 491-504: If file doesn't exist, it creates it from template
+- Line 504: If file exists, it logs a warning and skips
+
+So the bash version already has the protection! The problem might be in the Python `cub update` command OR in the init process being called from bash to Python.
+
+Let me now understand the actual workflow:
+1. `cub init` (bash) calls the bash init script which checks for prompt.md existence
+2. `cub update` (Python) might overwrite it
+
+Looking at `update.py` lines 355-371:
+- If target doesn't exist → add (new file)
+- If files differ AND force → update
+- If files differ AND no force → skip (modified)
+- If files same → skip (unchanged)
+
+So `cub update` also has protection! But wait - let me check the flow more carefully. The issue might be that `cub init` (the Python version) doesn't create `prompt.md` at all, but then `cub update` will see it as "new" and create it, potentially losing the fact that the user intentionally doesn't want it.
+
+Actually, re-reading the task description again:
+
+> The `cub init` command currently overwrites prompt.md unconditionally
+
+Let me search for any place where prompt.md might be written unconditionally:Let me check those run.py and status/writer.py references more closely:This is a different `prompt.md` - it's a per-task audit trail file stored in `.cub/ledger/by-task/<task_id>/prompt.md`, not the system `.cub/prompt.md`.
+
+Now let me trace exactly what happens when `cub init` is run. Looking at the bash script, it has logic to NOT overwrite if file exists. But looking at the Python code, there's no `prompt.md` handling in `init_cmd.py` at all.
+
+Wait, I need to re-read the task description more carefully:
+
+> The `cub init` command currently overwrites prompt.md unconditionally
+
+But looking at the code:
+1. Python `init_cmd.py` - does NOT touch prompt.md at all
+2. Bash `cmd_init.sh` - already checks for existence before writing
+
+Let me check if there's some other path. Let me look at the `generate_instruction_files` function more carefully:I see - the Python `init_cmd.py` handles `agent.md`, `constitution.md`, `runloop.md`, `CLAUDE.md`, and `AGENTS.md` - but NOT `prompt.md`.
+
+Let me trace where the Python init is called from the bash script. Looking at line 512 of `cmd_init.sh`:
+```bash
+gen_output=$(python3 -m cub.cli.init_cmd . 2>&1)
+```
+
+So the bash init:
+1. Creates prompt.md (if doesn't exist)
+2. Calls Python init for other files
+
+Let me verify by running a test or understanding what the actual behavior is. Let me also check if the PROMPT.md symlink exists:So there's a symlink `PROMPT.md -> .cub/prompt.md` in the project root. This makes sense.
+
+Now, re-reading the task more carefully, I think the issue might be:
+1. The `cub init` command (Python version run directly) doesn't currently CREATE `prompt.md`
+2. But the `cub update` command DOES handle copying `PROMPT.md` template to `.cub/prompt.md`
+
+Looking at update.py line 351-371:
+- If prompt.md doesn't exist → marked as "new" → will be created
+- If prompt.md exists and differs from template → either skip (no force) or update (with force)
+
+The current behavior seems reasonable, BUT the task says we should:
+1. Check if prompt.md has been modified from the template
+2. If modified, preserve it (don't overwrite)
+3. If not modified, OK to update
+4. Add `--force` flag to allow overwriting if user explicitly wants it
+
+Wait, looking at the update.py code again - it already has this logic! Let me re-read lines 355-371:
+
+```python
+if not target_path.exists():
+    # New file - always add
+    updates.append((str(source_path), str(target_path), "new"))
+elif files_differ(source_path, target_path):
+    if force:
+        updates.append((str(source_path), str(target_path), "update"))
+    else:
+        skipped.append((str(target_path), "modified"))
+else:
+    skipped.append((str(target_path), "unchanged"))
+```
+
+This is exactly the logic the task asks for! So maybe the issue is that `cub init` should also have this logic, since init is meant to be idempotent and safe to re-run.
+
+Let me check what happens when running `cub init` vs `cub update`:
+
+The task says:
+> The `cub init` command currently overwrites prompt.md unconditionally
+
+But I need to add prompt.md handling to init_cmd.py. Currently:
+- Bash `cub init` (cmd_init.sh) - creates prompt.md if doesn't exist (line 490)
+- Python `cub init` (init_cmd.py) - doesn't handle prompt.md at all
+- Python `cub update` (update.py) - has proper diff-based protection
+
+The fix should be: Add prompt.md handling to `init_cmd.py` with the same protection logic that `update.py` already has.
+
+Let me now implement this:Now let me implement the `_ensure_prompt_md` function in `init_cmd.py`. I'll add it after the existing `_ensure_runloop` function since they're similar:I need to add `hashlib` to the imports. Let me check the full imports section:Now let me add the import and the new function. First, add `hashlib` to imports:Now let me add the `_ensure_prompt_md` function. I'll add it right after `_ensure_runloop`:Now I'll add the `_ensure_prompt_md` function after `_ensure_runloop`:Now I need to call `_ensure_prompt_md` in the appropriate places. Let me update `generate_instruction_files`:Now I'll add the call to `_ensure_prompt_md` after the runloop section:Now let me check the old comment about `_ensure_prompt_md` being removed and update it:Now I'll update the outdated comment:Now let me also update the comment in `init_project` function:Now let me also update the module docstring to reflect the change:Now let me update the todo and add tests:Now let me add tests to the existing test file:Let me look at the end of the test file to add new tests:Now I'll add new tests for prompt.md preservation at the end of the file. First, let me update the imports:Now add the test class at the end:Now let me run the typecheck and tests:The errors are not related to my changes. Let me verify by running mypy specifically on my changes:These are pre-existing issues. Let me run the tests now:All tests pass. Now let me run the linter:Let me fix these issues:Let me also run the tests again to make sure the fix didn't break anything:All tests still pass. Now let me update the todo list and close the task:Now I need to update the tasks.jsonl file. Let me find the correct line and update it:I need to update line 123 to close the task. I'll need to use sed or a Python script to update just that line since the file is huge. Let me use a Python approach:Now let me verify the update:Now let me commit the changes:The task is now complete. Let me verify there are no more open tasks in this epic by checking the tasks.jsonl:All tasks in the cub-t44 epic are closed.
+
+<promise>COMPLETE</promise>

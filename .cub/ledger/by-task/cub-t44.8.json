@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-t44.8",
+  "title": "Create cub:stage skill template",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Create cub:stage skill template",
+    "description": "The `cub stage` command exists in the CLI but lacks a corresponding skill definition in `templates/commands/`. Without this file, the skill won't appear in the skill list and users can't invoke it via `/stage`. This is a documentation/discoverability gap that prevents users from easily accessing the stage command through the skill interface.\n\n**Implementation Steps:**\n1. Research the `cub stage` command implementation to understand its purpose, arguments, and behavior\n2. Examine existing skill templates in `templates/commands/` to understand the expected format and structure\n3. Create `src/cub/templates/commands/cub:stage.md` following the established skill template pattern\n4. Document the command's purpose, usage examples, and any relevant flags or options\n5. Verify the skill file is properly formatted and references the correct CLI command",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.664996",
+    "captured_at": "2026-02-04T13:16:46.782670Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-081646",
+      "started_at": "2026-02-04T08:16:46.812881",
+      "completed_at": "2026-02-04T13:24:00.239019Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 740,
+        "output_tokens": 4487,
+        "cache_read_tokens": 923892,
+        "cache_creation_tokens": 35259
+      },
+      "cost_usd": 0.8254187500000001,
+      "duration_seconds": 433
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T13:24:00.323504Z",
+    "total_cost_usd": 0.8254187500000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 433,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "e456e76efeceed2f6c097a580b4752eb50207242",
+        "message": "task(cub-t44.8): Create cub:stage skill template",
+        "author": "",
+        "timestamp": "2026-02-04T13:23:46Z"
+      }
+    ],
+    "approach": "Researched the `cub stage` command implementation and examined existing skill templates to understand the expected format, then created a comprehensive skill template documenting the command's purpose, arguments, usage examples, and workflow integration. Validated the work by running existing test suites to ensure no regressions.",
+    "decisions": [
+      "Created the skill template with structured sections (purpose, flags, examples, prerequisites, post-staging workflow) following the established pattern of existing skill templates",
+      "Included both basic and advanced usage examples to guide users through common scenarios",
+      "Documented the `--list`, `--dry-run`, and `--verbose` flags with their purposes and use cases",
+      "Positioned the skill as a bridge between planning (orient/architect/itemize phases) and execution (`cub run`)"
+    ],
+    "lessons_learned": [
+      "Skill templates are markdown files in `templates/commands/` that document CLI commands for discoverability\u2014they don't require code changes, just documentation to bridge the skill interface with existing CLI functionality",
+      "Pre-existing typecheck and lint errors in the codebase shouldn't block new work; focus on ensuring new changes don't introduce regressions",
+      "When completing a task within an epic, verify remaining sibling tasks to understand continuation context for the broader work"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:24:00.323504Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:16:46.782670Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:24:00.323504Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T13:16:46.782670Z",
+  "completed_at": "2026-02-04T13:24:00.323504Z",
+  "tokens": {
+    "input_tokens": 740,
+    "output_tokens": 4487,
+    "cache_read_tokens": 923892,
+    "cache_creation_tokens": 35259
+  },
+  "cost_usd": 0.8254187500000001,
+  "duration_seconds": 433,
+  "iterations": 1,
+  "approach": "Researched the `cub stage` command implementation and examined existing skill templates to understand the expected format, then created a comprehensive skill template documenting the command's purpose, arguments, usage examples, and workflow integration. Validated the work by running existing test suites to ensure no regressions.",
+  "decisions": [
+    "Created the skill template with structured sections (purpose, flags, examples, prerequisites, post-staging workflow) following the established pattern of existing skill templates",
+    "Included both basic and advanced usage examples to guide users through common scenarios",
+    "Documented the `--list`, `--dry-run`, and `--verbose` flags with their purposes and use cases",
+    "Positioned the skill as a bridge between planning (orient/architect/itemize phases) and execution (`cub run`)"
+  ],
+  "lessons_learned": [
+    "Skill templates are markdown files in `templates/commands/` that document CLI commands for discoverability\u2014they don't require code changes, just documentation to bridge the skill interface with existing CLI functionality",
+    "Pre-existing typecheck and lint errors in the codebase shouldn't block new work; focus on ensuring new changes don't introduce regressions",
+    "When completing a task within an epic, verify remaining sibling tasks to understand continuation context for the broader work"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "e456e76efeceed2f6c097a580b4752eb50207242",
+      "message": "task(cub-t44.8): Create cub:stage skill template",
+      "author": "",
+      "timestamp": "2026-02-04T13:23:46Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.8",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

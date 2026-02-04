@@ -1,0 +1,64 @@
+Let me start by marking the task as in_progress and auditing the current usage of the prompt files:Let me look for the tasks.jsonl file and the project structure:Now I can see the files. Let me search for references to these files in the codebase:Now let me also check the template files:Now let me also check how the root-level PROMPT.md symlink is used and look at any plan-level context patterns:Now I have a complete picture. Let me also check the CLAUDE.md / agent.md file that gets symlinked:Now I have a complete understanding of the current state. Let me update my task status and begin implementing:Now I understand the current architecture:
+
+**Current State:**
+1. `templates/runloop.md` - Clean core loop instructions (57 lines)
+2. `templates/PROMPT.md` - Extended prompt with customization guidance (169 lines, includes HTML comments with instructions)
+3. During init: Both files are copied - `runloop.md` → `.cub/runloop.md` and `PROMPT.md` → `.cub/prompt.md`
+4. During stage: `_generate_prompt_md()` reads `templates/PROMPT.md`, extracts plan context, and overwrites `.cub/prompt.md`
+5. Root-level `PROMPT.md` symlink points to `.cub/prompt.md`
+
+**Problems:**
+1. Two overlapping system prompt files with confusion about purpose
+2. `cub stage` mutates `.cub/prompt.md` by injecting plan context
+3. No clear plan-level context mechanism
+
+**Solution:**
+1. Keep only `runloop.md` as the system-managed core loop file
+2. Remove `_ensure_prompt_md()` from init_cmd.py
+3. Remove `_generate_prompt_md()` from stage.py
+4. Update prompt_builder.py to inject plan context at runtime
+5. Create a plan-level context pattern using `plans/<name>/prompt-context.md`
+
+Let me begin implementing:Now let me start implementing. First, let me update `init_cmd.py` to remove the `_ensure_prompt_md` function call and the function itself, since we want only `runloop.md` to be the system-managed file:Now let's remove the call to `_ensure_prompt_md` from `init_project`:Now let's update the stage.py to remove the `_generate_prompt_md` function:Now I need to update the stage command to not call the removed function and instead generate a plan-level context file:Now I need to update the stage function to remove the calls to _generate_prompt_md and add a new function to generate plan-level context:Now I need to add the `_generate_plan_context` function that creates the plan-level context file:Now let me add the new `_generate_plan_context` function right after the removed function note:Now I need to update the prompt_builder.py to:
+1. Simplify the search paths (remove legacy PROMPT.md references)
+2. Add support for plan-level context injection at runtimeNow let me add a function to load plan context and update generate_system_prompt to accept a plan_slug parameter:Now let me update the .cub/agent.md file (which is symlinked as CLAUDE.md) to document the context composition:I see there's already a "Context Composition" section. Let me update it to reflect the new architecture. I need to find and update that section:Now let me also update the gotchas section to remove the outdated PROMPT.md reference:Now I need to run the feedback loops (tests, typecheck, lint) to verify everything works:Good - there are 3 failing tests that need to be updated because they test the old PROMPT.md behavior which we've deliberately removed. Let me update those tests:Now I need to update the tests to reflect the new architecture (fewer search paths, no PROMPT.md):Now I also need to add the import for `load_plan_context` to the test file:Now let's run the tests again to verify they pass:All tests pass now. Let me also run the tests for the core test file to make sure nothing else is broken:There are more tests to fix in test_run_core.py. Let me read and update those:Now I'll update these tests to match the new architecture:Now let's run the tests again:Now let's run all the related tests to verify:Excellent! All tests pass. Now let me run a broader test to ensure we haven't broken anything else:All 5232 tests pass! Now let me update the tasks.jsonl to mark the task as closed:Now let me commit the changes:Task complete! Let me verify the task is closed:The task is complete. Let me provide a summary of what was accomplished:
+
+## Summary
+
+**Task cub-t44.4: Consolidate runloop.md and PROMPT.md initialization** has been completed successfully.
+
+### Changes Made:
+
+1. **init_cmd.py**: Removed `_ensure_prompt_md()` function and its call - no longer generates `.cub/prompt.md` during initialization
+
+2. **stage.py**: 
+   - Removed `_generate_prompt_md()` which mutated `.cub/prompt.md`
+   - Added `_generate_plan_context()` which creates `prompt-context.md` in plan directories
+
+3. **prompt_builder.py**:
+   - Simplified `prompt_search_paths` to only check for `runloop.md` (removed PROMPT.md from chain)
+   - Added `load_plan_context()` function for runtime context loading
+   - Added `plan_slug` parameter to `generate_system_prompt()` for runtime injection
+   - Added `plan_context_path` property to `PromptConfig`
+
+4. **.cub/agent.md**: Updated Context Composition section with comprehensive documentation of the new hierarchy
+
+5. **Tests updated**: Updated `test_run_prompt_builder.py` and `test_run_core.py` to reflect the new architecture
+
+### New Context Composition Hierarchy:
+```
+1. System runloop (.cub/runloop.md) - immutable by features
+2. Plan context (plans/<slug>/prompt-context.md) - injected at runtime
+3. Epic context - generated dynamically
+4. Task context - CURRENT TASK section
+5. Retry context - from ledger for failed attempts
+```
+
+### All Acceptance Criteria Met:
+- ✅ Only one system prompt template file generated during init (runloop.md)
+- ✅ No code writes to prompt.md during feature/stage execution
+- ✅ Plan-level context follows pattern: `plans/<name>/prompt-context.md`
+- ✅ CLAUDE.md Context Composition section updated
+- ✅ All 5232 tests pass
+
+<promise>COMPLETE</promise>

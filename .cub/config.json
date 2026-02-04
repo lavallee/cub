@@ -1,4 +1,30 @@
 {
+  "harness": "claude",
+  "budget": {
+    "max_tokens_per_task": 500000,
+    "max_tasks_per_session": null,
+    "max_total_cost": null
+  },
+  "state": {
+    "require_clean": true,
+    "run_tests": true,
+    "run_typecheck": false,
+    "run_lint": false
+  },
+  "loop": {
+    "max_iterations": 100,
+    "on_task_failure": "stop"
+  },
+  "hooks": {
+    "enabled": true,
+    "fail_fast": false
+  },
+  "interview": {
+    "custom_questions": []
+  },
+  "backend": {
+    "mode": "jsonl"
+  },
   "project_id": "cub",
   "dev_mode": true
 }

@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-t44.9",
+  "title": "Document hook forensics location and add log viewing",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Document hook forensics location and add log viewing",
+    "description": "Hook forensics are written to `.cub/ledger/forensics/{session_id}.jsonl` but users have no way to discover this location or view recent activity. This makes troubleshooting sessions difficult and leaves the feature undocumented. Adding clear documentation to the agent.md template and a `cub hooks log` command to view recent forensics would improve discoverability and usability of the symbiotic workflow feature.\n\n**Implementation Steps:**\n1. Add \"Hook Forensics Location\" section to the Symbiotic Workflow documentation in agent.md, explaining the forensics JSONL format, location, and example contents\n2. Document the forensics JSONL schema (event types, fields, timestamps) so users understand what data is captured\n3. Implement `cub hooks log` command in src/cub/cli/hooks.py to display recent hook events with options for filtering by session, event type, and time range\n4. Add usage examples to agent.md showing how to use `cub hooks log` for troubleshooting",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.665035",
+    "captured_at": "2026-02-04T13:24:10.813125Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-081646",
+      "started_at": "2026-02-04T08:24:10.834060",
+      "completed_at": "2026-02-04T13:31:05.787685Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2,
+        "output_tokens": 19427,
+        "cache_read_tokens": 5727321,
+        "cache_creation_tokens": 106043
+      },
+      "cost_usd": 4.061563250000001,
+      "duration_seconds": 414
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T13:31:05.963079Z",
+    "total_cost_usd": 4.061563250000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 414,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "acc84041dcb314a1c6dc7650f292cf672718f326",
+        "message": "task(cub-t44.9): Document hook forensics location and add log viewing",
+        "author": "",
+        "timestamp": "2026-02-04T13:30:52Z"
+      }
+    ],
+    "approach": "The task was completed by first documenting the hook forensics location and structure in agent.md with a complete \"Session Forensics\" section including example JSONL output, then implementing a new `cub hooks log` command that queries forensics files with filtering capabilities (--session, --limit flags) to make the feature discoverable and usable.",
+    "decisions": [
+      "**Single source of truth for forensics documentation**: Placed comprehensive forensics documentation in agent.md rather than splitting it across multiple files, making it easily discoverable during project setup and consultation.",
+      "**CLI-first discoverability**: Implemented `cub hooks log` as a native Python command rather than delegating to bash, ensuring immediate availability without requiring bash script updates and providing typed, structured output.",
+      "**Flexible session filtering**: Used partial session ID matching (prefix search) rather than exact-only matching to accommodate user patterns of remembering partial timestamps or session identifiers.",
+      "**JSON-with-types for event data**: Used `dict[str, Any]` for forensics event fields rather than stricter types, allowing the JSONL format to remain flexible for future event types without code changes.",
+      "**Integrated troubleshooting guidance**: Added direct reference to `cub hooks log` in the existing \"Troubleshooting Hooks\" section of agent.md rather than creating a separate discovery mechanism."
+    ],
+    "lessons_learned": [
+      "**CLI argument validation pays dividends**: Validating --limit as a positive integer and --session as non-empty at command entry prevents silent failures and provides clear error messages to users.",
+      "**JSONL as event store works well for hooks**: The append-only nature of JSONL files with one event per line makes it trivial to stream, filter, and display recent activity without requiring a database.",
+      "**Rich tables enhance readability of forensics**: Using Rich's Table for formatted output with colors and truncation improves user experience when viewing potentially large JSONL logs.",
+      "**Testing CLI commands requires capturing output appropriately**: Using CliRunner from Typer's test utilities and checking exit_code rather than exceptions is the correct pattern for CLI testing.",
+      "**Documentation in agent.md is the primary reference**: Users consult this file during Claude Code sessions, so placing discoverable documentation there (rather than separate files) increases adoption of features like hooks."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:31:05.963079Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:24:10.813125Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:31:05.963079Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T13:24:10.813125Z",
+  "completed_at": "2026-02-04T13:31:05.963079Z",
+  "tokens": {
+    "input_tokens": 2,
+    "output_tokens": 19427,
+    "cache_read_tokens": 5727321,
+    "cache_creation_tokens": 106043
+  },
+  "cost_usd": 4.061563250000001,
+  "duration_seconds": 414,
+  "iterations": 1,
+  "approach": "The task was completed by first documenting the hook forensics location and structure in agent.md with a complete \"Session Forensics\" section including example JSONL output, then implementing a new `cub hooks log` command that queries forensics files with filtering capabilities (--session, --limit flags) to make the feature discoverable and usable.",
+  "decisions": [
+    "**Single source of truth for forensics documentation**: Placed comprehensive forensics documentation in agent.md rather than splitting it across multiple files, making it easily discoverable during project setup and consultation.",
+    "**CLI-first discoverability**: Implemented `cub hooks log` as a native Python command rather than delegating to bash, ensuring immediate availability without requiring bash script updates and providing typed, structured output.",
+    "**Flexible session filtering**: Used partial session ID matching (prefix search) rather than exact-only matching to accommodate user patterns of remembering partial timestamps or session identifiers.",
+    "**JSON-with-types for event data**: Used `dict[str, Any]` for forensics event fields rather than stricter types, allowing the JSONL format to remain flexible for future event types without code changes.",
+    "**Integrated troubleshooting guidance**: Added direct reference to `cub hooks log` in the existing \"Troubleshooting Hooks\" section of agent.md rather than creating a separate discovery mechanism."
+  ],
+  "lessons_learned": [
+    "**CLI argument validation pays dividends**: Validating --limit as a positive integer and --session as non-empty at command entry prevents silent failures and provides clear error messages to users.",
+    "**JSONL as event store works well for hooks**: The append-only nature of JSONL files with one event per line makes it trivial to stream, filter, and display recent activity without requiring a database.",
+    "**Rich tables enhance readability of forensics**: Using Rich's Table for formatted output with colors and truncation improves user experience when viewing potentially large JSONL logs.",
+    "**Testing CLI commands requires capturing output appropriately**: Using CliRunner from Typer's test utilities and checking exit_code rather than exceptions is the correct pattern for CLI testing.",
+    "**Documentation in agent.md is the primary reference**: Users consult this file during Claude Code sessions, so placing discoverable documentation there (rather than separate files) increases adoption of features like hooks."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "acc84041dcb314a1c6dc7650f292cf672718f326",
+      "message": "task(cub-t44.9): Document hook forensics location and add log viewing",
+      "author": "",
+      "timestamp": "2026-02-04T13:30:52Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.9",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

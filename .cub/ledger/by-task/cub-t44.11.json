@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "id": "cub-t44.11",
+  "title": "Set explicit backend in cub init instead of auto-detection",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-t44"
+  },
+  "task": {
+    "title": "Set explicit backend in cub init instead of auto-detection",
+    "description": "Currently, `cub init` relies on auto-detection to determine the task backend, which checks for `.beads/` before `.cub/tasks.jsonl`. This can lead to unexpected behavior when both directories exist or when the detection order doesn't match user intent. By explicitly setting `backend.mode` in the config during initialization, we ensure predictable and transparent backend selection. This also makes it easier for users to understand and modify their backend choice later.\n\n**Implementation Steps:**\n1. Read the current `init_cmd.py` implementation to understand the config writing logic\n2. Modify the initialization to write an explicit `\"backend\": {\"mode\": \"jsonl\"}` to the config (or prompt user to choose between available backends)\n3. Update config model validation to accept and respect the explicit `backend.mode` setting\n4. Verify that downstream code respects the explicit setting over auto-detection\n5. Test that `cub init` correctly sets the backend and subsequent commands use the configured backend\n6. Update documentation/comments to reflect that backend is now explicitly configured",
+    "type": "task",
+    "priority": 2,
+    "labels": [
+      "punchlist"
+    ],
+    "created_at": "2026-02-03T22:12:53.665105",
+    "captured_at": "2026-02-04T13:36:40.777167Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-081646",
+      "started_at": "2026-02-04T08:36:40.800970",
+      "completed_at": "2026-02-04T13:43:19.888618Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2,
+        "output_tokens": 7466,
+        "cache_read_tokens": 2002303,
+        "cache_creation_tokens": 70598
+      },
+      "cost_usd": 1.6779529999999998,
+      "duration_seconds": 399
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T13:43:20.006943Z",
+    "total_cost_usd": 1.6779529999999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 399,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "460fe5bf8b3a2e46434b750ac256e85b4d3a55a5",
+        "message": "task(cub-t44.11): Set explicit backend in cub init instead of auto-detection",
+        "author": "",
+        "timestamp": "2026-02-04T13:43:08Z"
+      }
+    ],
+    "approach": "The approach identified that `cub init` was not persisting the explicit backend choice to the config file due to an early return condition in `_ensure_project_config()`. The fix involved modifying this function to skip the early return when a backend parameter is explicitly provided, ensuring the backend mode is always written to the config. This makes backend selection transparent and predictable rather than relying on auto-detection.",
+    "decisions": [
+      "Modified `_ensure_project_config()` to check if `backend` parameter is provided before returning early, ensuring explicit backend configuration is always persisted",
+      "Added comprehensive tests covering both the scenario where config exists (should update backend) and where it doesn't (should create with backend)",
+      "Used existing BackendConfig Pydantic model for validation rather than adding new validation logic, leveraging existing patterns"
+    ],
+    "lessons_learned": [
+      "Config initialization order matters: early-created config files can prevent later updates if functions return early without checking for intentional parameter overrides",
+      "When functions are designed to be idempotent with early returns, explicitly passed parameters should take priority and bypass those early returns",
+      "Testing config persistence scenarios requires checking both file existence and actual written content, not just function return values",
+      "In layered initialization flows (project_id \u2192 config \u2192 backend), ensure each layer respects and preserves explicit user choices from previous layers"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T13:43:20.006943Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:36:40.777167Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T13:43:20.006943Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T13:36:40.777167Z",
+  "completed_at": "2026-02-04T13:43:20.006943Z",
+  "tokens": {
+    "input_tokens": 2,
+    "output_tokens": 7466,
+    "cache_read_tokens": 2002303,
+    "cache_creation_tokens": 70598
+  },
+  "cost_usd": 1.6779529999999998,
+  "duration_seconds": 399,
+  "iterations": 1,
+  "approach": "The approach identified that `cub init` was not persisting the explicit backend choice to the config file due to an early return condition in `_ensure_project_config()`. The fix involved modifying this function to skip the early return when a backend parameter is explicitly provided, ensuring the backend mode is always written to the config. This makes backend selection transparent and predictable rather than relying on auto-detection.",
+  "decisions": [
+    "Modified `_ensure_project_config()` to check if `backend` parameter is provided before returning early, ensuring explicit backend configuration is always persisted",
+    "Added comprehensive tests covering both the scenario where config exists (should update backend) and where it doesn't (should create with backend)",
+    "Used existing BackendConfig Pydantic model for validation rather than adding new validation logic, leveraging existing patterns"
+  ],
+  "lessons_learned": [
+    "Config initialization order matters: early-created config files can prevent later updates if functions return early without checking for intentional parameter overrides",
+    "When functions are designed to be idempotent with early returns, explicitly passed parameters should take priority and bypass those early returns",
+    "Testing config persistence scenarios requires checking both file existence and actual written content, not just function return values",
+    "In layered initialization flows (project_id \u2192 config \u2192 backend), ensure each layer respects and preserves explicit user choices from previous layers"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "460fe5bf8b3a2e46434b750ac256e85b4d3a55a5",
+      "message": "task(cub-t44.11): Set explicit backend in cub init instead of auto-detection",
+      "author": "",
+      "timestamp": "2026-02-04T13:43:08Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/lavallee/cub/.cub/ledger/by-task/cub-t44.11",
+  "epic_id": "cub-t44",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

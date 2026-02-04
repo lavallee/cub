@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260204-031403",
+  "started_at": "2026-02-04T03:14:03.455348Z",
+  "project_dir": "/home/lavallee/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 119362,
+    "tokens_limit": 500000,
+    "cost_usd": 16.78991675,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 6,
+  "tasks_failed": 58,
+  "current_task": null,
+  "status": "completed",
+  "ended_at": "2026-02-04T04:46:58.698571Z",
+  "orphaned_at": "2026-02-04T03:20:37.470328Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
+}
