@@ -2,16 +2,16 @@
   "run_id": "cub-20260204-170945",
   "session_name": "cub-20260204-170945",
   "started_at": "2026-02-04T17:09:45.512313",
-  "updated_at": "2026-02-04T17:25:54.173337",
-  "completed_at": null,
+  "updated_at": "2026-02-04T17:28:17.512136",
+  "completed_at": "2026-02-04T17:28:17.511587",
   "epic": "cub-048a-3",
   "label": null,
   "branch": "feature/cub-048-ledger-consolidation-and-id-system",
   "circuit_breaker_enabled": true,
   "circuit_breaker_timeout": 30,
-  "phase": "running",
-  "current_task_id": "cub-048a-3.4",
-  "current_task_title": "Update cub init for hook directories and tests",
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
   "iteration": {
     "current": 4,
     "max": 100,
@@ -22,20 +22,20 @@
     "is_near_limit": false
   },
   "budget": {
-    "tokens_used": 48799,
+    "tokens_used": 72167,
     "tokens_limit": 500000,
-    "cost_usd": 3.1676494500000003,
+    "cost_usd": 3.5591061,
     "cost_limit": null,
-    "tasks_completed": 3,
+    "tasks_completed": 4,
     "tasks_limit": null,
-    "tokens_percentage": 9.7598,
+    "tokens_percentage": 14.433399999999999,
     "cost_percentage": null,
     "tasks_percentage": null,
     "is_over_budget": false
   },
-  "tasks_open": 65,
+  "tasks_open": 64,
   "tasks_in_progress": 0,
-  "tasks_closed": 92,
+  "tasks_closed": 93,
   "tasks_total": 157,
   "task_entries": [
     {
@@ -62,9 +62,9 @@
     {
       "task_id": "cub-048a-3.4",
       "title": "Update cub init for hook directories and tests",
-      "state": "doing",
+      "state": "done",
       "started_at": "2026-02-04T17:25:54.173312",
-      "completed_at": null
+      "completed_at": "2026-02-04T17:28:08.599550"
     }
   ],
   "events": [
@@ -132,12 +132,36 @@
       "message": "Starting task: Update cub init for hook directories and tests",
       "task_id": "cub-048a-3.4",
       "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:28:08.599569",
+      "level": "info",
+      "message": "Task completed: Update cub init for hook directories and tests",
+      "task_id": "cub-048a-3.4",
+      "metadata": {
+        "duration": 134.39929485321045,
+        "tokens": 23368
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:28:15.460047",
+      "level": "info",
+      "message": "Epic 'cub-048a-3' auto-closed (3 tasks completed)",
+      "task_id": "cub-048a-3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:28:17.511618",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
     }
   ],
   "last_error": null,
-  "is_active": true,
-  "is_finished": false,
-  "tasks_remaining": 65,
-  "completion_percentage": 58.59872611464968,
-  "duration_seconds": 968.661103
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 64,
+  "completion_percentage": 59.23566878980891,
+  "duration_seconds": 1111.999274
 }
