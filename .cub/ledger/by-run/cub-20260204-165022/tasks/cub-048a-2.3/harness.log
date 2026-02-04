@@ -1,0 +1,40 @@
+I'll help you complete this task. Let me start by understanding the current codebase structure and then systematically remove the `build-plan` command.Good! Now let me read the tasks.jsonl file and examine the build_plan.py file:Let me find the correct paths:Now let me read the relevant files:Now let me search for other references to build-plan:Let me check for the build-plan.sh script and look at the CLAUDE.md and UPGRADING.md files:Let me read the UPGRADING.md and check what needs updating:Now let me check the CLAUDE.md file:Let me search for more references in the agent.md file:Now let me update the task status and start working on the removal. First, let me create a comprehensive plan:Now let me update the task status in .cub/tasks.jsonl:Good! The task is already marked as "in_progress". Now let me start removing the build-plan command. First, let's delete the build_plan.py file:Now let's remove the build_plan import and registration from __init__.py:Now remove the build-plan command registration:Now let's delete the build-plan.sh scripts:Let me update my todo list and then continue:Now let me update the agent.md file to remove build-plan references:Now let me check the second reference around line 591:Let me read a larger context to understand the structure better and find the right place to make edits:Let me use edit to remove the build-plan lines from agent.md:Now remove the second reference:Great! Now I need to update UPGRADING.md to add a migration note. Let me add a new section at the top:Excellent! Now let me update my todo list and run the feedback loops:Now let me run the feedback loops. Let me start with typecheck:These errors are pre-existing and not related to my changes. Let me verify the cli/__init__.py file specifically doesn't have new errors by checking the imports:Good! Let me test that the build-plan command is no longer available:Let me use the installed cub command instead:Perfect! The build-plan command now returns "unknown command" error. Now let me run the tests:Good! No tests exist for build-plan (which makes sense since we're removing it). Now let me run the full test suite to make sure I haven't broken anything:Let me find test files:Let me run a quick test on the CLI argv to make sure nothing is broken:Great! Let me run the ruff linter on the modified files:Perfect! Let me verify there are no other references to build_plan in Python files:Let me check those two references to see if they need updating:This is fine - it's a comment explaining that the `--plan` flag replaces the build-plan command functionality. Let me check the other one:This is also just a comment noting where the logic came from. Both are fine. Let me verify no tests are importing or testing build_plan:Excellent! Now let me run a broader test to ensure nothing is broken:Perfect! The tests are passing. Now let me update my todo list and commit the changes:Now let me check the git status and commit:Good! Let me now stage the core changes and commit. I'll ignore the ledger and logs which are generated:Now let me commit with the appropriate message:Perfect! Now let me mark the task as closed in the tasks.jsonl file:Now let me commit this final change:Perfect! Let me update the todo list to mark everything as complete:Excellent! Let me verify one final time that the build-plan command is removed:Perfect! Let me verify that the help documentation shows `cub run --plan`:Perfect! Let me create a summary of what was completed:
+
+## Summary
+
+I have successfully completed task **cub-048a-2.3: Remove build-plan command**. Here's what was accomplished:
+
+### ✅ Changes Made:
+
+1. **Deleted the build_plan module** - Removed `src/cub/cli/build_plan.py` which contained the deprecated command implementation
+
+2. **Removed CLI registration** - Updated `src/cub/cli/__init__.py`:
+   - Removed `build_plan` import
+   - Removed the `app.command(name="build-plan", ...)` registration
+
+3. **Removed build-plan scripts** - Deleted:
+   - `scripts/build-plan.sh`
+   - `templates/scripts/build-plan.sh`
+
+4. **Updated documentation**:
+   - Removed build-plan references from `.cub/agent.md`
+   - Added migration guide to `UPGRADING.md` documenting the transition from `cub build-plan` to `cub run --plan`
+
+5. **Verified all acceptance criteria**:
+   - ✅ `cub build-plan` returns "unknown command" error
+   - ✅ Documentation references `cub run --plan` instead of `build-plan`
+   - ✅ No dead code referencing build-plan remains
+   - ✅ UPGRADING.md documents the migration path and new command syntax
+
+### ✅ Feedback Loops Passed:
+- Type checking: No new errors introduced
+- Tests: All relevant tests passing (51 passing in init_cmd tests)
+- Linting: All checks passed with ruff
+
+### ✅ Commits:
+- `task(cub-048a-2.3): Remove build-plan command` - Main implementation
+- `task(cub-048a-2.3): Mark task as closed` - Task closure
+
+The build-plan command is now fully integrated into `cub run --plan` as part of the ledger consolidation epic, providing a cleaner and more unified CLI interface.
+
+<promise>COMPLETE</promise>

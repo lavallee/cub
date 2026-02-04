@@ -23,8 +23,61 @@
     "captured_at": "2026-02-04T21:50:22.080216Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-165022",
+      "started_at": "2026-02-04T16:50:22.089895",
+      "completed_at": "2026-02-04T21:57:22.318914Z",
+      "harness": "claude",
+      "model": "opus",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 7898,
+        "output_tokens": 20741,
+        "cache_read_tokens": 6964882,
+        "cache_creation_tokens": 216893
+      },
+      "cost_usd": 5.441734250000001,
+      "duration_seconds": 420
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:57:22.356859Z",
+    "total_cost_usd": 5.441734250000001,
+    "total_attempts": 1,
+    "total_duration_seconds": 420,
+    "final_model": "opus",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "396ebccff29ed1ceff809129f2f5cf425d5952bb",
+        "message": "task(cub-048a-2.1): Add --plan flag and plan iteration logic",
+        "author": "",
+        "timestamp": "2026-02-04T21:57:06Z"
+      }
+    ],
+    "approach": "The implementation added plan execution capability to `cub run` by extending the RunConfig model with plan-related fields, adding corresponding CLI flags with validation, and implementing a comprehensive `_run_plan()` function that iterates through epics, detects completion, creates ledger entries, and supports partial execution via --start-epic and --only-epic flags.",
+    "decisions": [
+      "**Field naming in RunConfig**: Added `plan`, `start_epic`, and `only_epic` as separate fields rather than nested in a plan object, keeping the config model flat and CLI-friendly",
+      "**Flag validation approach**: Implemented mutually exclusive flag validation upfront (--plan incompatible with --task, --epic, --direct, --gh-issue, --ready, --parallel, --label) to catch user errors early",
+      "**Ledger entry creation timing**: Create PlanEntry at plan start and EpicEntry for each completed epic rather than batch-creating at the end, enabling resume capability and partial plan tracking",
+      "**Epic completion detection**: Used task backend queries to detect epic completion (all tasks closed) rather than external state, leveraging existing task infrastructure for consistency",
+      "**Reused existing methods**: Used LedgerWriter's existing `create_plan_entry()` and `create_epic_entry()` methods rather than writing custom ledger logic, reducing duplication"
+    ],
+    "lessons_learned": [
+      "**Plan vs Epic metadata complexity**: EpicEntry requires specific fields (lineage, aggregates, derived from task data) rather than simple creation from iteration\u2014understanding the ledger data model is critical before implementation",
+      "**Flag incompatibility patterns**: Mutually exclusive flags should be validated immediately in CLI handlers before creating RunConfig, preventing invalid states from propagating through the system",
+      "**Ledger integration enables resumability**: By creating ledger entries during plan iteration (not post-hoc), users can resume interrupted plans and maintain accurate work history\u2014this should be a pattern for batch operations",
+      "**Task backend is the source of truth**: Epic completion detection via task backend queries (all tasks in epic closed) is more reliable than external state, demonstrating the value of querying domain models rather than maintaining parallel state"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -40,7 +93,7 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-02-04T21:50:22.080216Z"
+    "stage_updated_at": "2026-02-04T21:57:22.356859Z"
   },
   "state_history": [
     {
@@ -48,32 +101,56 @@
       "at": "2026-02-04T21:50:22.080216Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:57:22.356859Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
   "ci_monitor": null,
   "started_at": "2026-02-04T21:50:22.080216Z",
-  "completed_at": "2026-02-04T21:50:22.080216Z",
+  "completed_at": "2026-02-04T21:57:22.356859Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 7898,
+    "output_tokens": 20741,
+    "cache_read_tokens": 6964882,
+    "cache_creation_tokens": 216893
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 5.441734250000001,
+  "duration_seconds": 420,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "The implementation added plan execution capability to `cub run` by extending the RunConfig model with plan-related fields, adding corresponding CLI flags with validation, and implementing a comprehensive `_run_plan()` function that iterates through epics, detects completion, creates ledger entries, and supports partial execution via --start-epic and --only-epic flags.",
+  "decisions": [
+    "**Field naming in RunConfig**: Added `plan`, `start_epic`, and `only_epic` as separate fields rather than nested in a plan object, keeping the config model flat and CLI-friendly",
+    "**Flag validation approach**: Implemented mutually exclusive flag validation upfront (--plan incompatible with --task, --epic, --direct, --gh-issue, --ready, --parallel, --label) to catch user errors early",
+    "**Ledger entry creation timing**: Create PlanEntry at plan start and EpicEntry for each completed epic rather than batch-creating at the end, enabling resume capability and partial plan tracking",
+    "**Epic completion detection**: Used task backend queries to detect epic completion (all tasks closed) rather than external state, leveraging existing task infrastructure for consistency",
+    "**Reused existing methods**: Used LedgerWriter's existing `create_plan_entry()` and `create_epic_entry()` methods rather than writing custom ledger logic, reducing duplication"
+  ],
+  "lessons_learned": [
+    "**Plan vs Epic metadata complexity**: EpicEntry requires specific fields (lineage, aggregates, derived from task data) rather than simple creation from iteration\u2014understanding the ledger data model is critical before implementation",
+    "**Flag incompatibility patterns**: Mutually exclusive flags should be validated immediately in CLI handlers before creating RunConfig, preventing invalid states from propagating through the system",
+    "**Ledger integration enables resumability**: By creating ledger entries during plan iteration (not post-hoc), users can resume interrupted plans and maintain accurate work history\u2014this should be a pattern for batch operations",
+    "**Task backend is the source of truth**: Epic completion detection via task backend queries (all tasks in epic closed) is more reliable than external state, demonstrating the value of querying domain models rather than maintaining parallel state"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "396ebccff29ed1ceff809129f2f5cf425d5952bb",
+      "message": "task(cub-048a-2.1): Add --plan flag and plan iteration logic",
+      "author": "",
+      "timestamp": "2026-02-04T21:57:06Z"
+    }
+  ],
   "spec_file": null,
   "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-2.1",
   "epic_id": "cub-048a-2",
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
-  "harness_model": "",
+  "harness_name": "claude",
+  "harness_model": "opus",
   "workflow_stage": null,
   "workflow_stage_updated_at": null
 }

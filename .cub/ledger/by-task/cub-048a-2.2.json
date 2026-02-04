@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "cub-048a-2.2",
+  "title": "Update ledger commit timing",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-2"
+  },
+  "task": {
+    "title": "Update ledger commit timing",
+    "description": "Ledger entries should be committed alongside code changes, not as a separate cleanup step. This ensures artifacts are always in sync with the code they describe.\n\n**Implementation Steps:**\n1. Identify where task completion commits happen in run loop\n2. Add ledger entry write before commit (so it's included)\n3. Update commit message to mention ledger update\n4. Ensure epic entry is written before epic completion commit\n5. Remove any \"cleanup\" commits that only contain ledger files\n6. Test that ledger files appear in same commit as code changes\n\n**Files:** `src/cub/core/run/loop.py`, `src/cub/core/ledger/writer.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-3",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560738",
+    "captured_at": "2026-02-04T21:57:31.734678Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-165022",
+      "started_at": "2026-02-04T16:57:31.800394",
+      "completed_at": "2026-02-04T22:02:07.545925Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 69,
+        "output_tokens": 11201,
+        "cache_read_tokens": 2259850,
+        "cache_creation_tokens": 71346
+      },
+      "cost_usd": 1.1414665,
+      "duration_seconds": 275
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:02:07.580231Z",
+    "total_cost_usd": 1.1414665,
+    "total_attempts": 1,
+    "total_duration_seconds": 275,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "e5970c8d8cc7b5d8e1eb60dd108a00b0e9a76fdf",
+        "message": "task(cub-048a-2.2): Update ledger commit timing",
+        "author": "",
+        "timestamp": "2026-02-04T22:01:53Z"
+      }
+    ],
+    "approach": "The implementation identified that Ralph (the autonomous agent) creates git commits during task execution, and the goal was to ensure ledger files are included in those commits rather than committed separately. The solution writes ledger files immediately upon task completion, then uses `git commit --amend` to include those files in Ralph's existing commit while updating the message to reflect the ledger inclusion.",
+    "decisions": [
+      "**Amend existing commits rather than create new ones** - Used `git commit --amend` to add ledger files to Ralph's task completion commit instead of creating separate \"ledger cleanup\" commits, keeping related changes together.",
+      "**Detect commit ownership before amending** - Check that the last commit message contains the task ID before amending, ensuring we only modify commits we created/expect rather than arbitrary commits.",
+      "**Moved ledger finalization before sync operations** - Call `_finalize_ledger()` before any git operations so files exist and can be staged/committed, not written after.",
+      "**Created epic ledger finalization method** - Added `_finalize_epic_ledger()` to handle epic aggregates at the same time as task ledgers for consistency."
+    ],
+    "lessons_learned": [
+      "**Understand the harness-loop lifecycle** - The key insight was recognizing that the harness (Ralph) completes and commits BEFORE the run loop's post-execution logic runs. This meant we couldn't prevent Ralph from committing; we had to amend after the fact.",
+      "**Use git commit --amend strategically** - Amending commits is appropriate when adding side-effect files (ledger entries) that should logically belong with the work, but be careful to verify commit ownership first.",
+      "**Write state before cleanup operations** - Ordering matters: write ledger files before any git operations so they're available for staging/committing in subsequent steps."
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:02:07.580231Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:57:31.734678Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:02:07.580231Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:57:31.734678Z",
+  "completed_at": "2026-02-04T22:02:07.580231Z",
+  "tokens": {
+    "input_tokens": 69,
+    "output_tokens": 11201,
+    "cache_read_tokens": 2259850,
+    "cache_creation_tokens": 71346
+  },
+  "cost_usd": 1.1414665,
+  "duration_seconds": 275,
+  "iterations": 1,
+  "approach": "The implementation identified that Ralph (the autonomous agent) creates git commits during task execution, and the goal was to ensure ledger files are included in those commits rather than committed separately. The solution writes ledger files immediately upon task completion, then uses `git commit --amend` to include those files in Ralph's existing commit while updating the message to reflect the ledger inclusion.",
+  "decisions": [
+    "**Amend existing commits rather than create new ones** - Used `git commit --amend` to add ledger files to Ralph's task completion commit instead of creating separate \"ledger cleanup\" commits, keeping related changes together.",
+    "**Detect commit ownership before amending** - Check that the last commit message contains the task ID before amending, ensuring we only modify commits we created/expect rather than arbitrary commits.",
+    "**Moved ledger finalization before sync operations** - Call `_finalize_ledger()` before any git operations so files exist and can be staged/committed, not written after.",
+    "**Created epic ledger finalization method** - Added `_finalize_epic_ledger()` to handle epic aggregates at the same time as task ledgers for consistency."
+  ],
+  "lessons_learned": [
+    "**Understand the harness-loop lifecycle** - The key insight was recognizing that the harness (Ralph) completes and commits BEFORE the run loop's post-execution logic runs. This meant we couldn't prevent Ralph from committing; we had to amend after the fact.",
+    "**Use git commit --amend strategically** - Amending commits is appropriate when adding side-effect files (ledger entries) that should logically belong with the work, but be careful to verify commit ownership first.",
+    "**Write state before cleanup operations** - Ordering matters: write ledger files before any git operations so they're available for staging/committing in subsequent steps."
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "e5970c8d8cc7b5d8e1eb60dd108a00b0e9a76fdf",
+      "message": "task(cub-048a-2.2): Update ledger commit timing",
+      "author": "",
+      "timestamp": "2026-02-04T22:01:53Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-2.2",
+  "epic_id": "cub-048a-2",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

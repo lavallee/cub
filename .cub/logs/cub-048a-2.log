@@ -489,3 +489,5 @@ Error: No ready tasks available
 │ Final Phase     │ completed               │
 │ Circuit Breaker │ Enabled (30min timeout) │
 └─────────────────┴─────────────────────────┘
+
+Committed 3 file(s), 18 file(s) remain uncommitted
