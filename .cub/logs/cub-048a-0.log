@@ -575,3 +575,87 @@ Let me check if the task exists in the file:
 Let me check the epic to see the format:
 Let me search for the task more carefully:
 Perfect! The task is closed. Now let's commit the changes:
+Perfect! Now let's commit:
+Excellent! The task is complete. Let me verify the commit:
+Perfect! The task has been completed successfully. Let me provide a summary:
+
+## Task Completed: cub-048a-0.5
+
+I've successfully implemented the pre-push hook and updated `cub init` to install it. Here's what was accomplished:
+
+### Files Created:
+
+1. **`src/cub/core/ids/hooks.py`** (370 lines)
+   - `verify_counters_before_push()`: Main verification logic that checks local vs remote counters
+   - `format_hook_message()`: Formats user-friendly error messages with resolution steps
+   - `_scan_local_task_ids()`: Scans `.cub/tasks.jsonl` to find max used spec/standalone numbers
+   - `_read_remote_counters()`: Reads counter state from remote sync branch
+   - `_fetch_remote_sync_branch()`: Fetches latest remote sync branch
+
+2. **`templates/hooks/pre-push`** (64 lines)
+   - Shell script that calls Python verification
+   - Gracefully skips if cub not installed or sync branch not initialized
+   - Returns non-zero exit code on conflicts to block push
+   - Documents `--no-verify` bypass option
+
+3. **`tests/core/ids/test_hooks.py`** (366 lines)
+   - 15 comprehensive tests covering:
+     - No sync branch allows push
+     - No remote allows push
+     - No conflicts allows push
+     - Spec conflicts block push
+     - Standalone conflicts block push
+     - Both conflicts block push
+     - Message formatting
+     - Task ID scanning (empty, spec-based, standalone, mixed, invalid lines)
+
+4. **`tests/cli/test_init_hook.py`** (146 lines)
+   - 6 tests covering:
+     - Hook installation
+     - Skip if exists (non-force)
+     - Overwrite with force
+     - Skip reinstall of cub hook
+     - Handle missing .git directory
+     - Hook is executable
+
+### Files Modified:
+
+1. **`src/cub/cli/init_cmd.py`**
+   - Added `_install_pre_push_hook()` function
+   - Integrated hook installation into `init_project()` (step 9.5)
+   - Makes hook executable (chmod 0o755)
+   - Skips if hook already exists (unless --force)
+   - Warns if non-cub hook exists
+
+### Verification:
+
+✅ All 21 new tests pass  
+✅ All 5,437 existing tests pass  
+✅ Type checking passes (mypy)  
+✅ Linting passes (ruff)  
+✅ Task marked as closed in `.cub/tasks.jsonl`  
+✅ Changes committed with proper message
+
+The pre-push hook is now fully functional and will be installed automatically by `cub init` to prevent ID collisions before pushing to remote.
+
+<promise>COMPLETE</promise>
+Task completed in 460.8s
+Tokens: 40,043
+Epic 'cub-048a-0' auto-closed (5 tasks completed)
+Error: No ready tasks available
+80 tasks remaining but all have unmet dependencies
+→ Try: cub task list --status blocked  # to see blocked tasks
+       → Or: Check task dependencies with 'cub task show <task-id>'
+
+                 Run Summary                 
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric          ┃ Value                   ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Duration        │ 2338.5s                 │
+│ Iterations      │ 5                       │
+│ Tasks Completed │ 5                       │
+│ Tokens Used     │ 101,922                 │
+│ Cost            │ $8.5211                 │
+│ Final Phase     │ completed               │
+│ Circuit Breaker │ Enabled (30min timeout) │
+└─────────────────┴─────────────────────────┘
