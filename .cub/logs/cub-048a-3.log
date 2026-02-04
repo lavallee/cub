@@ -326,3 +326,71 @@ Excellent! Everything is working correctly. Now let me run the complete test sui
 Perfect! All tests are passing. Let me update the todo list and then mark the task as closed and commit:
 Now let me update the task status to closed in tasks.jsonl:
 Perfect! Now let me commit the changes:
+Now let me commit with the proper format:
+Perfect! Let me verify that the task was successfully closed:
+Excellent! Let me verify the complete implementation one final time by running all relevant tests:
+Perfect! All 72 tests pass. Let me update the final todo:
+Perfect! Let me verify the acceptance criteria are met:
+Excellent! The task has been completed successfully. Let me provide a final summary:
+
+## Summary
+
+I have successfully completed task **cub-048a-3.4: Update cub init for hook directories and tests**.
+
+### What was implemented:
+
+1. **Hook Directory Creation** (`src/cub/cli/init_cmd.py`)
+   - Added `_ensure_hook_directories()` function that creates the `.cub/hooks/` directory structure
+   - Creates subdirectories for all four lifecycle hook points:
+     - `pre-session` - runs before harness session starts
+     - `end-of-task` - runs after task completion
+     - `end-of-epic` - runs after epic completion
+     - `end-of-plan` - runs after plan completion
+   - Integrated into the `init_project()` flow to be created automatically during `cub init`
+
+2. **Comprehensive Documentation** (`templates/hooks/README.md`)
+   - Created detailed README explaining lifecycle hooks with:
+     - Hook point descriptions and use cases
+     - Context variables passed via `CUB_HOOK_CONTEXT` environment variable for each hook
+     - Hook script placement and naming conventions
+     - Example scripts with best practices
+     - Configuration options
+     - Debugging and troubleshooting guide
+     - Global hooks information
+   - README is automatically copied to `.cub/hooks/README.md` during project initialization
+
+3. **Testing & Validation**
+   - ✅ All 21 hook lifecycle tests pass (discovery and execution)
+   - ✅ All 51 init command tests pass
+   - ✅ No linting issues (ruff check passed)
+   - ✅ No type checking issues
+   - ✅ Task marked as closed in `.cub/tasks.jsonl`
+   - ✅ Changes committed with proper message format
+
+### Acceptance Criteria Met:
+- ✅ `cub init` creates `.cub/hooks/{pre-session,end-of-task,end-of-epic,end-of-plan}/`
+- ✅ README.md explains hook usage and context fields
+- ✅ Hook discovery tests pass
+- ✅ Hook execution tests verify context in env vars
+
+<promise>COMPLETE</promise>
+Task completed in 134.4s
+Tokens: 23,368
+Epic 'cub-048a-3' auto-closed (3 tasks completed)
+Error: No ready tasks available
+63 tasks remaining but all have unmet dependencies
+→ Try: cub task list --status blocked  # to see blocked tasks
+       → Or: Check task dependencies with 'cub task show <task-id>'
+
+                 Run Summary                 
+┏━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric          ┃ Value                   ┃
+┡━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Duration        │ 1112.0s                 │
+│ Iterations      │ 4                       │
+│ Tasks Completed │ 4                       │
+│ Tokens Used     │ 72,167                  │
+│ Cost            │ $3.5591                 │
+│ Final Phase     │ completed               │
+│ Circuit Breaker │ Enabled (30min timeout) │
+└─────────────────┴─────────────────────────┘

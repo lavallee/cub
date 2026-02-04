@@ -1,0 +1,43 @@
+I'll start by understanding the current state of the codebase and then implement the required changes for this task.Let me find the tasks.jsonl file in the project directory:Now let me read the tasks.jsonl file and examine the existing test file to understand what's already there:Good! The test file already exists. Now let me check what hook-related templates exist and understand the current hooks structure:Let me check the hooks directory templates and the lifecycle hooks implementation:Now let me check the task status to mark it in_progress and understand the requirements better:Good, the task is already marked as `in_progress`. Now let me analyze what needs to be done and create a plan:Now let me start implementing. First, let me create the hooks README template:Now let me update the todo and work on updating init_cmd.py to create the hook directories:Now let me update the init_cmd.py to create hook directories. I'll add a function to ensure hook directories and call it in the init sequence:Now I need to call this function in the init_project function. Let me find where to add it:Now let me update the todo list and run the tests to make sure everything is working:Now let me run the hook lifecycle tests:Excellent! All hook lifecycle tests pass. Now let me test the init command to verify it creates the directories properly, and then run the full test suite:Let me search for init tests:Let me run the init command tests:Great! The tests are passing. Let me continue checking more tests and then run the complete feedback loop:Perfect! All the init tests are passing. Now let me verify the hook directories are being created properly by checking one of the tests:Excellent! Now let me update the todo and run the full feedback loop (type checking, linting, tests):Now let me run the full test suite and type checking:Perfect! All tests are passing. Now let me check type checking with pyright:Let me try a simpler type check:Let me check what type checking tools are available:Great! Let me also check linting. First, let me look at the pyproject.toml to see what tools are used:Let me run ruff linting on the modified files:Excellent! Now let me also run a quick test to verify the hook directories are properly created in the actual system when init is run. Let me also verify the README exists:Perfect! The README.md file has been created. Now let's verify by examining the actual init process with a test:Perfect! All hook directories are being created correctly. Now let me verify the README content:Excellent! Everything is working correctly. Now let me run the complete test suite one more time to verify nothing is broken:Perfect! All tests are passing. Let me update the todo list and then mark the task as closed and commit:Now let me update the task status to closed in tasks.jsonl:Perfect! Now let me commit the changes:Now let me commit with the proper format:Perfect! Let me verify that the task was successfully closed:Excellent! Let me verify the complete implementation one final time by running all relevant tests:Perfect! All 72 tests pass. Let me update the final todo:Perfect! Let me verify the acceptance criteria are met:Excellent! The task has been completed successfully. Let me provide a final summary:
+
+## Summary
+
+I have successfully completed task **cub-048a-3.4: Update cub init for hook directories and tests**.
+
+### What was implemented:
+
+1. **Hook Directory Creation** (`src/cub/cli/init_cmd.py`)
+   - Added `_ensure_hook_directories()` function that creates the `.cub/hooks/` directory structure
+   - Creates subdirectories for all four lifecycle hook points:
+     - `pre-session` - runs before harness session starts
+     - `end-of-task` - runs after task completion
+     - `end-of-epic` - runs after epic completion
+     - `end-of-plan` - runs after plan completion
+   - Integrated into the `init_project()` flow to be created automatically during `cub init`
+
+2. **Comprehensive Documentation** (`templates/hooks/README.md`)
+   - Created detailed README explaining lifecycle hooks with:
+     - Hook point descriptions and use cases
+     - Context variables passed via `CUB_HOOK_CONTEXT` environment variable for each hook
+     - Hook script placement and naming conventions
+     - Example scripts with best practices
+     - Configuration options
+     - Debugging and troubleshooting guide
+     - Global hooks information
+   - README is automatically copied to `.cub/hooks/README.md` during project initialization
+
+3. **Testing & Validation**
+   - ✅ All 21 hook lifecycle tests pass (discovery and execution)
+   - ✅ All 51 init command tests pass
+   - ✅ No linting issues (ruff check passed)
+   - ✅ No type checking issues
+   - ✅ Task marked as closed in `.cub/tasks.jsonl`
+   - ✅ Changes committed with proper message format
+
+### Acceptance Criteria Met:
+- ✅ `cub init` creates `.cub/hooks/{pre-session,end-of-task,end-of-epic,end-of-plan}/`
+- ✅ README.md explains hook usage and context fields
+- ✅ Hook discovery tests pass
+- ✅ Hook execution tests verify context in env vars
+
+<promise>COMPLETE</promise>
