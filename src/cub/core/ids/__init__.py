@@ -18,6 +18,12 @@ Public API:
         - get_id_type: Determine ID type without full parsing
         - get_parent_id: Extract parent ID from hierarchical ID
 
+    Counter functions:
+        - read_counters: Read current counter state from sync branch
+        - allocate_spec_number: Allocate next spec number with optimistic locking
+        - allocate_standalone_number: Allocate next standalone number
+        - CounterAllocationError: Exception for allocation failures
+
 Example:
     >>> from cub.core.ids import SpecId, PlanId, EpicId, TaskId, parse_id
     >>> spec = SpecId(project="cub", number=54)
@@ -37,6 +43,12 @@ Example:
     'cub-054A-0.1'
 """
 
+from cub.core.ids.counters import (
+    CounterAllocationError,
+    allocate_spec_number,
+    allocate_standalone_number,
+    read_counters,
+)
 from cub.core.ids.models import EpicId, PlanId, SpecId, StandaloneTaskId, TaskId
 from cub.core.ids.parser import get_id_type, get_parent_id, parse_id, validate_id
 
@@ -52,4 +64,9 @@ __all__ = [
     "validate_id",
     "get_id_type",
     "get_parent_id",
+    # Counter functions
+    "read_counters",
+    "allocate_spec_number",
+    "allocate_standalone_number",
+    "CounterAllocationError",
 ]
