@@ -748,12 +748,40 @@ class JsonlBackend(TaskBackendDefaults):
         """
         Get the task ID prefix for this project.
 
-        Uses the first 3 letters of the project directory name,
-        defaulting to "cub" if the name is too short.
+        Reads project_id from configuration sources in priority order:
+        1. .cub/config.json (project internal config)
+        2. .cub.json (project config)
+        3. Falls back to first 3 characters of directory name
+
+        This explicit project_id prevents collisions when multiple projects
+        share similar directory name prefixes (e.g., "cub" and "cub-roundabout").
 
         Returns:
-            Task ID prefix (e.g., "cub", "myp")
+            Task ID prefix (e.g., "cub", "rou", "myp")
         """
+        # Try .cub/config.json first (internal project config)
+        internal_config = self.cub_dir / "config.json"
+        if internal_config.exists():
+            try:
+                with open(internal_config, encoding="utf-8") as f:
+                    config = json.load(f)
+                    if isinstance(config, dict) and config.get("project_id"):
+                        return str(config["project_id"]).lower()[:3]
+            except (json.JSONDecodeError, OSError):
+                pass  # Fall through to next option
+
+        # Try .cub.json (project config in root)
+        project_config = self.project_dir / ".cub.json"
+        if project_config.exists():
+            try:
+                with open(project_config, encoding="utf-8") as f:
+                    config = json.load(f)
+                    if isinstance(config, dict) and config.get("project_id"):
+                        return str(config["project_id"]).lower()[:3]
+            except (json.JSONDecodeError, OSError):
+                pass  # Fall through to default
+
+        # Fall back to directory name (for legacy/migrated projects)
         prefix = self.project_dir.name[:3].lower()
         return prefix if prefix else "cub"
 

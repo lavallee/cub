@@ -104,6 +104,56 @@ def _detect_dev_mode(project_dir: Path) -> bool:
         return False
 
 
+def _generate_project_id(project_dir: Path) -> str:
+    """
+    Generate a unique project_id from the project directory name.
+
+    Uses the first 3 lowercase characters of the directory name.
+    Falls back to "cub" if the name is too short.
+
+    Args:
+        project_dir: Project directory path
+
+    Returns:
+        A 3-character project_id prefix
+    """
+    name = project_dir.name.lower()
+    # Strip common prefixes that might cause collisions
+    if name.startswith("cub-"):
+        # Use the part after "cub-" for better uniqueness
+        name = name[4:]
+    prefix = name[:3]
+    return prefix if prefix else "cub"
+
+
+def _ensure_project_id(project_dir: Path, project_id: str | None = None) -> str:
+    """
+    Ensure project_id is set in .cub/config.json.
+
+    If project_id is not already set, generates one from the directory name
+    or uses the provided value.
+
+    Args:
+        project_dir: Project directory path
+        project_id: Optional explicit project_id to use
+
+    Returns:
+        The project_id that was set or already exists
+    """
+    config = _load_project_config(project_dir) or {}
+
+    # If already set and no override provided, keep existing
+    if config.get("project_id") and project_id is None:
+        return str(config["project_id"])
+
+    # Generate or use provided
+    final_id = project_id if project_id else _generate_project_id(project_dir)
+    config["project_id"] = final_id
+    _save_project_config(project_dir, config)
+
+    return final_id
+
+
 def _ensure_dev_mode_config(project_dir: Path, dev_mode_override: bool | None = None) -> None:
     """Ensure dev_mode is set in .cub/config.json."""
     config = _load_project_config(project_dir) or {}
@@ -538,6 +588,7 @@ def init_project(
     install_hooks_flag: bool = True,
     dev_mode_override: bool | None = None,
     quiet: bool = False,
+    project_id: str | None = None,
 ) -> None:
     """
     Full project initialization sequence.
@@ -565,6 +616,10 @@ def init_project(
     # 2. Detect and initialize backend
     chosen_backend = detect_backend(backend)
     _init_backend(project_dir, chosen_backend)
+
+    # 2.5. Ensure project_id is set for task ID prefixes
+    final_project_id = _ensure_project_id(project_dir, project_id)
+    console.print(f"[green]v[/green] Project ID set to: {final_project_id}")
 
     # 3. Create specs/ directory
     _ensure_specs_dir(project_dir)
@@ -679,6 +734,12 @@ def main(
         "-q",
         help="Suppress post-command guidance messages",
     ),
+    project_id: str | None = typer.Option(
+        None,
+        "--project-id",
+        "-p",
+        help="Project ID prefix for task IDs (auto-generated if not specified)",
+    ),
 ) -> None:
     """
     Initialize cub in a project or globally.
@@ -696,6 +757,7 @@ def main(
         cub init --no-hooks         # Skip hook installation
         cub init --backend beads    # Force beads backend
         cub init --type python      # Force Python project type
+        cub init --project-id myp   # Set explicit project ID prefix
     """
     if global_:
         _init_global(force=force)
@@ -712,6 +774,7 @@ def main(
         install_hooks_flag=hooks,
         dev_mode_override=dev_mode,
         quiet=quiet,
+        project_id=project_id,
     )
 
 
