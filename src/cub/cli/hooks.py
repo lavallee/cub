@@ -441,7 +441,9 @@ def log_cmd(
         for event in events_to_show:
             clean = {k: v for k, v in event.items() if not k.startswith("_")}
             clean_events.append(clean)
-        console.print(json.dumps(clean_events, indent=2))
+        # Use print() directly to avoid Rich adding ANSI escape codes
+        # that can corrupt JSON output in some terminal environments
+        print(json.dumps(clean_events, indent=2))
         return
 
     # Rich table output
