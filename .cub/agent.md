@@ -302,6 +302,7 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 │   ├── conftest.py       # pytest fixtures and configuration
 │   └── fixtures/         # Test data files
 ├── .cub/                # Cub project metadata and state
+│   ├── config.json      # Consolidated project configuration (primary location)
 │   ├── agent.md         # Build/run/architecture instructions (this file)
 │   ├── hooks/           # Hook script references (for documentation)
 │   ├── scripts/
@@ -794,7 +795,7 @@ Batch mode uses `cub task list --status open` to find tasks and processes them s
 
 ### Custom Questions Support
 
-Add project-specific interview questions to `.cub.json`:
+Add project-specific interview questions to `.cub/config.json`:
 
 ```json
 {
@@ -1009,6 +1010,69 @@ The context composition logic is in `src/cub/core/run/prompt_builder.py`:
 - `load_plan_context()` - Reads plan-level context for runtime injection
 - `generate_epic_context()` - Generates epic context dynamically
 - `generate_retry_context()` - Generates retry context from ledger
+
+## Configuration
+
+Cub uses a layered configuration system with multiple file locations. Configuration is merged with precedence:
+**CLI flags > env vars > project config > global config > hardcoded defaults**
+
+### Configuration Files
+
+| Location | Purpose |
+|----------|---------|
+| `.cub/config.json` | **Primary project config** - All project-specific settings (user-facing + internal) |
+| `.cub.json` | **Deprecated** - Legacy location, read for backwards compatibility with warning |
+| `~/.config/cub/config.json` | Global user config (XDG-compliant) |
+
+### Configuration Schema
+
+The `.cub/config.json` file contains all project configuration in a single location:
+
+```json
+{
+  // User-facing settings
+  "harness": "claude",
+  "budget": {
+    "max_tokens_per_task": 500000,
+    "max_tasks_per_session": null,
+    "max_total_cost": null
+  },
+  "state": {
+    "require_clean": true,
+    "run_tests": true,
+    "run_typecheck": false,
+    "run_lint": false
+  },
+  "loop": {
+    "max_iterations": 100,
+    "on_task_failure": "stop"
+  },
+  "hooks": {
+    "enabled": true,
+    "fail_fast": false
+  },
+  "interview": {
+    "custom_questions": []
+  },
+
+  // Internal state (managed by cub)
+  "project_id": "cub",
+  "dev_mode": false,
+  "backend": {
+    "mode": "jsonl"
+  }
+}
+```
+
+### Migration from .cub.json
+
+If you have an existing `.cub.json` file:
+
+1. Run `cub init` to migrate settings to `.cub/config.json`
+2. Verify your settings were migrated correctly
+3. Delete the old `.cub.json` file
+
+The legacy `.cub.json` location is still read for backwards compatibility, but issues a deprecation warning. Run `cub init` to consolidate configuration.
 
 ## Gotchas & Learnings
 

@@ -11,7 +11,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from cub.core.config import clear_cache, get_project_config_path, get_user_config_path, load_config
+from cub.core.config import (
+    clear_cache,
+    get_legacy_config_path,
+    get_project_config_path,
+    get_user_config_path,
+    has_legacy_config,
+    load_config,
+)
 from cub.core.config.loader import (
     apply_env_overrides,
     deep_merge,
@@ -306,14 +313,14 @@ class TestXdgDirectories:
         assert result == custom_path / "cub" / "config.json"
 
     def test_get_project_config_path_default(self):
-        """Test project config path defaults to cwd/.cub.json."""
+        """Test project config path defaults to cwd/.cub/config.json."""
         result = get_project_config_path()
-        assert result == Path.cwd() / ".cub.json"
+        assert result == Path.cwd() / ".cub" / "config.json"
 
     def test_get_project_config_path_custom(self, tmp_path):
         """Test project config path with custom directory."""
         result = get_project_config_path(tmp_path)
-        assert result == tmp_path / ".cub.json"
+        assert result == tmp_path / ".cub" / "config.json"
 
 
 # ==============================================================================
@@ -732,3 +739,183 @@ class TestLoadConfig:
         assert config.map.max_depth == 5  # from user
         assert config.map.include_code_intel is False  # from project
         assert config.map.include_ledger_stats is True  # default
+
+
+# ==============================================================================
+# Backwards Compatibility Tests
+# ==============================================================================
+
+
+class TestConfigConsolidation:
+    """Test consolidated config in .cub/config.json with legacy .cub.json fallback."""
+
+    def test_get_project_config_path_returns_new_location(self, tmp_path):
+        """Test that get_project_config_path returns .cub/config.json."""
+        result = get_project_config_path(tmp_path)
+        assert result == tmp_path / ".cub" / "config.json"
+
+    def test_get_legacy_config_path_returns_old_location(self, tmp_path):
+        """Test that get_legacy_config_path returns .cub.json."""
+        result = get_legacy_config_path(tmp_path)
+        assert result == tmp_path / ".cub.json"
+
+    def test_has_legacy_config_true_when_exists(self, tmp_path):
+        """Test has_legacy_config returns True when .cub.json exists."""
+        legacy_file = tmp_path / ".cub.json"
+        legacy_file.write_text('{"harness": "claude"}')
+        assert has_legacy_config(tmp_path) is True
+
+    def test_has_legacy_config_false_when_missing(self, tmp_path):
+        """Test has_legacy_config returns False when .cub.json doesn't exist."""
+        assert has_legacy_config(tmp_path) is False
+
+    def test_load_config_prefers_new_location(self, tmp_path, monkeypatch):
+        """Test that .cub/config.json is preferred over .cub.json."""
+        # Setup both config files with different values
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        new_config = cub_dir / "config.json"
+        new_config.write_text(json.dumps({"guardrails": {"max_task_iterations": 99}}))
+
+        legacy_config = tmp_path / ".cub.json"
+        legacy_config.write_text(json.dumps({"guardrails": {"max_task_iterations": 11}}))
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        config = load_config(project_dir=tmp_path)
+
+        # New location should be used
+        assert config.guardrails.max_task_iterations == 99
+
+    def test_load_config_falls_back_to_legacy(self, tmp_path, monkeypatch, capsys):
+        """Test that .cub.json is used when .cub/config.json doesn't exist."""
+        # Only setup legacy config
+        legacy_config = tmp_path / ".cub.json"
+        legacy_config.write_text(json.dumps({"guardrails": {"max_task_iterations": 77}}))
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            config = load_config(project_dir=tmp_path)
+
+            # Legacy config should be used
+            assert config.guardrails.max_task_iterations == 77
+
+            # Deprecation warning should be issued
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert len(deprecation_warnings) == 1
+            assert "deprecated" in str(deprecation_warnings[0].message).lower()
+
+    def test_load_config_deprecation_warning_only_once(self, tmp_path, monkeypatch, capsys):
+        """Test that deprecation warning is only shown once per session."""
+        # Only setup legacy config
+        legacy_config = tmp_path / ".cub.json"
+        legacy_config.write_text(json.dumps({"harness": "claude"}))
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        import warnings
+
+        # First load should show warning
+        with warnings.catch_warnings(record=True) as w1:
+            warnings.simplefilter("always")
+            load_config(project_dir=tmp_path, use_cache=False)
+            first_count = len([x for x in w1 if issubclass(x.category, DeprecationWarning)])
+
+        # Second load without cache clear should not show warning
+        with warnings.catch_warnings(record=True) as w2:
+            warnings.simplefilter("always")
+            load_config(project_dir=tmp_path, use_cache=False)
+            second_count = len([x for x in w2 if issubclass(x.category, DeprecationWarning)])
+
+        assert first_count == 1
+        assert second_count == 0
+
+    def test_load_config_legacy_with_internal_state(self, tmp_path, monkeypatch):
+        """Test loading legacy config that includes internal state fields."""
+        # Legacy config with all field types
+        legacy_config = tmp_path / ".cub.json"
+        legacy_config.write_text(
+            json.dumps(
+                {
+                    "harness": "codex",
+                    "budget": {"max_tokens_per_task": 100000},
+                    "project_id": "test",
+                    "dev_mode": True,
+                }
+            )
+        )
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        import warnings
+
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            config = load_config(project_dir=tmp_path)
+
+            # All fields should be loaded
+            assert config.harness.name == "codex"
+            assert config.budget.max_tokens_per_task == 100000
+            assert config.project_id == "test"
+            assert config.dev_mode is True
+
+    def test_load_config_no_warning_for_new_location(self, tmp_path, monkeypatch, capsys):
+        """Test that no deprecation warning when using new location."""
+        # Setup only new config location
+        cub_dir = tmp_path / ".cub"
+        cub_dir.mkdir()
+        new_config = cub_dir / "config.json"
+        new_config.write_text(json.dumps({"guardrails": {"max_task_iterations": 50}}))
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            config = load_config(project_dir=tmp_path)
+
+            # Config should load correctly
+            assert config.guardrails.max_task_iterations == 50
+
+            # No deprecation warning
+            deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]
+            assert len(deprecation_warnings) == 0
+
+    def test_clear_cache_resets_warning_flag(self, tmp_path, monkeypatch):
+        """Test that clear_cache resets the legacy warning flag."""
+        # Setup legacy config
+        legacy_config = tmp_path / ".cub.json"
+        legacy_config.write_text(json.dumps({"harness": "claude"}))
+
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+
+        clear_cache()
+        import warnings
+
+        # First load shows warning
+        with warnings.catch_warnings(record=True) as w1:
+            warnings.simplefilter("always")
+            load_config(project_dir=tmp_path, use_cache=False)
+            first_count = len([x for x in w1 if issubclass(x.category, DeprecationWarning)])
+
+        # Clear cache and load again
+        clear_cache()
+
+        with warnings.catch_warnings(record=True) as w2:
+            warnings.simplefilter("always")
+            load_config(project_dir=tmp_path, use_cache=False)
+            after_clear_count = len([x for x in w2 if issubclass(x.category, DeprecationWarning)])
+
+        # Warning should appear again after cache clear
+        assert first_count == 1
+        assert after_clear_count == 1

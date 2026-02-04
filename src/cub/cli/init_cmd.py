@@ -362,16 +362,150 @@ def _ensure_specs_dir(project_dir: Path) -> None:
     specs_dir.mkdir(exist_ok=True)
 
 
-def _ensure_cub_json(project_dir: Path, force: bool = False) -> None:
-    """Copy .cub.json template if not already present."""
-    target = project_dir / ".cub.json"
-    if target.exists() and not force:
-        return
+def _ensure_project_config(
+    project_dir: Path, force: bool = False, backend: str | None = None
+) -> bool:
+    """
+    Ensure project configuration exists in .cub/config.json.
 
-    templates_dir = _get_templates_dir()
-    source = templates_dir / ".cub.json"
-    if source.exists():
-        shutil.copy2(source, target)
+    This is the consolidated project configuration file that contains both
+    user-facing settings (harness, budget, state, loop, hooks, interview)
+    and internal state (project_id, dev_mode, backend).
+
+    If a legacy .cub.json exists, migrates its settings to .cub/config.json.
+
+    Args:
+        project_dir: Project directory
+        force: If True, overwrite existing config with defaults
+        backend: Optional backend mode to set
+
+    Returns:
+        True if migration from legacy config occurred
+    """
+    config_dir = project_dir / ".cub"
+    config_file = config_dir / "config.json"
+    legacy_file = project_dir / ".cub.json"
+
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check if we need to migrate from legacy config
+    migrated = False
+    existing_config: dict[str, Any] = {}
+    legacy_config: dict[str, Any] = {}
+
+    # Load existing .cub/config.json if present
+    if config_file.exists() and not force:
+        try:
+            with open(config_file, encoding="utf-8") as f:
+                existing_config = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            existing_config = {}
+
+    # Load legacy .cub.json if present (for migration)
+    if legacy_file.exists():
+        try:
+            with open(legacy_file, encoding="utf-8") as f:
+                legacy_config = json.load(f)
+            # Filter out comment block (<!-- key)
+            legacy_config = {k: v for k, v in legacy_config.items() if not k.startswith("<!--")}
+            migrated = True
+        except (json.JSONDecodeError, OSError):
+            legacy_config = {}
+
+    # If config exists and not forcing, just return
+    if config_file.exists() and not force and not migrated:
+        return False
+
+    # Build the default config template (without JSON comments)
+    default_config: dict[str, Any] = {
+        "harness": "claude",
+        "budget": {
+            "max_tokens_per_task": 500000,
+            "max_tasks_per_session": None,
+            "max_total_cost": None,
+        },
+        "state": {
+            "require_clean": True,
+            "run_tests": True,
+            "run_typecheck": False,
+            "run_lint": False,
+        },
+        "loop": {
+            "max_iterations": 100,
+            "on_task_failure": "stop",
+        },
+        "hooks": {
+            "enabled": True,
+            "fail_fast": False,
+        },
+        "interview": {
+            "custom_questions": [],
+        },
+    }
+
+    # Merge in order: default -> legacy -> existing -> backend override
+    merged: dict[str, Any] = default_config.copy()
+
+    # Deep merge legacy config (migrating from .cub.json)
+    if legacy_config:
+        for key, value in legacy_config.items():
+            if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
+                merged[key].update(value)
+            else:
+                merged[key] = value
+
+    # Deep merge existing .cub/config.json (preserves internal state like project_id, dev_mode)
+    for key, value in existing_config.items():
+        if isinstance(value, dict) and key in merged and isinstance(merged[key], dict):
+            merged[key].update(value)
+        else:
+            merged[key] = value
+
+    # Set backend if specified
+    if backend:
+        if "backend" not in merged:
+            merged["backend"] = {}
+        merged["backend"]["mode"] = backend
+
+    # Write the consolidated config
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            json.dump(merged, f, indent=2)
+            f.write("\n")
+    except OSError as e:
+        console.print(f"[yellow]Warning: Could not write config: {e}[/yellow]")
+
+    return migrated
+
+
+def _migrate_legacy_config(project_dir: Path) -> bool:
+    """
+    Migrate settings from legacy .cub.json to .cub/config.json.
+
+    This is called during init to consolidate config files. The legacy
+    .cub.json file is NOT deleted to allow users to verify the migration.
+
+    Args:
+        project_dir: Project directory
+
+    Returns:
+        True if migration occurred
+    """
+    legacy_file = project_dir / ".cub.json"
+    if not legacy_file.exists():
+        return False
+
+    migrated = _ensure_project_config(project_dir, force=False)
+
+    if migrated:
+        console.print(
+            "[yellow]i[/yellow] Migrated settings from .cub.json to .cub/config.json"
+        )
+        console.print(
+            "[yellow]i[/yellow] You can safely delete .cub.json after verifying the migration"
+        )
+
+    return migrated
 
 
 # ---------------------------------------------------------------------------
@@ -617,8 +751,15 @@ def init_project(
     # 3. Create specs/ directory
     _ensure_specs_dir(project_dir)
 
-    # 4. Copy .cub.json template
-    _ensure_cub_json(project_dir, force=force)
+    # 4. Ensure consolidated project config in .cub/config.json
+    # This also migrates settings from legacy .cub.json if present
+    migrated = _ensure_project_config(project_dir, force=force, backend=chosen_backend)
+    if migrated:
+        console.print(
+            "[yellow]i[/yellow] Migrated settings from .cub.json to .cub/config.json"
+        )
+    else:
+        console.print("[green]v[/green] Project config ready at .cub/config.json")
 
     # 5. REMOVED: _ensure_prompt_md no longer called
     # runloop.md is the single system-managed prompt; plan context injected at runtime

@@ -7,9 +7,11 @@ with multi-layer merging: defaults < user < project < env vars.
 
 from .loader import (
     clear_cache,
+    get_legacy_config_path,
     get_project_config_path,
     get_user_config_path,
     get_xdg_config_home,
+    has_legacy_config,
     load_config,
 )
 from .models import (
@@ -43,8 +45,10 @@ __all__ = [
     "StateConfig",
     # Loader functions
     "clear_cache",
+    "get_legacy_config_path",
     "get_project_config_path",
     "get_user_config_path",
     "get_xdg_config_home",
+    "has_legacy_config",
     "load_config",
 ]
