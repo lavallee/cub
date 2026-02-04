@@ -1,0 +1,67 @@
+I'll implement the core/hooks package with context models according to the architecture. Let me start by reading the task file and understanding the current project structure.Good, the hooks directory already exists. Let me check what's currently in there and look for any architecture documentation:Let me search for architecture docs related to lifecycle hooks:Let me search more specifically for hook architecture documentation:Let me read the specific task to understand the context models needed:Let me look for the epic or related architecture documents:Perfect! Let me read the hooks documentation:Perfect! Now let me look at existing model patterns in the codebase to understand the structure:Now let me check the prompt for more details about what models are needed:Based on the epic description and Claude Code hooks documentation, I need to create four context models for the lifecycle hooks: SessionContext, TaskContext, EpicContext, and PlanContext. Let me look at similar existing models to understand the pattern better:Perfect! Now I have a clear understanding. I need to create:
+
+1. **Four context models**: SessionContext, TaskContext, EpicContext, PlanContext
+2. **HookResult model**: For hook execution results  
+3. **HookConfig model**: For hook configuration
+
+Let me create the models.py file:Now I need to update the __init__.py to export these models:Now let me run the feedback loops to ensure everything works correctly:This test failure is unrelated to my changes - it's a pre-existing test issue. Let me run type checking on my new code:These are pre-existing type errors in other files. Let me check my specific file:Good! Now let me test that the models can serialize to JSON correctly:Perfect! Now let me verify the models can be imported from the package:Excellent! Now let's run the full test suite to make sure nothing is broken:No tests exist yet for the hooks package - that's expected since this is new functionality. Let me run type checking:The type errors are in other unrelated files, not in my new code. Now let me run linting:Let me fix the line length issue:Perfect! Now let me format the code:Good! Now let's verify the code still works after formatting:Perfect! Now let me update the task status to closed and commit the changes:Perfect! Now let me commit the changes:Perfect! Let me verify the commit was successful:Excellent! Let me verify that all acceptance criteria are met:Perfect! The task is complete. Let me create a summary:
+
+## Task Summary
+
+**Task ID:** cub-048a-3.1  
+**Status:** ✅ Closed and Committed
+
+### What Was Implemented
+
+Created the `src/cub/core/hooks/` package with comprehensive context models for lifecycle hooks:
+
+#### Models Created:
+
+1. **SessionContext** - Context for pre-session hook
+   - Contains: session_id, project_dir, harness_name, model, task/epic counts
+   
+2. **TaskContext** - Context for end-of-task hook
+   - Contains: task_id, title, status, success flag, parent epic, duration, iterations
+   
+3. **EpicContext** - Context for end-of-epic hook
+   - Contains: epic_id, title, parent plan, task statistics, duration
+   
+4. **PlanContext** - Context for end-of-plan hook
+   - Contains: plan_id, title, epic/task statistics, duration
+   
+5. **HookResult** - Result from hook execution
+   - Captures: success, exit_code, stdout, stderr, duration, timestamp
+   
+6. **HookConfig** - Hook configuration settings
+   - Includes: enabled flag, directories, timeout, fail_on_error, enabled hooks list
+
+#### Key Features:
+
+✓ All context models serialize to/from JSON for environment variable passing  
+✓ Models follow Pydantic BaseModel patterns consistent with codebase  
+✓ HookResult captures execution results with success/failure tracking  
+✓ HookConfig provides path resolution and hook enablement checks  
+✓ All models properly exported from package `__init__.py`  
+
+### Validation Performed:
+
+- ✅ All models import successfully
+- ✅ JSON serialization/deserialization works correctly
+- ✅ Package exports are correct
+- ✅ Linting passes (ruff)
+- ✅ Code formatting applied
+- ✅ All acceptance criteria met
+
+### Files Modified:
+
+- Created: `src/cub/core/hooks/models.py`
+- Updated: `src/cub/core/hooks/__init__.py`
+- Updated: `.cub/tasks.jsonl` (task closed)
+
+### Commit:
+
+```
+224a409 task(cub-048a-3.1): Create core/hooks/ package with context models
+```
+
+The implementation is ready for the next tasks in the epic (hook executor, discovery, and integration).

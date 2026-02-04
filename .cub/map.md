@@ -19,7 +19,7 @@
 
 ## Modules
 
-- **cub**: `src/cub` (272 files) (entry: __init__.py)
+- **cub**: `src/cub` (276 files) (entry: __init__.py)
 
 ## Directory Structure
 
@@ -71,6 +71,9 @@
     │   ├── ledger/
     │   │   ├── by-epic/
     │   │   │   ├── cub-048a-0/
+    │   │   │   ├── cub-048a-1/
+    │   │   │   ├── cub-048a-2/
+    │   │   │   ├── cub-048a-3/
     │   │   │   ├── cub-a1f/
     │   │   │   ├── cub-a2s/
     │   │   │   ├── cub-a3r/
@@ -111,6 +114,14 @@
     │   │   │   ├── cub-w3f/
     │   │   │   ├── cub-x3s/
     │   │   │   └── cub-x7f/
+    │   │   ├── by-run/
+    │   │   │   ├── cub-20260204-165022/
+    │   │   │   ├── cub-20260204-170945/
+    │   │   │   ├── active-run.json
+    │   │   │   ├── cub-20260204-215022.json
+    │   │   │   ├── cub-20260204-215514.json
+    │   │   │   ├── cub-20260204-215515.json
+    │   │   │   └── cub-20260204-220945.json
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
@@ -118,6 +129,18 @@
     │   │   │   ├── cub-048a-0.3/
     │   │   │   ├── cub-048a-0.4/
     │   │   │   ├── cub-048a-0.5/
+    │   │   │   ├── cub-048a-1.1/
+    │   │   │   ├── cub-048a-1.2/
+    │   │   │   ├── cub-048a-1.3/
+    │   │   │   ├── cub-048a-1.4/
+    │   │   │   ├── cub-048a-1.5/
+    │   │   │   ├── cub-048a-1.6/
+    │   │   │   ├── cub-048a-2.1/
+    │   │   │   ├── cub-048a-2.2/
+    │   │   │   ├── cub-048a-2.3/
+    │   │   │   ├── cub-048a-2.4/
+    │   │   │   ├── cub-048a-3.1/
+    │   │   │   ├── cub-048a-3.2/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -290,30 +313,6 @@
     │   │   │   ├── cub-w3f.4/
     │   │   │   ├── cub-w3f.5/
     │   │   │   ├── cub-x3s.1/
-    │   │   │   ├── cub-x3s.2/
-    │   │   │   ├── cub-x3s.3/
-    │   │   │   ├── cub-x3s.4/
-    │   │   │   ├── cub-x7f.1/
-    │   │   │   ├── cub-x7f.2/
-    │   │   │   ├── cub-x7f.3/
-    │   │   │   ├── cub-x7f.4/
-    │   │   │   ├── cub-x7f.5/
-    │   │   │   ├── cub-001.json
-    │   │   │   ├── cub-048a-0.1.json
-    │   │   │   ├── cub-048a-0.2.json
-    │   │   │   ├── cub-048a-0.3.json
-    │   │   │   ├── cub-048a-0.4.json
-    │   │   │   ├── cub-048a-0.5.json
-    │   │   │   ├── cub-0qf0.json
-    │   │   │   ├── cub-12be.json
-    │   │   │   ├── cub-4eyt.json
-    │   │   │   ├── cub-4fma.json
-    │   │   │   ├── cub-a1f.1.json
-    │   │   │   ├── cub-a1f.2.json
-    │   │   │   ├── cub-a2s.1.json
-    │   │   │   ├── cub-a3r.1.json
-    │   │   │   ├── cub-a3r.2.json
-    │   │   │   ├── cub-a3r.3.json
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -465,9 +464,9 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 289, score: 0.0023)
-- **main** (def, line 81, score: 0.0023)
-- **version** (def, line 263, score: 0.0023)
+- **cli_main** (def, line 287, score: 0.0023)
+- **main** (def, line 80, score: 0.0023)
+- **version** (def, line 261, score: 0.0023)
 
 ### src/cub/cli/argv.py
 
@@ -486,11 +485,6 @@ Symbols ranked by importance (PageRank score):
 - **grade_dead_code** (def, line 70, score: 0.0023)
 - **grade_documentation** (def, line 94, score: 0.0023)
 - **run** (def, line 331, score: 0.0023)
-
-### src/cub/cli/build_plan.py
-
-- **_find_build_plan_script** (def, line 19, score: 0.0023)
-- **main** (def, line 46, score: 0.0023)
 
 ### src/cub/cli/capture.py
 
@@ -583,5 +577,7 @@ Symbols ranked by importance (PageRank score):
 
 - **ExitCode** (def, line 15, score: 0.0023)
 - **print_backend_not_initialized_error** (def, line 144, score: 0.0023)
+- **print_dirty_working_tree_error** (def, line 153, score: 0.0023)
+- **print_error** (def, line 31, score: 0.0023)
 
 ... (215 more symbols omitted to fit budget)

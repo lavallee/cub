@@ -225,6 +225,23 @@ class RunLoop:
                     )
                     return
 
+            # Run pre-session hook (lifecycle hook before harness invocation)
+            if self.config.hooks_enabled:
+                from cub.core.hooks.lifecycle import invoke_pre_session_hook
+
+                hook_ok = invoke_pre_session_hook(
+                    self.config, self.task_backend, self.run_id
+                )
+                if not hook_ok and self.config.hooks_fail_fast:
+                    self._phase = "failed"
+                    self._error = "Pre-session hook failed"
+                    yield self._make_event(
+                        RunEventType.HOOK_FAILED,
+                        "Pre-session hook failed",
+                        error="Pre-session hook failed",
+                    )
+                    return
+
             # Main loop
             while self._iteration < self.config.max_iterations:
                 # Check interrupt (prefer interrupt_handler if available)
@@ -649,6 +666,20 @@ class RunLoop:
                 task_start_commit=task_start_commit,
             )
 
+            # Run end-of-task lifecycle hook
+            if self.config.hooks_enabled:
+                from cub.core.hooks.lifecycle import invoke_end_of_task_hook
+
+                invoke_end_of_task_hook(
+                    self.config,
+                    task,
+                    success=True,
+                    duration_seconds=duration,
+                    run_id=self.run_id,
+                    iterations=1,
+                    error=None,
+                )
+
             # Auto-close parent epic if all its tasks are complete
             if task.parent:
                 try:
@@ -662,6 +693,17 @@ class RunLoop:
                             message,
                             task_id=task.parent,
                         )
+
+                        # Run end-of-epic lifecycle hook
+                        if self.config.hooks_enabled:
+                            from cub.core.hooks.lifecycle import invoke_end_of_epic_hook
+
+                            invoke_end_of_epic_hook(
+                                self.config,
+                                self.task_backend,
+                                task.parent,
+                                self.run_id,
+                            )
                 except Exception:
                     pass  # Non-fatal
 
@@ -707,6 +749,20 @@ class RunLoop:
                 task, success=False, task_model=task_model,
                 task_start_commit=task_start_commit,
             )
+
+            # Run end-of-task lifecycle hook for failures
+            if self.config.hooks_enabled:
+                from cub.core.hooks.lifecycle import invoke_end_of_task_hook
+
+                invoke_end_of_task_hook(
+                    self.config,
+                    task,
+                    success=False,
+                    duration_seconds=duration,
+                    run_id=self.run_id,
+                    iterations=1,
+                    error=result.error,
+                )
 
             # Run on-error hooks
             if self.config.hooks_enabled:

@@ -2135,9 +2135,10 @@ def _run_plan(
             break
 
     # Update PlanEntry with final status
+    plan_completed = failed_epic is None
     try:
-        plan_entry.status = "completed" if failed_epic is None else "in_progress"
-        plan_entry.completed_at = datetime.now() if failed_epic is None else None
+        plan_entry.status = "completed" if plan_completed else "in_progress"
+        plan_entry.completed_at = datetime.now() if plan_completed else None
         plan_entry.total_cost = total_cost
         plan_entry.total_tokens = total_tokens
         plan_entry.completed_tasks = total_tasks_completed
@@ -2148,6 +2149,30 @@ def _run_plan(
     except Exception as e:
         if debug:
             console.print(f"[dim]Warning: Failed to update plan entry: {e}[/dim]")
+
+    # Run end-of-plan lifecycle hook if plan completed
+    if plan_completed and config.hooks.enabled:
+        try:
+            from cub.core.hooks.lifecycle import invoke_end_of_plan_hook
+            from cub.core.run.models import RunConfig
+
+            # Build a minimal RunConfig for the hook
+            run_config = RunConfig(
+                project_dir=str(project_dir),
+                hooks_enabled=config.hooks.enabled,
+                hooks_fail_fast=config.hooks.fail_fast,
+                harness_name=harness_name,
+            )
+
+            invoke_end_of_plan_hook(
+                run_config,
+                task_backend,
+                plan_slug,
+                plan_session_id,
+            )
+        except Exception as e:
+            if debug:
+                console.print(f"[dim]Warning: Failed to invoke end-of-plan hook: {e}[/dim]")
 
     # Summary
     console.print()

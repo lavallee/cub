@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260204-221940",
+  "started_at": "2026-02-04T22:19:40.990544Z",
+  "project_dir": "/home/marc/Projects/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 300,
+    "tokens_limit": 500000,
+    "cost_usd": 0.0,
+    "cost_limit": 50.0
+  },
+  "tasks_completed": 1,
+  "tasks_failed": 0,
+  "current_task": null,
+  "status": "completed",
+  "ended_at": "2026-02-04T22:19:40.998218Z",
+  "orphaned_at": null,
+  "orphaned_reason": null
+}
