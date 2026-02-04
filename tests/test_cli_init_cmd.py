@@ -22,8 +22,8 @@ from cub.cli.init_cmd import (
 class TestGenerateInstructionFiles:
     """Tests for generate_instruction_files function."""
 
-    def test_creates_both_files(self, tmp_path: Path) -> None:
-        """Test that both AGENTS.md and CLAUDE.md are created."""
+    def test_creates_claude_and_symlink(self, tmp_path: Path) -> None:
+        """Test that CLAUDE.md is created and AGENTS.md is a symlink to it."""
         generate_instruction_files(tmp_path, force=False)
 
         agents_file = tmp_path / "AGENTS.md"
@@ -31,21 +31,23 @@ class TestGenerateInstructionFiles:
         constitution_file = tmp_path / ".cub" / "constitution.md"
         runloop_file = tmp_path / ".cub" / "runloop.md"
 
-        assert agents_file.exists()
         assert claude_file.exists()
+        assert agents_file.exists()
+        assert agents_file.is_symlink()  # AGENTS.md should be a symlink
         assert constitution_file.exists()
         assert runloop_file.exists()
-        assert len(agents_file.read_text()) > 0
         assert len(claude_file.read_text()) > 0
 
-        # Check for managed section markers
-        agents_content = agents_file.read_text()
+        # Content accessible through symlink should match CLAUDE.md
+        assert agents_file.read_text() == claude_file.read_text()
+
+        # Check for managed section markers in CLAUDE.md
         claude_content = claude_file.read_text()
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
+        assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
         assert "<!-- END CUB MANAGED SECTION" in claude_content
 
-    def test_skips_existing_files_without_force(self, tmp_path: Path) -> None:
-        """Test that managed sections are appended to existing files."""
+    def test_appends_to_claude_and_backs_up_agents(self, tmp_path: Path) -> None:
+        """Test that managed section appends to CLAUDE.md and AGENTS.md is backed up then symlinked."""
         # Create initial files with user content
         agents_file = tmp_path / "AGENTS.md"
         claude_file = tmp_path / "CLAUDE.md"
@@ -53,17 +55,23 @@ class TestGenerateInstructionFiles:
         agents_file.write_text("Original AGENTS content\n")
         claude_file.write_text("Original CLAUDE content\n")
 
-        # Generate without force - should APPEND managed section
+        # Generate without force - should APPEND managed section to CLAUDE.md
+        # and backup+convert AGENTS.md to symlink
         generate_instruction_files(tmp_path, force=False)
 
-        # Files should have both original content AND managed section
-        agents_content = agents_file.read_text()
+        # CLAUDE.md should have both original content AND managed section
         claude_content = claude_file.read_text()
-
-        assert "Original AGENTS content" in agents_content
         assert "Original CLAUDE content" in claude_content
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
         assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
+
+        # AGENTS.md should now be a symlink to CLAUDE.md
+        assert agents_file.is_symlink()
+        assert agents_file.read_text() == claude_content
+
+        # Original AGENTS.md should be backed up
+        backup_file = tmp_path / "AGENTS.md.backup"
+        assert backup_file.exists()
+        assert backup_file.read_text() == "Original AGENTS content\n"
 
     def test_overwrites_with_force_flag(self, tmp_path: Path) -> None:
         """Test that constitution and runloop are overwritten with force=True."""
@@ -95,21 +103,23 @@ class TestGenerateInstructionFiles:
         assert (tmp_path / "CLAUDE.md").exists()
 
     def test_creates_valid_markdown_files(self, tmp_path: Path) -> None:
-        """Test that generated files contain valid markdown with managed sections."""
+        """Test that generated CLAUDE.md contains valid markdown with managed sections."""
         generate_instruction_files(tmp_path, force=False)
 
-        agents_content = (tmp_path / "AGENTS.md").read_text()
         claude_content = (tmp_path / "CLAUDE.md").read_text()
 
-        # Check for managed section markers
-        assert "<!-- BEGIN CUB MANAGED SECTION" in agents_content
-        assert "<!-- END CUB MANAGED SECTION" in agents_content
+        # Check for managed section markers in CLAUDE.md
         assert "<!-- BEGIN CUB MANAGED SECTION" in claude_content
         assert "<!-- END CUB MANAGED SECTION" in claude_content
 
         # Check for key content (using actual content from managed sections)
-        assert "**Context:**" in agents_content or "context" in agents_content.lower()
+        assert "**Context:**" in claude_content or "context" in claude_content.lower()
         assert "workflow" in claude_content.lower()
+
+        # AGENTS.md should be a symlink with identical content
+        agents_path = tmp_path / "AGENTS.md"
+        assert agents_path.is_symlink()
+        assert agents_path.read_text() == claude_content
 
     def test_includes_project_specific_info(self, tmp_path: Path) -> None:
         """Test that generated files include project-specific information."""
@@ -118,12 +128,15 @@ class TestGenerateInstructionFiles:
 
         generate_instruction_files(project_dir, force=False)
 
-        agents_content = (project_dir / "AGENTS.md").read_text()
         claude_content = (project_dir / "CLAUDE.md").read_text()
 
-        # Should include project name
-        assert "my-test-project" in agents_content
+        # Should include project name in CLAUDE.md
         assert "my-test-project" in claude_content
+
+        # AGENTS.md is a symlink, so content is identical
+        agents_path = project_dir / "AGENTS.md"
+        assert agents_path.is_symlink()
+        assert agents_path.read_text() == claude_content
 
     def test_installs_hooks_when_flag_set(self, tmp_path: Path) -> None:
         """Test that hooks are installed when install_hooks_flag=True."""
@@ -171,9 +184,10 @@ class TestGenerateInstructionFiles:
             # Should not raise exception
             generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
 
-            # Main files should still be created
-            assert (tmp_path / "AGENTS.md").exists()
+            # Main files should still be created (CLAUDE.md and AGENTS.md symlink)
             assert (tmp_path / "CLAUDE.md").exists()
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "AGENTS.md").is_symlink()
 
     def test_reports_hook_installation_warnings(self, tmp_path: Path) -> None:
         """Test that hook installation warnings are displayed."""
@@ -196,9 +210,10 @@ class TestGenerateInstructionFiles:
             # Should not raise exception
             generate_instruction_files(tmp_path, force=False, install_hooks_flag=True)
 
-            # Main files should still be created
-            assert (tmp_path / "AGENTS.md").exists()
+            # Main files should still be created (CLAUDE.md and AGENTS.md symlink)
             assert (tmp_path / "CLAUDE.md").exists()
+            assert (tmp_path / "AGENTS.md").exists()
+            assert (tmp_path / "AGENTS.md").is_symlink()
 
 
 class TestDetectProjectType:
@@ -373,8 +388,9 @@ class TestInitProject:
             )
 
         # Core files should exist
-        assert (tmp_path / "AGENTS.md").exists()
         assert (tmp_path / "CLAUDE.md").exists()
+        assert (tmp_path / "AGENTS.md").exists()
+        assert (tmp_path / "AGENTS.md").is_symlink()  # AGENTS.md should be symlink
         assert (tmp_path / ".cub" / "constitution.md").exists()
         assert (tmp_path / ".cub" / "runloop.md").exists()
         assert (tmp_path / "specs").is_dir()

@@ -71,16 +71,10 @@ from cub.core.config.models import CubConfig
 logger = logging.getLogger(__name__)
 
 # --- Marker format constants ---
-BEGIN_MARKER_PATTERN = re.compile(
-    r"^<!-- BEGIN CUB MANAGED SECTION v(\d+) -->$", re.MULTILINE
-)
+BEGIN_MARKER_PATTERN = re.compile(r"^<!-- BEGIN CUB MANAGED SECTION v(\d+) -->$", re.MULTILINE)
 END_MARKER = "<!-- END CUB MANAGED SECTION -->"
-END_MARKER_PATTERN = re.compile(
-    r"^<!-- END CUB MANAGED SECTION -->$", re.MULTILINE
-)
-HASH_LINE_PATTERN = re.compile(
-    r"^<!-- sha256:([a-f0-9]{64}) -->$", re.MULTILINE
-)
+END_MARKER_PATTERN = re.compile(r"^<!-- END CUB MANAGED SECTION -->$", re.MULTILINE)
+HASH_LINE_PATTERN = re.compile(r"^<!-- sha256:([a-f0-9]{64}) -->$", re.MULTILINE)
 
 
 def _content_hash(content: str) -> str:
@@ -221,9 +215,7 @@ def detect_managed_section(file_path: Path) -> SectionInfo:
         # Content is between the hash line (or begin+1) and end marker
         content_start = begin_line + 1
         # Skip hash line if present
-        if content_start < len(lines) and HASH_LINE_PATTERN.match(
-            lines[content_start]
-        ):
+        if content_start < len(lines) and HASH_LINE_PATTERN.match(lines[content_start]):
             content_start += 1
         content_lines = lines[content_start:end_line]
         content_text = "\n".join(content_lines).strip()
@@ -246,9 +238,7 @@ def detect_managed_section(file_path: Path) -> SectionInfo:
     )
 
 
-def upsert_managed_section(
-    file_path: Path, content: str, version: int = 1
-) -> UpsertResult:
+def upsert_managed_section(file_path: Path, content: str, version: int = 1) -> UpsertResult:
     """Insert or update a managed section in a file.
 
     Handles all cases non-destructively:
@@ -317,9 +307,7 @@ def upsert_managed_section(
         before_text = "\n".join(before)
         separator = "\n" if before_text.strip() else ""
         new_text = (
-            (before_text.rstrip() + separator if before_text.strip() else "")
-            + managed_block
-            + "\n"
+            (before_text.rstrip() + separator if before_text.strip() else "") + managed_block + "\n"
         )
         file_path.write_text(new_text, encoding="utf-8")
         return UpsertResult(
@@ -345,9 +333,7 @@ def upsert_managed_section(
         after_text = "\n".join(after)
         separator = "\n" if after_text.strip() else ""
         new_text = (
-            managed_block
-            + (separator + after_text.rstrip() if after_text.strip() else "")
-            + "\n"
+            managed_block + (separator + after_text.rstrip() if after_text.strip() else "") + "\n"
         )
         file_path.write_text(new_text, encoding="utf-8")
         return UpsertResult(
@@ -397,6 +383,7 @@ def upsert_managed_section(
         content_was_modified=content_was_modified,
         warnings=warnings,
     )
+
 
 # Escape hatch language from E5 spec
 ESCAPE_HATCH_SECTION = """## Escape Hatch: Signal When Stuck
@@ -451,60 +438,37 @@ active signal that you, the agent, are genuinely blocked and should stop.
 """
 
 
-def generate_managed_section(
-    project_dir: Path, config: CubConfig, harness: str = "generic"
-) -> str:
+def generate_managed_section(project_dir: Path, config: CubConfig, harness: str = "generic") -> str:
     """
     Generate condensed managed section content for instruction files.
 
     Produces concise (~15-25 lines) instructions that reference external context
     files rather than embedding full documentation inline.
 
+    Note: As of cub 1.x, CLAUDE.md is the canonical instruction file and AGENTS.md
+    is a symlink to it. This function is retained for backwards compatibility but
+    both harness types now return the same content (Claude Code instructions).
+
     Args:
         project_dir: Path to the project root directory
         config: CubConfig instance with project configuration
-        harness: Type of harness ("generic" for AGENTS.md, "claude" for CLAUDE.md)
+        harness: Type of harness ("generic" or "claude" - both return same content)
 
     Returns:
         Condensed managed section content as a string (without markers)
 
     Example:
         >>> config = load_config()
-        >>> content = generate_managed_section(Path.cwd(), config, "generic")
+        >>> content = generate_managed_section(Path.cwd(), config)
     """
     project_name = project_dir.name
 
-    if harness == "generic":
-        # Generic harness-agnostic instructions for AGENTS.md
-        content = f"""# Cub Task Workflow
+    # Single canonical content for CLAUDE.md (AGENTS.md is a symlink to it)
+    # Using Claude Code branding since CLAUDE.md is the canonical file
+    if harness not in ("generic", "claude"):
+        raise ValueError(f"Unknown harness type: {harness}")
 
-**Project:** `{project_name}` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
-
-## Quick Start
-
-1. **Find work**: `cub task ready` or `cub task list --status open`
-2. **Claim task**: `cub task claim <task-id>`
-3. **Build/test**: See @.cub/agent.md for commands
-4. **Complete**: `cub task close <task-id> --reason "what you did"`
-5. **Log**: `cub log --notes="session summary"` (optional)
-
-## Task Commands
-
-- `cub task show <id>` - View task details
-- `cub status` - Project status and progress
-
-## When Stuck
-
-If genuinely blocked (missing files, unclear requirements, external blocker):
-```xml
-<stuck>Clear description of the blocker</stuck>
-```
-
-See @.cub/agent.md for full workflow documentation."""
-
-    elif harness == "claude":
-        # Claude-specific instructions for CLAUDE.md
-        content = f"""# Cub Task Workflow (Claude Code)
+    content = f"""# Cub Task Workflow (Claude Code)
 
 **Project:** `{project_name}` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
 
@@ -536,44 +500,41 @@ If genuinely blocked (missing files, unclear requirements, external blocker):
 
 See @.cub/agent.md for full workflow documentation."""
 
-    else:
-        raise ValueError(f"Unknown harness type: {harness}")
-
     return content
 
 
 def generate_agents_md(project_dir: Path, config: CubConfig) -> str:
     """
-    Generate AGENTS.md with harness-agnostic workflow instructions.
+    Generate AGENTS.md content (deprecated - use generate_claude_md instead).
 
-    Creates instructions for AI assistants running in direct mode (not via `cub run`)
-    to use cub commands for task tracking and work logging. This file is compatible
-    with Claude Code, Codex, OpenCode, and other AI coding assistants.
+    Note: As of cub 1.x, AGENTS.md is created as a symlink to CLAUDE.md rather
+    than a separate file. This function now returns the same content as
+    generate_claude_md() for backwards compatibility.
 
-    The generated content is designed to be upserted into AGENTS.md as a managed
-    section, preserving any user-written content outside the markers.
+    Prefer using generate_claude_md() for new code, and create AGENTS.md as
+    a symlink using create_agents_symlink().
 
     Args:
         project_dir: Path to the project root directory
         config: CubConfig instance with project configuration
 
     Returns:
-        Complete managed section content (ready for upsert_managed_section)
+        Complete managed section content (same as generate_claude_md)
 
     Example:
         >>> config = load_config()
-        >>> content = generate_agents_md(Path.cwd(), config)
-        >>> result = upsert_managed_section(Path("AGENTS.md"), content)
+        >>> content = generate_claude_md(Path.cwd(), config)
+        >>> result = upsert_managed_section(Path("CLAUDE.md"), content)
     """
     return generate_managed_section(project_dir, config, harness="generic")
 
 
 def generate_claude_md(project_dir: Path, config: CubConfig) -> str:
     """
-    Generate CLAUDE.md with Claude Code-specific workflow instructions.
+    Generate CLAUDE.md with Claude Code workflow instructions.
 
-    Creates instructions tailored for Claude Code, including the core workflow
-    plus Claude-specific features like plan mode integration and skills.
+    Creates the canonical instruction file for AI assistants. CLAUDE.md is the
+    single source of truth; AGENTS.md should be created as a symlink to it.
 
     The generated content is designed to be upserted into CLAUDE.md as a managed
     section, preserving any user-written content outside the markers.
@@ -589,14 +550,77 @@ def generate_claude_md(project_dir: Path, config: CubConfig) -> str:
         >>> config = load_config()
         >>> content = generate_claude_md(Path.cwd(), config)
         >>> result = upsert_managed_section(Path("CLAUDE.md"), content)
+        >>> create_agents_symlink(Path.cwd())  # Creates AGENTS.md -> CLAUDE.md
     """
     return generate_managed_section(project_dir, config, harness="claude")
+
+
+def create_agents_symlink(project_dir: Path, force: bool = False) -> bool:
+    """
+    Create AGENTS.md as a symlink to CLAUDE.md.
+
+    AGENTS.md is maintained as a symlink to CLAUDE.md to ensure consistency
+    between the two instruction files without duplication. This is the
+    recommended approach as of cub 1.x.
+
+    Args:
+        project_dir: Path to the project root directory
+        force: If True, replace existing AGENTS.md file with symlink
+
+    Returns:
+        True if symlink was created or already exists correctly,
+        False if operation was skipped (existing non-symlink file without force)
+
+    Raises:
+        OSError: If symlink creation fails (e.g., Windows without developer mode)
+
+    Example:
+        >>> # After generating CLAUDE.md:
+        >>> create_agents_symlink(Path.cwd())
+        True
+    """
+    agents_path = project_dir / "AGENTS.md"
+    claude_path = project_dir / "CLAUDE.md"
+
+    # Target for symlink (relative path from AGENTS.md to CLAUDE.md)
+    symlink_target = "CLAUDE.md"
+
+    # If AGENTS.md already exists
+    if agents_path.exists() or agents_path.is_symlink():
+        # Check if it's already the correct symlink
+        if agents_path.is_symlink():
+            try:
+                current_target = agents_path.readlink()
+                if current_target == Path(symlink_target):
+                    # Already correct
+                    return True
+            except OSError:
+                pass
+
+        # Existing file/symlink that doesn't match
+        if not force:
+            return False
+
+        # Remove existing file/symlink to replace it
+        agents_path.unlink()
+
+    # Verify CLAUDE.md exists before creating symlink
+    if not claude_path.exists():
+        logger.warning(
+            f"Cannot create AGENTS.md symlink: CLAUDE.md does not exist at {claude_path}"
+        )
+        return False
+
+    # Create symlink
+    agents_path.symlink_to(symlink_target)
+    return True
 
 
 __all__ = [
     "generate_managed_section",
     "generate_agents_md",
     "generate_claude_md",
+    "create_agents_symlink",
     "detect_managed_section",
     "upsert_managed_section",
     "ESCAPE_HATCH_SECTION",

@@ -13,6 +13,7 @@ from cub.core.instructions import (
     UpsertResult,
     _content_hash,
     _format_managed_block,
+    create_agents_symlink,
     detect_managed_section,
     generate_agents_md,
     generate_claude_md,
@@ -33,8 +34,8 @@ class TestGenerateManagedSection:
         assert isinstance(content, str)
         assert len(content) > 0
 
-        # Should start with markdown header
-        assert content.startswith("# Cub Task Workflow")
+        # Should start with markdown header (now uses Claude Code branding for all)
+        assert content.startswith("# Cub Task Workflow (Claude Code)")
 
     def test_claude_harness_generates_valid_content(self, tmp_path: Path) -> None:
         """Test that claude harness generates valid markdown content."""
@@ -121,14 +122,18 @@ class TestGenerateManagedSection:
 
         assert "skill" in content.lower() or "/commit" in content
 
-    def test_claude_is_slightly_longer_than_generic(self, tmp_path: Path) -> None:
-        """Test that Claude content is slightly longer due to extra tips."""
+    def test_both_harness_types_return_same_content(self, tmp_path: Path) -> None:
+        """Test that both harness types return identical content.
+
+        As of cub 1.x, both harness types return the same Claude Code content
+        since AGENTS.md is a symlink to CLAUDE.md.
+        """
         config = CubConfig()
         generic = generate_managed_section(tmp_path, config, harness="generic")
         claude = generate_managed_section(tmp_path, config, harness="claude")
 
-        # Claude should be a bit longer than generic
-        assert len(claude) >= len(generic)
+        # Both should be identical now
+        assert generic == claude
 
     def test_invalid_harness_raises_error(self, tmp_path: Path) -> None:
         """Test that invalid harness type raises ValueError."""
@@ -142,7 +147,7 @@ class TestGenerateManagedSection:
 
 
 class TestGenerateAgentsMd:
-    """Tests for generate_agents_md function."""
+    """Tests for generate_agents_md function (deprecated, returns same as claude)."""
 
     def test_generates_valid_markdown(self, tmp_path: Path) -> None:
         """Test that generated AGENTS.md is valid markdown."""
@@ -153,8 +158,8 @@ class TestGenerateAgentsMd:
         assert isinstance(content, str)
         assert len(content) > 0
 
-        # Should start with markdown header
-        assert content.startswith("# Cub Task Workflow")
+        # Should start with markdown header (now uses Claude Code branding)
+        assert content.startswith("# Cub Task Workflow (Claude Code)")
 
     def test_includes_project_name(self, tmp_path: Path) -> None:
         """Test that project name is included in output."""
@@ -306,15 +311,19 @@ class TestInstructionIntegration:
         assert len(agents_file.read_text()) > 0
         assert len(claude_file.read_text()) > 0
 
-    def test_generated_files_are_different(self, tmp_path: Path) -> None:
-        """Test that AGENTS.md and CLAUDE.md have different content."""
+    def test_generated_files_are_identical(self, tmp_path: Path) -> None:
+        """Test that generate_agents_md and generate_claude_md return same content.
+
+        As of cub 1.x, AGENTS.md is a symlink to CLAUDE.md, so both functions
+        return identical content.
+        """
         config = CubConfig()
 
         agents_content = generate_agents_md(tmp_path, config)
         claude_content = generate_claude_md(tmp_path, config)
 
-        # Files should have different content (Claude has extra tips)
-        assert agents_content != claude_content
+        # Both functions now return identical content
+        assert agents_content == claude_content
 
     def test_consistent_workflow_between_files(self, tmp_path: Path) -> None:
         """Test that both files mention the same core commands."""
@@ -899,3 +908,108 @@ class TestUpsertManagedSection:
         assert "## Section" in text
         assert "- Item 1" in text
         assert "- Item 2" in text
+
+
+class TestCreateAgentsSymlink:
+    """Tests for create_agents_symlink function."""
+
+    def test_creates_symlink_when_claude_exists(self, tmp_path: Path) -> None:
+        """Test that symlink is created when CLAUDE.md exists."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# CLAUDE.md content")
+
+        result = create_agents_symlink(tmp_path)
+
+        assert result is True
+        assert agents_path.is_symlink()
+        assert agents_path.resolve() == claude_path.resolve()
+        assert agents_path.read_text() == "# CLAUDE.md content"
+
+    def test_returns_false_when_claude_missing(self, tmp_path: Path) -> None:
+        """Test that symlink is not created when CLAUDE.md doesn't exist."""
+        result = create_agents_symlink(tmp_path)
+
+        assert result is False
+        assert not (tmp_path / "AGENTS.md").exists()
+
+    def test_returns_true_for_correct_existing_symlink(self, tmp_path: Path) -> None:
+        """Test that True is returned if correct symlink already exists."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# Content")
+        agents_path.symlink_to("CLAUDE.md")
+
+        result = create_agents_symlink(tmp_path)
+
+        assert result is True
+        assert agents_path.is_symlink()
+
+    def test_returns_false_for_existing_file_without_force(self, tmp_path: Path) -> None:
+        """Test that False is returned for existing non-symlink file without force."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# CLAUDE")
+        agents_path.write_text("# Existing AGENTS content")
+
+        result = create_agents_symlink(tmp_path, force=False)
+
+        assert result is False
+        assert not agents_path.is_symlink()
+        assert agents_path.read_text() == "# Existing AGENTS content"
+
+    def test_replaces_existing_file_with_force(self, tmp_path: Path) -> None:
+        """Test that existing file is replaced with symlink when force=True."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# CLAUDE content")
+        agents_path.write_text("# Old AGENTS content")
+
+        result = create_agents_symlink(tmp_path, force=True)
+
+        assert result is True
+        assert agents_path.is_symlink()
+        assert agents_path.read_text() == "# CLAUDE content"
+
+    def test_replaces_wrong_symlink_with_force(self, tmp_path: Path) -> None:
+        """Test that wrong symlink is replaced with correct one when force=True."""
+        claude_path = tmp_path / "CLAUDE.md"
+        other_path = tmp_path / "OTHER.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# CLAUDE")
+        other_path.write_text("# OTHER")
+        agents_path.symlink_to("OTHER.md")
+
+        result = create_agents_symlink(tmp_path, force=True)
+
+        assert result is True
+        assert agents_path.is_symlink()
+        assert agents_path.readlink() == Path("CLAUDE.md")
+
+    def test_symlink_target_is_relative(self, tmp_path: Path) -> None:
+        """Test that symlink uses relative path, not absolute."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# Content")
+
+        create_agents_symlink(tmp_path)
+
+        # Readlink returns the target as stored, should be relative
+        target = agents_path.readlink()
+        assert target == Path("CLAUDE.md")
+        assert not target.is_absolute()
+
+    def test_symlink_content_accessible(self, tmp_path: Path) -> None:
+        """Test that content is accessible through symlink."""
+        claude_path = tmp_path / "CLAUDE.md"
+        agents_path = tmp_path / "AGENTS.md"
+        claude_path.write_text("# Test Content\n\nThis is a test.")
+
+        create_agents_symlink(tmp_path)
+
+        # Content should be identical when read through either path
+        assert agents_path.read_text() == claude_path.read_text()
+
+        # Modifying through one path should be visible through the other
+        claude_path.write_text("# Updated Content")
+        assert agents_path.read_text() == "# Updated Content"

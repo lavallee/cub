@@ -7,9 +7,12 @@ This module provides the native Python ``cub init`` command, handling:
 - Template copying (PROMPT.md, .cub.json, commands/)
 - .gitignore updating with cub patterns
 - Global configuration setup (``cub init --global``)
-- Instruction file generation (AGENTS.md, CLAUDE.md)
+- Instruction file generation (CLAUDE.md with AGENTS.md as symlink)
 - Claude Code hook installation
 - Statusline installation
+
+Note: CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
+symlink to CLAUDE.md to ensure consistency without duplication.
 """
 
 import json
@@ -28,7 +31,7 @@ from cub.core.constitution import ensure_constitution
 from cub.core.hooks.installer import install_hooks
 from cub.core.instructions import (
     UpsertAction,
-    generate_agents_md,
+    create_agents_symlink,
     generate_claude_md,
     upsert_managed_section,
 )
@@ -444,10 +447,13 @@ def generate_instruction_files(
     dev_mode_override: bool | None = None,
 ) -> None:
     """
-    Generate AGENTS.md and CLAUDE.md instruction files at project root.
+    Generate CLAUDE.md instruction file and AGENTS.md symlink at project root.
+
+    CLAUDE.md is the canonical instruction file. AGENTS.md is created as a
+    symlink to CLAUDE.md to ensure consistency without duplication.
 
     Uses the managed section upsert engine to non-destructively update
-    instruction files. Also ensures constitution and runloop are in place.
+    CLAUDE.md. Also ensures constitution and runloop are in place.
     """
     # Ensure dev_mode is configured
     _ensure_dev_mode_config(project_dir, dev_mode_override)
@@ -492,35 +498,14 @@ def generate_instruction_files(
             template_path = templates_dir / "agent.md"
             if template_path.exists():
                 agent_path.parent.mkdir(parents=True, exist_ok=True)
-                agent_path.write_text(
-                    template_path.read_text(encoding="utf-8"), encoding="utf-8"
-                )
+                agent_path.write_text(template_path.read_text(encoding="utf-8"), encoding="utf-8")
                 console.print("[green]v[/green] Created .cub/agent.md")
             else:
                 console.print("[yellow]Warning: agent.md template not found[/yellow]")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not create agent.md: {e}[/yellow]")
 
-    # Generate managed section content for AGENTS.md
-    try:
-        agents_content = generate_agents_md(project_dir, config)
-        agents_path = project_dir / "AGENTS.md"
-        result = upsert_managed_section(agents_path, agents_content, version=1)
-
-        if result.action == UpsertAction.CREATED:
-            console.print("[green]v[/green] Created AGENTS.md")
-        elif result.action == UpsertAction.APPENDED:
-            console.print("[green]v[/green] Added managed section to AGENTS.md")
-        elif result.action == UpsertAction.REPLACED:
-            console.print("[green]v[/green] Updated managed section in AGENTS.md")
-
-        if result.warnings:
-            for warning in result.warnings:
-                console.print(f"[yellow]Warning: {warning}[/yellow]")
-    except Exception as e:
-        console.print(f"[red]Error creating AGENTS.md: {e}[/red]")
-
-    # Generate managed section content for CLAUDE.md
+    # Generate managed section content for CLAUDE.md (canonical instruction file)
     try:
         claude_content = generate_claude_md(project_dir, config)
         claude_path = project_dir / "CLAUDE.md"
@@ -538,6 +523,33 @@ def generate_instruction_files(
                 console.print(f"[yellow]Warning: {warning}[/yellow]")
     except Exception as e:
         console.print(f"[red]Error creating CLAUDE.md: {e}[/red]")
+
+    # Create AGENTS.md as symlink to CLAUDE.md (single source of truth)
+    try:
+        agents_path = project_dir / "AGENTS.md"
+        if agents_path.is_symlink():
+            # Already a symlink, update if needed
+            if create_agents_symlink(project_dir, force=True):
+                console.print("[green]v[/green] AGENTS.md symlink ready")
+        elif agents_path.exists():
+            # Existing file - convert to symlink with backup
+            import shutil as shutil_backup
+
+            backup_path = project_dir / "AGENTS.md.backup"
+            shutil_backup.move(str(agents_path), str(backup_path))
+            console.print("[yellow]i[/yellow] Backed up existing AGENTS.md to AGENTS.md.backup")
+            if create_agents_symlink(project_dir, force=True):
+                console.print("[green]v[/green] Created AGENTS.md symlink (-> CLAUDE.md)")
+        else:
+            # No existing file, create symlink
+            if create_agents_symlink(project_dir, force=False):
+                console.print("[green]v[/green] Created AGENTS.md symlink (-> CLAUDE.md)")
+    except OSError as e:
+        # Symlink creation failed (e.g., Windows without admin)
+        console.print(f"[yellow]Warning: Could not create AGENTS.md symlink: {e}[/yellow]")
+        console.print(
+            "[yellow]i[/yellow] On Windows, symlinks require Developer Mode or admin rights"
+        )
 
     # Generate project map
     try:
