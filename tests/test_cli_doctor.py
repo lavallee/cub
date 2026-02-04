@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 
 from cub.cli import app
 from cub.core.tasks.models import Task, TaskStatus, TaskType
+from cub.core.verify import VerifyResult
 
 runner = CliRunner()
 
@@ -31,6 +32,14 @@ def mock_project_dir(
         yield project_dir
 
 
+def mock_verify_service_no_issues() -> MagicMock:
+    """Create a mock VerifyService that returns no issues."""
+    mock_verify_service = MagicMock()
+    mock_verify_result = VerifyResult(issues=[], checks_run=1, files_checked=0, auto_fixed=0)
+    mock_verify_service.return_value.verify.return_value = mock_verify_result
+    return mock_verify_service
+
+
 class TestDoctorCommand:
     """Test the doctor command functionality."""
 
@@ -43,6 +52,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -80,6 +90,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -119,6 +130,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -151,6 +163,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor", "--fix"])
 
@@ -189,6 +202,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -215,6 +229,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor", "--fix"])
 
@@ -233,6 +248,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -257,6 +273,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -270,6 +287,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", side_effect=Exception("Backend not found")),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -286,6 +304,7 @@ class TestDoctorCommand:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor", "--verbose"])
 
@@ -305,6 +324,7 @@ class TestDoctorHooksCheck:
         with (
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -327,6 +347,7 @@ class TestDoctorHooksCheck:
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
             patch("cub.cli.doctor.validate_hooks", return_value=[]),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -363,6 +384,7 @@ class TestDoctorHooksCheck:
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
             patch("cub.cli.doctor.validate_hooks", return_value=issues),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -395,6 +417,7 @@ class TestDoctorHooksCheck:
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
             patch("cub.cli.doctor.validate_hooks", return_value=issues),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 
@@ -425,6 +448,7 @@ class TestDoctorHooksCheck:
             patch("cub.cli.doctor.get_backend", return_value=mock_backend),
             patch("cub.cli.doctor.check_environment", return_value=0),
             patch("cub.cli.doctor.validate_hooks", return_value=issues),
+            patch("cub.cli.doctor.VerifyService", mock_verify_service_no_issues()),
         ):
             result = runner.invoke(app, ["doctor"])
 

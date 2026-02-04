@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "cub-048a-5",
+  "title": "ledger-consolidation #6: Consistency Checks & Cleanup",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "ledger-consolidation #6: Consistency Checks & Cleanup",
+    "description": "Add integrity checks to `cub doctor` and `cub run`, remove deprecated code paths, and finalize documentation.",
+    "status": "open",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "complexity:low",
+      "slice:cleanup"
+    ],
+    "created_at": "2026-02-04T23:06:42.351141Z",
+    "captured_at": "2026-02-04T23:06:42.351141Z"
+  },
+  "task_ids": [
+    "cub-048a-5.1"
+  ],
+  "aggregates": {
+    "total_tasks": 1,
+    "tasks_completed": 1,
+    "tasks_successful": 1,
+    "tasks_failed": 0,
+    "total_cost_usd": 1.6884931500000007,
+    "avg_cost_per_task": 1.6884931500000007,
+    "min_cost_usd": 1.6884931500000007,
+    "max_cost_usd": 1.6884931500000007,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 1,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 3683011,
+    "avg_tokens_per_task": 3683011,
+    "total_duration_seconds": 363,
+    "avg_duration_seconds": 363,
+    "models_used": [
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:06:42.370717Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T23:00:30.440542Z",
+  "completed_at": "2026-02-04T23:06:34.042640Z",
+  "updated_at": "2026-02-04T23:06:42.370724Z",
+  "first_commit": {
+    "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
+    "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+    "author": "",
+    "timestamp": "2026-02-04T23:06:15Z"
+  },
+  "last_commit": {
+    "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
+    "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+    "author": "",
+    "timestamp": "2026-02-04T23:06:15Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}
