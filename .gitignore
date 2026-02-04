@@ -2,6 +2,7 @@
 # Session runs with logs, output, etc.
 .cub/runs/
 .cub/config.json            # Auto-generated project config (project_id)
+.cub/.sync-state.json       # Machine-local sync state (last sync SHA, timestamp)
 .cub/toolsmith/             # Toolsmith local catalog/cache + adoptions + runs (project-scoped)
 .cub/progress.txt           # Development progress tracking (stale)
 .cub/progress.md            # Development progress tracking (stale)
