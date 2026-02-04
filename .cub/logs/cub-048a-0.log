@@ -473,3 +473,105 @@ Great! Let's run mypy to double-check type checking:
 Perfect! Now let's run the tests one more time to ensure everything still works after the lint fixes:
 Excellent! All tests pass. Now let's update the task status to closed:
 Now let's commit the changes:
+Perfect! The task has been completed successfully. Let me verify the task status:
+Excellent! The task has been completed successfully. Here's a summary:
+
+## Task Completion Summary
+
+✅ **Task cub-048a-0.4: Implement ID generator with counter integration**
+
+### What was implemented:
+
+1. **Created `src/cub/core/ids/generator.py`** with the following functions:
+   - `generate_spec_id(project, sync_service)` - Allocates counter and creates SpecId
+   - `generate_plan_id(spec, letter)` - Creates PlanId from SpecId with explicit letter
+   - `generate_epic_id(plan, char)` - Creates EpicId from PlanId with explicit char
+   - `generate_task_id(epic, number)` - Creates TaskId from EpicId with explicit number
+   - `generate_standalone_id(project, sync_service)` - Allocates counter and creates StandaloneTaskId
+   - `next_plan_letter(existing)` - Auto-selects next available plan letter (A-Z, a-z, 0-9)
+   - `next_epic_char(existing)` - Auto-selects next available epic char (0-9, a-z, A-Z)
+
+2. **Updated `src/cub/core/ids/__init__.py`** to export all generator functions
+
+3. **Created comprehensive tests** in `tests/core/ids/test_generator.py`:
+   - 34 tests covering all generator functions
+   - All acceptance criteria verified
+   - Edge cases tested (exhausted sequences, invalid inputs, etc.)
+
+### Acceptance Criteria Met:
+
+✅ `generate_spec_id("cub", sync)` allocates counter and returns `SpecId`  
+✅ Letter/char helpers follow sequence rules (A-Z, a-z, 0-9 for plans; 0-9, a-z, A-Z for epics)  
+✅ Generator validates inputs (e.g., letter must be single char)  
+✅ All generators return properly typed ID models
+
+### Quality Checks:
+
+✅ Type checking: `mypy --strict` passes  
+✅ Linting: `ruff check` passes  
+✅ Tests: All 5416 tests pass  
+✅ Task status: Updated to closed  
+✅ Committed with proper message format
+
+The ID generator is now complete and ready to use for creating collision-free hierarchical IDs!
+Task completed in 295.9s
+Tokens: 18,657
+╭─────────────────────────────────── Current Task ───────────────────────────────────╮
+│  Task       cub-048a-0.5                                                           │
+│  Title      Create pre-push hook and update cub init                               │
+│  Priority   P0                                                                     │
+│  Type       task                                                                   │
+│  Iteration  5/100                                                                  │
+│  Harness    claude                                                                 │
+│  Model      sonnet                                                                 │
+╰────────────────────────────────────────────────────────────────────────────────────╯
+Running claude...
+I'll implement the pre-push hook and update the cub init command to install it. Let me start by reading the current state of the relevant files and understanding the codebase structure.
+Let me read the counters module to understand the sync branch and counter logic:
+Let me check the existing cub-hook.sh script and the sync service to understand the implementation:
+Now let me update the tasks.jsonl to mark the task as in_progress and understand the structure better:
+Good! The task is already marked as in_progress. Now let me check if there's an existing pre-push hook setup and understand the git hook structure:
+Now let me read more about CounterState to understand the structure:
+Good! Now let me read the full CounterState class:
+Perfect! Now I have a good understanding. Let me create the implementation. I'll start by creating the hooks.py module with the verification logic, then create the pre-push hook template, and finally update the init_cmd.py to install it.
+Now let me create the pre-push hook template in the templates directory:
+Now let me update the `init_cmd.py` to install the pre-push hook. I'll add a function to install the pre-push hook and call it during the init process:
+Now I'll add a function to install the pre-push hook and integrate it into the init sequence. Let me insert it after the helper functions section:
+Now let me add the call to install the pre-push hook in the init_project function. I'll add it after the statusline installation:
+Now I need to add the logging import at the top of the file since I'm using it in the new function:
+I need to add logging import:
+Now I need to add the logger instance after the console definition:
+Perfect! Now let me create tests for the hook functionality. First, let me check what test files already exist:
+Let me create comprehensive tests for the hooks module:
+Now let me create a test for the init command to ensure the pre-push hook is installed:
+Now let me run the tests to see if they pass:
+I need to debug the _scan_local_task_ids function. Let me check what the parser returns for these IDs:
+I see the issue. The IDs don't have a `spec` attribute directly. Let me check the actual structure:
+Now I understand. The EpicId has a `plan` attribute which has a `spec` attribute. Let me fix the _scan_local_task_ids function:
+Now let me run the tests again:
+Great! Now let me run all the hook tests:
+Perfect! All tests pass. Now let me run the full feedback loop (typecheck, tests, lint) to ensure everything is working:
+I need to fix the type annotation in the _read_remote_counters function:
+I need to add the import at the top:
+Now I need to remove the duplicate import inside the function:
+Also need to remove the other local import:
+Now let's run the typecheck again:
+Great! Now let's run the tests for the entire ids module to make sure we didn't break anything:
+Excellent! Now let's run a broader test to make sure we didn't break anything else:
+Perfect! All tests pass. Now let's run lint check:
+Let me fix these lint issues:
+Now fix the line length issue:
+Now let's run lint again:
+Ah, I removed the local_counters usage but we still don't use it in the function. Actually, we don't need to read local counters since we're just scanning the tasks. Let me remove that:
+Now run lint again:
+Let me remove the unused import:
+Now run lint again:
+Great! Now let's run the full feedback loops (typecheck, tests, lint) on the entire project to make sure everything is working:
+Perfect! Now let's update the task status to closed and commit our changes:
+Perfect! Now let me verify the task is closed and commit the changes:
+Let me try a simpler check:
+Let me just check the file directly:
+Let me check if the task exists in the file:
+Let me check the epic to see the format:
+Let me search for the task more carefully:
+Perfect! The task is closed. Now let's commit the changes:

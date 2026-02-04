@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-048a-0.5",
+  "title": "Create pre-push hook and update cub init",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-0"
+  },
+  "task": {
+    "title": "Create pre-push hook and update cub init",
+    "description": "The pre-push hook verifies that locally-used spec/standalone numbers don't conflict with the remote sync branch. This catches collisions before they're pushed. The hook is installed by `cub init`.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ids/hooks.py` with hook logic\n2. Implement `verify_counters_before_push() -> tuple[bool, str]` that:\n3. Create shell script template `templates/hooks/pre-push` that calls Python\n4. Update `cub init` to install pre-push hook to `.git/hooks/pre-push`\n5. Make hook skip gracefully if sync branch not initialized\n6. Add `--no-verify` documentation for bypassing\n\n**Files:** `src/cub/core/ids/hooks.py`, `templates/hooks/pre-push`, `src/cub/cli/init_cmd.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-1",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:setup"
+    ],
+    "created_at": "2026-02-04T15:37:04.560592",
+    "captured_at": "2026-02-04T21:10:56.597735Z"
+  },
+  "task_changed": null,
+  "attempts": [],
+  "outcome": null,
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:10:56.597735Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:10:56.597735Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:10:56.597735Z",
+  "completed_at": "2026-02-04T21:10:56.597735Z",
+  "tokens": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_creation_tokens": 0
+  },
+  "cost_usd": 0.0,
+  "duration_seconds": 0,
+  "iterations": 1,
+  "approach": "",
+  "decisions": [],
+  "lessons_learned": [],
+  "files_changed": [],
+  "commits": [],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.5",
+  "epic_id": "cub-048a-0",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "",
+  "harness_model": "",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

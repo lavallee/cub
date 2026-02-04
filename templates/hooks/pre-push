@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#
+# pre-push hook - Verify counter state before pushing
+#
+# This hook prevents ID collisions by checking that locally-used
+# spec/standalone numbers don't conflict with the remote sync branch.
+#
+# Installed by: cub init
+# Bypass: git push --no-verify (NOT RECOMMENDED)
+
+set -e
+
+# Check if we're in a cub project
+if [[ ! -d ".cub" ]]; then
+    # Not a cub project, skip verification
+    exit 0
+fi
+
+# Check if Python is available
+if ! command -v python >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+    echo "Warning: Python not found, skipping counter verification" >&2
+    exit 0
+fi
+
+# Determine Python command
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_CMD=python3
+else
+    PYTHON_CMD=python
+fi
+
+# Run the verification check
+$PYTHON_CMD -c "
+import sys
+from pathlib import Path
+
+# Add project to path if needed
+project_dir = Path.cwd()
+
+try:
+    from cub.core.ids.hooks import verify_counters_before_push
+
+    # Run verification
+    ok, message = verify_counters_before_push()
+
+    if not ok:
+        print(message, file=sys.stderr)
+        sys.exit(1)
+
+    # Success - allow push
+    sys.exit(0)
+
+except ImportError:
+    # cub not installed or not importable, skip verification
+    print('Warning: Could not import cub, skipping counter verification', file=sys.stderr)
+    sys.exit(0)
+
+except Exception as e:
+    # Unexpected error - warn but allow push
+    print(f'Warning: Counter verification failed: {e}', file=sys.stderr)
+    sys.exit(0)
+"
+
+exit $?
