@@ -31,6 +31,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from cub.core.sync.models import CounterState
@@ -103,6 +104,169 @@ def read_counters(sync_service: SyncService) -> CounterState:
             "Failed to parse counters.json from sync branch: %s. Using defaults.", e
         )
         return CounterState()
+
+
+def counters_exist(sync_service: SyncService) -> bool:
+    """
+    Check if counters.json exists on the sync branch.
+
+    Args:
+        sync_service: The SyncService instance to check.
+
+    Returns:
+        True if counters.json exists on the sync branch, False otherwise.
+    """
+    if not sync_service.is_initialized():
+        return False
+
+    content = sync_service._get_file_from_ref(sync_service.branch_name, COUNTERS_FILE)
+    return content is not None
+
+
+def ensure_counters(
+    sync_service: SyncService,
+    project_dir: Path | None = None,
+) -> CounterState:
+    """
+    Ensure counters.json exists on the sync branch, creating if needed.
+
+    If counters don't exist, scans local tasks to find the maximum used
+    spec and standalone numbers, then initializes counters to max+1 to
+    avoid ID collisions.
+
+    This should be called during:
+    - `cub sync init` (after creating the sync branch)
+    - `cub init` (if sync branch exists but counters don't)
+
+    Args:
+        sync_service: The SyncService instance.
+        project_dir: Project directory for scanning tasks (defaults to cwd).
+
+    Returns:
+        The current (or newly created) CounterState.
+
+    Raises:
+        RuntimeError: If sync branch is not initialized.
+
+    Example:
+        >>> sync = SyncService()
+        >>> sync.initialize()
+        >>> counters = ensure_counters(sync)
+        >>> print(f"Next spec: {counters.spec_number}")
+    """
+    if not sync_service.is_initialized():
+        raise RuntimeError(
+            f"Sync branch '{sync_service.branch_name}' not initialized. "
+            "Call sync_service.initialize() first."
+        )
+
+    # Check if counters already exist
+    content = sync_service._get_file_from_ref(sync_service.branch_name, COUNTERS_FILE)
+    if content is not None:
+        try:
+            return CounterState.model_validate_json(content)
+        except (json.JSONDecodeError, ValueError):
+            pass  # Fall through to create new counters
+
+    # Counters don't exist - scan local tasks to find max IDs
+    project_path = (project_dir or Path.cwd()).resolve()
+    max_spec, max_standalone = _scan_local_task_ids(project_path)
+
+    # Initialize counters to max+1 (or 0 if no tasks)
+    state = CounterState(
+        spec_number=(max_spec + 1) if max_spec is not None else 0,
+        standalone_task_number=(max_standalone + 1) if max_standalone is not None else 0,
+    )
+
+    logger.info(
+        "Initializing counters: spec=%d, standalone=%d",
+        state.spec_number,
+        state.standalone_task_number,
+    )
+
+    # Commit counters to sync branch
+    _commit_counters(sync_service, state, "Initialize counters")
+
+    return state
+
+
+def _scan_local_task_ids(project_dir: Path) -> tuple[int | None, int | None]:
+    """
+    Scan local tasks to find maximum used spec and standalone numbers.
+
+    This is used during counter initialization to set starting values
+    that won't conflict with existing task IDs.
+
+    Args:
+        project_dir: Project directory containing .cub/tasks.jsonl.
+
+    Returns:
+        Tuple of (max_spec_number, max_standalone_number).
+        Returns (None, None) if no tasks found.
+    """
+    from cub.core.ids.parser import parse_id
+
+    tasks_file = project_dir / ".cub" / "tasks.jsonl"
+
+    if not tasks_file.exists():
+        logger.debug("No tasks.jsonl found at %s", tasks_file)
+        return (None, None)
+
+    max_spec: int | None = None
+    max_standalone: int | None = None
+
+    try:
+        with tasks_file.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+
+                try:
+                    task = json.loads(line)
+                    task_id = task.get("id")
+                    if not task_id:
+                        continue
+
+                    # Try to parse the ID
+                    parsed_id = parse_id(task_id)
+
+                    # Check if it's a spec-based ID (EpicId or TaskId)
+                    spec_num = None
+                    if hasattr(parsed_id, "plan"):
+                        # It's an EpicId: plan.spec.number
+                        if hasattr(parsed_id.plan, "spec"):
+                            spec_num = parsed_id.plan.spec.number
+                    elif hasattr(parsed_id, "epic"):
+                        # It's a TaskId: epic.plan.spec.number
+                        if hasattr(parsed_id.epic, "plan"):
+                            if hasattr(parsed_id.epic.plan, "spec"):
+                                spec_num = parsed_id.epic.plan.spec.number
+
+                    if spec_num is not None:
+                        if max_spec is None or spec_num > max_spec:
+                            max_spec = spec_num
+
+                    # Check if it's a standalone ID
+                    if hasattr(parsed_id, "project") and hasattr(parsed_id, "number"):
+                        if not hasattr(parsed_id, "plan") and not hasattr(parsed_id, "epic"):
+                            standalone_num = parsed_id.number
+                            if max_standalone is None or standalone_num > max_standalone:
+                                max_standalone = standalone_num
+
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+    except OSError as e:
+        logger.warning("Failed to read tasks file: %s", e)
+        return (None, None)
+
+    logger.debug(
+        "Local task scan: max_spec=%s, max_standalone=%s",
+        max_spec,
+        max_standalone,
+    )
+    return (max_spec, max_standalone)
 
 
 def _commit_counters(sync_service: SyncService, state: CounterState, message: str) -> str:

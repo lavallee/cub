@@ -26,8 +26,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from cub.core.ids.counters import COUNTERS_FILE
-from cub.core.ids.parser import parse_id
+from cub.core.ids.counters import COUNTERS_FILE, _scan_local_task_ids
 from cub.core.sync.models import CounterState
 from cub.core.sync.service import SyncService
 
@@ -282,89 +281,6 @@ def _read_remote_counters(
         logger.warning(f"Failed to parse remote counters: {e}")
         # Can't parse - return None to skip verification
         return None
-
-
-def _scan_local_task_ids(project_dir: Path) -> tuple[int | None, int | None]:
-    """
-    Scan local tasks to find maximum used spec and standalone numbers.
-
-    Reads .cub/tasks.jsonl and extracts the maximum spec number and
-    standalone task number that have been used locally.
-
-    Args:
-        project_dir: Project directory
-
-    Returns:
-        Tuple of (max_spec_number, max_standalone_number)
-        Returns (None, None) if no tasks found or file doesn't exist
-    """
-    tasks_file = project_dir / ".cub" / "tasks.jsonl"
-
-    if not tasks_file.exists():
-        logger.debug("No tasks.jsonl found")
-        return (None, None)
-
-    max_spec: int | None = None
-    max_standalone: int | None = None
-
-    try:
-        with tasks_file.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-
-                try:
-                    import json
-
-                    task = json.loads(line)
-                    task_id = task.get("id")
-                    if not task_id:
-                        continue
-
-                    # Try to parse the ID
-                    parsed_id = parse_id(task_id)
-
-                    # Check if it's a spec-based ID (EpicId or TaskId)
-                    # EpicId has: plan.spec.number
-                    # TaskId has: epic.plan.spec.number
-                    spec_num = None
-                    if hasattr(parsed_id, "plan"):
-                        # It's an EpicId: plan.spec.number
-                        if hasattr(parsed_id.plan, "spec"):
-                            spec_num = parsed_id.plan.spec.number
-                    elif hasattr(parsed_id, "epic"):
-                        # It's a TaskId: epic.plan.spec.number
-                        if hasattr(parsed_id.epic, "plan"):
-                            if hasattr(parsed_id.epic.plan, "spec"):
-                                spec_num = parsed_id.epic.plan.spec.number
-
-                    if spec_num is not None:
-                        if max_spec is None or spec_num > max_spec:
-                            max_spec = spec_num
-
-                    # Check if it's a standalone ID
-                    # StandaloneTaskId has: project, number
-                    if hasattr(parsed_id, "project") and hasattr(parsed_id, "number"):
-                        # Check it's not a SpecId (which also has project and number)
-                        if not hasattr(parsed_id, "plan") and not hasattr(parsed_id, "epic"):
-                            standalone_num = parsed_id.number
-                            if max_standalone is None or standalone_num > max_standalone:
-                                max_standalone = standalone_num
-
-                except (json.JSONDecodeError, ValueError) as e:
-                    # Skip invalid lines
-                    logger.debug(f"Skipping invalid task line: {e}")
-                    continue
-
-    except OSError as e:
-        logger.warning(f"Failed to read tasks file: {e}")
-        return (None, None)
-
-    logger.debug(
-        f"Local task scan: max_spec={max_spec}, max_standalone={max_standalone}"
-    )
-    return (max_spec, max_standalone)
 
 
 class GitError(Exception):

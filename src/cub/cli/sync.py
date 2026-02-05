@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cub.cli.errors import ExitCode, print_sync_not_initialized_error
+from cub.core.ids.counters import ensure_counters
 from cub.core.sync import SyncService, SyncStatus
 from cub.core.sync.service import GitError
 
@@ -231,6 +232,14 @@ def init(
 
         console.print(f"[blue]Initializing sync branch: {branch_name}[/blue]")
         sync_service.initialize()
+
+        # Initialize counters (scans existing tasks to avoid ID collisions)
+        counters = ensure_counters(sync_service)
+        if counters.spec_number > 0 or counters.standalone_task_number > 0:
+            console.print(
+                f"[dim]Initialized counters from existing tasks: "
+                f"spec={counters.spec_number}, standalone={counters.standalone_task_number}[/dim]"
+            )
 
         console.print(f"[green]✓[/green] Initialized sync branch: {branch_name}")
         console.print(
