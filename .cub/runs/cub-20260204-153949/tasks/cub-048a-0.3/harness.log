@@ -1,0 +1,40 @@
+Let me adjust the path and explore the project structure:Now let me check if there's an existing sync service and models to understand the infrastructure:Now I have a good understanding of the existing code. Let me also check the tasks file and look at the tests:Now I have a comprehensive understanding of the codebase. Let me set up the task tracking and start implementing:Good, I can see that task cub-048a-0.3 is marked as in_progress. Now let me implement the solution. First, I'll add the `CounterState` model to `src/cub/core/sync/models.py`:Now update the `__init__.py` to export `CounterState`:Now let me create the `counters.py` module with all the counter operations:Now update the `src/cub/core/ids/__init__.py` to export the counter functions:Now let's create comprehensive tests for the counter operations:Now let's run the feedback loops - type checking, tests, and linting:All 27 tests pass. Now let's run the linter:Let me fix these linting issues:Now also remove the unused import:Now fix the line-too-long issues in models.py:Now let's run the linter again to verify all issues are fixed:All linting checks pass. Now let's run the tests again to make sure everything still works:Excellent! All 102 tests pass (27 new counter tests + 75 existing sync service tests). Let's run the full type check to ensure everything is consistent:Type checking passed with no output. Let me run the complete project test suite to make sure nothing was broken:All 5371 tests pass. Now let me update the task file to close the task:Now let's commit the changes:The task has been completed and committed. Let me verify the task is closed:The task `cub-048a-0.3` is now closed. Here's a summary of what was implemented:
+
+## Summary
+
+Successfully implemented counter management on the sync branch for task `cub-048a-0.3`. 
+
+### Files Created/Modified:
+
+1. **`src/cub/core/sync/models.py`** - Added `CounterState` model with:
+   - `spec_number`: Next available spec number (0-indexed)
+   - `standalone_task_number`: Next available standalone task number
+   - `updated_at`: Timestamp of last counter update
+   - `increment_spec_number()` and `increment_standalone_number()` methods
+
+2. **`src/cub/core/ids/counters.py`** - New module with:
+   - `read_counters(sync_service)`: Read counter state from sync branch (local, no network)
+   - `allocate_spec_number(sync_service)`: Allocate next spec number with optimistic locking
+   - `allocate_standalone_number(sync_service)`: Allocate next standalone number
+   - `CounterAllocationError`: Exception for allocation failures
+   - Auto-initialization when `counters.json` doesn't exist
+   - Retry logic with exponential backoff for concurrent allocations
+
+3. **`src/cub/core/sync/__init__.py`** - Exported `CounterState`
+
+4. **`src/cub/core/ids/__init__.py`** - Exported counter functions
+
+5. **`tests/test_counters.py`** - Comprehensive test suite with 27 tests covering:
+   - CounterState model validation
+   - Reading counters from sync branch
+   - Allocating spec and standalone numbers
+   - Handling missing/corrupted counters.json
+   - Retry logic
+   - Persistence and file preservation
+
+### Acceptance Criteria Met:
+- `CounterState` model has `spec_number`, `standalone_task_number`, `updated_at`
+- `allocate_spec_number()` increments counter and commits to sync branch
+- Concurrent allocations protected by optimistic locking with retries
+- Missing `counters.json` is auto-initialized with defaults
+- Counter reads don't require network (use local sync branch state)

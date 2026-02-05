@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-3.3",
+  "title": "Integrate lifecycle hooks into run loop",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T17:25:45.133028",
+  "completed_at": "2026-02-04T17:25:45.133031",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 284.74651885032654
+}

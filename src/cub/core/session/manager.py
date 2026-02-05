@@ -30,7 +30,7 @@ class RunSessionManager:
     abandoned ones.
 
     Directory structure:
-        .cub/run-sessions/
+        .cub/ledger/by-run/
         ├── cub-20260124-143022.json
         ├── cub-20260124-150315.json
         └── active-run.json -> cub-20260124-150315.json
@@ -42,7 +42,7 @@ class RunSessionManager:
         >>> manager.end_session(session.run_id)
     """
 
-    SESSIONS_DIR = "run-sessions"
+    SESSIONS_DIR = "ledger/by-run"
     ACTIVE_SYMLINK = "active-run.json"
 
     def __init__(self, cub_dir: Path) -> None:
@@ -57,7 +57,7 @@ class RunSessionManager:
         self.active_symlink_path = self.sessions_dir / self.ACTIVE_SYMLINK
 
     def _ensure_sessions_dir(self) -> None:
-        """Ensure run-sessions directory exists."""
+        """Ensure ledger/by-run directory exists."""
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_session_file_path(self, run_id: str) -> Path:

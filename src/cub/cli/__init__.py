@@ -12,7 +12,6 @@ from rich.console import Console
 from cub import __version__
 from cub.cli import (
     audit,
-    build_plan,
     capture,
     captures,
     dashboard,
@@ -21,6 +20,7 @@ from cub.cli import (
     doctor,
     hooks,
     init_cmd,
+    learn,
     ledger,
     map,
     merge,
@@ -31,6 +31,8 @@ from cub.cli import (
     pr,
     punchlist,
     reconcile,
+    release,
+    retro,
     review,
     routes,
     run,
@@ -47,6 +49,7 @@ from cub.cli import (
     uninstall,
     update,
     upgrade,
+    verify,
     workbench,
     workflow,
     worktree,
@@ -224,7 +227,6 @@ app.add_typer(worktree.app, name="worktree", rich_help_panel=PANEL_EPICS)
 app.command(name="checkpoints", rich_help_panel=PANEL_EPICS)(delegated.checkpoints)
 app.add_typer(pr.app, name="pr", rich_help_panel=PANEL_EPICS)
 app.add_typer(merge.app, name="merge", rich_help_panel=PANEL_EPICS)
-app.command(name="build-plan", rich_help_panel=PANEL_EPICS)(build_plan.main)
 
 
 # =============================================================================
@@ -233,6 +235,8 @@ app.command(name="build-plan", rich_help_panel=PANEL_EPICS)(build_plan.main)
 
 app.command(name="guardrails", rich_help_panel=PANEL_PROJECT)(delegated.guardrails)
 app.add_typer(audit.app, name="audit", rich_help_panel=PANEL_PROJECT)
+app.add_typer(verify.app, name="verify", rich_help_panel=PANEL_PROJECT)
+app.add_typer(learn.app, name="learn", rich_help_panel=PANEL_PROJECT)
 app.command(name="map", rich_help_panel=PANEL_PROJECT)(map.main)
 app.add_typer(routes.app, name="routes", rich_help_panel=PANEL_PROJECT)
 
@@ -249,6 +253,8 @@ app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
+app.add_typer(release.app, name="release", rich_help_panel=PANEL_ROADMAP)
+app.add_typer(retro.app, name="retro", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_ROADMAP)
 app.add_typer(workbench.app, name="workbench", rich_help_panel=PANEL_ROADMAP)

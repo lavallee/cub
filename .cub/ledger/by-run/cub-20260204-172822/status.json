@@ -1,0 +1,191 @@
+{
+  "run_id": "cub-20260204-172822",
+  "session_name": "cub-20260204-172822",
+  "started_at": "2026-02-04T17:28:22.108298",
+  "updated_at": "2026-02-04T18:00:25.759594",
+  "completed_at": "2026-02-04T18:00:25.758926",
+  "epic": "cub-048a-4",
+  "label": null,
+  "branch": "feature/cub-048-ledger-consolidation-and-id-system",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 153965,
+    "tokens_limit": 500000,
+    "cost_usd": 10.41667445,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": 30.793,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 58,
+  "tasks_in_progress": 0,
+  "tasks_closed": 99,
+  "tasks_total": 157,
+  "task_entries": [
+    {
+      "task_id": "cub-048a-4.1",
+      "title": "Implement cub release command",
+      "state": "done",
+      "started_at": "2026-02-04T17:28:22.120762",
+      "completed_at": "2026-02-04T17:34:58.182619"
+    },
+    {
+      "task_id": "cub-048a-4.2",
+      "title": "Implement cub retro command",
+      "state": "done",
+      "started_at": "2026-02-04T17:35:07.625146",
+      "completed_at": "2026-02-04T17:40:17.073014"
+    },
+    {
+      "task_id": "cub-048a-4.3",
+      "title": "Implement cub verify command",
+      "state": "done",
+      "started_at": "2026-02-04T17:40:27.620997",
+      "completed_at": "2026-02-04T17:47:31.896947"
+    },
+    {
+      "task_id": "cub-048a-4.4",
+      "title": "Implement cub learn extract command",
+      "state": "done",
+      "started_at": "2026-02-04T17:47:40.465194",
+      "completed_at": "2026-02-04T17:54:50.300198"
+    },
+    {
+      "task_id": "cub-048a-4.5",
+      "title": "Implement cub sync agent command",
+      "state": "done",
+      "started_at": "2026-02-04T17:54:59.439327",
+      "completed_at": "2026-02-04T18:00:15.696409"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-04T17:28:22.115129",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:28:22.120777",
+      "level": "info",
+      "message": "Starting task: Implement cub release command",
+      "task_id": "cub-048a-4.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:34:58.182645",
+      "level": "info",
+      "message": "Task completed: Implement cub release command",
+      "task_id": "cub-048a-4.1",
+      "metadata": {
+        "duration": 396.0340311527252,
+        "tokens": 19819
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:35:07.625160",
+      "level": "info",
+      "message": "Starting task: Implement cub retro command",
+      "task_id": "cub-048a-4.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:40:17.073033",
+      "level": "info",
+      "message": "Task completed: Implement cub retro command",
+      "task_id": "cub-048a-4.2",
+      "metadata": {
+        "duration": 309.36644315719604,
+        "tokens": 23531
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:40:27.621011",
+      "level": "info",
+      "message": "Starting task: Implement cub verify command",
+      "task_id": "cub-048a-4.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:47:31.896966",
+      "level": "info",
+      "message": "Task completed: Implement cub verify command",
+      "task_id": "cub-048a-4.3",
+      "metadata": {
+        "duration": 424.24766659736633,
+        "tokens": 21503
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:47:40.465207",
+      "level": "info",
+      "message": "Starting task: Implement cub learn extract command",
+      "task_id": "cub-048a-4.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:54:50.300218",
+      "level": "info",
+      "message": "Task completed: Implement cub learn extract command",
+      "task_id": "cub-048a-4.4",
+      "metadata": {
+        "duration": 429.8087019920349,
+        "tokens": 46106
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:54:59.439341",
+      "level": "info",
+      "message": "Starting task: Implement cub sync agent command",
+      "task_id": "cub-048a-4.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:00:15.696431",
+      "level": "info",
+      "message": "Task completed: Implement cub sync agent command",
+      "task_id": "cub-048a-4.5",
+      "metadata": {
+        "duration": 316.2289617061615,
+        "tokens": 43006
+      }
+    },
+    {
+      "timestamp": "2026-02-04T18:00:23.703779",
+      "level": "info",
+      "message": "Epic 'cub-048a-4' auto-closed (5 tasks completed)",
+      "task_id": "cub-048a-4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T18:00:25.758959",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 58,
+  "completion_percentage": 63.05732484076433,
+  "duration_seconds": 1923.650628
+}

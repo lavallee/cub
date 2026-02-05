@@ -322,8 +322,8 @@ def test_update_active_symlink_atomic_replacement(manager: RunSessionManager) ->
 def test_read_session_invalid_json(manager: RunSessionManager, cub_dir: Path) -> None:
     """Test reading session with invalid JSON raises error."""
     # Create invalid session file
-    sessions_dir = cub_dir / "run-sessions"
-    sessions_dir.mkdir(exist_ok=True)
+    sessions_dir = cub_dir / "ledger" / "by-run"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
     invalid_file = sessions_dir / "cub-20260124-000000.json"
     invalid_file.write_text("{ invalid json }")
 

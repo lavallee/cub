@@ -42,6 +42,9 @@ class RunConfig:
         task_id: Run a specific task by ID (skip task selection).
         epic: Only work on tasks in this epic.
         label: Only work on tasks with this label.
+        plan: Plan slug to execute (iterates through all epics in plan).
+        start_epic: Start plan execution from this epic (skip earlier ones).
+        only_epic: Only execute this specific epic within the plan.
         model: Model override (e.g., "sonnet", "opus").
         harness_name: Resolved harness name.
         session_name: Session name for tracking (auto-generated if None).
@@ -68,6 +71,11 @@ class RunConfig:
     task_id: str | None = None
     epic: str | None = None
     label: str | None = None
+
+    # Plan execution mode
+    plan: str | None = None
+    start_epic: str | None = None
+    only_epic: str | None = None
 
     # Harness configuration
     model: str | None = None
@@ -119,6 +127,13 @@ class RunEventType(str, Enum):
     RUN_COMPLETED = "run_completed"
     RUN_FAILED = "run_failed"
     RUN_STOPPED = "run_stopped"
+
+    # Plan execution events
+    PLAN_STARTED = "plan_started"
+    PLAN_COMPLETED = "plan_completed"
+    PLAN_EPIC_STARTED = "plan_epic_started"
+    PLAN_EPIC_COMPLETED = "plan_epic_completed"
+    PLAN_EPIC_SKIPPED = "plan_epic_skipped"
 
     # Iteration events
     ITERATION_STARTED = "iteration_started"

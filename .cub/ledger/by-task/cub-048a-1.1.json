@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "cub-048a-1.1",
+  "title": "Add PlanEntry and RunEntry models",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-1"
+  },
+  "task": {
+    "title": "Add PlanEntry and RunEntry models",
+    "description": "The ledger needs new models for plan-level and run-level aggregation. These complement the existing `LedgerEntry` and `EpicEntry` models.\n\n**Implementation Steps:**\n1. Add `PlanEntry` model to `src/cub/core/ledger/models.py`\n2. Add `RunEntry` model to `src/cub/core/ledger/models.py`\n3. Ensure models have all fields from architecture spec\n4. Add `model_config` for JSON serialization compatibility\n5. Export new models from package `__init__.py`\n\n**Files:** `src/cub/core/ledger/models.py`, `src/cub/core/ledger/__init__.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-2",
+      "model:sonnet",
+      "complexity:low",
+      "domain:model"
+    ],
+    "created_at": "2026-02-04T15:37:04.560609",
+    "captured_at": "2026-02-04T21:18:52.096259Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-161852",
+      "started_at": "2026-02-04T16:18:52.105597",
+      "completed_at": "2026-02-04T21:21:48.120867Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 186,
+        "output_tokens": 7682,
+        "cache_read_tokens": 1140045,
+        "cache_creation_tokens": 44189
+      },
+      "cost_usd": 0.6536362500000003,
+      "duration_seconds": 176
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:21:48.159627Z",
+    "total_cost_usd": 0.6536362500000003,
+    "total_attempts": 1,
+    "total_duration_seconds": 176,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a4475e7e3a2a58a8a805c356be08ffbaf5e81585",
+        "message": "task(cub-048a-1.1): Add PlanEntry and RunEntry models",
+        "author": "",
+        "timestamp": "2026-02-04T21:21:34Z"
+      }
+    ],
+    "approach": "The assistant examined the existing ledger models to understand the current architecture, then read the detailed architecture specification to identify all required fields for PlanEntry and RunEntry. It systematically implemented both models with proper type annotations, validation via Literal types, and JSON serialization configuration, then validated the implementation through type checking, import verification, and the full test suite.",
+    "decisions": [
+      "Used `Literal` types for status fields to enforce valid values at the type level rather than runtime validation, providing compile-time safety",
+      "Included `model_config` in both models for JSON serialization compatibility, ensuring consistent serialization behavior across the ledger package",
+      "Designed both models with computed properties (e.g., `completion_percentage`, `duration_seconds`, `success_rate`) as methods rather than stored fields to avoid data duplication and keep the core fields as the single source of truth",
+      "Made the `config` field in RunEntry a generic `dict[str, Any]` to allow flexibility for different run configurations without forcing a specific schema"
+    ],
+    "lessons_learned": [
+      "When implementing models that aggregate data, computed properties (methods) are preferable to stored fields\u2014they ensure calculations stay in sync with source data and reduce serialization complexity",
+      "Literal types in Pydantic v2 provide both type safety and runtime validation, making them ideal for constrained enum-like fields that should have meaningful values",
+      "The test suite should be run early and broadly to catch issues; in this case, all 122 tests passing confirmed the models integrate correctly with the existing ledger architecture"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:21:48.159627Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:18:52.096259Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:21:48.159627Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:18:52.096259Z",
+  "completed_at": "2026-02-04T21:21:48.159627Z",
+  "tokens": {
+    "input_tokens": 186,
+    "output_tokens": 7682,
+    "cache_read_tokens": 1140045,
+    "cache_creation_tokens": 44189
+  },
+  "cost_usd": 0.6536362500000003,
+  "duration_seconds": 176,
+  "iterations": 1,
+  "approach": "The assistant examined the existing ledger models to understand the current architecture, then read the detailed architecture specification to identify all required fields for PlanEntry and RunEntry. It systematically implemented both models with proper type annotations, validation via Literal types, and JSON serialization configuration, then validated the implementation through type checking, import verification, and the full test suite.",
+  "decisions": [
+    "Used `Literal` types for status fields to enforce valid values at the type level rather than runtime validation, providing compile-time safety",
+    "Included `model_config` in both models for JSON serialization compatibility, ensuring consistent serialization behavior across the ledger package",
+    "Designed both models with computed properties (e.g., `completion_percentage`, `duration_seconds`, `success_rate`) as methods rather than stored fields to avoid data duplication and keep the core fields as the single source of truth",
+    "Made the `config` field in RunEntry a generic `dict[str, Any]` to allow flexibility for different run configurations without forcing a specific schema"
+  ],
+  "lessons_learned": [
+    "When implementing models that aggregate data, computed properties (methods) are preferable to stored fields\u2014they ensure calculations stay in sync with source data and reduce serialization complexity",
+    "Literal types in Pydantic v2 provide both type safety and runtime validation, making them ideal for constrained enum-like fields that should have meaningful values",
+    "The test suite should be run early and broadly to catch issues; in this case, all 122 tests passing confirmed the models integrate correctly with the existing ledger architecture"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "a4475e7e3a2a58a8a805c356be08ffbaf5e81585",
+      "message": "task(cub-048a-1.1): Add PlanEntry and RunEntry models",
+      "author": "",
+      "timestamp": "2026-02-04T21:21:34Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-1.1",
+  "epic_id": "cub-048a-1",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

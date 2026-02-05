@@ -1,0 +1,62 @@
+I'll implement the pre-push hook and update the cub init command to install it. Let me start by reading the current state of the relevant files and understanding the codebase structure.Let me read the counters module to understand the sync branch and counter logic:Let me check the existing cub-hook.sh script and the sync service to understand the implementation:Now let me update the tasks.jsonl to mark the task as in_progress and understand the structure better:Good! The task is already marked as in_progress. Now let me check if there's an existing pre-push hook setup and understand the git hook structure:Now let me read more about CounterState to understand the structure:Good! Now let me read the full CounterState class:Perfect! Now I have a good understanding. Let me create the implementation. I'll start by creating the hooks.py module with the verification logic, then create the pre-push hook template, and finally update the init_cmd.py to install it.Now let me create the pre-push hook template in the templates directory:Now let me update the `init_cmd.py` to install the pre-push hook. I'll add a function to install the pre-push hook and call it during the init process:Now I'll add a function to install the pre-push hook and integrate it into the init sequence. Let me insert it after the helper functions section:Now let me add the call to install the pre-push hook in the init_project function. I'll add it after the statusline installation:Now I need to add the logging import at the top of the file since I'm using it in the new function:I need to add logging import:Now I need to add the logger instance after the console definition:Perfect! Now let me create tests for the hook functionality. First, let me check what test files already exist:Let me create comprehensive tests for the hooks module:Now let me create a test for the init command to ensure the pre-push hook is installed:Now let me run the tests to see if they pass:I need to debug the _scan_local_task_ids function. Let me check what the parser returns for these IDs:I see the issue. The IDs don't have a `spec` attribute directly. Let me check the actual structure:Now I understand. The EpicId has a `plan` attribute which has a `spec` attribute. Let me fix the _scan_local_task_ids function:Now let me run the tests again:Great! Now let me run all the hook tests:Perfect! All tests pass. Now let me run the full feedback loop (typecheck, tests, lint) to ensure everything is working:I need to fix the type annotation in the _read_remote_counters function:I need to add the import at the top:Now I need to remove the duplicate import inside the function:Also need to remove the other local import:Now let's run the typecheck again:Great! Now let's run the tests for the entire ids module to make sure we didn't break anything:Excellent! Now let's run a broader test to make sure we didn't break anything else:Perfect! All tests pass. Now let's run lint check:Let me fix these lint issues:Now fix the line length issue:Now let's run lint again:Ah, I removed the local_counters usage but we still don't use it in the function. Actually, we don't need to read local counters since we're just scanning the tasks. Let me remove that:Now run lint again:Let me remove the unused import:Now run lint again:Great! Now let's run the full feedback loops (typecheck, tests, lint) on the entire project to make sure everything is working:Perfect! Now let's update the task status to closed and commit our changes:Perfect! Now let me verify the task is closed and commit the changes:Let me try a simpler check:Let me just check the file directly:Let me check if the task exists in the file:Let me check the epic to see the format:Let me search for the task more carefully:Perfect! The task is closed. Now let's commit the changes:Perfect! Now let's commit:Excellent! The task is complete. Let me verify the commit:Perfect! The task has been completed successfully. Let me provide a summary:
+
+## Task Completed: cub-048a-0.5
+
+I've successfully implemented the pre-push hook and updated `cub init` to install it. Here's what was accomplished:
+
+### Files Created:
+
+1. **`src/cub/core/ids/hooks.py`** (370 lines)
+   - `verify_counters_before_push()`: Main verification logic that checks local vs remote counters
+   - `format_hook_message()`: Formats user-friendly error messages with resolution steps
+   - `_scan_local_task_ids()`: Scans `.cub/tasks.jsonl` to find max used spec/standalone numbers
+   - `_read_remote_counters()`: Reads counter state from remote sync branch
+   - `_fetch_remote_sync_branch()`: Fetches latest remote sync branch
+
+2. **`templates/hooks/pre-push`** (64 lines)
+   - Shell script that calls Python verification
+   - Gracefully skips if cub not installed or sync branch not initialized
+   - Returns non-zero exit code on conflicts to block push
+   - Documents `--no-verify` bypass option
+
+3. **`tests/core/ids/test_hooks.py`** (366 lines)
+   - 15 comprehensive tests covering:
+     - No sync branch allows push
+     - No remote allows push
+     - No conflicts allows push
+     - Spec conflicts block push
+     - Standalone conflicts block push
+     - Both conflicts block push
+     - Message formatting
+     - Task ID scanning (empty, spec-based, standalone, mixed, invalid lines)
+
+4. **`tests/cli/test_init_hook.py`** (146 lines)
+   - 6 tests covering:
+     - Hook installation
+     - Skip if exists (non-force)
+     - Overwrite with force
+     - Skip reinstall of cub hook
+     - Handle missing .git directory
+     - Hook is executable
+
+### Files Modified:
+
+1. **`src/cub/cli/init_cmd.py`**
+   - Added `_install_pre_push_hook()` function
+   - Integrated hook installation into `init_project()` (step 9.5)
+   - Makes hook executable (chmod 0o755)
+   - Skips if hook already exists (unless --force)
+   - Warns if non-cub hook exists
+
+### Verification:
+
+✅ All 21 new tests pass  
+✅ All 5,437 existing tests pass  
+✅ Type checking passes (mypy)  
+✅ Linting passes (ruff)  
+✅ Task marked as closed in `.cub/tasks.jsonl`  
+✅ Changes committed with proper message
+
+The pre-push hook is now fully functional and will be installed automatically by `cub init` to prevent ID collisions before pushing to remote.
+
+<promise>COMPLETE</promise>

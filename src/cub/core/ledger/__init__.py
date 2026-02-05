@@ -33,7 +33,13 @@ Example:
     57000
 """
 
+from cub.core.ledger.artifacts import ArtifactManager
 from cub.core.ledger.extractor import InsightExtraction, extract_insights
+from cub.core.ledger.harness_log import (
+    HarnessLogEvent,
+    HarnessLogReader,
+    HarnessLogWriter,
+)
 from cub.core.ledger.integration import LedgerIntegration
 from cub.core.ledger.models import (
     Attempt,
@@ -48,6 +54,8 @@ from cub.core.ledger.models import (
     LedgerStats,
     Lineage,
     Outcome,
+    PlanEntry,
+    RunEntry,
     StateTransition,
     TaskChanged,
     TaskSnapshot,
@@ -70,6 +78,8 @@ __all__ = [
     "CommitRef",
     "EpicSummary",
     "LedgerStats",
+    "PlanEntry",
+    "RunEntry",
     # CI monitoring models
     "CICheckRecord",
     "CIMonitorSummary",
@@ -91,6 +101,12 @@ __all__ = [
     "LedgerReader",
     # Writer
     "LedgerWriter",
+    # Artifacts
+    "ArtifactManager",
+    # Harness log
+    "HarnessLogEvent",
+    "HarnessLogWriter",
+    "HarnessLogReader",
     # Integration
     "LedgerIntegration",
     "SessionLedgerIntegration",

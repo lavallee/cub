@@ -904,3 +904,426 @@ class SyncService:
         except GitError:
             # merge-base failed - branches likely have no common history
             return SyncStatus.DIVERGED
+
+    # Agent.md managed section sync methods
+
+    MANAGED_SECTION_START = "<!-- BEGIN CUB MANAGED SECTION"
+    MANAGED_SECTION_END = "<!-- END CUB MANAGED SECTION -->"
+    AGENT_FILES = ["agent.md", "AGENT.md", "AGENTS.md", "CLAUDE.md"]
+
+    def _find_agent_file(self, ref: str | None = None) -> str | None:
+        """
+        Find which agent.md variant exists.
+
+        Args:
+            ref: Git ref to check (None for working tree).
+
+        Returns:
+            Filename if found, None otherwise.
+        """
+        if ref is None:
+            # Check working tree
+            cub_dir = self.project_dir / ".cub"
+            for filename in self.AGENT_FILES:
+                path = cub_dir / filename
+                if path.exists():
+                    return str(cub_dir / filename)
+            return None
+        else:
+            # Check git ref
+            for filename in self.AGENT_FILES:
+                file_path = f".cub/{filename}"
+                content = self._get_file_from_ref(ref, file_path)
+                if content is not None:
+                    return file_path
+            return None
+
+    def _parse_managed_sections(self, content: str) -> dict[str, tuple[str, int, int]]:
+        """
+        Parse managed sections from agent.md content.
+
+        Returns:
+            Dict mapping section version to (content, start_pos, end_pos) tuple.
+        """
+        sections: dict[str, tuple[str, int, int]] = {}
+        lines = content.splitlines(keepends=True)
+        i = 0
+
+        while i < len(lines):
+            line = lines[i]
+
+            # Look for section start marker
+            if self.MANAGED_SECTION_START in line:
+                # Extract version from marker (e.g., "v1")
+                version = "v1"  # default
+                if " v" in line:
+                    # Extract version: "<!-- BEGIN CUB MANAGED SECTION v1 -->"
+                    # Split by " v" and take everything after until " " or "-->"
+                    version_part = line.split(" v")[-1].strip()
+                    # Remove trailing " -->" if present
+                    version_part = version_part.rstrip("-->").strip()
+                    if version_part:
+                        version = "v" + version_part
+
+                start_line = i
+                i += 1
+
+                # Skip optional sha256 line
+                if i < len(lines) and "sha256:" in lines[i]:
+                    i += 1
+
+                # Find end marker
+                section_lines: list[str] = []
+                while i < len(lines):
+                    if self.MANAGED_SECTION_END in lines[i]:
+                        # Found end marker
+                        section_content = "".join(section_lines)
+
+                        # Calculate positions in original content
+                        start_pos = sum(len(lines[j]) for j in range(start_line))
+                        end_pos = sum(len(lines[j]) for j in range(i + 1))
+
+                        sections[version] = (section_content, start_pos, end_pos)
+                        break
+                    else:
+                        section_lines.append(lines[i])
+                        i += 1
+
+            i += 1
+
+        return sections
+
+    def _inject_managed_sections(
+        self,
+        content: str,
+        sections: dict[str, tuple[str, int, int]],
+    ) -> str:
+        """
+        Inject managed sections into content, replacing existing sections.
+
+        Args:
+            content: Base content to inject into.
+            sections: Dict mapping version to (new_content, _, _) - positions ignored.
+
+        Returns:
+            Modified content with sections replaced.
+        """
+        # Parse existing sections to find positions
+        existing_sections = self._parse_managed_sections(content)
+
+        # Build replacement map: version -> new content
+        replacements: dict[str, str] = {}
+        for version, (new_content, _, _) in sections.items():
+            replacements[version] = new_content
+
+        # Apply replacements in reverse order (by position) to preserve indices
+        result = content
+        for version, (old_content, start_pos, end_pos) in sorted(
+            existing_sections.items(),
+            key=lambda x: x[1][1],
+            reverse=True,
+        ):
+            if version in replacements:
+                # Compute new section content with markers
+                new_content = replacements[version]
+                content_hash = hashlib.sha256(new_content.encode()).hexdigest()
+
+                new_section = (
+                    f"{self.MANAGED_SECTION_START} {version} -->\n"
+                    f"<!-- sha256:{content_hash} -->\n"
+                    f"{new_content}"
+                    f"{self.MANAGED_SECTION_END}\n"
+                )
+
+                # Replace old section with new
+                result = result[:start_pos] + new_section + result[end_pos:]
+
+        return result
+
+    def _detect_agent_sync_conflicts(
+        self,
+        local_content: str,
+        remote_content: str,
+    ) -> list[str]:
+        """
+        Detect conflicts in managed sections between local and remote.
+
+        A conflict exists when both local and remote have the same section version
+        but with different content AND different content hashes.
+
+        For a proper conflict check, we need to compare the sha256 hashes in the
+        markers. If the hashes differ, it means both sides were modified independently.
+
+        Returns:
+            List of conflicting section versions.
+        """
+        local_sections = self._parse_managed_sections(local_content)
+        remote_sections = self._parse_managed_sections(remote_content)
+
+        conflicts: list[str] = []
+
+        # Parse sha256 hashes from content
+        def extract_hash(content: str) -> str | None:
+            for line in content.splitlines():
+                if "sha256:" in line:
+                    # Extract hash from comment like "<!-- sha256:abc123 -->"
+                    parts = line.split("sha256:")
+                    if len(parts) > 1:
+                        hash_part = parts[1].split("-->")[0].strip()
+                        return hash_part
+            return None
+
+        for version in set(local_sections.keys()) | set(remote_sections.keys()):
+            if version not in local_sections or version not in remote_sections:
+                continue  # One side doesn't have this section - no conflict
+
+            local_text, _, _ = local_sections[version]
+            remote_text, _, _ = remote_sections[version]
+
+            # Check if content is identical - no conflict
+            if local_text.strip() == remote_text.strip():
+                continue
+
+            # Check hashes to detect true conflicts (both modified)
+            # If we can't find hashes or they're the same, assume no conflict (remote wins)
+            local_hash = extract_hash(local_content)
+            remote_hash = extract_hash(remote_content)
+
+            # Only conflict if both have different hashes (both modified independently)
+            if local_hash and remote_hash and local_hash != remote_hash:
+                conflicts.append(version)
+
+        return conflicts
+
+    def sync_agent_pull(self) -> SyncResult:
+        """
+        Pull managed sections from sync branch to local agent.md.
+
+        Reads managed sections from agent.md on the sync branch and
+        injects them into the local working tree agent.md file.
+
+        Returns:
+            SyncResult with operation details.
+        """
+        started_at = datetime.now()
+
+        # Check initialization
+        if not self.is_initialized():
+            return SyncResult(
+                success=False,
+                operation="agent_pull",
+                message="Sync branch not initialized. Run 'cub sync init' first.",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Find agent file locally
+        local_agent_path_str = self._find_agent_file(ref=None)
+        if local_agent_path_str is None:
+            return SyncResult(
+                success=False,
+                operation="agent_pull",
+                message="No agent.md file found in .cub/",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        local_agent_path = Path(local_agent_path_str)
+
+        # Find agent file on sync branch
+        remote_agent_file = self._find_agent_file(ref=self.branch_ref)
+        if remote_agent_file is None:
+            return SyncResult(
+                success=True,
+                operation="agent_pull",
+                message="No agent.md on sync branch. Nothing to pull.",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Read remote content
+        remote_content = self._get_file_from_ref(self.branch_ref, remote_agent_file)
+        if remote_content is None:
+            return SyncResult(
+                success=False,
+                operation="agent_pull",
+                message=f"Failed to read {remote_agent_file} from sync branch",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Parse remote managed sections
+        remote_sections = self._parse_managed_sections(remote_content)
+        if not remote_sections:
+            return SyncResult(
+                success=True,
+                operation="agent_pull",
+                message="No managed sections found on sync branch",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Read local content
+        local_content = local_agent_path.read_text()
+
+        # Check for conflicts
+        conflicts_list = self._detect_agent_sync_conflicts(local_content, remote_content)
+        if conflicts_list:
+            conflicts = [
+                SyncConflict(
+                    task_id=f"agent.md section {v}",
+                    resolution="manual_required",
+                    winner="none",
+                )
+                for v in conflicts_list
+            ]
+            return SyncResult(
+                success=False,
+                operation="agent_pull",
+                message=f"Conflicts detected in sections: {', '.join(conflicts_list)}",
+                conflicts=conflicts,
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Inject remote sections into local content
+        updated_content = self._inject_managed_sections(local_content, remote_sections)
+
+        # Check if anything changed
+        if updated_content == local_content:
+            return SyncResult(
+                success=True,
+                operation="agent_pull",
+                message="Local agent.md already up to date",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Write updated content
+        local_agent_path.write_text(updated_content)
+
+        return SyncResult(
+            success=True,
+            operation="agent_pull",
+            message=f"Pulled {len(remote_sections)} managed sections to {local_agent_path.name}",
+            tasks_updated=len(remote_sections),
+            started_at=started_at,
+            completed_at=datetime.now(),
+        )
+
+    def sync_agent_push(self) -> SyncResult:
+        """
+        Push managed sections from local agent.md to sync branch.
+
+        Reads managed sections from local working tree agent.md and
+        commits them to the sync branch.
+
+        Returns:
+            SyncResult with operation details.
+        """
+        started_at = datetime.now()
+
+        # Check initialization
+        if not self.is_initialized():
+            return SyncResult(
+                success=False,
+                operation="agent_push",
+                message="Sync branch not initialized. Run 'cub sync init' first.",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Find local agent file
+        local_agent_path_str = self._find_agent_file(ref=None)
+        if local_agent_path_str is None:
+            return SyncResult(
+                success=False,
+                operation="agent_push",
+                message="No agent.md file found in .cub/",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        local_agent_path = Path(local_agent_path_str)
+
+        # Read local content
+        local_content = local_agent_path.read_text()
+
+        # Parse local managed sections
+        local_sections = self._parse_managed_sections(local_content)
+        if not local_sections:
+            return SyncResult(
+                success=True,
+                operation="agent_push",
+                message="No managed sections found in local agent.md",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Determine target filename on sync branch
+        relative_path = f".cub/{local_agent_path.name}"
+
+        # Get current content from sync branch (if exists)
+        sync_branch_content = self._get_file_from_ref(self.branch_ref, relative_path)
+
+        if sync_branch_content is None:
+            # File doesn't exist on sync branch - create with just managed sections
+            new_content_lines = []
+            for version, (content, _, _) in sorted(local_sections.items()):
+                content_hash = hashlib.sha256(content.encode()).hexdigest()
+                new_content_lines.append(f"{self.MANAGED_SECTION_START} {version} -->")
+                new_content_lines.append(f"<!-- sha256:{content_hash} -->")
+                new_content_lines.append(content.rstrip())
+                new_content_lines.append(self.MANAGED_SECTION_END)
+                new_content_lines.append("")
+            new_content = "\n".join(new_content_lines)
+        else:
+            # Inject local sections into sync branch content
+            new_content = self._inject_managed_sections(sync_branch_content, local_sections)
+
+        # Check if anything changed
+        if new_content == sync_branch_content:
+            return SyncResult(
+                success=True,
+                operation="agent_push",
+                message="Sync branch agent.md already up to date",
+                started_at=started_at,
+                completed_at=datetime.now(),
+            )
+
+        # Create blob for new content
+        blob_sha = self._run_git(["hash-object", "-w", "--stdin"], input_data=new_content)
+
+        # Create tree with the agent file
+        tree_sha = self._create_tree_for_path(blob_sha, relative_path)
+
+        # Get parent commit
+        parent_sha = self._get_branch_sha(self.branch_ref)
+
+        # Create commit
+        commit_message = f"Update managed sections in {local_agent_path.name}"
+        if parent_sha:
+            commit_sha = self._run_git(
+                ["commit-tree", tree_sha, "-p", parent_sha, "-m", commit_message]
+            )
+        else:
+            commit_sha = self._run_git(["commit-tree", tree_sha, "-m", commit_message])
+
+        # Update branch ref
+        self._run_git(["update-ref", self.branch_ref, commit_sha])
+
+        logger.info(
+            "Pushed managed sections to %s: %s",
+            self.branch_name,
+            commit_sha[:8],
+        )
+
+        return SyncResult(
+            success=True,
+            operation="agent_push",
+            commit_sha=commit_sha,
+            message=f"Pushed {len(local_sections)} managed sections to sync branch",
+            tasks_updated=len(local_sections),
+            started_at=started_at,
+            completed_at=datetime.now(),
+        )

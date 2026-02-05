@@ -19,7 +19,20 @@ Example:
     ...     print(f"Resolved {len(result.conflicts)} conflicts")
 """
 
-from cub.core.sync.models import SyncConflict, SyncResult, SyncState, SyncStatus
+from cub.core.sync.models import (
+    CounterState,
+    SyncConflict,
+    SyncResult,
+    SyncState,
+    SyncStatus,
+)
 from cub.core.sync.service import SyncService
 
-__all__ = ["SyncService", "SyncState", "SyncResult", "SyncConflict", "SyncStatus"]
+__all__ = [
+    "SyncService",
+    "SyncState",
+    "SyncResult",
+    "SyncConflict",
+    "SyncStatus",
+    "CounterState",
+]

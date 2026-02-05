@@ -8,13 +8,17 @@ Provides write access to the completed work ledger stored in
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import yaml
 
+from cub.core.ledger.artifacts import ArtifactManager
 from cub.core.ledger.models import (
     EpicEntry,
     LedgerEntry,
     LedgerIndex,
+    PlanEntry,
+    RunEntry,
     compute_aggregates,
 )
 
@@ -41,6 +45,9 @@ class LedgerWriter:
         self.index_file = ledger_dir / "index.jsonl"
         self.by_task_dir = ledger_dir / "by-task"
         self.by_epic_dir = ledger_dir / "by-epic"
+        self.by_plan_dir = ledger_dir / "by-plan"
+        self.by_run_dir = ledger_dir / "by-run"
+        self.artifact_manager = ArtifactManager(ledger_dir)
 
     def create_entry(self, entry: LedgerEntry) -> None:
         """Create a new ledger entry.
@@ -290,8 +297,8 @@ class LedgerWriter:
     ) -> Path:
         """Write a prompt file with YAML frontmatter for an attempt.
 
-        Creates the attempts directory if needed and writes a prompt file
-        with YAML frontmatter containing execution context metadata.
+        Writes a prompt file with YAML frontmatter containing execution
+        context metadata using the flattened artifact structure.
 
         Args:
             task_id: Task ID (e.g., 'cub-abc')
@@ -311,19 +318,15 @@ class LedgerWriter:
             ...     "cub-abc", 1, "# Task: Fix login\\n...",
             ...     harness="claude", model="haiku", run_id="cub-20260124-123456"
             ... )
-            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-prompt.md
+            >>> # Creates: .cub/ledger/by-task/cub-abc/001-prompt.md
         """
         # Ensure task directory exists
-        task_dir = self.by_task_dir / task_id
-        task_dir.mkdir(parents=True, exist_ok=True)
+        self.artifact_manager.ensure_task_dir(task_id)
 
-        # Ensure attempts directory exists
-        attempts_dir = task_dir / "attempts"
-        attempts_dir.mkdir(parents=True, exist_ok=True)
-
-        # Format attempt number as zero-padded 3 digits
-        attempt_str = f"{attempt_number:03d}"
-        prompt_file = attempts_dir / f"{attempt_str}-prompt.md"
+        # Get artifact path using the flattened structure
+        prompt_file = self.artifact_manager.get_artifact_path(
+            task_id, attempt_number, "prompt"
+        )
 
         # Prepare frontmatter
         frontmatter = {
@@ -357,8 +360,7 @@ class LedgerWriter:
     ) -> Path:
         """Write a harness log file for an attempt.
 
-        Creates the attempts directory if needed and writes the harness
-        output log.
+        Writes the harness output log using the flattened artifact structure.
 
         Args:
             task_id: Task ID (e.g., 'cub-abc')
@@ -373,19 +375,15 @@ class LedgerWriter:
             >>> path = writer.write_harness_log(
             ...     "cub-abc", 1, "Harness output here..."
             ... )
-            >>> # Creates: .cub/ledger/by-task/cub-abc/attempts/001-harness.log
+            >>> # Creates: .cub/ledger/by-task/cub-abc/001-harness.jsonl
         """
         # Ensure task directory exists
-        task_dir = self.by_task_dir / task_id
-        task_dir.mkdir(parents=True, exist_ok=True)
+        self.artifact_manager.ensure_task_dir(task_id)
 
-        # Ensure attempts directory exists
-        attempts_dir = task_dir / "attempts"
-        attempts_dir.mkdir(parents=True, exist_ok=True)
-
-        # Format attempt number as zero-padded 3 digits
-        attempt_str = f"{attempt_number:03d}"
-        log_file = attempts_dir / f"{attempt_str}-harness.log"
+        # Get artifact path using the flattened structure
+        log_file = self.artifact_manager.get_artifact_path(
+            task_id, attempt_number, "harness"
+        )
 
         # Write log content
         log_file.write_text(log_content, encoding="utf-8")
@@ -586,3 +584,191 @@ class LedgerWriter:
         self.update_epic_aggregates(epic_id)
 
         return True
+
+    def create_plan_entry(self, entry: PlanEntry) -> None:
+        """Create a new plan ledger entry.
+
+        Writes the plan entry to by-plan/{plan-id}/entry.json and creates
+        the directory structure if needed.
+
+        Args:
+            entry: PlanEntry to write
+
+        Raises:
+            IOError: If write fails
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> plan = PlanEntry(plan_id="cub-054A", spec_id="cub-054", title="Plan A")
+            >>> writer.create_plan_entry(plan)
+        """
+        # Ensure directories exist
+        self.ledger_dir.mkdir(parents=True, exist_ok=True)
+        self.by_plan_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create plan-specific directory
+        plan_dir = self.by_plan_dir / entry.plan_id
+        plan_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write entry to plan directory
+        entry_file = plan_dir / "entry.json"
+        with entry_file.open("w", encoding="utf-8") as f:
+            json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
+
+    def update_plan_entry(self, plan_id: str, updates: dict[str, Any]) -> None:
+        """Update an existing plan ledger entry.
+
+        Reads the existing entry, applies updates, and writes back atomically
+        using a temp file + rename pattern.
+
+        Args:
+            plan_id: Plan ID to update (e.g., 'cub-054A')
+            updates: Dictionary of fields to update
+
+        Raises:
+            FileNotFoundError: If plan entry doesn't exist
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> writer.update_plan_entry("cub-054A", {
+            ...     "status": "completed",
+            ...     "completed_tasks": 10
+            ... })
+        """
+        entry_file = self.by_plan_dir / plan_id / "entry.json"
+        if not entry_file.exists():
+            raise FileNotFoundError(f"Plan entry {plan_id} not found")
+
+        # Read existing entry
+        with entry_file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Apply updates
+        data.update(updates)
+
+        # Validate updated entry
+        entry = PlanEntry.model_validate(data)
+
+        # Write atomically using temp file + rename
+        temp_file = entry_file.with_suffix(".tmp")
+        try:
+            with temp_file.open("w", encoding="utf-8") as f:
+                json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
+            temp_file.replace(entry_file)
+        finally:
+            # Clean up temp file if it still exists
+            if temp_file.exists():
+                temp_file.unlink()
+
+    def get_plan_entry(self, plan_id: str) -> PlanEntry | None:
+        """Get a plan ledger entry by plan ID.
+
+        Args:
+            plan_id: Plan ID to retrieve (e.g., 'cub-054A')
+
+        Returns:
+            PlanEntry if found, None otherwise
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> plan = writer.get_plan_entry("cub-054A")
+        """
+        entry_file = self.by_plan_dir / plan_id / "entry.json"
+        if not entry_file.exists():
+            return None
+
+        with entry_file.open(encoding="utf-8") as f:
+            data = json.load(f)
+            return PlanEntry.model_validate(data)
+
+    def create_run_entry(self, entry: RunEntry) -> None:
+        """Create a new run session ledger entry.
+
+        Writes the run entry to by-run/{run_id}.json and creates
+        the directory if needed.
+
+        Args:
+            entry: RunEntry to write
+
+        Raises:
+            IOError: If write fails
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> run = RunEntry(run_id="cub-20260204-161800", status="running")
+            >>> writer.create_run_entry(run)
+        """
+        # Ensure directories exist
+        self.ledger_dir.mkdir(parents=True, exist_ok=True)
+        self.by_run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write entry to by-run directory
+        entry_file = self.by_run_dir / f"{entry.run_id}.json"
+        with entry_file.open("w", encoding="utf-8") as f:
+            json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
+
+    def update_run_entry(self, run_id: str, updates: dict[str, Any]) -> None:
+        """Update an existing run session ledger entry.
+
+        Reads the existing entry, applies updates, and writes back atomically
+        using a temp file + rename pattern.
+
+        Args:
+            run_id: Run session ID to update (e.g., 'cub-20260204-161800')
+            updates: Dictionary of fields to update
+
+        Raises:
+            FileNotFoundError: If run entry doesn't exist
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> writer.update_run_entry("cub-20260204-161800", {
+            ...     "status": "completed",
+            ...     "tasks_completed": ["cub-054A-1.1"]
+            ... })
+        """
+        entry_file = self.by_run_dir / f"{run_id}.json"
+        if not entry_file.exists():
+            raise FileNotFoundError(f"Run entry {run_id} not found")
+
+        # Read existing entry
+        with entry_file.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Apply updates
+        data.update(updates)
+
+        # Validate updated entry
+        entry = RunEntry.model_validate(data)
+
+        # Write atomically using temp file + rename
+        temp_file = entry_file.with_suffix(".tmp")
+        try:
+            with temp_file.open("w", encoding="utf-8") as f:
+                json.dump(entry.model_dump(mode="json"), f, indent=2, default=str)
+            temp_file.replace(entry_file)
+        finally:
+            # Clean up temp file if it still exists
+            if temp_file.exists():
+                temp_file.unlink()
+
+    def get_run_entry(self, run_id: str) -> RunEntry | None:
+        """Get a run session ledger entry by run ID.
+
+        Args:
+            run_id: Run session ID to retrieve (e.g., 'cub-20260204-161800')
+
+        Returns:
+            RunEntry if found, None otherwise
+
+        Example:
+            >>> writer = LedgerWriter(Path(".cub/ledger"))
+            >>> run = writer.get_run_entry("cub-20260204-161800")
+        """
+        entry_file = self.by_run_dir / f"{run_id}.json"
+        if not entry_file.exists():
+            return None
+
+        with entry_file.open(encoding="utf-8") as f:
+            data = json.load(f)
+            return RunEntry.model_validate(data)

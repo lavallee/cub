@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "id": "cub-048a-3.3",
+  "title": "Integrate lifecycle hooks into run loop",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-3"
+  },
+  "task": {
+    "title": "Integrate lifecycle hooks into run loop",
+    "description": "The run loop needs to invoke lifecycle hooks at the appropriate points: before session starts, after task completion, after epic completion, after plan completion.\n\n**Implementation Steps:**\n1. Create `src/cub/core/hooks/lifecycle.py` with hook point definitions\n2. Add hook invocation before harness session (pre-session)\n3. Add hook invocation after task completion (end-of-task)\n4. Add hook invocation after epic completion (end-of-epic)\n5. Add hook invocation after plan completion (end-of-plan)\n6. Build context objects from run loop state\n7. Log hook execution results\n8. Make hooks optional (check config before running)\n\n**Files:** `src/cub/core/hooks/lifecycle.py`, `src/cub/core/run/loop.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560820",
+    "captured_at": "2026-02-04T22:21:00.366582Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-170945",
+      "started_at": "2026-02-04T17:21:00.376231",
+      "completed_at": "2026-02-04T22:25:45.123860Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 8491,
+        "output_tokens": 13283,
+        "cache_read_tokens": 2408359,
+        "cache_creation_tokens": 57135
+      },
+      "cost_usd": 1.2101979500000004,
+      "duration_seconds": 284
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:25:45.144312Z",
+    "total_cost_usd": 1.2101979500000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 284,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "fcfec1abd4d9a0c6f2ffb8196bfdb11bbf960333",
+        "message": "task(cub-048a-3.3): Integrate lifecycle hooks into run loop",
+        "author": "",
+        "timestamp": "2026-02-04T22:25:35Z"
+      }
+    ],
+    "approach": "Created a new lifecycle hooks module with context-building functions for each hook point, then systematically integrated these hooks into the run loop at critical execution stages (pre-session, end-of-task, end-of-epic) and into the CLI layer for end-of-plan completion. This modular approach kept hook logic separate from the run loop while ensuring proper context availability at each stage.",
+    "decisions": [
+      "Placed hook invocation after `RUN_STARTED` event rather than before session launch to ensure run metadata is fully initialized before passing to hooks",
+      "Implemented end-of-task hooks for both success and failure paths to ensure consistent tracking regardless of task outcome",
+      "Made hook execution optional via `RunConfig.hooks_enabled` flag to allow disabling without code changes",
+      "Configured hooks to respect `fail_fast` setting so individual hook failures don't crash the run loop unless explicitly configured",
+      "Integrated end-of-plan hook into CLI layer (`src/cub/cli/run.py`) rather than core run loop since plan execution is CLI-driven, maintaining separation of concerns",
+      "Used `is_issue` property from Task model instead of `issue_type` after discovering the correct attribute name in Pydantic model"
+    ],
+    "lessons_learned": [
+      "Epic completion detection works implicitly through task status tracking\u2014no explicit epic closure logic needed; epics auto-close when all tasks are done",
+      "Plan execution logic lives in CLI layer, not core domain; lifecycle hooks need to be integrated at both layers for complete coverage",
+      "Hook context objects should be built from run loop state directly rather than requiring explicit parameters, reducing coupling and making hook invocation cleaner",
+      "Type checking errors often reveal outdated attribute references; verify Pydantic model definitions before assuming property names",
+      "Running full test suites after integration reveals pre-existing issues unrelated to changes; these should be documented but don't block task completion if task-specific tests pass"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:25:45.144312Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:21:00.366582Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:25:45.144312Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:21:00.366582Z",
+  "completed_at": "2026-02-04T22:25:45.144312Z",
+  "tokens": {
+    "input_tokens": 8491,
+    "output_tokens": 13283,
+    "cache_read_tokens": 2408359,
+    "cache_creation_tokens": 57135
+  },
+  "cost_usd": 1.2101979500000004,
+  "duration_seconds": 284,
+  "iterations": 1,
+  "approach": "Created a new lifecycle hooks module with context-building functions for each hook point, then systematically integrated these hooks into the run loop at critical execution stages (pre-session, end-of-task, end-of-epic) and into the CLI layer for end-of-plan completion. This modular approach kept hook logic separate from the run loop while ensuring proper context availability at each stage.",
+  "decisions": [
+    "Placed hook invocation after `RUN_STARTED` event rather than before session launch to ensure run metadata is fully initialized before passing to hooks",
+    "Implemented end-of-task hooks for both success and failure paths to ensure consistent tracking regardless of task outcome",
+    "Made hook execution optional via `RunConfig.hooks_enabled` flag to allow disabling without code changes",
+    "Configured hooks to respect `fail_fast` setting so individual hook failures don't crash the run loop unless explicitly configured",
+    "Integrated end-of-plan hook into CLI layer (`src/cub/cli/run.py`) rather than core run loop since plan execution is CLI-driven, maintaining separation of concerns",
+    "Used `is_issue` property from Task model instead of `issue_type` after discovering the correct attribute name in Pydantic model"
+  ],
+  "lessons_learned": [
+    "Epic completion detection works implicitly through task status tracking\u2014no explicit epic closure logic needed; epics auto-close when all tasks are done",
+    "Plan execution logic lives in CLI layer, not core domain; lifecycle hooks need to be integrated at both layers for complete coverage",
+    "Hook context objects should be built from run loop state directly rather than requiring explicit parameters, reducing coupling and making hook invocation cleaner",
+    "Type checking errors often reveal outdated attribute references; verify Pydantic model definitions before assuming property names",
+    "Running full test suites after integration reveals pre-existing issues unrelated to changes; these should be documented but don't block task completion if task-specific tests pass"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "fcfec1abd4d9a0c6f2ffb8196bfdb11bbf960333",
+      "message": "task(cub-048a-3.3): Integrate lifecycle hooks into run loop",
+      "author": "",
+      "timestamp": "2026-02-04T22:25:35Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-3.3",
+  "epic_id": "cub-048a-3",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "id": "cub-048a-5.4",
+  "title": "Update documentation and gitignore",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-5"
+  },
+  "task": {
+    "title": "Update documentation and gitignore",
+    "description": "Documentation needs to reflect the new storage structure, ID system, and commands. The gitignore template needs updating for new paths.\n\n**Implementation Steps:**\n1. Update CLAUDE.md with new ledger structure\n2. Update CLAUDE.md with new ID format documentation\n3. Update CLAUDE.md with new commands (release, retro, verify, learn, sync agent)\n4. Remove references to build-plan, runs/, run-sessions/\n5. Update `.gitignore` template in templates/\n6. Add `.cub/ledger/by-run/` to gitignore (if run data shouldn't be committed)\n7. Update README.md if needed\n8. Update UPGRADING.md with migration notes\n\n**Files:** `CLAUDE.md`, `README.md`, `UPGRADING.md`, `templates/.gitignore`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "model:haiku",
+      "complexity:low",
+      "domain:docs"
+    ],
+    "created_at": "2026-02-04T15:37:04.561288",
+    "captured_at": "2026-02-04T23:21:37.260592Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-180030",
+      "started_at": "2026-02-04T18:21:37.270177",
+      "completed_at": "2026-02-04T23:24:57.708805Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 111,
+        "output_tokens": 16206,
+        "cache_read_tokens": 5801725,
+        "cache_creation_tokens": 95425
+      },
+      "cost_usd": 0.8601857500000004,
+      "duration_seconds": 200
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T23:24:57.728534Z",
+    "total_cost_usd": 0.8601857500000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 200,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "8789a557b56336865b0d57bb2ca31d57c65ace8f",
+        "message": "task(cub-048a-5.4): Update documentation and gitignore",
+        "author": "",
+        "timestamp": "2026-02-04T23:24:46Z"
+      }
+    ],
+    "approach": "Systematically updated documentation across multiple files to reflect the new ledger structure and commands. Started by reading the codebase to understand new features (verify, learn, release, retro commands and the multi-index ledger system), then updated CLAUDE.md, README.md, and UPGRADING.md with comprehensive sections on the new functionality, finally updating gitignore patterns to exclude new ledger paths and running tests to verify no regressions.",
+    "decisions": [
+      "Organized new command documentation into dedicated sections (Data Integrity and Learning) rather than scattered mentions to improve discoverability",
+      "Added Task ID Format documentation to CLAUDE.md early in the document to establish foundational knowledge for users",
+      "Updated both the init.py GITIGNORE_PATTERNS and the main .gitignore file to ensure consistency across new projects and existing projects",
+      "Prioritized documenting the \"why\" and \"how to use\" for each command over just listing them in command tables",
+      "Included migration guidance in UPGRADING.md with concrete examples to help users transition from old paths/patterns"
+    ],
+    "lessons_learned": [
+      "Documentation updates should include concrete examples and usage patterns, not just list new features\u2014this significantly improves adoption",
+      "When introducing new file paths/structures (like ledger multi-indexing), explicitly document what should and shouldn't be committed to git via comments in .gitignore to prevent confusion",
+      "Updates to initialization templates (GITIGNORE_PATTERNS) need to be synchronized with actual .gitignore files to maintain consistency",
+      "Comprehensive ledger documentation should explain the purpose of each index (by-task, by-epic, by-run) to help users choose the right query pattern",
+      "Testing during documentation updates is important\u2014running test suite early catches unrelated issues and proves the changes don't break existing functionality"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:24:57.728534Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:21:37.260592Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:24:57.728534Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T23:21:37.260592Z",
+  "completed_at": "2026-02-04T23:24:57.728534Z",
+  "tokens": {
+    "input_tokens": 111,
+    "output_tokens": 16206,
+    "cache_read_tokens": 5801725,
+    "cache_creation_tokens": 95425
+  },
+  "cost_usd": 0.8601857500000004,
+  "duration_seconds": 200,
+  "iterations": 1,
+  "approach": "Systematically updated documentation across multiple files to reflect the new ledger structure and commands. Started by reading the codebase to understand new features (verify, learn, release, retro commands and the multi-index ledger system), then updated CLAUDE.md, README.md, and UPGRADING.md with comprehensive sections on the new functionality, finally updating gitignore patterns to exclude new ledger paths and running tests to verify no regressions.",
+  "decisions": [
+    "Organized new command documentation into dedicated sections (Data Integrity and Learning) rather than scattered mentions to improve discoverability",
+    "Added Task ID Format documentation to CLAUDE.md early in the document to establish foundational knowledge for users",
+    "Updated both the init.py GITIGNORE_PATTERNS and the main .gitignore file to ensure consistency across new projects and existing projects",
+    "Prioritized documenting the \"why\" and \"how to use\" for each command over just listing them in command tables",
+    "Included migration guidance in UPGRADING.md with concrete examples to help users transition from old paths/patterns"
+  ],
+  "lessons_learned": [
+    "Documentation updates should include concrete examples and usage patterns, not just list new features\u2014this significantly improves adoption",
+    "When introducing new file paths/structures (like ledger multi-indexing), explicitly document what should and shouldn't be committed to git via comments in .gitignore to prevent confusion",
+    "Updates to initialization templates (GITIGNORE_PATTERNS) need to be synchronized with actual .gitignore files to maintain consistency",
+    "Comprehensive ledger documentation should explain the purpose of each index (by-task, by-epic, by-run) to help users choose the right query pattern",
+    "Testing during documentation updates is important\u2014running test suite early catches unrelated issues and proves the changes don't break existing functionality"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "8789a557b56336865b0d57bb2ca31d57c65ace8f",
+      "message": "task(cub-048a-5.4): Update documentation and gitignore",
+      "author": "",
+      "timestamp": "2026-02-04T23:24:46Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-5.4",
+  "epic_id": "cub-048a-5",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

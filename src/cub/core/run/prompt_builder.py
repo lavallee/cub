@@ -347,11 +347,11 @@ def generate_retry_context(
 
     # Add log tail from the most recent failed attempt
     last_failed = failed_attempts[-1]
+    # Use the new flattened artifact structure (no attempts/ subdirectory)
     log_path = (
-        ledger_integration.writer.by_task_dir
-        / task.id
-        / "attempts"
-        / f"{last_failed.attempt_number:03d}-harness.log"
+        ledger_integration.writer.artifact_manager.get_artifact_path(
+            task.id, last_failed.attempt_number, "harness"
+        )
     )
 
     if log_path.exists():

@@ -163,7 +163,7 @@ class RunArtifact(BaseModel):
     Run artifact metadata for run.json files.
 
     Represents the schema of run.json files stored in
-    .cub/runs/{run_id}/run.json. This model captures run-level
+    .cub/ledger/by-run/{run_id}/run.json. This model captures run-level
     metadata, aggregate budget totals, and completion statistics
     that persist after runs complete.
 
@@ -198,7 +198,7 @@ class TaskArtifact(BaseModel):
     Task artifact metadata for task.json files.
 
     Represents the schema of task.json files stored in
-    .cub/runs/{run_id}/tasks/{task_id}/task.json. This model
+    .cub/ledger/by-run/{run_id}/tasks/{task_id}/task.json. This model
     captures task execution state, timing, and cost data that
     persists after runs complete.
 

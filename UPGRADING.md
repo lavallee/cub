@@ -2,6 +2,153 @@
 
 This guide helps you migrate between major versions of Cub.
 
+## v0.28.0: Ledger Consolidation & New Commands
+
+### What Changed
+
+The ledger system has been reorganized for better querying and consistency checks, and several new commands have been added for data integrity and learning from work.
+
+#### New Ledger Structure
+
+The task completion ledger now uses a multi-index organization with three access patterns:
+
+**Old structure (if using legacy `.cub/runs/` or flat ledger):**
+```
+.cub/runs/{session-id}/tasks/
+.cub/ledger/entries/
+```
+
+**New structure:**
+```
+.cub/ledger/
+├── index.jsonl              # Index of all entries
+├── by-task/{task-id}/       # Access by task
+├── by-epic/{epic-id}/       # Access by epic
+├── by-run/{run-id}/         # Access by run/session
+└── forensics/{session-id}.jsonl  # Session event logs
+```
+
+#### New Commands
+
+Four new commands have been added to complement your workflow:
+
+1. **`cub verify`** - Check data integrity
+   - Verifies ledger consistency
+   - Validates ID formats
+   - Checks counter synchronization
+   - Can auto-fix simple issues with `--fix` flag
+
+2. **`cub learn extract`** - Extract patterns and lessons
+   - Analyzes completed work to identify patterns
+   - Extracts key learnings and recommendations
+   - Can update guardrails and documentation with `--apply` flag
+   - Filter by date range with `--since` or `--since-date`
+
+3. **`cub release`** - Mark plans as released
+   - Updates plan status to "released"
+   - Updates CHANGELOG.md automatically
+   - Creates git tag for the release
+   - Moves spec files to `specs/released/`
+
+4. **`cub retro`** - Generate retrospectives
+   - Creates detailed retrospective reports for epics or plans
+   - Includes metrics, timeline, and lessons learned
+   - Outputs to stdout or file with `--output`
+
+### Migration Steps
+
+#### 1. Verify Your Ledger (Recommended)
+
+After upgrading, verify your ledger is in good shape:
+
+```bash
+cub verify                # Run all checks
+cub verify --fix          # Auto-fix simple issues if needed
+```
+
+#### 2. Update Existing Ledger (If Using Old Structure)
+
+If you have an older cub project using the legacy `.cub/runs/` artifact storage:
+
+```bash
+# Your data will still be accessible, but you may want to migrate
+# Cub will automatically read from new structure
+# For detailed migration, contact support or open an issue
+```
+
+#### 3. Try the New Commands
+
+Start using the new commands to improve your workflow:
+
+```bash
+# Check data integrity
+cub verify
+
+# Extract patterns from your completed work
+cub learn extract --since 30
+
+# Generate a retro for your last completed epic
+cub retro your-epic-id --epic --output retro.md
+
+# Mark work as released
+cub release epic-id v1.0
+```
+
+#### 4. Update Documentation
+
+Update your project CLAUDÉ.md or team docs to reference the new commands:
+
+```bash
+# Instead of manual checks, use:
+cub verify
+
+# Instead of manual learning summaries, use:
+cub learn extract --apply
+```
+
+### Backward Compatibility
+
+- Old ledger locations are still supported for reading
+- New data is written to the new structure
+- `cub doctor` will help migrate if needed
+
+### New ID Format
+
+If your project hasn't migrated to the new ID format yet (like `cub-048a-5.4`), you can continue using older formats. The new format is optional and recommended for large projects with multiple epics.
+
+---
+
+## Upcoming: Plan Execution Unified (build-plan → run --plan)
+
+### What Changed
+
+The separate `cub build-plan` command has been removed. Plan execution is now integrated into `cub run --plan`.
+
+| Old Command | New Command | Notes |
+|-------------|-------------|-------|
+| `cub build-plan <plan-slug>` | `cub run --plan <plan-slug>` | Unified into run command |
+
+### Why the Change
+
+- Reduced command fragmentation - all task execution goes through `cub run`
+- Cleaner CLI interface with fewer top-level commands
+- Better integration with task iteration and ledger system
+- Easier for users to understand the main execution flow
+
+### Migration Steps
+
+If you have scripts or aliases using the old command:
+
+```bash
+# Old
+cub build-plan my-feature
+
+# New
+cub run --plan my-feature
+```
+
+---
+
 ## v0.27.0: Plan Flow Rename (prep → plan)
 
 ### What Changed

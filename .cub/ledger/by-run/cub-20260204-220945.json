@@ -1,0 +1,19 @@
+{
+  "run_id": "cub-20260204-220945",
+  "started_at": "2026-02-04T22:09:45.518953Z",
+  "project_dir": "/home/marc/Projects/cub",
+  "harness": "claude",
+  "budget": {
+    "tokens_used": 72167,
+    "tokens_limit": 500000,
+    "cost_usd": 3.5591061,
+    "cost_limit": 0.0
+  },
+  "tasks_completed": 4,
+  "tasks_failed": 89,
+  "current_task": null,
+  "status": "completed",
+  "ended_at": "2026-02-04T22:28:17.511936Z",
+  "orphaned_at": "2026-02-04T22:19:41.006521Z",
+  "orphaned_reason": "Session was still running but not active (process died or crash)"
+}

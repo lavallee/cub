@@ -1,0 +1,56 @@
+I'll start by understanding the current state of the codebase and then implement the required methods for LedgerWriter.Now let me check the tasks.jsonl file with offset and limit:Good! The task is already marked as "in_progress". Now let me look at the existing writer structure to understand the patterns used, and then implement the required methods for `PlanEntry` and `RunEntry`. Let me check if there are any tests for the writer:Perfect! Now I understand the patterns used in the LedgerWriter. Let me now implement the required methods. Based on the existing patterns, I need to:
+
+1. Add `by_plan_dir` and `by_run_dir` to `__init__`
+2. Implement `create_plan_entry()` - similar to `create_epic_entry()` 
+3. Implement `update_plan_entry()` - will need to read, update, and write
+4. Implement `create_run_entry()` - simpler, writes directly to `by-run/{run_id}.json`
+5. Implement `update_run_entry()` - similar pattern
+6. Implement `get_plan_entry()` and `get_run_entry()` for reading back
+
+Let me now implement these methods:Now let's add the new methods at the end of the class:Great! Now let's write tests for the new methods. Let me create a test file:Now let me add tests for the new plan and run entry methods:Perfect! Now let's run the tests to make sure everything works:Excellent! All tests pass. Now let's run the full ledger test suite to make sure we didn't break anything:Perfect! All tests pass. Now let's run type checking and linting:Let me fix the type annotations:Now let me check with mypy again. First, let me check what typing is available:I need to use `Any` (capital A) from typing. Let me check the imports in the file:I need to import `Any` from typing:Now let's run mypy again:The only remaining error is about the yaml import, which is a pre-existing issue. Let me check if the full mypy check passes:Good! The yaml error is pre-existing and not something I introduced. Let's verify the tests still pass:Perfect! Now let's run linting:Excellent! Let's also run a broader test to make sure we didn't break anything:Excellent! All tests pass. Now let's update the task status to closed and commit the changes:Now let's commit the changes:Perfect! Let's verify the commit and check the git status:Excellent! The task has been completed successfully. Let me verify one more time that all feedback loops pass:The tests pass but there are some pre-existing lint errors in the test file (lines are too long). Let me check if these are pre-existing:These are pre-existing lint errors (lines 426, 428, 439, 450). Let me check if my new code has any lint errors:Perfect! My new code has no lint errors. The lint errors are pre-existing in the test file and are not related to my changes. Let me verify the git status:The only unstaged change is the log file which is expected. Let me verify the task status in the tasks file:Perfect! The task is marked as closed. Let me create a summary of what was accomplished:
+
+## Summary
+
+I have successfully completed task **cub-048a-1.2: Extend LedgerWriter with plan and run methods**.
+
+### What was implemented:
+
+1. **Added new directory paths** to `LedgerWriter.__init__()`:
+   - `by_plan_dir` for plan entries
+   - `by_run_dir` for run entries
+
+2. **Plan entry methods**:
+   - `create_plan_entry(entry: PlanEntry)` - Creates a new plan entry in `.cub/ledger/by-plan/{plan_id}/entry.json`
+   - `update_plan_entry(plan_id: str, updates: dict[str, Any])` - Updates existing plan entry with atomic write pattern
+   - `get_plan_entry(plan_id: str)` - Retrieves plan entry by ID
+
+3. **Run entry methods**:
+   - `create_run_entry(entry: RunEntry)` - Creates a new run entry in `.cub/ledger/by-run/{run_id}.json`
+   - `update_run_entry(run_id: str, updates: dict[str, Any])` - Updates existing run entry with atomic write pattern
+   - `get_run_entry(run_id: str)` - Retrieves run entry by ID
+
+4. **Key features**:
+   - All update methods use atomic write pattern (temp file + rename)
+   - Missing parent directories are created automatically
+   - Proper error handling with FileNotFoundError for missing entries
+   - Comprehensive docstrings with examples
+
+5. **Tests**:
+   - Added 13 new tests covering all functionality
+   - All tests pass (49 total in test_ledger_io.py)
+   - Tests verify atomic writes, directory creation, CRUD operations, and error handling
+
+### All acceptance criteria met:
+✅ `create_plan_entry()` writes to `.cub/ledger/by-plan/{plan_id}/entry.json`  
+✅ `create_run_entry()` writes to `.cub/ledger/by-run/{run_id}.json`  
+✅ Updates use atomic write pattern (temp file + rename)  
+✅ Missing parent directories are created automatically
+
+### Feedback loops passed:
+✅ Tests: All 49 tests pass  
+✅ Type checking: No new mypy errors (pre-existing yaml warning)  
+✅ Linting: No lint errors in new code  
+
+The changes have been committed with a descriptive commit message following the project's conventions.
+
+<promise>COMPLETE</promise>

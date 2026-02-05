@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "id": "cub-048a-3.1",
+  "title": "Create core/hooks/ package with context models",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-3"
+  },
+  "task": {
+    "title": "Create core/hooks/ package with context models",
+    "description": "A new hooks package consolidates hook functionality and defines the context models that carry data to hook scripts.\n\n**Implementation Steps:**\n1. Create `src/cub/core/hooks/` directory with `__init__.py`\n2. Create `models.py` with context models from architecture:\n3. Create `HookResult` model for hook execution results\n4. Create `HookConfig` model for hook configuration\n5. Ensure all context models serialize to JSON for env var passing\n\n**Files:** `src/cub/core/hooks/__init__.py`, `src/cub/core/hooks/models.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:model"
+    ],
+    "created_at": "2026-02-04T15:37:04.560786",
+    "captured_at": "2026-02-04T22:09:45.530580Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-170945",
+      "started_at": "2026-02-04T17:09:45.540909",
+      "completed_at": "2026-02-04T22:13:56.376941Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 121,
+        "output_tokens": 10364,
+        "cache_read_tokens": 1659852,
+        "cache_creation_tokens": 50412
+      },
+      "cost_usd": 0.8757106,
+      "duration_seconds": 250
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:13:56.391459Z",
+    "total_cost_usd": 0.8757106,
+    "total_attempts": 1,
+    "total_duration_seconds": 250,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "224a409c4ae39d7b513683e8932318723d935336",
+        "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+        "author": "",
+        "timestamp": "2026-02-04T22:13:31Z"
+      }
+    ],
+    "approach": "Analyzed the existing project architecture and Claude Code hooks documentation to understand the required context models. Created a comprehensive Pydantic-based models.py with five data classes (SessionContext, TaskContext, EpicContext, PlanContext, HookResult, HookConfig) that serialize to JSON for environment variable passing, following established patterns in the codebase.",
+    "decisions": [
+      "Used Pydantic BaseModel for all context models to maintain consistency with existing codebase patterns and ensure robust validation/serialization",
+      "Included optional fields in context models (e.g., parent_epic_id, parent_plan_id) to handle cases where relationships may not exist",
+      "Added timestamps to HookResult and made success/exit_code separate fields to distinguish between execution outcome and system response",
+      "Created HookConfig as a configurable model with path resolution methods rather than hardcoding paths, enabling flexibility for different project structures",
+      "Exported all models from __init__.py for clean package-level imports"
+    ],
+    "lessons_learned": [
+      "Architecture documentation in the codebase (CLAUDE.md, hook specs) provides essential context for implementation - reading these docs first saves iteration cycles",
+      "Pydantic models with proper field types and optional annotations prevent runtime serialization issues when passing data through environment variables",
+      "Including duration and timestamp fields in context models enables downstream analytics and debugging without requiring additional log parsing",
+      "Pre-existing test failures and type errors in unrelated files should be noted but not fixed during focused task implementation - stay within task scope",
+      "Running full validation (type checking, linting, formatting) on new code before committing catches issues early and maintains code quality standards"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:13:56.391459Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:09:45.530580Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:13:56.391459Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:09:45.530580Z",
+  "completed_at": "2026-02-04T22:13:56.391459Z",
+  "tokens": {
+    "input_tokens": 121,
+    "output_tokens": 10364,
+    "cache_read_tokens": 1659852,
+    "cache_creation_tokens": 50412
+  },
+  "cost_usd": 0.8757106,
+  "duration_seconds": 250,
+  "iterations": 1,
+  "approach": "Analyzed the existing project architecture and Claude Code hooks documentation to understand the required context models. Created a comprehensive Pydantic-based models.py with five data classes (SessionContext, TaskContext, EpicContext, PlanContext, HookResult, HookConfig) that serialize to JSON for environment variable passing, following established patterns in the codebase.",
+  "decisions": [
+    "Used Pydantic BaseModel for all context models to maintain consistency with existing codebase patterns and ensure robust validation/serialization",
+    "Included optional fields in context models (e.g., parent_epic_id, parent_plan_id) to handle cases where relationships may not exist",
+    "Added timestamps to HookResult and made success/exit_code separate fields to distinguish between execution outcome and system response",
+    "Created HookConfig as a configurable model with path resolution methods rather than hardcoding paths, enabling flexibility for different project structures",
+    "Exported all models from __init__.py for clean package-level imports"
+  ],
+  "lessons_learned": [
+    "Architecture documentation in the codebase (CLAUDE.md, hook specs) provides essential context for implementation - reading these docs first saves iteration cycles",
+    "Pydantic models with proper field types and optional annotations prevent runtime serialization issues when passing data through environment variables",
+    "Including duration and timestamp fields in context models enables downstream analytics and debugging without requiring additional log parsing",
+    "Pre-existing test failures and type errors in unrelated files should be noted but not fixed during focused task implementation - stay within task scope",
+    "Running full validation (type checking, linting, formatting) on new code before committing catches issues early and maintains code quality standards"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "224a409c4ae39d7b513683e8932318723d935336",
+      "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+      "author": "",
+      "timestamp": "2026-02-04T22:13:31Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-3.1",
+  "epic_id": "cub-048a-3",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "cub-048a-5",
+  "title": "ledger-consolidation #6: Consistency Checks & Cleanup",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "ledger-consolidation #6: Consistency Checks & Cleanup",
+    "description": "Add integrity checks to `cub doctor` and `cub run`, remove deprecated code paths, and finalize documentation.",
+    "status": "open",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "complexity:low",
+      "slice:cleanup"
+    ],
+    "created_at": "2026-02-04T23:06:42.351141Z",
+    "captured_at": "2026-02-04T23:06:42.351141Z"
+  },
+  "task_ids": [
+    "cub-048a-5.1",
+    "cub-048a-5.2",
+    "cub-048a-5.3",
+    "cub-048a-5.4"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 4.672263900000002,
+    "avg_cost_per_task": 1.1680659750000004,
+    "min_cost_usd": 0.8601857500000004,
+    "max_cost_usd": 1.6884931500000007,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 18662566,
+    "avg_tokens_per_task": 4665641,
+    "total_duration_seconds": 1434,
+    "avg_duration_seconds": 358,
+    "models_used": [
+      "haiku",
+      "sonnet"
+    ],
+    "most_common_model": "haiku"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:25:04.784750Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T23:00:30.440542Z",
+  "completed_at": "2026-02-04T23:24:57.728534Z",
+  "updated_at": "2026-02-04T23:25:04.784754Z",
+  "first_commit": {
+    "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
+    "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+    "author": "",
+    "timestamp": "2026-02-04T23:06:15Z"
+  },
+  "last_commit": {
+    "hash": "8789a557b56336865b0d57bb2ca31d57c65ace8f",
+    "message": "task(cub-048a-5.4): Update documentation and gitignore",
+    "author": "",
+    "timestamp": "2026-02-04T23:24:46Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

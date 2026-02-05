@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-2.2",
+  "title": "Update ledger commit timing",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-02-04T17:02:07.553281",
+  "completed_at": "2026-02-04T17:02:07.553284",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 275.74434661865234
+}

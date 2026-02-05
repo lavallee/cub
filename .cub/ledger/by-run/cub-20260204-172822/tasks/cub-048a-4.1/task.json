@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-4.1",
+  "title": "Implement cub release command",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T17:34:58.183772",
+  "completed_at": "2026-02-04T17:34:58.183775",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 396.0340311527252
+}

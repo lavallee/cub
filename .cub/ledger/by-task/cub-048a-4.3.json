@@ -1,0 +1,154 @@
+{
+  "version": 1,
+  "id": "cub-048a-4.3",
+  "title": "Implement cub verify command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-4"
+  },
+  "task": {
+    "title": "Implement cub verify command",
+    "description": "The verify command checks ledger consistency, ID integrity, and counter sync status. It's useful for diagnosing issues and ensuring data health.\n\n**Implementation Steps:**\n1. Create `src/cub/core/verify/` package with `service.py`\n2. Implement `VerifyService` with checks:\n3. Create `Issue` model with severity, message, fix suggestion\n4. Create `src/cub/cli/verify.py` with Typer command\n5. Support `--fix` flag to auto-fix simple issues\n6. Support filtering: `--ledger`, `--ids`, `--counters`\n\n**Files:** `src/cub/core/verify/__init__.py`, `src/cub/core/verify/service.py`, `src/cub/cli/verify.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-5",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic",
+      "domain:api"
+    ],
+    "created_at": "2026-02-04T15:37:04.560886",
+    "captured_at": "2026-02-04T22:40:27.629621Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-172822",
+      "started_at": "2026-02-04T17:40:27.640140",
+      "completed_at": "2026-02-04T22:47:31.888792Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 70,
+        "output_tokens": 21433,
+        "cache_read_tokens": 4140166,
+        "cache_creation_tokens": 66278
+      },
+      "cost_usd": 1.8787243000000005,
+      "duration_seconds": 424
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:47:31.910046Z",
+    "total_cost_usd": 1.8787243000000005,
+    "total_attempts": 1,
+    "total_duration_seconds": 424,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d2da057891db30cebb64a65dade6a55f0c76549f",
+        "message": "task(cub-048a-4.3): Implement cub verify command",
+        "author": "",
+        "timestamp": "2026-02-04T22:47:07Z"
+      }
+    ],
+    "approach": "Examined existing codebase patterns by reviewing recently implemented commands (release, retro) and ledger structure, then systematically built the verify service with comprehensive checks for ledger consistency, ID integrity, and counter sync before implementing the CLI interface and registering it in the appropriate panel.",
+    "decisions": [
+      "Placed `verify` command in the \"Improve Your Project\" section rather than task management, reflecting its role as a diagnostic/health-check utility",
+      "Implemented three independent check categories (ledger, IDs, counters) with toggle flags (`--ledger`, `--ids`, `--counters`) to allow selective verification rather than always running all checks",
+      "Used an `Issue` model with severity levels (ERROR, WARNING, INFO) and `auto_fixable` flag to distinguish between fixable issues and ones requiring manual intervention",
+      "Designed `--fix` to only auto-repair simple issues where the fix is safe and deterministic, avoiding risky automated changes"
+    ],
+    "lessons_learned": [
+      "Type annotation precision matters: casting counter values to `int` and being explicit about return types prevents mypy failures when integrating with existing typed code",
+      "Pre-existing test failures in a codebase don't block new work; verify your changes didn't introduce new failures rather than trying to fix unrelated issues",
+      "Long-line issues from ruff can accumulate quickly\u2014breaking up long conditionals and wrapping parameter lists early in implementation saves iteration cycles during linting",
+      "Rich output formatting (tables, summaries, colors) significantly improves UX for diagnostic commands and should be considered part of the core feature, not an afterthought"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:47:31.910046Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:40:27.629621Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:47:31.910046Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:40:27.629621Z",
+  "completed_at": "2026-02-04T22:47:31.910046Z",
+  "tokens": {
+    "input_tokens": 70,
+    "output_tokens": 21433,
+    "cache_read_tokens": 4140166,
+    "cache_creation_tokens": 66278
+  },
+  "cost_usd": 1.8787243000000005,
+  "duration_seconds": 424,
+  "iterations": 1,
+  "approach": "Examined existing codebase patterns by reviewing recently implemented commands (release, retro) and ledger structure, then systematically built the verify service with comprehensive checks for ledger consistency, ID integrity, and counter sync before implementing the CLI interface and registering it in the appropriate panel.",
+  "decisions": [
+    "Placed `verify` command in the \"Improve Your Project\" section rather than task management, reflecting its role as a diagnostic/health-check utility",
+    "Implemented three independent check categories (ledger, IDs, counters) with toggle flags (`--ledger`, `--ids`, `--counters`) to allow selective verification rather than always running all checks",
+    "Used an `Issue` model with severity levels (ERROR, WARNING, INFO) and `auto_fixable` flag to distinguish between fixable issues and ones requiring manual intervention",
+    "Designed `--fix` to only auto-repair simple issues where the fix is safe and deterministic, avoiding risky automated changes"
+  ],
+  "lessons_learned": [
+    "Type annotation precision matters: casting counter values to `int` and being explicit about return types prevents mypy failures when integrating with existing typed code",
+    "Pre-existing test failures in a codebase don't block new work; verify your changes didn't introduce new failures rather than trying to fix unrelated issues",
+    "Long-line issues from ruff can accumulate quickly\u2014breaking up long conditionals and wrapping parameter lists early in implementation saves iteration cycles during linting",
+    "Rich output formatting (tables, summaries, colors) significantly improves UX for diagnostic commands and should be considered part of the core feature, not an afterthought"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d2da057891db30cebb64a65dade6a55f0c76549f",
+      "message": "task(cub-048a-4.3): Implement cub verify command",
+      "author": "",
+      "timestamp": "2026-02-04T22:47:07Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-4.3",
+  "epic_id": "cub-048a-4",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

@@ -54,6 +54,28 @@ Update this file as you learn new things about the codebase.
 
 Cub is a Python-based CLI tool that wraps AI coding assistants (Claude Code, Codex, Gemini, etc.) to provide a reliable "set and forget" loop for autonomous coding sessions. It handles task management, clean state verification, budget tracking, and structured logging.
 
+### Task ID Format
+
+Cub uses hierarchical task IDs that encode project, epic, and task structure:
+
+**Format:** `{project}-{epic}-{task}`
+
+**Examples:**
+- `cub-048a-5.4` - Project "cub", epic "048a-5", task 4
+- `acme-prod-2.1` - Project "acme", epic "prod-2", task 1
+- `app-001-0` - Project "app", epic "001", task 0
+
+**Components:**
+- **Project prefix** (e.g., `cub`, `acme`) - Unique identifier for the project
+- **Epic ID** (e.g., `048a-5`, `prod-2`) - Groups related work; can have semver-like structure
+- **Task number** (e.g., `4`, `1`) - Individual task within an epic
+
+This hierarchical structure enables:
+- Grouping related work in epics
+- Clear dependency tracking
+- Organized ledger queries (by-epic, by-task)
+- Human-readable task references in commits and documentation
+
 ## Tech Stack
 
 - **Language**: Python 3.10+
@@ -309,7 +331,14 @@ Cub v0.26+ uses a layered service architecture to separate business logic from i
 │   │   └── hooks/
 │   │       └── cub-hook.sh     # Fast-path shell filter for hooks
 │   └── ledger/
-│       └── forensics/   # Session event logs (JSONL per session)
+│       ├── index.jsonl          # Ledger index of all entries
+│       ├── by-task/             # Entries grouped by task ID
+│       │   └── {task_id}/       # One directory per task with entries
+│       ├── by-epic/             # Entries grouped by epic ID
+│       │   └── {epic_id}/       # One directory per epic with entries
+│       ├── by-run/              # Entries grouped by run/session ID
+│       │   └── {run_id}/        # One directory per run with entries
+│       └── forensics/           # Session event logs (JSONL per session)
 ├── .claude/             # Claude Code configuration
 │   └── settings.json    # Hook configuration (auto-installed by cub init)
 ├── pyproject.toml       # Python project metadata and config
@@ -365,6 +394,8 @@ Cub provides a comprehensive set of commands organized by use case. These comman
 - `cub run` - Execute autonomous task loop with AI harness
 - `cub status` - Show current session status and task progress
 - `cub suggest` - Get smart suggestions for next actions
+- `cub verify` - Verify cub data integrity (ledger, IDs, counters)
+- `cub learn extract` - Extract patterns and lessons from ledger
 
 ### Task Management Commands
 
@@ -403,7 +434,6 @@ Cub provides a comprehensive set of commands organized by use case. These comman
 - `cub worktree` - Manage git worktrees for parallel task execution
 - `cub pr <epic-id>` - Create and manage pull requests
 - `cub merge <pr-number>` - Merge pull requests
-- `cub build-plan` - Execute a staged plan by running cub for each epic in order
 
 ### Planning & Roadmap Commands
 
@@ -428,6 +458,24 @@ Cub provides a comprehensive set of commands organized by use case. These comman
 - `cub monitor` - Display live dashboard for cub run session
 - `cub dashboard` - Launch project kanban dashboard
 - `cub sandbox` - Manage Docker sandboxes
+
+### Data Integrity & Learning Commands
+
+**Verify and Learn:**
+- `cub verify` - Check ledger consistency, ID integrity, and counter sync status
+- `cub verify --fix` - Auto-fix simple issues in cub data
+- `cub learn extract` - Extract patterns and lessons from completed work
+- `cub learn extract --since 7` - Analyze work from the last 7 days
+- `cub learn extract --apply` - Apply pattern insights to guardrails and documentation
+
+### Release & Retrospectives
+
+**Manage Releases:**
+- `cub release <plan-id> <version>` - Mark a plan as released and update CHANGELOG
+- `cub release <plan-id> <version> --dry-run` - Preview release changes
+- `cub retro <id>` - Generate retrospective report for epic or plan
+- `cub retro <id> --epic` - Treat ID as epic ID (not plan ID)
+- `cub retro <id> --output report.md` - Write retro to file
 
 ### Project Improvement Commands
 
@@ -588,7 +636,6 @@ These commands have been migrated to Python and execute directly without bash:
 - **`ledger`** - View and search task completion ledger (subcommands: `show`, `stats`, `search`, `update`, `export`, `gc`)
 - **`review`** - Assess task implementations against requirements
 - **`session`** - Track work in direct harness sessions (subcommands: `log`, `done`, `wip`)
-- **`build-plan`** - Execute a staged plan by running cub for each epic in order
 
 These commands are fully implemented in Python under `src/cub/cli/`:
 - `run.py` - Core task execution loop
@@ -663,8 +710,9 @@ The reconciliation process:
 2. Classifies events (file writes, task claims, git commits)
 3. Associates task if detected in forensics
 4. Optionally parses transcript for token/cost enrichment
-5. Writes ledger entry to `.cub/ledger/by-task/{task_id}/` or creates new entry if no task
-6. Updates ledger index in `.cub/ledger/index.jsonl`
+5. Writes ledger entry to `.cub/ledger/by-task/{task_id}/` for task-associated work
+6. Also organizes entries in `.cub/ledger/by-epic/{epic_id}/` and `.cub/ledger/by-run/{run_id}/`
+7. Updates ledger index in `.cub/ledger/index.jsonl`
 
 ### Delegated Commands (Bash-Implemented)
 
@@ -1073,6 +1121,111 @@ If you have an existing `.cub.json` file:
 3. Delete the old `.cub.json` file
 
 The legacy `.cub.json` location is still read for backwards compatibility, but issues a deprecation warning. Run `cub init` to consolidate configuration.
+
+## Data Integrity and Learning
+
+### Verify Command
+
+The `cub verify` command checks the integrity of your cub data:
+
+```bash
+# Run all checks
+cub verify
+
+# Run with auto-fix for simple issues
+cub verify --fix
+
+# Check only specific aspects
+cub verify --ledger           # Check ledger consistency only
+cub verify --ids              # Check ID format and duplicates
+cub verify --counters         # Check counter synchronization
+
+# Show all issues including informational ones
+cub verify --verbose
+```
+
+**What it checks:**
+- **Ledger consistency**: File structure validity, JSON integrity, entry completeness
+- **ID integrity**: Format validation (must match `{project}-{epic}-{task}`), duplicate detection, cross-reference validation
+- **Counter sync**: Ensures counters (ID sequences) match actual usage
+
+### Learn Command
+
+The `cub learn extract` command analyzes your completed work to extract patterns and lessons:
+
+```bash
+# Analyze all ledger entries
+cub learn extract
+
+# Analyze only recent work (last 7 days)
+cub learn extract --since 7
+
+# Analyze work since a specific date
+cub learn extract --since-date 2026-02-01
+
+# Show detailed pattern information
+cub learn extract --verbose
+
+# Save analysis to a file
+cub learn extract --output analysis.md
+
+# Apply pattern insights to your documentation
+cub learn extract --apply
+```
+
+**What it extracts:**
+- Common patterns in task completion
+- Duration and effort trends
+- Success and failure patterns
+- Technology and domain insights
+- Recommendations for future work
+
+### Release Command
+
+Mark your work as released and update version history:
+
+```bash
+# Release a plan and create git tag
+cub release epic-id v1.0
+
+# Preview changes before applying
+cub release epic-id v1.0 --dry-run
+
+# Release without creating a git tag
+cub release epic-id v1.0 --no-tag
+```
+
+**What it does:**
+- Updates plan status to "released" in ledger
+- Updates CHANGELOG.md with release information
+- Creates a git tag for the version
+- Moves spec files to `specs/released/`
+
+### Retro Command
+
+Generate detailed retrospective reports for your completed work:
+
+```bash
+# Generate retro for a plan (to stdout)
+cub retro epic-id
+
+# Generate retro for an epic
+cub retro epic-id --epic
+
+# Save retro to a file
+cub retro epic-id --output retro.md
+
+# Combined options
+cub retro epic-id --epic --output retro.md
+```
+
+**Report includes:**
+- Executive summary and timeline
+- Metrics (cost, tokens, duration)
+- Task list with outcomes
+- Key decisions made
+- Lessons learned
+- Issues encountered
 
 ## Gotchas & Learnings
 

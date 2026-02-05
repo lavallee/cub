@@ -117,8 +117,8 @@ class RunSession(BaseModel):
     Run session state for an active or completed `cub run` execution.
 
     Tracks the full lifecycle of a run including budget consumption,
-    task progress, and session status. Written to .cub/run-sessions/
-    and symlinked via .cub/active-run.json for current session.
+    task progress, and session status. Stored in .cub/ledger/by-run/
+    directory structure.
 
     Example:
         >>> session = RunSession(

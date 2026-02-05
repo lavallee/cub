@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "cub-048a-1.4",
+  "title": "Create ArtifactManager for flattened numbering",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-1"
+  },
+  "task": {
+    "title": "Create ArtifactManager for flattened numbering",
+    "description": "Artifacts should be numbered at task level (001-prompt.md, 002-prompt.md) without the attempts/ subdirectory. This simplifies the directory structure.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ledger/artifacts.py`\n2. Implement `ArtifactManager` class with:\n3. Artifact types: \"prompt\", \"harness\", \"patch\"\n4. Path format: `by-task/{task_id}/{attempt:03d}-{type}.{ext}`\n5. Auto-detect next attempt number from existing files\n\n**Files:** `src/cub/core/ledger/artifacts.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-2",
+      "model:sonnet",
+      "complexity:low",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560661",
+    "captured_at": "2026-02-04T21:31:16.364763Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-161852",
+      "started_at": "2026-02-04T16:31:16.374796",
+      "completed_at": "2026-02-04T21:35:01.795823Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 107,
+        "output_tokens": 12270,
+        "cache_read_tokens": 1456751,
+        "cache_creation_tokens": 49414
+      },
+      "cost_usd": 0.8325707999999998,
+      "duration_seconds": 225
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:35:01.833168Z",
+    "total_cost_usd": 0.8325707999999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 225,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "d3e58707f2cba60270e07f69b012f5a773a1cddb",
+        "message": "task(cub-048a-1.4): Create ArtifactManager for flattened numbering",
+        "author": "",
+        "timestamp": "2026-02-04T21:34:48Z"
+      }
+    ],
+    "approach": "Created a new `ArtifactManager` class in the ledger module to handle flattened artifact numbering, eliminating the `attempts/` subdirectory and using a consistent format of `{attempt:03d}-{type}.{ext}`. The implementation auto-detects the next attempt number by scanning existing files and works with both new hierarchical task IDs and legacy random IDs. The work was validated through comprehensive unit tests covering all artifact types and edge cases.",
+    "decisions": [
+      "**Flattened path structure without subdirectories**: Simplified from `by-task/{task_id}/attempts/{attempt:03d}-{type}.{ext}` to `by-task/{task_id}/{attempt:03d}-{type}.{ext}` for reduced nesting complexity",
+      "**Auto-detection of attempt numbers**: Implemented file scanning logic to dynamically determine the next attempt number rather than requiring explicit version management",
+      "**Support for multiple artifact types**: Defined three artifact types (prompt, harness, patch) with specific file extensions (.md, .jsonl, .diff) to accommodate different workflow outputs",
+      "**Backward compatibility with ID formats**: Designed to work with both new hierarchical IDs (e.g., `cub-048a-0.1`) and legacy random IDs (e.g., `beads-abc123`) without special handling logic"
+    ],
+    "lessons_learned": [
+      "**Comprehensive test coverage prevents integration issues**: The 29-test suite caught all edge cases (missing directories, non-artifact files, ID format variations) before integration with the broader ledger system",
+      "**File-based auto-detection is simpler than state tracking**: Rather than maintaining explicit version counters, scanning existing files provides a self-correcting mechanism that handles interrupted runs gracefully",
+      "**Type checking and linting pass on new code even when unrelated tests fail**: Pre-existing test failures (in test_hooks.py) didn't block completion; it's important to isolate feedback loop results to verify your changes didn't cause regressions"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:35:01.833168Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:31:16.364763Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:35:01.833168Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:31:16.364763Z",
+  "completed_at": "2026-02-04T21:35:01.833168Z",
+  "tokens": {
+    "input_tokens": 107,
+    "output_tokens": 12270,
+    "cache_read_tokens": 1456751,
+    "cache_creation_tokens": 49414
+  },
+  "cost_usd": 0.8325707999999998,
+  "duration_seconds": 225,
+  "iterations": 1,
+  "approach": "Created a new `ArtifactManager` class in the ledger module to handle flattened artifact numbering, eliminating the `attempts/` subdirectory and using a consistent format of `{attempt:03d}-{type}.{ext}`. The implementation auto-detects the next attempt number by scanning existing files and works with both new hierarchical task IDs and legacy random IDs. The work was validated through comprehensive unit tests covering all artifact types and edge cases.",
+  "decisions": [
+    "**Flattened path structure without subdirectories**: Simplified from `by-task/{task_id}/attempts/{attempt:03d}-{type}.{ext}` to `by-task/{task_id}/{attempt:03d}-{type}.{ext}` for reduced nesting complexity",
+    "**Auto-detection of attempt numbers**: Implemented file scanning logic to dynamically determine the next attempt number rather than requiring explicit version management",
+    "**Support for multiple artifact types**: Defined three artifact types (prompt, harness, patch) with specific file extensions (.md, .jsonl, .diff) to accommodate different workflow outputs",
+    "**Backward compatibility with ID formats**: Designed to work with both new hierarchical IDs (e.g., `cub-048a-0.1`) and legacy random IDs (e.g., `beads-abc123`) without special handling logic"
+  ],
+  "lessons_learned": [
+    "**Comprehensive test coverage prevents integration issues**: The 29-test suite caught all edge cases (missing directories, non-artifact files, ID format variations) before integration with the broader ledger system",
+    "**File-based auto-detection is simpler than state tracking**: Rather than maintaining explicit version counters, scanning existing files provides a self-correcting mechanism that handles interrupted runs gracefully",
+    "**Type checking and linting pass on new code even when unrelated tests fail**: Pre-existing test failures (in test_hooks.py) didn't block completion; it's important to isolate feedback loop results to verify your changes didn't cause regressions"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "d3e58707f2cba60270e07f69b012f5a773a1cddb",
+      "message": "task(cub-048a-1.4): Create ArtifactManager for flattened numbering",
+      "author": "",
+      "timestamp": "2026-02-04T21:34:48Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-1.4",
+  "epic_id": "cub-048a-1",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

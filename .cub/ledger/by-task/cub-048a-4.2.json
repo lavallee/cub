@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "id": "cub-048a-4.2",
+  "title": "Implement cub retro command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-4"
+  },
+  "task": {
+    "title": "Implement cub retro command",
+    "description": "The retro command generates a retrospective report for a completed plan or epic, summarizing what went well, what didn't, and lessons learned.\n\n**Implementation Steps:**\n1. Create `src/cub/core/retro/` package with `service.py`\n2. Implement `RetroService` with methods:\n3. Create `RetroReport` model with sections\n4. Create `src/cub/cli/retro.py` with Typer command\n5. Output as markdown to stdout or file\n6. Support `--epic` flag for epic-level retro\n\n**Files:** `src/cub/core/retro/__init__.py`, `src/cub/core/retro/service.py`, `src/cub/cli/retro.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-5",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic",
+      "domain:api"
+    ],
+    "created_at": "2026-02-04T15:37:04.560870",
+    "captured_at": "2026-02-04T22:35:07.688703Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-172822",
+      "started_at": "2026-02-04T17:35:07.698219",
+      "completed_at": "2026-02-04T22:40:17.065891Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 10087,
+        "output_tokens": 13444,
+        "cache_read_tokens": 2249194,
+        "cache_creation_tokens": 52368
+      },
+      "cost_usd": 1.1352471999999998,
+      "duration_seconds": 309
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:40:17.085401Z",
+    "total_cost_usd": 1.1352471999999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 309,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "5a1cef61a7c255aa03a69834dc3a2023742bbc84",
+        "message": "task(cub-048a-4.2): Implement cub retro command",
+        "author": "",
+        "timestamp": "2026-02-04T22:39:53Z"
+      }
+    ],
+    "approach": "Implemented the `cub retro` command by creating a three-layer architecture: a `RetroService` in the core domain to aggregate ledger data and generate reports, a `RetroReport` dataclass to structure the output, and a CLI command using Typer with `--output` and `--epic` flags. Tested end-to-end with real epic data to verify functionality before running feedback loops.",
+    "decisions": [
+      "Used a dataclass for `RetroReport` rather than Pydantic model for simplicity, since the report is write-only output with no validation needs",
+      "Placed the service in `core/retro/` following the established layered architecture pattern, keeping business logic independent of CLI concerns",
+      "Implemented the CLI command with `app.callback(invoke_without_command=True)` to match the pattern used by the `release` command, rather than creating a subcommand group",
+      "Fixed line-length linting issues by extracting long strings into variables and using continuation, maintaining readability while meeting style constraints",
+      "Designed the report to treat all retros as \"epic-level\" internally, with the `--epic` flag kept for API consistency and future extensibility"
+    ],
+    "lessons_learned": [
+      "Typer command argument ordering matters: when using `app.callback()`, the main command argument must precede optional flags (e.g., `cub retro <id> --output file`)\u2014this differs from typical CLI convention and requires testing with real invocations",
+      "Linting constraints (ruff line length) can be satisfied by extracting long strings into intermediate variables, which also improves readability",
+      "The ledger structure with separate `by-task` and `by-run` directories enables rich retrospective analysis by providing both granular task-level context and session-level chronology",
+      "When implementing new commands, checking similar existing commands (like `release.py`) provides crucial patterns for CLI structure and flag handling, reducing implementation time and maintaining consistency"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:40:17.085401Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:35:07.688703Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:40:17.085401Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:35:07.688703Z",
+  "completed_at": "2026-02-04T22:40:17.085401Z",
+  "tokens": {
+    "input_tokens": 10087,
+    "output_tokens": 13444,
+    "cache_read_tokens": 2249194,
+    "cache_creation_tokens": 52368
+  },
+  "cost_usd": 1.1352471999999998,
+  "duration_seconds": 309,
+  "iterations": 1,
+  "approach": "Implemented the `cub retro` command by creating a three-layer architecture: a `RetroService` in the core domain to aggregate ledger data and generate reports, a `RetroReport` dataclass to structure the output, and a CLI command using Typer with `--output` and `--epic` flags. Tested end-to-end with real epic data to verify functionality before running feedback loops.",
+  "decisions": [
+    "Used a dataclass for `RetroReport` rather than Pydantic model for simplicity, since the report is write-only output with no validation needs",
+    "Placed the service in `core/retro/` following the established layered architecture pattern, keeping business logic independent of CLI concerns",
+    "Implemented the CLI command with `app.callback(invoke_without_command=True)` to match the pattern used by the `release` command, rather than creating a subcommand group",
+    "Fixed line-length linting issues by extracting long strings into variables and using continuation, maintaining readability while meeting style constraints",
+    "Designed the report to treat all retros as \"epic-level\" internally, with the `--epic` flag kept for API consistency and future extensibility"
+  ],
+  "lessons_learned": [
+    "Typer command argument ordering matters: when using `app.callback()`, the main command argument must precede optional flags (e.g., `cub retro <id> --output file`)\u2014this differs from typical CLI convention and requires testing with real invocations",
+    "Linting constraints (ruff line length) can be satisfied by extracting long strings into intermediate variables, which also improves readability",
+    "The ledger structure with separate `by-task` and `by-run` directories enables rich retrospective analysis by providing both granular task-level context and session-level chronology",
+    "When implementing new commands, checking similar existing commands (like `release.py`) provides crucial patterns for CLI structure and flag handling, reducing implementation time and maintaining consistency"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "5a1cef61a7c255aa03a69834dc3a2023742bbc84",
+      "message": "task(cub-048a-4.2): Implement cub retro command",
+      "author": "",
+      "timestamp": "2026-02-04T22:39:53Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-4.2",
+  "epic_id": "cub-048a-4",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

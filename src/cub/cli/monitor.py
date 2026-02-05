@@ -32,9 +32,8 @@ def _find_active_run(project_dir: Path) -> tuple[str, Path] | None:
     Find the most recent active (or latest) run's status.json.
 
     Resolution order:
-    1. Session symlink at .cub/run-sessions/active-run.json
-    2. Most recent status.json in .cub/runs/ that is still active
-    3. Most recent status.json in .cub/runs/ (any phase)
+    1. Most recent status.json in .cub/ledger/by-run/ that is still active
+    2. Most recent status.json in .cub/ledger/by-run/ (any phase)
 
     Args:
         project_dir: Project root directory
@@ -42,23 +41,10 @@ def _find_active_run(project_dir: Path) -> tuple[str, Path] | None:
     Returns:
         Tuple of (run_id, status_path) or None if no runs found
     """
-    cub_dir = project_dir / ".cub"
+    import json
 
-    # 1. Try session symlink (legacy path)
-    active_symlink = cub_dir / "run-sessions" / "active-run.json"
-    if active_symlink.exists() and active_symlink.is_symlink():
-        try:
-            resolved = active_symlink.resolve()
-            if resolved.exists():
-                run_id = resolved.stem
-                status_path = cub_dir / "runs" / run_id / "status.json"
-                if status_path.exists():
-                    return (run_id, status_path)
-        except (OSError, ValueError):
-            pass
-
-    # 2. Scan .cub/runs/ for the most recent active run
-    runs_dir = cub_dir / "runs"
+    # Scan .cub/ledger/by-run/ for the most recent active run
+    runs_dir = project_dir / ".cub" / "ledger" / "by-run"
     if not runs_dir.exists():
         return None
 
@@ -70,8 +56,6 @@ def _find_active_run(project_dir: Path) -> tuple[str, Path] | None:
     status_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
 
     # Prefer an active (running/initializing) run
-    import json
-
     for sf in status_files:
         try:
             with sf.open() as f:
@@ -83,7 +67,7 @@ def _find_active_run(project_dir: Path) -> tuple[str, Path] | None:
         except (json.JSONDecodeError, OSError):
             continue
 
-    # 3. Fall back to most recent run regardless of phase
+    # Fall back to most recent run regardless of phase
     for sf in status_files:
         try:
             with sf.open() as f:
@@ -147,7 +131,7 @@ def monitor(
     # Resolve which run to monitor
     if session_id:
         # Explicit run ID provided
-        status_path = project_dir / ".cub" / "runs" / session_id / "status.json"
+        status_path = project_dir / ".cub" / "ledger" / "by-run" / session_id / "status.json"
         run_id = session_id
     else:
         # Auto-detect active run

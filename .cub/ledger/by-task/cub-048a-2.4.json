@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "id": "cub-048a-2.4",
+  "title": "Tests for run loop changes",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-2"
+  },
+  "task": {
+    "title": "Tests for run loop changes",
+    "description": "The run loop changes need comprehensive tests to ensure plan execution, ledger timing, and ID integration work correctly.\n\n**Implementation Steps:**\n1. Create `tests/test_run_plan.py` for plan execution tests\n2. Test `cub run --plan` happy path (mock harness)\n3. Test epic ordering and completion detection\n4. Test ledger entries created at correct times\n5. Test partial run options (--start-epic, --only-epic)\n6. Test budget enforcement during plan execution\n7. Test error handling (epic failure, harness timeout)\n\n**Files:** `tests/test_run_plan.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-3",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:test"
+    ],
+    "created_at": "2026-02-04T15:37:04.560770",
+    "captured_at": "2026-02-04T22:04:38.914582Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-165022",
+      "started_at": "2026-02-04T17:04:38.924113",
+      "completed_at": "2026-02-04T22:09:30.413922Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 10202,
+        "output_tokens": 20022,
+        "cache_read_tokens": 1920819,
+        "cache_creation_tokens": 66010
+      },
+      "cost_usd": 1.1699472000000002,
+      "duration_seconds": 291
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:09:30.459609Z",
+    "total_cost_usd": 1.1699472000000002,
+    "total_attempts": 1,
+    "total_duration_seconds": 291,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "b3ed0e8b05aea71c1496b34094c99da3b5cc325e",
+        "message": "task(cub-048a-2.4): Tests for run loop changes",
+        "author": "",
+        "timestamp": "2026-02-04T22:09:16Z"
+      }
+    ],
+    "approach": "The task was completed by thoroughly analyzing the existing `_run_plan` function implementation, understanding its dependencies and data models, then systematically creating a comprehensive test suite with 11 distinct test cases covering both happy paths and edge cases. Tests were iterated and refined based on execution feedback until all passed, followed by linting and verification against project standards.",
+    "decisions": [
+      "**Mock-heavy testing approach**: Created isolated unit tests with full mocking of dependencies (task backend, harness backend, ledger writer) rather than integration tests, enabling fast, deterministic execution and easier failure diagnosis",
+      "**Realistic test data with fixtures**: Used parameterized test data representing actual plan structure (multiple epics with tasks, completion states) to catch realistic bugs rather than trivial cases",
+      "**Adjusted test expectations for actual behavior**: When tests revealed that empty epics are still processed by the run loop, updated test expectations to match the actual implementation rather than forcing implementation changes",
+      "**Fixed API contract mismatches during implementation**: Discovered and corrected parameter naming issues (e.g., `total_cost_usd` vs `total_cost`) by reading actual model definitions, ensuring tests use correct API contracts",
+      "**Systematic linting fixes**: Addressed ruff violations (unused imports, line length) one category at a time rather than in bulk, reducing risk of introducing new issues"
+    ],
+    "lessons_learned": [
+      "**Read the actual implementation before writing tests**: Understanding the exact behavior of `_run_plan`, including edge cases like processing empty epics, was critical to writing realistic tests that would catch real bugs",
+      "**Model definitions are the source of truth**: Rather than assuming parameter names or return types, always reference the actual Pydantic models and function signatures to ensure test code matches production code",
+      "**Incremental test refinement is more reliable than comprehensive-on-first-try**: Running tests after each batch of test cases (rather than writing all tests then running once) allowed catching issues early when fixes were simpler",
+      "**Test isolation with mocking makes debugging faster**: Mock-based tests provided clear failure messages pointing to exact assertion failures, much more useful than integration test failures that require deeper investigation"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:09:30.459609Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:04:38.914582Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:09:30.459609Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:04:38.914582Z",
+  "completed_at": "2026-02-04T22:09:30.459609Z",
+  "tokens": {
+    "input_tokens": 10202,
+    "output_tokens": 20022,
+    "cache_read_tokens": 1920819,
+    "cache_creation_tokens": 66010
+  },
+  "cost_usd": 1.1699472000000002,
+  "duration_seconds": 291,
+  "iterations": 1,
+  "approach": "The task was completed by thoroughly analyzing the existing `_run_plan` function implementation, understanding its dependencies and data models, then systematically creating a comprehensive test suite with 11 distinct test cases covering both happy paths and edge cases. Tests were iterated and refined based on execution feedback until all passed, followed by linting and verification against project standards.",
+  "decisions": [
+    "**Mock-heavy testing approach**: Created isolated unit tests with full mocking of dependencies (task backend, harness backend, ledger writer) rather than integration tests, enabling fast, deterministic execution and easier failure diagnosis",
+    "**Realistic test data with fixtures**: Used parameterized test data representing actual plan structure (multiple epics with tasks, completion states) to catch realistic bugs rather than trivial cases",
+    "**Adjusted test expectations for actual behavior**: When tests revealed that empty epics are still processed by the run loop, updated test expectations to match the actual implementation rather than forcing implementation changes",
+    "**Fixed API contract mismatches during implementation**: Discovered and corrected parameter naming issues (e.g., `total_cost_usd` vs `total_cost`) by reading actual model definitions, ensuring tests use correct API contracts",
+    "**Systematic linting fixes**: Addressed ruff violations (unused imports, line length) one category at a time rather than in bulk, reducing risk of introducing new issues"
+  ],
+  "lessons_learned": [
+    "**Read the actual implementation before writing tests**: Understanding the exact behavior of `_run_plan`, including edge cases like processing empty epics, was critical to writing realistic tests that would catch real bugs",
+    "**Model definitions are the source of truth**: Rather than assuming parameter names or return types, always reference the actual Pydantic models and function signatures to ensure test code matches production code",
+    "**Incremental test refinement is more reliable than comprehensive-on-first-try**: Running tests after each batch of test cases (rather than writing all tests then running once) allowed catching issues early when fixes were simpler",
+    "**Test isolation with mocking makes debugging faster**: Mock-based tests provided clear failure messages pointing to exact assertion failures, much more useful than integration test failures that require deeper investigation"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "b3ed0e8b05aea71c1496b34094c99da3b5cc325e",
+      "message": "task(cub-048a-2.4): Tests for run loop changes",
+      "author": "",
+      "timestamp": "2026-02-04T22:09:16Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-2.4",
+  "epic_id": "cub-048a-2",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

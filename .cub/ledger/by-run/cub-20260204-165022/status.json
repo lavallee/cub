@@ -1,0 +1,167 @@
+{
+  "run_id": "cub-20260204-165022",
+  "session_name": "cub-20260204-165022",
+  "started_at": "2026-02-04T16:50:22.061554",
+  "updated_at": "2026-02-04T17:09:40.929807",
+  "completed_at": "2026-02-04T17:09:40.929164",
+  "epic": "cub-048a-2",
+  "label": null,
+  "branch": "feature/cub-048-ledger-consolidation-and-id-system",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 4,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 4.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 86103,
+    "tokens_limit": 500000,
+    "cost_usd": 8.073507050000002,
+    "cost_limit": null,
+    "tasks_completed": 4,
+    "tasks_limit": null,
+    "tokens_percentage": 17.2206,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 69,
+  "tasks_in_progress": 0,
+  "tasks_closed": 88,
+  "tasks_total": 157,
+  "task_entries": [
+    {
+      "task_id": "cub-048a-2.1",
+      "title": "Add --plan flag and plan iteration logic",
+      "state": "done",
+      "started_at": "2026-02-04T16:50:22.072007",
+      "completed_at": "2026-02-04T16:57:22.327724"
+    },
+    {
+      "task_id": "cub-048a-2.2",
+      "title": "Update ledger commit timing",
+      "state": "done",
+      "started_at": "2026-02-04T16:57:31.726476",
+      "completed_at": "2026-02-04T17:02:07.553166"
+    },
+    {
+      "task_id": "cub-048a-2.3",
+      "title": "Remove build-plan command",
+      "state": "done",
+      "started_at": "2026-02-04T17:02:16.184790",
+      "completed_at": "2026-02-04T17:04:31.299464"
+    },
+    {
+      "task_id": "cub-048a-2.4",
+      "title": "Tests for run loop changes",
+      "state": "done",
+      "started_at": "2026-02-04T17:04:38.906397",
+      "completed_at": "2026-02-04T17:09:30.421619"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-04T16:50:22.068620",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:50:22.072022",
+      "level": "info",
+      "message": "Starting task: Add --plan flag and plan iteration logic",
+      "task_id": "cub-048a-2.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T16:57:22.327750",
+      "level": "info",
+      "message": "Task completed: Add --plan flag and plan iteration logic",
+      "task_id": "cub-048a-2.1",
+      "metadata": {
+        "duration": 420.2273676395416,
+        "tokens": 28639
+      }
+    },
+    {
+      "timestamp": "2026-02-04T16:57:31.726488",
+      "level": "info",
+      "message": "Starting task: Update ledger commit timing",
+      "task_id": "cub-048a-2.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:02:07.553186",
+      "level": "info",
+      "message": "Task completed: Update ledger commit timing",
+      "task_id": "cub-048a-2.2",
+      "metadata": {
+        "duration": 275.74434661865234,
+        "tokens": 11270
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:02:16.184803",
+      "level": "info",
+      "message": "Starting task: Remove build-plan command",
+      "task_id": "cub-048a-2.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:04:31.299482",
+      "level": "info",
+      "message": "Task completed: Remove build-plan command",
+      "task_id": "cub-048a-2.3",
+      "metadata": {
+        "duration": 135.08863830566406,
+        "tokens": 15970
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:04:38.906410",
+      "level": "info",
+      "message": "Starting task: Tests for run loop changes",
+      "task_id": "cub-048a-2.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:09:30.421636",
+      "level": "info",
+      "message": "Task completed: Tests for run loop changes",
+      "task_id": "cub-048a-2.4",
+      "metadata": {
+        "duration": 291.48875069618225,
+        "tokens": 30224
+      }
+    },
+    {
+      "timestamp": "2026-02-04T17:09:30.441278",
+      "level": "info",
+      "message": "Epic 'cub-048a-2' auto-closed (4 tasks completed)",
+      "task_id": "cub-048a-2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-04T17:09:40.929198",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 69,
+  "completion_percentage": 56.05095541401274,
+  "duration_seconds": 1158.86761
+}

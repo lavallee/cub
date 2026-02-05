@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-4.2",
+  "title": "Implement cub retro command",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T17:40:17.074431",
+  "completed_at": "2026-02-04T17:40:17.074434",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 309.36644315719604
+}

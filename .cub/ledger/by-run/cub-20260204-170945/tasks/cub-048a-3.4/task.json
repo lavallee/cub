@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-3.4",
+  "title": "Update cub init for hook directories and tests",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-02-04T17:28:08.600750",
+  "completed_at": "2026-02-04T17:28:08.600752",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 134.39929485321045
+}

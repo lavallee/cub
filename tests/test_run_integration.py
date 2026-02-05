@@ -298,7 +298,7 @@ def test_ledger_entry_creation_on_task_close(temp_project_dir, mock_task):
         duration_seconds=int(result.duration_seconds),
         harness_name="claude",
         epic_id="test-epic",
-        run_log_path=".cub/runs/test-run-001/tasks/test-task-001",
+        run_log_path=".cub/ledger/by-run/test-run-001/tasks/test-task-001",
     )
 
     # Write ledger entry

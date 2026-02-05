@@ -368,6 +368,15 @@ class TestGenerateRetryContext:
         li.writer.get_entry.return_value = entry
         if by_task_dir is not None:
             li.writer.by_task_dir = by_task_dir
+            # Mock the artifact_manager to return correct paths for flattened structure
+            def mock_get_artifact_path(task_id, attempt_num, artifact_type):
+                ext = {
+                    "prompt": ".md",
+                    "harness": ".jsonl",
+                    "patch": ".diff",
+                }.get(artifact_type, "")
+                return by_task_dir / task_id / f"{attempt_num:03d}-{artifact_type}{ext}"
+            li.writer.artifact_manager.get_artifact_path.side_effect = mock_get_artifact_path
         return li
 
     def _make_attempt(
@@ -465,10 +474,10 @@ class TestGenerateRetryContext:
         entry = self._make_entry(attempts=[failed])
         li = self._make_ledger_integration(entry=entry, by_task_dir=tmp_path)
 
-        # Create the log file
-        log_dir = tmp_path / "test-001" / "attempts"
+        # Create the log file in the flattened structure
+        log_dir = tmp_path / "test-001"
         log_dir.mkdir(parents=True)
-        log_file = log_dir / "001-harness.log"
+        log_file = log_dir / "001-harness.jsonl"
         log_file.write_text("line 1\nline 2\nERROR: something broke\n")
 
         result = generate_retry_context(task, li)
@@ -482,10 +491,10 @@ class TestGenerateRetryContext:
         entry = self._make_entry(attempts=[failed])
         li = self._make_ledger_integration(entry=entry, by_task_dir=tmp_path)
 
-        # Create log with many lines
-        log_dir = tmp_path / "test-001" / "attempts"
+        # Create log with many lines in the flattened structure
+        log_dir = tmp_path / "test-001"
         log_dir.mkdir(parents=True)
-        log_file = log_dir / "001-harness.log"
+        log_file = log_dir / "001-harness.jsonl"
         lines = [f"line {i}" for i in range(100)]
         log_file.write_text("\n".join(lines))
 

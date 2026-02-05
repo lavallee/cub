@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "id": "cub-048a-2.3",
+  "title": "Remove build-plan command",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-2"
+  },
+  "task": {
+    "title": "Remove build-plan command",
+    "description": "With plan execution integrated into `cub run --plan`, the separate `build-plan` command is redundant and should be removed.\n\n**Implementation Steps:**\n1. Remove `cli/build_plan.py` module\n2. Remove build-plan registration from CLI app\n3. Remove build-plan from bash delegated commands if present\n4. Update CLAUDE.md to document `cub run --plan` instead\n5. Remove any build-plan related templates or scripts\n6. Add migration note to UPGRADING.md\n\n**Files:** `src/cub/cli/build_plan.py` (delete), `src/cub/cli/__init__.py`, `CLAUDE.md`, `UPGRADING.md`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-3",
+      "model:haiku",
+      "complexity:low",
+      "domain:setup"
+    ],
+    "created_at": "2026-02-04T15:37:04.560753",
+    "captured_at": "2026-02-04T22:02:16.193171Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-165022",
+      "started_at": "2026-02-04T17:02:16.202134",
+      "completed_at": "2026-02-04T22:04:31.291885Z",
+      "harness": "claude",
+      "model": "haiku",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 6425,
+        "output_tokens": 9545,
+        "cache_read_tokens": 1729936,
+        "cache_creation_tokens": 33962
+      },
+      "cost_usd": 0.32035909999999995,
+      "duration_seconds": 135
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T22:04:31.327811Z",
+    "total_cost_usd": 0.32035909999999995,
+    "total_attempts": 1,
+    "total_duration_seconds": 135,
+    "final_model": "haiku",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "cd1a7f0634f44a6c0209940dd1ce23ce5d0a4b61",
+        "message": "task(cub-048a-2.3): Mark task as closed",
+        "author": "",
+        "timestamp": "2026-02-04T22:04:17Z"
+      },
+      {
+        "hash": "ef9f4136dca649e638be3845194f45532e24544c",
+        "message": "task(cub-048a-2.3): Remove build-plan command",
+        "author": "",
+        "timestamp": "2026-02-04T22:04:11Z"
+      }
+    ],
+    "approach": "Systematically removed the deprecated `build-plan` command by deleting its module, unregistering it from the CLI, removing associated scripts, and updating documentation to guide users to the replacement `cub run --plan` functionality. Verified removal through command testing and ensured no broken references remained.",
+    "decisions": [
+      "Kept code comments referencing where build-plan logic came from (in `run.py`) as they document architectural provenance and help future maintainers understand why certain code exists",
+      "Added migration guidance to `UPGRADING.md` rather than just deleting references, ensuring users upgrading to the new version understand the transition path",
+      "Verified the deletion was complete by testing that `cub build-plan` returns \"unknown command\" rather than just removing the file"
+    ],
+    "lessons_learned": [
+      "When removing deprecated commands, always check for multiple registration points (CLI app import, command decorator, delegated commands) to avoid subtle breakage",
+      "Documentation updates during removal are critical\u2014users need to know both that something is gone AND what to use instead",
+      "Running feedback loops (type checking, tests, linting) after removal confirms the change didn't introduce subtle errors like dangling imports or unused variables"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:04:31.327811Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:02:16.193171Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T22:04:31.327811Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T22:02:16.193171Z",
+  "completed_at": "2026-02-04T22:04:31.327811Z",
+  "tokens": {
+    "input_tokens": 6425,
+    "output_tokens": 9545,
+    "cache_read_tokens": 1729936,
+    "cache_creation_tokens": 33962
+  },
+  "cost_usd": 0.32035909999999995,
+  "duration_seconds": 135,
+  "iterations": 1,
+  "approach": "Systematically removed the deprecated `build-plan` command by deleting its module, unregistering it from the CLI, removing associated scripts, and updating documentation to guide users to the replacement `cub run --plan` functionality. Verified removal through command testing and ensured no broken references remained.",
+  "decisions": [
+    "Kept code comments referencing where build-plan logic came from (in `run.py`) as they document architectural provenance and help future maintainers understand why certain code exists",
+    "Added migration guidance to `UPGRADING.md` rather than just deleting references, ensuring users upgrading to the new version understand the transition path",
+    "Verified the deletion was complete by testing that `cub build-plan` returns \"unknown command\" rather than just removing the file"
+  ],
+  "lessons_learned": [
+    "When removing deprecated commands, always check for multiple registration points (CLI app import, command decorator, delegated commands) to avoid subtle breakage",
+    "Documentation updates during removal are critical\u2014users need to know both that something is gone AND what to use instead",
+    "Running feedback loops (type checking, tests, linting) after removal confirms the change didn't introduce subtle errors like dangling imports or unused variables"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "cd1a7f0634f44a6c0209940dd1ce23ce5d0a4b61",
+      "message": "task(cub-048a-2.3): Mark task as closed",
+      "author": "",
+      "timestamp": "2026-02-04T22:04:17Z"
+    },
+    {
+      "hash": "ef9f4136dca649e638be3845194f45532e24544c",
+      "message": "task(cub-048a-2.3): Remove build-plan command",
+      "author": "",
+      "timestamp": "2026-02-04T22:04:11Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-2.3",
+  "epic_id": "cub-048a-2",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "haiku",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

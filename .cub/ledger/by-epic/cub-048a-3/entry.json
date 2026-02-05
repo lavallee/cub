@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "cub-048a-3",
+  "title": "ledger-consolidation #4: Lifecycle Hooks",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "ledger-consolidation #4: Lifecycle Hooks",
+    "description": "Extend the hooks infrastructure with four new lifecycle events: pre-session, end-of-task, end-of-epic, end-of-plan. Each provides rich context for user-defined scripts.",
+    "status": "open",
+    "priority": 1,
+    "labels": [
+      "phase-4",
+      "complexity:medium",
+      "slice:hooks"
+    ],
+    "created_at": "2026-02-04T22:14:02.574398Z",
+    "captured_at": "2026-02-04T22:14:02.574398Z"
+  },
+  "task_ids": [
+    "cub-048a-3.1",
+    "cub-048a-3.2",
+    "cub-048a-3.3",
+    "cub-048a-3.4"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 3.5591061000000006,
+    "avg_cost_per_task": 0.8897765250000002,
+    "min_cost_usd": 0.39145665,
+    "max_cost_usd": 1.2101979500000004,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 8306505,
+    "avg_tokens_per_task": 2076626,
+    "total_duration_seconds": 1073,
+    "avg_duration_seconds": 268,
+    "models_used": [
+      "haiku",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:28:15.459404Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T22:09:45.530580Z",
+  "completed_at": "2026-02-04T22:28:08.611751Z",
+  "updated_at": "2026-02-04T22:28:15.459407Z",
+  "first_commit": {
+    "hash": "224a409c4ae39d7b513683e8932318723d935336",
+    "message": "task(cub-048a-3.1): Create core/hooks/ package with context models",
+    "author": "",
+    "timestamp": "2026-02-04T22:13:31Z"
+  },
+  "last_commit": {
+    "hash": "6fdf7f8a7ab2079a7ca348136ff0425a4eece7d3",
+    "message": "task(cub-048a-3.4): Update cub init for hook directories and tests",
+    "author": "",
+    "timestamp": "2026-02-04T22:27:46Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

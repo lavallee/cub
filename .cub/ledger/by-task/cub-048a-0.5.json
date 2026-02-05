@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "id": "cub-048a-0.5",
+  "title": "Create pre-push hook and update cub init",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-0"
+  },
+  "task": {
+    "title": "Create pre-push hook and update cub init",
+    "description": "The pre-push hook verifies that locally-used spec/standalone numbers don't conflict with the remote sync branch. This catches collisions before they're pushed. The hook is installed by `cub init`.\n\n**Implementation Steps:**\n1. Create `src/cub/core/ids/hooks.py` with hook logic\n2. Implement `verify_counters_before_push() -> tuple[bool, str]` that:\n3. Create shell script template `templates/hooks/pre-push` that calls Python\n4. Update `cub init` to install pre-push hook to `.git/hooks/pre-push`\n5. Make hook skip gracefully if sync branch not initialized\n6. Add `--no-verify` documentation for bypassing\n\n**Files:** `src/cub/core/ids/hooks.py`, `templates/hooks/pre-push`, `src/cub/cli/init_cmd.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-1",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:setup"
+    ],
+    "created_at": "2026-02-04T15:37:04.560592",
+    "captured_at": "2026-02-04T21:10:56.597735Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-153949",
+      "started_at": "2026-02-04T16:10:56.606793",
+      "completed_at": "2026-02-04T21:18:37.440915Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 20188,
+        "output_tokens": 19855,
+        "cache_read_tokens": 3665113,
+        "cache_creation_tokens": 78267
+      },
+      "cost_usd": 1.8235751500000004,
+      "duration_seconds": 460
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:18:37.489127Z",
+    "total_cost_usd": 1.8235751500000004,
+    "total_attempts": 1,
+    "total_duration_seconds": 460,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "8ad788f2ff0fd68b38ee20e19c49b0d2ea622553",
+        "message": "task(cub-048a-0.5): Create pre-push hook and update cub init",
+        "author": "",
+        "timestamp": "2026-02-04T21:18:21Z"
+      }
+    ],
+    "approach": "Implemented a complete pre-push hook system by first understanding the existing counter and sync infrastructure, then creating a Python verification module that scans local task IDs and compares them against remote counters, wrapping it in a shell script template, and finally integrating automatic installation into the cub init command with comprehensive test coverage.",
+    "decisions": [
+      "**Hook placement**: Implemented verification logic in `src/cub/core/ids/hooks.py` rather than inline in init, making it reusable and testable as a standalone module",
+      "**Graceful degradation**: Shell script silently succeeds if cub is unavailable or sync branch not initialized, preventing init failures while still protecting users who have sync enabled",
+      "**ID scanning approach**: Parsed task IDs from `.cub/tasks.jsonl` to find maximum used spec/standalone numbers rather than querying a separate counter file, using the existing ID parser for consistency",
+      "**Hook skip behavior**: Made hook installation idempotent (skips if exists) but allowed force reinstallation via `--force` flag to handle accidental overwrites without manual deletion",
+      "**Error messaging**: Created formatted error messages with resolution steps (creation instructions, number suggestions) to guide users on fixing conflicts"
+    ],
+    "lessons_learned": [
+      "**Test-driven validation**: Comprehensive tests caught issues early (e.g., wrong attribute path for epic IDs), and having tests made refactoring the ID scanning logic safe",
+      "**Separation of concerns**: Extracting verification logic into a dedicated module enabled testing independent of shell scripting and init logic, reducing complexity in each layer",
+      "**Idempotent operations in init**: Making hook installation idempotent (skip if exists) prevents errors on repeated `cub init` runs while still updating on `--force`, which is critical for a setup command",
+      "**Grace handling of optional features**: The hook should work even if features aren't initialized (no sync branch, no cub installed), requiring defensive checks rather than failing fast",
+      "**Message formatting for user guidance**: Users need not just \"conflict detected\" but actionable next steps (what numbers to use), making error messages part of the solution"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:18:37.489127Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:10:56.597735Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:18:37.489127Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:10:56.597735Z",
+  "completed_at": "2026-02-04T21:18:37.489127Z",
+  "tokens": {
+    "input_tokens": 20188,
+    "output_tokens": 19855,
+    "cache_read_tokens": 3665113,
+    "cache_creation_tokens": 78267
+  },
+  "cost_usd": 1.8235751500000004,
+  "duration_seconds": 460,
+  "iterations": 1,
+  "approach": "Implemented a complete pre-push hook system by first understanding the existing counter and sync infrastructure, then creating a Python verification module that scans local task IDs and compares them against remote counters, wrapping it in a shell script template, and finally integrating automatic installation into the cub init command with comprehensive test coverage.",
+  "decisions": [
+    "**Hook placement**: Implemented verification logic in `src/cub/core/ids/hooks.py` rather than inline in init, making it reusable and testable as a standalone module",
+    "**Graceful degradation**: Shell script silently succeeds if cub is unavailable or sync branch not initialized, preventing init failures while still protecting users who have sync enabled",
+    "**ID scanning approach**: Parsed task IDs from `.cub/tasks.jsonl` to find maximum used spec/standalone numbers rather than querying a separate counter file, using the existing ID parser for consistency",
+    "**Hook skip behavior**: Made hook installation idempotent (skips if exists) but allowed force reinstallation via `--force` flag to handle accidental overwrites without manual deletion",
+    "**Error messaging**: Created formatted error messages with resolution steps (creation instructions, number suggestions) to guide users on fixing conflicts"
+  ],
+  "lessons_learned": [
+    "**Test-driven validation**: Comprehensive tests caught issues early (e.g., wrong attribute path for epic IDs), and having tests made refactoring the ID scanning logic safe",
+    "**Separation of concerns**: Extracting verification logic into a dedicated module enabled testing independent of shell scripting and init logic, reducing complexity in each layer",
+    "**Idempotent operations in init**: Making hook installation idempotent (skip if exists) prevents errors on repeated `cub init` runs while still updating on `--force`, which is critical for a setup command",
+    "**Grace handling of optional features**: The hook should work even if features aren't initialized (no sync branch, no cub installed), requiring defensive checks rather than failing fast",
+    "**Message formatting for user guidance**: Users need not just \"conflict detected\" but actionable next steps (what numbers to use), making error messages part of the solution"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "8ad788f2ff0fd68b38ee20e19c49b0d2ea622553",
+      "message": "task(cub-048a-0.5): Create pre-push hook and update cub init",
+      "author": "",
+      "timestamp": "2026-02-04T21:18:21Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-0.5",
+  "epic_id": "cub-048a-0",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

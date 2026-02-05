@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "cub-048a-2",
+  "title": "ledger-consolidation #3: Run Loop Integration",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "ledger-consolidation #3: Run Loop Integration",
+    "description": "Integrate the new ID system and consolidated ledger into the run loop. Add `--plan` flag to `cub run` and remove the separate `build-plan` command.",
+    "status": "open",
+    "priority": 0,
+    "labels": [
+      "phase-3",
+      "complexity:high",
+      "slice:run-loop"
+    ],
+    "created_at": "2026-02-04T21:57:29.703035Z",
+    "captured_at": "2026-02-04T21:57:29.703035Z"
+  },
+  "task_ids": [
+    "cub-048a-2.1",
+    "cub-048a-2.2",
+    "cub-048a-2.3",
+    "cub-048a-2.4"
+  ],
+  "aggregates": {
+    "total_tasks": 4,
+    "tasks_completed": 4,
+    "tasks_successful": 4,
+    "tasks_failed": 0,
+    "total_cost_usd": 8.073507050000002,
+    "avg_cost_per_task": 2.0183767625000004,
+    "min_cost_usd": 0.32035909999999995,
+    "max_cost_usd": 5.441734250000001,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 4,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 13349801,
+    "avg_tokens_per_task": 3337450,
+    "total_duration_seconds": 1121,
+    "avg_duration_seconds": 280,
+    "models_used": [
+      "haiku",
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T22:09:38.924585Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T21:50:22.080216Z",
+  "completed_at": "2026-02-04T22:09:30.459609Z",
+  "updated_at": "2026-02-04T22:09:38.924588Z",
+  "first_commit": {
+    "hash": "396ebccff29ed1ceff809129f2f5cf425d5952bb",
+    "message": "task(cub-048a-2.1): Add --plan flag and plan iteration logic",
+    "author": "",
+    "timestamp": "2026-02-04T21:57:06Z"
+  },
+  "last_commit": {
+    "hash": "b3ed0e8b05aea71c1496b34094c99da3b5cc325e",
+    "message": "task(cub-048a-2.4): Tests for run loop changes",
+    "author": "",
+    "timestamp": "2026-02-04T22:09:16Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

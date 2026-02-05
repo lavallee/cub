@@ -1,6 +1,5 @@
 # Runtime artifacts - .cub/ directory structure
-# Session runs with logs, output, etc.
-.cub/runs/
+# Project-scoped local state (not committed to git)
 .cub/config.json            # Auto-generated project config (project_id)
 .cub/.sync-state.json       # Machine-local sync state (last sync SHA, timestamp)
 .cub/toolsmith/             # Toolsmith local catalog/cache + adoptions + runs (project-scoped)
@@ -9,6 +8,11 @@
 .cub/guardrails.md          # Development guardrails (stale)
 .cub/fix_plan.md            # Development fix plan (stale)
 .cub/route-log.jsonl        # Route observation log (local-only)
+
+# Ledger run data (session-specific, use .cub/ledger/by-task for committed data)
+.cub/ledger/forensics/      # Session event logs (temporary, per-session)
+.cub/ledger/by-run/         # Run-scoped ledger entries (local analysis)
+.cub/runs/                  # Legacy run artifacts (deprecated, use ledger instead)
 progress.txt                # Root-level progress tracking (stale)
 
 # Beads viewer local config and caches
@@ -29,7 +33,7 @@ src/cub/dashboard/web/node_modules/
 
 # Vim
 *.swp
-# cub
-.cub/ledger/forensics/
+
+# cub database and generated files
 .cub/dashboard.db
 .cub/map.md

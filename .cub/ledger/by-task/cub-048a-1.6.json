@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "cub-048a-1.6",
+  "title": "Extend LedgerReader with plan and run queries",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-1"
+  },
+  "task": {
+    "title": "Extend LedgerReader with plan and run queries",
+    "description": "The LedgerReader needs methods to query plan-level and run-level entries, enabling commands like `cub ledger show --plans` and run history queries.\n\n**Implementation Steps:**\n1. Add `get_plan(plan_id: str) -> PlanEntry | None` to `LedgerReader`\n2. Add `list_plans(filters: PlanFilters | None) -> list[PlanEntry]`\n3. Add `get_run(run_id: str) -> RunEntry | None`\n4. Add `list_runs(filters: RunFilters | None) -> list[RunEntry]`\n5. Create `PlanFilters` and `RunFilters` dataclasses\n6. Support filtering by status, date range, spec_id\n\n**Files:** `src/cub/core/ledger/reader.py`, `src/cub/core/ledger/models.py`",
+    "type": "task",
+    "priority": 0,
+    "labels": [
+      "phase-2",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.560705",
+    "captured_at": "2026-02-04T21:45:20.413362Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-161852",
+      "started_at": "2026-02-04T16:45:20.422664",
+      "completed_at": "2026-02-04T21:50:01.583949Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 117,
+        "output_tokens": 13632,
+        "cache_read_tokens": 2070787,
+        "cache_creation_tokens": 57915
+      },
+      "cost_usd": 1.0765873499999998,
+      "duration_seconds": 281
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T21:50:01.629422Z",
+    "total_cost_usd": 1.0765873499999998,
+    "total_attempts": 1,
+    "total_duration_seconds": 281,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "cb77cf9e0691e49e4a2a3d896effb9095ec20239",
+        "message": "task(cub-048a-1.6): Extend LedgerReader with plan and run queries",
+        "author": "",
+        "timestamp": "2026-02-04T21:49:47Z"
+      }
+    ],
+    "approach": "Extended the LedgerReader class by adding filter dataclasses (PlanFilters, RunFilters) and four new query methods (get_plan, list_plans, get_run, list_runs) to enable querying plan-level and run-level ledger entries. The implementation followed the existing pattern used for task and epic queries, leveraging the directory structure (.cub/ledger/by-plan/ and by-run/) and JSON file storage.",
+    "decisions": [
+      "Added flexible filter dataclasses with optional fields (status, date ranges, spec_id for plans, cost range for runs) rather than requiring all filters, allowing callers to filter on any combination of criteria",
+      "Followed the established directory-based organization pattern (by-plan/ and by-run/) consistent with existing task and epic ledger structure",
+      "Returned empty lists instead of None for no results, maintaining consistency with list_* methods throughout the codebase",
+      "Implemented filters as dataclasses instead of **kwargs for type safety and IDE autocomplete support"
+    ],
+    "lessons_learned": [
+      "When extending query APIs, examine existing similar methods (list_tasks, list_epics) to identify and replicate patterns rather than inventing new approaches",
+      "Test-driven verification is essential\u2014writing comprehensive tests (14 new tests) before or immediately after implementation caught potential issues and validated behavior across filter combinations",
+      "Filter objects with optional fields (using Optional types) are more maintainable than boolean flags or multiple method signatures when supporting multiple filtering dimensions"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:50:01.629422Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:45:20.413362Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T21:50:01.629422Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T21:45:20.413362Z",
+  "completed_at": "2026-02-04T21:50:01.629422Z",
+  "tokens": {
+    "input_tokens": 117,
+    "output_tokens": 13632,
+    "cache_read_tokens": 2070787,
+    "cache_creation_tokens": 57915
+  },
+  "cost_usd": 1.0765873499999998,
+  "duration_seconds": 281,
+  "iterations": 1,
+  "approach": "Extended the LedgerReader class by adding filter dataclasses (PlanFilters, RunFilters) and four new query methods (get_plan, list_plans, get_run, list_runs) to enable querying plan-level and run-level ledger entries. The implementation followed the existing pattern used for task and epic queries, leveraging the directory structure (.cub/ledger/by-plan/ and by-run/) and JSON file storage.",
+  "decisions": [
+    "Added flexible filter dataclasses with optional fields (status, date ranges, spec_id for plans, cost range for runs) rather than requiring all filters, allowing callers to filter on any combination of criteria",
+    "Followed the established directory-based organization pattern (by-plan/ and by-run/) consistent with existing task and epic ledger structure",
+    "Returned empty lists instead of None for no results, maintaining consistency with list_* methods throughout the codebase",
+    "Implemented filters as dataclasses instead of **kwargs for type safety and IDE autocomplete support"
+  ],
+  "lessons_learned": [
+    "When extending query APIs, examine existing similar methods (list_tasks, list_epics) to identify and replicate patterns rather than inventing new approaches",
+    "Test-driven verification is essential\u2014writing comprehensive tests (14 new tests) before or immediately after implementation caught potential issues and validated behavior across filter combinations",
+    "Filter objects with optional fields (using Optional types) are more maintainable than boolean flags or multiple method signatures when supporting multiple filtering dimensions"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "cb77cf9e0691e49e4a2a3d896effb9095ec20239",
+      "message": "task(cub-048a-1.6): Extend LedgerReader with plan and run queries",
+      "author": "",
+      "timestamp": "2026-02-04T21:49:47Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-1.6",
+  "epic_id": "cub-048a-1",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

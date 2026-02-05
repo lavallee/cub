@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "cub-048a-0",
+  "title": "cub-048a-0",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": null
+  },
+  "epic": {
+    "title": "cub-048a-0",
+    "description": "",
+    "status": "in_progress",
+    "priority": 0,
+    "labels": [],
+    "created_at": "2026-02-04T20:45:40.193110Z",
+    "captured_at": "2026-02-04T20:45:40.193110Z"
+  },
+  "task_ids": [
+    "cub-048a-0.1",
+    "cub-048a-0.2",
+    "cub-048a-0.3",
+    "cub-048a-0.4",
+    "cub-048a-0.5"
+  ],
+  "aggregates": {
+    "total_tasks": 5,
+    "tasks_completed": 5,
+    "tasks_successful": 5,
+    "tasks_failed": 0,
+    "total_cost_usd": 8.5210677,
+    "avg_cost_per_task": 1.70421354,
+    "min_cost_usd": 0.79675535,
+    "max_cost_usd": 2.944779499999999,
+    "total_escalations": 0,
+    "escalation_rate": 0.0,
+    "total_attempts": 5,
+    "avg_attempts_per_task": 1.0,
+    "total_tokens": 10590840,
+    "avg_tokens_per_task": 2118168,
+    "total_duration_seconds": 2288,
+    "avg_duration_seconds": 457,
+    "models_used": [
+      "opus",
+      "sonnet"
+    ],
+    "most_common_model": "sonnet"
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T21:18:45.637354Z"
+  },
+  "state_history": [],
+  "started_at": "2026-02-04T20:39:49.114741Z",
+  "completed_at": "2026-02-04T21:18:37.489127Z",
+  "updated_at": "2026-02-04T21:18:45.637356Z",
+  "first_commit": {
+    "hash": "847184570fd0b7cef74e391e2c8c3401315a51b9",
+    "message": "task(cub-048a-0.1): Create core/ids/ package with ID models",
+    "author": "",
+    "timestamp": "2026-02-04T20:45:17Z"
+  },
+  "last_commit": {
+    "hash": "8ad788f2ff0fd68b38ee20e19c49b0d2ea622553",
+    "message": "task(cub-048a-0.5): Create pre-push hook and update cub init",
+    "author": "",
+    "timestamp": "2026-02-04T21:18:21Z"
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  }
+}

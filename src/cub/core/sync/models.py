@@ -1,15 +1,15 @@
 """
 Data models for the sync service.
 
-Defines Pydantic models for sync state and results.
+Defines Pydantic models for sync state, results, and counters.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SyncStatus(str, Enum):
@@ -204,3 +204,70 @@ class SyncResult(BaseModel):
             parts.append(self.message)
 
         return ", ".join(parts)
+
+
+class CounterState(BaseModel):
+    """
+    Counter state stored on the sync branch in `.cub/counters.json`.
+
+    Tracks the next available spec number and standalone task number
+    for collision-free ID allocation across worktrees.
+
+    The counters are stored on the sync branch and updated atomically
+    using optimistic locking to handle concurrent allocation attempts.
+
+    Example:
+        >>> state = CounterState(spec_number=54, standalone_task_number=17)
+        >>> state.spec_number
+        54
+        >>> state.model_dump_json(indent=2)
+    """
+
+    model_config = ConfigDict(frozen=False)
+
+    spec_number: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Next available spec number (0-indexed). "
+            "The next spec ID will use this number."
+        ),
+    )
+
+    standalone_task_number: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Next available standalone task number (0-indexed). "
+            "The next standalone ID will use this number."
+        ),
+    )
+
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Timestamp of the last counter update",
+    )
+
+    def increment_spec_number(self) -> int:
+        """
+        Increment and return the next spec number.
+
+        Returns:
+            The allocated spec number (before incrementing).
+        """
+        allocated = self.spec_number
+        self.spec_number += 1
+        self.updated_at = datetime.now(timezone.utc)
+        return allocated
+
+    def increment_standalone_number(self) -> int:
+        """
+        Increment and return the next standalone task number.
+
+        Returns:
+            The allocated standalone task number (before incrementing).
+        """
+        allocated = self.standalone_task_number
+        self.standalone_task_number += 1
+        self.updated_at = datetime.now(timezone.utc)
+        return allocated

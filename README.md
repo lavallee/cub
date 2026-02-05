@@ -489,36 +489,53 @@ After running `cub init`, your project will have:
 
 ```
 my-project/
-├── prd.json        # Task backlog (beads-style format)
+├── prd.json        # Task backlog (JSONL-based, default)
 ├── PROMPT.md       # Loop prompt template (system instructions)
 ├── AGENT.md        # Build/run instructions for the agent
 ├── AGENTS.md       # Symlink to AGENT.md (for Codex compatibility)
 ├── progress.txt    # Session learnings (agent appends)
 ├── fix_plan.md     # Discovered issues and plans
 ├── specs/          # Detailed specifications
-└── .cub/          # Cub runtime data (created during runs)
+└── .cub/          # Cub runtime data
+    ├── config.json # Project configuration
     ├── hooks/      # Project-specific hooks
-    └── runs/       # Run artifacts and task outputs
+    ├── tasks.jsonl # Task backend (primary location)
+    └── ledger/     # Task completion ledger
+        ├── index.jsonl   # Index of all ledger entries
+        ├── by-task/      # Entries organized by task ID
+        ├── by-epic/      # Entries organized by epic ID
+        ├── by-run/       # Entries organized by run/session ID
+        └── forensics/    # Session event logs (per session)
 ```
 
-### Artifacts Directory
+### Ledger Storage
 
-Each cub run creates artifacts in `.cub/runs/{session-id}/`:
+Task completion records are stored in a unified ledger structure:
 
 ```
-.cub/runs/porcupine-20260111-114543/
-├── run.json                    # Run metadata and config
-└── tasks/
-    └── cub-abc/
-        ├── task.json           # Task execution details
-        ├── summary.md          # AI-generated summary
-        └── changes.patch       # Git diff of changes
+.cub/ledger/
+├── index.jsonl                           # Index of all completion entries
+├── by-task/cub-abc/                      # All work on task cub-abc
+│   ├── run-1-20260111-114543.jsonl       # Entry from first run
+│   └── direct-session-20260112-090000.jsonl  # Entry from direct session
+├── by-epic/cub-048a-5/                   # All work in epic cub-048a-5
+│   ├── cub-abc-...jsonl
+│   └── cub-def-...jsonl
+├── by-run/porcupine-20260111-114543/     # All entries from a run
+│   ├── cub-abc-...jsonl
+│   └── cub-def-...jsonl
+└── forensics/                            # Session event logs
+    ├── porcupine-20260111-114543.jsonl   # Events from cub run session
+    └── direct-session-20260112-090000.jsonl  # Events from direct Claude Code session
 ```
 
-View artifacts with:
+View ledger data with:
 ```bash
-cub artifacts                  # List all artifacts
-cub artifacts cub-abc         # Show specific task artifacts
+cub ledger show                  # List all completion entries
+cub ledger stats                 # Show ledger statistics
+cub ledger search <query>        # Search ledger entries
+cub retro <id>                   # Generate retrospective for epic or plan
+cub verify                       # Verify ledger consistency
 ```
 
 ## Task Backends
@@ -904,7 +921,8 @@ cub run --name release-1.0    # Creates: release-1.0-20260111-114543
 
 Session names are used for:
 - Git branch naming: `cub/{session}/{timestamp}`
-- Artifact directories: `.cub/runs/{session}/`
+- Ledger organization: `.cub/ledger/by-run/{session}/`
+- Forensic logs: `.cub/ledger/forensics/{session}.jsonl`
 - Log identification
 
 ### Session Assignment

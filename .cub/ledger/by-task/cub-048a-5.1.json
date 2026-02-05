@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "id": "cub-048a-5.1",
+  "title": "Add consistency checks to cub doctor",
+  "lineage": {
+    "spec_file": null,
+    "plan_file": null,
+    "epic_id": "cub-048a-5"
+  },
+  "task": {
+    "title": "Add consistency checks to cub doctor",
+    "description": "`cub doctor` should include checks for ledger consistency, ID integrity, and counter sync status, reusing the verify service.\n\n**Implementation Steps:**\n1. Import `VerifyService` in `src/cub/cli/doctor.py`\n2. Add \"Ledger Health\" section to doctor output\n3. Run `check_ledger_consistency()` and report issues\n4. Add \"ID System\" section\n5. Run `check_id_integrity()` and report issues\n6. Add \"Counter Sync\" section\n7. Run `check_counter_sync()` and report issues\n8. Use Rich formatting for clear output\n\n**Files:** `src/cub/cli/doctor.py`",
+    "type": "task",
+    "priority": 1,
+    "labels": [
+      "phase-6",
+      "model:sonnet",
+      "complexity:medium",
+      "domain:logic"
+    ],
+    "created_at": "2026-02-04T15:37:04.561231",
+    "captured_at": "2026-02-04T23:00:30.440542Z"
+  },
+  "task_changed": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260204-180030",
+      "started_at": "2026-02-04T18:00:30.452190",
+      "completed_at": "2026-02-04T23:06:34.021943Z",
+      "harness": "claude",
+      "model": "sonnet",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 51,
+        "output_tokens": 16290,
+        "cache_read_tokens": 3582363,
+        "cache_creation_tokens": 84307
+      },
+      "cost_usd": 1.6884931500000007,
+      "duration_seconds": 363
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-04T23:06:34.042640Z",
+    "total_cost_usd": 1.6884931500000007,
+    "total_attempts": 1,
+    "total_duration_seconds": 363,
+    "final_model": "sonnet",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
+        "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+        "author": "",
+        "timestamp": "2026-02-04T23:06:15Z"
+      }
+    ],
+    "approach": "Integrated VerifyService into the doctor command by adding three new consistency check functions that mirror the verify service's API. The implementation follows the existing doctor pattern of separate collector functions for agent mode and Rich console functions for normal mode, ensuring both output formats display the ledger health, ID system integrity, and counter synchronization status with proper error reporting and suggestions.",
+    "decisions": [
+      "**Collector + Console function pattern**: Created parallel implementations for agent mode (structured markdown via collectors) and non-agent mode (Rich console output), maintaining consistency with the existing doctor architecture rather than trying to unify into a single function",
+      "**Mocking strategy for tests**: Added VerifyService mocks to all doctor tests rather than creating real ledger/counter files in test fixtures, keeping tests lightweight and isolated from filesystem state",
+      "**Export VerifyResult type**: Added VerifyResult to the verify module's `__init__.py` exports to make it accessible for type annotations in doctor.py, maintaining clean module boundaries",
+      "**Error severity handling**: Used the VerifyResult's severity levels (error/warning/info) to determine exit codes and display formatting, preserving doctor's existing behavior where any errors cause non-zero exit"
+    ],
+    "lessons_learned": [
+      "**Service integration pattern**: When integrating an existing service into a CLI command, separate the data collection (service calls) from the presentation (output formatting) to support multiple output modes without duplicating business logic",
+      "**Test discovery complexity**: Mocking a service across many test functions required systematic updates; discovering all affected tests through grep and then batching edits was more efficient than random spot-checking",
+      "**Exit code semantics**: Doctor's exit code is determined by error severity from the verify service; this coupling means severity classification in the service directly impacts user-facing behavior and scripting workflows",
+      "**Mock placement consistency**: Placing all mocks (VerifyService, config, temp paths) in a single setup block at the test function start made tests easier to understand and maintain compared to scattered patches"
+    ]
+  },
+  "drift": {
+    "additions": [],
+    "omissions": [],
+    "severity": "none"
+  },
+  "verification": {
+    "status": "pending",
+    "checked_at": null,
+    "tests_passed": null,
+    "typecheck_passed": null,
+    "lint_passed": null,
+    "notes": []
+  },
+  "workflow": {
+    "stage": "dev_complete",
+    "stage_updated_at": "2026-02-04T23:06:34.042640Z"
+  },
+  "state_history": [
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:00:30.440542Z",
+      "by": "cub-run",
+      "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-04T23:06:34.042640Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
+    }
+  ],
+  "ci_monitor": null,
+  "started_at": "2026-02-04T23:00:30.440542Z",
+  "completed_at": "2026-02-04T23:06:34.042640Z",
+  "tokens": {
+    "input_tokens": 51,
+    "output_tokens": 16290,
+    "cache_read_tokens": 3582363,
+    "cache_creation_tokens": 84307
+  },
+  "cost_usd": 1.6884931500000007,
+  "duration_seconds": 363,
+  "iterations": 1,
+  "approach": "Integrated VerifyService into the doctor command by adding three new consistency check functions that mirror the verify service's API. The implementation follows the existing doctor pattern of separate collector functions for agent mode and Rich console functions for normal mode, ensuring both output formats display the ledger health, ID system integrity, and counter synchronization status with proper error reporting and suggestions.",
+  "decisions": [
+    "**Collector + Console function pattern**: Created parallel implementations for agent mode (structured markdown via collectors) and non-agent mode (Rich console output), maintaining consistency with the existing doctor architecture rather than trying to unify into a single function",
+    "**Mocking strategy for tests**: Added VerifyService mocks to all doctor tests rather than creating real ledger/counter files in test fixtures, keeping tests lightweight and isolated from filesystem state",
+    "**Export VerifyResult type**: Added VerifyResult to the verify module's `__init__.py` exports to make it accessible for type annotations in doctor.py, maintaining clean module boundaries",
+    "**Error severity handling**: Used the VerifyResult's severity levels (error/warning/info) to determine exit codes and display formatting, preserving doctor's existing behavior where any errors cause non-zero exit"
+  ],
+  "lessons_learned": [
+    "**Service integration pattern**: When integrating an existing service into a CLI command, separate the data collection (service calls) from the presentation (output formatting) to support multiple output modes without duplicating business logic",
+    "**Test discovery complexity**: Mocking a service across many test functions required systematic updates; discovering all affected tests through grep and then batching edits was more efficient than random spot-checking",
+    "**Exit code semantics**: Doctor's exit code is determined by error severity from the verify service; this coupling means severity classification in the service directly impacts user-facing behavior and scripting workflows",
+    "**Mock placement consistency**: Placing all mocks (VerifyService, config, temp paths) in a single setup block at the test function start made tests easier to understand and maintain compared to scattered patches"
+  ],
+  "files_changed": [],
+  "commits": [
+    {
+      "hash": "a3593f3b3e4e88377d2d20a480e7dacc00a52c8c",
+      "message": "task(cub-048a-5.1): Add consistency checks to cub doctor",
+      "author": "",
+      "timestamp": "2026-02-04T23:06:15Z"
+    }
+  ],
+  "spec_file": null,
+  "run_log_path": "/home/marc/Projects/cub/.cub/ledger/by-task/cub-048a-5.1",
+  "epic_id": "cub-048a-5",
+  "verification_status": "pending",
+  "verification_notes": [],
+  "harness_name": "claude",
+  "harness_model": "sonnet",
+  "workflow_stage": null,
+  "workflow_stage_updated_at": null
+}

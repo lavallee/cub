@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-048a-1.5",
+  "title": "Remove runs/ and run-sessions/ writes, fix epic title",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-02-04T16:45:12.336437",
+  "completed_at": "2026-02-04T16:45:12.336439",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 601.7154097557068
+}

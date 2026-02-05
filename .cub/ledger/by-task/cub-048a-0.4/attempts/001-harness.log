@@ -1,0 +1,40 @@
+I'll implement the ID generator with counter integration. Let me start by reading the existing task file and related code.Now let me check if there's a counter.py file (it wasn't found in the previous read):Let me read the counters.py file:Now let me check if there's a SyncService to understand its interface:Now let me update the task status to in_progress and create the generator.py file:Let me continue reading the tasks file to find the current task:Good! Now let me create the generator.py file. First, let me look at the sync service to understand its interface better:Now let me create the generator.py file with all the required functions:Now let me update the `__init__.py` to export the new generator functions:Now let me run the feedback loops to ensure everything works correctly:Good! Tests are passing. Now let me create tests for the generator module:Now let me run the tests for the generator module:Perfect! All tests pass. Now let me run the full test suite to ensure we didn't break anything:Excellent! All 5416 tests pass. Now let's run the linter:Let me fix the linting issues:Now let's run the linter again:Great! Let's run mypy to double-check type checking:Perfect! Now let's run the tests one more time to ensure everything still works after the lint fixes:Excellent! All tests pass. Now let's update the task status to closed:Now let's commit the changes:Perfect! The task has been completed successfully. Let me verify the task status:Excellent! The task has been completed successfully. Here's a summary:
+
+## Task Completion Summary
+
+✅ **Task cub-048a-0.4: Implement ID generator with counter integration**
+
+### What was implemented:
+
+1. **Created `src/cub/core/ids/generator.py`** with the following functions:
+   - `generate_spec_id(project, sync_service)` - Allocates counter and creates SpecId
+   - `generate_plan_id(spec, letter)` - Creates PlanId from SpecId with explicit letter
+   - `generate_epic_id(plan, char)` - Creates EpicId from PlanId with explicit char
+   - `generate_task_id(epic, number)` - Creates TaskId from EpicId with explicit number
+   - `generate_standalone_id(project, sync_service)` - Allocates counter and creates StandaloneTaskId
+   - `next_plan_letter(existing)` - Auto-selects next available plan letter (A-Z, a-z, 0-9)
+   - `next_epic_char(existing)` - Auto-selects next available epic char (0-9, a-z, A-Z)
+
+2. **Updated `src/cub/core/ids/__init__.py`** to export all generator functions
+
+3. **Created comprehensive tests** in `tests/core/ids/test_generator.py`:
+   - 34 tests covering all generator functions
+   - All acceptance criteria verified
+   - Edge cases tested (exhausted sequences, invalid inputs, etc.)
+
+### Acceptance Criteria Met:
+
+✅ `generate_spec_id("cub", sync)` allocates counter and returns `SpecId`  
+✅ Letter/char helpers follow sequence rules (A-Z, a-z, 0-9 for plans; 0-9, a-z, A-Z for epics)  
+✅ Generator validates inputs (e.g., letter must be single char)  
+✅ All generators return properly typed ID models
+
+### Quality Checks:
+
+✅ Type checking: `mypy --strict` passes  
+✅ Linting: `ruff check` passes  
+✅ Tests: All 5416 tests pass  
+✅ Task status: Updated to closed  
+✅ Committed with proper message format
+
+The ID generator is now complete and ready to use for creating collision-free hierarchical IDs!

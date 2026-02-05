@@ -16,6 +16,7 @@ from cub.core.hooks.installer import validate_hooks
 from cub.core.tasks.backend import get_backend
 from cub.core.tasks.jsonl import JsonlBackend
 from cub.core.tasks.models import TaskStatus, TaskType
+from cub.core.verify import IssueSeverity, VerifyService
 from cub.utils.project import get_project_root
 
 app = typer.Typer(
@@ -580,6 +581,192 @@ def collect_stale_epics_check(project_dir: Path, fix: bool = False) -> Diagnosti
     )
 
 
+def collect_ledger_health_check(project_dir: Path, fix: bool = False) -> list[DiagnosticResult]:
+    """
+    Collect ledger health diagnostic checks.
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, auto-fix simple issues
+
+    Returns:
+        List of DiagnosticResult objects for ledger health checks
+    """
+    results = []
+
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=True, check_ids=False, check_counters=False)
+
+        # Convert issues to diagnostic results
+        for issue in result.issues:
+            # Map severity
+            if issue.severity == IssueSeverity.ERROR:
+                status = "fail"
+            elif issue.severity == IssueSeverity.WARNING:
+                status = "warn"
+            else:
+                status = "info"
+
+            results.append(
+                DiagnosticResult(
+                    category="Ledger Health",
+                    name=issue.category.title(),
+                    status=status,
+                    message=issue.message,
+                    details=[issue.location] if issue.location else [],
+                    fix_command=issue.fix_suggestion,
+                )
+            )
+
+        # If no issues found, add a passing result
+        if not result.issues:
+            results.append(
+                DiagnosticResult(
+                    category="Ledger Health",
+                    name="Ledger Consistency",
+                    status="pass",
+                    message="Ledger is consistent and healthy",
+                )
+            )
+
+    except Exception as e:
+        results.append(
+            DiagnosticResult(
+                category="Ledger Health",
+                name="Ledger Check",
+                status="fail",
+                message=f"Failed to check ledger health: {e}",
+            )
+        )
+
+    return results
+
+
+def collect_id_integrity_check(project_dir: Path, fix: bool = False) -> list[DiagnosticResult]:
+    """
+    Collect ID integrity diagnostic checks.
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, auto-fix simple issues
+
+    Returns:
+        List of DiagnosticResult objects for ID integrity checks
+    """
+    results = []
+
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=False, check_ids=True, check_counters=False)
+
+        # Convert issues to diagnostic results
+        for issue in result.issues:
+            # Map severity
+            if issue.severity == IssueSeverity.ERROR:
+                status = "fail"
+            elif issue.severity == IssueSeverity.WARNING:
+                status = "warn"
+            else:
+                status = "info"
+
+            results.append(
+                DiagnosticResult(
+                    category="ID System",
+                    name=issue.category.upper(),
+                    status=status,
+                    message=issue.message,
+                    details=[issue.location] if issue.location else [],
+                    fix_command=issue.fix_suggestion,
+                )
+            )
+
+        # If no issues found, add a passing result
+        if not result.issues:
+            results.append(
+                DiagnosticResult(
+                    category="ID System",
+                    name="ID Integrity",
+                    status="pass",
+                    message="All task IDs are valid and consistent",
+                )
+            )
+
+    except Exception as e:
+        results.append(
+            DiagnosticResult(
+                category="ID System",
+                name="ID Check",
+                status="fail",
+                message=f"Failed to check ID integrity: {e}",
+            )
+        )
+
+    return results
+
+
+def collect_counter_sync_check(project_dir: Path, fix: bool = False) -> list[DiagnosticResult]:
+    """
+    Collect counter sync diagnostic checks.
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, auto-fix simple issues
+
+    Returns:
+        List of DiagnosticResult objects for counter sync checks
+    """
+    results = []
+
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=False, check_ids=False, check_counters=True)
+
+        # Convert issues to diagnostic results
+        for issue in result.issues:
+            # Map severity
+            if issue.severity == IssueSeverity.ERROR:
+                status = "fail"
+            elif issue.severity == IssueSeverity.WARNING:
+                status = "warn"
+            else:
+                status = "info"
+
+            results.append(
+                DiagnosticResult(
+                    category="Counter Sync",
+                    name=issue.category.title(),
+                    status=status,
+                    message=issue.message,
+                    details=[issue.location] if issue.location else [],
+                    fix_command=issue.fix_suggestion,
+                )
+            )
+
+        # If no issues found, add a passing result
+        if not result.issues:
+            results.append(
+                DiagnosticResult(
+                    category="Counter Sync",
+                    name="Counter Sync",
+                    status="pass",
+                    message="Counters are in sync with actual usage",
+                )
+            )
+
+    except Exception as e:
+        results.append(
+            DiagnosticResult(
+                category="Counter Sync",
+                name="Counter Check",
+                status="fail",
+                message=f"Failed to check counter sync: {e}",
+            )
+        )
+
+    return results
+
+
 def check_stale_epics(project_dir: Path, fix: bool = False) -> tuple[int, list[str]]:
     """
     Check for stale epics (epics where all subtasks are complete).
@@ -675,6 +862,150 @@ def check_stale_epics(project_dir: Path, fix: bool = False) -> tuple[int, list[s
             console.print(f"\n[green]✓[/green] Auto-closed {len(fixed_epics)} stale epic(s)")
 
     return len(stale_epics), fixed_epics
+
+
+def check_ledger_health(project_dir: Path, fix: bool = False) -> int:
+    """
+    Check ledger health (legacy Rich output version).
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, attempt to auto-fix simple issues
+
+    Returns:
+        Number of issues found
+    """
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=True, check_ids=False, check_counters=False)
+
+        if not result.issues:
+            console.print("[green]✓[/green] Ledger is consistent and healthy")
+            return 0
+
+        # Report issues
+        errors = [i for i in result.issues if i.severity == IssueSeverity.ERROR]
+        warnings = [i for i in result.issues if i.severity == IssueSeverity.WARNING]
+        infos = [i for i in result.issues if i.severity == IssueSeverity.INFO]
+
+        for issue in errors:
+            console.print(f"[red]✗[/red] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        for issue in warnings:
+            console.print(f"[yellow]![/yellow] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        if not errors and not warnings and infos:
+            console.print(f"[blue]ℹ[/blue] {len(infos)} informational message(s)")
+
+        return len(errors) + len(warnings)
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to check ledger health: {e}")
+        return 1
+
+
+def check_id_integrity(project_dir: Path, fix: bool = False) -> int:
+    """
+    Check ID integrity (legacy Rich output version).
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, attempt to auto-fix simple issues
+
+    Returns:
+        Number of issues found
+    """
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=False, check_ids=True, check_counters=False)
+
+        if not result.issues:
+            console.print("[green]✓[/green] All task IDs are valid and consistent")
+            return 0
+
+        # Report issues
+        errors = [i for i in result.issues if i.severity == IssueSeverity.ERROR]
+        warnings = [i for i in result.issues if i.severity == IssueSeverity.WARNING]
+        infos = [i for i in result.issues if i.severity == IssueSeverity.INFO]
+
+        for issue in errors:
+            console.print(f"[red]✗[/red] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        for issue in warnings:
+            console.print(f"[yellow]![/yellow] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        if not errors and not warnings and infos:
+            console.print(f"[blue]ℹ[/blue] {len(infos)} informational message(s)")
+
+        return len(errors) + len(warnings)
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to check ID integrity: {e}")
+        return 1
+
+
+def check_counter_sync(project_dir: Path, fix: bool = False) -> int:
+    """
+    Check counter sync status (legacy Rich output version).
+
+    Args:
+        project_dir: Project directory path
+        fix: If True, attempt to auto-fix simple issues
+
+    Returns:
+        Number of issues found
+    """
+    try:
+        service = VerifyService(project_dir)
+        result = service.verify(fix=fix, check_ledger=False, check_ids=False, check_counters=True)
+
+        if not result.issues:
+            console.print("[green]✓[/green] Counters are in sync with actual usage")
+            return 0
+
+        # Report issues
+        errors = [i for i in result.issues if i.severity == IssueSeverity.ERROR]
+        warnings = [i for i in result.issues if i.severity == IssueSeverity.WARNING]
+        infos = [i for i in result.issues if i.severity == IssueSeverity.INFO]
+
+        for issue in errors:
+            console.print(f"[red]✗[/red] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        for issue in warnings:
+            console.print(f"[yellow]![/yellow] {issue.message}")
+            if issue.location:
+                console.print(f"[dim]  Location: {issue.location}[/dim]")
+            if issue.fix_suggestion:
+                console.print(f"[dim]  → {issue.fix_suggestion}[/dim]")
+
+        if not errors and not warnings and infos:
+            console.print(f"[blue]ℹ[/blue] {len(infos)} informational message(s)")
+
+        return len(errors) + len(warnings)
+
+    except Exception as e:
+        console.print(f"[red]✗[/red] Failed to check counter sync: {e}")
+        return 1
 
 
 def check_environment() -> int:
@@ -893,11 +1224,15 @@ def doctor(
     Checks:
     - Environment: git, harness availability
     - Task state: corrupted tasks file, stale epics
+    - Ledger health: consistency, file structure, entry integrity
+    - ID system: format validation, duplicates, cross-references
+    - Counter sync: counter values match actual usage
 
     Fix Actions:
     --fix will:
     - Repair corrupted tasks.jsonl file (rejoins split JSON lines)
     - Auto-close stale epics with "Auto-closed: all subtasks complete"
+    - Auto-fix simple ledger, ID, and counter issues
 
     Examples:
         cub doctor              # Run diagnostics
@@ -949,6 +1284,15 @@ def doctor(
                     )
                 )
 
+            # Ledger health checks
+            checks.extend(collect_ledger_health_check(project_dir, fix=fix))
+
+            # ID integrity checks
+            checks.extend(collect_id_integrity_check(project_dir, fix=fix))
+
+            # Counter sync checks
+            checks.extend(collect_counter_sync_check(project_dir, fix=fix))
+
             # Format and print
             from cub.core.services.agent_format import AgentFormatter
 
@@ -983,6 +1327,18 @@ def doctor(
             total_issues += stale_count
         else:
             console.print("[dim]ℹ[/dim] Skipped (tasks file is corrupted)")
+
+        # Check ledger health
+        console.print("\n[bold]Ledger Health:[/bold]")
+        total_issues += check_ledger_health(project_dir, fix=fix)
+
+        # Check ID integrity
+        console.print("\n[bold]ID System:[/bold]")
+        total_issues += check_id_integrity(project_dir, fix=fix)
+
+        # Check counter sync
+        console.print("\n[bold]Counter Sync:[/bold]")
+        total_issues += check_counter_sync(project_dir, fix=fix)
 
         # Summary
         console.print("\n" + "=" * 60)

@@ -23,6 +23,7 @@ symlink to CLAUDE.md to ensure consistency without duplication.
 
 import hashlib
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -44,11 +45,13 @@ from cub.core.instructions import (
 )
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 # Patterns to add to .gitignore for cub projects
 GITIGNORE_PATTERNS = [
     "# cub",
     ".cub/ledger/forensics/",
+    ".cub/ledger/by-run/",
     ".cub/dashboard.db",
     ".cub/map.md",
 ]
@@ -461,6 +464,103 @@ def _ensure_specs_dir(project_dir: Path) -> None:
     """Create specs/ directory if it doesn't exist."""
     specs_dir = project_dir / "specs"
     specs_dir.mkdir(exist_ok=True)
+
+
+def _ensure_hook_directories(project_dir: Path) -> None:
+    """
+    Create hook directories for each lifecycle hook point.
+
+    Creates .cub/hooks/ and subdirectories for:
+    - pre-session
+    - end-of-task
+    - end-of-epic
+    - end-of-plan
+
+    These directories help users understand where to place their hook scripts.
+    """
+    hooks_base = project_dir / ".cub" / "hooks"
+    hooks_base.mkdir(parents=True, exist_ok=True)
+
+    # Create subdirectories for each hook point
+    hook_points = [
+        "pre-session",
+        "end-of-task",
+        "end-of-epic",
+        "end-of-plan",
+    ]
+
+    for hook_point in hook_points:
+        hook_dir = hooks_base / hook_point
+        hook_dir.mkdir(exist_ok=True)
+
+    # Copy README.md into hooks directory
+    templates_dir = _get_templates_dir()
+    readme_template = templates_dir / "hooks" / "README.md"
+
+    if readme_template.exists():
+        target_readme = hooks_base / "README.md"
+        shutil.copy2(readme_template, target_readme)
+
+
+def _install_pre_push_hook(project_dir: Path, force: bool = False) -> bool:
+    """
+    Install pre-push hook for counter verification.
+
+    Creates .git/hooks/pre-push that checks for ID collisions before pushing.
+
+    Args:
+        project_dir: Project directory
+        force: If True, overwrite existing pre-push hook
+
+    Returns:
+        True if hook was installed, False if skipped
+    """
+    git_hooks_dir = project_dir / ".git" / "hooks"
+    pre_push_hook = git_hooks_dir / "pre-push"
+
+    # Check if .git directory exists
+    if not git_hooks_dir.exists():
+        logger.warning("No .git/hooks directory found, skipping pre-push hook installation")
+        return False
+
+    # Check if hook already exists
+    if pre_push_hook.exists() and not force:
+        # Check if it's our hook
+        try:
+            content = pre_push_hook.read_text(encoding="utf-8")
+            if "verify_counters_before_push" in content:
+                # Our hook is already installed
+                logger.debug("Pre-push hook already installed")
+                return False
+            else:
+                # Another pre-push hook exists
+                console.print(
+                    "[yellow]i[/yellow] Pre-push hook already exists (not installed by cub)"
+                )
+                console.print(
+                    "[yellow]i[/yellow] Use --force to overwrite, or manually merge the hooks"
+                )
+                return False
+        except OSError:
+            pass
+
+    # Copy hook template
+    templates_dir = _get_templates_dir()
+    hook_template = templates_dir / "hooks" / "pre-push"
+
+    if not hook_template.exists():
+        logger.warning(f"Pre-push hook template not found at {hook_template}")
+        return False
+
+    try:
+        shutil.copy2(hook_template, pre_push_hook)
+        # Make executable
+        pre_push_hook.chmod(0o755)
+        logger.info(f"Installed pre-push hook to {pre_push_hook}")
+        return True
+    except OSError as e:
+        console.print(f"[yellow]Warning: Could not install pre-push hook: {e}[/yellow]")
+        return False
 
 
 def _ensure_project_config(
@@ -877,6 +977,10 @@ def init_project(
     # 3. Create specs/ directory
     _ensure_specs_dir(project_dir)
 
+    # 3.5. Create hook directories
+    _ensure_hook_directories(project_dir)
+    console.print("[green]v[/green] Created hook directories")
+
     # 4. Ensure consolidated project config in .cub/config.json
     # This also migrates settings from legacy .cub.json if present
     migrated = _ensure_project_config(project_dir, force=force, backend=chosen_backend)
@@ -915,6 +1019,10 @@ def init_project(
             console.print("[green]v[/green] Installed Claude Code statusline")
     except Exception as e:
         console.print(f"[yellow]Warning: Could not install statusline: {e}[/yellow]")
+
+    # 9.5. Install pre-push hook
+    if _install_pre_push_hook(project_dir, force=force):
+        console.print("[green]v[/green] Installed pre-push hook for counter verification")
 
     # 10. Fire post-init hooks
     try:
