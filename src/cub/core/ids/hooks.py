@@ -93,6 +93,12 @@ def verify_counters_before_push(
         logger.debug(f"Could not read remote counters: {e}")
         return (True, "")
 
+    # If remote has no counters.json, skip verification
+    # This means counter tracking isn't set up on remote yet
+    if remote_counters is None:
+        logger.debug("Remote has no counters.json, skipping counter verification")
+        return (True, "")
+
     # Scan local tasks to find maximum used IDs
     max_local_spec, max_local_standalone = _scan_local_task_ids(project_path)
 
@@ -235,7 +241,7 @@ def _fetch_remote_sync_branch(
 
 def _read_remote_counters(
     project_dir: Path, remote_name: str, branch_name: str
-) -> CounterState:
+) -> CounterState | None:
     """
     Read counter state from remote sync branch.
 
@@ -245,10 +251,10 @@ def _read_remote_counters(
         branch_name: Sync branch name
 
     Returns:
-        CounterState from remote
+        CounterState from remote, or None if counters.json doesn't exist
 
     Raises:
-        RuntimeError: If counters can't be read
+        RuntimeError: If counters can't be read due to timeout
     """
     # Try to read counters.json from remote branch
     remote_ref = f"{remote_name}/{branch_name}"
@@ -263,9 +269,9 @@ def _read_remote_counters(
         )
 
         if result.returncode != 0:
-            # Counters file doesn't exist on remote - return defaults
-            logger.debug("No counters.json on remote, using defaults")
-            return CounterState()
+            # Counters file doesn't exist on remote - return None to skip verification
+            logger.debug("No counters.json on remote, skipping counter verification")
+            return None
 
         # Parse the JSON
         return CounterState.model_validate_json(result.stdout)
@@ -274,8 +280,8 @@ def _read_remote_counters(
         raise RuntimeError("Timeout reading remote counters") from e
     except Exception as e:
         logger.warning(f"Failed to parse remote counters: {e}")
-        # Return defaults if we can't parse
-        return CounterState()
+        # Can't parse - return None to skip verification
+        return None
 
 
 def _scan_local_task_ids(project_dir: Path) -> tuple[int | None, int | None]:

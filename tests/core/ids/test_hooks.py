@@ -48,6 +48,30 @@ class TestVerifyCountersBeforePush:
             assert ok is True
             assert message == ""
 
+    def test_no_remote_counters_allows_push(self, tmp_path: Path) -> None:
+        """When remote has no counters.json, hook should allow push."""
+        # Mock sync service
+        with patch("cub.core.ids.hooks.SyncService") as mock_sync_cls:
+            mock_sync = MagicMock()
+            mock_sync.is_initialized.return_value = True
+            mock_sync_cls.return_value = mock_sync
+
+            # Mock fetch succeeds
+            with patch("cub.core.ids.hooks._fetch_remote_sync_branch"):
+                # Mock remote counters returns None (no counters.json exists)
+                with patch(
+                    "cub.core.ids.hooks._read_remote_counters", return_value=None
+                ):
+                    # Even with high local IDs, push should be allowed
+                    with patch(
+                        "cub.core.ids.hooks._scan_local_task_ids",
+                        return_value=(100, 50),
+                    ):
+                        ok, message = verify_counters_before_push(project_dir=tmp_path)
+
+                        assert ok is True
+                        assert message == ""
+
     def test_no_conflicts_allows_push(self, tmp_path: Path) -> None:
         """When no conflicts exist, hook should allow push."""
         # Mock sync service
@@ -63,19 +87,15 @@ class TestVerifyCountersBeforePush:
                 with patch(
                     "cub.core.ids.hooks._read_remote_counters", return_value=remote_counters
                 ):
-                    # Mock local counters at 10/5
+                    # Mock scan finds max 9/4 (no conflict)
                     with patch(
-                        "cub.core.ids.hooks.read_counters", return_value=remote_counters
+                        "cub.core.ids.hooks._scan_local_task_ids",
+                        return_value=(9, 4),
                     ):
-                        # Mock scan finds max 9/4 (no conflict)
-                        with patch(
-                            "cub.core.ids.hooks._scan_local_task_ids",
-                            return_value=(9, 4),
-                        ):
-                            ok, message = verify_counters_before_push(project_dir=tmp_path)
+                        ok, message = verify_counters_before_push(project_dir=tmp_path)
 
-                            assert ok is True
-                            assert message == ""
+                        assert ok is True
+                        assert message == ""
 
     def test_spec_conflict_blocks_push(self, tmp_path: Path) -> None:
         """When spec number conflicts, hook should block push."""
@@ -90,20 +110,17 @@ class TestVerifyCountersBeforePush:
                 with patch(
                     "cub.core.ids.hooks._read_remote_counters", return_value=remote_counters
                 ):
+                    # Local has used spec 10 (conflicts with remote next=10)
                     with patch(
-                        "cub.core.ids.hooks.read_counters", return_value=remote_counters
+                        "cub.core.ids.hooks._scan_local_task_ids",
+                        return_value=(10, 4),
                     ):
-                        # Local has used spec 10 (conflicts with remote next=10)
-                        with patch(
-                            "cub.core.ids.hooks._scan_local_task_ids",
-                            return_value=(10, 4),
-                        ):
-                            ok, message = verify_counters_before_push(project_dir=tmp_path)
+                        ok, message = verify_counters_before_push(project_dir=tmp_path)
 
-                            assert ok is False
-                            assert "Local spec number 10" in message
-                            assert "conflicts with" in message
-                            assert "remote counter" in message
+                        assert ok is False
+                        assert "Local spec number 10" in message
+                        assert "conflicts with" in message
+                        assert "remote counter" in message
 
     def test_standalone_conflict_blocks_push(self, tmp_path: Path) -> None:
         """When standalone number conflicts, hook should block push."""
@@ -118,19 +135,16 @@ class TestVerifyCountersBeforePush:
                 with patch(
                     "cub.core.ids.hooks._read_remote_counters", return_value=remote_counters
                 ):
+                    # Local has used standalone 5 (conflicts with remote next=5)
                     with patch(
-                        "cub.core.ids.hooks.read_counters", return_value=remote_counters
+                        "cub.core.ids.hooks._scan_local_task_ids",
+                        return_value=(9, 5),
                     ):
-                        # Local has used standalone 5 (conflicts with remote next=5)
-                        with patch(
-                            "cub.core.ids.hooks._scan_local_task_ids",
-                            return_value=(9, 5),
-                        ):
-                            ok, message = verify_counters_before_push(project_dir=tmp_path)
+                        ok, message = verify_counters_before_push(project_dir=tmp_path)
 
-                            assert ok is False
-                            assert "Local standalone task number 5" in message
-                            assert "conflicts with" in message
+                        assert ok is False
+                        assert "Local standalone task number 5" in message
+                        assert "conflicts with" in message
 
     def test_both_conflicts_block_push(self, tmp_path: Path) -> None:
         """When both spec and standalone conflict, both should be reported."""
@@ -144,19 +158,16 @@ class TestVerifyCountersBeforePush:
                 with patch(
                     "cub.core.ids.hooks._read_remote_counters", return_value=remote_counters
                 ):
+                    # Local has used spec 11 and standalone 6
                     with patch(
-                        "cub.core.ids.hooks.read_counters", return_value=remote_counters
+                        "cub.core.ids.hooks._scan_local_task_ids",
+                        return_value=(11, 6),
                     ):
-                        # Local has used spec 11 and standalone 6
-                        with patch(
-                            "cub.core.ids.hooks._scan_local_task_ids",
-                            return_value=(11, 6),
-                        ):
-                            ok, message = verify_counters_before_push(project_dir=tmp_path)
+                        ok, message = verify_counters_before_push(project_dir=tmp_path)
 
-                            assert ok is False
-                            assert "Local spec number 11" in message
-                            assert "Local standalone task number 6" in message
+                        assert ok is False
+                        assert "Local spec number 11" in message
+                        assert "Local standalone task number 6" in message
 
 
 class TestFormatHookMessage:
