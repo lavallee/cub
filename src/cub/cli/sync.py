@@ -67,6 +67,19 @@ def sync(
             print_sync_not_initialized_error()
             raise typer.Exit(ExitCode.USER_ERROR)
 
+        # Ensure counters exist (creates them if missing)
+        from cub.core.ids.counters import counters_exist
+
+        if not counters_exist(sync_service):
+            counters = ensure_counters(sync_service)
+            if counters.spec_number > 0 or counters.standalone_task_number > 0:
+                console.print(
+                    f"[dim]Initialized counters from existing tasks: "
+                    f"spec={counters.spec_number}, standalone={counters.standalone_task_number}[/dim]"
+                )
+            else:
+                console.print("[dim]Initialized counters[/dim]")
+
         # Pull if requested
         if pull:
             console.print("[blue]Pulling remote changes...[/blue]")
