@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-a2s.1",
+  "title": "Update passthrough skills and router to use --agent",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T15:43:35.715379",
+  "completed_at": "2026-01-29T15:43:35.715380",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 222.4986822605133
+}

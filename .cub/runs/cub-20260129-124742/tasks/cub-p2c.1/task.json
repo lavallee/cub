@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-p2c.1",
+  "title": "Add cub task blocked command",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T13:13:33.212781",
+  "completed_at": "2026-01-29T13:13:33.212782",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 1514.458965063095
+}

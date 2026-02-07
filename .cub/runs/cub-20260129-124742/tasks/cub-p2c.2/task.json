@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-p2c.2",
+  "title": "Add cub task dep add/remove and cub task label add/remove/list commands",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T13:18:23.681167",
+  "completed_at": "2026-01-29T13:18:23.681168",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 229.99597001075745
+}

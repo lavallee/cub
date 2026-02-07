@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-p2c.3",
+  "title": "Add cub task reopen and cub task delete commands",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T13:44:07.037591",
+  "completed_at": "2026-01-29T13:44:07.037592",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 1483.2981488704681
+}

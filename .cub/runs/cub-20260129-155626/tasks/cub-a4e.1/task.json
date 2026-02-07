@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-a4e.1",
+  "title": "Add AgentFormatter methods for blocked, list, and ledger",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T16:02:09.148195",
+  "completed_at": "2026-01-29T16:02:09.148196",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 341.98095893859863
+}

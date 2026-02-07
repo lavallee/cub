@@ -1,0 +1,153 @@
+{
+  "run_id": "cub-20260129-122038",
+  "session_name": "cub-20260129-122038",
+  "started_at": "2026-01-29T12:20:38.236972",
+  "updated_at": "2026-01-29T12:47:24.169963",
+  "completed_at": "2026-01-29T12:47:08.807081",
+  "epic": "cub-p1t",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 4,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 4.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 60284,
+    "tokens_limit": null,
+    "cost_usd": 5.3511515,
+    "cost_limit": null,
+    "tasks_completed": 4,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 87,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 92,
+  "task_entries": [
+    {
+      "task_id": "cub-p1t.2",
+      "title": "Implement new protocol methods in BeadsBackend",
+      "state": "done",
+      "started_at": "2026-01-29T12:20:59.067092",
+      "completed_at": "2026-01-29T12:26:11.749768"
+    },
+    {
+      "task_id": "cub-p1t.3",
+      "title": "Implement new protocol methods in JsonlBackend",
+      "state": "done",
+      "started_at": "2026-01-29T12:27:02.777950",
+      "completed_at": "2026-01-29T12:32:20.229714"
+    },
+    {
+      "task_id": "cub-p1t.4",
+      "title": "Build DependencyGraph class",
+      "state": "done",
+      "started_at": "2026-01-29T12:33:12.043396",
+      "completed_at": "2026-01-29T12:36:34.689485"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T12:20:48.664402",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:20:59.067108",
+      "level": "info",
+      "message": "Starting task: Implement new protocol methods in BeadsBackend",
+      "task_id": "cub-p1t.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:26:11.749829",
+      "level": "info",
+      "message": "Task completed: Implement new protocol methods in BeadsBackend",
+      "task_id": "cub-p1t.2",
+      "metadata": {
+        "duration": 302.20016169548035,
+        "tokens": 17124
+      }
+    },
+    {
+      "timestamp": "2026-01-29T12:27:02.777970",
+      "level": "info",
+      "message": "Starting task: Implement new protocol methods in JsonlBackend",
+      "task_id": "cub-p1t.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:32:20.229763",
+      "level": "info",
+      "message": "Task completed: Implement new protocol methods in JsonlBackend",
+      "task_id": "cub-p1t.3",
+      "metadata": {
+        "duration": 307.0285818576813,
+        "tokens": 13624
+      }
+    },
+    {
+      "timestamp": "2026-01-29T12:33:12.043416",
+      "level": "info",
+      "message": "Starting task: Build DependencyGraph class",
+      "task_id": "cub-p1t.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:36:34.689559",
+      "level": "info",
+      "message": "Task completed: Build DependencyGraph class",
+      "task_id": "cub-p1t.4",
+      "metadata": {
+        "duration": 192.18845582008362,
+        "tokens": 7454
+      }
+    },
+    {
+      "timestamp": "2026-01-29T12:37:25.120107",
+      "level": "info",
+      "message": "Starting task: Update BothBackend and write cross-backend tests",
+      "task_id": "cub-p1t.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:46:17.275853",
+      "level": "info",
+      "message": "Task completed: Update BothBackend and write cross-backend tests",
+      "task_id": "cub-p1t.5",
+      "metadata": {
+        "duration": 521.8147540092468,
+        "tokens": 22082
+      }
+    },
+    {
+      "timestamp": "2026-01-29T12:47:08.807159",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 88,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1590.570109
+}

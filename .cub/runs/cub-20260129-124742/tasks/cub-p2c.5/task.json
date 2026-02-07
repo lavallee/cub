@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-p2c.5",
+  "title": "Add cub task search command",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T14:17:50.130712",
+  "completed_at": "2026-01-29T14:17:50.130713",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 270.7195460796356
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-p2c.4",
+  "title": "Enhance existing cub task list, ready, create, update commands",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T14:12:17.278485",
+  "completed_at": "2026-01-29T14:12:17.278486",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 1630.0748507976532
+}

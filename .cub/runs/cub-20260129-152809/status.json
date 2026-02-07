@@ -1,0 +1,105 @@
+{
+  "run_id": "cub-20260129-152809",
+  "session_name": "cub-20260129-152809",
+  "started_at": "2026-01-29T15:28:09.006864",
+  "updated_at": "2026-01-29T15:39:50.097470",
+  "completed_at": "2026-01-29T15:39:49.909730",
+  "epic": "cub-a1f",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 2,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 2.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 42019,
+    "tokens_limit": null,
+    "cost_usd": 2.65000605,
+    "cost_limit": null,
+    "tasks_completed": 2,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 78,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 81,
+  "task_entries": [
+    {
+      "task_id": "cub-a1f.1",
+      "title": "Build AgentFormatter module with Phase 1 format methods",
+      "state": "done",
+      "started_at": "2026-01-29T15:28:09.253839",
+      "completed_at": "2026-01-29T15:32:33.592367"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T15:28:09.141847",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:28:09.253855",
+      "level": "info",
+      "message": "Starting task: Build AgentFormatter module with Phase 1 format methods",
+      "task_id": "cub-a1f.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:32:33.592430",
+      "level": "info",
+      "message": "Task completed: Build AgentFormatter module with Phase 1 format methods",
+      "task_id": "cub-a1f.1",
+      "metadata": {
+        "duration": 264.1973080635071,
+        "tokens": 15536
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:32:48.075158",
+      "level": "info",
+      "message": "Starting task: Wire --agent flag into Phase 1 CLI commands",
+      "task_id": "cub-a1f.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:39:34.719127",
+      "level": "info",
+      "message": "Task completed: Wire --agent flag into Phase 1 CLI commands",
+      "task_id": "cub-a1f.2",
+      "metadata": {
+        "duration": 406.5120539665222,
+        "tokens": 26483
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:39:49.909797",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 79,
+  "completion_percentage": 0.0,
+  "duration_seconds": 700.902866
+}

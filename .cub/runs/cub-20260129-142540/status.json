@@ -1,0 +1,112 @@
+{
+  "run_id": "cub-20260129-142540",
+  "session_name": "cub-20260129-142540",
+  "started_at": "2026-01-29T14:25:40.957736",
+  "updated_at": "2026-01-29T15:28:05.818607",
+  "completed_at": "2026-01-29T15:28:05.584148",
+  "epic": "cub-p3s",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 2,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 2.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 20256,
+    "tokens_limit": null,
+    "cost_usd": 0.7064411999999999,
+    "cost_limit": null,
+    "tasks_completed": 2,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 80,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 83,
+  "task_entries": [
+    {
+      "task_id": "cub-p3s.1",
+      "title": "Update router skill and passthrough skills",
+      "state": "done",
+      "started_at": "2026-01-29T14:26:01.800172",
+      "completed_at": "2026-01-29T15:21:01.412244"
+    },
+    {
+      "task_id": "cub-p3s.2",
+      "title": "Update CLAUDE.md and PROMPT.md documentation",
+      "state": "done",
+      "started_at": "2026-01-29T15:25:25.807815",
+      "completed_at": "2026-01-29T15:27:51.740826"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T14:25:51.338403",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T14:26:01.800190",
+      "level": "info",
+      "message": "Starting task: Update router skill and passthrough skills",
+      "task_id": "cub-p3s.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:21:01.412311",
+      "level": "info",
+      "message": "Task completed: Update router skill and passthrough skills",
+      "task_id": "cub-p3s.1",
+      "metadata": {
+        "duration": 3289.086170911789,
+        "tokens": 9570
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:25:25.807831",
+      "level": "info",
+      "message": "Starting task: Update CLAUDE.md and PROMPT.md documentation",
+      "task_id": "cub-p3s.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:27:51.740886",
+      "level": "info",
+      "message": "Task completed: Update CLAUDE.md and PROMPT.md documentation",
+      "task_id": "cub-p3s.2",
+      "metadata": {
+        "duration": 135.61212682724,
+        "tokens": 10686
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:28:05.584227",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 81,
+  "completion_percentage": 0.0,
+  "duration_seconds": 3744.626412
+}

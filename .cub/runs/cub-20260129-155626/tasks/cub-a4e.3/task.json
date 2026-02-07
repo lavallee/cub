@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-a4e.3",
+  "title": "Add --agent support for doctor command (requires refactor)",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T16:19:45.620153",
+  "completed_at": "2026-01-29T16:19:45.620154",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 727.9340870380402
+}

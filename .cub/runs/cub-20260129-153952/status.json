@@ -1,0 +1,88 @@
+{
+  "run_id": "cub-20260129-153952",
+  "session_name": "cub-20260129-153952",
+  "started_at": "2026-01-29T15:39:52.775631",
+  "updated_at": "2026-01-29T15:43:49.091383",
+  "completed_at": "2026-01-29T15:43:48.937327",
+  "epic": "cub-a2s",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 329,
+    "tokens_limit": null,
+    "cost_usd": 0.1846957,
+    "cost_limit": null,
+    "tasks_completed": 1,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 77,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 79,
+  "task_entries": [
+    {
+      "task_id": "cub-a2s.1",
+      "title": "Update passthrough skills and router to use --agent",
+      "state": "done",
+      "started_at": "2026-01-29T15:39:53.028910",
+      "completed_at": "2026-01-29T15:43:35.660723"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T15:39:52.917842",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:39:53.028929",
+      "level": "info",
+      "message": "Starting task: Update passthrough skills and router to use --agent",
+      "task_id": "cub-a2s.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:43:35.660784",
+      "level": "info",
+      "message": "Task completed: Update passthrough skills and router to use --agent",
+      "task_id": "cub-a2s.1",
+      "metadata": {
+        "duration": 222.4986822605133,
+        "tokens": 329
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:43:48.937377",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 78,
+  "completion_percentage": 0.0,
+  "duration_seconds": 236.161696
+}

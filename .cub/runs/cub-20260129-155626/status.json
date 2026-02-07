@@ -1,0 +1,129 @@
+{
+  "run_id": "cub-20260129-155626",
+  "session_name": "cub-20260129-155626",
+  "started_at": "2026-01-29T15:56:26.715957",
+  "updated_at": "2026-01-29T16:20:00.975809",
+  "completed_at": "2026-01-29T16:20:00.823610",
+  "epic": "cub-a4e",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 15003,
+    "tokens_limit": null,
+    "cost_usd": 4.57221805,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 71,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 75,
+  "task_entries": [
+    {
+      "task_id": "cub-a4e.1",
+      "title": "Add AgentFormatter methods for blocked, list, and ledger",
+      "state": "done",
+      "started_at": "2026-01-29T15:56:26.960768",
+      "completed_at": "2026-01-29T16:02:09.091025"
+    },
+    {
+      "task_id": "cub-a4e.3",
+      "title": "Add --agent support for doctor command (requires refactor)",
+      "state": "done",
+      "started_at": "2026-01-29T16:07:37.496411",
+      "completed_at": "2026-01-29T16:19:45.566451"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T15:56:26.845736",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:56:26.960788",
+      "level": "info",
+      "message": "Starting task: Add AgentFormatter methods for blocked, list, and ledger",
+      "task_id": "cub-a4e.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T16:02:09.091078",
+      "level": "info",
+      "message": "Task completed: Add AgentFormatter methods for blocked, list, and ledger",
+      "task_id": "cub-a4e.1",
+      "metadata": {
+        "duration": 341.98095893859863,
+        "tokens": 345
+      }
+    },
+    {
+      "timestamp": "2026-01-29T16:02:24.640769",
+      "level": "info",
+      "message": "Starting task: Wire --agent flag into blocked, list, and ledger CLI commands",
+      "task_id": "cub-a4e.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T16:07:24.205998",
+      "level": "info",
+      "message": "Task completed: Wire --agent flag into blocked, list, and ledger CLI commands",
+      "task_id": "cub-a4e.2",
+      "metadata": {
+        "duration": 299.43427205085754,
+        "tokens": 14069
+      }
+    },
+    {
+      "timestamp": "2026-01-29T16:07:37.496425",
+      "level": "info",
+      "message": "Starting task: Add --agent support for doctor command (requires refactor)",
+      "task_id": "cub-a4e.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T16:19:45.566496",
+      "level": "info",
+      "message": "Task completed: Add --agent support for doctor command (requires refactor)",
+      "task_id": "cub-a4e.3",
+      "metadata": {
+        "duration": 727.9340870380402,
+        "tokens": 589
+      }
+    },
+    {
+      "timestamp": "2026-01-29T16:20:00.823675",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 72,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1414.107653
+}

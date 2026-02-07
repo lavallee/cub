@@ -1,0 +1,184 @@
+{
+  "run_id": "cub-20260129-124742",
+  "session_name": "cub-20260129-124742",
+  "started_at": "2026-01-29T12:47:42.581165",
+  "updated_at": "2026-01-29T14:25:21.847247",
+  "completed_at": "2026-01-29T14:25:06.250901",
+  "epic": "cub-p2c",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 35059,
+    "tokens_limit": null,
+    "cost_usd": 4.0211098,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 82,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 88,
+  "task_entries": [
+    {
+      "task_id": "cub-p2c.1",
+      "title": "Add cub task blocked command",
+      "state": "done",
+      "started_at": "2026-01-29T12:48:03.206692",
+      "completed_at": "2026-01-29T13:13:28.011005"
+    },
+    {
+      "task_id": "cub-p2c.2",
+      "title": "Add cub task dep add/remove and cub task label add/remove/list commands",
+      "state": "done",
+      "started_at": "2026-01-29T13:14:18.259016",
+      "completed_at": "2026-01-29T13:18:18.556527"
+    },
+    {
+      "task_id": "cub-p2c.3",
+      "title": "Add cub task reopen and cub task delete commands",
+      "state": "done",
+      "started_at": "2026-01-29T13:19:08.098161",
+      "completed_at": "2026-01-29T13:44:01.815259"
+    },
+    {
+      "task_id": "cub-p2c.4",
+      "title": "Enhance existing cub task list, ready, create, update commands",
+      "state": "done",
+      "started_at": "2026-01-29T13:44:51.553392",
+      "completed_at": "2026-01-29T14:12:12.143166"
+    },
+    {
+      "task_id": "cub-p2c.5",
+      "title": "Add cub task search command",
+      "state": "done",
+      "started_at": "2026-01-29T14:13:03.842000",
+      "completed_at": "2026-01-29T14:17:44.990106"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T12:47:52.849694",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T12:48:03.206710",
+      "level": "info",
+      "message": "Starting task: Add cub task blocked command",
+      "task_id": "cub-p2c.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T13:13:28.011068",
+      "level": "info",
+      "message": "Task completed: Add cub task blocked command",
+      "task_id": "cub-p2c.1",
+      "metadata": {
+        "duration": 1514.458965063095,
+        "tokens": 8486
+      }
+    },
+    {
+      "timestamp": "2026-01-29T13:14:18.259037",
+      "level": "info",
+      "message": "Starting task: Add cub task dep add/remove and cub task label add/remove/list commands",
+      "task_id": "cub-p2c.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T13:18:18.556599",
+      "level": "info",
+      "message": "Task completed: Add cub task dep add/remove and cub task label add/remove/list commands",
+      "task_id": "cub-p2c.2",
+      "metadata": {
+        "duration": 229.99597001075745,
+        "tokens": 8318
+      }
+    },
+    {
+      "timestamp": "2026-01-29T13:19:08.098180",
+      "level": "info",
+      "message": "Starting task: Add cub task reopen and cub task delete commands",
+      "task_id": "cub-p2c.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T13:44:01.815312",
+      "level": "info",
+      "message": "Task completed: Add cub task reopen and cub task delete commands",
+      "task_id": "cub-p2c.3",
+      "metadata": {
+        "duration": 1483.2981488704681,
+        "tokens": 308
+      }
+    },
+    {
+      "timestamp": "2026-01-29T13:44:51.553407",
+      "level": "info",
+      "message": "Starting task: Enhance existing cub task list, ready, create, update commands",
+      "task_id": "cub-p2c.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T14:12:12.143215",
+      "level": "info",
+      "message": "Task completed: Enhance existing cub task list, ready, create, update commands",
+      "task_id": "cub-p2c.4",
+      "metadata": {
+        "duration": 1630.0748507976532,
+        "tokens": 8979
+      }
+    },
+    {
+      "timestamp": "2026-01-29T14:13:03.842014",
+      "level": "info",
+      "message": "Starting task: Add cub task search command",
+      "task_id": "cub-p2c.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T14:17:44.990153",
+      "level": "info",
+      "message": "Task completed: Add cub task search command",
+      "task_id": "cub-p2c.5",
+      "metadata": {
+        "duration": 270.7195460796356,
+        "tokens": 8968
+      }
+    },
+    {
+      "timestamp": "2026-01-29T14:25:06.251004",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 83,
+  "completion_percentage": 0.0,
+  "duration_seconds": 5843.669736
+}

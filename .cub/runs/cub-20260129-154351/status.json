@@ -1,0 +1,122 @@
+{
+  "run_id": "cub-20260129-154351",
+  "session_name": "cub-20260129-154351",
+  "started_at": "2026-01-29T15:43:51.843195",
+  "updated_at": "2026-01-29T15:56:23.939489",
+  "completed_at": "2026-01-29T15:56:23.784178",
+  "epic": "cub-a3r",
+  "label": null,
+  "branch": "feature/cub-nl-router",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 42084,
+    "tokens_limit": null,
+    "cost_usd": 1.772938400000001,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 74,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 78,
+  "task_entries": [
+    {
+      "task_id": "cub-a3r.1",
+      "title": "Add route observation to cub-hook.sh",
+      "state": "done",
+      "started_at": "2026-01-29T15:43:52.087767",
+      "completed_at": "2026-01-29T15:47:39.886025"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T15:43:51.978181",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:43:52.087784",
+      "level": "info",
+      "message": "Starting task: Add route observation to cub-hook.sh",
+      "task_id": "cub-a3r.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:47:39.886090",
+      "level": "info",
+      "message": "Task completed: Add route observation to cub-hook.sh",
+      "task_id": "cub-a3r.1",
+      "metadata": {
+        "duration": 227.66122388839722,
+        "tokens": 11029
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:47:55.993247",
+      "level": "info",
+      "message": "Starting task: Build route compiler and cub routes CLI",
+      "task_id": "cub-a3r.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:54:15.248320",
+      "level": "info",
+      "message": "Task completed: Build route compiler and cub routes CLI",
+      "task_id": "cub-a3r.2",
+      "metadata": {
+        "duration": 379.1227638721466,
+        "tokens": 26257
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:54:30.139457",
+      "level": "info",
+      "message": "Starting task: Add learned routes section to router skill",
+      "task_id": "cub-a3r.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T15:56:09.698989",
+      "level": "info",
+      "message": "Task completed: Add learned routes section to router skill",
+      "task_id": "cub-a3r.3",
+      "metadata": {
+        "duration": 99.39519214630127,
+        "tokens": 4798
+      }
+    },
+    {
+      "timestamp": "2026-01-29T15:56:23.784253",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 75,
+  "completion_percentage": 0.0,
+  "duration_seconds": 751.940983
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-a3r.1",
+  "title": "Add route observation to cub-hook.sh",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-29T15:47:39.949546",
+  "completed_at": "2026-01-29T15:47:39.949547",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 227.66122388839722
+}
