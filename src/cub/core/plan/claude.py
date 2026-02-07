@@ -159,7 +159,7 @@ def _invoke_interactive(
 
     try:
         # Run interactively - inherit stdio for user interaction
-        result = subprocess.run(
+        subprocess.run(
             cmd,
             cwd=working_dir,
             timeout=timeout,

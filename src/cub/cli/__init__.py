@@ -204,9 +204,11 @@ app.add_typer(workflow.app, name="workflow", rich_help_panel=PANEL_TASKS)
 app.add_typer(sync.app, name="sync", rich_help_panel=PANEL_TASKS)
 app.add_typer(session.app, name="session", rich_help_panel=PANEL_TASKS)
 app.command(name="interview", rich_help_panel=PANEL_TASKS)(delegated.interview)
-app.command(name="explain-task", rich_help_panel=PANEL_TASKS)(delegated.explain_task)
-app.command(name="close-task", rich_help_panel=PANEL_TASKS)(delegated.close_task)
-app.command(name="verify-task", rich_help_panel=PANEL_TASKS)(delegated.verify_task)
+app.command(name="explain-task", rich_help_panel=PANEL_TASKS, hidden=True)(
+    delegated.explain_task
+)
+app.command(name="close-task", rich_help_panel=PANEL_TASKS, hidden=True)(delegated.close_task)
+app.command(name="verify-task", rich_help_panel=PANEL_TASKS, hidden=True)(delegated.verify_task)
 
 
 # =============================================================================
@@ -253,10 +255,10 @@ app.command(name="organize-captures", rich_help_panel=PANEL_ROADMAP)(
     organize_captures.organize_captures
 )
 app.command(name="import", rich_help_panel=PANEL_ROADMAP)(delegated.import_cmd)
-app.add_typer(release.app, name="release", rich_help_panel=PANEL_ROADMAP)
-app.add_typer(retro.app, name="retro", rich_help_panel=PANEL_ROADMAP)
-app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_ROADMAP)
-app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_ROADMAP)
+app.add_typer(release.app, name="release", rich_help_panel=PANEL_EPICS)
+app.add_typer(retro.app, name="retro", rich_help_panel=PANEL_EPICS)
+app.add_typer(tools.app, name="tools", rich_help_panel=PANEL_PROJECT)
+app.add_typer(toolsmith.app, name="toolsmith", rich_help_panel=PANEL_PROJECT)
 app.add_typer(workbench.app, name="workbench", rich_help_panel=PANEL_ROADMAP)
 
 

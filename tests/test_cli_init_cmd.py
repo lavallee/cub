@@ -13,6 +13,7 @@ from cub.cli.init_cmd import (
     _ensure_prompt_md,
     _ensure_prompt_symlink,
     _file_hash,
+    _generate_project_id,
     _init_global,
     _update_gitignore,
     detect_backend,
@@ -271,18 +272,58 @@ class TestDetectBackend:
         with patch.dict(os.environ, {"CUB_BACKEND": "jsonl"}):
             assert detect_backend() == "jsonl"
 
-    def test_auto_detects_beads(self) -> None:
-        with patch("cub.cli.init_cmd.shutil.which", return_value="/usr/bin/bd"):
-            with patch.dict(os.environ, {}, clear=True):
-                # Ensure CUB_BACKEND is not set
-                os.environ.pop("CUB_BACKEND", None)
-                assert detect_backend() == "beads"
+    def test_defaults_to_jsonl(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            os.environ.pop("CUB_BACKEND", None)
+            assert detect_backend() == "jsonl"
 
-    def test_falls_back_to_jsonl(self) -> None:
-        with patch("cub.cli.init_cmd.shutil.which", return_value=None):
-            with patch.dict(os.environ, {}, clear=True):
-                os.environ.pop("CUB_BACKEND", None)
-                assert detect_backend() == "jsonl"
+    def test_env_var_can_select_beads(self) -> None:
+        with patch.dict(os.environ, {"CUB_BACKEND": "beads"}):
+            assert detect_backend() == "beads"
+
+
+class TestGenerateProjectId:
+    """Tests for _generate_project_id function."""
+
+    def test_uses_full_short_name(self, tmp_path: Path) -> None:
+        project = tmp_path / "myapp"
+        project.mkdir()
+        assert _generate_project_id(project) == "myapp"
+
+    def test_preserves_hyphens(self, tmp_path: Path) -> None:
+        project = tmp_path / "test-project"
+        project.mkdir()
+        assert _generate_project_id(project) == "test-project"
+
+    def test_preserves_underscores(self, tmp_path: Path) -> None:
+        project = tmp_path / "my_app"
+        project.mkdir()
+        assert _generate_project_id(project) == "my_app"
+
+    def test_strips_cub_prefix(self, tmp_path: Path) -> None:
+        project = tmp_path / "cub-satellite"
+        project.mkdir()
+        assert _generate_project_id(project) == "satellite"
+
+    def test_truncates_long_names(self, tmp_path: Path) -> None:
+        project = tmp_path / "my-very-long-project-name"
+        project.mkdir()
+        assert _generate_project_id(project) == "my-very-long"
+
+    def test_fallback_for_empty(self, tmp_path: Path) -> None:
+        project = tmp_path / "..."
+        project.mkdir()
+        assert _generate_project_id(project) == "proj"
+
+    def test_lowercases(self, tmp_path: Path) -> None:
+        project = tmp_path / "MyApp"
+        project.mkdir()
+        assert _generate_project_id(project) == "myapp"
+
+    def test_strips_special_chars(self, tmp_path: Path) -> None:
+        project = tmp_path / "my@app!"
+        project.mkdir()
+        assert _generate_project_id(project) == "myapp"
 
 
 class TestInitGlobal:

@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -526,7 +526,7 @@ class VerifyService:
                     default_counters = {
                         "spec_number": 1,
                         "standalone_task_number": 1,
-                        "updated_at": datetime.utcnow().isoformat() + "Z",
+                        "updated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                     }
                     with self.counters_file.open("w") as f:
                         json.dump(default_counters, f, indent=2)
@@ -561,7 +561,7 @@ class VerifyService:
                         try:
                             # Add missing field with default value
                             if field == "updated_at":
-                                counters[field] = datetime.utcnow().isoformat() + "Z"
+                                counters[field] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                             else:
                                 counters[field] = 1
 
@@ -687,7 +687,7 @@ class VerifyService:
                 if fix:
                     try:
                         counters["spec_number"] = max_spec_num + 1
-                        counters["updated_at"] = datetime.utcnow().isoformat() + "Z"
+                        counters["updated_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                         with self.counters_file.open("w") as f:
                             json.dump(counters, f, indent=2)
                         result.auto_fixed += 1
@@ -715,7 +715,7 @@ class VerifyService:
                 if fix:
                     try:
                         counters["standalone_task_number"] = max_standalone_num + 1
-                        counters["updated_at"] = datetime.utcnow().isoformat() + "Z"
+                        counters["updated_at"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
                         with self.counters_file.open("w") as f:
                             json.dump(counters, f, indent=2)
                         result.auto_fixed += 1

@@ -54,6 +54,8 @@ GITIGNORE_PATTERNS = [
     ".cub/ledger/by-run/",
     ".cub/dashboard.db",
     ".cub/map.md",
+    ".cub/cache/",
+    ".claude/settings.local.json",
 ]
 
 
@@ -119,24 +121,27 @@ def _detect_dev_mode(project_dir: Path) -> bool:
 
 def _generate_project_id(project_dir: Path) -> str:
     """
-    Generate a unique project_id from the project directory name.
+    Generate a project_id from the project directory name.
 
-    Uses the first 3 lowercase characters of the directory name.
-    Falls back to "cub" if the name is too short.
+    Uses the directory name (lowercased, non-alphanumeric stripped),
+    keeping up to 12 characters for readability.
+    Falls back to "proj" if the name is empty.
 
     Args:
         project_dir: Project directory path
 
     Returns:
-        A 3-character project_id prefix
+        A project_id prefix (e.g., "myapp", "test-project")
     """
     name = project_dir.name.lower()
-    # Strip common prefixes that might cause collisions
+    # Strip common prefixes that might cause collisions among cub projects
     if name.startswith("cub-"):
-        # Use the part after "cub-" for better uniqueness
         name = name[4:]
-    prefix = name[:3]
-    return prefix if prefix else "cub"
+    # Keep hyphens and underscores for readability, strip other special chars
+    clean = "".join(c for c in name if c.isalnum() or c in "-_")
+    # Trim to reasonable length
+    prefix = clean[:12].rstrip("-_")
+    return prefix if prefix else "proj"
 
 
 def _ensure_project_id(project_dir: Path, project_id: str | None = None) -> str:
@@ -375,7 +380,7 @@ def detect_backend(explicit: str | None = None) -> str:
     """
     Determine which task backend to use.
 
-    Priority: explicit arg > CUB_BACKEND env var > auto-detect (bd in PATH).
+    Priority: explicit arg > CUB_BACKEND env var > default (jsonl).
     """
     if explicit:
         return explicit
@@ -383,9 +388,6 @@ def detect_backend(explicit: str | None = None) -> str:
     env_backend = os.environ.get("CUB_BACKEND")
     if env_backend:
         return env_backend
-
-    if shutil.which("bd"):
-        return "beads"
 
     return "jsonl"
 

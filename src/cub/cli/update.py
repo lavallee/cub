@@ -18,7 +18,6 @@ from cub.core.config.loader import load_config
 from cub.core.constitution import ensure_constitution
 from cub.core.instructions import (
     detect_managed_section,
-    generate_agents_md,
     generate_claude_md,
     upsert_managed_section,
 )
@@ -120,7 +119,7 @@ def _refresh_managed_sections(
 
             if section_info.found:
                 # Generate new content
-                new_content = generate_agents_md(project_dir, config)
+                new_content = generate_claude_md(project_dir, config)
 
                 # Check if update needed
                 if force or section_info.content_modified:

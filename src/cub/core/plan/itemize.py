@@ -813,7 +813,7 @@ class ItemizeStage:
             epic_id = match.group(1).strip()
             title = match.group(2).strip()
             priority = int(match.group(3))
-            labels = [l.strip() for l in match.group(4).split(",")]
+            labels = [label.strip() for label in match.group(4).split(",")]
             description = match.group(5).strip()
 
             epics.append(Epic(
@@ -840,7 +840,7 @@ class ItemizeStage:
             task_id = match.group(1).strip()
             title = match.group(2).strip()
             priority = int(match.group(3))
-            labels = [l.strip() for l in match.group(4).split(",")]
+            labels = [label.strip() for label in match.group(4).split(",")]
             blocks_str = match.group(5)
             blocks = [b.strip() for b in blocks_str.split(",")] if blocks_str else []
             body = match.group(6).strip()

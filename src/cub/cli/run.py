@@ -500,7 +500,7 @@ def run(
     harness: str | None = typer.Option(
         None,
         "--harness",
-        "-h",
+        "-H",
         help=(
             "AI harness to use (claude, claude-sdk, claude-cli, codex, gemini, "
             "opencode). 'claude' defaults to 'claude-sdk'. Use 'claude-cli' for "

@@ -37,3 +37,7 @@ src/cub/dashboard/web/node_modules/
 # cub database and generated files
 .cub/dashboard.db
 .cub/map.md
+.cub/cache/
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
