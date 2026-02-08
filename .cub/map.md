@@ -1,6 +1,6 @@
-# Project Map: cub
+# Project Map: cub_sat
 
-**Project Directory:** `/home/marc/Projects/cub`
+**Project Directory:** `/Users/lavallee/Experiments/cub_sat`
 
 ## Tech Stacks
 
@@ -19,19 +19,31 @@
 
 ## Modules
 
-- **cub**: `src/cub` (289 files) (entry: __init__.py)
+- **cub**: `src/cub` (288 files) (entry: __init__.py)
 
 ## Directory Structure
 
-└── cub/
+└── cub_sat/
     ├── .beads/
     │   ├── .gitignore
+    │   ├── .local_version
     │   ├── README.md
+    │   ├── bd.sock
+    │   ├── beads.db
+    │   ├── beads.db-shm
+    │   ├── beads.db-wal
+    │   ├── beads.left.jsonl
+    │   ├── beads.left.meta.json
     │   ├── branches.yaml
     │   ├── config.yaml
+    │   ├── daemon.lock
+    │   ├── daemon.log
+    │   ├── daemon.pid
     │   ├── interactions.jsonl
     │   ├── issues.jsonl
-    │   └── metadata.json
+    │   ├── last-touched
+    │   ├── metadata.json
+    │   └── sync-state.json
     ├── .claude/
     │   ├── commands/
     │   │   ├── cub.md
@@ -49,7 +61,8 @@
     │   │   ├── cub:status.md
     │   │   ├── cub:suggest.md
     │   │   └── cub:tasks.md
-    │   └── settings.json
+    │   ├── settings.json
+    │   └── settings.local.json
     ├── .cub/
     │   ├── cache/
     │   │   └── code_intel/
@@ -58,7 +71,9 @@
     │   │       ├── 69/
     │   │       ├── a1/
     │   │       ├── fd/
-    │   │       └── cache.db
+    │   │       ├── cache.db
+    │   │       ├── cache.db-shm
+    │   │       └── cache.db-wal
     │   ├── docs/
     │   │   ├── claude-code-hooks.md
     │   │   └── run-exit-paths.md
@@ -138,7 +153,19 @@
     │   │   │   ├── cub-20260204-230030.json
     │   │   │   ├── cub-20260204-231705.json
     │   │   │   ├── cub-20260204-231706.json
-    │   │   │   └── cub-20260204-231848.json
+    │   │   │   ├── cub-20260204-231848.json
+    │   │   │   ├── cub-20260204-232045.json
+    │   │   │   ├── cub-20260207-032029.json
+    │   │   │   ├── cub-20260207-032030.json
+    │   │   │   ├── cub-20260207-032031.json
+    │   │   │   ├── cub-20260207-032256.json
+    │   │   │   ├── cub-20260207-032257.json
+    │   │   │   ├── cub-20260207-033322.json
+    │   │   │   ├── cub-20260207-033323.json
+    │   │   │   ├── cub-20260207-033638.json
+    │   │   │   ├── cub-20260207-033639.json
+    │   │   │   ├── cub-20260207-034123.json
+    │   │   │   └── cub-20260207-034124.json
     │   │   ├── by-task/
     │   │   │   ├── cub-001/
     │   │   │   ├── cub-048a-0.1/
@@ -168,6 +195,7 @@
     │   │   │   ├── cub-048a-5.1/
     │   │   │   ├── cub-048a-5.2/
     │   │   │   ├── cub-048a-5.3/
+    │   │   │   ├── cub-048a-5.4/
     │   │   │   ├── cub-a1f.1/
     │   │   │   ├── cub-a1f.2/
     │   │   │   ├── cub-a2s.1/
@@ -284,34 +312,6 @@
     │   │   │   ├── cub-r1b.5/
     │   │   │   ├── cub-r1c.1/
     │   │   │   ├── cub-r1c.2/
-    │   │   │   ├── cub-r1c.3/
-    │   │   │   ├── cub-r1c.4/
-    │   │   │   ├── cub-r1d.1/
-    │   │   │   ├── cub-r1d.2/
-    │   │   │   ├── cub-r1d.3/
-    │   │   │   ├── cub-r2v.1/
-    │   │   │   ├── cub-r2v.2/
-    │   │   │   ├── cub-r2v.3/
-    │   │   │   ├── cub-r2v.4/
-    │   │   │   ├── cub-r4h.1/
-    │   │   │   ├── cub-r4h.2/
-    │   │   │   ├── cub-r4h.3/
-    │   │   │   ├── cub-r4h.4/
-    │   │   │   ├── cub-r5c.1/
-    │   │   │   ├── cub-r5c.2/
-    │   │   │   ├── cub-r5c.3/
-    │   │   │   ├── cub-r5c.4/
-    │   │   │   ├── cub-r5c.5/
-    │   │   │   ├── cub-r6s.1/
-    │   │   │   ├── cub-r6s.2/
-    │   │   │   ├── cub-r6s.3/
-    │   │   │   ├── cub-r6s.4/
-    │   │   │   ├── cub-r6s.5/
-    │   │   │   ├── cub-r6s.6/
-    │   │   │   ├── cub-r9d.1/
-    │   │   │   ├── cub-r9d.2/
-    │   │   │   ├── cub-r9d.3/
-    │   │   │   ├── cub-r9d.4/
 ... (truncated to fit budget)
 
 ## Ranked Symbols
@@ -414,8 +414,8 @@ Symbols ranked by importance (PageRank score):
 - **ASTReferenceVisitor** (def, line 140, score: 0.0023)
 - **BashDefinition** (def, line 339, score: 0.0023)
 - **Definition** (def, line 18, score: 0.0023)
-- **__init__** (def, line 38, score: 0.0023)
 - **__init__** (def, line 147, score: 0.0023)
+- **__init__** (def, line 38, score: 0.0023)
 - **_is_in_function_scope** (def, line 132, score: 0.0023)
 - **detect_unused** (def, line 264, score: 0.0023)
 - **detect_unused_bash** (def, line 566, score: 0.0023)
@@ -463,9 +463,9 @@ Symbols ranked by importance (PageRank score):
 
 ### src/cub/cli/__init__.py
 
-- **cli_main** (def, line 295, score: 0.0023)
+- **cli_main** (def, line 297, score: 0.0023)
 - **main** (def, line 84, score: 0.0023)
-- **version** (def, line 269, score: 0.0023)
+- **version** (def, line 271, score: 0.0023)
 
 ### src/cub/cli/argv.py
 

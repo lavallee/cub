@@ -1731,10 +1731,10 @@ cub doctor
 # All hook events configured: Yes/No
 ```
 <!-- BEGIN CUB MANAGED SECTION v1 -->
-<!-- sha256:cb43dee7c868ba02c061efa07d13ebec49607e2aef56977944ecd8f51ceb4210 -->
+<!-- sha256:6b072b437675300492667ad4800391c4c5dc3160e8c5df8a185c85f3d7378c61 -->
 # Cub Task Workflow (Claude Code)
 
-**Project:** `cub` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
+**Project:** `cub_sat` | **Context:** @.cub/map.md | **Principles:** @.cub/constitution.md
 
 ## Quick Start
 
