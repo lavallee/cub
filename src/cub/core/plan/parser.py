@@ -161,10 +161,11 @@ _ARCHITECT_RE = re.compile(r"Architect:\s*\[([^\]]*)\]\(([^)]*)\)")
 _GENERATED_RE = re.compile(r">\s*Generated:\s*(\d{4}-\d{2}-\d{2})")
 _MINDSET_SCALE_RE = re.compile(r"\*\*Mindset:\*\*\s*(\w+)\s*\|\s*\*\*Scale:\*\*\s*(\w+)")
 
-# Epic format: ## Epic: cub-abc - Title (ID can have hyphens and dots)
-_EPIC_RE = re.compile(r"^##\s+Epic:\s*([a-z][a-z0-9-]+)\s+-\s+(.+?)\s*$", re.MULTILINE)
-# Task format: ### Task: cub-abc.1 - Title (ID can have hyphens and dots)
-_TASK_RE = re.compile(r"^###\s+Task:\s*([a-z][a-z0-9.-]+)\s+-\s+(.+?)\s*$", re.MULTILINE)
+# Epic format: ## Epic: cub-abc - Title OR ## Epic: cub-054A-0 - Title
+# Supports both legacy random IDs (cub-k7m) and hierarchical IDs (cub-054A-0)
+_EPIC_RE = re.compile(r"^##\s+Epic:\s*([a-z][a-zA-Z0-9-]+)\s+-\s+(.+?)\s*$", re.MULTILINE)
+# Task format: ### Task: cub-abc.1 - Title OR ### Task: cub-054A-0.1 - Title
+_TASK_RE = re.compile(r"^###\s+Task:\s*([a-z][a-zA-Z0-9.-]+)\s+-\s+(.+?)\s*$", re.MULTILINE)
 
 _PRIORITY_RE = re.compile(r"^Priority:\s*(\d+)\s*$", re.MULTILINE)
 _LABELS_RE = re.compile(r"^Labels:\s*(.+?)\s*$", re.MULTILINE)

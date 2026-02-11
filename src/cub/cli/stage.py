@@ -16,6 +16,8 @@ from rich.console import Console
 from rich.table import Table
 
 from cub.core.plan.context import PlanContext, PlanContextError
+from cub.core.plan.models import Plan, PlanStage, PlanStatus, StageStatus
+from cub.core.plan.template_sync import ensure_fresh_templates
 from cub.core.specs.lifecycle import SpecLifecycleError, move_spec_to_staged
 from cub.core.stage.stager import (
     ItemizedPlanNotFoundError,
@@ -307,12 +309,80 @@ def _run_preflight_checks(
     return warnings
 
 
+def _self_heal_plan_json(
+    plan_dir: Path,
+    project_root: Path,
+) -> bool:
+    """
+    Reconstruct plan.json from detected artifacts when it's missing.
+
+    Checks for orientation.md, architecture.md, and itemized-plan.md.
+    If all three exist with reasonable content, creates a plan.json
+    marking all stages complete.
+
+    Args:
+        plan_dir: Plan directory that may be missing plan.json.
+        project_root: Project root directory.
+
+    Returns:
+        True if plan.json was created, False otherwise.
+    """
+    if (plan_dir / "plan.json").exists():
+        return False
+
+    # Check which artifacts exist with reasonable size
+    artifact_files = {
+        PlanStage.ORIENT: plan_dir / "orientation.md",
+        PlanStage.ARCHITECT: plan_dir / "architecture.md",
+        PlanStage.ITEMIZE: plan_dir / "itemized-plan.md",
+    }
+
+    stages: dict[PlanStage, StageStatus] = {}
+    for stage, path in artifact_files.items():
+        if path.exists() and path.stat().st_size >= 100:
+            stages[stage] = StageStatus.COMPLETE
+        else:
+            stages[stage] = StageStatus.PENDING
+
+    # Only self-heal if all three artifacts exist
+    if not all(s == StageStatus.COMPLETE for s in stages.values()):
+        return False
+
+    # Detect project identifier
+    import re
+
+    project = project_root.name.lower().replace("_", "-")
+    pyproject = project_root / "pyproject.toml"
+    if pyproject.exists():
+        content = pyproject.read_text()
+        match = re.search(r'^name\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if match:
+            project = match.group(1).lower().replace("_", "-")
+
+    plan = Plan(
+        slug=plan_dir.name,
+        project=project,
+        status=PlanStatus.COMPLETE,
+        stages=stages,
+    )
+    plan.save(project_root)
+
+    console.print(
+        f"[yellow]Warning: Reconstructed plan.json for {plan_dir.name} "
+        f"from detected artifacts.[/yellow]"
+    )
+    return True
+
+
 def _find_plan_dir(
     plan_slug: str | None,
     project_root: Path,
 ) -> Path | None:
     """
     Find a plan directory by slug or find the most recent stageable plan.
+
+    If a plan directory exists with artifacts but no plan.json,
+    attempts self-healing reconstruction.
 
     Args:
         plan_slug: Explicit plan slug, or None to find most recent.
@@ -324,7 +394,12 @@ def _find_plan_dir(
     if plan_slug:
         # Direct slug provided
         plan_dir = project_root / "plans" / plan_slug
-        if plan_dir.exists() and (plan_dir / "plan.json").exists():
+        if not plan_dir.exists():
+            return None
+        if (plan_dir / "plan.json").exists():
+            return plan_dir
+        # Try self-healing
+        if _self_heal_plan_json(plan_dir, project_root):
             return plan_dir
         return None
 
@@ -337,6 +412,14 @@ def _find_plan_dir(
             reverse=True,
         )
         return stageable[0]
+
+    # No stageable plans with plan.json — check for artifact-only dirs
+    plans_root = project_root / "plans"
+    if plans_root.exists():
+        for candidate in plans_root.iterdir():
+            if candidate.is_dir() and not (candidate / "plan.json").exists():
+                if _self_heal_plan_json(candidate, project_root):
+                    return candidate
 
     return None
 
@@ -402,6 +485,10 @@ def stage(
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_root = project_root.resolve()
+
+    # Ensure planning templates are fresh
+    for warning in ensure_fresh_templates(project_root):
+        console.print(f"[yellow]Template: {warning}[/yellow]")
 
     if verbose or debug:
         console.print(f"[dim]Project root: {project_root}[/dim]")

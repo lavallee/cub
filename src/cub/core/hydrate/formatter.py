@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from cub.core.hydrate.models import HydrationResult
-from cub.core.plan.ids import generate_epic_id, generate_task_id
+from cub.core.plan.ids import (
+    generate_epic_id,
+    generate_task_id,
+)
 
 
 def generate_itemized_plan(

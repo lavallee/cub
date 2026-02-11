@@ -880,7 +880,7 @@ class TestDetectPipelineSteps:
         assert "pending" in summary.steps[0].detail
 
     def test_missing_plan_json(self, tmp_path: Path) -> None:
-        """Test detection when plan.json doesn't exist."""
+        """Test detection when plan.json doesn't exist but artifact does."""
         plan_dir = tmp_path / "plans" / "orphan-plan"
         plan_dir.mkdir(parents=True)
 
@@ -890,9 +890,9 @@ class TestDetectPipelineSteps:
         summary = detect_pipeline_steps(plan_dir, tmp_path)
 
         assert summary.plan_exists is False
-        # Without plan.json, all plan_status will be None → incomplete
-        # but orient has an artifact so it should be detected
-        assert summary.steps[0].status == StepDetectionStatus.INCOMPLETE
+        # Without plan.json, artifact with sufficient size → COMPLETE
+        assert summary.steps[0].status == StepDetectionStatus.COMPLETE
+        assert "no plan.json" in summary.steps[0].detail
 
     def test_corrupted_plan_json(self, tmp_path: Path) -> None:
         """Test detection when plan.json is corrupted."""

@@ -1023,6 +1023,13 @@ def _determine_step_status(
             f"{stage.output_file} exists ({artifact_size:,} bytes) but plan.json says pending"
         )
 
+    # Artifact exists with good size but no plan.json at all (plan_status is None)
+    # This happens when skills write artifacts without updating plan.json
+    if artifact_exists and artifact_size >= min_size and plan_status is None:
+        return StepDetectionStatus.COMPLETE, (
+            f"{stage.output_file} ({artifact_size:,} bytes) — no plan.json"
+        )
+
     return StepDetectionStatus.INCOMPLETE, "not started"
 
 

@@ -35,6 +35,7 @@ from cub.core.plan.pipeline import (
     StepDetectionStatus,
     detect_pipeline_steps,
 )
+from cub.core.plan.template_sync import ensure_fresh_templates
 from cub.utils.handoff import try_handoff_or_message
 
 app = typer.Typer(
@@ -44,6 +45,46 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+def _ensure_plan_json_exists(plan_dir: Path, project_root: Path) -> None:
+    """
+    Ensure plan.json exists in a plan directory.
+
+    If plan.json is missing but artifacts exist, auto-creates it
+    by detecting completed stages from artifact files.
+
+    Args:
+        plan_dir: Path to the plan directory.
+        project_root: Project root directory.
+    """
+    if (plan_dir / "plan.json").exists():
+        return
+
+    from cub.core.plan.models import Plan, PlanStage, StageStatus
+
+    # Check which artifacts exist
+    stages: dict[PlanStage, StageStatus] = {}
+    artifact_map = {
+        PlanStage.ORIENT: "orientation.md",
+        PlanStage.ARCHITECT: "architecture.md",
+        PlanStage.ITEMIZE: "itemized-plan.md",
+    }
+    for stage_enum, filename in artifact_map.items():
+        path = plan_dir / filename
+        if path.exists() and path.stat().st_size >= 100:
+            stages[stage_enum] = StageStatus.COMPLETE
+        else:
+            stages[stage_enum] = StageStatus.PENDING
+
+    project = _get_project_identifier(project_root)
+    plan = Plan(
+        slug=plan_dir.name,
+        project=project,
+        stages=stages,
+    )
+    plan.save(project_root)
+    console.print(f"[dim]Auto-created plan.json for {plan_dir.name}[/dim]")
 
 
 def _find_vision_document(project_root: Path) -> Path | None:
@@ -231,6 +272,10 @@ def orient(
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_root = project_root.resolve()
 
+    # Ensure planning templates are fresh
+    for warning in ensure_fresh_templates(project_root):
+        console.print(f"[yellow]Template: {warning}[/yellow]")
+
     if verbose or debug:
         console.print(f"[dim]Project root: {project_root}[/dim]")
         if spec:
@@ -392,6 +437,10 @@ def architect(
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_root = project_root.resolve()
 
+    # Ensure planning templates are fresh
+    for warning in ensure_fresh_templates(project_root):
+        console.print(f"[yellow]Template: {warning}[/yellow]")
+
     if verbose or debug:
         console.print(f"[dim]Project root: {project_root}[/dim]")
         if plan_slug:
@@ -442,23 +491,25 @@ def architect(
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
     else:
-        # Find most recent plan
+        # Find most recent plan (with or without plan.json)
         plans_root = project_root / "plans"
         if not plans_root.exists():
             console.print("[red]No plans found.[/red]")
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
 
-        # Find most recently modified plan directory
-        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir() and (d / "plan.json").exists()]
+        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir()]
         if not plan_dirs:
             console.print("[red]No plans found.[/red]")
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
 
         # Sort by modification time, most recent first
-        plan_dirs.sort(key=lambda p: (p / "plan.json").stat().st_mtime, reverse=True)
+        plan_dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         plan_dir = plan_dirs[0]
+
+    # Ensure plan.json exists (auto-create from artifacts if needed)
+    _ensure_plan_json_exists(plan_dir, project_root)
 
     if verbose or debug:
         console.print(f"[dim]Using plan: {plan_dir.name}[/dim]")
@@ -567,6 +618,10 @@ def itemize(
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_root = project_root.resolve()
 
+    # Ensure planning templates are fresh
+    for warning in ensure_fresh_templates(project_root):
+        console.print(f"[yellow]Template: {warning}[/yellow]")
+
     if verbose or debug:
         console.print(f"[dim]Project root: {project_root}[/dim]")
         if plan_slug:
@@ -601,23 +656,25 @@ def itemize(
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
     else:
-        # Find most recent plan
+        # Find most recent plan (with or without plan.json)
         plans_root = project_root / "plans"
         if not plans_root.exists():
             console.print("[red]No plans found.[/red]")
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
 
-        # Find most recently modified plan directory
-        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir() and (d / "plan.json").exists()]
+        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir()]
         if not plan_dirs:
             console.print("[red]No plans found.[/red]")
             console.print("[dim]Run 'cub plan orient <spec>' first to create a plan.[/dim]")
             raise typer.Exit(1)
 
         # Sort by modification time, most recent first
-        plan_dirs.sort(key=lambda p: (p / "plan.json").stat().st_mtime, reverse=True)
+        plan_dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         plan_dir = plan_dirs[0]
+
+    # Ensure plan.json exists (auto-create from artifacts if needed)
+    _ensure_plan_json_exists(plan_dir, project_root)
 
     if verbose or debug:
         console.print(f"[dim]Using plan: {plan_dir.name}[/dim]")
@@ -757,6 +814,10 @@ def run_pipeline(
     """
     debug = ctx.obj.get("debug", False) if ctx.obj else False
     project_root = project_root.resolve()
+
+    # Ensure planning templates are fresh
+    for warning in ensure_fresh_templates(project_root):
+        console.print(f"[yellow]Template: {warning}[/yellow]")
 
     if verbose or debug:
         console.print(f"[dim]Project root: {project_root}[/dim]")
@@ -925,6 +986,268 @@ def run_pipeline(
                     console.print(f"  {icon} {stage_result.stage.value}")
 
         raise typer.Exit(1)
+
+
+@app.command("ensure")
+def ensure(
+    ctx: typer.Context,
+    slug: str = typer.Argument(
+        ...,
+        help="Plan slug (directory name under plans/)",
+    ),
+    spec: str | None = typer.Option(
+        None,
+        "--spec",
+        "-s",
+        help="Spec ID or path to link to this plan",
+    ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly format",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
+    ),
+) -> None:
+    """
+    Ensure a plan.json exists for a given slug.
+
+    Idempotent: if plan.json already exists, prints status and exits.
+    If missing, creates it via PlanContext.create() with proper defaults.
+
+    This is the key command that skill templates call to ensure
+    plan.json exists before writing artifacts.
+
+    Examples:
+        cub plan ensure my-feature
+        cub plan ensure my-feature --spec specs/researching/my-feature.md
+    """
+    project_root = project_root.resolve()
+    plan_dir = project_root / "plans" / slug
+
+    # If plan.json already exists, load and report status
+    if (plan_dir / "plan.json").exists():
+        try:
+            from cub.core.plan.models import Plan
+
+            plan = Plan.load(plan_dir)
+            if agent:
+                console.print(f"plan_dir={plan_dir}")
+                console.print(f"status={plan.status.value}")
+                for stage_name, stage_status in plan.stages.items():
+                    console.print(f"stage.{stage_name.value}={stage_status.value}")
+            else:
+                console.print(f"[dim]Plan already exists:[/dim] {slug}")
+                console.print(f"[dim]Status:[/dim] {plan.status.value}")
+                for stage_name, stage_status in plan.stages.items():
+                    indicator = _stage_indicator(stage_status)
+                    console.print(f"  {stage_name.value}: {indicator}")
+            return
+        except (ValueError, OSError) as e:
+            console.print(f"[yellow]Warning: existing plan.json is corrupt: {e}[/yellow]")
+            console.print("[dim]Recreating plan.json...[/dim]")
+
+    # Resolve spec path if provided
+    spec_path: Path | None = None
+    if spec:
+        try:
+            spec_path = _resolve_spec_path(spec, project_root)
+        except typer.BadParameter as e:
+            console.print(f"[yellow]Warning: {e}[/yellow]")
+
+    # Get project identifier
+    project = _get_project_identifier(project_root)
+
+    # Create plan context (which creates plan.json)
+    try:
+        plan_ctx = PlanContext.create(
+            project_root=project_root,
+            project=project,
+            spec_path=spec_path,
+            slug=slug,
+        )
+        plan_ctx.save_plan()
+    except PlanExistsError:
+        # Race condition: plan was created between our check and create
+        # Just load and report
+        from cub.core.plan.models import Plan
+
+        plan = Plan.load(plan_dir)
+        if agent:
+            console.print(f"plan_dir={plan_dir}")
+            console.print(f"status={plan.status.value}")
+        else:
+            console.print(f"[dim]Plan already exists:[/dim] {slug}")
+        return
+    except PlanContextError as e:
+        console.print(f"[red]Error creating plan: {e}[/red]")
+        raise typer.Exit(1)
+
+    if agent:
+        console.print(f"plan_dir={plan_ctx.plan_dir}")
+        console.print(f"status={plan_ctx.plan.status.value}")
+    else:
+        console.print(f"[green]Plan created:[/green] {slug}")
+        console.print(f"[dim]Directory:[/dim] {plan_ctx.plan_dir}")
+
+
+@app.command("complete-stage")
+def complete_stage(
+    ctx: typer.Context,
+    slug: str = typer.Argument(
+        ...,
+        help="Plan slug",
+    ),
+    stage_name: str = typer.Argument(
+        ...,
+        help="Stage to mark complete (orient, architect, or itemize)",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
+    ),
+) -> None:
+    """
+    Mark a plan stage as complete.
+
+    Loads plan.json (creating it first if needed), marks the specified
+    stage as complete, and saves. This is the key command that skill
+    templates call after writing artifacts.
+
+    Examples:
+        cub plan complete-stage my-feature orient
+        cub plan complete-stage my-feature architect
+        cub plan complete-stage my-feature itemize
+    """
+    project_root = project_root.resolve()
+
+    # Validate stage name
+    try:
+        stage_enum = PlanStage(stage_name.lower())
+    except ValueError:
+        valid = ", ".join(s.value for s in PlanStage)
+        console.print(f"[red]Invalid stage: {stage_name}. Valid stages: {valid}[/red]")
+        raise typer.Exit(1)
+
+    plan_dir = project_root / "plans" / slug
+
+    # If plan.json doesn't exist, ensure it first
+    if not (plan_dir / "plan.json").exists():
+        # Auto-create plan.json (ensure internally)
+        project = _get_project_identifier(project_root)
+        try:
+            plan_ctx = PlanContext.create(
+                project_root=project_root,
+                project=project,
+                slug=slug,
+            )
+            plan_ctx.save_plan()
+            console.print(f"[dim]Created plan.json for {slug}[/dim]")
+        except (PlanExistsError, PlanContextError) as e:
+            console.print(f"[red]Error creating plan: {e}[/red]")
+            raise typer.Exit(1)
+
+    # Load plan and complete the stage
+    try:
+        from cub.core.plan.models import Plan
+
+        plan = Plan.load(plan_dir)
+        plan.complete_stage(stage_enum)
+        plan.save(project_root)
+    except FileNotFoundError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+    except (ValueError, OSError) as e:
+        console.print(f"[red]Error updating plan: {e}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[green]Stage {stage_name} marked complete[/green] for {slug}")
+
+    if plan.is_complete:
+        console.print("[green]All stages complete![/green] Ready for staging.")
+
+
+@app.command("status")
+def plan_status(
+    ctx: typer.Context,
+    slug: str | None = typer.Argument(
+        None,
+        help="Plan slug (default: most recent plan)",
+    ),
+    agent: bool = typer.Option(
+        False,
+        "--agent",
+        help="Output in agent-friendly markdown format",
+    ),
+    project_root: Path = typer.Option(
+        Path("."),
+        "--project-root",
+        "-p",
+        help="Project root directory",
+    ),
+) -> None:
+    """
+    Show the status of a plan's pipeline stages.
+
+    Uses artifact detection and plan.json to show which stages are
+    complete, in-progress, or incomplete, along with recommended
+    next action.
+
+    Examples:
+        cub plan status                  # Most recent plan
+        cub plan status my-feature       # Specific plan
+        cub plan status --agent          # LLM-friendly output
+    """
+    project_root = project_root.resolve()
+
+    # Find plan directory
+    plan_dir: Path | None = None
+
+    if slug:
+        plan_dir = project_root / "plans" / slug
+        if not plan_dir.exists():
+            console.print(f"[red]Plan not found: {slug}[/red]")
+            raise typer.Exit(1)
+    else:
+        # Find most recent plan directory (with or without plan.json)
+        plans_root = project_root / "plans"
+        if not plans_root.exists():
+            console.print("[red]No plans found.[/red]")
+            raise typer.Exit(1)
+
+        plan_dirs = [d for d in plans_root.iterdir() if d.is_dir()]
+        if not plan_dirs:
+            console.print("[red]No plans found.[/red]")
+            raise typer.Exit(1)
+
+        # Sort by most recent modification
+        plan_dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        plan_dir = plan_dirs[0]
+
+    # Detect pipeline status
+    summary = detect_pipeline_steps(plan_dir, project_root)
+
+    if agent:
+        # Agent-friendly output
+        console.print(f"# Plan Status: {summary.plan_slug}")
+        console.print(f"plan_dir={summary.plan_dir}")
+        console.print(f"plan_json={'yes' if summary.plan_exists else 'no'}")
+        console.print(f"staged={'yes' if summary.is_staged else 'no'}")
+        console.print(f"all_complete={'yes' if summary.all_complete else 'no'}")
+        console.print()
+        for step in summary.steps:
+            console.print(f"- {step.stage.value}: {step.status.value} ({step.detail})")
+        if summary.next_step:
+            console.print(f"\nnext_action={summary.next_step.value}")
+    else:
+        _display_step_summary(summary)
+        _prompt_next_action(summary, project_root)
 
 
 @app.command("list")

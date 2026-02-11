@@ -12,7 +12,17 @@ If provided, this is a spec file path or spec ID to orient from. The spec provid
 
 ## Instructions
 
-### Step 1: Locate Vision Input
+### Step 1: Ensure Plan Exists
+
+First, ensure a plan.json exists for this planning session. Determine the slug from the spec name or arguments.
+
+```bash
+cub plan ensure {slug} --spec {spec_path}
+```
+
+This is idempotent — safe to call even if plan.json already exists.
+
+### Step 1b: Locate Vision Input
 
 Find the vision document in this priority order:
 1. `VISION.md` in project root
@@ -23,40 +33,38 @@ If no vision document found, ask the user to describe their idea.
 
 Read and internalize the vision document.
 
-### Step 2: Assess Project Context
+### Step 2: Read Context First
 
-Determine if this is a new project or extending an existing one by checking for:
-- Existing source code directories (`src/`, `lib/`, `app/`, etc.)
-- `package.json`, `Cargo.toml`, `go.mod`, `requirements.txt`, etc.
-- `CLAUDE.md` or existing architecture docs
+Before asking any questions, gather as much context as possible:
 
-If extending an existing project, briefly explore the codebase to understand the current state.
+1. **Read the spec** (if `$ARGUMENTS` points to one) — extract problem statement, goals, constraints
+2. **Read `CLAUDE.md`** / `AGENT.md` if present — understand the project's tech stack and conventions
+3. **Check project structure** — existing code directories, package files (`pyproject.toml`, `package.json`, etc.)
+4. **Check for existing plans** — look in `plans/` for prior work
 
-### Step 3: Conduct Interview
+Summarize what you've learned before proceeding to questions.
 
-Ask the user the following questions, **waiting for a response after each one**:
+### Step 3: Conduct Interview (Context-Informed)
 
-**Question 1 - Orient Depth:**
-> How thorough should this product review be?
+Based on what you read, present **recommended defaults** and ask only what you can't infer.
+
+**Question 1 - Orient Depth + Core Problem (combined):**
+> Based on the spec, here's what I understand:
 >
-> - **Light**: Quick coherence check - is there enough here to build something? (~5 min)
-> - **Standard**: Full product review - requirements, gaps, assumptions (~15 min)
-> - **Deep**: Include market analysis, feasibility assessment, strategic fit (~30 min)
+> **Problem:** {inferred from spec or "I couldn't determine this — please describe"}
+> **Recommended depth:** {Standard if spec has clear requirements, Light if it's a small enhancement, Deep if the spec mentions unknowns or market concerns}
+>
+> Does this sound right? Any adjustments to the problem statement or depth?
 
-**Question 2 - Core Problem:**
-> In one sentence, what problem does this solve? Who has this problem?
+**Question 2 - Constraints & MVP:**
+> From the context, I see these constraints: {inferred constraints — e.g., "Python 3.10+, existing CLI architecture" or "none detected"}
+>
+> For the MVP, I'd suggest: {inferred from spec goals or "please describe the smallest useful version"}
+>
+> Confirm or adjust?
 
-**Question 3 - Success Criteria:**
-> How will you know this project succeeded? What's the measurable outcome?
-
-**Question 4 - Constraints:**
-> Are there any hard constraints I should know about? (timeline, budget, tech stack, regulations, etc.)
-
-**Question 5 - MVP Definition:**
-> What's the MVP - the smallest thing that would be useful?
-
-**Question 6 - Concerns:**
-> What are you most worried about or uncertain about?
+**Question 3 - Concerns:**
+> What are you most worried about or uncertain about? (Or say "none" to proceed)
 
 ### Step 4: Gap Analysis
 
@@ -174,9 +182,17 @@ Use this template:
 **Next Step:** Run `cub architect` to proceed to technical design.
 ```
 
-### Step 9: Handoff
+### Step 9: Mark Stage Complete
 
-After writing the output file, tell the user:
+After writing the output file, mark the orient stage as complete in plan.json:
+
+```bash
+cub plan complete-stage {slug} orient
+```
+
+### Step 10: Handoff
+
+After marking the stage complete, tell the user:
 
 > Orient complete!
 >

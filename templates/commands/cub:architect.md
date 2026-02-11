@@ -10,60 +10,50 @@ If provided, this is a plan slug to continue architecturing. If not provided, th
 
 ## Instructions
 
-### Step 1: Load Orient
+### Step 1: Ensure Plan Exists
+
+First, ensure a plan.json exists for this planning session:
+
+```bash
+cub plan ensure {slug}
+```
+
+This is idempotent — safe to call even if plan.json already exists.
+
+### Step 1b: Load Orient
 
 Read the orient report from `plans/{slug}/orientation.md` (or the most recent orient output).
 
 If it doesn't exist or isn't approved, tell the user:
 > No approved orient found. Please run `/cub:orient` first.
 
-### Step 2: Analyze Context
+### Step 2: Analyze Context and Infer Defaults
 
-**For new projects:**
-- Note there's no existing codebase to consider
+**Read the codebase first** to auto-detect as much as possible:
 
-**For existing projects:**
-Explore the codebase to understand:
-- Current architecture and patterns
-- Tech stack in use
-- Code organization
-- Existing conventions (from CLAUDE.md if present)
+1. **Tech stack** — check `pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, etc.
+2. **Existing architecture** — read `CLAUDE.md` for patterns, conventions, test frameworks
+3. **Project maturity** — presence of CI config, tests, linting → infer mindset
+4. **Scale indicators** — deployment configs, Docker, cloud manifests
 
 Summarize your findings before proceeding.
 
-### Step 3: Conduct Interview
+### Step 3: Conduct Interview (Context-Informed)
 
-Ask the user the following questions, **waiting for a response after each one**:
+Present inferred defaults and ask only what you can't determine from the codebase.
 
-**Question 1 - Technical Mindset:**
-> What's the context for this project? This shapes how I'll approach tradeoffs.
+**Question 1 - Mindset & Scale (combined):**
+> Based on the codebase, I'm seeing:
 >
-> - **Prototype**: Speed over quality. Shortcuts OK. Might throw it away.
-> - **MVP**: Balance speed and quality. Expect to iterate and refactor.
-> - **Production**: Quality-first. Maintainable, tested, scalable.
-> - **Enterprise**: Maximum rigor. Security, compliance, audit trails.
-
-**Question 2 - Scale Expectations:**
-> What usage do you anticipate?
+> **Tech stack:** {detected — e.g., "Python 3.10+, Typer CLI, Pydantic v2, pytest"}
+> **Mindset:** {inferred — e.g., "Production (tests present, mypy strict, CI config)" or "MVP (no tests yet)"}
+> **Scale:** {inferred — e.g., "Team (CLI tool)" or "Product (has deployment configs)"}
 >
-> - **Personal**: Just you (1 user)
-> - **Team**: Your team or company (10-100 users)
-> - **Product**: Public product (1,000+ users)
-> - **Internet-scale**: Millions of users, high availability requirements
+> Confirm or adjust?
 
-**Question 3 - Tech Stack:**
-> Any technology preferences or constraints?
->
-> - **Languages**: (preferred / must avoid)
-> - **Frameworks**: (preferred / must avoid)
-> - **Database**: (preferred / must avoid)
-> - **Infrastructure**: (cloud provider, deployment target)
->
-> Say "no preference" if you want me to recommend based on the requirements.
-
-**Question 4 - Integrations:**
-> What external systems does this need to connect to?
-> (APIs, databases, auth providers, third-party services, etc.)
+**Question 2 - Integrations & Constraints:**
+> What external systems does this need to connect to that aren't already in the codebase?
+> (Or say "none" if the orientation.md covers everything)
 
 ### Step 4: Apply Mindset
 
@@ -233,9 +223,17 @@ Use this template:
 **Next Step:** Run `cub itemize` to generate implementation tasks.
 ```
 
-### Step 9: Handoff
+### Step 9: Mark Stage Complete
 
-After writing the output file, tell the user:
+After writing the output file, mark the architect stage as complete in plan.json:
+
+```bash
+cub plan complete-stage {slug} architect
+```
+
+### Step 10: Handoff
+
+After marking the stage complete, tell the user:
 
 > Architecture complete!
 >

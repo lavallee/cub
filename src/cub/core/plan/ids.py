@@ -1,13 +1,22 @@
 """
 ID generation utilities for beads-compatible plan IDs.
 
-Generates hierarchical IDs for epics, tasks, and subtasks that are compatible
-with the beads issue tracking system.
+.. deprecated::
+    This module uses legacy random-suffix IDs (e.g., cub-k7m).
+    Prefer ``cub.core.ids`` for hierarchical IDs (e.g., cub-054A-0).
+    This module is retained for backward compatibility with punchlist
+    hydration and plans that don't have spec context.
 
-ID Formats:
+ID Formats (legacy):
     - Epic: {project}-{random 3 chars} (e.g., cub-k7m)
     - Task: {epic_id}.{number} (e.g., cub-k7m.1)
     - Subtask: {task_id}.{number} (e.g., cub-k7m.1.1)
+
+See ``cub.core.ids`` for the hierarchical ID system:
+    - Spec:   cub-054
+    - Plan:   cub-054A
+    - Epic:   cub-054A-0
+    - Task:   cub-054A-0.1
 
 Example:
     >>> epic_id = generate_epic_id("cub")

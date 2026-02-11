@@ -5,7 +5,8 @@ The itemize stage breaks the architecture into discrete tasks with beads IDs.
 It reads orientation.md and architecture.md, and produces itemized-plan.md with:
 - Epics with priority and labels
 - Tasks with priority, labels, blocks, context, implementation steps, and acceptance criteria
-- Beads-compatible IDs using random suffix format (e.g., cub-k7m.1)
+- Hierarchical IDs when spec context is available (e.g., cub-054A-0.1)
+- Falls back to legacy random IDs when spec context is unavailable (e.g., cub-k7m.1)
 
 Example:
     >>> from cub.core.plan.context import PlanContext
@@ -19,6 +20,7 @@ Example:
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -29,11 +31,63 @@ from cub.core.plan.claude import (
     ClaudeNotFoundError,
     invoke_claude_command,
 )
-from cub.core.plan.ids import generate_epic_id, generate_task_id
+from cub.core.plan.ids import generate_epic_id as _legacy_generate_epic_id
 from cub.core.plan.models import PlanStage, StageStatus
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from cub.core.plan.context import PlanContext
+
+# Regex to extract spec number from spec filenames like "cub-048-feature-name.md"
+_SPEC_NUMBER_RE = re.compile(r"^([a-z][a-z0-9-]*)-(\d{3,})")
+
+
+def _try_extract_spec_info(
+    project: str, spec_file: str | None
+) -> tuple[int, str] | None:
+    """
+    Try to extract spec number from spec filename for hierarchical ID generation.
+
+    Args:
+        project: Project name (e.g., "cub").
+        spec_file: Spec filename (e.g., "cub-048-ledger-consolidation.md").
+
+    Returns:
+        Tuple of (spec_number, project) if extractable, None otherwise.
+    """
+    if not spec_file:
+        return None
+
+    stem = Path(spec_file).stem
+    match = _SPEC_NUMBER_RE.match(stem)
+    if match:
+        file_project = match.group(1)
+        spec_number = int(match.group(2))
+        # Use the project from the filename if it matches
+        if file_project == project:
+            return (spec_number, project)
+        # Still use it if the filename has a valid project prefix
+        return (spec_number, file_project)
+
+    return None
+
+
+def _generate_hierarchical_epic_id(
+    project: str, spec_number: int, plan_letter: str, epic_char: str
+) -> str:
+    """Generate a hierarchical epic ID string."""
+    from cub.core.ids.models import EpicId, PlanId, SpecId
+
+    spec = SpecId(project=project, number=spec_number)
+    plan = PlanId(spec=spec, letter=plan_letter)
+    epic = EpicId(plan=plan, char=epic_char)
+    return str(epic)
+
+
+def _generate_hierarchical_task_id(epic_id_str: str, task_num: int) -> str:
+    """Generate a hierarchical task ID string from an epic ID string."""
+    return f"{epic_id_str}.{task_num}"
 
 
 @dataclass
@@ -350,6 +404,25 @@ class ItemizeStage:
 
         return extracted
 
+    def _make_epic_id(self, epic_char: str, existing_ids: set[str]) -> str:
+        """Generate an epic ID, using hierarchical format when spec context exists."""
+        spec_info = _try_extract_spec_info(
+            self.ctx.project, self.ctx.plan.spec_file
+        )
+        if spec_info is not None:
+            spec_number, project = spec_info
+            epic_id = _generate_hierarchical_epic_id(
+                project, spec_number, "A", epic_char
+            )
+            logger.debug("Generated hierarchical epic ID: %s", epic_id)
+            return epic_id
+        else:
+            return _legacy_generate_epic_id(self.ctx.project, existing_ids)
+
+    def _make_task_id(self, epic_id: str, task_num: int) -> str:
+        """Generate a task ID from an epic ID and task number."""
+        return _generate_hierarchical_task_id(epic_id, task_num)
+
     def _generate_epics_and_tasks(
         self,
         orientation_extracted: dict[str, object],
@@ -357,6 +430,9 @@ class ItemizeStage:
     ) -> tuple[list[Epic], list[Task]]:
         """
         Generate epics and tasks from extracted information.
+
+        Uses hierarchical IDs (e.g., cub-054A-0) when spec context is available,
+        falling back to legacy random IDs (e.g., cub-k7m) otherwise.
 
         Args:
             orientation_extracted: Information extracted from orientation.md.
@@ -369,10 +445,12 @@ class ItemizeStage:
         tasks: list[Task] = []
         existing_ids: set[str] = set()
 
-        project = self.ctx.project
         phases = architecture_extracted.get("phases", [])
         if not isinstance(phases, list):
             phases = []
+
+        # Track epic index for hierarchical char generation
+        epic_idx = 0
 
         # If no phases found, create a single epic from requirements
         if not phases:
@@ -381,7 +459,7 @@ class ItemizeStage:
                 requirements = []
 
             # Create a single Foundation epic
-            epic_id = generate_epic_id(project, existing_ids)
+            epic_id = self._make_epic_id(str(epic_idx), existing_ids)
             existing_ids.add(epic_id)
 
             # Generate plan label and description with plan reference
@@ -406,7 +484,7 @@ class ItemizeStage:
             # Create tasks from requirements
             task_num = 1
             for req in requirements:
-                task_id = generate_task_id(epic_id, task_num)
+                task_id = self._make_task_id(epic_id, task_num)
                 # Add complexity and model labels (default to medium/sonnet)
                 task_labels = [plan_label, "foundation", "complexity:medium", "model:sonnet"]
                 task = Task(
@@ -437,8 +515,8 @@ class ItemizeStage:
             if not isinstance(phase_tasks, list):
                 phase_tasks = []
 
-            # Generate epic ID
-            epic_id = generate_epic_id(project, existing_ids)
+            # Generate epic ID (hierarchical char from phase index)
+            epic_id = self._make_epic_id(str(phase_idx), existing_ids)
             existing_ids.add(epic_id)
 
             # Determine priority based on phase number
@@ -472,7 +550,7 @@ class ItemizeStage:
             # Generate tasks from phase tasks
             task_num = 1
             for task_name in phase_tasks:
-                task_id = generate_task_id(epic_id, task_num)
+                task_id = self._make_task_id(epic_id, task_num)
                 task_title = str(task_name)[:100] if task_name else f"Task {task_num}"
 
                 # Generate implementation steps

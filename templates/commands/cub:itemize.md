@@ -16,7 +16,17 @@ If provided, this is a plan slug to itemize. If not provided, the most recent pl
 
 ## Instructions
 
-### Step 1: Load Session
+### Step 1: Ensure Plan Exists
+
+First, ensure a plan.json exists for this planning session:
+
+```bash
+cub plan ensure {slug}
+```
+
+This is idempotent — safe to call even if plan.json already exists.
+
+### Step 1b: Load Session
 
 Read both previous outputs from the plan directory:
 - `plans/{slug}/orientation.md`
@@ -24,24 +34,22 @@ Read both previous outputs from the plan directory:
 
 If either file doesn't exist or isn't approved, tell the user which step needs to be completed first.
 
-### Step 2: Conduct Interview
+### Step 2: Conduct Interview (Streamlined)
 
-Ask the user the following questions, **waiting for a response after each one**:
+**Default to Micro granularity** (optimal for AI agents) unless the user says otherwise.
 
-**Question 1 - Task Granularity:**
-> How should work be chunked?
+Auto-infer priorities from orientation.md P0/P1/P2 sections. Only ask about exclusions if the architecture mentions deferred work.
+
+**Question 1 - Confirm Approach:**
+> I'll break this into **Micro** tasks (15-30 min each, optimal for AI agents).
 >
-> - **Micro**: 15-30 minute tasks (optimal for AI agents - fits in one context window)
-> - **Standard**: 1-2 hour tasks (good for humans or mixed workflows)
-> - **Macro**: Half-day to full-day tasks (high-level milestones)
+> From the orientation, priorities are:
+> - P0 (critical path): {inferred from orientation.md P0 section}
+> - P1 (important): {inferred from orientation.md P1 section}
 >
-> Recommended: **Micro** for AI agent execution
-
-**Question 2 - Priorities:**
-> Any tasks that should be prioritized or done first?
-
-**Question 3 - Exclusions:**
-> Are there any tasks we should explicitly exclude or defer?
+> {If architecture mentions deferred work: "The architecture mentions deferring {items}. Should I exclude these?"}
+>
+> Confirm or adjust?
 
 ### Step 3: Decompose Work
 
@@ -66,6 +74,19 @@ Break each phase into tasks that can be completed in one context window.
 - Services before UI that calls them
 - Tests can parallel implementation or follow
 - Documentation comes last
+
+**CRITICAL — Integration Tasks:**
+Every component that is built MUST have a corresponding integration task. Building a library
+that isn't wired into existing consumers is incomplete work. For each new component:
+
+1. **Wiring task**: Create a task to wire the new component into existing consumers
+   (e.g., "Wire new ID system into plan parser and itemize stage")
+2. **End-to-end verification task**: Create a task that verifies the component works
+   through the full user-facing flow, not just in isolation
+3. **Dead code cleanup task**: If the new component replaces an existing one, create
+   a task to deprecate/remove the old code and update all imports
+
+A component without integration tasks is a library that nobody calls — functionally dead code.
 
 ### Step 4: Organize for Value Delivery
 
@@ -187,9 +208,24 @@ Blocks: {comma-separated task IDs that this blocks, if any}
 **Total**: {N} epics, {M} tasks
 ```
 
-**ID Format:**
-- Epics: `cub-{random 3 chars}` (e.g., `cub-k7m`)
+**ID Format — Hierarchical IDs (preferred):**
+
+When a spec exists with a spec_id (e.g., `cub-048`), derive IDs from it:
+- Plan ID: `{spec_id}A` (e.g., `cub-048A`) — letter A for first plan, B for second
+- Epic IDs: `{plan_id}-{char}` where char is `0`, `1`, `2`, ... (e.g., `cub-048A-0`, `cub-048A-1`)
+- Task IDs: `{epic_id}.{n}` (e.g., `cub-048A-0.1`, `cub-048A-0.2`)
+
+To find the spec_id: check the spec file's frontmatter for `spec_id:` or extract from the filename
+(e.g., `cub-048-feature-name.md` → spec_id is `cub-048`).
+
+**ID Format — Legacy (fallback when no spec_id is available):**
+- Epics: `{project}-{3 random lowercase-alphanumeric chars}` (e.g., `cub-k7m`)
 - Tasks: `{epic-id}.{n}` (e.g., `cub-k7m.1`, `cub-k7m.2`)
+
+**Rules:**
+- Epic IDs must start with a lowercase letter (parser requires `[a-z]` as first char)
+- Use the project name from pyproject.toml / package.json as the prefix
+- Always prefer hierarchical IDs when spec context is available
 
 ### Step 8: Present Plan
 
@@ -210,9 +246,17 @@ Once approved, write the markdown file to `plans/{slug}/itemized-plan.md`.
 
 **IMPORTANT: Only write markdown. Do not write JSONL.**
 
-### Step 10: Handoff
+### Step 10: Mark Stage Complete
 
-After writing the output file, tell the user:
+After writing the output file, mark the itemize stage as complete in plan.json:
+
+```bash
+cub plan complete-stage {slug} itemize
+```
+
+### Step 11: Handoff
+
+After marking the stage complete, tell the user:
 
 > Itemization complete!
 >
@@ -243,9 +287,16 @@ Blocks: {blocked task IDs}
 **Acceptance Criteria**:
 - [ ] {Specific, verifiable criterion}
 - [ ] {Specific, verifiable criterion}
+- [ ] {Integration criterion — verify the component works through the user-facing flow, not just in isolation}
 
 **Files**: {path/to/file.ext}
 ```
+
+> **Acceptance Criteria Must Include Integration:**
+> Every task's acceptance criteria MUST include at least one criterion that verifies
+> the change works through the full flow (not just the component in isolation).
+> For example: "New ID generator is called by `cub stage` and produces valid task IDs"
+> rather than just "ID generator returns correct format".
 
 ### Model Selection Guidelines
 
