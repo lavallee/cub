@@ -4,6 +4,7 @@ Tests for the docs CLI command.
 Tests the `cub docs` command for opening documentation in browser.
 """
 
+import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -11,6 +12,11 @@ import pytest
 from typer.testing import CliRunner
 
 from cub.cli import app
+
+
+def _strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 runner = CliRunner()
 
@@ -78,7 +84,7 @@ class TestDocsCommand:
         result = runner.invoke(app, ["docs", "--help"])
 
         assert result.exit_code == 0
-        assert "--local" in result.output
+        assert "--local" in _strip_ansi(result.output)
 
     def test_docs_local_no_docs_found(self) -> None:
         """Test --local flag when no local docs exist."""
@@ -107,7 +113,7 @@ class TestDocsCommand:
 
         assert result.exit_code == 0
         assert "cub docs" in result.output
-        assert "--local" in result.output
+        assert "--local" in _strip_ansi(result.output)
 
     def test_docs_command_registered(self) -> None:
         """Test that docs command is registered in the CLI app."""
