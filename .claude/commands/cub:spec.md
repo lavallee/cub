@@ -185,8 +185,9 @@ readiness:
 >
 > **Next steps:**
 > - Review and refine the spec manually if needed
-> - When ready, run `cub plan run specs/researching/{filename}` to plan implementation
-> - Or continue refining with `/cub:orient` for deeper requirements analysis"
+> - When ready, run `/cub:orient` to start the planning pipeline
+>   (It will automatically create plan.json via `cub plan ensure`)
+> - Or run `cub plan run specs/researching/{filename}` for automated planning"
 
 ---
 
