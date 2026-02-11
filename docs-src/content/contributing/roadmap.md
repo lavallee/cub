@@ -25,7 +25,7 @@ Recent releases that are now available:
 | v0.17 | PRD Import | [PRD] | Document conversion and task import |
 | v0.16 | Interview Mode | [IM] | Deep-dive task specification with `cub interview` |
 | v0.15 | Plan Review | [PR] | Review generated plans before execution |
-| v0.14 | Vision-to-Tasks Pipeline | [VTP] | The `cub prep` workflow |
+| v0.14 | Vision-to-Tasks Pipeline | [VTP] | The `cub plan` workflow |
 
 ---
 

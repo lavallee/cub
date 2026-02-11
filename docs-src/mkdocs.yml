@@ -177,12 +177,12 @@ nav:
       - Task Selection: guide/run-loop/selection.md
       - Completion: guide/run-loop/completion.md
 
-    - Prep Pipeline:
-      - guide/prep-pipeline/index.md
-      - Triage: guide/prep-pipeline/triage.md
-      - Architect: guide/prep-pipeline/architect.md
-      - Plan: guide/prep-pipeline/plan.md
-      - Bootstrap: guide/prep-pipeline/bootstrap.md
+    - Plan Flow:
+      - guide/plan-flow/index.md
+      - Orient: guide/plan-flow/orient.md
+      - Architect: guide/plan-flow/architect.md
+      - Itemize: guide/plan-flow/itemize.md
+      - Stage: guide/plan-flow/stage.md
 
     - AI Harnesses:
       - guide/harnesses/index.md
@@ -220,7 +220,7 @@ nav:
     - cli/index.md
     - Core Commands:
       - cub run: cli/run.md
-      - cub prep: cli/prep.md
+      - cub plan: cli/plan.md
       - cub init: cli/init.md
       - cub new: cli/new.md
     - Status Commands:

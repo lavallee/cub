@@ -370,4 +370,4 @@ Summary:
 
 - [Roadmap](../contributing/roadmap.md) - Planned features and backlog
 - [Task Management](../guide/tasks/index.md) - Working with tasks
-- [Prep Pipeline](../guide/prep-pipeline/index.md) - Full planning workflow
+- [Plan Flow](../guide/plan-flow/index.md) - Full planning workflow

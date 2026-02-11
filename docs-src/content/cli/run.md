@@ -280,7 +280,7 @@ Monitor with `cub monitor` or read directly.
 - [`cub status`](status.md) - View task progress
 - [`cub monitor`](monitor.md) - Live dashboard
 - [`cub artifacts`](artifacts.md) - View run outputs
-- [`cub prep`](prep.md) - Create tasks from vision
+- [`cub plan`](plan.md) - Create tasks from vision
 
 ---
 

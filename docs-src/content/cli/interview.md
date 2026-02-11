@@ -13,7 +13,7 @@ cub interview --all [OPTIONS]
 
 The `cub interview` command provides a structured interview process to refine task specifications before implementation begins. It systematically probes requirements across multiple categories including functional requirements, edge cases, error handling, user experience, and more.
 
-Interview mode operates at the **task level** (for project-level requirements refinement, see `cub triage`).
+Interview mode operates at the **task level** (for project-level requirements refinement, see `cub plan orient`).
 
 The interview generates comprehensive specification documents that cover:
 
@@ -223,6 +223,6 @@ Add custom questions in `.cub.json`:
 
 ## Related Commands
 
-- [`cub triage`](../guide/prep-pipeline/triage.md) - Project-level requirements refinement
+- [`cub plan orient`](../guide/plan-flow/orient.md) - Project-level requirements refinement
 - [`cub explain-task`](explain-task.md) - View task details
 - [`cub run`](../guide/run-loop/index.md) - Execute tasks

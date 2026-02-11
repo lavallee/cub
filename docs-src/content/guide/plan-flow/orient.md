@@ -1,10 +1,10 @@
-# Triage Stage
+# Orient Stage
 
-Triage is the first stage of the prep pipeline. It ensures product clarity before any technical work begins by refining requirements, identifying gaps, and producing a clear specification that the Architect can work from.
+Orient is the first stage of the plan flow. It ensures product clarity before any technical work begins by refining requirements, identifying gaps, and producing a clear specification that the Architect can work from.
 
-## What Triage Does
+## What Orient Does
 
-The triage stage:
+The orient stage:
 
 - Reviews your vision document (or gathers requirements through interview)
 - Identifies gaps, ambiguities, and unstated assumptions
@@ -13,50 +13,44 @@ The triage stage:
 
 ```mermaid
 flowchart LR
-    A[Vision/Idea] --> B[Triage Agent]
+    A[Vision/Idea] --> B[Orient Agent]
     B --> C{Gaps Found?}
     C -->|Yes| D[Clarifying Questions]
     D --> B
-    C -->|No| E[triage.md]
+    C -->|No| E[orientation.md]
 
     style A fill:#FFC107
     style E fill:#4CAF50,color:white
 ```
 
-## Running Triage
+## Running Orient
 
 ### Interactive Mode (Recommended)
 
-Start a new triage session:
+Start a new orient session:
 
 ```bash
-cub triage
+cub plan orient
 ```
 
-This launches Claude Code with the triage skill, which conducts an interactive interview to refine your requirements.
-
-### Resume Existing Session
-
-```bash
-cub triage --session myproject-20260117-143022
-```
+This launches Claude Code with the orient skill, which conducts an interactive interview to refine your requirements.
 
 ### Non-Interactive Mode
 
 For automated workflows:
 
 ```bash
-cub triage --non-interactive --vision VISION.md
+cub plan orient --non-interactive --vision VISION.md
 ```
 
 !!! warning "Best-Effort"
     Non-interactive mode makes assumptions when details are missing. The output may include a "Needs Human Input" section with blocking questions.
 
-## The Triage Interview
+## The Orient Interview
 
-The triage agent asks these key questions:
+The orient agent asks these key questions:
 
-### Question 1: Triage Depth
+### Question 1: Orient Depth
 
 > How thorough should this product review be?
 >
@@ -86,21 +80,21 @@ The triage agent asks these key questions:
 
 ## Gap Analysis
 
-Based on the triage depth, the agent analyzes your vision for:
+Based on the orient depth, the agent analyzes your vision for:
 
-### Light Triage
+### Light Orient
 - Is there a clear problem statement?
 - Is there enough detail to start building?
 - Are there obvious contradictions?
 
-### Standard Triage (includes Light)
+### Standard Orient (includes Light)
 - **Completeness**: Missing user stories, edge cases, error handling
 - **Clarity**: Ambiguous terms that could mean multiple things
 - **Assumptions**: Unstated assumptions
 - **Dependencies**: External factors the project relies on
 - **Risks**: What could go wrong
 
-### Deep Triage (includes Standard)
+### Deep Orient (includes Standard)
 - **Desirability**: Is there evidence users want this?
 - **Feasibility**: Can this be built with reasonable effort?
 - **Viability**: Should this be built? Opportunity cost?
@@ -108,21 +102,21 @@ Based on the triage depth, the agent analyzes your vision for:
 
 ## Positioning Unknowns
 
-For things that can't be answered upfront, triage frames them as experiments:
+For things that can't be answered upfront, orient frames them as experiments:
 
 > "We don't know if users will prefer X or Y. We can build this as an A/B test and let data decide."
 
 This keeps the project moving while acknowledging uncertainty.
 
-## Output: triage.md
+## Output: orientation.md
 
-Triage produces a structured requirements document:
+Orient produces a structured requirements document:
 
 ```markdown
-# Triage Report: {Project Name}
+# Orientation Report: {Project Name}
 
 **Date:** 2026-01-17
-**Triage Depth:** standard
+**Orient Depth:** standard
 **Status:** Approved
 
 ---
@@ -179,31 +173,30 @@ The smallest useful thing we can build.
 
 ---
 
-**Next Step:** Run `cub architect` to proceed to technical design.
+**Next Step:** Run `cub plan architect` to proceed to technical design.
 ```
 
 ## Vision Document Discovery
 
-Triage looks for vision documents in this order:
+Orient looks for vision documents in this order:
 
-1. **Explicit path**: `cub triage --vision path/to/doc.md`
+1. **Explicit path**: `cub plan orient --vision path/to/doc.md`
 2. **VISION.md**: In project root
 3. **docs/PRD.md**: Product requirements document
 4. **README.md**: Fallback
 
-If no document is found, the triage agent will ask you to describe your idea.
+If no document is found, the orient agent will ask you to describe your idea.
 
-## Example Triage Session
+## Example Orient Session
 
 ```
-$ cub triage
+$ cub plan orient
 
-Starting new triage session: myproject-20260117-143022
-Starting triage interview...
+Starting orient...
 
 [Claude Code launches with /cub:orient skill]
 
-Triage Agent: I found VISION.md in your project root.
+Orient Agent: I found VISION.md in your project root.
 Let me ask a few questions to refine the requirements...
 
 How thorough should this product review be?
@@ -223,9 +216,9 @@ How will you know this project succeeded?
 
 [... more questions ...]
 
-Here's the triage report. Please review:
+Here's the orientation report. Please review:
 
-[Shows triage.md content]
+[Shows orientation.md content]
 
 Reply with:
 - approved to save and proceed
@@ -233,19 +226,19 @@ Reply with:
 
 > approved
 
-Triage complete!
-Output saved to: .cub/sessions/myproject-20260117-143022/triage.md
+Orient complete!
+Output saved to: plans/myproject/orientation.md
 
-Next step: cub architect
+Next step: cub plan architect
 ```
 
 ## Handling "Needs Human Input"
 
-If triage cannot proceed without critical information, it marks the output as needing human input:
+If orient cannot proceed without critical information, it marks the output as needing human input:
 
 ```
-Triage needs human input before continuing.
-Output: .cub/sessions/myproject-20260117-143022/triage.md
+Orient needs human input before continuing.
+Output: plans/myproject/orientation.md
 
 ## Needs Human Input
 
@@ -254,34 +247,32 @@ Output: .cub/sessions/myproject-20260117-143022/triage.md
 3. What's the target deployment environment?
 ```
 
-Answer these questions in the triage.md file or re-run triage to provide the answers interactively.
+Answer these questions in the orientation.md file or re-run orient to provide the answers interactively.
 
 ## CLI Reference
 
 ```
-Usage: cub triage [OPTIONS]
+Usage: cub plan orient [OPTIONS]
 
 Stage 1: Requirements Refinement
 
 Options:
-  --session ID         Resume an existing session
   --vision PATH        Vision/input markdown file
   --non-interactive    Run without interactive Claude session
   -h, --help           Show this help message
 
 Examples:
-  cub triage                      # Start new session
-  cub triage --session ID         # Resume session
-  cub triage --vision VISION.md   # Use specific vision file
+  cub plan orient                      # Start new orient
+  cub plan orient --vision VISION.md   # Use specific vision file
 
 Output:
-  .cub/sessions/{session-id}/triage.md
+  plans/{slug}/orientation.md
 ```
 
 ## Principles
 
 !!! tip "Push Back Constructively"
-    Triage's job is to make the vision clearer, not rubber-stamp it.
+    Orient's job is to make the vision clearer, not rubber-stamp it.
 
 !!! tip "Ask Why"
     Surface assumptions by asking why things need to be a certain way.
@@ -297,10 +288,10 @@ Output:
 
 ## Next Step
 
-Once triage is complete, proceed to technical design:
+Once orient is complete, proceed to technical design:
 
 ```bash
-cub architect
+cub plan architect
 ```
 
 [:octicons-arrow-right-24: Architect Stage](architect.md)

@@ -17,7 +17,7 @@ Cub uses a hybrid Python/Bash architecture to enable gradual migration while mai
 |   Native Commands       |   Delegated Commands                          |
 |   (Python)              |   (Bash via bash_delegate.py)                 |
 +-------------------------+-----------------------------------------------+
-| run, status, init       | prep, triage, architect, plan                 |
+| run, status, init       | plan orient, plan architect, plan itemize      |
 | monitor                 | branch, branches, pr, checkpoints             |
 |                         | interview, doctor, upgrade                     |
 +-------------------------+-----------------------------------------------+
@@ -197,9 +197,9 @@ Commands not yet ported delegate to bash:
 
 ```python
 # src/cub/cli/delegated.py
-def prep(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
-    """Run full prep pipeline (triage -> architect -> plan -> bootstrap)."""
-    _delegate("prep", args or [], ctx)
+def plan(ctx: typer.Context, args: list[str] | None = typer.Argument(None)) -> None:
+    """Run full plan flow (orient -> architect -> itemize -> stage)."""
+    _delegate("plan", args or [], ctx)
 ```
 
 The delegation mechanism:
@@ -267,11 +267,11 @@ detect_backend()  # .beads/ -> beads, prd.json -> json, default -> json
 
 | Command | Category | Notes |
 |---------|----------|-------|
-| `prep` | Pipeline | Full prep pipeline |
-| `triage` | Pipeline | Requirements refinement |
-| `architect` | Pipeline | Technical design |
-| `plan` | Pipeline | Task decomposition |
-| `bootstrap` | Pipeline | Initialize tasks |
+| `plan` | Pipeline | Full plan flow |
+| `plan orient` | Pipeline | Requirements refinement |
+| `plan architect` | Pipeline | Technical design |
+| `plan itemize` | Pipeline | Task decomposition |
+| `stage` | Pipeline | Import tasks from plan |
 | `interview` | Tasks | Task specification deep-dive |
 | `branch` | Git | Branch-epic binding |
 | `branches` | Git | Manage branch bindings |

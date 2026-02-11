@@ -1,12 +1,12 @@
-# Plan Stage
+# Itemize Stage
 
-Plan is the third stage of the prep pipeline. It breaks down the architecture into executable tasks that an AI coding agent (or human) can pick up and complete in a single session.
+Itemize is the third stage of the plan flow. It breaks down the architecture into executable tasks that an AI coding agent (or human) can pick up and complete in a single session.
 
-## What Plan Does
+## What Itemize Does
 
-The plan stage:
+The itemize stage:
 
-- Reviews triage and architect outputs
+- Reviews orient and architect outputs
 - Conducts an interview about task preferences
 - Decomposes architecture into right-sized tasks
 - Organizes work for maximum value delivery
@@ -14,43 +14,35 @@ The plan stage:
 
 ```mermaid
 flowchart LR
-    A[triage.md] --> C[Planner Agent]
-    B[architect.md] --> C
-    C --> D[plan.md]
-    D --> E[plan.jsonl]
+    A[orientation.md] --> C[Planner Agent]
+    B[architecture.md] --> C
+    C --> D[itemized-plan.md]
 
     style A fill:#FF9800
     style B fill:#FF5722
     style D fill:#4CAF50,color:white
-    style E fill:#4CAF50,color:white
 ```
 
-## Running Plan
+## Running Itemize
 
 ### Standard Usage
 
 ```bash
-cub plan
+cub plan itemize
 ```
 
-This uses the most recent session with completed triage and architect stages.
-
-### Specify Session
-
-```bash
-cub plan --session myproject-20260117-143022
-```
+This uses the most recent plan with completed orient and architect stages.
 
 ### Non-Interactive Mode
 
 ```bash
-cub plan --non-interactive --session myproject-20260117-143022
+cub plan itemize --non-interactive
 ```
 
 !!! note "Requires Architect"
-    Plan requires a completed architect stage. Run `cub architect` first if needed.
+    Itemize requires a completed architect stage. Run `cub plan architect` first if needed.
 
-## The Plan Interview
+## The Itemize Interview
 
 The planner agent asks questions to customize task generation:
 
@@ -171,7 +163,7 @@ The planner identifies natural pause points where:
 - A meaningful capability is complete
 - User testing/feedback would be valuable
 - The product could ship (even if minimal)
-- Assumptions from triage can be validated
+- Assumptions from orient can be validated
 
 These are marked with the `checkpoint` label.
 
@@ -248,14 +240,14 @@ Any gotchas, references, or helpful context.
 
 ## Output Files
 
-Plan produces two outputs:
+Itemize produces the task decomposition:
 
-### plan.md (Human-Readable)
+### itemized-plan.md (Human-Readable)
 
 Structured markdown for review:
 
 ```markdown
-# Plan
+# Itemized Plan
 
 ## Epic: E01 - Setup Infrastructure
 Priority: 1
@@ -282,16 +274,7 @@ Foundation task that enables all other work.
 - [ ] Dependencies install cleanly
 ```
 
-### plan.jsonl (Machine-Readable)
-
-Beads-compatible JSONL for import:
-
-```json
-{"id":"proj-E01","title":"Setup Infrastructure","description":"...","status":"open","priority":1,"issue_type":"epic","labels":["phase-1","setup"],"dependencies":[]}
-{"id":"proj-001","title":"Initialize project structure","description":"...","status":"open","priority":0,"issue_type":"task","labels":["phase-1","setup","model:haiku","complexity:low"],"dependencies":[{"depends_on_id":"proj-E01","type":"parent-child"}]}
-```
-
-## Example Plan Summary
+## Example Itemize Summary
 
 After generating the plan, you'll see a summary:
 
@@ -305,34 +288,27 @@ Breakdown:
 
 Ready to start immediately: 2 tasks (no blockers)
 
-JSONL: .cub/sessions/myproject-20260117-143022/plan.jsonl
-Summary: .cub/sessions/myproject-20260117-143022/plan.md
+Output: plans/myproject/itemized-plan.md
 
-Next step: cub bootstrap myproject-20260117-143022
+Next step: cub stage
 ```
 
 ## CLI Reference
 
 ```
-Usage: cub plan [OPTIONS] [SESSION_ID]
+Usage: cub plan itemize [OPTIONS]
 
 Stage 3: Task Decomposition
 
-Arguments:
-  SESSION_ID         Session ID from architect (default: most recent)
-
 Options:
-  --session ID       Specify session ID
   --non-interactive  Run without interactive Claude session
   -h, --help         Show this help message
 
 Examples:
-  cub plan                         # Use most recent session
-  cub plan --session ID            # Specific session
+  cub plan itemize                 # Use most recent plan
 
 Output:
-  .cub/sessions/{session-id}/plan.jsonl  (Beads-compatible)
-  .cub/sessions/{session-id}/plan.md     (Human-readable)
+  plans/{slug}/itemized-plan.md
 ```
 
 ## Principles
@@ -357,10 +333,10 @@ Output:
 
 ## Next Step
 
-Once plan is complete, write tasks to your backend:
+Once itemize is complete, import tasks to your backend:
 
 ```bash
-cub bootstrap
+cub stage
 ```
 
-[:octicons-arrow-right-24: Bootstrap Stage](bootstrap.md)
+[:octicons-arrow-right-24: Stage](stage.md)

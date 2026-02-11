@@ -45,13 +45,13 @@ Cub orchestrates AI coding CLIs but doesn't include them. Install at least one:
 
 | Harness | Install Command | Notes |
 |---------|-----------------|-------|
-| [Claude Code](https://github.com/anthropics/claude-code) | `npm install -g @anthropic-ai/claude-code` | **Recommended.** Required for `cub prep` |
+| [Claude Code](https://github.com/anthropics/claude-code) | `npm install -g @anthropic-ai/claude-code` | **Recommended.** Required for `cub plan` |
 | [OpenAI Codex](https://github.com/openai/codex) | `npm install -g @openai/codex` | Good for OpenAI ecosystem |
 | [Google Gemini](https://github.com/google-gemini-cli) | `npm install -g @google/gemini-cli` | Alternative perspective |
 | [OpenCode](https://github.com/opencode) | See project docs | Open-source option |
 
-!!! tip "Claude Code is Required for Prep"
-    The `cub prep` pipeline (triage, architect, plan, bootstrap) requires Claude Code. For `cub run`, any harness works.
+!!! tip "Claude Code is Required for Planning"
+    The `cub plan` pipeline (orient, architect, itemize, stage) requires Claude Code. For `cub run`, any harness works.
 
 ---
 
@@ -251,7 +251,7 @@ Cub auto-detects the beads backend when `.beads/` directory exists in your proje
 Now that Cub is installed:
 
 1. **[Quick Start](quickstart.md)** - Run your first autonomous session
-2. **[Core Concepts](concepts.md)** - Understand prep, run, and task backends
+2. **[Core Concepts](concepts.md)** - Understand plan, run, and task backends
 3. **[Configuration](../guide/configuration/index.md)** - Customize Cub for your workflow
 
 ---

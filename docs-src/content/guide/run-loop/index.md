@@ -11,7 +11,7 @@ Cub's run loop implements what's known as the [Ralph Wiggum technique](https://g
 3. **Let the loop continue** until work is done or budget is exhausted
 4. **Verify outputs** through tests, type checks, and clean state verification
 
-The key insight: invest time *before* code starts flying (in the prep phase), then step back and let execution happen autonomously.
+The key insight: invest time *before* code starts flying (in the planning phase), then step back and let execution happen autonomously.
 
 ## Loop Flow
 

@@ -60,23 +60,23 @@ my-project/
 
 You have two options for creating tasks:
 
-### Option A: Use Prep (Recommended)
+### Option A: Use Plan (Recommended)
 
 Let Cub help you turn your ideas into structured tasks:
 
 ```bash
-cub prep
+cub plan run
 ```
 
-The prep pipeline walks you through:
+The plan flow walks you through:
 
-1. **Triage** - What are you trying to accomplish?
+1. **Orient** - What are you trying to accomplish?
 2. **Architect** - What's the technical approach?
-3. **Plan** - Break it into agent-sized chunks
-4. **Bootstrap** - Write tasks to your backend
+3. **Itemize** - Break it into agent-sized chunks
+4. **Stage** - Write tasks to your backend
 
-!!! tip "Prep Requires Claude Code"
-    The `cub prep` pipeline uses Claude Code for the interactive refinement process.
+!!! tip "Planning Requires Claude Code"
+    The `cub plan` pipeline uses Claude Code for the interactive refinement process.
 
 ### Option B: Create Tasks Directly
 
@@ -202,7 +202,7 @@ cub artifacts
 | `cub new <dir>` | Create new project directory |
 | `cub init` | Initialize existing project |
 | `cub init --global` | Set up global config |
-| `cub prep` | Run prep pipeline (vision to tasks) |
+| `cub plan` | Run plan flow (vision to tasks) |
 | `cub status` | Show task progress |
 | `cub run` | Run autonomous loop |
 | `cub run --once` | Single iteration |
@@ -323,5 +323,5 @@ Now that you have Cub running:
 
 - **[Core Concepts](concepts.md)** - Understand the architecture
 - **[Configuration](../guide/configuration/index.md)** - Customize Cub for your workflow
-- **[Prep Pipeline](../guide/prep-pipeline/index.md)** - Master the vision-to-tasks flow
+- **[Plan Flow](../guide/plan-flow/index.md)** - Master the vision-to-tasks flow
 - **[AI Harnesses](../guide/harnesses/index.md)** - Learn about different harness options

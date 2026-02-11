@@ -30,13 +30,13 @@ The User Guide provides comprehensive documentation for using Cub effectively. W
 
     [:octicons-arrow-right-24: Run Loop](run-loop/index.md)
 
--   :material-magic-staff: **Prep Pipeline**
+-   :material-magic-staff: **Plan Flow**
 
     ---
 
-    Transform visions into executable tasks. Use triage, architect, plan, and bootstrap to prepare your work.
+    Transform visions into executable tasks. Use orient, architect, itemize, and stage to prepare your work.
 
-    [:octicons-arrow-right-24: Prep Pipeline](prep-pipeline/index.md)
+    [:octicons-arrow-right-24: Plan Flow](plan-flow/index.md)
 
 -   :material-robot: **AI Harnesses**
 
@@ -96,7 +96,7 @@ The User Guide provides comprehensive documentation for using Cub effectively. W
 
 1. Initialize Cub globally: `cub init --global`
 2. Create a new project: `cub new my-project` (or `cub init` in an existing project)
-3. Prepare tasks: `cub prep` to run the vision-to-tasks pipeline
+3. Prepare tasks: `cub plan` to run the vision-to-tasks plan flow
 4. Execute: `cub run` to start autonomous execution
 
 ### Daily Development

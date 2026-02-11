@@ -39,7 +39,7 @@ flowchart LR
 
 The separation exists because investing time *before* code starts flying makes autonomous execution reliable. Vague instructions produce vague results. Structured tasks with clear acceptance criteria produce working code.
 
-:material-arrow-right: [Plan Pipeline Guide](../guide/prep-pipeline/index.md) | [Run Loop Guide](../guide/run-loop/index.md)
+:material-arrow-right: [Plan Pipeline Guide](../guide/plan-flow/index.md) | [Run Loop Guide](../guide/run-loop/index.md)
 
 ---
 
@@ -336,6 +336,6 @@ Now that you have the mental models:
 
 - **[Quick Start](quickstart.md)** — Run your first autonomous session
 - **[Configuration Guide](../guide/configuration/index.md)** — Customize Cub for your workflow
-- **[Plan Pipeline](../guide/prep-pipeline/index.md)** — Master the planning phase
+- **[Plan Pipeline](../guide/plan-flow/index.md)** — Master the planning phase
 - **[Run Loop](../guide/run-loop/index.md)** — Deep dive on execution
 - **[AI Harnesses](../guide/harnesses/index.md)** — Harness capabilities and selection

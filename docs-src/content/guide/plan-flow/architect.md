@@ -1,24 +1,24 @@
 # Architect Stage
 
-Architect is the second stage of the prep pipeline. It translates the refined requirements from triage into a technical design that balances project needs with pragmatic engineering decisions.
+Architect is the second stage of the plan flow. It translates the refined requirements from orient into a technical design that balances project needs with pragmatic engineering decisions.
 
 ## What Architect Does
 
 The architect stage:
 
-- Reviews the triage output for requirements context
+- Reviews the orient output for requirements context
 - Explores existing codebase (if extending a project)
 - Conducts a technical interview to understand constraints
 - Produces an architecture document with technology choices and component design
 
 ```mermaid
 flowchart LR
-    A[triage.md] --> B[Architect Agent]
+    A[orientation.md] --> B[Architect Agent]
     C[Existing Code] --> B
     B --> D{Design Complete?}
     D -->|No| E[Design Questions]
     E --> B
-    D -->|Yes| F[architect.md]
+    D -->|Yes| F[architecture.md]
 
     style A fill:#FF9800
     style F fill:#4CAF50,color:white
@@ -29,25 +29,19 @@ flowchart LR
 ### Standard Usage
 
 ```bash
-cub architect
+cub plan architect
 ```
 
-This uses the most recent session. The architect agent reads `triage.md` and launches an interactive design session.
-
-### Specify Session
-
-```bash
-cub architect --session myproject-20260117-143022
-```
+This uses the most recent plan. The architect agent reads `orientation.md` and launches an interactive design session.
 
 ### Non-Interactive Mode
 
 ```bash
-cub architect --non-interactive --session myproject-20260117-143022
+cub plan architect --non-interactive
 ```
 
-!!! note "Requires Triage"
-    Architect requires a completed triage. If triage.md doesn't exist, you'll be prompted to run `cub triage` first.
+!!! note "Requires Orient"
+    Architect requires a completed orient. If orientation.md doesn't exist, you'll be prompted to run `cub plan orient` first.
 
 ## The Architect Interview
 
@@ -142,7 +136,7 @@ The architect addresses these areas:
 | **APIs/Interfaces** | How components communicate |
 | **Implementation Phases** | Logical order to build things |
 
-## Output: architect.md
+## Output: architecture.md
 
 Architect produces a comprehensive technical design:
 
@@ -275,7 +269,7 @@ created_at: DateTime - Creation timestamp
 - Redis (optional caching)
 
 ### Internal
-- triage.md requirements
+- orientation.md requirements
 
 ## Security Considerations
 
@@ -292,7 +286,7 @@ created_at: DateTime - Creation timestamp
 
 ---
 
-**Next Step:** Run `cub plan` to generate implementation tasks.
+**Next Step:** Run `cub plan itemize` to generate implementation tasks.
 ```
 
 ## Existing Project Analysis
@@ -321,24 +315,19 @@ The agent respects existing:
 ## CLI Reference
 
 ```
-Usage: cub architect [OPTIONS] [SESSION_ID]
+Usage: cub plan architect [OPTIONS]
 
 Stage 2: Technical Design
 
-Arguments:
-  SESSION_ID         Session ID from triage (default: most recent)
-
 Options:
-  --session ID       Specify session ID
   --non-interactive  Run without interactive Claude session
   -h, --help         Show this help message
 
 Examples:
-  cub architect                      # Use most recent session
-  cub architect --session ID         # Specific session
+  cub plan architect                      # Use most recent plan
 
 Output:
-  .cub/sessions/{session-id}/architect.md
+  plans/{slug}/architecture.md
 ```
 
 ## Principles
@@ -363,7 +352,7 @@ Output:
 Once architecture is complete, proceed to task decomposition:
 
 ```bash
-cub plan
+cub plan itemize
 ```
 
-[:octicons-arrow-right-24: Plan Stage](plan.md)
+[:octicons-arrow-right-24: Itemize Stage](itemize.md)

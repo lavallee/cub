@@ -469,7 +469,7 @@ cub_main() {
     echo ""
     echo "  1. cub new my-project     # Create a new project"
     echo "  2. cd my-project"
-    echo "  3. cub prep               # Turn ideas into tasks"
+    echo "  3. cub plan               # Turn ideas into tasks"
     echo "  4. cub run                # Let AI execute"
     echo ""
     if [ "$PATH_ADDED" = true ]; then

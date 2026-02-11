@@ -20,7 +20,7 @@ The primary commands for everyday use:
 | Command | Description |
 |---------|-------------|
 | [`cub run`](run.md) | Execute the autonomous task loop |
-| [`cub prep`](prep.md) | Run the vision-to-tasks pipeline |
+| [`cub plan`](plan.md) | Run the vision-to-tasks plan flow |
 | [`cub init`](init.md) | Initialize cub in a project |
 | [`cub new`](new.md) | Create a new project directory |
 
@@ -272,7 +272,7 @@ Every command supports the `--help` flag:
 ```bash
 cub --help           # General help
 cub run --help       # Help for run command
-cub prep --help      # Help for prep command
+cub plan --help      # Help for plan command
 ```
 
 For troubleshooting, see:

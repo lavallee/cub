@@ -46,7 +46,7 @@ Features fully implemented and shipped to main.
 | Investigate Command | 0.22 | `completed/investigate-command.md` |
 
 **Key accomplishments:**
-- Full prep pipeline (triage→architect→plan→bootstrap)
+- Full plan flow (orient→architect→itemize→stage)
 - Interactive refinement modes (interview, review)
 - Branch/PR workflow integration
 - Live monitoring dashboard

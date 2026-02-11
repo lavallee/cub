@@ -718,14 +718,6 @@ The reconciliation process:
 
 These commands are not yet ported to Python. They are registered as Typer commands but delegate execution to the bash version:
 
-**Vision-to-Tasks Prep Pipeline:**
-- `prep` - Run full prep pipeline (triage→architect→plan→bootstrap)
-- `triage` - Requirements refinement
-- `architect` - Technical design
-- `plan` - Task decomposition
-- `bootstrap` - Initialize tasks from prep artifacts
-- `sessions` - List and manage prep sessions
-
 **Task & Artifact Management:**
 - `explain-task` - Show detailed task information
 - `artifacts` - List task output artifacts
@@ -761,9 +753,9 @@ Delegation is implemented in `cub.cli.delegated.runner`:
 
 2. **Argument Passing** - Arguments and flags are forwarded directly:
    ```bash
-   # Example: cub prep --verbose
-   # Python CLI receives: prep, --verbose
-   # Delegates to bash as: /path/to/cub prep --verbose
+   # Example: cub branch cub-vd6 --bind-only
+   # Python CLI receives: branch, cub-vd6, --bind-only
+   # Delegates to bash as: /path/to/cub branch cub-vd6 --bind-only
    ```
 
 3. **Exit Code Passthrough** - The bash script's exit code is preserved and returned to the caller
@@ -802,9 +794,9 @@ Eventually, all delegated commands will be ported to Python. The migration order
    - Interview mode (`interview`)
    - Task validation (`validate`)
 
-2. **Core infrastructure** (used by prep pipeline)
-   - Prep pipeline commands (`triage`, `architect`, `plan`, `bootstrap`)
+2. **Core infrastructure** (used by plan flow)
    - Branch management (`branch`, `branches`)
+   - Git workflow (`checkpoints`, `pr`)
 
 3. **Advanced features** (nice-to-have)
    - PR management (`pr`)
