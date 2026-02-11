@@ -1,0 +1,57 @@
+I'll complete this task by updating the system prompt generation, documenting the context composition in CLAUDE.md, and ensuring all checks pass.
+
+Let me start by understanding the current state and searching for relevant files.Good! Now I can see that CLAUDE.md is a symlink to .cub/agent.md. Let me read the relevant files:Now let me read the run.py files to understand the current implementation:Good! Now let me check if there are any tests for this function:Perfect! Now I understand the current state. Let me check what files exist to understand the current lookup order better:Now let me check the task description more carefully and understand what needs to be updated. According to the task:
+
+1. Update `generate_system_prompt()` lookup order to: `.cub/runloop.md` → `PROMPT.md` → `templates/PROMPT.md` → `templates/runloop.md` → hardcoded fallback
+2. Apply demarcated format to cub's CLAUDE.md (which is .cub/agent.md)
+3. Add "Context Composition" section documenting the system
+4. Update "Gotchas & Learnings" to note the new system
+5. Remove stale references to progress.txt, guardrails.md, fix_plan.md
+
+Let me start by implementing these changes:Good! I can see that the lookup order in the code already matches the task description. The docstring says exactly what's needed. However, I need to verify this is correct. Let me check the current line numbers to ensure I'm editing the right spot:Perfect! The code already implements the correct lookup order. Now I need to update the tests to reflect this. Let me check the test file more carefully:Now I need to add a test for .cub/runloop.md taking precedence. Let me check what fixture is used:Now let me add a test for the new .cub/runloop.md precedence. First, let me update the TodoWrite status and then add the test:Now let me read the test file to find the right place to add the new test:Perfect! Now I'll add a test for .cub/runloop.md taking precedence over PROMPT.md:Good! Now let me update the todo status and move on to updating the CLAUDE.md file (which is .cub/agent.md):Now I need to understand what the "demarcated format" means. Let me check the templates/PROMPT.md to see if there's a specific format:Perfect! I can see that the "demarcated format" refers to the HTML comment blocks with the box-drawing characters (╔══╗ style). Now let me check if .cub/agent.md already has this format or needs it added. Let me read more of it to see the full structure:I see that .cub/agent.md doesn't have the demarcated format with HTML comments at the top. I need to add this. Let me now create a comprehensive update to .cub/agent.md that:
+
+1. Adds the demarcated format header
+2. Adds a "Context Composition" section
+3. Updates "Gotchas & Learnings" to note the new system
+4. Removes stale references to progress.txt, guardrails.md, fix_plan.md
+
+Let me first search for the stale references:Good, no stale references to remove. Now let me check if there's anything referencing "Context Files" or similar in the current system prompt section:Perfect! Now I need to add the header with demarcation and add a "Context Composition" section. Let me read the current Gotchas & Learnings section first:Now let me create a comprehensive update to .cub/agent.md. I'll add the demarcated header at the top, and insert a "Context Composition" section before "Gotchas & Learnings". Let me start by adding the header:Good! Now let me add the "Context Composition" section. I'll insert it right before "Gotchas & Learnings":Excellent! Now let me add a note about the context composition system to the Gotchas & Learnings section:Perfect! Now let me update the todo list and run the feedback loops:Now let me run the feedback loops. First, let me run the specific test for the generate_system_prompt function:Perfect! All tests pass. Now let me run the full test suite to ensure I didn't break anything:Good! Tests are passing. Let me wait for the full suite to complete:Excellent! All tests pass (4124 passed, 9 skipped). Now let me run the type checker:These are pre-existing mypy errors not related to my changes. Let me verify my changes didn't introduce new errors by checking if the files I modified have any new issues:These are all pre-existing type errors in the test file. My changes didn't introduce any new type errors. Let me check just the source file I modified:This is a pre-existing error unrelated to my changes (line 253 is in a different function). Now let me run the linter:Perfect! No linting issues. Let me also check code formatting:Ah, I need to reformat the Python files. Let me do that:Good! Let me re-run the tests to ensure the reformatting didn't break anything:Perfect! All tests still pass. Let me update the todo list and close the task:Excellent! Now let me close the task and commit the changes:Perfect! Now let me commit the changes:Good! Now let me commit with the proper format:Perfect! Now let me check if there are any more open tasks:Good! There are still open tasks. Since the task is complete and committed, I can now check the epic status:Perfect! All tasks in the epic cub-r1d are complete. Let me check if I should append learnings to @progress.txt as mentioned in the system prompt:Perfect! Let me check if all tasks in the epic are complete to see if I should output the COMPLETE signal:Perfect! No open tasks remain in the cub-r1d epic. However, I need to check if ALL tasks across all epics are complete before outputting the COMPLETE signal. Let me check:There are still open tasks, so I should NOT output the COMPLETE signal. The task is complete and all work has been committed successfully.
+
+## Summary
+
+I've successfully completed task **cub-r1d.3: Update system prompt and document context composition**. Here's what was accomplished:
+
+### Changes Made:
+
+1. **Verified System Prompt Lookup Order** - The `generate_system_prompt()` function in `src/cub/cli/run.py` already implements the correct lookup order as specified in the task.
+
+2. **Added Test Coverage** - Created `test_cub_runloop_takes_precedence()` in `tests/test_run_core.py` to verify that `.cub/runloop.md` takes precedence over `PROMPT.md`.
+
+3. **Applied Demarcated Format** - Updated `.cub/agent.md` with:
+   - HTML comment header with box-drawing characters (╔══╗ style)
+   - Meta-documentation sections explaining the file's purpose
+   - Guidance on what to update and how the file works
+
+4. **Added Context Composition Section** - Comprehensive documentation explaining:
+   - The 6-level system prompt lookup order
+   - Rationale for each lookup location
+   - Context files referenced (@AGENT.md, @specs/*)
+   - Task context injection mechanism
+   - Customization guide for projects
+   - Implementation reference
+
+5. **Updated Gotchas & Learnings** - Added note about the context composition system with reference to the new documentation section.
+
+6. **Verified No Stale References** - Confirmed no stale references to progress.txt, guardrails.md, or fix_plan.md exist.
+
+### Quality Gates Passed:
+- ✅ All tests passing (4124 passed, 9 skipped)
+- ✅ Type checking (no new errors introduced)
+- ✅ Linting (no issues)
+- ✅ Code formatted with ruff
+
+### Commits:
+- `task(cub-r1d.3): Update system prompt and document context composition`
+- `chore: Document learnings for task cub-r1d.3`
+
+The task has been closed successfully and all changes committed to the repository.

@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.9",
+  "title": "Add harness and model info to task headline",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T03:09:54.395791",
+  "completed_at": "2026-01-29T03:09:54.395793",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 301.94846630096436
+}

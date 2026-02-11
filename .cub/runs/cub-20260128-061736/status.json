@@ -1,0 +1,167 @@
+{
+  "run_id": "cub-20260128-061736",
+  "session_name": "cub-20260128-061736",
+  "started_at": "2026-01-28T06:17:36.537011",
+  "updated_at": "2026-01-28T06:45:35.586592",
+  "completed_at": "2026-01-28T06:45:35.441116",
+  "epic": "cub-v8n",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 115194,
+    "tokens_limit": null,
+    "cost_usd": 6.443502100000002,
+    "cost_limit": null,
+    "tasks_completed": 4,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 39,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 43,
+  "task_entries": [
+    {
+      "task_id": "cub-v8n.1",
+      "title": "Implement SessionLedgerIntegration",
+      "state": "done",
+      "started_at": "2026-01-28T06:17:36.706243",
+      "completed_at": "2026-01-28T06:24:50.021779"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T06:17:36.655591",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:17:36.706265",
+      "level": "info",
+      "message": "Starting task: Implement SessionLedgerIntegration",
+      "task_id": "cub-v8n.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:24:50.021833",
+      "level": "info",
+      "message": "Task completed: Implement SessionLedgerIntegration",
+      "task_id": "cub-v8n.1",
+      "metadata": {
+        "duration": 433.1518921852112,
+        "tokens": 34670
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:24:50.128807",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-v8n.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:24:52.302723",
+      "level": "info",
+      "message": "Starting task: Connect hook handlers to SessionLedgerIntegration",
+      "task_id": "cub-v8n.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:30:53.674235",
+      "level": "info",
+      "message": "Task completed: Connect hook handlers to SessionLedgerIntegration",
+      "task_id": "cub-v8n.2",
+      "metadata": {
+        "duration": 361.22402143478394,
+        "tokens": 30021
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:30:53.872290",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-v8n.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:30:56.055771",
+      "level": "info",
+      "message": "Starting task: Implement transcript parsing for enrichment",
+      "task_id": "cub-v8n.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:40:07.590915",
+      "level": "info",
+      "message": "Task completed: Implement transcript parsing for enrichment",
+      "task_id": "cub-v8n.3",
+      "metadata": {
+        "duration": 551.4063477516174,
+        "tokens": 37708
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:40:07.697178",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-v8n.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:40:09.918994",
+      "level": "info",
+      "message": "Starting task: Refactor cub session done to use SessionLedgerIntegration",
+      "task_id": "cub-v8n.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:45:33.113865",
+      "level": "info",
+      "message": "Task completed: Refactor cub session done to use SessionLedgerIntegration",
+      "task_id": "cub-v8n.4",
+      "metadata": {
+        "duration": 322.93670868873596,
+        "tokens": 12795
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:45:33.208206",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-v8n.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:45:35.441196",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 39,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1678.904105
+}

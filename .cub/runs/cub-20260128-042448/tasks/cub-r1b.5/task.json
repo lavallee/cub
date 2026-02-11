@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1b.5",
+  "title": "Add MapConfig to config system",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T04:50:57.162321",
+  "completed_at": "2026-01-28T04:50:57.162322",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 9039,
+    "output_tokens": 8639,
+    "cache_read_tokens": 1437135,
+    "cache_creation_tokens": 51802,
+    "cost_usd": 0.8300599999999999,
+    "estimated": false
+  },
+  "duration_seconds": 210.49622631072998
+}

@@ -1,0 +1,119 @@
+{
+  "run_id": "cub-20260128-175601",
+  "session_name": "cub-20260128-175601",
+  "started_at": "2026-01-28T17:56:01.636077",
+  "updated_at": "2026-01-28T18:39:28.214654",
+  "completed_at": "2026-01-28T18:39:27.913572",
+  "epic": "cub-b1a",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "failed",
+  "current_task_id": "cub-b1a.3",
+  "current_task_title": "Extract loop state machine to core/run/loop.py",
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 47920,
+    "tokens_limit": null,
+    "cost_usd": 3.635415649999999,
+    "cost_limit": null,
+    "tasks_completed": 2,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 57,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 59,
+  "task_entries": [
+    {
+      "task_id": "cub-b1a.1",
+      "title": "Create core/run package with prompt builder extraction",
+      "state": "done",
+      "started_at": "2026-01-28T17:56:01.793169",
+      "completed_at": "2026-01-28T18:04:02.097032"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T17:56:01.740438",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T17:56:01.793194",
+      "level": "info",
+      "message": "Starting task: Create core/run package with prompt builder extraction",
+      "task_id": "cub-b1a.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:04:02.097114",
+      "level": "info",
+      "message": "Task completed: Create core/run package with prompt builder extraction",
+      "task_id": "cub-b1a.1",
+      "metadata": {
+        "duration": 480.130907535553,
+        "tokens": 22564
+      }
+    },
+    {
+      "timestamp": "2026-01-28T18:04:15.147595",
+      "level": "info",
+      "message": "Starting task: Extract budget tracking to core/run/budget.py",
+      "task_id": "cub-b1a.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:09:16.974932",
+      "level": "info",
+      "message": "Task completed: Extract budget tracking to core/run/budget.py",
+      "task_id": "cub-b1a.2",
+      "metadata": {
+        "duration": 301.63086700439453,
+        "tokens": 25356
+      }
+    },
+    {
+      "timestamp": "2026-01-28T18:09:27.237936",
+      "level": "info",
+      "message": "Starting task: Extract loop state machine to core/run/loop.py",
+      "task_id": "cub-b1a.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:39:27.765486",
+      "level": "error",
+      "message": "Circuit breaker tripped after 30 minutes",
+      "task_id": "cub-b1a.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:39:27.920685",
+      "level": "error",
+      "message": "Run failed: Circuit breaker tripped: No activity for 30 minutes. The harness appears to be hung or unresponsive.",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": "Circuit breaker tripped: No activity for 30 minutes. The harness appears to be hung or unresponsive.",
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 57,
+  "completion_percentage": 0.0,
+  "duration_seconds": 2606.277495
+}

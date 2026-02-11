@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1b.2",
+  "title": "Refactor instruction generators for managed section content",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T04:36:18.070246",
+  "completed_at": "2026-01-28T04:36:18.070247",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 1524,
+    "output_tokens": 16212,
+    "cache_read_tokens": 1393739,
+    "cache_creation_tokens": 54530,
+    "cost_usd": 0.8936181999999999,
+    "estimated": false
+  },
+  "duration_seconds": 274.4126625061035
+}

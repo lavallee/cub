@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-v8n.2",
+  "title": "Connect hook handlers to SessionLedgerIntegration",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T06:30:53.674259",
+  "completed_at": "2026-01-28T06:30:53.674260",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 12111,
+    "output_tokens": 17910,
+    "cache_read_tokens": 2785700,
+    "cache_creation_tokens": 81845,
+    "cost_usd": 1.4715147500000008,
+    "estimated": false
+  },
+  "duration_seconds": 361.22402143478394
+}

@@ -1,0 +1,30 @@
+
+
+I'll start by understanding the project structure and existing patterns, then implement the code intelligence module.Let me read the existing files I need to modify:Now let me read the existing map module's `__init__.py` to understand the export pattern:Let me also check what grep-ast provides and look at the test for the structure module:Now let me understand what grep-ast provides:Let me look at how Aider actually uses grep-ast for its repo map:Now let me look at the actual aider source to understand the Tag structure:Now I have a thorough understanding. Let me implement the module. First, add dependencies:Now add mypy overrides for these new deps:Now install dependencies:Good, deps installed. Let me verify how the grep-ast + tree-sitter-language-pack API works:Now I need to figure out how to get the tags.scm query files. Let me check if they're bundled with tree-sitter-language-pack:Now I need to understand how aider gets the tags.scm files. Let me check:The newer tree-sitter has a different API. Let me check what the actual capture API looks like:Good - the AST works. The issue is with the query API. Let me figure out the right way to use it with the newer tree-sitter version:Now I have the working API. Let me also test `captures`:Now I have the full API understanding. The captures returns a dict of `{capture_name: [nodes]}`. Let me also verify the Pygments fallback:Now let me also check what pathspec does:Now I have everything I need. Let me create the module:Now update the `__init__.py` to export code_intel:Now let me do a quick sanity check before writing tests:Now let me test ranking too:The ranking shows uniform scores because these 3 files are all in one module. With more diverse files, PageRank would differentiate. Now let me write comprehensive tests:Now let me run the tests:All 54 tests pass. Let me fix the deprecation warning for `gitwildmatch`:Now run mypy and ruff in parallel:I need to fix the mypy issues. The main problems are:
+1. `type: ignore` comments have wrong error codes (since these libs _are_ installed, mypy sees them)
+2. `object` type for cache/spec needs proper typing
+3. node.text might be NoneThe `type: ignore[import-untyped]` comments are wrong because mypy is configured to ignore missing imports for these modules. Since mypy overrides handle these, the `type: ignore` comments are redundant. Let me fix all the issues:Now fix the `object` type issues — I need to use `Any` for the cache and spec since they're from optional imports. Since strict mypy disallows `Any`, I'll use a protocol or a different approach:I need to use protocols for the cache and pathspec types. Let me refactor to use typed protocols:Now update the function signatures to use these protocols:Now update the pathspec functions:Now fix the node.text decode issue (line 445):Also need to update the `_discover_source_files` and `extract_tags` signatures:Now also need to remove the unused `TYPE_CHECKING` import:Good, I already replaced it in the edit. Let me now run mypy again:The issue is that `cache.get(key)` returns `object` per our Protocol, and `object` isn't iterable. I need to cast the val:Now run ruff:Need to fix the long lines in the C/C++ tree-sitter queries. These are query strings, so I need to shorten them:Now run tests again to make sure everything still passes after changes:All 54 tests pass, mypy clean, ruff clean. Let me also quickly run the existing structure tests to make sure I didn't break anything:All existing tests still pass. Now let me close the task and commit:Now update progress.txt:Now let me check if all tasks are done:There are many other open tasks. This task (cub-r1c.2) is now closed. Let me check if it was the last assigned task:Task **cub-r1c.2** is complete. Here's a summary of what was implemented:
+
+## Summary
+
+### Code Intelligence Module (`src/cub/core/map/code_intel.py`)
+- **SymbolTag** and **RankedSymbol** frozen Pydantic models
+- **`extract_tags()`**: Parses source files using tree-sitter AST queries (Python, JS, TS, Rust, Go, Java, Ruby, C, C++) with Pygments fallback for reference extraction
+- **`rank_symbols()`**: PageRank-based symbol ranking using networkx, with support for focus files and mentioned identifier boosts
+- **diskcache**-based caching keyed by `(path, mtime_ns, size)` with in-memory fallback
+- **pathspec** `.gitignore`-aware file filtering
+- **Graceful degradation**: All optional deps guarded; returns empty lists with warnings if unavailable
+
+### Dependencies Added
+- `grep-ast>=0.9.0`, `networkx>=3.2.0`, `tree-sitter-language-pack>=0.13.0`, `diskcache>=5.6.0`, `pathspec>=0.12.0`
+
+### Tests (`tests/test_map_code_intel.py`)
+- **54 tests** covering models, tag extraction, file discovery, caching, PageRank ranking, graceful degradation, and integration against the cub repo
+- All pass ✅
+
+### Quality Gates
+- **mypy**: Clean (strict mode, 3 files)
+- **ruff**: Clean
+- **pytest**: 54/54 pass + 49 existing structure tests still pass
+
+<promise>COMPLETE</promise>

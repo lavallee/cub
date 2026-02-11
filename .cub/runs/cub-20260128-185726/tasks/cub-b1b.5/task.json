@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1b.5",
+  "title": "Verify zero Rich imports in core and add CI gate",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T19:20:10.712658",
+  "completed_at": "2026-01-28T19:20:10.712660",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 93.56095862388611
+}

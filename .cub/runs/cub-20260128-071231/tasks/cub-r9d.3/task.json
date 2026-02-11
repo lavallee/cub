@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r9d.3",
+  "title": "End-to-end integration tests",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T07:29:13.550160",
+  "completed_at": "2026-01-28T07:29:13.550160",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 9608,
+    "output_tokens": 15696,
+    "cache_read_tokens": 1083932,
+    "cache_creation_tokens": 67614,
+    "cost_usd": 1.2464830500000006,
+    "estimated": false
+  },
+  "duration_seconds": 311.92627811431885
+}

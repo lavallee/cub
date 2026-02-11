@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.11",
+  "title": "Add progress updates during punchlist item processing",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T03:19:12.122259",
+  "completed_at": "2026-01-29T03:19:12.122261",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 173.24731636047363
+}

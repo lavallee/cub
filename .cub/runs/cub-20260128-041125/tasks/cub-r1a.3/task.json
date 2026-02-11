@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1a.3",
+  "title": "Delete stale progress and guardrails files from cub repo",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T04:24:42.484054",
+  "completed_at": "2026-01-28T04:24:42.484054",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 6080,
+    "output_tokens": 6183,
+    "cache_read_tokens": 1258973,
+    "cache_creation_tokens": 34944,
+    "cost_usd": 0.2537753,
+    "estimated": false
+  },
+  "duration_seconds": 205.61659979820251
+}

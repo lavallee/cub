@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-w3f.3",
+  "title": "Add CUB_RUN_ACTIVE environment variable to harness backends",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T06:06:48.710937",
+  "completed_at": "2026-01-28T06:06:48.710938",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 33954,
+    "output_tokens": 17680,
+    "cache_read_tokens": 5126478,
+    "cache_creation_tokens": 107716,
+    "cost_usd": 0.8304437999999996,
+    "estimated": false
+  },
+  "duration_seconds": 306.3988902568817
+}

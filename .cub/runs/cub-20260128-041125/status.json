@@ -1,0 +1,157 @@
+{
+  "run_id": "cub-20260128-041125",
+  "session_name": "cub-20260128-041125",
+  "started_at": "2026-01-28T04:11:25.044068",
+  "updated_at": "2026-01-28T04:24:45.133601",
+  "completed_at": "2026-01-28T04:24:44.951742",
+  "epic": "cub-r1a",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 4,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 4.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 56402,
+    "tokens_limit": null,
+    "cost_usd": 2.3212651500000003,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 61,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 64,
+  "task_entries": [
+    {
+      "task_id": "cub-r1a.1",
+      "title": "Remove progress.txt references from templates and prompts",
+      "state": "done",
+      "started_at": "2026-01-28T04:11:25.310203",
+      "completed_at": "2026-01-28T04:15:59.545860"
+    },
+    {
+      "task_id": "cub-r1a.2",
+      "title": "Remove deprecated template files",
+      "state": "done",
+      "started_at": "2026-01-28T04:16:01.874314",
+      "completed_at": "2026-01-28T04:21:14.321570"
+    },
+    {
+      "task_id": "cub-r1a.3",
+      "title": "Delete stale progress and guardrails files from cub repo",
+      "state": "done",
+      "started_at": "2026-01-28T04:21:16.735443",
+      "completed_at": "2026-01-28T04:24:42.484007"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T04:11:25.265167",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:11:25.310296",
+      "level": "info",
+      "message": "Starting task: Remove progress.txt references from templates and prompts",
+      "task_id": "cub-r1a.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:15:59.545943",
+      "level": "info",
+      "message": "Task completed: Remove progress.txt references from templates and prompts",
+      "task_id": "cub-r1a.1",
+      "metadata": {
+        "duration": 274.1092562675476,
+        "tokens": 10055
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:15:59.681031",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1a.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:16:01.874335",
+      "level": "info",
+      "message": "Starting task: Remove deprecated template files",
+      "task_id": "cub-r1a.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:21:14.321619",
+      "level": "info",
+      "message": "Task completed: Remove deprecated template files",
+      "task_id": "cub-r1a.2",
+      "metadata": {
+        "duration": 312.2277958393097,
+        "tokens": 34084
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:21:14.549998",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1a.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:21:16.735466",
+      "level": "info",
+      "message": "Starting task: Delete stale progress and guardrails files from cub repo",
+      "task_id": "cub-r1a.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:24:42.484036",
+      "level": "info",
+      "message": "Task completed: Delete stale progress and guardrails files from cub repo",
+      "task_id": "cub-r1a.3",
+      "metadata": {
+        "duration": 205.61659979820251,
+        "tokens": 12263
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:24:42.632242",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1a.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:24:44.951789",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 61,
+  "completion_percentage": 0.0,
+  "duration_seconds": 799.907674
+}

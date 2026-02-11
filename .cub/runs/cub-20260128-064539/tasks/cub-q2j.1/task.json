@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-q2j.1",
+  "title": "Add branch binding to JSON task backend",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T06:52:35.694468",
+  "completed_at": "2026-01-28T06:52:35.694469",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 13160,
+    "output_tokens": 12734,
+    "cache_read_tokens": 3163163,
+    "cache_creation_tokens": 71403,
+    "cost_usd": 1.7986507000000005,
+    "estimated": false
+  },
+  "duration_seconds": 416.13734197616577
+}

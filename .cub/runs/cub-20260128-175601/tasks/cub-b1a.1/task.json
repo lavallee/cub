@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-b1a.1",
+  "title": "Create core/run package with prompt builder extraction",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T18:04:02.097174",
+  "completed_at": "2026-01-28T18:04:02.097175",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 52,
+    "output_tokens": 22512,
+    "cache_read_tokens": 2946007,
+    "cache_creation_tokens": 74752,
+    "cost_usd": 2.670084549999999,
+    "estimated": false
+  },
+  "duration_seconds": 480.130907535553
+}

@@ -1,0 +1,218 @@
+{
+  "run_id": "cub-20260128-204328",
+  "session_name": "cub-20260128-204328",
+  "started_at": "2026-01-28T20:43:28.634403",
+  "updated_at": "2026-01-28T20:43:33.246867",
+  "completed_at": null,
+  "epic": null,
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "running",
+  "current_task_id": "cub-r1a",
+  "current_task_title": "context-restructure #1: Cleanup",
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": null,
+    "cost_usd": 0.0,
+    "cost_limit": null,
+    "tasks_completed": 0,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 38,
+  "tasks_in_progress": 2,
+  "tasks_closed": 0,
+  "tasks_total": 40,
+  "task_entries": [
+    {
+      "task_id": "cub-r1a",
+      "title": "context-restructure #1: Cleanup",
+      "state": "doing",
+      "started_at": "2026-01-28T20:43:28.976750",
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1b",
+      "title": "context-restructure #2: Foundation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1a",
+      "title": "bare-cub #1: Core Run Extraction",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1e",
+      "title": "bare-cub #5: Bare Cub Command",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-iyk",
+      "title": "Phase 1: Foundation - Establish Stability Framework",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1d",
+      "title": "context-restructure #4: Task Prompt Enrichment",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1c",
+      "title": "context-restructure #3: Project Map",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-v8n",
+      "title": "symbiotic-workflow #2: Session Ledger Integration",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1b",
+      "title": "bare-cub #2: Rich Boundary Cleanup",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1c",
+      "title": "bare-cub #3: Service Layer",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1d",
+      "title": "bare-cub #4: Suggestion Engine",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1e.3",
+      "title": "Integration testing and edge cases",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1f.3",
+      "title": "End-to-end validation of full flow",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-CAP",
+      "title": "Feature: Capture - Idea Collection System",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-jm48",
+      "title": "Fix bootstrap: detect ID collisions before import",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-q2j",
+      "title": "symbiotic-workflow #3: Task Backend and Instructions",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1f",
+      "title": "bare-cub #6: Skill Discovery & Documentation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1f.1",
+      "title": "Create /cub meta-skill for in-session discovery",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1f.2",
+      "title": "Update CLAUDE.md with service architecture and skill reference",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-ht4",
+      "title": "Add cub upgrade command for pipx-based updates",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-3bx",
+      "title": "can remove curb reference in CHANGELOG.md",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r9d",
+      "title": "symbiotic-workflow #4: Reconciliation and Polish",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T20:43:28.858228",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:43:28.976772",
+      "level": "info",
+      "message": "Starting task: context-restructure #1: Cleanup",
+      "task_id": "cub-r1a",
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": true,
+  "is_finished": false,
+  "tasks_remaining": 40,
+  "completion_percentage": 0.0,
+  "duration_seconds": 4.612608
+}

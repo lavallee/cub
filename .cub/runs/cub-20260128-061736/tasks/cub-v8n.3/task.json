@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-v8n.3",
+  "title": "Implement transcript parsing for enrichment",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T06:40:07.590933",
+  "completed_at": "2026-01-28T06:40:07.590933",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 15879,
+    "output_tokens": 21829,
+    "cache_read_tokens": 3304007,
+    "cache_creation_tokens": 93246,
+    "cost_usd": 2.1107681000000005,
+    "estimated": false
+  },
+  "duration_seconds": 551.4063477516174
+}

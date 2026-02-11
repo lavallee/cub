@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.3",
+  "title": "Add post-command guidance messages to key cub workflows",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T02:25:16.299041",
+  "completed_at": "2026-01-29T02:25:16.299043",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 580.4375042915344
+}

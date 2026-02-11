@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-w3f.5",
+  "title": "Integrate hook installation into cub init and cub doctor",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T06:17:30.180001",
+  "completed_at": "2026-01-28T06:17:30.180002",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 1225,
+    "output_tokens": 14699,
+    "cache_read_tokens": 2262865,
+    "cache_creation_tokens": 66046,
+    "cost_usd": 1.3554530000000005,
+    "estimated": false
+  },
+  "duration_seconds": 315.9149670600891
+}

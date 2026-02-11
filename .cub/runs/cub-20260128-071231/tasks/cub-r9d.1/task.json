@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r9d.1",
+  "title": "Implement cub reconcile command",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T07:19:45.453728",
+  "completed_at": "2026-01-28T07:19:45.453729",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 5257,
+    "output_tokens": 20995,
+    "cache_read_tokens": 3337432,
+    "cache_creation_tokens": 72286,
+    "cost_usd": 1.8307854000000001,
+    "estimated": false
+  },
+  "duration_seconds": 433.18961477279663
+}

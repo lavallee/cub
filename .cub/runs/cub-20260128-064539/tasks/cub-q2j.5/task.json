@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-q2j.5",
+  "title": "UserPromptSubmit hook for task ID detection",
+  "priority": "P3",
+  "status": "completed",
+  "started_at": "2026-01-28T07:12:25.804912",
+  "completed_at": "2026-01-28T07:12:25.804913",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 6957,
+    "output_tokens": 28718,
+    "cache_read_tokens": 6373712,
+    "cache_creation_tokens": 106123,
+    "cost_usd": 0.9979769500000003,
+    "estimated": false
+  },
+  "duration_seconds": 309.4047999382019
+}

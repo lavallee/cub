@@ -1,0 +1,45 @@
+
+
+I'll start by understanding the project structure and the current codebase before implementing.Now let me read the current `cli/run.py` and understand the existing prompt builder functions:Let me find the prompt builder functions in `cli/run.py`:Now let me read the prompt-related functions:Now let me read the test files to understand what's being tested:Now let me read the existing test imports to understand what I need to maintain:Now I have a thorough understanding. Let me also check the existing models for Task and TaskBackend types:Let me also check how the functions are used in the run loop to understand the calling patterns:Now I have full understanding. Let me create the implementation. The functions to extract are:
+1. `generate_system_prompt` - pure function, takes Path, returns str
+2. `generate_direct_task_prompt` - pure function, takes str, returns str
+3. `generate_epic_context` - takes Task + TaskBackend, returns str | None
+4. `generate_retry_context` - takes Task + LedgerIntegration, returns str | None
+5. `generate_task_prompt` - orchestrator, takes Task + TaskBackend + optional LedgerIntegration, returns str
+
+Let me now create the package and files:Now create the prompt_builder module with data models and extracted functions:Now update `cli/run.py` to import from `core/run/prompt_builder` instead of defining functions locally:Now I need to replace the functions in `cli/run.py` with imports from the new module. Let me read the exact sections I need to replace:I need to replace the function definitions (lines 437-764) with imports. Let me read the exact boundaries:Now I need to replace the local function definitions with re-exports from the new module. The functions span lines 437-764. I also need to keep `_read_direct_input` (lines 481-516) in `cli/run.py` since it uses `typer` and `sys` (CLI concerns).
+
+Let me do this carefully:Now remove `generate_direct_task_prompt`:Wait, I need to remove `generate_epic_context`, `generate_retry_context`, and `generate_task_prompt` too since they're all imported. Let me check what's left:Now remove all three remaining functions (generate_epic_context, generate_retry_context, generate_task_prompt):Now let me verify the import block looks correct:Good. Now let me write the unit tests for the prompt builder:Let me check the existing test patterns for reference:Now let me write the tests:Now let's run the feedback loops:Two test failures. Let me fix them:
+
+1. The truncation test - the result has a trailing newline after the "..."
+2. The empty description test - `description=None` probably fails because Task model doesn't accept NoneNow check what Task model accepts for description:So `description` is `str` not `str | None`. Fix the test to use an empty string:Now run the tests again, including both the new tests and existing run tests:All 167 tests pass (1 skipped). Now run mypy and ruff:Let me fix the lint issues. The key problems are:
+1. `generate_epic_context` and `generate_retry_context` are not directly used in `cli/run.py` (they're called by `generate_task_prompt` internally) - but we need them re-exported for backwards compat
+2. Import sorting in tests
+3. Some pre-existing issues in cli/run.py (TaskBackend, E501)Now fix the test import sorting:Now let me check the remaining lint issues are only pre-existing ones:The remaining errors are all **pre-existing** in `cli/run.py` (lines 64, 1596, 2446, 2516) — not introduced by my changes. The new files (`core/run/` and test file) are clean. Let me verify:Now let me verify mypy on just the new module:Let me also run the full test suite quickly to make sure nothing is broken:All 183 tests pass. Now close the task and commit:Now let me check if all tasks are closed:There are more tasks open. My task (cub-b1a.1) is complete. Since there are still open tasks, I should NOT output the COMPLETE signal.
+
+The task is done. Here's a summary of what was accomplished:
+
+## Summary
+
+**Task cub-b1a.1: Create core/run package with prompt builder extraction** ✅
+
+### What was done:
+
+1. **Created `src/cub/core/run/__init__.py`** — Package init with re-exports of all public functions.
+
+2. **Created `src/cub/core/run/prompt_builder.py`** — Extracted 5 prompt builder functions from `cli/run.py`:
+   - `generate_system_prompt()` — System prompt generation with file lookup chain
+   - `generate_direct_task_prompt()` — Direct mode (no task backend) prompt
+   - `generate_epic_context()` — Epic context with sibling task status
+   - `generate_retry_context()` — Retry context with failed attempt history
+   - `generate_task_prompt()` — Full task prompt orchestrator
+
+3. **Defined data models:**
+   - `PromptConfig` — Frozen dataclass for system prompt configuration (project_dir, package_root, search paths)
+   - `TaskPrompt` — Frozen dataclass for structured prompt output (text, context flags)
+
+4. **Updated `cli/run.py`** — Replaced ~280 lines of local function definitions with imports from `core/run/prompt_builder`, using `# noqa: F401` for re-exported names.
+
+5. **Added `tests/test_run_prompt_builder.py`** — 48 unit tests covering all functions, data models, and backwards-compatible imports.
+
+6. **All 183 existing run tests pass unchanged** — Full backwards compatibility maintained.

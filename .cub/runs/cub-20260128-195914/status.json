@@ -1,0 +1,122 @@
+{
+  "run_id": "cub-20260128-195914",
+  "session_name": "cub-20260128-195914",
+  "started_at": "2026-01-28T19:59:14.112241",
+  "updated_at": "2026-01-28T20:22:42.127310",
+  "completed_at": "2026-01-28T20:22:41.967932",
+  "epic": "cub-b1d",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 76639,
+    "tokens_limit": null,
+    "cost_usd": 4.86773205,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 42,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 45,
+  "task_entries": [
+    {
+      "task_id": "cub-b1d.1",
+      "title": "Create suggestion models and data sources",
+      "state": "done",
+      "started_at": "2026-01-28T19:59:14.328660",
+      "completed_at": "2026-01-28T20:09:46.223253"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T19:59:14.232341",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:59:14.328701",
+      "level": "info",
+      "message": "Starting task: Create suggestion models and data sources",
+      "task_id": "cub-b1d.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:09:46.223325",
+      "level": "info",
+      "message": "Task completed: Create suggestion models and data sources",
+      "task_id": "cub-b1d.1",
+      "metadata": {
+        "duration": 631.7186970710754,
+        "tokens": 41850
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:09:58.764536",
+      "level": "info",
+      "message": "Starting task: Implement ranking algorithm and engine",
+      "task_id": "cub-b1d.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:15:08.982640",
+      "level": "info",
+      "message": "Task completed: Implement ranking algorithm and engine",
+      "task_id": "cub-b1d.2",
+      "metadata": {
+        "duration": 310.06944823265076,
+        "tokens": 13570
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:15:21.089473",
+      "level": "info",
+      "message": "Starting task: Wire SuggestionEngine into services and dogfood",
+      "task_id": "cub-b1d.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:22:31.787409",
+      "level": "info",
+      "message": "Task completed: Wire SuggestionEngine into services and dogfood",
+      "task_id": "cub-b1d.3",
+      "metadata": {
+        "duration": 430.4759953022003,
+        "tokens": 21219
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:22:41.967989",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 42,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1407.855691
+}

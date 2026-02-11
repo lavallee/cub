@@ -1,0 +1,85 @@
+{
+  "run_id": "cub-20260128-035958",
+  "session_name": "cub-20260128-035958",
+  "started_at": "2026-01-28T03:59:58.184530",
+  "updated_at": "2026-01-28T04:11:11.999939",
+  "completed_at": null,
+  "epic": "cub-r1a",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "running",
+  "current_task_id": "cub-r1a.1",
+  "current_task_title": "Remove progress.txt references from templates and prompts",
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 0,
+    "tokens_limit": null,
+    "cost_usd": 0.0,
+    "cost_limit": null,
+    "tasks_completed": 0,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 63,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 64,
+  "task_entries": [
+    {
+      "task_id": "cub-r1a.1",
+      "title": "Remove progress.txt references from templates and prompts",
+      "state": "doing",
+      "started_at": "2026-01-28T03:59:58.343104",
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1a.2",
+      "title": "Remove deprecated template files",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1a.3",
+      "title": "Delete stale progress and guardrails files from cub repo",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T03:59:58.292182",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T03:59:58.343160",
+      "level": "info",
+      "message": "Starting task: Remove progress.txt references from templates and prompts",
+      "task_id": "cub-r1a.1",
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": true,
+  "is_finished": false,
+  "tasks_remaining": 64,
+  "completion_percentage": 0.0,
+  "duration_seconds": 673.815539
+}

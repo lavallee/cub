@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.2",
+  "title": "Fix monitor command to work with beads backend",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T02:15:26.586591",
+  "completed_at": "2026-01-29T02:15:26.586593",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 409.4173574447632
+}

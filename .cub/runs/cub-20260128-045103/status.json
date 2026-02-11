@@ -1,0 +1,181 @@
+{
+  "run_id": "cub-20260128-045103",
+  "session_name": "cub-20260128-045103",
+  "started_at": "2026-01-28T04:51:03.005683",
+  "updated_at": "2026-01-28T05:26:56.851743",
+  "completed_at": "2026-01-28T05:26:56.697736",
+  "epic": "cub-r1c",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 112528,
+    "tokens_limit": null,
+    "cost_usd": 8.944556600000002,
+    "cost_limit": null,
+    "tasks_completed": 4,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 52,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 56,
+  "task_entries": [
+    {
+      "task_id": "cub-r1c.1",
+      "title": "Implement structure analyzer module",
+      "state": "done",
+      "started_at": "2026-01-28T04:51:03.167246",
+      "completed_at": "2026-01-28T05:00:25.248682"
+    },
+    {
+      "task_id": "cub-r1c.2",
+      "title": "Implement code intelligence module with tree-sitter",
+      "state": "done",
+      "started_at": "2026-01-28T05:00:27.624245",
+      "completed_at": "2026-01-28T05:13:07.873335"
+    },
+    {
+      "task_id": "cub-r1c.3",
+      "title": "Implement map renderer with token budgeting",
+      "state": "done",
+      "started_at": "2026-01-28T05:13:10.259020",
+      "completed_at": "2026-01-28T05:21:04.516510"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T04:51:03.113047",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:51:03.167276",
+      "level": "info",
+      "message": "Starting task: Implement structure analyzer module",
+      "task_id": "cub-r1c.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:00:25.248741",
+      "level": "info",
+      "message": "Task completed: Implement structure analyzer module",
+      "task_id": "cub-r1c.1",
+      "metadata": {
+        "duration": 561.9561579227448,
+        "tokens": 31946
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:00:25.373408",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1c.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:00:27.624282",
+      "level": "info",
+      "message": "Starting task: Implement code intelligence module with tree-sitter",
+      "task_id": "cub-r1c.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:13:07.873374",
+      "level": "info",
+      "message": "Task completed: Implement code intelligence module with tree-sitter",
+      "task_id": "cub-r1c.2",
+      "metadata": {
+        "duration": 760.0177001953125,
+        "tokens": 36707
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:13:07.998307",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1c.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:13:10.259044",
+      "level": "info",
+      "message": "Starting task: Implement map renderer with token budgeting",
+      "task_id": "cub-r1c.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:21:04.516553",
+      "level": "info",
+      "message": "Task completed: Implement map renderer with token budgeting",
+      "task_id": "cub-r1c.3",
+      "metadata": {
+        "duration": 474.07902359962463,
+        "tokens": 20425
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:21:04.624739",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1c.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:21:06.801604",
+      "level": "info",
+      "message": "Starting task: Implement cub map CLI command and wire into init/update",
+      "task_id": "cub-r1c.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:26:54.205416",
+      "level": "info",
+      "message": "Task completed: Implement cub map CLI command and wire into init/update",
+      "task_id": "cub-r1c.4",
+      "metadata": {
+        "duration": 347.24869751930237,
+        "tokens": 23450
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:26:54.356665",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1c.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:26:56.697802",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 52,
+  "completion_percentage": 0.0,
+  "duration_seconds": 2153.692053
+}

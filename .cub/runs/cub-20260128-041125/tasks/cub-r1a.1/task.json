@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1a.1",
+  "title": "Remove progress.txt references from templates and prompts",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T04:15:59.545984",
+  "completed_at": "2026-01-28T04:15:59.545986",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 4773,
+    "output_tokens": 5282,
+    "cache_read_tokens": 996621,
+    "cache_creation_tokens": 34743,
+    "cost_usd": 0.5646165500000002,
+    "estimated": false
+  },
+  "duration_seconds": 274.1092562675476
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r9d.2",
+  "title": "Add hook validation to cub doctor",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T07:23:59.096017",
+  "completed_at": "2026-01-28T07:23:59.096017",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 63,
+    "output_tokens": 11692,
+    "cache_read_tokens": 3225840,
+    "cache_creation_tokens": 88022,
+    "cost_usd": 0.5472605000000004,
+    "estimated": false
+  },
+  "duration_seconds": 251.02478313446045
+}

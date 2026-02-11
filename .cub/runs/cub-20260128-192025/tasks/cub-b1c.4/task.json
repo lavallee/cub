@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1c.4",
+  "title": "Enhance TaskService with ready(), stale_epics(), and claims",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T19:58:57.649213",
+  "completed_at": "2026-01-28T19:58:57.649214",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 527.9190289974213
+}

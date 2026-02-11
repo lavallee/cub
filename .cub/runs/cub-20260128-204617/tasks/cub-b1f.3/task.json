@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1f.3",
+  "title": "End-to-end validation of full flow",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T20:52:34.507954",
+  "completed_at": "2026-01-28T20:52:34.507956",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 376.15097999572754
+}

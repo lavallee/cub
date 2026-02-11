@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1c.4",
+  "title": "Implement cub map CLI command and wire into init/update",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T05:26:54.205437",
+  "completed_at": "2026-01-28T05:26:54.205437",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 6163,
+    "output_tokens": 17287,
+    "cache_read_tokens": 1808639,
+    "cache_creation_tokens": 63938,
+    "cost_usd": 1.2787799500000003,
+    "estimated": false
+  },
+  "duration_seconds": 347.24869751930237
+}

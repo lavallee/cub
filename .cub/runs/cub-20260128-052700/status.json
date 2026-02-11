@@ -1,0 +1,157 @@
+{
+  "run_id": "cub-20260128-052700",
+  "session_name": "cub-20260128-052700",
+  "started_at": "2026-01-28T05:27:00.127377",
+  "updated_at": "2026-01-28T05:48:39.898865",
+  "completed_at": "2026-01-28T05:48:39.743603",
+  "epic": "cub-r1d",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 4,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 4.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 46749,
+    "tokens_limit": null,
+    "cost_usd": 3.6393518,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 49,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 52,
+  "task_entries": [
+    {
+      "task_id": "cub-r1d.1",
+      "title": "Implement epic context generation for task prompts",
+      "state": "done",
+      "started_at": "2026-01-28T05:27:00.302642",
+      "completed_at": "2026-01-28T05:33:50.240331"
+    },
+    {
+      "task_id": "cub-r1d.2",
+      "title": "Implement retry context injection from ledger",
+      "state": "done",
+      "started_at": "2026-01-28T05:33:52.542507",
+      "completed_at": "2026-01-28T05:40:27.307423"
+    },
+    {
+      "task_id": "cub-r1d.3",
+      "title": "Update system prompt and document context composition",
+      "state": "done",
+      "started_at": "2026-01-28T05:40:29.615987",
+      "completed_at": "2026-01-28T05:48:37.390719"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T05:27:00.236720",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:27:00.302683",
+      "level": "info",
+      "message": "Starting task: Implement epic context generation for task prompts",
+      "task_id": "cub-r1d.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:33:50.240371",
+      "level": "info",
+      "message": "Task completed: Implement epic context generation for task prompts",
+      "task_id": "cub-r1d.1",
+      "metadata": {
+        "duration": 409.79256081581116,
+        "tokens": 13426
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:33:50.351662",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1d.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:33:52.542532",
+      "level": "info",
+      "message": "Starting task: Implement retry context injection from ledger",
+      "task_id": "cub-r1d.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:40:27.307459",
+      "level": "info",
+      "message": "Task completed: Implement retry context injection from ledger",
+      "task_id": "cub-r1d.2",
+      "metadata": {
+        "duration": 394.62737226486206,
+        "tokens": 15950
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:40:27.419663",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1d.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:40:29.616005",
+      "level": "info",
+      "message": "Starting task: Update system prompt and document context composition",
+      "task_id": "cub-r1d.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:48:37.390748",
+      "level": "info",
+      "message": "Task completed: Update system prompt and document context composition",
+      "task_id": "cub-r1d.3",
+      "metadata": {
+        "duration": 487.62342715263367,
+        "tokens": 17373
+      }
+    },
+    {
+      "timestamp": "2026-01-28T05:48:37.495375",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1d.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T05:48:39.743649",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 49,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1299.616226
+}

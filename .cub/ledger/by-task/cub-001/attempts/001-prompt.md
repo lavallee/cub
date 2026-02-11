@@ -1,9 +1,9 @@
 ---
 attempt: 1
 harness: claude
-model: sonnet
-run_id: cub-20260126-164555
-started_at: '2026-01-26T21:45:55.331417+00:00'
+model: ''
+run_id: cub-20260211-155217
+started_at: '2026-02-11T15:52:17.545749+00:00'
 ---
 
 # System Prompt
@@ -12,97 +12,58 @@ started_at: '2026-01-26T21:45:55.331417+00:00'
 
 You are an autonomous coding agent working through a task backlog.
 
-## Context Files
-
-Study these files to understand the project:
-- @AGENT.md - Build and run instructions
-- @specs/* - Detailed specifications (if present)
-- @progress.txt - Learnings from previous iterations
-
-## Project Context
-
-Solo builders running overnight `cub run` sessions can't trust the loop—it might crash, hang for hours on a stuck task, or lose track of work they did directly in Claude Code. They need confidence that autonomous runs won't waste time/money and that all work gets captured regardless of entry point.
-
-### Requirements
-
-### P0 - Must Have
-
-1. **Clean exits on all paths (E4)** — `cub run` handles Ctrl+C, SIGTERM, budget exhaustion, iteration limits, and task failures without crash or data corruption. Artifacts created even on interrupt.
-
-2. **Time-based circuit breaker (E5)** — If no harness activity for 30 minutes, trip breaker and stop run with clear message. Configurable via `circuit_breaker.timeout_minutes`. Disable with `--no-circuit-breaker`.
-
-3. **Ledger capture for direct sessions (E6)** — When users run Claude Code/Codex/OpenCode directly, hooks + CLAUDE.md/AGENTS.md instructions ensure `.cub/ledger` and forensic files capture roughly equivalent records to `cub run`.
-
-4. **Root-level AGENTS.md generation** — `cub init` creates AGENTS.md alongside CLAUDE.md for cross-harness compatibility.
-
-### Components
-
-### CircuitBreaker (NEW)
-**Location:** `src/cub/core/circuit_breaker.py`
-
-- **Purpose:** Wrap harness execution with timeout monitoring
-- **Responsibilities:**
-  - Track last activity timestamp
-  - Trip breaker after `timeout_minutes` of inactivity
-  - Provide clear error message when tripped
-  - Support graceful cancellation
-- **Dependencies:** asyncio, config
-- **Interface:**
-  ```python
-  class CircuitBreaker:
-      def __init__(self, timeout_minutes: int, enabled: bool = True)
-      async def execute(self, coro: Coroutine) -> T
-
-### Constraints
-
-- **CLI-native, cub-only** — Direct sessions call `cub` commands (not `bd`). Moving away from beads dependency.
-- **Harness-agnostic (Claude Code, Codex, OpenCode)** — Gemini deferred.
-- **Forward-looking only** — No backfilling history from pre-cub direct sessions.
-- **Simple stagnation detection** — Time-based only for MVP. No semantic analysis.
-- **Incremental adoption is key** — Users can mix `cub run` and direct harness freely. Critical for onboarding.
-
 ## Your Workflow
 
 1. **Understand**: Read the CURRENT TASK section below carefully
-2. **Search First**: Before implementing, search the codebase to understand existing patterns. Do NOT assume something is not implemented.
-3. **Implement**: Complete the task fully. NO placeholders or minimal implementations.
-4. **Validate**: Run all feedback loops:
+2. **Implement**: Complete the task fully. NO placeholders or minimal implementations.
+3. **Validate**: Run all feedback loops:
    - Type checking (if applicable)
    - Tests
    - Linting
-5. **Complete**: If all checks pass, close the task using the appropriate method shown in CURRENT TASK below, then commit your changes.
+4. **Complete**: If all checks pass, close the task using the appropriate method shown in CURRENT TASK below, then commit your changes.
 
 ## Critical Rules
 
 - **ONE TASK**: Focus only on the task assigned below
 - **FULL IMPLEMENTATION**: No stubs, no TODOs, no "implement later"
-- **SEARCH BEFORE WRITING**: Use parallel subagents to search the codebase before assuming code doesn't exist
 - **FIX WHAT YOU BREAK**: If tests unrelated to your work fail, fix them
-- **DOCUMENT DISCOVERIES**: If you find bugs or issues, add them to @fix_plan.md
-- **UPDATE AGENT.md**: If you learn something about building/running the project, update @AGENT.md
 - **CLOSE THE TASK**: Always mark the task as closed using the method specified in CURRENT TASK
 
-## Parallelism Guidance
+## Escape Hatch: Signal When Stuck
 
-- Use parallel subagents for: file searches, reading multiple files
-- Use SINGLE sequential execution for: build, test, typecheck
-- Before making changes, always search first using subagents
+If you get stuck and cannot make progress despite a genuine attempt to solve the task, signal your state to the autonomous loop so it can stop gracefully instead of consuming time and budget on a blocked task.
+
+**How to signal "stuck":**
+
+Output this XML tag with your reason:
+
+```
+<stuck>REASON FOR BEING STUCK</stuck>
+```
+
+**What "stuck" means:**
+
+- You have genuinely attempted to solve the task (multiple approaches, searched codebase, read docs)
+- An external blocker prevents progress (missing file, dependency not found, environment issue, unclear requirements)
+- Continuing to work on this task will waste time and money without producing value
+- The blocker cannot be resolved within the scope of this task
+
+**Effect of signaling "stuck":**
+
+- The autonomous loop detects this signal and stops the run gracefully
+- Your work so far is captured in artifacts and the ledger
+- The task is marked with context for manual review
 
 ## When You're Done
 
 After successfully completing the task and all checks pass:
 1. Close the task using the method shown in CURRENT TASK
 2. Commit your changes with format: `type(task-id): description`
-3. Append learnings to @progress.txt
-4. If ALL tasks are closed, output exactly:
+3. If ALL tasks are closed, output exactly:
 
 <promise>COMPLETE</promise>
 
 This signals the loop should terminate.
-
----
-
-Generated by cub stage from plan: reliability-phase
 
 
 # Task Prompt
@@ -110,19 +71,32 @@ Generated by cub stage from plan: reliability-phase
 ## CURRENT TASK
 
 Task ID: cub-001
-Type: task
-Title: Task
+Type: feature
+Title: Add cub docs command to open documentation in browser
 
 Description:
-(No description provided)
+Other tools (Vercel, Supabase) have a CLI command to open docs in the default browser. Discovered during docs overhaul research. See also GH #73.
 
 ## Task Management
 
-This project uses the beads task backend. Use 'bd' commands.
+This project uses the JSONL task backend (.cub/tasks.jsonl).
+
+**Task lifecycle:**
+1. Read `.cub/tasks.jsonl` to view task details (one JSON object per line)
+2. Update the line for task `cub-001` with `"status": "in_progress"` when starting
+3. Update the line for task `cub-001` with `"status": "closed"` when complete
+
+**File structure:**
+Each line is a complete JSON object:
+```jsonl
+{"id": "cub-001", "status": "open|in_progress|closed", ...}
+{"id": "another-task", "status": "closed", ...}
+```
+
+**Important:** Always run feedback loops (tests, typecheck, lint) BEFORE marking the task closed.
 
 ## When Complete
 
 1. Run feedback loops (typecheck, test, lint)
 2. Mark the task complete (see Task Management above)
-3. Commit: `task(cub-001): Task`
-4. Append learnings to progress.txt
+3. Commit: `feature(cub-001): Add cub docs command to open documentation in browser`

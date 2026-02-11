@@ -1,0 +1,291 @@
+{
+  "run_id": "cub-20260129-015952",
+  "session_name": "cub-20260129-015952",
+  "started_at": "2026-01-29T01:59:52.510501",
+  "updated_at": "2026-01-29T02:03:41.969555",
+  "completed_at": "2026-01-29T02:03:41.968432",
+  "epic": null,
+  "label": null,
+  "branch": "task/cub-3bx",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 1431,
+    "tokens_limit": null,
+    "cost_usd": 0.4734217499999999,
+    "cost_limit": null,
+    "tasks_completed": 1,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 46,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 48,
+  "task_entries": [
+    {
+      "task_id": "cub-r1a",
+      "title": "context-restructure #1: Cleanup",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1b",
+      "title": "context-restructure #2: Foundation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1a",
+      "title": "bare-cub #1: Core Run Extraction",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1e",
+      "title": "bare-cub #5: Bare Cub Command",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-iyk",
+      "title": "Phase 1: Foundation - Establish Stability Framework",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1d",
+      "title": "context-restructure #4: Task Prompt Enrichment",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-r1c",
+      "title": "context-restructure #3: Project Map",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-v8n",
+      "title": "symbiotic-workflow #2: Session Ledger Integration",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1b",
+      "title": "bare-cub #2: Rich Boundary Cleanup",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1c",
+      "title": "bare-cub #3: Service Layer",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1d",
+      "title": "bare-cub #4: Suggestion Engine",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-CAP",
+      "title": "Feature: Capture - Idea Collection System",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-jm48",
+      "title": "Fix bootstrap: detect ID collisions before import",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-q2j",
+      "title": "symbiotic-workflow #3: Task Backend and Instructions",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-b1f",
+      "title": "bare-cub #6: Skill Discovery & Documentation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x",
+      "title": "2026-01-28-assorted Bug Fixes",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.1",
+      "title": "Fix label order comparison in backend divergence checks",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.2",
+      "title": "Fix monitor command to work with beads backend",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.3",
+      "title": "Add post-command guidance messages to key cub workflows",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.4",
+      "title": "Configure git upstream on feature branch creation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.5",
+      "title": "Check completed steps before launching architect in plan run",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.6",
+      "title": "Add build failure detection and retry logic to cub pr",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.7",
+      "title": "Ensure plan.json is created at pipeline start",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.8",
+      "title": "Remove deprecated cub:triage and cub:plan skill commands",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.9",
+      "title": "Add harness and model info to task headline",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.10",
+      "title": "Add newlines between streamed harness messages",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-n6x.11",
+      "title": "Add progress updates during punchlist item processing",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-ht4",
+      "title": "Add cub upgrade command for pipx-based updates",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-3bx",
+      "title": "can remove curb reference in CHANGELOG.md",
+      "state": "done",
+      "started_at": "2026-01-29T01:59:52.821514",
+      "completed_at": "2026-01-29T02:03:34.986150"
+    },
+    {
+      "task_id": "cub-r9d",
+      "title": "symbiotic-workflow #4: Reconciliation and Polish",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T01:59:52.714000",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T01:59:52.821534",
+      "level": "info",
+      "message": "Starting task: can remove curb reference in CHANGELOG.md",
+      "task_id": "cub-3bx",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:03:34.986530",
+      "level": "info",
+      "message": "Task completed: can remove curb reference in CHANGELOG.md",
+      "task_id": "cub-3bx",
+      "metadata": {
+        "duration": 221.87392473220825,
+        "tokens": 1431
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:03:41.968477",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 47,
+  "completion_percentage": 0.0,
+  "duration_seconds": 229.457931
+}

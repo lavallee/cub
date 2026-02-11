@@ -1,0 +1,212 @@
+{
+  "run_id": "cub-20260128-064539",
+  "session_name": "cub-20260128-064539",
+  "started_at": "2026-01-28T06:45:39.074600",
+  "updated_at": "2026-01-28T07:12:28.480779",
+  "completed_at": "2026-01-28T07:12:28.238057",
+  "epic": "cub-q2j",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 6,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 6.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 101741,
+    "tokens_limit": null,
+    "cost_usd": 6.267761,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 34,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 39,
+  "task_entries": [
+    {
+      "task_id": "cub-q2j.1",
+      "title": "Add branch binding to JSON task backend",
+      "state": "done",
+      "started_at": "2026-01-28T06:45:39.337827",
+      "completed_at": "2026-01-28T06:52:35.694387"
+    },
+    {
+      "task_id": "cub-q2j.2",
+      "title": "Add cub task CLI subcommand",
+      "state": "done",
+      "started_at": "2026-01-28T06:52:38.019413",
+      "completed_at": "2026-01-28T06:58:27.280854"
+    },
+    {
+      "task_id": "cub-q2j.4",
+      "title": "SessionStart hook injects project context",
+      "state": "done",
+      "started_at": "2026-01-28T07:03:11.711882",
+      "completed_at": "2026-01-28T07:07:13.824176"
+    },
+    {
+      "task_id": "cub-q2j.5",
+      "title": "UserPromptSubmit hook for task ID detection",
+      "state": "done",
+      "started_at": "2026-01-28T07:07:16.203493",
+      "completed_at": "2026-01-28T07:12:25.804862"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T06:45:39.249513",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:45:39.337869",
+      "level": "info",
+      "message": "Starting task: Add branch binding to JSON task backend",
+      "task_id": "cub-q2j.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:52:35.694441",
+      "level": "info",
+      "message": "Task completed: Add branch binding to JSON task backend",
+      "task_id": "cub-q2j.1",
+      "metadata": {
+        "duration": 416.13734197616577,
+        "tokens": 25894
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:52:35.798679",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-q2j.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:52:38.019441",
+      "level": "info",
+      "message": "Starting task: Add cub task CLI subcommand",
+      "task_id": "cub-q2j.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:58:27.280884",
+      "level": "info",
+      "message": "Task completed: Add cub task CLI subcommand",
+      "task_id": "cub-q2j.2",
+      "metadata": {
+        "duration": 349.0500192642212,
+        "tokens": 14503
+      }
+    },
+    {
+      "timestamp": "2026-01-28T06:58:27.475238",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-q2j.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T06:58:29.681036",
+      "level": "info",
+      "message": "Starting task: Update AGENTS.md and CLAUDE.md generation",
+      "task_id": "cub-q2j.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:03:09.260574",
+      "level": "info",
+      "message": "Task completed: Update AGENTS.md and CLAUDE.md generation",
+      "task_id": "cub-q2j.3",
+      "metadata": {
+        "duration": 279.3460178375244,
+        "tokens": 11310
+      }
+    },
+    {
+      "timestamp": "2026-01-28T07:03:09.458046",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-q2j.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:03:11.711917",
+      "level": "info",
+      "message": "Starting task: SessionStart hook injects project context",
+      "task_id": "cub-q2j.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:07:13.824205",
+      "level": "info",
+      "message": "Task completed: SessionStart hook injects project context",
+      "task_id": "cub-q2j.4",
+      "metadata": {
+        "duration": 241.82819533348083,
+        "tokens": 14359
+      }
+    },
+    {
+      "timestamp": "2026-01-28T07:07:13.992104",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-q2j.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:07:16.203520",
+      "level": "info",
+      "message": "Starting task: UserPromptSubmit hook for task ID detection",
+      "task_id": "cub-q2j.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:12:25.804895",
+      "level": "info",
+      "message": "Task completed: UserPromptSubmit hook for task ID detection",
+      "task_id": "cub-q2j.5",
+      "metadata": {
+        "duration": 309.4047999382019,
+        "tokens": 35675
+      }
+    },
+    {
+      "timestamp": "2026-01-28T07:12:25.913777",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-q2j.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T07:12:28.238247",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 34,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1609.163457
+}

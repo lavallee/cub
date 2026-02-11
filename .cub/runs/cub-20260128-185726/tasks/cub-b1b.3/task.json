@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1b.3",
+  "title": "Move bash_delegate to CLI layer",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T19:16:59.743992",
+  "completed_at": "2026-01-28T19:16:59.743994",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 238.53158712387085
+}

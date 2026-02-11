@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-b1a.2",
+  "title": "Extract budget tracking to core/run/budget.py",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T18:09:16.974983",
+  "completed_at": "2026-01-28T18:09:16.974984",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 8029,
+    "output_tokens": 17327,
+    "cache_read_tokens": 1351687,
+    "cache_creation_tokens": 65460,
+    "cost_usd": 0.9653311000000001,
+    "estimated": false
+  },
+  "duration_seconds": 301.63086700439453
+}

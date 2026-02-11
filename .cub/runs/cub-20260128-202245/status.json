@@ -1,0 +1,122 @@
+{
+  "run_id": "cub-20260128-202245",
+  "session_name": "cub-20260128-202245",
+  "started_at": "2026-01-28T20:22:45.799688",
+  "updated_at": "2026-01-28T20:46:13.752917",
+  "completed_at": "2026-01-28T20:46:13.600238",
+  "epic": "cub-b1e",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 32009,
+    "tokens_limit": null,
+    "cost_usd": 4.64390745,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 38,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 42,
+  "task_entries": [
+    {
+      "task_id": "cub-b1e.1",
+      "title": "Implement bare cub default command handler",
+      "state": "done",
+      "started_at": "2026-01-28T20:22:46.010444",
+      "completed_at": "2026-01-28T20:31:26.281324"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T20:22:45.915349",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:22:46.010463",
+      "level": "info",
+      "message": "Starting task: Implement bare cub default command handler",
+      "task_id": "cub-b1e.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:31:26.281357",
+      "level": "info",
+      "message": "Task completed: Implement bare cub default command handler",
+      "task_id": "cub-b1e.1",
+      "metadata": {
+        "duration": 520.1439476013184,
+        "tokens": 18522
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:31:38.784279",
+      "level": "info",
+      "message": "Starting task: Design and implement welcome message format",
+      "task_id": "cub-b1e.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:37:11.761064",
+      "level": "info",
+      "message": "Task completed: Design and implement welcome message format",
+      "task_id": "cub-b1e.2",
+      "metadata": {
+        "duration": 332.8314905166626,
+        "tokens": 13170
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:37:23.973203",
+      "level": "info",
+      "message": "Starting task: Integration testing and edge cases",
+      "task_id": "cub-b1e.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:46:03.532442",
+      "level": "info",
+      "message": "Task completed: Integration testing and edge cases",
+      "task_id": "cub-b1e.3",
+      "metadata": {
+        "duration": 517.8588762283325,
+        "tokens": 317
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:46:13.600292",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 39,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1407.80055
+}

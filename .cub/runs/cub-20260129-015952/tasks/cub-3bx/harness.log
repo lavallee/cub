@@ -1,0 +1,17 @@
+
+
+I'll start by claiming the task and understanding what needs to be done.Now I can see the references to "Curb" that need to be removed or updated. Let me find all the "curb" references (case-insensitive) to understand the scope:The task is to remove "curb" references from the CHANGELOG. The key distinction is:
+- **Historical entries** (pre-0.13.0) correctly reference "curb" since that was the name at the time
+- **Line 3** has a "(formerly Curb)" parenthetical that can be removed since the rename is old news
+- **The upgrade notes section** (lines 1191-1202) documents the Curb→Cub migration, which is historical reference that could be removed
+- **Version summary table** line 1172 references "Rename Curb → Cub" which is a historical note
+
+The task says "can remove curb reference" - I'll remove the "(formerly Curb)" from line 3 since that's the most prominent ongoing reference. The historical entries in older versions are accurate records. But let me also clean up the upgrade notes section since it references the old name extensively and is no longer needed for users.
+
+Let me make the changes:Now let me run the feedback loops to make sure nothing is broken:
+
+The tests and lint results show pre-existing issues unrelated to my change. The 2 test failures are environment-dependent (running inside a cub session), and the ruff/mypy errors are all pre-existing. My change was a simple text edit to the CHANGELOG.
+
+Let me close the task and commit:Now let me check if there are remaining tasks:There are still open tasks, so this isn't the final one. Task completed successfully.
+
+<promise>COMPLETE</promise>

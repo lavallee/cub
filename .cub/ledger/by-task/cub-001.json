@@ -1,24 +1,74 @@
 {
   "version": 1,
   "id": "cub-001",
-  "title": "Task",
+  "title": "Add cub docs command to open documentation in browser",
   "lineage": {
     "spec_file": null,
     "plan_file": null,
     "epic_id": null
   },
   "task": {
-    "title": "Task",
-    "description": "",
-    "type": "task",
-    "priority": 1,
+    "title": "Add cub docs command to open documentation in browser",
+    "description": "Other tools (Vercel, Supabase) have a CLI command to open docs in the default browser. Discovered during docs overhaul research. See also GH #73.",
+    "type": "feature",
+    "priority": 3,
     "labels": [],
-    "created_at": null,
-    "captured_at": "2026-01-26T21:45:55.301112Z"
+    "created_at": "2026-02-11T15:30:55.371429",
+    "captured_at": "2026-02-11T15:52:17.534286Z"
   },
   "task_changed": null,
-  "attempts": [],
-  "outcome": null,
+  "attempts": [
+    {
+      "attempt_number": 1,
+      "run_id": "cub-20260211-155217",
+      "started_at": "2026-02-11T15:52:17.545491",
+      "completed_at": "2026-02-11T15:55:51.667453Z",
+      "harness": "claude",
+      "model": "",
+      "success": true,
+      "error_category": null,
+      "error_summary": null,
+      "tokens": {
+        "input_tokens": 2,
+        "output_tokens": 7871,
+        "cache_read_tokens": 1354642,
+        "cache_creation_tokens": 42876
+      },
+      "cost_usd": 1.3447964999999995,
+      "duration_seconds": 214
+    }
+  ],
+  "outcome": {
+    "success": true,
+    "partial": false,
+    "completed_at": "2026-02-11T15:55:51.734733Z",
+    "total_cost_usd": 1.3447964999999995,
+    "total_attempts": 1,
+    "total_duration_seconds": 214,
+    "final_model": "",
+    "escalated": false,
+    "escalation_path": [],
+    "files_changed": [],
+    "commits": [
+      {
+        "hash": "96a20669bbc0529fd5dc5fe5caf538e7fe9bad09",
+        "message": "feature(cub-001): Add cub docs command to open documentation in browser",
+        "author": "",
+        "timestamp": "2026-02-11T15:55:34Z"
+      }
+    ],
+    "approach": "Discovered that the `cub docs` command already existed and was fully functional. Rather than re-implementing, added comprehensive test coverage to ensure the feature was properly documented and maintained. This approach verified the existing implementation while establishing confidence in its correctness.",
+    "decisions": [
+      "Created test file (`tests/test_cli_docs.py`) rather than adding tests to an existing test module, following the established pattern of dedicated test files per CLI command",
+      "Tested both online docs (default behavior) and local docs (`--local` flag) to ensure complete feature coverage",
+      "Included tests for error handling (browser open failures) to verify graceful degradation"
+    ],
+    "lessons_learned": [
+      "Always check for existing implementations before implementing new features\u2014the feature may already be present but undocumented or untested",
+      "Following established test patterns in the codebase (test file naming, test structure) reduces review friction and ensures consistency",
+      "Comprehensive test coverage of existing features can validate their correctness and serve as documentation for future maintainers, even when the feature itself wasn't newly added"
+    ]
+  },
   "drift": {
     "additions": [],
     "omissions": [],
@@ -34,38 +84,59 @@
   },
   "workflow": {
     "stage": "dev_complete",
-    "stage_updated_at": "2026-01-26T21:45:55.301112Z"
+    "stage_updated_at": "2026-02-11T15:55:51.734733Z"
   },
   "state_history": [
     {
       "stage": "dev_complete",
-      "at": "2026-01-26T21:45:55.301112Z",
+      "at": "2026-02-11T15:52:17.534286Z",
       "by": "cub-run",
       "reason": "Task execution started"
+    },
+    {
+      "stage": "dev_complete",
+      "at": "2026-02-11T15:55:51.734733Z",
+      "by": "cub-run",
+      "reason": "Task closed successfully"
     }
   ],
-  "started_at": "2026-01-26T21:45:55.301112Z",
-  "completed_at": "2026-01-26T21:45:55.301112Z",
+  "started_at": "2026-02-11T15:52:17.534286Z",
+  "completed_at": "2026-02-11T15:55:51.734733Z",
   "tokens": {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_tokens": 0,
-    "cache_creation_tokens": 0
+    "input_tokens": 2,
+    "output_tokens": 7871,
+    "cache_read_tokens": 1354642,
+    "cache_creation_tokens": 42876
   },
-  "cost_usd": 0.0,
-  "duration_seconds": 0,
+  "cost_usd": 1.3447964999999995,
+  "duration_seconds": 214,
   "iterations": 1,
-  "approach": "",
-  "decisions": [],
-  "lessons_learned": [],
+  "approach": "Discovered that the `cub docs` command already existed and was fully functional. Rather than re-implementing, added comprehensive test coverage to ensure the feature was properly documented and maintained. This approach verified the existing implementation while establishing confidence in its correctness.",
+  "decisions": [
+    "Created test file (`tests/test_cli_docs.py`) rather than adding tests to an existing test module, following the established pattern of dedicated test files per CLI command",
+    "Tested both online docs (default behavior) and local docs (`--local` flag) to ensure complete feature coverage",
+    "Included tests for error handling (browser open failures) to verify graceful degradation"
+  ],
+  "lessons_learned": [
+    "Always check for existing implementations before implementing new features\u2014the feature may already be present but undocumented or untested",
+    "Following established test patterns in the codebase (test file naming, test structure) reduces review friction and ensures consistency",
+    "Comprehensive test coverage of existing features can validate their correctness and serve as documentation for future maintainers, even when the feature itself wasn't newly added"
+  ],
   "files_changed": [],
-  "commits": [],
+  "commits": [
+    {
+      "hash": "96a20669bbc0529fd5dc5fe5caf538e7fe9bad09",
+      "message": "feature(cub-001): Add cub docs command to open documentation in browser",
+      "author": "",
+      "timestamp": "2026-02-11T15:55:34Z"
+    }
+  ],
   "spec_file": null,
-  "run_log_path": "/Users/lavallee/Experiments/cub_planning/.cub/ledger/by-task/cub-001",
+  "run_log_path": "/home/lavallee/clawdbot/cub/.cub/ledger/by-task/cub-001",
   "epic_id": null,
   "verification_status": "pending",
   "verification_notes": [],
-  "harness_name": "",
+  "harness_name": "claude",
   "harness_model": "",
   "workflow_stage": null,
   "workflow_stage_updated_at": null

@@ -1,0 +1,212 @@
+{
+  "run_id": "cub-20260128-042448",
+  "session_name": "cub-20260128-042448",
+  "started_at": "2026-01-28T04:24:48.582053",
+  "updated_at": "2026-01-28T04:50:59.690590",
+  "completed_at": "2026-01-28T04:50:59.539833",
+  "epic": "cub-r1b",
+  "label": null,
+  "branch": "feature/claude-integration",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 6,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 6.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 76650,
+    "tokens_limit": null,
+    "cost_usd": 5.119800099999999,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 56,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 61,
+  "task_entries": [
+    {
+      "task_id": "cub-r1b.1",
+      "title": "Implement managed section detection and upsert engine",
+      "state": "done",
+      "started_at": "2026-01-28T04:24:48.790792",
+      "completed_at": "2026-01-28T04:31:41.114014"
+    },
+    {
+      "task_id": "cub-r1b.2",
+      "title": "Refactor instruction generators for managed section content",
+      "state": "done",
+      "started_at": "2026-01-28T04:31:43.511209",
+      "completed_at": "2026-01-28T04:36:18.070163"
+    },
+    {
+      "task_id": "cub-r1b.3",
+      "title": "Create runloop.md and constitution manager",
+      "state": "done",
+      "started_at": "2026-01-28T04:36:20.552204",
+      "completed_at": "2026-01-28T04:38:59.119396"
+    },
+    {
+      "task_id": "cub-r1b.5",
+      "title": "Add MapConfig to config system",
+      "state": "done",
+      "started_at": "2026-01-28T04:47:26.513442",
+      "completed_at": "2026-01-28T04:50:57.162265"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T04:24:48.719425",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:24:48.790839",
+      "level": "info",
+      "message": "Starting task: Implement managed section detection and upsert engine",
+      "task_id": "cub-r1b.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:31:41.114067",
+      "level": "info",
+      "message": "Task completed: Implement managed section detection and upsert engine",
+      "task_id": "cub-r1b.1",
+      "metadata": {
+        "duration": 412.14419865608215,
+        "tokens": 15872
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:31:41.249337",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1b.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:31:43.511233",
+      "level": "info",
+      "message": "Starting task: Refactor instruction generators for managed section content",
+      "task_id": "cub-r1b.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:36:18.070216",
+      "level": "info",
+      "message": "Task completed: Refactor instruction generators for managed section content",
+      "task_id": "cub-r1b.2",
+      "metadata": {
+        "duration": 274.4126625061035,
+        "tokens": 17736
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:36:18.255057",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1b.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:36:20.552220",
+      "level": "info",
+      "message": "Starting task: Create runloop.md and constitution manager",
+      "task_id": "cub-r1b.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:38:59.119423",
+      "level": "info",
+      "message": "Task completed: Create runloop.md and constitution manager",
+      "task_id": "cub-r1b.3",
+      "metadata": {
+        "duration": 158.43778252601624,
+        "tokens": 6442
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:38:59.219213",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1b.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:39:01.401963",
+      "level": "info",
+      "message": "Starting task: Update cub init and cub update for new context stack",
+      "task_id": "cub-r1b.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:47:24.172962",
+      "level": "info",
+      "message": "Task completed: Update cub init and cub update for new context stack",
+      "task_id": "cub-r1b.4",
+      "metadata": {
+        "duration": 502.6461093425751,
+        "tokens": 18922
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:47:24.307221",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1b.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:47:26.513466",
+      "level": "info",
+      "message": "Starting task: Add MapConfig to config system",
+      "task_id": "cub-r1b.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:50:57.162301",
+      "level": "info",
+      "message": "Task completed: Add MapConfig to config system",
+      "task_id": "cub-r1b.5",
+      "metadata": {
+        "duration": 210.49622631072998,
+        "tokens": 17678
+      }
+    },
+    {
+      "timestamp": "2026-01-28T04:50:57.282251",
+      "level": "warning",
+      "message": "Failed to sync task state: Tasks file not found: /home/lavallee/clawdbot/cub/.cub/tasks.jsonl. Create the file before committing.",
+      "task_id": "cub-r1b.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T04:50:59.539896",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 56,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1570.95778
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-q2j.4",
+  "title": "SessionStart hook injects project context",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-28T07:07:13.824220",
+  "completed_at": "2026-01-28T07:07:13.824221",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 4501,
+    "output_tokens": 9858,
+    "cache_read_tokens": 1608848,
+    "cache_creation_tokens": 57605,
+    "cost_usd": 1.0561233999999997,
+    "estimated": false
+  },
+  "duration_seconds": 241.82819533348083
+}

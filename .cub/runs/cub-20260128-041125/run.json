@@ -1,0 +1,137 @@
+{
+  "run_id": "cub-20260128-041125",
+  "session_name": "cub-20260128-041125",
+  "started_at": "2026-01-28T04:11:25.044068",
+  "completed_at": "2026-01-28T04:24:45.134658",
+  "status": "completed",
+  "config": {
+    "backend": {
+      "mode": null
+    },
+    "harness": {
+      "name": null,
+      "priority": [
+        "claude",
+        "gemini",
+        "codex",
+        "opencode"
+      ],
+      "model": null
+    },
+    "budget": {
+      "max_tokens_per_task": null,
+      "max_tasks_per_session": null,
+      "max_total_cost": null,
+      "default": 1000000
+    },
+    "guardrails": {
+      "max_task_iterations": 3,
+      "max_run_iterations": 50,
+      "iteration_warning_threshold": 0.8,
+      "secret_patterns": [
+        "api[_-]?key",
+        "password",
+        "token",
+        "secret",
+        "authorization",
+        "credentials"
+      ]
+    },
+    "state": {
+      "require_clean": true,
+      "run_tests": false,
+      "run_typecheck": false,
+      "run_lint": false
+    },
+    "loop": {
+      "max_iterations": 100,
+      "on_task_failure": "stop"
+    },
+    "hooks": {
+      "enabled": true,
+      "fail_fast": false,
+      "async_notifications": true
+    },
+    "interview": {
+      "custom_questions": []
+    },
+    "review": {
+      "plan_strict": false,
+      "block_on_concerns": false
+    },
+    "cleanup": {
+      "enabled": true,
+      "commit_artifacts": true,
+      "remove_temp_files": true,
+      "artifact_patterns": [
+        "fix_plan.md",
+        "AGENT.md",
+        ".cub/status.json",
+        ".cub/prompt.md",
+        ".cub/agent.md",
+        "*.log"
+      ],
+      "temp_patterns": [
+        "*.bak",
+        "*.tmp",
+        "*.orig",
+        "*.swp",
+        "*.swo",
+        "*~",
+        "__pycache__/**",
+        ".pytest_cache/**",
+        ".mypy_cache/**",
+        ".ruff_cache/**",
+        "*.pyc",
+        ".coverage",
+        "htmlcov/**",
+        ".tox/**",
+        "dist/**",
+        "build/**",
+        "*.egg-info/**",
+        "node_modules/**",
+        ".npm/**"
+      ],
+      "ignore_patterns": [
+        ".git/**",
+        ".beads/**",
+        ".env",
+        ".env.*",
+        "*.key",
+        "*.pem",
+        "credentials*",
+        "secrets*"
+      ],
+      "commit_message": "chore: cleanup working directory artifacts"
+    },
+    "ledger": {
+      "enabled": true
+    },
+    "sync": {
+      "enabled": true,
+      "auto_sync": "run"
+    },
+    "circuit_breaker": {
+      "enabled": true,
+      "timeout_minutes": 30
+    },
+    "clean_state": {
+      "require_commit": true,
+      "require_tests": false
+    }
+  },
+  "tasks_completed": 3,
+  "tasks_failed": 0,
+  "budget": {
+    "tokens_used": 56402,
+    "tokens_limit": null,
+    "cost_usd": 2.3212651500000003,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  }
+}

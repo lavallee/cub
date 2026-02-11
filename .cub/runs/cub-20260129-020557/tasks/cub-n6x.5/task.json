@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.5",
+  "title": "Check completed steps before launching architect in plan run",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T02:42:23.991310",
+  "completed_at": "2026-01-29T02:42:23.991312",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 688.0561835765839
+}

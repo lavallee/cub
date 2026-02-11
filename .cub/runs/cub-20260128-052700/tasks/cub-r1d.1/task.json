@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1d.1",
+  "title": "Implement epic context generation for task prompts",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T05:33:50.240389",
+  "completed_at": "2026-01-28T05:33:50.240389",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 144,
+    "output_tokens": 13282,
+    "cache_read_tokens": 1953518,
+    "cache_creation_tokens": 59493,
+    "cost_usd": 1.0524901500000001,
+    "estimated": false
+  },
+  "duration_seconds": 409.79256081581116
+}

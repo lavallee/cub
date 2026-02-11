@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1e.1",
+  "title": "Implement bare cub default command handler",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T20:31:26.329904",
+  "completed_at": "2026-01-28T20:31:26.329906",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 520.1439476013184
+}

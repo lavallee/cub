@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.1",
+  "title": "Fix label order comparison in backend divergence checks",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T02:08:28.297243",
+  "completed_at": "2026-01-29T02:08:28.297245",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 150.19062495231628
+}

@@ -1,0 +1,494 @@
+{
+  "run_id": "cub-20260211-155217",
+  "session_name": "cub-20260211-155217",
+  "started_at": "2026-02-11T15:52:17.514544",
+  "updated_at": "2026-02-11T15:55:57.878397",
+  "completed_at": "2026-02-11T15:55:57.877424",
+  "epic": null,
+  "label": null,
+  "branch": "task/cub-001",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 1,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 1.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 7873,
+    "tokens_limit": null,
+    "cost_usd": 1.3447964999999995,
+    "cost_limit": null,
+    "tasks_completed": 1,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 58,
+  "tasks_in_progress": 0,
+  "tasks_closed": 106,
+  "tasks_total": 164,
+  "task_entries": [
+    {
+      "task_id": "cub-s001",
+      "title": "Create direct session CLI commands",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s002",
+      "title": "Integrate circuit breaker into run.py",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s003",
+      "title": "Implement CircuitBreaker class",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s004",
+      "title": "Add CircuitBreakerConfig",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s005",
+      "title": "Ensure artifacts on all exits",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s006",
+      "title": "Integration tests for exit scenarios",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s007",
+      "title": "Audit run.py exit paths",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-13",
+      "title": "reliability-phase #2: Circuit Breaker",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-14",
+      "title": "reliability-phase #1: Core Loop Hardening",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s008",
+      "title": "Use uv run for all cub self-invocations when dev_mode is active",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s009",
+      "title": "Fix --agent flag: not recognized on cub task ready and other commands",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s010",
+      "title": "Manual testing: direct session workflow",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s011",
+      "title": "Research Claude Code hooks",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s012",
+      "title": "Update cub init for AGENTS.md",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s013",
+      "title": "Implement InstructionGenerator",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s014",
+      "title": "Add \"giving up\" escape hatch to prompts",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s015",
+      "title": "Add --no-circuit-breaker CLI flag",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s016",
+      "title": "Manual testing protocol for E4",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-15",
+      "title": "reliability-phase #3: Symbiotic Workflow",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s017",
+      "title": "Fix bootstrap: detect ID collisions before import",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s018",
+      "title": "Enable parallel test execution with pytest-xdist",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s019",
+      "title": "Create contract tests for harness CLIs",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s020",
+      "title": "Add tests for core/harness/codex.py",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s021",
+      "title": "Add tests for core/pr/service.py",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s022",
+      "title": "Add tests for core/tasks/service.py",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-16",
+      "title": "Phase 2: Coverage Expansion",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s023",
+      "title": "Add newlines between streamed messages in cub run",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s024",
+      "title": "Add harness and model info to task headline",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s025",
+      "title": "Remove deprecated cub:triage and cub:plan commands",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s026",
+      "title": "Ensure plan.json is created at pipeline start, not after orient begins",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s027",
+      "title": "Add build failure detection and retry logic to cub pr",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s028",
+      "title": "Check completed steps before launching architect in plan run exit",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s029",
+      "title": "Ensure build-plan sets git upstream on push",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s030",
+      "title": "Add post-command guidance messages to cub workflow",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s031",
+      "title": "Fix monitor command to work with beads backend",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s032",
+      "title": "Fix label order comparison in backend divergence checks",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-17",
+      "title": "2026-01-28-assorted Bug Fixes",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s033",
+      "title": "Implement hook handlers for artifact capture",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s034",
+      "title": "Add test status badge to README",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s035",
+      "title": "Add coverage trend gate to CI",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s036",
+      "title": "Split CI workflow into separate jobs",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-18",
+      "title": "Phase 4: CI Hardening",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s037",
+      "title": "Add make test-fast target",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s038",
+      "title": "Create pre-commit hook for affected tests",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s039",
+      "title": "Add pytest-testmon for smart test selection",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-19",
+      "title": "Phase 3: Smart Local Testing",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s040",
+      "title": "can remove curb reference in CHANGELOG.md",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s041",
+      "title": "Add cub upgrade command for pipx-based updates",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-002",
+      "title": "Per-epic budget allocation",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-003",
+      "title": "Team workflow support \u2014 avoid last-write-wins sync",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-006",
+      "title": "Make cub init output predictable \u2014 show what files will be created",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-007",
+      "title": "Document parallel execution behavior (--parallel flag)",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s042",
+      "title": "Add performance regression tests",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s043",
+      "title": "Add Docker integration tests for sandbox",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-s044",
+      "title": "Add Hypothesis property-based tests",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-orphan-20",
+      "title": "Phase 5: Refinement",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-001",
+      "title": "Add cub docs command to open documentation in browser",
+      "state": "done",
+      "started_at": "2026-02-11T15:52:17.525441",
+      "completed_at": "2026-02-11T15:55:51.686762"
+    },
+    {
+      "task_id": "cub-004",
+      "title": "CI/CD integration guide and example",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "task_id": "cub-005",
+      "title": "External tracker integration (Jira/Linear/GitHub Issues)",
+      "state": "todo",
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-02-11T15:52:17.521930",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-11T15:52:17.525460",
+      "level": "info",
+      "message": "Starting task: Add cub docs command to open documentation in browser",
+      "task_id": "cub-001",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-02-11T15:55:51.686827",
+      "level": "info",
+      "message": "Task completed: Add cub docs command to open documentation in browser",
+      "task_id": "cub-001",
+      "metadata": {
+        "duration": 214.1196060180664,
+        "tokens": 7873
+      }
+    },
+    {
+      "timestamp": "2026-02-11T15:55:57.877451",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 58,
+  "completion_percentage": 64.63414634146342,
+  "duration_seconds": 220.36288
+}

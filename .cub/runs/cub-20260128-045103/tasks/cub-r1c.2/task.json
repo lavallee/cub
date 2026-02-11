@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1c.2",
+  "title": "Implement code intelligence module with tree-sitter",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T05:13:07.873395",
+  "completed_at": "2026-01-28T05:13:07.873396",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 94,
+    "output_tokens": 36613,
+    "cache_read_tokens": 5262555,
+    "cache_creation_tokens": 97114,
+    "cost_usd": 4.6732068500000015,
+    "estimated": false
+  },
+  "duration_seconds": 760.0177001953125
+}

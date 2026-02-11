@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-b1b.2",
+  "title": "Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T19:12:49.657288",
+  "completed_at": "2026-01-28T19:12:49.657289",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 617.9664855003357
+}

@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.8",
+  "title": "Remove deprecated cub:triage and cub:plan skill commands",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T03:04:41.662407",
+  "completed_at": "2026-01-29T03:04:41.662409",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 230.79851579666138
+}

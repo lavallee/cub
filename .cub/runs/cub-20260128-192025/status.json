@@ -1,0 +1,139 @@
+{
+  "run_id": "cub-20260128-192025",
+  "session_name": "cub-20260128-192025",
+  "started_at": "2026-01-28T19:20:25.269336",
+  "updated_at": "2026-01-28T19:59:09.458499",
+  "completed_at": "2026-01-28T19:59:09.236683",
+  "epic": "cub-b1c",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 4,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 4.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 106501,
+    "tokens_limit": null,
+    "cost_usd": 10.7554838,
+    "cost_limit": null,
+    "tasks_completed": 4,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 45,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 49,
+  "task_entries": [
+    {
+      "task_id": "cub-b1c.1",
+      "title": "Create service layer foundation and RunService",
+      "state": "done",
+      "started_at": "2026-01-28T19:20:25.490021",
+      "completed_at": "2026-01-28T19:30:32.636250"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T19:20:25.405001",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:20:25.490043",
+      "level": "info",
+      "message": "Starting task: Create service layer foundation and RunService",
+      "task_id": "cub-b1c.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:30:32.636329",
+      "level": "info",
+      "message": "Task completed: Create service layer foundation and RunService",
+      "task_id": "cub-b1c.1",
+      "metadata": {
+        "duration": 607.0086195468903,
+        "tokens": 25904
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:30:43.991100",
+      "level": "info",
+      "message": "Starting task: Create StatusService and LedgerService",
+      "task_id": "cub-b1c.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:43:16.644039",
+      "level": "info",
+      "message": "Task completed: Create StatusService and LedgerService",
+      "task_id": "cub-b1c.2",
+      "metadata": {
+        "duration": 752.2606222629547,
+        "tokens": 33886
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:43:29.979011",
+      "level": "info",
+      "message": "Starting task: Create LaunchService for environment detection and harness launch",
+      "task_id": "cub-b1c.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:49:58.171398",
+      "level": "info",
+      "message": "Task completed: Create LaunchService for environment detection and harness launch",
+      "task_id": "cub-b1c.3",
+      "metadata": {
+        "duration": 386.3897922039032,
+        "tokens": 19794
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:50:09.361493",
+      "level": "info",
+      "message": "Starting task: Enhance TaskService with ready(), stale_epics(), and claims",
+      "task_id": "cub-b1c.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:58:57.507433",
+      "level": "info",
+      "message": "Task completed: Enhance TaskService with ready(), stale_epics(), and claims",
+      "task_id": "cub-b1c.4",
+      "metadata": {
+        "duration": 527.9190289974213,
+        "tokens": 26917
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:59:09.236768",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 45,
+  "completion_percentage": 0.0,
+  "duration_seconds": 2323.967347
+}

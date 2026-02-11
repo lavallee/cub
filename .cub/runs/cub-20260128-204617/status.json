@@ -1,0 +1,136 @@
+{
+  "run_id": "cub-20260128-204617",
+  "session_name": "cub-20260128-204617",
+  "started_at": "2026-01-28T20:46:17.953886",
+  "updated_at": "2026-01-28T21:05:14.569767",
+  "completed_at": "2026-01-28T21:05:14.398881",
+  "epic": "cub-b1f",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 5443,
+    "tokens_limit": null,
+    "cost_usd": 2.78216235,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 35,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 39,
+  "task_entries": [
+    {
+      "task_id": "cub-b1f.3",
+      "title": "End-to-end validation of full flow",
+      "state": "done",
+      "started_at": "2026-01-28T20:46:18.153405",
+      "completed_at": "2026-01-28T20:52:34.448492"
+    },
+    {
+      "task_id": "cub-b1f.1",
+      "title": "Create /cub meta-skill for in-session discovery",
+      "state": "done",
+      "started_at": "2026-01-28T20:52:44.221520",
+      "completed_at": "2026-01-28T20:54:38.039359"
+    },
+    {
+      "task_id": "cub-b1f.2",
+      "title": "Update CLAUDE.md with service architecture and skill reference",
+      "state": "done",
+      "started_at": "2026-01-28T20:54:47.478445",
+      "completed_at": "2026-01-28T21:05:02.873479"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T20:46:18.060946",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:46:18.153444",
+      "level": "info",
+      "message": "Starting task: End-to-end validation of full flow",
+      "task_id": "cub-b1f.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:52:34.448527",
+      "level": "info",
+      "message": "Task completed: End-to-end validation of full flow",
+      "task_id": "cub-b1f.3",
+      "metadata": {
+        "duration": 376.15097999572754,
+        "tokens": 141
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:52:44.221538",
+      "level": "info",
+      "message": "Starting task: Create /cub meta-skill for in-session discovery",
+      "task_id": "cub-b1f.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T20:54:38.039383",
+      "level": "info",
+      "message": "Task completed: Create /cub meta-skill for in-session discovery",
+      "task_id": "cub-b1f.1",
+      "metadata": {
+        "duration": 113.66521430015564,
+        "tokens": 4793
+      }
+    },
+    {
+      "timestamp": "2026-01-28T20:54:47.478467",
+      "level": "info",
+      "message": "Starting task: Update CLAUDE.md with service architecture and skill reference",
+      "task_id": "cub-b1f.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T21:05:02.873500",
+      "level": "info",
+      "message": "Task completed: Update CLAUDE.md with service architecture and skill reference",
+      "task_id": "cub-b1f.2",
+      "metadata": {
+        "duration": 615.1846852302551,
+        "tokens": 509
+      }
+    },
+    {
+      "timestamp": "2026-01-28T21:05:14.398922",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 36,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1136.444995
+}

@@ -1,0 +1,177 @@
+{
+  "run_id": "cub-20260128-185726",
+  "session_name": "cub-20260128-185726",
+  "started_at": "2026-01-28T18:57:26.364910",
+  "updated_at": "2026-01-28T19:20:21.674357",
+  "completed_at": "2026-01-28T19:20:21.509098",
+  "epic": "cub-b1b",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 5,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 5.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 79153,
+    "tokens_limit": null,
+    "cost_usd": 4.504740150000001,
+    "cost_limit": null,
+    "tasks_completed": 5,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 49,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 54,
+  "task_entries": [
+    {
+      "task_id": "cub-b1b.1",
+      "title": "Move review reporter rendering to CLI layer",
+      "state": "done",
+      "started_at": "2026-01-28T18:57:26.590814",
+      "completed_at": "2026-01-28T19:02:20.471911"
+    },
+    {
+      "task_id": "cub-b1b.2",
+      "title": "Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+      "state": "done",
+      "started_at": "2026-01-28T19:02:31.299790",
+      "completed_at": "2026-01-28T19:12:49.514017"
+    },
+    {
+      "task_id": "cub-b1b.3",
+      "title": "Move bash_delegate to CLI layer",
+      "state": "done",
+      "started_at": "2026-01-28T19:13:00.837224",
+      "completed_at": "2026-01-28T19:16:59.570266"
+    },
+    {
+      "task_id": "cub-b1b.4",
+      "title": "Replace Rich logging in core/harness/hooks.py",
+      "state": "done",
+      "started_at": "2026-01-28T19:17:09.135774",
+      "completed_at": "2026-01-28T19:18:27.485526"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T18:57:26.486457",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:57:26.590849",
+      "level": "info",
+      "message": "Starting task: Move review reporter rendering to CLI layer",
+      "task_id": "cub-b1b.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:02:20.471952",
+      "level": "info",
+      "message": "Task completed: Move review reporter rendering to CLI layer",
+      "task_id": "cub-b1b.1",
+      "metadata": {
+        "duration": 293.72911953926086,
+        "tokens": 19673
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:02:31.299816",
+      "level": "info",
+      "message": "Starting task: Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+      "task_id": "cub-b1b.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:12:49.514059",
+      "level": "info",
+      "message": "Task completed: Remove Rich from core/pr/service.py and core/worktree/parallel.py",
+      "task_id": "cub-b1b.2",
+      "metadata": {
+        "duration": 617.9664855003357,
+        "tokens": 42416
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:13:00.837254",
+      "level": "info",
+      "message": "Starting task: Move bash_delegate to CLI layer",
+      "task_id": "cub-b1b.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:16:59.570299",
+      "level": "info",
+      "message": "Task completed: Move bash_delegate to CLI layer",
+      "task_id": "cub-b1b.3",
+      "metadata": {
+        "duration": 238.53158712387085,
+        "tokens": 7182
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:17:09.135788",
+      "level": "info",
+      "message": "Starting task: Replace Rich logging in core/harness/hooks.py",
+      "task_id": "cub-b1b.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:18:27.485561",
+      "level": "info",
+      "message": "Task completed: Replace Rich logging in core/harness/hooks.py",
+      "task_id": "cub-b1b.4",
+      "metadata": {
+        "duration": 78.1996340751648,
+        "tokens": 3684
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:18:36.937207",
+      "level": "info",
+      "message": "Starting task: Verify zero Rich imports in core and add CI gate",
+      "task_id": "cub-b1b.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T19:20:10.664719",
+      "level": "info",
+      "message": "Task completed: Verify zero Rich imports in core and add CI gate",
+      "task_id": "cub-b1b.5",
+      "metadata": {
+        "duration": 93.56095862388611,
+        "tokens": 6198
+      }
+    },
+    {
+      "timestamp": "2026-01-28T19:20:21.509169",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 49,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1375.144188
+}

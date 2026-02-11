@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1a.2",
+  "title": "Remove deprecated template files",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T04:21:14.321645",
+  "completed_at": "2026-01-28T04:21:14.321646",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 18373,
+    "output_tokens": 15711,
+    "cache_read_tokens": 2932336,
+    "cache_creation_tokens": 81190,
+    "cost_usd": 1.5028733,
+    "estimated": false
+  },
+  "duration_seconds": 312.2277958393097
+}

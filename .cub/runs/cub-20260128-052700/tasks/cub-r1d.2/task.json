@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1d.2",
+  "title": "Implement retry context injection from ledger",
+  "priority": "P0",
+  "status": "completed",
+  "started_at": "2026-01-28T05:40:27.307481",
+  "completed_at": "2026-01-28T05:40:27.307481",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 1154,
+    "output_tokens": 14796,
+    "cache_read_tokens": 1984499,
+    "cache_creation_tokens": 59282,
+    "cost_usd": 1.4287463500000004,
+    "estimated": false
+  },
+  "duration_seconds": 394.62737226486206
+}

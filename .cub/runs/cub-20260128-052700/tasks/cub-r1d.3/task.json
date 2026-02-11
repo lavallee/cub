@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-r1d.3",
+  "title": "Update system prompt and document context composition",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T05:48:37.390765",
+  "completed_at": "2026-01-28T05:48:37.390766",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 5096,
+    "output_tokens": 12277,
+    "cache_read_tokens": 2382246,
+    "cache_creation_tokens": 51314,
+    "cost_usd": 1.1581152999999997,
+    "estimated": false
+  },
+  "duration_seconds": 487.62342715263367
+}

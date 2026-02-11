@@ -1,0 +1,12 @@
+{
+  "task_id": "cub-n6x.6",
+  "title": "Add build failure detection and retry logic to cub pr",
+  "priority": "P2",
+  "status": "completed",
+  "started_at": "2026-01-29T02:58:55.765655",
+  "completed_at": "2026-01-29T02:58:55.765656",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": null,
+  "duration_seconds": 978.551915884018
+}

@@ -1,0 +1,136 @@
+{
+  "run_id": "cub-20260128-183943",
+  "session_name": "cub-20260128-183943",
+  "started_at": "2026-01-28T18:39:43.721423",
+  "updated_at": "2026-01-28T18:57:22.734085",
+  "completed_at": "2026-01-28T18:57:22.571146",
+  "epic": "cub-b1a",
+  "label": null,
+  "branch": "feature/bare-cub-command",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 3,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 3.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 82040,
+    "tokens_limit": null,
+    "cost_usd": 4.977078850000002,
+    "cost_limit": null,
+    "tasks_completed": 3,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 54,
+  "tasks_in_progress": 0,
+  "tasks_closed": 0,
+  "tasks_total": 57,
+  "task_entries": [
+    {
+      "task_id": "cub-b1a.3",
+      "title": "Extract loop state machine to core/run/loop.py",
+      "state": "done",
+      "started_at": "2026-01-28T18:39:44.026344",
+      "completed_at": "2026-01-28T18:41:42.432613"
+    },
+    {
+      "task_id": "cub-b1a.4",
+      "title": "Extract interrupt handling to core/run/interrupt.py",
+      "state": "done",
+      "started_at": "2026-01-28T18:41:51.965322",
+      "completed_at": "2026-01-28T18:47:30.426076"
+    },
+    {
+      "task_id": "cub-b1a.5",
+      "title": "Extract git operations to core/run/git_ops.py",
+      "state": "done",
+      "started_at": "2026-01-28T18:47:41.533379",
+      "completed_at": "2026-01-28T18:57:10.614299"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-28T18:39:43.870106",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:39:44.026397",
+      "level": "info",
+      "message": "Starting task: Extract loop state machine to core/run/loop.py",
+      "task_id": "cub-b1a.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:41:42.432643",
+      "level": "info",
+      "message": "Task completed: Extract loop state machine to core/run/loop.py",
+      "task_id": "cub-b1a.3",
+      "metadata": {
+        "duration": 118.2426815032959,
+        "tokens": 23521
+      }
+    },
+    {
+      "timestamp": "2026-01-28T18:41:51.965337",
+      "level": "info",
+      "message": "Starting task: Extract interrupt handling to core/run/interrupt.py",
+      "task_id": "cub-b1a.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:47:30.426109",
+      "level": "info",
+      "message": "Task completed: Extract interrupt handling to core/run/interrupt.py",
+      "task_id": "cub-b1a.4",
+      "metadata": {
+        "duration": 338.302672624588,
+        "tokens": 29801
+      }
+    },
+    {
+      "timestamp": "2026-01-28T18:47:41.533395",
+      "level": "info",
+      "message": "Starting task: Extract git operations to core/run/git_ops.py",
+      "task_id": "cub-b1a.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-28T18:57:10.614335",
+      "level": "info",
+      "message": "Task completed: Extract git operations to core/run/git_ops.py",
+      "task_id": "cub-b1a.5",
+      "metadata": {
+        "duration": 568.9329581260681,
+        "tokens": 28718
+      }
+    },
+    {
+      "timestamp": "2026-01-28T18:57:22.571193",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 54,
+  "completion_percentage": 0.0,
+  "duration_seconds": 1058.849723
+}

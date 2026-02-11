@@ -1,0 +1,328 @@
+{
+  "run_id": "cub-20260129-020557",
+  "session_name": "cub-20260129-020557",
+  "started_at": "2026-01-29T02:05:57.710040",
+  "updated_at": "2026-01-29T03:19:20.784792",
+  "completed_at": "2026-01-29T03:19:20.608146",
+  "epic": "cub-n6x",
+  "label": null,
+  "branch": "feature/2026-01-28-assorted-bug-fixes",
+  "circuit_breaker_enabled": true,
+  "circuit_breaker_timeout": 30,
+  "phase": "completed",
+  "current_task_id": null,
+  "current_task_title": null,
+  "iteration": {
+    "current": 11,
+    "max": 100,
+    "task_iteration": 0,
+    "max_task_iteration": 3,
+    "percentage": 11.0,
+    "task_percentage": 0.0,
+    "is_near_limit": false
+  },
+  "budget": {
+    "tokens_used": 113459,
+    "tokens_limit": null,
+    "cost_usd": 18.874106549999997,
+    "cost_limit": null,
+    "tasks_completed": 11,
+    "tasks_limit": null,
+    "tokens_percentage": null,
+    "cost_percentage": null,
+    "tasks_percentage": null,
+    "is_over_budget": false
+  },
+  "tasks_open": 35,
+  "tasks_in_progress": 1,
+  "tasks_closed": 0,
+  "tasks_total": 47,
+  "task_entries": [
+    {
+      "task_id": "cub-n6x.1",
+      "title": "Fix label order comparison in backend divergence checks",
+      "state": "done",
+      "started_at": "2026-01-29T02:05:57.932440",
+      "completed_at": "2026-01-29T02:08:28.243879"
+    },
+    {
+      "task_id": "cub-n6x.2",
+      "title": "Fix monitor command to work with beads backend",
+      "state": "done",
+      "started_at": "2026-01-29T02:08:36.986950",
+      "completed_at": "2026-01-29T02:15:26.540233"
+    },
+    {
+      "task_id": "cub-n6x.3",
+      "title": "Add post-command guidance messages to key cub workflows",
+      "state": "done",
+      "started_at": "2026-01-29T02:15:35.652231",
+      "completed_at": "2026-01-29T02:25:16.247510"
+    },
+    {
+      "task_id": "cub-n6x.4",
+      "title": "Configure git upstream on feature branch creation",
+      "state": "done",
+      "started_at": "2026-01-29T02:25:27.686485",
+      "completed_at": "2026-01-29T02:30:47.005425"
+    },
+    {
+      "task_id": "cub-n6x.5",
+      "title": "Check completed steps before launching architect in plan run",
+      "state": "done",
+      "started_at": "2026-01-29T02:30:55.697650",
+      "completed_at": "2026-01-29T02:42:23.906641"
+    },
+    {
+      "task_id": "cub-n6x.6",
+      "title": "Add build failure detection and retry logic to cub pr",
+      "state": "done",
+      "started_at": "2026-01-29T02:42:36.946653",
+      "completed_at": "2026-01-29T02:58:55.718926"
+    },
+    {
+      "task_id": "cub-n6x.7",
+      "title": "Ensure plan.json is created at pipeline start",
+      "state": "done",
+      "started_at": "2026-01-29T02:59:07.565275",
+      "completed_at": "2026-01-29T03:00:41.409206"
+    },
+    {
+      "task_id": "cub-n6x.8",
+      "title": "Remove deprecated cub:triage and cub:plan skill commands",
+      "state": "done",
+      "started_at": "2026-01-29T03:00:50.599888",
+      "completed_at": "2026-01-29T03:04:41.621624"
+    },
+    {
+      "task_id": "cub-n6x.9",
+      "title": "Add harness and model info to task headline",
+      "state": "done",
+      "started_at": "2026-01-29T03:04:52.253934",
+      "completed_at": "2026-01-29T03:09:54.350997"
+    },
+    {
+      "task_id": "cub-n6x.10",
+      "title": "Add newlines between streamed harness messages",
+      "state": "done",
+      "started_at": "2026-01-29T03:10:07.492282",
+      "completed_at": "2026-01-29T03:16:07.270439"
+    },
+    {
+      "task_id": "cub-n6x.11",
+      "title": "Add progress updates during punchlist item processing",
+      "state": "done",
+      "started_at": "2026-01-29T03:16:18.679886",
+      "completed_at": "2026-01-29T03:19:12.073822"
+    }
+  ],
+  "events": [
+    {
+      "timestamp": "2026-01-29T02:05:57.826966",
+      "level": "info",
+      "message": "Run started",
+      "task_id": null,
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:05:57.932460",
+      "level": "info",
+      "message": "Starting task: Fix label order comparison in backend divergence checks",
+      "task_id": "cub-n6x.1",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:08:28.243927",
+      "level": "info",
+      "message": "Task completed: Fix label order comparison in backend divergence checks",
+      "task_id": "cub-n6x.1",
+      "metadata": {
+        "duration": 150.19062495231628,
+        "tokens": 3398
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:08:36.986967",
+      "level": "info",
+      "message": "Starting task: Fix monitor command to work with beads backend",
+      "task_id": "cub-n6x.2",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:15:26.540257",
+      "level": "info",
+      "message": "Task completed: Fix monitor command to work with beads backend",
+      "task_id": "cub-n6x.2",
+      "metadata": {
+        "duration": 409.4173574447632,
+        "tokens": 12002
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:15:35.652251",
+      "level": "info",
+      "message": "Starting task: Add post-command guidance messages to key cub workflows",
+      "task_id": "cub-n6x.3",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:25:16.247543",
+      "level": "info",
+      "message": "Task completed: Add post-command guidance messages to key cub workflows",
+      "task_id": "cub-n6x.3",
+      "metadata": {
+        "duration": 580.4375042915344,
+        "tokens": 43
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:25:27.686508",
+      "level": "info",
+      "message": "Starting task: Configure git upstream on feature branch creation",
+      "task_id": "cub-n6x.4",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:30:47.005454",
+      "level": "info",
+      "message": "Task completed: Configure git upstream on feature branch creation",
+      "task_id": "cub-n6x.4",
+      "metadata": {
+        "duration": 319.17481541633606,
+        "tokens": 4213
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:30:55.697667",
+      "level": "info",
+      "message": "Starting task: Check completed steps before launching architect in plan run",
+      "task_id": "cub-n6x.5",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:42:23.906679",
+      "level": "info",
+      "message": "Task completed: Check completed steps before launching architect in plan run",
+      "task_id": "cub-n6x.5",
+      "metadata": {
+        "duration": 688.0561835765839,
+        "tokens": 23829
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:42:36.946669",
+      "level": "info",
+      "message": "Starting task: Add build failure detection and retry logic to cub pr",
+      "task_id": "cub-n6x.6",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T02:58:55.718956",
+      "level": "info",
+      "message": "Task completed: Add build failure detection and retry logic to cub pr",
+      "task_id": "cub-n6x.6",
+      "metadata": {
+        "duration": 978.551915884018,
+        "tokens": 35505
+      }
+    },
+    {
+      "timestamp": "2026-01-29T02:59:07.565290",
+      "level": "info",
+      "message": "Starting task: Ensure plan.json is created at pipeline start",
+      "task_id": "cub-n6x.7",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T03:00:41.409232",
+      "level": "info",
+      "message": "Task completed: Ensure plan.json is created at pipeline start",
+      "task_id": "cub-n6x.7",
+      "metadata": {
+        "duration": 93.67828631401062,
+        "tokens": 8023
+      }
+    },
+    {
+      "timestamp": "2026-01-29T03:00:50.599919",
+      "level": "info",
+      "message": "Starting task: Remove deprecated cub:triage and cub:plan skill commands",
+      "task_id": "cub-n6x.8",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T03:04:41.621647",
+      "level": "info",
+      "message": "Task completed: Remove deprecated cub:triage and cub:plan skill commands",
+      "task_id": "cub-n6x.8",
+      "metadata": {
+        "duration": 230.79851579666138,
+        "tokens": 7943
+      }
+    },
+    {
+      "timestamp": "2026-01-29T03:04:52.253949",
+      "level": "info",
+      "message": "Starting task: Add harness and model info to task headline",
+      "task_id": "cub-n6x.9",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T03:09:54.351022",
+      "level": "info",
+      "message": "Task completed: Add harness and model info to task headline",
+      "task_id": "cub-n6x.9",
+      "metadata": {
+        "duration": 301.94846630096436,
+        "tokens": 8984
+      }
+    },
+    {
+      "timestamp": "2026-01-29T03:10:07.492297",
+      "level": "info",
+      "message": "Starting task: Add newlines between streamed harness messages",
+      "task_id": "cub-n6x.10",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T03:16:07.270480",
+      "level": "info",
+      "message": "Task completed: Add newlines between streamed harness messages",
+      "task_id": "cub-n6x.10",
+      "metadata": {
+        "duration": 359.6328167915344,
+        "tokens": 5279
+      }
+    },
+    {
+      "timestamp": "2026-01-29T03:16:18.679901",
+      "level": "info",
+      "message": "Starting task: Add progress updates during punchlist item processing",
+      "task_id": "cub-n6x.11",
+      "metadata": {}
+    },
+    {
+      "timestamp": "2026-01-29T03:19:12.073850",
+      "level": "info",
+      "message": "Task completed: Add progress updates during punchlist item processing",
+      "task_id": "cub-n6x.11",
+      "metadata": {
+        "duration": 173.24731636047363,
+        "tokens": 4240
+      }
+    },
+    {
+      "timestamp": "2026-01-29T03:19:20.612714",
+      "level": "info",
+      "message": "Run completed successfully",
+      "task_id": null,
+      "metadata": {}
+    }
+  ],
+  "last_error": null,
+  "is_active": false,
+  "is_finished": true,
+  "tasks_remaining": 36,
+  "completion_percentage": 0.0,
+  "duration_seconds": 4402.898106
+}

@@ -1,0 +1,19 @@
+{
+  "task_id": "cub-q2j.2",
+  "title": "Add cub task CLI subcommand",
+  "priority": "P1",
+  "status": "completed",
+  "started_at": "2026-01-28T06:58:27.280902",
+  "completed_at": "2026-01-28T06:58:27.280902",
+  "iterations": 1,
+  "exit_code": 0,
+  "usage": {
+    "input_tokens": 5298,
+    "output_tokens": 9205,
+    "cache_read_tokens": 3097241,
+    "cache_creation_tokens": 70556,
+    "cost_usd": 1.4253593000000004,
+    "estimated": false
+  },
+  "duration_seconds": 349.0500192642212
+}

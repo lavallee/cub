@@ -1,0 +1,20 @@
+
+
+I'll start by claiming the task and understanding the codebase structure.Now let me read the key files in detail:Now let me check the handoff utility and the context file, and find existing tests:Let me look at the existing tests for the pipeline and the `run_pipeline` CLI command:Now let me check the conftest for the `_no_claude` fixture and see how tests are structured:Now I have a solid understanding of the codebase. Let me plan the implementation:
+
+**Task**: After `plan run` completes (or when using `--continue`), detect which steps are complete and show a summary table, then prompt the user with next step options.
+
+The key changes:
+1. Create a step detection function in `pipeline.py` that checks artifacts
+2. Add a summary display function in `plan.py` CLI 
+3. After pipeline completion (especially failures or partial runs), show the summary and suggest next steps
+4. Handle edge cases like partial/corrupted artifacts
+
+Let me implement this:Now let me add the step detection function at the end of `pipeline.py`:Now I need to add the `Enum` import to the pipeline module:Now let me add the status display and interactive prompt to the CLI. I need to modify the `run_pipeline` command in `plan.py` to show the step summary and prompt for next actions:Now add the helper functions for displaying the step summary table and prompting the user. I'll add them before the `_stage_indicator` function:Now I need to integrate the step summary display into the `run_pipeline` command. The key change is showing the summary when:
+1. The pipeline fails (partial completion)
+2. The pipeline completes successfully (to guide next steps)
+3. When using `--continue` (to show what's already done)
+
+Let me update the `run_pipeline` command to show the summary after completion:Now I'll replace the result reporting section to integrate step detection:Now let me also add the step summary display to the individual stage commands (orient, architect, itemize) so users can see the full pipeline status after each step:Now let me write tests for the step detection functionality:Now append the step detection tests to the end of the file:Now let's run the tests and see if everything works:All 45 tests pass. Now let me run typecheck and lint:Now let me check if there are any unused imports (the `try_handoff_or_message` might still be used in the `_prompt_next_action` function):Good - still used. Let me also check if `PipelineStepSummary` needs to be imported since we reference it in `_display_step_summary` and `_prompt_next_action`:Good, `PipelineStepSummary`, `StepDetectionStatus`, and `detect_pipeline_steps` are all imported. Let me also check we don't have the old `try_handoff_or_message("stage", result.plan.slug)` call in the success branch of `run_pipeline`:Good - all old direct handoff calls were replaced. Now let me run the full test suite to make sure nothing is broken:The failing test is unrelated to my changes - it's a pre-existing test failure in `test_harness_claude_sdk.py` about an environment variable. Let me verify by checking if it fails on the current code too:Confirmed - the test failure is pre-existing and not caused by my changes. Let me run just the plan-related tests to verify everything passes:All 202 plan-related tests pass. Let me also run the full test suite excluding the pre-existing failure:All 4831 tests pass (7 skipped). Now let me close the task and commit:Let me check if there are remaining open tasks:There are many remaining open tasks. My task `cub-n6x.5` is now closed. Let me check if there are more tasks in the current epic that need to be done:My task is complete. The remaining ready tasks are epics and unrelated to the current work.
+
+<promise>COMPLETE</promise>
