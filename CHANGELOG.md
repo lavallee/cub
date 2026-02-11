@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.29.2] - 2026-02-11
+
+### Changed
+
+- Sync .claude/commands with updated planning templates
+- Scoop
+- Update webpage for v0.29.1
+
+### Fixed
+
+- Add integration impact assessment to architect and itemize templates
+- Planning pipeline reliability + hierarchical ID integration
+
+---
+
 ## [0.29.1] - 2026-02-11
 
 ### Added
