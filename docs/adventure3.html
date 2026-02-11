@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ROCKY — A Cub Text Adventure (v3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --green: #33ff33;
+      --green-dim: #1a8c1a;
+      --amber: #ffb833;
+      --amber-dim: #8c6600;
+      --bg: #060606;
+      --panel: rgba(10,10,10,0.78);
+      --text: #33ff33;
+      --text-dim: rgba(51,255,51,0.48);
+      --coral: #ff6b5a;
+      --cyan: #00d9a5;
+      --shadow: rgba(51,255,51,0.18);
+      --radius: 12px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background:
+        radial-gradient(1200px 600px at 50% 0%, rgba(51,255,51,0.065), transparent 60%),
+        radial-gradient(900px 500px at 15% 60%, rgba(255,184,51,0.03), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { color: var(--cyan); }
+
+    /* CRT */
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0.62;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.16) 0px,
+        rgba(0,0,0,0.16) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+    }
+
+    .crt-overlay::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, transparent 56%, rgba(0,0,0,0.48) 100%),
+        linear-gradient(90deg, rgba(255,0,0,0.028), rgba(0,255,0,0.02), rgba(0,0,255,0.028));
+      mix-blend-mode: screen;
+    }
+
+    /* Status */
+    .status-wrap {
+      flex-shrink: 0;
+      border-bottom: 2px solid rgba(51,255,51,0.95);
+      background: linear-gradient(180deg, rgba(26,140,26,0.95), rgba(26,140,26,0.78));
+      color: #000;
+    }
+
+    .status-bar {
+      padding: 6px 12px;
+      font-size: 13px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+    }
+
+    .status-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      white-space: nowrap;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 2px 8px;
+      background: rgba(0,0,0,0.14);
+      border: 1px solid rgba(0,0,0,0.35);
+      border-radius: 999px;
+    }
+
+    .icon-btn {
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.35);
+      background: rgba(0,0,0,0.14);
+      padding: 2px 8px;
+      border-radius: 999px;
+      color: #000;
+    }
+
+    .icon-btn:hover { background: rgba(0,0,0,0.22); }
+
+    .microbar {
+      height: 6px;
+      background: rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(0,0,0,0.22);
+    }
+
+    .microbar > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(255,184,51,0.92), rgba(51,255,51,0.88));
+      transition: width 250ms ease;
+    }
+
+    /* Terminal */
+    .terminal {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      padding-bottom: 10px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .terminal::-webkit-scrollbar { width: 10px; }
+    .terminal::-webkit-scrollbar-track { background: var(--bg); }
+    .terminal::-webkit-scrollbar-thumb { background: rgba(26,140,26,0.9); border-radius: 8px; border: 2px solid rgba(0,0,0,0.5); }
+
+    .output-line {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.6;
+      font-size: 14px;
+      min-height: 1.6em;
+    }
+
+    .output-line.ascii-art { line-height: 1.12; color: var(--amber); text-shadow: 0 0 18px rgba(255,184,51,0.12); }
+    .output-line.highlight { color: var(--amber); }
+    .output-line.success { color: var(--cyan); }
+    .output-line.alert { color: var(--coral); font-weight: 700; }
+    .output-line.dim { color: var(--text-dim); }
+    .output-line.command-echo { color: var(--amber); }
+
+    /* Callouts */
+    .callout {
+      border: 1px solid rgba(51,255,51,0.22);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin: 10px 0;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset;
+    }
+
+    .callout h3 {
+      color: var(--amber);
+      font-size: 13px;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      border: 1px solid rgba(51,255,51,0.28);
+      border-bottom-color: rgba(51,255,51,0.16);
+      border-radius: 6px;
+      background: rgba(0,0,0,0.18);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    /* Chips */
+    .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 0 6px;
+    }
+
+    .chip {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(51,255,51,0.35);
+      color: var(--green);
+      padding: 7px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 999px;
+      transition: transform 0.08s ease, background 0.15s, color 0.15s, box-shadow 0.15s;
+      touch-action: manipulation;
+    }
+
+    .chip:hover {
+      background: var(--green);
+      color: #000;
+      box-shadow: 0 0 16px var(--shadow);
+      transform: translateY(-1px);
+    }
+
+    .chip:active { transform: translateY(0px); }
+
+    /* Input */
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+      border-top: 1px solid #222;
+      flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(6,6,6,0.9), rgba(0,0,0,0.92));
+    }
+
+    .prompt-text {
+      color: var(--amber);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .input-field {
+      flex: 1;
+      background: rgba(15,15,15,0.55);
+      border: 1px solid rgba(51,255,51,0.22);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      outline: none;
+      caret-color: var(--green);
+      padding: 10px 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.45) inset;
+    }
+
+    .input-field:focus { border-color: rgba(51,255,51,0.45); box-shadow: 0 0 0 3px rgba(51,255,51,0.10); }
+    .input-field::placeholder { color: rgba(51,255,51,0.35); }
+
+    /* Title */
+    .title-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 24px;
+      animation: fadeIn 450ms ease;
+    }
+
+    .title-card {
+      width: min(760px, 94vw);
+      border: 1px solid rgba(51,255,51,0.25);
+      background: rgba(10,10,10,0.76);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.55) inset, 0 0 28px rgba(0,0,0,0.55);
+    }
+
+    .title-screen .title-art { color: var(--amber); font-size: 14px; line-height: 1.1; margin-bottom: 10px; }
+    .title-screen .subtitle { color: var(--green); font-size: 14px; margin-bottom: 8px; }
+    .title-screen .subcopy { color: rgba(51,255,51,0.58); font-size: 12px; line-height: 1.55; }
+
+    .title-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .big-btn {
+      background: transparent;
+      border: 1px solid rgba(51,255,51,0.35);
+      color: var(--green);
+      padding: 10px 14px;
+      font-family: inherit;
+      font-weight: 700;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .big-btn.primary { border-color: rgba(255,184,51,0.55); color: var(--amber); }
+
+    .big-btn:hover { background: var(--green); color: #000; box-shadow: 0 0 20px var(--shadow); }
+    .big-btn.primary:hover { background: var(--amber); }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Victory */
+    .victory-box {
+      border: 2px solid rgba(255,184,51,0.8);
+      background: rgba(10,10,10,0.65);
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: var(--radius);
+      text-align: center;
+      box-shadow: 0 0 26px rgba(255,184,51,0.10);
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .output-line, .chip, .input-field, .prompt-text { font-size: 12.5px; }
+      .terminal { padding: 10px; }
+      .status-bar { font-size: 11px; padding: 6px 10px; }
+      .title-screen .title-art { font-size: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; }
+      .microbar > div { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="crt-overlay"></div>
+
+  <!-- Title Screen -->
+  <div id="title-screen" class="title-screen">
+    <div class="title-card">
+      <pre class="title-art">
+ ██████╗  ██████╗  ██████╗██╗  ██╗██╗   ██╗
+ ██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝╚██╗ ██╔╝
+ ██████╔╝██║   ██║██║     █████╔╝  ╚████╔╝
+ ██╔══██╗██║   ██║██║     ██╔═██╗   ╚██╔╝
+ ██║  ██║╚██████╔╝╚██████╗██║  ██╗   ██║
+ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝   ╚═╝
+      </pre>
+      <div class="subtitle">A CUB TEXT ADVENTURE</div>
+      <div class="subcopy">A nostalgia-powered explainer for people who once shipped.
+        Take the golden path: <b>plan → stage → run → inspect</b>. Not comprehensive—just the best bite.</div>
+
+      <div class="title-actions">
+        <button class="big-btn primary" onclick="startGame()">Start</button>
+        <button class="big-btn" onclick="startGame({fast:true})">Speedrun</button>
+        <button class="big-btn" onclick="showAbout()">What is cub?</button>
+      </div>
+
+      <div class="subcopy" style="margin-top:10px;">
+        Tip: <span class="kbd">Enter</span> submit • <span class="kbd">↑</span>/<span class="kbd">↓</span> history • while text types: <span class="kbd">Space</span> skip
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" style="display:none; height:100%; flex-direction:column;">
+    <div class="status-wrap">
+      <div class="status-bar">
+        <span class="location" id="status-location">THE CUBICLE OF DESPAIR</span>
+        <div class="status-right">
+          <span class="pill" id="status-tickets">TICKETS: 0/10,000</span>
+          <span class="pill" id="status-time">TIME: 8:00 AM</span>
+          <button class="icon-btn" onclick="executeCommand('hint')" title="Hint">HINT</button>
+          <button class="icon-btn" onclick="executeCommand('help')" title="Help">?</button>
+          <button class="icon-btn" onclick="toggleTurbo()" id="turbo-btn" title="Toggle fast typing">TURBO: OFF</button>
+        </div>
+      </div>
+      <div class="microbar" aria-hidden="true"><div id="microbar-fill"></div></div>
+    </div>
+
+    <div class="terminal" id="terminal" onclick="focusInput()"></div>
+
+    <div class="input-area">
+      <span class="prompt-text" id="prompt-label">&gt;</span>
+      <input class="input-field" id="input" type="text" placeholder="Type a command or tap a suggestion…" autocomplete="off" spellcheck="false" />
+    </div>
+  </div>
+
+  <script>
+    // ─── STATE ───────────────────────────────────────────────────
+    const state = {
+      room: 0,
+      step: 0,
+      tickets: 0,
+      time: { h: 8, m: 0 },
+      inventory: [],
+      flags: {
+        hasLookedDesk: false,
+        hasFloppy: false,
+        turbo: false,
+        fastStart: false,
+        persona: null, // chosen at start
+      },
+      typing: false,
+      skipTyping: false,
+      inputEnabled: false,
+      commandHistory: [],
+      historyIndex: -1,
+    };
+
+    const terminal = () => document.getElementById('terminal');
+    const input = () => document.getElementById('input');
+
+    function focusInput() {
+      if (state.inputEnabled) input().focus();
+    }
+
+    function startGame(opts = {}) {
+      state.flags.fastStart = !!opts.fast;
+      document.getElementById('title-screen').style.display = 'none';
+      const gs = document.getElementById('game-screen');
+      gs.style.display = 'flex';
+      terminal().innerHTML = '';
+      resetRun();
+      intro_choosePersona();
+    }
+
+    function showAbout() {
+      document.getElementById('title-screen').style.display = 'none';
+      const gs = document.getElementById('game-screen');
+      gs.style.display = 'flex';
+      terminal().innerHTML = '';
+      resetRun();
+      addHTML(`
+        <div class="callout">
+          <h3>What is cub?</h3>
+          <div class="output-line">cub is an agentic task runner. It helps you take a messy backlog and turn it into concrete work that runs—while keeping a ledger of what happened (receipts).</div>
+          <div class="output-line dim" style="margin-top:6px;">This adventure is the “golden path” you can do in 3 minutes: plan → stage → run → inspect.</div>
+        </div>
+      `);
+      addChips([
+        { cmd: 'start', label: 'start the adventure' },
+        { cmd: 'help', label: 'help' },
+      ]);
+      enableInput();
+    }
+
+    function toggleTurbo() {
+      state.flags.turbo = !state.flags.turbo;
+      document.getElementById('turbo-btn').textContent = `TURBO: ${state.flags.turbo ? 'ON' : 'OFF'}`;
+    }
+
+    function resetRun() {
+      state.room = 0;
+      state.step = 0;
+      state.tickets = 0;
+      state.time = { h: 8, m: 0 };
+      state.inventory = [];
+      state.flags.hasLookedDesk = false;
+      state.flags.hasFloppy = false;
+      state.flags.persona = null;
+      state.typing = false;
+      state.skipTyping = false;
+      state.inputEnabled = false;
+      state.commandHistory = [];
+      state.historyIndex = -1;
+      updateStatus();
+      updateMicrobar();
+    }
+
+    // ─── OUTPUT ─────────────────────────────────────────────────
+    function addLine(text, cls = '') {
+      const div = document.createElement('div');
+      div.className = 'output-line' + (cls ? ' ' + cls : '');
+      div.textContent = text;
+      terminal().appendChild(div);
+      terminal().scrollTop = terminal().scrollHeight;
+      return div;
+    }
+
+    function addHTML(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      terminal().appendChild(div);
+      terminal().scrollTop = terminal().scrollHeight;
+    }
+
+    function addChips(commands) {
+      const container = document.createElement('div');
+      container.className = 'chips-container';
+      commands.forEach((cmd) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = cmd.label || cmd.cmd;
+        chip.onclick = () => {
+          container.remove();
+          executeCommand(cmd.cmd);
+        };
+        container.appendChild(chip);
+      });
+      terminal().appendChild(container);
+      terminal().scrollTop = terminal().scrollHeight;
+    }
+
+    function clearChips() {
+      terminal().querySelectorAll('.chips-container').forEach((c) => c.remove());
+    }
+
+    function sleep(ms) {
+      return new Promise((r) => setTimeout(r, ms));
+    }
+
+    async function typeLines(lines, baseDelay = 16) {
+      state.typing = true;
+      state.skipTyping = false;
+
+      const delay = state.flags.fastStart ? Math.max(4, Math.floor(baseDelay / 2)) : baseDelay;
+      const turboDelay = 2;
+
+      for (const line of lines) {
+        if (state.skipTyping || state.flags.turbo) {
+          addLine(line.text, line.cls || '');
+          continue;
+        }
+
+        const div = addLine('', line.cls || '');
+        for (let i = 0; i < line.text.length; i++) {
+          if (state.skipTyping) {
+            div.textContent = line.text;
+            break;
+          }
+          div.textContent += line.text[i];
+          terminal().scrollTop = terminal().scrollHeight;
+          await sleep(delay);
+        }
+
+        if (state.flags.turbo) await sleep(turboDelay);
+      }
+
+      state.typing = false;
+      state.skipTyping = false;
+    }
+
+    // ─── STATUS ────────────────────────────────────────────────
+    function updateStatus() {
+      const tix = document.getElementById('status-tickets');
+      const time = document.getElementById('status-time');
+      tix.textContent = `TICKETS: ${state.tickets.toLocaleString()}/10,000`;
+      const ampm = state.time.h >= 12 ? 'PM' : 'AM';
+      const h = state.time.h > 12 ? state.time.h - 12 : state.time.h;
+      const m = String(state.time.m).padStart(2, '0');
+      time.textContent = `TIME: ${h}:${m} ${ampm}`;
+      updateMicrobar();
+    }
+
+    function updateMicrobar() {
+      const el = document.getElementById('microbar-fill');
+      if (!el) return;
+      const pct = Math.max(0, Math.min(100, Math.round((state.tickets / 10000) * 100)));
+      el.style.width = pct + '%';
+    }
+
+    function advanceTime(minutes) {
+      state.time.m += minutes;
+      while (state.time.m >= 60) {
+        state.time.h++;
+        state.time.m -= 60;
+      }
+      updateStatus();
+    }
+
+    function setLocation(name) {
+      document.getElementById('status-location').textContent = name;
+    }
+
+    function enableInput() {
+      state.inputEnabled = true;
+      input().disabled = false;
+      input().focus();
+    }
+
+    function disableInput() {
+      state.inputEnabled = false;
+      input().disabled = true;
+    }
+
+    function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+    function progressBar(current, total, width = 24) {
+      const p = total === 0 ? 0 : current / total;
+      const filled = Math.round(width * clamp(p, 0, 1));
+      return `${'█'.repeat(filled)}${'░'.repeat(Math.max(0, width - filled))}`;
+    }
+
+    async function animateTickets(from, to, durationMs = 1200) {
+      const steps = 34;
+      const inc = (to - from) / steps;
+      const stepDelay = durationMs / steps;
+      for (let i = 0; i <= steps; i++) {
+        state.tickets = Math.round(from + inc * i);
+        updateStatus();
+        await sleep(stepDelay);
+      }
+      state.tickets = to;
+      updateStatus();
+    }
+
+    // ─── STORY HELPERS ──────────────────────────────────────────
+    function personaLine() {
+      const p = state.flags.persona;
+      if (p === 'perl') return 'You once wrote Perl that still runs in production (against everyone’s wishes).';
+      if (p === 'java') return 'You once had opinions about EJBs. You have since healed.';
+      if (p === 'flash') return 'You once shipped Flash apps. You now feel time moving through you.';
+      return 'You are a returning engineer with more context than caffeine.';
+    }
+
+    async function intro_choosePersona() {
+      setLocation('THE CUBICLE OF DESPAIR');
+      state.room = 99;
+      disableInput();
+
+      await typeLines([
+        { text: '' },
+        { text: 'Before we begin, choose your ancient lineage:', cls: 'highlight' },
+        { text: '' },
+        { text: 'This changes a few jokes. (And the fern’s level of respect.)', cls: 'dim' },
+        { text: '' },
+      ]);
+
+      addChips([
+        { cmd: 'choose perl', label: 'Perl scars' },
+        { cmd: 'choose java', label: 'Java era' },
+        { cmd: 'choose flash', label: 'Flash veteran' },
+        { cmd: 'choose none', label: 'Just ship' },
+      ]);
+      enableInput();
+    }
+
+    // ─── ROOMS ──────────────────────────────────────────────────
+    async function room0_cubicle() {
+      setLocation('THE CUBICLE OF DESPAIR');
+      state.room = 0;
+      state.step = 0;
+
+      await typeLines([
+        { text: '' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '  ACT I: THE INCIDENT REPORT', cls: 'highlight' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '' },
+        { text: personaLine(), cls: 'dim' },
+        { text: '' },
+        { text: 'You returned to shipping after a long detour through meetings.' },
+        { text: 'And this morning you committed a small, tragic sin:', cls: '' },
+        { text: 'you typed “LGTM” on a ticket without actually looking.', cls: 'alert' },
+        { text: '' },
+        { text: 'Sentencing:', cls: 'highlight' },
+        { text: '  Process 10,000 TIKKR tickets before tonight’s reunion show.', cls: 'alert' },
+        { text: '' },
+        { text: 'Your cubicle contains: a beige PC, a stack of printouts, a fern with opinions,', cls: '' },
+        { text: 'and a poster that reads “THERE IS NO I IN SPRINT.”', cls: '' },
+        { text: '' },
+      ]);
+
+      addHTML(`
+        <div class="callout">
+          <h3>Golden path (3 minutes)</h3>
+          <div class="output-line">We’re going to do just enough to feel it:</div>
+          <div class="output-line dim">1) <b>cub init</b> (set up) → 2) <b>cub plan …</b> (make tasks) → 3) <b>cub stage</b> → 4) <b>cub run</b> → 5) <b>cub ledger</b> (receipts)</div>
+        </div>
+      `);
+
+      addChips([
+        { cmd: 'look', label: 'look' },
+        { cmd: 'look desk', label: 'look desk' },
+        { cmd: 'take floppy', label: 'take floppy' },
+        { cmd: 'help', label: 'help' },
+      ]);
+      enableInput();
+    }
+
+    async function room1_cubexe() {
+      setLocation('A:\\CUB.EXE');
+      state.room = 1;
+      state.step = 0;
+      disableInput();
+
+      await typeLines([
+        { text: '' },
+        { text: 'You slide the disk into the A:\\ drive. The room holds its breath.' },
+        { text: 'CHUNK-CHUNK.', cls: 'highlight' },
+        { text: '' },
+        { text: 'A:\\> CUB.EXE', cls: 'command-echo' },
+        { text: '' },
+        { text: 'Booting… (not Kubernetes. The other booting.)', cls: 'dim' },
+        { text: '' },
+      ], 12);
+
+      await sleep(180);
+
+      await typeLines([
+        { text: ' ██████╗██╗   ██╗██████╗ ', cls: 'ascii-art' },
+        { text: '██╔════╝██║   ██║██╔══██╗', cls: 'ascii-art' },
+        { text: '██║     ██║   ██║██████╔╝', cls: 'ascii-art' },
+        { text: '██║     ██║   ██║██╔══██╗', cls: 'ascii-art' },
+        { text: '╚██████╗╚██████╔╝██████╔╝', cls: 'ascii-art' },
+        { text: ' ╚═════╝ ╚═════╝ ╚═════╝  v0.30.0', cls: 'ascii-art' },
+        { text: '' },
+      ], 6);
+
+      await typeLines([
+        { text: '"Hello, engineer. I see 10,000 tickets and one fragile calendar."', cls: 'success' },
+        { text: '"Would you like to automate your afternoon? (Y/n)"', cls: 'success' },
+        { text: '' },
+      ]);
+
+      addChips([
+        { cmd: 'cub init', label: 'cub init' },
+        { cmd: 'Y', label: 'Y' },
+        { cmd: 'help', label: 'help' },
+      ]);
+      enableInput();
+    }
+
+    async function room2_whiteboard() {
+      setLocation('THE WHITEBOARD JUNGLE');
+      state.room = 2;
+      state.step = 0;
+      disableInput();
+      advanceTime(10);
+
+      await typeLines([
+        { text: '' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '  ACT II: THE PLAN (A.K.A. “MAKE IT LEGIBLE”)', cls: 'highlight' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '' },
+        { text: 'You roll to the team whiteboard. It contains:' },
+        { text: '  - “MICROSERVICES???” (underlined by someone who owns a boat)', cls: 'dim' },
+        { text: '  - A Venn diagram: QUALITY vs SPEED (no overlap)', cls: 'dim' },
+        { text: '  - “migrate to $NEW_THING” (dated 2018)', cls: 'dim' },
+        { text: '' },
+      ]);
+
+      addHTML(`
+        <div class="callout">
+          <h3>cub plan</h3>
+          <div class="output-line">Planning is a pipeline:</div>
+          <div class="output-line dim"><b>orient</b> (summarize patterns) → <b>architect</b> (choose approach) → <b>itemize</b> (turn into tasks)</div>
+        </div>
+      `);
+
+      addChips([
+        { cmd: 'cub plan orient', label: 'cub plan orient' },
+        { cmd: 'look whiteboard', label: 'look whiteboard' },
+      ]);
+      enableInput();
+    }
+
+    async function room3_engine() {
+      setLocation('THE ENGINE ROOM');
+      state.room = 3;
+      state.step = 0;
+      disableInput();
+
+      await typeLines([
+        { text: '' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '  ACT III: THE RUN (RECEIPTS OR IT DIDN\'T HAPPEN)', cls: 'highlight' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '' },
+        { text: 'Back at your desk. The fern has become a stakeholder.' },
+        { text: 'Time to stage tasks and let cub work.', cls: 'success' },
+        { text: '' },
+      ]);
+
+      addHTML(`
+        <div class="callout">
+          <h3>cub stage</h3>
+          <div class="output-line">Staging takes planned tasks and makes them runnable.</div>
+          <div class="output-line dim">Think: “okay, now it’s real.”</div>
+        </div>
+      `);
+
+      addChips([
+        { cmd: 'cub stage', label: 'cub stage' },
+        { cmd: 'cub task ready', label: 'cub task ready' },
+      ]);
+      enableInput();
+    }
+
+    async function room4_final_push() {
+      setLocation('THE FINAL PUSH');
+      state.room = 4;
+      state.step = 0;
+      disableInput();
+
+      await typeLines([
+        { text: '' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '  ACT IV: THE PROOF (SHOW YOUR WORK)', cls: 'highlight' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '' },
+        { text: 'Your manager needs an update. Not “it’s going.”' },
+        { text: 'An update you can screenshot and paste into a doc nobody reads.', cls: 'dim' },
+        { text: '' },
+      ]);
+
+      addHTML(`
+        <div class="callout">
+          <h3>cub ledger</h3>
+          <div class="output-line">Ledger = receipts: sessions, tasks, cost, duration.</div>
+          <div class="output-line dim">The opposite of “trust me, it worked.”</div>
+        </div>
+      `);
+
+      addChips([
+        { cmd: 'cub ledger show', label: 'cub ledger show' },
+        { cmd: 'cub suggest', label: 'cub suggest' },
+      ]);
+      enableInput();
+    }
+
+    async function room5_finish() {
+      setLocation('THE FINISH LINE');
+      state.room = 5;
+      state.step = 0;
+      disableInput();
+
+      await typeLines([
+        { text: '' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '  ACT V: VICTORY (AND A TINY SLIVER OF JOY)', cls: 'highlight' },
+        { text: '════════════════════════════════════════════════════════', cls: 'dim' },
+        { text: '' },
+        { text: 'Only a few tickets remain. The venue is across town.' },
+        { text: 'One more run should do it.', cls: 'success' },
+        { text: '' },
+      ]);
+
+      addChips([{ cmd: 'cub run', label: 'cub run' }]);
+      enableInput();
+    }
+
+    // Interruptions
+    async function interruption(kind) {
+      disableInput();
+
+      if (kind === 'hr') {
+        advanceTime(35);
+        await typeLines([
+          { text: '' },
+          { text: '╔══════════════════════════════════════════════════════╗', cls: 'alert' },
+          { text: '║  MANDATORY HR TRAINING                              ║', cls: 'alert' },
+          { text: '║  “Reply-All: A Love Story”                           ║', cls: 'alert' },
+          { text: '╚══════════════════════════════════════════════════════╝', cls: 'alert' },
+          { text: '' },
+          { text: 'A cheerful video explains that “everyone@company” is not a diary.', cls: 'dim' },
+          { text: 'You lose time. The fern gains confidence.', cls: 'dim' },
+          { text: '' },
+        ]);
+        await sleep(250);
+        await room3_engine();
+        return;
+      }
+
+      if (kind === 'okr') {
+        advanceTime(75);
+        await typeLines([
+          { text: '' },
+          { text: '╔══════════════════════════════════════════════════════╗', cls: 'alert' },
+          { text: '║  SURPRISE MEETING: OKR ALIGNMENT                    ║', cls: 'alert' },
+          { text: '║  Agenda: align the alignment of alignment            ║', cls: 'alert' },
+          { text: '╚══════════════════════════════════════════════════════╝', cls: 'alert' },
+          { text: '' },
+          { text: 'Someone suggests re-estimating using Fibonacci “because it’s nature.”', cls: 'dim' },
+          { text: 'You briefly consider becoming a lighthouse keeper.', cls: 'dim' },
+          { text: '' },
+        ]);
+
+        const old = state.tickets;
+        await animateTickets(old, 7200, 1050);
+
+        await typeLines([
+          { text: '' },
+          { text: '> cub status', cls: 'command-echo' },
+          { text: ` ${progressBar(state.tickets, 10000)} 72% (7,200/10,000 tickets)`, cls: 'success' },
+          { text: ' 38 tasks complete | 4 in progress | 5 ready', cls: 'success' },
+          { text: '' },
+        ]);
+
+        await room4_final_push();
+        return;
+      }
+
+      if (kind === 'sync') {
+        advanceTime(50);
+        await typeLines([
+          { text: '' },
+          { text: '╔══════════════════════════════════════════════════════╗', cls: 'alert' },
+          { text: '║  QUICK SYNC TOUCHBASE                               ║', cls: 'alert' },
+          { text: '║  Duration: “30 minutes” (historically false)         ║', cls: 'alert' },
+          { text: '╚══════════════════════════════════════════════════════╝', cls: 'alert' },
+          { text: '' },
+          { text: 'Your skip-level shows boat photos. The boat is named “Agile Vessel.”', cls: 'dim' },
+          { text: 'He says: “We should disrupt tickets.”', cls: 'dim' },
+          { text: '' },
+        ]);
+
+        await animateTickets(state.tickets, 9100, 900);
+        await typeLines([
+          { text: 'You return to your desk with 900 tickets left and 11% less hope.', cls: 'highlight' },
+          { text: '' },
+        ]);
+
+        await room5_finish();
+        return;
+      }
+    }
+
+    async function showVictory() {
+      disableInput();
+      advanceTime(25);
+
+      await typeLines([
+        { text: '' },
+        { text: '> cub status', cls: 'command-echo' },
+        { text: ` ${progressBar(10000, 10000)} 100% (10,000/10,000 tickets)`, cls: 'success' },
+        { text: ' 47 tasks complete | 0 in progress | 0 ready', cls: 'success' },
+        { text: '' },
+        { text: 'ALL TICKETS PROCESSED.', cls: 'success' },
+        { text: '' },
+        { text: '> cub ledger stats', cls: 'command-echo' },
+        { text: ' Total tasks:     47' },
+        { text: ' Total tickets:   10,000' },
+        { text: ' Total cost:      $4.23' },
+        { text: ' Total compute:   2h 15m' },
+        { text: ' Time saved:      ~3 months of manual churn', cls: 'highlight' },
+        { text: '' },
+      ]);
+
+      state.time.h = 17; state.time.m = 30;
+      updateStatus();
+      setLocation('PARKING LOT');
+
+      await typeLines([
+        { text: 'You grab your jacket. The fern nods like a grizzled mentor.' },
+        { text: 'A message arrives: “Great velocity! Let’s do 20,000 next sprint.”', cls: 'dim' },
+        { text: 'You mute the channel. You are free (for four hours).', cls: 'success' },
+        { text: '' },
+        { text: 'Tonight, you rock.', cls: 'highlight' },
+        { text: '' },
+      ]);
+
+      const box = document.createElement('div');
+      box.className = 'victory-box';
+      box.innerHTML = `
+        <div class="output-line ascii-art" style="text-align:center">
+ ██████╗  ██████╗  ██████╗██╗  ██╗██╗   ██╗
+ ██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝╚██╗ ██╔╝
+ ██████╔╝██║   ██║██║     █████╔╝  ╚████╔╝
+ ██╔══██╗██║   ██║██║     ██╔═██╗   ╚██╔╝
+ ██║  ██║╚██████╔╝╚██████╗██║  ██╗   ██║
+ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝   ╚═╝</div>
+        <div class="output-line highlight" style="text-align:center; margin-top:6px;">— COMPLETE —</div>
+        <div class="output-line" style="text-align:center; margin-top:8px;">You processed 10,000 tickets in one day.</div>
+        <div class="output-line" style="text-align:center;">Ferns impressed: 1</div>
+        <div class="output-line" style="text-align:center;">Meetings survived: 3</div>
+        <div class="output-line" style="text-align:center; margin-top:8px;"><span class="success">Install:</span> <span class="success">curl -fsSL cub.tools | bash</span></div>
+        <div class="output-line" style="text-align:center;"><span class="success">Docs:</span> <a href="https://docs.cub.tools">https://docs.cub.tools</a></div>
+      `;
+      terminal().appendChild(box);
+      terminal().scrollTop = terminal().scrollHeight;
+
+      addChips([
+        { cmd: 'restart', label: 'Play again' },
+        { cmd: 'help', label: 'Help' },
+      ]);
+      enableInput();
+    }
+
+    // ─── COMMANDS ───────────────────────────────────────────────
+
+    function contextualHint() {
+      if (state.room === 99 && !state.flags.persona) return 'Pick a persona (it only changes jokes).';
+      if (state.room === 0) return 'Look at the desk, take the floppy, and use it.';
+      if (state.room === 1) return 'Type: cub init';
+      if (state.room === 2) {
+        if (state.step === 0) return 'Start planning with: cub plan orient';
+        if (state.step === 1) return 'Next: cub plan architect';
+        if (state.step === 2) return 'Next: cub plan itemize';
+      }
+      if (state.room === 3) {
+        if (state.step === 0) return 'Bring tasks in with: cub stage';
+        return 'Let it rip: cub run';
+      }
+      if (state.room === 4) return 'Show receipts: cub ledger show';
+      if (state.room === 5) return 'Finish: cub run';
+      return 'Try: help';
+    }
+
+    async function executeCommand(rawCmd) {
+      if (state.typing) {
+        state.skipTyping = true;
+        return;
+      }
+      if (!state.inputEnabled) return;
+
+      const cmd = rawCmd.trim();
+      const lc = cmd.toLowerCase();
+      if (!cmd) return;
+
+      state.commandHistory.push(cmd);
+      state.historyIndex = state.commandHistory.length;
+
+      clearChips();
+      addLine('> ' + cmd, 'command-echo');
+      disableInput();
+
+      // Global
+      if (lc === 'start') {
+        terminal().innerHTML = '';
+        resetRun();
+        await intro_choosePersona();
+        return;
+      }
+
+      if (lc === 'hint') {
+        await typeLines([
+          { text: '' },
+          { text: 'Hint:', cls: 'highlight' },
+          { text: '  ' + contextualHint(), cls: 'success' },
+          { text: '' },
+        ]);
+        enableInput();
+        return;
+      }
+
+      if (lc === 'help') {
+        await typeLines([
+          { text: '' },
+          { text: 'ROCKY — A Cub Text Adventure', cls: 'highlight' },
+          { text: 'Golden path:', cls: 'dim' },
+          { text: '  cub init → cub plan orient → cub plan architect → cub plan itemize → cub stage → cub run → cub ledger', cls: 'dim' },
+          { text: '' },
+          { text: 'Commands:', cls: 'dim' },
+          { text: '  look / look <thing>      Examine the room' },
+          { text: '  take <item>              Put it in inventory' },
+          { text: '  use <item>               Use inventory item' },
+          { text: '  inventory (or i)         List items' },
+          { text: '  cub <command>            Do cub stuff' },
+          { text: '  hint                     Contextual nudge' },
+          { text: '  restart                  Start over' },
+          { text: '' },
+          { text: 'While text is typing: press Space to skip.', cls: 'dim' },
+          { text: '' },
+        ]);
+        addChips([{ cmd: 'hint', label: 'hint' }, { cmd: 'look', label: 'look' }, { cmd: 'restart', label: 'restart' }]);
+        enableInput();
+        return;
+      }
+
+      if (lc === 'inventory' || lc === 'i') {
+        if (state.inventory.length === 0) {
+          await typeLines([{ text: 'Your pockets are empty. Like the sprint goals after scope changes.' }]);
+        } else {
+          await typeLines([
+            { text: 'Inventory:', cls: 'highlight' },
+            ...state.inventory.map((item) => ({ text: '  - ' + item })),
+            { text: '' },
+          ]);
+        }
+        enableInput();
+        return;
+      }
+
+      if (lc === 'restart') {
+        terminal().innerHTML = '';
+        resetRun();
+        await intro_choosePersona();
+        return;
+      }
+
+      // Persona selection
+      if (state.room === 99) {
+        if (lc.startsWith('choose ')) {
+          const which = lc.split(' ')[1];
+          state.flags.persona = (which === 'none') ? null : which;
+          terminal().innerHTML = '';
+          await room0_cubicle();
+          return;
+        }
+        await typeLines([{ text: 'Choose one: choose perl | choose java | choose flash | choose none' }]);
+        addChips([
+          { cmd: 'choose perl', label: 'Perl scars' },
+          { cmd: 'choose java', label: 'Java era' },
+          { cmd: 'choose flash', label: 'Flash veteran' },
+          { cmd: 'choose none', label: 'Just ship' },
+        ]);
+        enableInput();
+        return;
+      }
+
+      // Room 0
+      if (state.room === 0) {
+        if (lc === 'look' || lc === 'look around' || lc === 'l') {
+          await typeLines([
+            { text: '' },
+            { text: 'A beige cubicle with walls the color of “please file a ticket.”' },
+            { text: 'On the desk: a PC, a mug, and a tower of TIKKR printouts.' },
+            { text: 'In the corner: a fern, silently tracking your throughput.' },
+            { text: '' },
+          ]);
+          addChips([
+            { cmd: 'look desk', label: 'look desk' },
+            { cmd: 'look fern', label: 'look fern' },
+            { cmd: 'look poster', label: 'look poster' },
+            { cmd: 'look pc', label: 'look pc' },
+          ]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'look desk' || lc === 'examine desk') {
+          state.flags.hasLookedDesk = true;
+          await typeLines([
+            { text: '' },
+            { text: 'Under a coffee ring you find a dusty 3.5" floppy disk.' },
+            { text: 'Label: "CUB v0.30.0 — AUTONOMOUS TASK ENGINE"', cls: 'highlight' },
+            { text: 'In tiny handwriting: "receipts > vibes"', cls: 'dim' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'take floppy', label: 'take floppy' }, { cmd: 'look pc', label: 'look pc' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'look fern' || lc === 'examine fern') {
+          await typeLines([
+            { text: '' },
+            { text: 'The fern has seen things.' },
+            { text: 'It survived one “innovation lab,” two “platform rewrites,” and a blockchain pivot.', cls: 'dim' },
+            { text: 'It will outlive your current ticketing system.', cls: 'dim' },
+            { text: '' },
+          ]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'look poster' || lc === 'examine poster' || lc === 'read poster') {
+          await typeLines([
+            { text: '' },
+            { text: '"THERE IS NO I IN SPRINT"', cls: 'highlight' },
+            { text: 'Someone added: "but there is one in SPIRAL."', cls: 'dim' },
+            { text: '' },
+          ]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'look pc' || lc === 'look computer' || lc === 'examine pc') {
+          await typeLines([
+            { text: '' },
+            { text: 'A beige PC with a green monitor. The A:\\ drive is empty.' },
+            { text: 'The hard drive clicks like it is trying to remember dial-up.' , cls: 'dim' },
+            { text: '' },
+          ]);
+          if (state.flags.hasFloppy) addChips([{ cmd: 'use floppy', label: 'use floppy' }]);
+          enableInput();
+          return;
+        }
+
+        if (['take floppy','get floppy','pick up floppy','take disk','get disk'].includes(lc)) {
+          if (!state.flags.hasLookedDesk) {
+            await typeLines([{ text: 'You paw at the desk blindly. Try "look desk" first.' }]);
+            addChips([{ cmd: 'look desk', label: 'look desk' }]);
+            enableInput();
+            return;
+          }
+          if (state.flags.hasFloppy) {
+            await typeLines([{ text: 'You already have the floppy. It weighs exactly one bad decision.' }]);
+            enableInput();
+            return;
+          }
+          state.flags.hasFloppy = true;
+          state.inventory.push('Mysterious Floppy Disk (CUB v0.30.0)');
+          await typeLines([
+            { text: '' },
+            { text: 'Added to inventory: MYSTERIOUS FLOPPY DISK', cls: 'success' },
+            { text: 'It is probably fine. (This is how every incident starts.)', cls: 'dim' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'use floppy', label: 'use floppy' }, { cmd: 'look pc', label: 'look pc' }]);
+          enableInput();
+          return;
+        }
+
+        if (['use floppy','insert floppy','use disk','insert disk'].includes(lc)) {
+          if (!state.flags.hasFloppy) {
+            await typeLines([{ text: 'You do not have a floppy disk. Your desk might.' }]);
+            addChips([{ cmd: 'look desk', label: 'look desk' }]);
+            enableInput();
+            return;
+          }
+          advanceTime(10);
+          await room1_cubexe();
+          return;
+        }
+
+        await typeLines([{ text: 'Try: look, look desk, take floppy, use floppy.' }]);
+        enableInput();
+        return;
+      }
+
+      // Room 1
+      if (state.room === 1) {
+        if (lc === 'cub init' || lc === 'y' || lc === 'yes') {
+          advanceTime(10);
+          await typeLines([
+            { text: '' },
+            { text: '> cub init', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Initializing cub in MEGACORP-MONOREPO…', cls: 'dim' },
+          ]);
+          await sleep(240);
+          await typeLines([
+            { text: '  Task backend configured (10,000 tickets imported)', cls: 'success' },
+            { text: '  Hooks installed (quietly judging your repo)', cls: 'success' },
+            { text: '  Ledger enabled (receipts: ON)', cls: 'success' },
+            { text: '' },
+            { text: 'Cub is ready. Now: plan the work before you run the work.', cls: 'highlight' },
+            { text: '' },
+          ]);
+          await room2_whiteboard();
+          return;
+        }
+        if (lc === 'n' || lc === 'no') {
+          await typeLines([
+            { text: '' },
+            { text: '"Bold. You\'ll be manually processing tickets until the heat death of Agile."', cls: 'dim' },
+            { text: '"Type cub init."', cls: 'success' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub init', label: 'cub init' }]);
+          enableInput();
+          return;
+        }
+        await typeLines([{ text: 'Cub is waiting. Type "cub init".' }]);
+        addChips([{ cmd: 'cub init', label: 'cub init' }]);
+        enableInput();
+        return;
+      }
+
+      // Room 2
+      if (state.room === 2) {
+        if (lc === 'look whiteboard' || lc === 'look' || lc === 'look around') {
+          await typeLines([
+            { text: '' },
+            { text: 'The whiteboard contains:' },
+            { text: '  - “MICROSERVICES???” (a cry for help)' },
+            { text: '  - “migrate to GraphQL” (written by someone who left in 2019)', cls: 'dim' },
+            { text: '  - A doodle of a whale labeled “SCOPE”', cls: 'dim' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub plan orient', label: 'cub plan orient' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub plan orient' || lc === 'orient') {
+          state.step = 1;
+          advanceTime(10);
+          await typeLines([
+            { text: '' },
+            { text: '> cub plan orient', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Analyzing 10,000 TIKKR tickets…', cls: 'dim' },
+          ]);
+          await sleep(320);
+          await typeLines([
+            { text: '' },
+            { text: 'Findings:', cls: 'highlight' },
+            { text: '  - 3,847 duplicates of “login button is blue”' },
+            { text: '  - 2,100 are triage-able by category' },
+            { text: '  - 847 are from someone named Dave and are all: “bug”', cls: 'dim' },
+            { text: '  - 1 says: “URGENT: fix the thing” (no details; marked P0)', cls: 'alert' },
+            { text: '' },
+            { text: 'Orient complete. Next: ARCHITECT.', cls: 'success' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub plan architect', label: 'cub plan architect' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub plan architect' || lc === 'architect') {
+          if (state.step < 1) {
+            await typeLines([{ text: 'Run "cub plan orient" first.' }]);
+            addChips([{ cmd: 'cub plan orient', label: 'cub plan orient' }]);
+            enableInput();
+            return;
+          }
+          state.step = 2;
+          advanceTime(8);
+          await typeLines([
+            { text: '' },
+            { text: '> cub plan architect', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Designing strategy…', cls: 'dim' },
+          ]);
+          await sleep(280);
+          await typeLines([
+            { text: '' },
+            { text: 'Architecture:', cls: 'highlight' },
+            { text: '  Phase 1: Deduplicate (close 3,847 identical tickets)' },
+            { text: '  Phase 2: Auto-triage (categorize 2,100 by keywords)' },
+            { text: '  Phase 3: Interpret ambiguous tickets (AI-assisted)' },
+            { text: '  Phase 4: Batch-resolve by category (with receipts)' },
+            { text: '  Phase 5: Handle Dave’s tickets (politely)', cls: 'dim' },
+            { text: '' },
+            { text: 'Architect complete. Next: ITEMIZE.', cls: 'success' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub plan itemize', label: 'cub plan itemize' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub plan itemize' || lc === 'itemize') {
+          if (state.step < 2) {
+            await typeLines([{ text: 'Do ORIENT then ARCHITECT first.' }]);
+            addChips([{ cmd: 'cub plan orient', label: 'cub plan orient' }, { cmd: 'cub plan architect', label: 'cub plan architect' }]);
+            enableInput();
+            return;
+          }
+          advanceTime(8);
+          await typeLines([
+            { text: '' },
+            { text: '> cub plan itemize', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Breaking strategy into agent-sized tasks…', cls: 'dim' },
+          ]);
+          await sleep(280);
+          await typeLines([
+            { text: '' },
+            { text: '47 tasks created:', cls: 'success' },
+            { text: '  MEGA-001  Batch-close duplicate tickets' },
+            { text: '  MEGA-002  Auto-triage by category' },
+            { text: '  MEGA-003  Interpret “the thing”' },
+            { text: '  MEGA-004  Resolve login-button-color tickets' },
+            { text: '  MEGA-005  Handle Dave’s “bug” tickets' },
+            { text: '  … (42 more)', cls: 'dim' },
+            { text: '' },
+            { text: 'Plan complete. Next: STAGE.', cls: 'success' },
+            { text: '' },
+          ]);
+
+          await interruption('hr');
+          return;
+        }
+
+        await typeLines([{ text: 'Try: cub plan orient → cub plan architect → cub plan itemize.' }]);
+        addChips([
+          state.step === 0 ? { cmd: 'cub plan orient', label: 'cub plan orient' } :
+          state.step === 1 ? { cmd: 'cub plan architect', label: 'cub plan architect' } :
+          { cmd: 'cub plan itemize', label: 'cub plan itemize' },
+        ]);
+        enableInput();
+        return;
+      }
+
+      // Room 3
+      if (state.room === 3) {
+        if (lc === 'cub stage' || lc === 'stage') {
+          state.step = 1;
+          advanceTime(5);
+          await typeLines([
+            { text: '' },
+            { text: '> cub stage', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Importing 47 tasks from plan…', cls: 'dim' },
+          ]);
+          await sleep(240);
+          await typeLines([
+            { text: '  47 tasks staged and ready', cls: 'success' },
+            { text: '' },
+          ]);
+          addChips([
+            { cmd: 'cub task ready', label: 'cub task ready' },
+            { cmd: 'cub run', label: 'cub run' },
+            { cmd: 'cub status', label: 'cub status' },
+          ]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub task ready' || lc === 'task ready') {
+          if (state.step < 1) {
+            await typeLines([{ text: 'Stage tasks first with "cub stage".' }]);
+            addChips([{ cmd: 'cub stage', label: 'cub stage' }]);
+            enableInput();
+            return;
+          }
+          await typeLines([
+            { text: '' },
+            { text: '> cub task ready', cls: 'command-echo' },
+            { text: '' },
+            { text: ' ID        Title                           Status', cls: 'dim' },
+            { text: ' MEGA-001  Batch-close duplicates           ready' },
+            { text: ' MEGA-002  Auto-triage by category          ready' },
+            { text: ' MEGA-003  Interpret “the thing”            ready' },
+            { text: ' MEGA-004  Resolve button-color tickets     ready' },
+            { text: ' MEGA-005  Handle Dave’s “bug” tickets      ready' },
+            { text: ' … (42 more)', cls: 'dim' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub run', label: 'cub run' }, { cmd: 'cub status', label: 'cub status' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub status' || lc === 'status') {
+          await typeLines([
+            { text: '' },
+            { text: '> cub status', cls: 'command-echo' },
+            { text: ` ${progressBar(state.tickets, 10000)} ${Math.round((state.tickets / 10000) * 100)}% (${state.tickets.toLocaleString()}/10,000 tickets)` },
+            { text: `${state.tickets === 0 ? '47 tasks ready | 0 in progress | 0 complete' : '… it’s moving'}`, cls: state.tickets === 0 ? 'dim' : 'success' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub run', label: 'cub run' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub run' || lc === 'run') {
+          if (state.step < 1) {
+            await typeLines([{ text: 'Stage tasks first with "cub stage".' }]);
+            addChips([{ cmd: 'cub stage', label: 'cub stage' }]);
+            enableInput();
+            return;
+          }
+
+          advanceTime(25);
+          await typeLines([
+            { text: '' },
+            { text: '> cub run', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Cub is loose. Back away slowly.', cls: 'success' },
+            { text: 'It will not ask you to “hop on a quick call.”', cls: 'dim' },
+            { text: '' },
+            { text: '[MONTAGE SEQUENCE]', cls: 'highlight' },
+            { text: '' },
+          ]);
+
+          const montage = [
+            { name: 'MEGA-001: Closed 3,847 duplicates', from: 0, to: 3847 },
+            { name: 'MEGA-002: Auto-triaged 2,100 tickets', from: 3847, to: 5947 },
+            { name: 'MEGA-003: Interpreted “the thing” as a login bug', from: 5947, to: 5948 },
+          ];
+
+          for (const t of montage) {
+            addLine(`  Processing: ${t.name}…`, 'dim');
+            await animateTickets(t.from, t.to, 880);
+            const last = terminal().lastElementChild;
+            last.textContent = `  ${t.name}`;
+            last.className = 'output-line success';
+            await sleep(120);
+          }
+
+          await typeLines([
+            { text: '  … (processing continues autonomously)', cls: 'dim' },
+            { text: '' },
+          ]);
+
+          await interruption('okr');
+          return;
+        }
+
+        await typeLines([{ text: 'Try: cub stage → cub run.' }]);
+        addChips([{ cmd: 'cub stage', label: 'cub stage' }, { cmd: 'cub run', label: 'cub run' }]);
+        enableInput();
+        return;
+      }
+
+      // Room 4
+      if (state.room === 4) {
+        if (lc === 'cub ledger show' || lc === 'ledger show' || lc === 'cub ledger') {
+          state.step = 1;
+          await typeLines([
+            { text: '' },
+            { text: '> cub ledger show', cls: 'command-echo' },
+            { text: '' },
+            { text: ' Session     Task       Duration  Tokens    Cost', cls: 'dim' },
+            { text: ' sess-001    MEGA-001   4m 30s    45,231   $0.12' },
+            { text: ' sess-002    MEGA-002   3m 15s    38,100   $0.09' },
+            { text: ' sess-003    MEGA-003   1m 02s    12,400   $0.03' },
+            { text: ' …           …          …         …        …', cls: 'dim' },
+            { text: ` Total: 38 tasks | $2.47 spent | ${state.tickets.toLocaleString()} tickets resolved`, cls: 'highlight' },
+            { text: '' },
+            { text: 'You take a screenshot. Your manager sees numbers. You see freedom.', cls: 'dim' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub suggest', label: 'cub suggest' }, { cmd: 'cub status', label: 'cub status' }]);
+          enableInput();
+          return;
+        }
+
+        if (lc === 'cub suggest' || lc === 'suggest') {
+          state.step = 2;
+          await typeLines([
+            { text: '' },
+            { text: '> cub suggest', cls: 'command-echo' },
+            { text: '' },
+            { text: ' Recommended: Continue running — 9 tasks remain', cls: 'success' },
+            { text: ' ETA: ~45 minutes', cls: 'dim' },
+            { text: ' Risk: Low — remaining tasks are straightforward', cls: 'dim' },
+            { text: '' },
+            { text: 'Brenda nods. “Great. Add it to the Q4 roadmap.”', cls: 'dim' },
+            { text: '' },
+          ]);
+
+          await interruption('sync');
+          return;
+        }
+
+        if (lc === 'cub status' || lc === 'status') {
+          await typeLines([
+            { text: '' },
+            { text: '> cub status', cls: 'command-echo' },
+            { text: ` ${progressBar(state.tickets, 10000)} 72% (${state.tickets.toLocaleString()}/10,000 tickets)` },
+            { text: ' 38 tasks complete | 4 in progress | 5 ready', cls: 'success' },
+            { text: '' },
+          ]);
+          addChips([{ cmd: 'cub ledger show', label: 'cub ledger show' }, { cmd: 'cub suggest', label: 'cub suggest' }]);
+          enableInput();
+          return;
+        }
+
+        await typeLines([{ text: 'Try: cub ledger show, cub suggest.' }]);
+        addChips([{ cmd: 'cub ledger show', label: 'cub ledger show' }, { cmd: 'cub suggest', label: 'cub suggest' }]);
+        enableInput();
+        return;
+      }
+
+      // Room 5
+      if (state.room === 5) {
+        if (lc === 'cub run' || lc === 'run') {
+          advanceTime(20);
+          await typeLines([
+            { text: '' },
+            { text: '> cub run', cls: 'command-echo' },
+            { text: '' },
+            { text: 'Final run…', cls: 'success' },
+            { text: '' },
+          ]);
+          await animateTickets(state.tickets, 10000, 1100);
+          await showVictory();
+          return;
+        }
+
+        await typeLines([{ text: 'Try: cub run.' }]);
+        addChips([{ cmd: 'cub run', label: 'cub run' }]);
+        enableInput();
+        return;
+      }
+
+      // Fallback
+      await typeLines([{ text: 'That command echoes into the void. Try "hint" or "help".' }]);
+      addChips([{ cmd: 'hint', label: 'hint' }, { cmd: 'help', label: 'help' }]);
+      enableInput();
+    }
+
+    // ─── INPUT WIRING ───────────────────────────────────────────
+    document.addEventListener('keydown', (e) => {
+      const titleVisible = document.getElementById('title-screen').style.display !== 'none';
+      if (titleVisible) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          startGame();
+        }
+        return;
+      }
+
+      if (state.typing && e.key === ' ') {
+        e.preventDefault();
+        state.skipTyping = true;
+        return;
+      }
+
+      if (!state.inputEnabled) return;
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (state.commandHistory.length === 0) return;
+        state.historyIndex = Math.max(0, state.historyIndex - 1);
+        input().value = state.commandHistory[state.historyIndex] || '';
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (state.commandHistory.length === 0) return;
+        state.historyIndex = Math.min(state.commandHistory.length, state.historyIndex + 1);
+        input().value = state.commandHistory[state.historyIndex] || '';
+      }
+
+      if (e.key === 'Enter') {
+        const v = input().value;
+        input().value = '';
+        executeCommand(v);
+      }
+    });
+  </script>
+</body>
+</html>
