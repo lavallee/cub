@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.29.1] - 2026-02-11
+
+### Added
+
+- Add file/directory renaming to migration script
+
+### Changed
+
+- CLI documentation audit — add experimental section, fix stale content, create missing pages
+- Rename prep pipeline to plan flow across all documentation
+- Scoop
+- Comprehensive documentation overhaul — reshape README, add cookbook, CLI pages, glossary, llms.txt
+- Alt adventure takes
+- Scooping cub files
+- Old cub runs
+- Feature/cub-048-ledger-consolidation-and-id-system (#72)
+- Renamed specs and plans to be sequential
+- Feature/cub-t44 (#71)
+- Cleanup punchlist planned and staged
+- Fix/template-resolution-resilience (#70)
+- Update webpage for v0.29.0
+
+### Fixed
+
+- Use timezone.utc instead of UTC for Python 3.10 compat
+- Use UTC timestamps with timezone indicator in counters.json
+- Add tasks.jsonl corruption detection, repair, and prevention
+
+---
+
 ## [0.29.0] - 2026-01-30
 
 ### Breaking Changes
