@@ -329,3 +329,5 @@ When in doubt, use **sonnet**.
 - **Verifiable completion**: Criteria should be checkable
 - **Context is cheap**: Include relevant context - agents don't remember previous tasks
 - **Human-editable**: Markdown format allows easy manual editing before staging
+- **Integration is mandatory**: Every new component needs a task to wire it into existing consumers. A library nobody calls is dead code.
+- **Dead code gets cleaned up**: When replacing a component, include a task to deprecate or remove the old one. Check the architecture's Integration Impact section for what needs cleanup.

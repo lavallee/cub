@@ -100,6 +100,34 @@ Create a technical design that addresses:
 5. **APIs/Interfaces**: How components communicate
 6. **Implementation Phases**: Logical order to build things
 
+### Step 5b: Assess Integration Impact
+
+**CRITICAL**: Before proceeding, assess how the proposed changes integrate with the existing codebase.
+This step prevents the common failure mode of building components that are never wired into the system.
+
+For each new component or changed module:
+
+1. **Identify existing consumers**: Search the codebase for imports and usages of code that will be
+   affected. Use `grep` or equivalent to find all files that import from modules being changed.
+
+2. **Map integration points**: For each new component, explicitly document:
+   - What existing code needs to call it
+   - What existing imports need to change
+   - What existing behavior needs to be updated
+
+3. **Identify dead code**: When a new component replaces or supersedes an existing one:
+   - List the old module/function being replaced
+   - List all files that import from the old code
+   - Determine if the old code can be fully removed or needs a deprecation period
+   - Flag any code that will become unreachable after the change
+
+4. **Design integration path**: Each phase MUST include tasks for:
+   - Wiring new code into existing consumers (not just building it in isolation)
+   - End-to-end verification that the new code works through the full user-facing flow
+   - Removing or deprecating old code that's been superseded
+
+Add an **Integration Impact** section to the architecture document (see template below).
+
 ### Step 6: Identify Risks
 
 Document technical risks:
@@ -210,6 +238,29 @@ Use this template:
 ### Internal
 - {existing code/library}: {how we integrate}
 
+## Integration Impact
+
+> This section is REQUIRED. It prevents the common failure mode of building
+> components that are never wired into the system.
+
+### New Components → Existing Consumers
+
+| New Component | Existing Consumer | Integration Action |
+|--------------|-------------------|-------------------|
+| {new module/function} | {file that needs to import/call it} | {what needs to change} |
+
+### Deprecated/Replaced Code
+
+| Old Code | Replaced By | Files That Import It | Action |
+|----------|------------|---------------------|--------|
+| {old module} | {new module} | {list of importers} | {remove/deprecate/migrate} |
+
+### Integration Verification
+
+For each phase, at least one task must verify the change works end-to-end:
+- {Phase 1}: {what end-to-end test verifies this phase works}
+- {Phase 2}: {what end-to-end test verifies this phase works}
+
 ## Security Considerations
 
 {Relevant security notes based on mindset}
@@ -250,3 +301,5 @@ After marking the stage complete, tell the user:
 - **Acknowledge tradeoffs**: Be explicit about what you're trading off and why
 - **Stay practical**: Recommend what will actually work, not what's theoretically ideal
 - **Consider the builder**: The Planner will turn this into tasks - make sure your design is actionable
+- **Integration is not optional**: A component that exists but isn't wired into the system is dead code. Every new component must have a clear path to integration with existing consumers.
+- **Identify dead code proactively**: When replacing a component, explicitly map what becomes obsolete and plan its removal. Orphaned code is a maintenance burden and a source of confusion.
