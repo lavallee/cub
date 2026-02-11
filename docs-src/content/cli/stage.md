@@ -24,8 +24,7 @@ The `stage` command imports tasks from a completed plan's `itemized-plan.md` int
 Staging also:
 
 - Runs pre-flight checks (git repository, required tools)
-- Generates `.cub/prompt.md` with project context
-- Generates `.cub/agent.md` with build/run instructions
+- Generates `plans/<slug>/prompt-context.md` with plan-specific context for runtime injection
 - Moves the spec from `planned/` to `staged/`
 
 ---
@@ -46,7 +45,7 @@ Staging also:
 | `-l`, `--list` | List all stageable plans |
 | `-v`, `--verbose` | Show detailed output |
 | `--skip-checks` | Skip pre-flight checks (git, tools) |
-| `--skip-prompt` | Don't generate prompt.md and agent.md |
+| `--skip-prompt` | Don't generate prompt-context.md |
 | `--project-root PATH` | Project root directory |
 | `-h`, `--help` | Show help message |
 
@@ -104,9 +103,9 @@ Warnings are displayed but don't block staging. Use `--skip-checks` to suppress.
 
 ## Generated Files
 
-### .cub/prompt.md
+### plans/<slug>/prompt-context.md
 
-Project context for AI agents, extracted from:
+Plan-specific context for runtime injection, extracted from:
 
 - Problem statement from orientation
 - Requirements (P0/P1) from orientation
@@ -114,30 +113,7 @@ Project context for AI agents, extracted from:
 - Components from architecture
 - Constraints from orientation
 
-### .cub/agent.md
-
-Build/run instructions template (only created if not exists):
-
-```markdown
-# Agent Instructions
-
-## Project Overview
-<!-- Brief description -->
-
-## Tech Stack
-- **Language**:
-- **Framework**:
-
-## Development Setup
-\`\`\`bash
-# Setup commands
-\`\`\`
-
-## Feedback Loops
-\`\`\`bash
-# Tests, linting
-\`\`\`
-```
+This file is injected at runtime by `cub run` when executing tasks from this plan. It is NOT a global file — each plan gets its own context file.
 
 ---
 
@@ -161,7 +137,7 @@ Duration: 2.3s
 
 Created: 3 epics, 12 tasks
 Spec moved to: specs/staged/my-feature.md
-Generated: .cub/prompt.md, .cub/agent.md
+Generated: plans/<slug>/prompt-context.md
 
 Next step: cub run
 ```
@@ -202,5 +178,5 @@ bd show auth-001
 
 ## See Also
 
-- [Stage Guide](../guide/plan-pipeline/stage.md) - Detailed staging documentation
-- [Plan Flow](../guide/plan-pipeline/index.md) - Complete pipeline overview
+- [Stage Guide](../guide/plan-flow/stage.md) - Detailed staging documentation
+- [Plan Flow](../guide/plan-flow/index.md) - Complete pipeline overview

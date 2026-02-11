@@ -25,8 +25,32 @@ Cub wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) to provide relia
 - `cub status` — Project progress summary
 - `cub plan run` — Planning pipeline (orient -> architect -> itemize)
 - `cub stage` — Import planned tasks into task backend
+- `cub sync` — Sync task state to git branch
+- `cub punchlist` — Process punchlist files into structured tasks
+- `cub version` — Show cub version
+- `cub system-upgrade` — Upgrade cub to newer version
 - `cub ledger show` — Query completed work records
-- `cub suggest` — Smart recommendations for next actions
+- `cub suggest` — Smart recommendations for next actions (experimental)
+
+## Experimental Commands
+
+These commands work but their interfaces may change:
+
+- `cub dashboard` — Kanban dashboard with web UI
+- `cub tools` — Unified tool runtime (list, check, run, stats)
+- `cub toolsmith` — Tool discovery and catalog (sync, search, adopt)
+- `cub workflow` — Post-completion workflow stages
+- `cub sandbox` — Docker sandbox management
+- `cub audit` — Code health audits
+- `cub guardrails` — Institutional memory management
+- `cub checkpoints` — Review/approval gates
+- `cub triage` — Requirement refinement
+- `cub import` — External task import
+- `cub map` — Project map generation
+- `cub learn extract` — Extract patterns from ledger
+- `cub retro` — Retrospective reports
+- `cub verify` — Data integrity checks
+- `cub release` — Release management
 
 ## Key Concepts
 

@@ -221,8 +221,11 @@ nav:
     - Core Commands:
       - cub run: cli/run.md
       - cub plan: cli/plan.md
+      - cub stage: cli/stage.md
       - cub init: cli/init.md
       - cub new: cli/new.md
+      - cub sync: cli/sync.md
+      - cub punchlist: cli/punchlist.md
     - Status Commands:
       - cub status: cli/status.md
       - cub monitor: cli/monitor.md
@@ -243,22 +246,35 @@ nav:
       - cub pr: cli/pr.md
       - cub worktree: cli/worktree.md
       - cub merge: cli/merge.md
-    - Learning & Analysis:
-      - cub learn: cli/learn.md
-      - cub retro: cli/retro.md
-      - cub suggest: cli/suggest.md
-      - cub verify: cli/verify.md
-    - Release:
-      - cub release: cli/release.md
     - Install Commands:
       - cub doctor: cli/doctor.md
+      - cub system-upgrade: cli/system-upgrade.md
       - cub upgrade: cli/upgrade.md
       - cub uninstall: cli/uninstall.md
+      - cub version: cli/version.md
     - Capture Commands:
       - cub capture: cli/capture.md
       - cub captures: cli/captures.md
       - cub organize-captures: cli/organize-captures.md
       - cub investigate: cli/investigate.md
+    - Experimental:
+      - cli/experimental/index.md
+      - cub dashboard: cli/experimental/dashboard.md
+      - cub tools: cli/experimental/tools.md
+      - cub toolsmith: cli/experimental/toolsmith.md
+      - cub workflow: cli/experimental/workflow.md
+      - cub sandbox: cli/experimental/sandbox.md
+      - cub audit: cli/experimental/audit.md
+      - cub guardrails: cli/experimental/guardrails.md
+      - cub checkpoints: cli/experimental/checkpoints.md
+      - cub triage: cli/experimental/triage.md
+      - cub import: cli/experimental/import.md
+      - cub map: cli/experimental/map.md
+      - cub learn: cli/learn.md
+      - cub retro: cli/retro.md
+      - cub suggest: cli/suggest.md
+      - cub verify: cli/verify.md
+      - cub release: cli/release.md
 
   - Cookbook:
     - cookbook/index.md

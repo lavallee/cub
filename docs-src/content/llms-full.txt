@@ -359,13 +359,24 @@ Worktree: A git worktree used for isolated, parallel task execution. When runnin
   - `--worktree` — Run in isolated git worktree
   - `--sandbox` — Run in Docker sandbox
   - `--parallel <n>` — Run n tasks in parallel
+  - `--plan <slug>` — Execute a staged plan (all epics)
+  - `--start-epic <id>` — Start plan from this epic
+  - `--only-epic <id>` — Only execute this epic within the plan
+  - `--main-ok` — Allow running on main/master branch
+  - `--use-current-branch` — Run in current branch
+  - `--from-branch <branch>` — Base branch for feature branch
+  - `--no-sync` — Disable auto-sync for this run
+  - `--no-circuit-breaker` — Disable circuit breaker
   - `--debug` — Verbose debug logging
 - `cub status` — Show current session status and task progress
   - `--json` — JSON output for scripting
   - `-v` — Verbose status with details
-- `cub suggest` — Get smart suggestions for next actions
+- `cub suggest` — Get smart suggestions for next actions (experimental)
 - `cub doctor` — Diagnose and fix configuration issues
 - `cub version` — Show cub version
+- `cub system-upgrade` — Upgrade cub to a newer version
+- `cub sync` — Sync task state to git branch
+- `cub punchlist` — Process punchlist files into itemized plans
 
 ### Task Management
 
@@ -449,9 +460,12 @@ Worktree: A git worktree used for isolated, parallel task execution. When runnin
 - `cub sync` — Sync task state to git branch
   - `status` — Check sync status
   - `init` — Initialize sync branch
+  - `agent` — Sync managed sections in agent.md
+  - `--pull` — Pull and merge remote changes
   - `--push` — Push changes to remote
+  - `--message TEXT` — Custom commit message
 
-### Learning & Analysis
+### Learning & Analysis (Experimental)
 
 - `cub learn extract` — Extract patterns and lessons from ledger
   - `--since <days>` — Analyze last N days
@@ -459,21 +473,21 @@ Worktree: A git worktree used for isolated, parallel task execution. When runnin
   - `--verbose` — Show detailed patterns
   - `--output <path>` — Save to file
   - `--apply` — Apply insights to guardrails and documentation
-- `cub verify` — Verify cub data integrity (ledger, IDs, counters)
+- `cub verify` — Verify cub data integrity (ledger, IDs, counters) (experimental)
   - `--fix` — Auto-fix simple issues
   - `--ledger` — Check ledger consistency only
   - `--ids` — Check ID format and duplicates
   - `--counters` — Check counter synchronization
   - `--verbose` — Show all issues
-- `cub release <plan-id> <version>` — Mark a plan as released and update CHANGELOG
+- `cub release <plan-id> <version>` — Mark a plan as released and update CHANGELOG (experimental)
   - `--dry-run` — Preview changes
   - `--no-tag` — Skip git tag creation
-- `cub retro <id>` — Generate retrospective report
+- `cub retro <id>` — Generate retrospective report (experimental)
   - `--epic` — Treat ID as epic ID
   - `--output <path>` — Write retro to file
-- `cub guardrails` — Display and manage institutional memory
-- `cub map` — Generate a project map with structure analysis
-- `cub audit` — Run code health audits (dead code, docs, coverage)
+- `cub guardrails` — Display and manage institutional memory (experimental)
+- `cub map` — Generate a project map with structure analysis (experimental)
+- `cub audit` — Run code health audits (dead code, docs, coverage) (experimental)
 
 ### System
 
@@ -483,12 +497,13 @@ Worktree: A git worktree used for isolated, parallel task execution. When runnin
 - `cub docs` — Open cub documentation in browser
 - `cub hooks` — Manage Claude Code hooks for symbiotic workflow
 - `cub monitor` — Display live dashboard for cub run session
-- `cub dashboard` — Launch project kanban dashboard
-- `cub sandbox` — Manage Docker sandboxes
-- `cub tools` — Manage and execute tools via the unified tool runtime
-- `cub toolsmith` — Discover and catalog tools
+- `cub dashboard` — Launch project kanban dashboard (experimental)
+- `cub sandbox` — Manage Docker sandboxes (experimental)
+- `cub tools` — Manage and execute tools via the unified tool runtime (experimental)
+- `cub toolsmith` — Discover and catalog tools (experimental)
   - `sync` — Sync tool catalog from external sources
   - `search <query>` — Search for tools
+- `cub workflow` — Manage post-completion workflow stages (experimental)
 - `cub workbench` — PM Workbench: unknowns ledger + next move
 
 ---

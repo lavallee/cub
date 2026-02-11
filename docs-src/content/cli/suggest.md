@@ -155,7 +155,7 @@ Scores are normalized to a 0-1 range. The top recommendations are presented in r
 - [`cub status`](status.md) - View overall project progress
 - [`cub task ready`](task.md) - List all ready tasks
 - [`cub run`](run.md) - Execute tasks autonomously (uses suggestion engine internally)
-- [`cub checkpoints`](checkpoints.md) - Manage review gates that may appear in suggestions
+- [`cub checkpoints`](experimental/checkpoints.md) - Manage review gates that may appear in suggestions
 
 ---
 

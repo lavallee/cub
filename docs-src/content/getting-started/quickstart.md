@@ -306,7 +306,7 @@ bd list --status open
 Try running in debug mode to see what's happening:
 
 ```bash
-cub run --once --debug
+cub --debug run --once
 ```
 
 Check the logs:

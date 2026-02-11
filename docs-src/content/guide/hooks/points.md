@@ -43,7 +43,7 @@ echo "[pre-loop] Project: $CUB_PROJECT_DIR"
 echo "[pre-loop] Harness: $CUB_HARNESS"
 
 # Create session directory
-mkdir -p "$CUB_PROJECT_DIR/.cub/sessions/$CUB_SESSION_ID"
+mkdir -p "$CUB_PROJECT_DIR/.cub/ledger/forensics"
 
 exit 0
 ```

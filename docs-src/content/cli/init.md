@@ -153,21 +153,16 @@ Depending on backend and project type:
 ```
 my-project/
 ├── .cub/
-│   ├── README.md        # Quick reference guide
-│   ├── prompt.md        # System prompt template
-│   ├── agent.md         # Build/run instructions
-│   ├── progress.txt     # Progress tracking
-│   ├── fix_plan.md      # Issue tracking
-│   └── guardrails.md    # Institutional memory
+│   ├── config.json     # Project configuration
+│   ├── runloop.md      # System prompt template
+│   ├── agent.md        # Build/run instructions
+│   └── scripts/
+│       └── hooks/
+│           └── cub-hook.sh  # Fast-path shell filter
 ├── .claude/
-│   └── commands/        # Claude Code skills
-│       ├── cub:orient.md
-│       ├── cub:architect.md
-│       └── cub:itemize.md
-├── .beads/              # (beads backend only)
-├── prd.json             # (json backend only)
+│   └── settings.json   # Hook configuration
 ├── specs/               # Specifications directory
-├── AGENTS.md            # Symlink to .cub/agent.md
+├── CLAUDE.md            # Symlink to .cub/agent.md
 └── .gitignore           # Updated with cub patterns
 ```
 

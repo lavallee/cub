@@ -89,6 +89,24 @@ The loop continues until one of these conditions is met:
 | `--direct TASK` | `-d` | Run directly with provided task (string, @file, or `-` for stdin) |
 | `--gh-issue NUM` | | Work on a specific GitHub issue by number |
 
+### Branch & Safety Options
+
+| Option | Description |
+|--------|-------------|
+| `--main-ok` | Allow running on main/master branch (normally blocked) |
+| `--use-current-branch` | Run in the current branch instead of creating a new one |
+| `--from-branch BRANCH` | Base branch for new feature branch (default: `origin/main`). Ignored with `--use-current-branch`. |
+| `--no-sync` | Disable auto-sync for this run (overrides config) |
+| `--no-circuit-breaker` | Disable circuit breaker timeout protection (overrides config) |
+
+### Plan Execution Options
+
+| Option | Description |
+|--------|-------------|
+| `--plan SLUG` | Execute a staged plan by iterating through all its epics |
+| `--start-epic ID` | Start plan execution from this epic (skip earlier ones, requires `--plan`) |
+| `--only-epic ID` | Only execute this specific epic within the plan (requires `--plan`) |
+
 ---
 
 ## Examples
@@ -204,7 +222,7 @@ Cub auto-detects available harnesses in this priority order:
 3. `codex` - OpenAI Codex
 4. `opencode` - OpenCode
 
-Override with `--harness` or configure in `.cub.json`:
+Override with `--harness` or configure in `.cub/config.json`:
 
 ```json
 {

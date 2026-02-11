@@ -21,8 +21,11 @@ The primary commands for everyday use:
 |---------|-------------|
 | [`cub run`](run.md) | Execute the autonomous task loop |
 | [`cub plan`](plan.md) | Run the vision-to-tasks plan flow |
+| [`cub stage`](stage.md) | Import tasks from a completed plan |
 | [`cub init`](init.md) | Initialize cub in a project |
 | [`cub new`](new.md) | Create a new project directory |
+| [`cub sync`](sync.md) | Sync task state to git branch |
+| [`cub punchlist`](punchlist.md) | Process punchlist files into tasks |
 
 ### Status Commands
 
@@ -63,8 +66,10 @@ Commands for managing your Cub installation:
 | Command | Description |
 |---------|-------------|
 | [`cub doctor`](doctor.md) | Diagnose and fix configuration issues |
-| [`cub upgrade`](upgrade.md) | Upgrade cub to newer version |
+| [`cub system-upgrade`](system-upgrade.md) | Upgrade cub to a newer version |
+| [`cub upgrade`](upgrade.md) | Upgrade cub (legacy) |
 | [`cub uninstall`](uninstall.md) | Remove cub installation |
+| [`cub version`](version.md) | Show cub version |
 
 ### Capture Commands
 
@@ -76,6 +81,29 @@ Commands for managing idea captures:
 | [`cub captures`](captures.md) | List and manage captures |
 | [`cub organize-captures`](organize-captures.md) | Organize captures into tasks |
 | [`cub investigate`](investigate.md) | Deep-dive research on a capture |
+
+### Experimental Commands
+
+These commands are functional but their interfaces may change between releases. See the [Experimental section](experimental/index.md) for details.
+
+| Command | Description |
+|---------|-------------|
+| [`cub dashboard`](experimental/dashboard.md) | Launch project Kanban dashboard |
+| [`cub tools`](experimental/tools.md) | Unified tool runtime |
+| [`cub toolsmith`](experimental/toolsmith.md) | Discover and catalog tools |
+| [`cub workflow`](experimental/workflow.md) | Post-completion workflow stages |
+| [`cub sandbox`](experimental/sandbox.md) | Manage Docker sandboxes |
+| [`cub audit`](experimental/audit.md) | Code health audits |
+| [`cub guardrails`](experimental/guardrails.md) | Institutional memory |
+| [`cub checkpoints`](experimental/checkpoints.md) | Review/approval gates |
+| [`cub triage`](experimental/triage.md) | Requirement refinement |
+| [`cub import`](experimental/import.md) | External task import |
+| [`cub map`](experimental/map.md) | Project map generation |
+| [`cub learn`](learn.md) | Extract patterns from ledger |
+| [`cub retro`](retro.md) | Retrospective reports |
+| [`cub suggest`](suggest.md) | Smart recommendations |
+| [`cub verify`](verify.md) | Data integrity checks |
+| [`cub release`](release.md) | Release management |
 
 ---
 
@@ -224,7 +252,7 @@ When the same setting is available in multiple places, Cub uses this precedence 
 
 1. **Command-line flags** - `cub run --harness claude`
 2. **Environment variables** - `CUB_HARNESS=claude`
-3. **Project config** - `.cub.json` or `.cub/config.json`
+3. **Project config** - `.cub/config.json`
 4. **Global config** - `~/.config/cub/config.json`
 5. **Built-in defaults**
 
