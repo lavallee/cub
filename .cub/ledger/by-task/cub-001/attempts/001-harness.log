@@ -1,0 +1,38 @@
+I see there's already a `docs.py` file in the CLI. Let me read it to understand the existing structure:The `cub docs` command already exists in `src/cub/cli/docs.py`! It's already registered in the main CLI at line 277:
+
+```python
+app.command(name="docs", rich_help_panel=PANEL_INSTALL)(docs.docs)
+```
+
+The command:
+- Opens `https://docs.cub.tools` by default in the browser
+- Supports `--local` flag to open local documentation files
+
+Let me verify this works properly and check for tests:The command exists and works. Let me check for tests for this specific CLI command:There don't seem to be any tests for the CLI docs command. Let me look at existing CLI tests to understand the test pattern:Now I understand the testing pattern. The `cub docs` command already exists and is functional. Let me write a test for it to ensure it's properly covered:Now let me run the tests to make sure they pass:Let me fix that failing test:All tests pass. Now let me run the full feedback loops (typecheck, tests, lint):Now let me check for type checking tools available and run a broader test suite:All tests pass. Let me also run a quick broader test to ensure nothing was broken:All 356 CLI tests pass. Now let me update the task file to mark this as closed. First, let me read the current line:Now let me commit the changes:The task is complete. Let me verify the task is closed:Task cub-001 is now closed. Let me summarize what was done:
+
+## Summary
+
+**Task cub-001: Add cub docs command to open documentation in browser**
+
+The `cub docs` command **already existed** in the codebase at `src/cub/cli/docs.py` and was properly registered in the main CLI (`src/cub/cli/__init__.py`). The implementation:
+
+- Opens `https://docs.cub.tools` by default in the browser
+- Supports `--local` flag to open local documentation (tries `docs/index.html` first, falls back to `README.md`)
+- Handles browser open failures gracefully
+
+**What I added:**
+- Created comprehensive test coverage in `tests/test_cli_docs.py` with 8 tests covering:
+  - Opening online docs
+  - Handling browser open failures
+  - The `--local` flag functionality
+  - Command registration verification
+  - Help text verification
+
+**Feedback loops completed:**
+- ✅ Tests: All 8 docs tests pass, all 356 CLI tests pass
+- ✅ Typecheck: mypy passes with no issues
+- ✅ Lint: ruff passes with no issues
+
+**Commit:** `feature(cub-001): Add cub docs command to open documentation in browser`
+
+<promise>COMPLETE</promise>
