@@ -1,0 +1,779 @@
+# Cub — Full Documentation for LLMs
+
+> Autonomous AI coding assistant wrapper — plan work, run agents, track results.
+
+Cub wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) to provide reliable autonomous coding sessions. You plan work into structured tasks, then Cub executes them in a loop with dependency ordering, budget tracking, failure recovery, and structured logging.
+
+## Docs
+
+- [Getting Started](getting-started/quickstart.md): Installation and first run
+- [Core Concepts](getting-started/concepts.md): Mental models for using Cub
+- [CLI Reference](cli/index.md): All commands and options
+- [Configuration](guide/configuration/reference.md): Config keys and precedence
+- [Cookbook](cookbook/index.md): End-to-end workflow recipes
+- [Glossary](glossary.md): Term definitions
+
+---
+
+## Complete Concept Reference
+
+Cub has a small number of ideas that, once internalized, make everything else predictable. This section covers each concept with enough depth to reason about it.
+
+### The Two Phases
+
+All work in Cub flows through two distinct phases with different owners.
+
+Planning is human-driven. You describe what you want, refine requirements, decompose work into agent-sized tasks, and arrange them into epics. This is where judgment lives — scoping, prioritization, dependency ordering. Cub's planning tools (`cub plan orient`, `cub plan architect`, `cub plan itemize`) assist, but you make the decisions.
+
+Running is agent-driven. Once tasks exist, `cub run` takes over. It picks the next ready task, assembles a prompt, invokes an AI harness, verifies results, records outcomes, and loops. You step away. The quality of the run depends almost entirely on the quality of the planning.
+
+The flow is: Orient -> Architect -> Itemize -> Stage Tasks -> (cub run) -> Pick Task -> Generate Prompt -> Execute Harness -> Verify & Record -> loop back to Pick Task.
+
+The separation exists because investing time before code starts flying makes autonomous execution reliable. Vague instructions produce vague results. Structured tasks with clear acceptance criteria produce working code.
+
+### The Autonomous Loop
+
+The run loop is Cub's execution engine. Understanding its cycle explains most of Cub's behavior.
+
+Each iteration follows the same steps:
+
+1. Find a ready task — status is `open`, all dependencies are `closed`, respects priority ordering
+2. Claim it — set status to `in_progress` so nothing else picks it up
+3. Generate a prompt — assemble context from multiple layers (see Context Composition below)
+4. Invoke the harness — hand the prompt to the AI coding assistant and let it work
+5. Verify the result — did the task close? is git state clean? did tests pass?
+6. Record the outcome — write a ledger entry with what happened, what changed, and what it cost
+7. Loop or exit — continue to the next task, or stop if budget is exhausted, all tasks are done, or the circuit breaker fires
+
+The flow is: cub run -> Find Ready Task -> Task found? (No -> All tasks complete or blocked; Yes -> Claim Task -> Generate Prompt -> Invoke Harness -> Success? (Yes -> Record in Ledger; No -> Handle Failure -> Record) -> Budget remaining? (No -> Budget exhausted; Yes -> back to Find Ready Task)).
+
+The loop is stateless between iterations. Each cycle reads the current state of the world (task backend, git, config) and makes a fresh decision. This means you can modify tasks, change priorities, or even add new tasks while the loop is running.
+
+### Harnesses
+
+A harness is Cub's abstraction over an AI coding CLI. Cub does not contain an AI model — it wraps tools that do.
+
+The supported harnesses are:
+
+- claude: Wraps Claude Code (binary: claude)
+- codex: Wraps OpenAI Codex CLI (binary: codex)
+- gemini: Wraps Google Gemini CLI (binary: gemini)
+- opencode: Wraps OpenCode (binary: opencode)
+
+Why the abstraction? Because harnesses differ in capabilities (streaming, token reporting, system prompts, hooks), and Cub adapts its behavior to each one. A task prompt that works with Claude Code will also work with Codex — Cub handles the translation. This lets you switch harnesses without rewriting your tasks.
+
+Detection works by checking which binaries are available on your system. Cub tries them in a default priority order (claude > opencode > codex > gemini) and uses the first one found. Override with `--harness claude` or the `harness` key in `.cub/config.json`.
+
+```
+# Auto-detect (uses first available)
+cub run
+
+# Explicit selection
+cub run --harness codex
+```
+
+### Tasks and Epics
+
+Tasks are the atomic unit of work. Epics group related tasks. Together they form a hierarchy that Cub navigates during execution.
+
+Task ID Format:
+
+Every task ID encodes its position in the hierarchy: `{project}-{epic}.{task}`
+
+- Project (e.g., `cub`): Which project this belongs to
+- Epic (e.g., `048a-5`): Groups related work together
+- Task (e.g., `4`): Individual item within the epic
+
+Full example: `cub-048a-5.4` — task 4 in epic `048a-5` of project `cub`.
+
+Lifecycle:
+
+Tasks move through three states: open -> in_progress -> closed.
+
+- open — Ready for work (if dependencies are met). This is the starting state.
+- in_progress — Claimed by a session. Only one session works a task at a time.
+- closed — Done. The harness completed the work and signaled closure.
+
+A task in `in_progress` can return to `open` if it fails or is released.
+
+Epics:
+
+An epic is a task of type `epic` that serves as a parent for other tasks. The `parent` field on child tasks points to the epic's ID. Cub uses this to:
+
+- Filter runs to a specific epic (`cub run --epic cub-048a-5`)
+- Generate epic context in prompts (sibling task status, overall progress)
+- Organize ledger entries by epic for reporting
+
+### The Ledger
+
+The ledger is Cub's permanent record of completed work. Every time a task finishes — whether through `cub run` or a direct session — the ledger captures what happened.
+
+A ledger entry records:
+
+- Task ID: Which task was completed
+- Session ID: Which execution session did the work
+- Files changed: List of files created, modified, or deleted
+- Git commits: Commit hashes and messages produced
+- Cost and tokens: How much the execution cost
+- Duration: Wall-clock time for the task
+- Summary: What the agent actually did
+
+Entries are stored as JSONL in `.cub/ledger/` and organized into three indices for efficient querying:
+
+```
+.cub/ledger/
+  index.jsonl              # All entries, chronological
+  by-task/{task_id}/       # Grouped by task
+  by-epic/{epic_id}/       # Grouped by epic
+  by-run/{run_id}/         # Grouped by session
+  forensics/               # Raw session event logs
+```
+
+The ledger matters because it closes the feedback loop. Without it, you finish a coding session and lose the context of what happened, what it cost, and what patterns are emerging. With it, you can query trends, run retrospectives (`cub retro`), and extract lessons (`cub learn extract`).
+
+```
+# View recent ledger entries
+cub ledger show
+
+# Search the ledger
+cub ledger search "authentication"
+
+# Get aggregate statistics
+cub ledger stats
+```
+
+### Context Composition
+
+When Cub generates a prompt for the harness, it assembles context from five layers. Understanding these layers explains why the agent behaves the way it does — and how to influence it.
+
+Layer 1: Runloop (.cub/runloop.md)
+  Core workflow instructions. How to claim tasks, run tests,
+  signal completion. Managed by cub init.
+
+Layer 2: Plan Context (plans/<slug>/prompt-context.md)
+  Problem statement, requirements, technical approach.
+  Generated by cub stage from planning artifacts.
+
+Layer 3: Epic Context (generated dynamically)
+  Parent epic details, sibling task status, overall progress.
+  Helps the agent understand the bigger picture.
+
+Layer 4: Task Context (current task)
+  Task ID, title, description, acceptance criteria,
+  backend-specific closure instructions.
+
+Layer 5: Retry Context (if applicable)
+  Previous attempt summaries and failure logs.
+  Prevents the agent from repeating the same mistakes.
+
+Context composition happens at runtime, not through file mutation. The runloop template stays the same; plan context lives in its plan directory; everything merges when the prompt is generated. This means you can customize agent behavior at the right level:
+
+- Change how all tasks execute: edit `.cub/runloop.md`
+- Change context for a specific plan: edit `plans/<slug>/prompt-context.md`
+- Change project-wide instructions: edit `CLAUDE.md` (symlinked to `.cub/agent.md`)
+- Change a single task's behavior: edit the task description or acceptance criteria
+
+### Symbiotic Workflow
+
+Cub supports two ways of working with AI coding assistants, and the symbiotic workflow bridges them.
+
+CLI-driven (`cub run`): Cub controls the session. It picks tasks, generates prompts, invokes the harness, and records results. Fully autonomous.
+
+Interactive (direct Claude Code session): You control the session. You open Claude Code, talk to it, write code together. Cub has no visibility into what happened — unless hooks are installed.
+
+Hooks are the bridge. When you run `cub init`, Cub installs lightweight hooks into Claude Code's event system. These hooks observe what happens during direct sessions and feed it back into Cub's ledger:
+
+- SessionStart: Injects available tasks and project context
+- PostToolUse: Tracks file writes, task commands, git commits
+- Stop: Finalizes the session and creates a ledger entry
+- PreCompact: Checkpoints state before context compaction
+
+The result: whether you use `cub run` or work directly in Claude Code, the ledger stays complete. Task state, file changes, and session metadata are captured either way.
+
+```
+# In a direct Claude Code session, claim and close tasks manually
+cub task claim cub-048a-5.4
+# ... do the work ...
+cub task close cub-048a-5.4 -r "Implemented the feature"
+```
+
+When `cub run` invokes Claude Code as a harness, hooks are automatically disabled for that session (via `CUB_RUN_ACTIVE`) to prevent double-tracking. Hooks only activate for direct, interactive sessions.
+
+### Budget and Guardrails
+
+Autonomous AI sessions can consume significant resources. Cub provides multiple layers of protection so you can step away with confidence.
+
+Budget Controls:
+
+Set spending limits in USD or tokens:
+
+```
+# Cap this run at $10
+cub run --budget 10
+
+# Cap at 500K tokens
+cub run --budget-tokens 500000
+```
+
+Or configure defaults in `.cub/config.json`:
+
+```json
+{
+  "budget": {
+    "max_tokens_per_task": 500000,
+    "max_total_cost": 10.0
+  }
+}
+```
+
+When a budget limit is reached, the current task finishes, the result is recorded, and the loop exits gracefully.
+
+Circuit Breaker:
+
+The circuit breaker detects stagnation — when the agent is spinning without making progress. If the same task fails repeatedly, or the agent produces no meaningful output across iterations, the circuit breaker trips and halts execution. This prevents burning budget on a task the agent cannot solve.
+
+Clean State Requirements:
+
+By default, Cub verifies git state is clean between iterations. This catches cases where the agent left uncommitted changes, merge conflicts, or other problems that would compound across tasks. Configure this in `.cub/config.json`:
+
+```json
+{
+  "state": {
+    "require_clean": true,
+    "run_tests": true,
+    "run_typecheck": false
+  }
+}
+```
+
+Together, budgets, the circuit breaker, and clean state verification form a safety net that makes "set and forget" practical rather than reckless.
+
+---
+
+## Glossary
+
+Definitions of key terms and concepts used throughout Cub. Terms are organized alphabetically.
+
+### B
+
+Backend: The storage system used to persist and query tasks. Cub ships with two backends: JSONL (default, file-based) and Beads (advanced, via the external `bd` CLI). The active backend is configured in `.cub/config.json` under `backend.mode`.
+
+Beads: An external CLI tool (`bd`) that provides advanced task management with built-in support for dependencies, labels, epics, and priority. Used as an alternative task backend when richer task operations are needed.
+
+Budget: Cost or token limits that cap spending during a `cub run` session. Set via `--budget` (in USD) or `--budget-tokens` (raw token count) on the command line, or configured in `.cub/config.json`. Budgets prevent runaway spending when running autonomous loops.
+
+### C
+
+Capture: A raw idea, note, or observation recorded for later processing. Captures are lightweight and unstructured, intended to be triaged into specs or tasks later. Managed with `cub capture` (create) and `cub captures` (list/review).
+
+Checkpoint: A review or approval gate that blocks downstream tasks until a human approves it. Created as a task with type `gate`. When running `cub run`, tasks that depend on an unapproved checkpoint are skipped automatically. Managed with `cub checkpoints`.
+
+Circuit Breaker: A stagnation detection mechanism in the run loop. When the loop detects that no meaningful progress has been made after repeated iterations (e.g., the same task keeps failing), the circuit breaker trips and halts execution to prevent infinite loops.
+
+Context Composition: The system that assembles the prompt sent to an AI harness from multiple layers: the runloop template (`.cub/runloop.md`), plan-specific context (`plans/<slug>/prompt-context.md`), epic context, task context, and retry context from previous attempts. Context is composed at runtime rather than through file mutation.
+
+### E
+
+Epic: A group of related tasks that form a larger unit of work. Tasks belong to an epic via the `parent` field in the task record, and epic IDs are embedded in the hierarchical task ID format (`{project}-{epic}-{task}`). Epics enable grouped progress tracking, branch bindings, and pull request management.
+
+### F
+
+Forensics: Session event logs stored as JSONL files in `.cub/ledger/forensics/`. Each file records timestamped events from a single session, including file writes, task claims, git commits, and session start/end markers. Forensics data is used by `cub reconcile` to reconstruct ledger entries after direct harness sessions.
+
+### G
+
+Guardrail: A safety mechanism that prevents issues during autonomous execution. Guardrails include iteration limits, budget caps, clean-state requirements before task execution, secret redaction in prompts, and the circuit breaker. Configured in `.cub/config.json` under `state`, `loop`, and `budget` sections.
+
+### H
+
+Harness: An abstraction layer over AI coding CLIs that normalizes how Cub invokes different tools. Supported harnesses: Claude Code (`claude`), OpenAI Codex (`codex`), Google Gemini (`gemini`), and OpenCode (`opencode`). Each harness implements a common interface for prompt delivery, execution, and output capture.
+
+Hook: A script or command that runs automatically at specific lifecycle points during a session. Used in the symbiotic workflow to track work done in direct harness sessions. Supported hook events include `SessionStart`, `PostToolUse`, `Stop`, and `PreCompact`. Hooks are configured in `.claude/settings.json` and installed by `cub init`.
+
+### I
+
+Itemize: The third and final phase of the planning pipeline. Itemize takes an architectural design and breaks it into individual, agent-sized tasks with clear acceptance criteria and dependency relationships. Run with `cub plan itemize`.
+
+### J
+
+JSONL: JSON Lines format, where each line of a file is a self-contained JSON object. Used by the default task backend (`.cub/tasks.jsonl`), the ledger index (`.cub/ledger/index.jsonl`), and forensics logs. JSONL is append-friendly and easy to process with standard tools.
+
+### L
+
+Ledger: An append-only record of all completed work, stored in `.cub/ledger/`. Entries are organized by task (`by-task/`), epic (`by-epic/`), and run (`by-run/`), with a combined index in `index.jsonl`. The ledger captures what was done, when, by whom, and at what cost. Queryable with `cub ledger show`, `cub ledger stats`, and `cub ledger search`.
+
+### O
+
+Orient: The first phase of the planning pipeline. Orient researches and understands the problem space before any design work begins, producing an orientation document that captures requirements, constraints, and context. Run with `cub plan orient`.
+
+### P
+
+Plan: A structured decomposition of work created through the three-phase planning pipeline: orient, architect, and itemize. Plans are stored in the `plans/` directory and contain orientation research, architectural decisions, itemized tasks, and runtime context for prompt injection.
+
+Punchlist: A file listing discovered issues, remaining work items, or polish tasks identified during development. Processed by `cub punchlist` into structured epics with individual tasks, bridging informal notes into the formal task system.
+
+### R
+
+Reconcile: The process of converting session forensics into formal ledger entries after the fact. Useful when work is done in direct harness sessions (outside `cub run`) and needs to be recorded in the ledger. Run with `cub reconcile <session-id>` for a single session or `cub reconcile --all` for batch processing.
+
+Runloop: The core autonomous execution cycle that drives `cub run`. The loop repeats: find a ready task, generate a prompt, invoke the AI harness, verify completion, record results in the ledger, then move to the next task. The runloop template (`.cub/runloop.md`) defines the system-level instructions sent to the harness.
+
+### S
+
+Session: A single execution period, either a `cub run` invocation or a direct interactive harness session (e.g., opening Claude Code manually). Each session is assigned a unique ID and can be associated with one or more tasks. Session data flows into forensics logs and ledger entries.
+
+Stage: The process of importing tasks from a completed plan into the active task backend. Running `cub stage` reads the itemized plan, creates tasks in the backend, and generates a `prompt-context.md` file for runtime context injection.
+
+Symbiotic Workflow: The system that enables fluid movement between CLI-driven autonomous sessions (`cub run`) and interactive direct harness sessions. Hooks implicitly track file writes, task claims, and git commits during direct sessions, achieving near-parity with `cub run` for work visibility and ledger recording.
+
+### T
+
+Task: The fundamental unit of work in Cub. Each task has a hierarchical ID in the format `{project}-{epic}-{task}`, lifecycle states (`open`, `in_progress`, `closed`), a priority level (P0 through P4), and optional acceptance criteria. Tasks are selected, executed, and completed by the runloop.
+
+Task ID: A hierarchical identifier that encodes project, epic, and task information. For example, `cub-048a-5.4` refers to project `cub`, epic `048a-5`, task `4`. This structure enables organized queries by project, epic, or individual task.
+
+### W
+
+Worktree: A git worktree used for isolated, parallel task execution. When running `cub run --worktree`, Cub creates a separate working directory linked to the same repository, allowing multiple tasks to execute simultaneously without interfering with each other. Managed with `cub worktree`.
+
+---
+
+## CLI Quick Reference
+
+### Core
+
+- `cub` — Alias for `cub run` (default command)
+- `cub init` — Initialize cub in a project (creates .cub/ directory, config, hooks, runloop) or globally with `--global`
+- `cub new <name>` — Create a new project directory (mkdir + git init + cub init)
+- `cub run` — Execute autonomous task loop with AI harness
+  - `--once` — Single iteration
+  - `--harness <name>` — Select harness (claude, codex, gemini, opencode)
+  - `--model <name>` — Select model (haiku, sonnet, opus)
+  - `--budget <amount>` — Max budget in USD
+  - `--budget-tokens <count>` — Max token budget
+  - `--epic <id>` — Target tasks in this epic
+  - `--label <name>` — Target tasks with this label
+  - `--task <id>` — Run specific task
+  - `--stream` — Stream harness activity in real-time
+  - `--monitor` — Launch live dashboard in tmux split
+  - `--worktree` — Run in isolated git worktree
+  - `--sandbox` — Run in Docker sandbox
+  - `--parallel <n>` — Run n tasks in parallel
+  - `--debug` — Verbose debug logging
+- `cub status` — Show current session status and task progress
+  - `--json` — JSON output for scripting
+  - `-v` — Verbose status with details
+- `cub suggest` — Get smart suggestions for next actions
+- `cub doctor` — Diagnose and fix configuration issues
+- `cub version` — Show cub version
+
+### Task Management
+
+- `cub task ready` — List tasks ready to work on (no blockers)
+- `cub task list` — List all tasks
+  - `--status <state>` — Filter by status (open, in_progress, closed)
+- `cub task show <id>` — Show detailed task information
+  - `--full` — Include full description
+- `cub task claim <id>` — Claim a task for current session
+  - `--session <id>` — Claim for specific session
+- `cub task close <id> -r "reason"` — Close a completed task
+  - `--session <id>` — Close from specific session
+- `cub explain-task <id>` — Show detailed task information and context
+- `cub close-task <id>` — Close a completed task (agent use)
+- `cub verify-task <id>` — Verify a task is closed (agent use)
+- `cub interview <id>` — Deep dive on task specifications
+  - `--auto` — AI-generated answers
+  - `--all` — Interview all open tasks
+  - `--skip-review` — Skip interactive review
+  - `--update-task` — Append specs to task descriptions
+  - `--output-dir <path>` — Custom output directory
+- `cub punchlist` — Process punchlist files into epics with tasks
+- `cub workflow` — Manage post-completion workflow stages
+
+### Session & Ledger
+
+- `cub session log` — Log work in a direct harness session
+- `cub session done` — Mark current session complete
+- `cub session wip` — Mark current session as work-in-progress
+- `cub ledger show` — View completed work ledger
+- `cub ledger stats` — Show ledger statistics
+- `cub ledger search <query>` — Search ledger entries
+- `cub ledger update` — Update ledger entries
+- `cub ledger export` — Export ledger data
+- `cub ledger gc` — Garbage collect old ledger data
+- `cub reconcile <session-id>` — Reconstruct ledger entries from forensics
+  - `--all` — Reconcile all unprocessed sessions
+  - `--transcript <path>` — Enrich with transcript data
+  - `--transcript-dir <path>` — Batch transcript directory
+  - `--dry-run` — Preview without writing
+  - `--force` — Re-process already processed sessions
+- `cub review <id>` — Review completed task implementations
+- `cub artifacts` — List and manage task output artifacts
+
+### Planning
+
+- `cub plan` — Plan projects with orient, architect, and itemize phases
+- `cub plan run` — Run full pipeline: orient -> architect -> itemize
+- `cub plan orient` — Research and understand the problem space
+- `cub plan architect` — Design the solution architecture
+- `cub plan itemize` — Break into agent-sized tasks
+- `cub stage` — Import tasks from a completed plan into the task backend
+- `cub spec` — Create a feature specification through interactive interview
+- `cub triage` — Refine requirements through interactive questions
+- `cub import` — Import tasks from external sources
+- `cub capture` — Capture quick ideas, notes, and observations
+- `cub captures` — List and manage captures
+- `cub organize-captures` — Organize and normalize capture files
+
+### Git Workflow
+
+- `cub branch <epic-id>` — Create and bind a feature branch to an epic
+  - `--bind-only` — Bind current branch without creating new one
+  - `--name <name>` — Custom branch name
+- `cub branches` — List and manage branch-epic bindings
+  - `--status <state>` — Filter by status
+  - `--json` — JSON output
+  - `--cleanup` — Cleanup merged branches
+  - `--sync` — Sync branch status with git
+  - `--unbind <epic-id>` — Remove binding
+- `cub checkpoints` — Manage review/approval gates
+  - `--epic <id>` — Filter by epic
+  - `--blocking` — Show only blocking checkpoints
+  - `approve <id>` — Approve a checkpoint
+- `cub pr <epic-id>` — Create pull request for epic
+  - `--draft` — Create as draft PR
+  - `--push` — Push branch first
+  - `--base <branch>` — Target branch
+- `cub merge <pr-number>` — Merge pull requests
+- `cub worktree` — Manage git worktrees for parallel task execution
+- `cub sync` — Sync task state to git branch
+  - `status` — Check sync status
+  - `init` — Initialize sync branch
+  - `--push` — Push changes to remote
+
+### Learning & Analysis
+
+- `cub learn extract` — Extract patterns and lessons from ledger
+  - `--since <days>` — Analyze last N days
+  - `--since-date <date>` — Analyze since specific date
+  - `--verbose` — Show detailed patterns
+  - `--output <path>` — Save to file
+  - `--apply` — Apply insights to guardrails and documentation
+- `cub verify` — Verify cub data integrity (ledger, IDs, counters)
+  - `--fix` — Auto-fix simple issues
+  - `--ledger` — Check ledger consistency only
+  - `--ids` — Check ID format and duplicates
+  - `--counters` — Check counter synchronization
+  - `--verbose` — Show all issues
+- `cub release <plan-id> <version>` — Mark a plan as released and update CHANGELOG
+  - `--dry-run` — Preview changes
+  - `--no-tag` — Skip git tag creation
+- `cub retro <id>` — Generate retrospective report
+  - `--epic` — Treat ID as epic ID
+  - `--output <path>` — Write retro to file
+- `cub guardrails` — Display and manage institutional memory
+- `cub map` — Generate a project map with structure analysis
+- `cub audit` — Run code health audits (dead code, docs, coverage)
+
+### System
+
+- `cub update` — Update project templates and skills
+- `cub upgrade` — Upgrade cub to a newer version
+- `cub uninstall` — Uninstall cub from your system
+- `cub docs` — Open cub documentation in browser
+- `cub hooks` — Manage Claude Code hooks for symbiotic workflow
+- `cub monitor` — Display live dashboard for cub run session
+- `cub dashboard` — Launch project kanban dashboard
+- `cub sandbox` — Manage Docker sandboxes
+- `cub tools` — Manage and execute tools via the unified tool runtime
+- `cub toolsmith` — Discover and catalog tools
+  - `sync` — Sync tool catalog from external sources
+  - `search <query>` — Search for tools
+- `cub workbench` — PM Workbench: unknowns ledger + next move
+
+---
+
+## Configuration Reference
+
+Primary config file: `.cub/config.json`
+Global config file: `~/.config/cub/config.json`
+Precedence: CLI flags > env vars > project config > global config > defaults
+
+### Complete Configuration Schema
+
+```json
+{
+  "harness": {
+    "default": "auto",
+    "priority": ["claude", "gemini", "codex", "opencode"]
+  },
+  "budget": {
+    "default": 1000000,
+    "warn_at": 0.8
+  },
+  "loop": {
+    "max_iterations": 100
+  },
+  "clean_state": {
+    "require_commit": true,
+    "require_tests": false,
+    "auto_commit": true
+  },
+  "task": {
+    "auto_close": true
+  },
+  "hooks": {
+    "enabled": true,
+    "fail_fast": false,
+    "async_notifications": true
+  },
+  "guardrails": {
+    "max_task_iterations": 3,
+    "max_run_iterations": 50,
+    "iteration_warning_threshold": 0.8,
+    "secret_patterns": [
+      "api[_-]?key",
+      "password",
+      "token",
+      "secret",
+      "authorization",
+      "credentials"
+    ]
+  }
+}
+```
+
+### Harness Configuration
+
+harness.default
+  Type: string
+  Default: "auto"
+  Allowed: auto, claude, codex, gemini, opencode
+  CLI flag: --harness <name>
+  Env var: HARNESS
+  Description: The default harness to use for task execution. When set to "auto", Cub attempts harnesses in priority order and uses the first one available.
+
+harness.priority
+  Type: array of string
+  Default: ["claude", "gemini", "codex", "opencode"]
+  Description: Order to try harnesses when using auto mode. The first available harness in the list is used.
+
+### Budget Configuration
+
+budget.default
+  Type: number
+  Default: 1000000 (1 million tokens)
+  CLI flag: --budget <tokens>
+  Env var: CUB_BUDGET
+  Description: Token budget limit per session. The execution loop exits when budget is exceeded.
+
+budget.warn_at
+  Type: number (0.0-1.0)
+  Default: 0.8 (80%)
+  Description: Warning threshold as a percentage of budget. A warning is logged when token usage reaches this percentage.
+
+### Loop Configuration
+
+loop.max_iterations
+  Type: number
+  Default: 100
+  CLI flag: --max-iterations <num>
+  Env var: CUB_MAX_ITERATIONS
+  Description: Maximum number of iterations before the loop exits. Each task attempt counts as one iteration.
+
+### Clean State Configuration
+
+clean_state.require_commit
+  Type: boolean
+  Default: true
+  CLI flags: --require-clean, --no-require-clean
+  Env var: CUB_REQUIRE_CLEAN
+  Description: Enforce git commits after harness completes a task. Verifies all changes are committed after each task.
+
+clean_state.require_tests
+  Type: boolean
+  Default: false
+  Description: Enforce test passage before allowing commits. Tasks must pass all tests before the clean state check succeeds.
+
+clean_state.auto_commit
+  Type: boolean
+  Default: true
+  Description: Automatically commit remaining changes when the harness completes successfully but forgets to commit.
+
+### Task Configuration
+
+task.auto_close
+  Type: boolean
+  Default: true
+  Env var: CUB_AUTO_CLOSE
+  Description: Automatically close tasks when the harness completes successfully. Prevents tasks from getting stuck in "in_progress" state.
+
+### Hooks Configuration
+
+hooks.enabled
+  Type: boolean
+  Default: true
+  Description: Enable or disable all hooks.
+
+hooks.fail_fast
+  Type: boolean
+  Default: false
+  Description: Stop the loop if a hook fails. When disabled, hook failures are logged but execution continues.
+
+hooks.async_notifications
+  Type: boolean
+  Default: true
+  Description: Run notification hooks (post-task, on-error, on-budget-warning, on-all-tasks-complete) asynchronously so they don't slow down the main loop.
+
+### Guardrails Configuration
+
+guardrails.max_task_iterations
+  Type: number
+  Default: 3
+  Env var: CUB_MAX_TASK_ITERATIONS
+  Description: Maximum attempts for a single task. When exceeded, the task is marked as failed and skipped.
+
+guardrails.max_run_iterations
+  Type: number
+  Default: 50
+  Env var: CUB_MAX_RUN_ITERATIONS
+  Description: Maximum total iterations in a run. When exceeded, the run stops immediately.
+
+guardrails.iteration_warning_threshold
+  Type: number (0.0-1.0)
+  Default: 0.8 (80%)
+  Description: Logs a warning when approaching max_task_iterations or max_run_iterations.
+
+guardrails.secret_patterns
+  Type: array of string (regex patterns)
+  Default: ["api[_-]?key", "password", "token", "secret", "authorization", "credentials"]
+  Description: Patterns matched case-insensitively against log output. Matched values are redacted to prevent accidental exposure.
+
+---
+
+## Environment Variables
+
+Complete table of all environment variables recognized by Cub.
+
+### Core Settings
+
+CUB_PROJECT_DIR
+  Type: string (path)
+  Default: current working directory
+  Description: Override the project directory.
+
+CUB_DEBUG
+  Type: boolean (true/false, 1/0, yes/no, on/off)
+  Default: false
+  Description: Enable verbose debug logging. Outputs detailed information about configuration loading, task selection, and harness execution.
+
+CUB_STREAM
+  Type: boolean
+  Default: false
+  Description: Stream harness output in real-time rather than waiting for task completion.
+
+### Budget & Limits
+
+CUB_BUDGET
+  Type: number (positive integer)
+  Default: 1000000
+  Description: Token budget for the session. Overrides budget.default in config.
+
+CUB_MAX_ITERATIONS
+  Type: number (positive integer)
+  Default: 100
+  Description: Maximum loop iterations. Overrides loop.max_iterations in config.
+
+CUB_MAX_TASK_ITERATIONS
+  Type: number (positive integer)
+  Default: 3
+  Description: Maximum attempts per task. Overrides guardrails.max_task_iterations in config.
+
+CUB_MAX_RUN_ITERATIONS
+  Type: number (positive integer)
+  Default: 50
+  Description: Maximum total iterations per run. Overrides guardrails.max_run_iterations in config.
+
+### Task Selection
+
+CUB_BACKEND
+  Type: string
+  Default: auto
+  Allowed: auto, beads, json
+  Description: Force a specific task backend.
+
+CUB_EPIC
+  Type: string (epic ID)
+  Default: none (no filter)
+  Description: Filter tasks to a specific epic.
+
+CUB_LABEL
+  Type: string (label name)
+  Default: none (no filter)
+  Description: Filter tasks to a specific label.
+
+### Clean State
+
+CUB_REQUIRE_CLEAN
+  Type: boolean
+  Default: true
+  Description: Enforce clean git state between tasks. Overrides clean_state.require_commit in config.
+
+CUB_AUTO_CLOSE
+  Type: boolean
+  Default: true
+  Description: Automatically close tasks on successful completion. Overrides task.auto_close in config.
+
+### Harness Selection
+
+HARNESS
+  Type: string
+  Default: auto
+  Allowed: auto, claude, codex, gemini, opencode
+  Description: Select which AI harness to use. Overrides harness.default in config.
+
+CUB_MODEL
+  Type: string
+  Default: none
+  Allowed: haiku, sonnet, opus
+  Description: Select Claude model variant. Only affects the Claude harness.
+
+### Harness-Specific Flags
+
+CLAUDE_FLAGS
+  Type: string
+  Default: none
+  Description: Extra flags passed to the Claude Code CLI binary.
+
+CODEX_FLAGS
+  Type: string
+  Default: none
+  Description: Extra flags passed to the OpenAI Codex CLI binary.
+
+GEMINI_FLAGS
+  Type: string
+  Default: none
+  Description: Extra flags passed to the Google Gemini CLI binary.
+
+OPENCODE_FLAGS
+  Type: string
+  Default: none
+  Description: Extra flags passed to the OpenCode CLI binary.
+
+### Internal Variables
+
+CUB_RUN_ACTIVE
+  Type: boolean
+  Default: unset
+  Description: Set automatically by `cub run` to signal that a run loop is active. Used by hooks to prevent double-tracking. Do not set manually.
+
+### Boolean Value Parsing
+
+For all boolean environment variables, Cub accepts the following values:
+
+True: true, 1, yes, on
+False: false, 0, no, off
+
+### Precedence Order
+
+Defaults < Global Config (~/.config/cub/config.json) < Project Config (.cub/config.json) < Environment Variables < CLI Flags

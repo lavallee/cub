@@ -8,14 +8,18 @@ Cub is in alpha development. Contribution guidelines, architecture, and APIs may
 
 ## Architecture Overview
 
-Cub is a Python CLI built on Typer with pluggable backends for tasks and AI harnesses. The core loop is deterministic Python, while harness operations are delegated to external CLIs.
+Cub is a Python CLI built on Typer with pluggable backends for tasks and AI harnesses. Since v0.26+, cub uses a layered service architecture to separate business logic from interface concerns.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                           cub (Python CLI)                               │
 │                        Typer CLI Application                             │
 ├──────────────────────────────────────────────────────────────────────────┤
-│                        Core Modules (Python)                              │
+│                     Service Layer (core/services/)                        │
+│  RunService │ LaunchService │ LedgerService │ StatusService              │
+│  SuggestionService │ (stateless orchestrators, typed I/O)                │
+├──────────────────────────────────────────────────────────────────────────┤
+│                        Core Domain (Python)                               │
 ├──────────────────┬─────────────────┬───────────────────────────────────┤
 │  cub.core.tasks  │ cub.core.harness │  cub.core.config                  │
 │  (Backend        │ (Harness         │  (Configuration)                  │
@@ -29,11 +33,15 @@ Cub is a Python CLI built on Typer with pluggable backends for tasks and AI harn
 │                     Optional Features (Experimental)                      │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ - Planning Pipeline (orient, architect, itemize)                         │
-│ - Dashboard (Kanban visualization)                                       │
+│ - Dashboard (Kanban visualization across 8 workflow stages)              │
 │ - Task State Sync (cub-sync branch persistence)                          │
-│ - Hooks System (lifecycle events)                                        │
+│ - Symbiotic Workflow (hooks bridge direct sessions with ledger)          │
+│ - Tool Runtime (pluggable HTTP, CLI, MCP adapters)                       │
+│ - Suggestions Engine (smart recommendations for next actions)            │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
+
+The service layer (`core/services/`) contains stateless orchestrators that compose domain operations into clean APIs. Services accept typed inputs, return typed outputs, and never call Rich, print(), or sys.exit(). This enables multiple interfaces (CLI, skills, API) to share core functionality. New features should add service methods first, then interface implementations.
 
 ## Development Setup
 
@@ -363,14 +371,48 @@ bash_commands = {
 }
 ```
 
+## Extension Points
+
+Beyond harnesses and task backends, cub has several other extension points:
+
+### Tool Runtime (`core/tools/`)
+
+The tool runtime supports pluggable adapters for executing external tools:
+- **HTTP adapters** - Call REST APIs
+- **CLI adapters** - Execute command-line tools
+- **MCP adapters** - Connect to MCP stdio servers
+
+Implement the `ToolAdapter` protocol in `core/tools/adapter.py` and register in `core/tools/registry.py`.
+
+### Dashboard (`core/dashboard/`)
+
+The dashboard system supports custom parsers for new data sources and custom view configurations. Add parsers to `core/dashboard/sync/parsers/` and view configs to `.cub/views/*.yaml`.
+
+### Suggestions Engine (`core/suggestions/`)
+
+The recommendation engine can be extended with new data sources and ranking strategies. See `core/suggestions/sources.py` for data source interfaces and `core/suggestions/ranking.py` for ranking algorithms.
+
+## Documentation
+
+Documentation lives in `docs-src/` using MkDocs Material. To build and preview:
+
+```bash
+cd docs-src
+pip install -r requirements.txt  # or: pip install mkdocs-material mkdocs-minify-plugin
+mkdocs serve                     # Preview at http://localhost:8000
+```
+
+Content is in `docs-src/content/`. Follow existing page patterns for new pages.
+The site deploys automatically from the `main` branch.
+
 ## Project Templates
 
 Templates in `src/cub/templates/` are copied to projects during `cub init`:
 
 | File | Purpose |
 |------|---------|
-| `PROMPT.md` | System prompt sent with every iteration |
-| `AGENT.md` | Project-specific instructions (agent-editable) |
+| `runloop.md` | System prompt for autonomous loop (installed to `.cub/runloop.md`) |
+| `agent.md` | Project-specific instructions (agent-editable, installed to `.cub/agent.md`) |
 
 Templates support backend-specific customization via sed substitution during init.
 

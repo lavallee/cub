@@ -1,0 +1,59 @@
+# Cub
+
+> Autonomous AI coding assistant wrapper — plan work, run agents, track results.
+
+Cub wraps AI coding CLIs (Claude Code, Codex, Gemini, OpenCode) to provide reliable autonomous coding sessions. You plan work into structured tasks, then Cub executes them in a loop with dependency ordering, budget tracking, failure recovery, and structured logging.
+
+## Docs
+
+- [Getting Started](getting-started/quickstart.md): Installation and first run
+- [Core Concepts](getting-started/concepts.md): Mental models for using Cub
+- [CLI Reference](cli/index.md): All commands and options
+- [Configuration](guide/configuration/reference.md): Config keys and precedence
+- [Cookbook](cookbook/index.md): End-to-end workflow recipes
+- [Glossary](glossary.md): Term definitions
+
+## Core Commands
+
+- `cub init` — Initialize project (creates .cub/ directory with config, hooks, runloop)
+- `cub run` — Execute autonomous task loop (pick task -> generate prompt -> invoke harness -> verify -> record -> loop)
+- `cub run --once` — Single iteration of the loop
+- `cub task ready` — List tasks ready for work (open, no blockers)
+- `cub task show <id>` — View task details
+- `cub task claim <id>` — Claim task for current session
+- `cub task close <id> -r "reason"` — Complete a task
+- `cub status` — Project progress summary
+- `cub plan run` — Planning pipeline (orient -> architect -> itemize)
+- `cub stage` — Import planned tasks into task backend
+- `cub ledger show` — Query completed work records
+- `cub suggest` — Smart recommendations for next actions
+
+## Key Concepts
+
+- **Harness**: AI coding CLI wrapper (Claude Code, Codex, Gemini, OpenCode). Detected automatically, configurable per-project.
+- **Task**: Unit of work with ID format `{project}-{epic}.{task}` (e.g., `cub-048a-5.4`). States: open -> in_progress -> closed.
+- **Epic**: Group of related tasks sharing a parent ID. Used for branch binding and PR management.
+- **Ledger**: Append-only JSONL record of completed work in `.cub/ledger/`. Organized by task, epic, and run.
+- **Runloop**: The autonomous execution cycle. Stateless between iterations — reads current state each time.
+- **Context Composition**: 5-layer prompt assembly: runloop.md -> plan context -> epic context -> task context -> retry context.
+- **Symbiotic Workflow**: Hooks bridge `cub run` (CLI-driven) and direct Claude Code sessions (interactive). Both produce ledger entries.
+- **Circuit Breaker**: Detects agent stagnation and halts execution to prevent budget waste.
+- **Budget**: Token/cost limits per task or session. Configurable warnings and hard stops.
+
+## Configuration
+
+Primary config: `.cub/config.json`
+Global config: `~/.config/cub/config.json`
+Precedence: CLI flags > env vars > project config > global config > defaults
+
+Key environment variables:
+- `CUB_BUDGET` — Token budget override
+- `CUB_MODEL` — Model override (haiku, sonnet, opus)
+- `HARNESS` — Harness override (claude, codex, gemini, opencode)
+- `CUB_EPIC` — Filter to tasks in this epic
+- `CUB_DEBUG` — Enable debug output
+
+## Task Backend
+
+Default: JSONL (`.cub/tasks.jsonl`). Alternative: beads CLI.
+Task fields: id, type, title, description, acceptanceCriteria, priority (P0-P4), status, dependsOn, parent, labels.

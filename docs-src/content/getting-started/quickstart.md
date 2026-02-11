@@ -42,11 +42,13 @@ This creates the project structure:
 
 ```
 my-project/
-├── prd.json        # Task backlog
-├── PROMPT.md       # System prompt template
-├── AGENT.md        # Agent instructions
-├── progress.txt    # Session learnings
-└── specs/          # Detailed specifications
+├── .cub/
+│   ├── config.json     # Project configuration
+│   ├── runloop.md      # System prompt template
+│   └── agent.md        # Agent instructions
+├── prd.json            # Task backlog
+├── CLAUDE.md           # Symlink to .cub/agent.md
+└── specs/              # Detailed specifications
 ```
 
 !!! info "First Time?"

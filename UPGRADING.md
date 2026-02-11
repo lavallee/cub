@@ -2,6 +2,69 @@
 
 This guide helps you migrate between major versions of Cub.
 
+**Current version:** v0.30 (Alpha)
+
+---
+
+## v0.30 (Alpha)
+
+### What Changed
+
+This is a significant alpha release consolidating many features developed since v0.28.
+
+- **Configuration consolidated** to `.cub/config.json` (legacy `.cub.json` still read with deprecation warning; run `cub init` to migrate)
+- **New planning pipeline**: `cub plan run` executes orient, architect, itemize in sequence
+- **Symbiotic workflow**: Hooks bridge direct Claude Code sessions with the ledger, enabling implicit task tracking without `cub run`
+- **Dashboard (experimental)**: Kanban view across 8 workflow stages (captures, specs, planned, ready, in-progress, needs-review, complete, released)
+- **Service layer architecture**: Business logic separated from CLI presentation via `core/services/` (RunService, LaunchService, LedgerService, StatusService, SuggestionService)
+- **Context composition**: System prompts assembled from layered sources at runtime (runloop.md + plan context + epic/task/retry context)
+- **New CLI commands**: `cub task`, `cub session`, `cub ledger`, `cub reconcile`, `cub review`, `cub suggest`, `cub verify`, `cub learn`, `cub retro`, `cub release`
+- **Deprecated commands removed**: `cub prep` and `cub bootstrap` aliases (use `cub plan run` and `cub stage` instead)
+
+### Migration Steps
+
+#### 1. Migrate Configuration
+
+```bash
+cub init                          # Migrates .cub.json to .cub/config.json
+cub doctor                        # Verify configuration health
+```
+
+#### 2. Install Hooks (for symbiotic workflow)
+
+```bash
+cub init                          # Also installs hooks to .claude/settings.json
+```
+
+#### 3. Verify Data Integrity
+
+```bash
+cub verify                        # Check ledger and ID consistency
+cub verify --fix                  # Auto-fix simple issues
+```
+
+#### 4. Remove Deprecated Command References
+
+If you have scripts or aliases using removed deprecated commands:
+
+```bash
+# Old (removed)
+cub prep
+cub bootstrap
+
+# New
+cub plan run
+cub stage
+```
+
+### Backward Compatibility
+
+- `.cub.json` is still read with a deprecation warning; run `cub init` to consolidate
+- Old ledger structures remain readable
+- The `PROMPT.md` template pattern is removed; use `.cub/runloop.md` instead
+
+---
+
 ## v0.28.0: Ledger Consolidation & New Commands
 
 ### What Changed
@@ -473,6 +536,7 @@ cub run --once
 
 | Version | Python | Bash | Beads | Claude Code | Notes |
 |---------|--------|------|-------|-------------|-------|
+| 0.30.x  | 3.10+  | 3.2+ | 0.1+  | Latest      | Alpha: service layer, symbiotic workflow, dashboard |
 | 0.27.x  | 3.10+  | 3.2+ | 0.1+  | Latest      | Plan flow rename |
 | 0.26.x  | 3.10+  | 3.2+ | 0.1+  | Latest      | Captures system |
 | 0.25.x  | 3.10+  | 3.2+ | 0.1+  | Latest      | Sandbox mode |

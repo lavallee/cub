@@ -1,7 +1,7 @@
 # Cub Alpha Release Notes
 
 **Status:** Alpha (v0.30+)
-**Last Updated:** January 2026
+**Last Updated:** February 2026
 
 This document describes known limitations, stability concerns, and experimental features in the Cub alpha release.
 
@@ -53,7 +53,7 @@ Before using Cub in a production environment:
 
 ### Planning Pipeline `[EXPERIMENTAL]`
 
-The `cub plan` commands (orient, architect, itemize) are under active development.
+The `cub plan` commands (orient, architect, itemize) are under active development. The full pipeline can be run with `cub plan run`, which executes orient, architect, and itemize in sequence. Use `cub stage` to import planned tasks into the task backend.
 
 **Known issues:**
 
@@ -175,21 +175,47 @@ cub run --sandbox      # Docker container, but not fully isolated
 - Monitor container logs for suspicious activity
 - Don't run untrusted code even in sandbox mode
 
+### 6. Nesting Detection
+
+Cub detects when it is invoked inside another `cub run` session via the `CUB_RUN_ACTIVE` environment variable. This prevents infinite loops and double-tracking. Hooks automatically skip certain operations when nesting is detected.
+
+**Risk:** Bypassed nesting detection if env var is manually unset
+**Mitigation:**
+- Do not unset `CUB_RUN_ACTIVE` during a `cub run` session
+- If hooks appear to double-track, check for env var propagation issues
+
+### 7. Secret Redaction
+
+Task descriptions and ledger entries are stored in plaintext JSONL files. Cub does not perform automatic secret redaction.
+
+**Risk:** Secrets (API keys, tokens, passwords) captured in task descriptions, forensic logs, or ledger entries
+**Mitigation:**
+- Never include secrets in task descriptions or commit messages
+- Use environment variables for sensitive configuration
+- Audit `.cub/ledger/` and `.cub/tasks.jsonl` before pushing to public repos
+- Review forensic logs in `.cub/ledger/forensics/` for accidental secret capture
+
 ## Experimental Features Matrix
 
 | Feature | Status | Stability | Recommendation |
 |---------|--------|-----------|-----------------|
 | Task creation/management | Stable | ✅ Production-ready | Use with confidence |
 | Run loop (execution) | Stable | ✅ Production-ready | Use with confidence |
+| Service layer (`core/services/`) | Stable | ✅ Production-ready | New features should use services |
+| Symbiotic workflow (hooks) | Stable | ✅ Production-ready | Recommended for direct sessions |
 | JSONL backend | Beta | ⚠️ Generally safe | Recommended for alpha |
 | Beads backend | Stable | ✅ Try it | Optional, external deps |
 | JSON backend | Deprecated | ❌ Don't use | Use JSONL instead |
-| Planning pipeline | Experimental | ❓ Very rough | Exploration only |
-| Dashboard | Experimental | ❓ Rough edges | Status visibility only |
+| Planning pipeline (orient/architect/itemize) | Experimental | ❓ Very rough | Exploration only |
+| Dashboard (Kanban) | Experimental | ❓ Rough edges | Status visibility only |
 | Task sync (cub-sync) | Experimental | ⚠️ Single-user safe | Use cautiously |
+| Tool runtime (HTTP/CLI/MCP adapters) | Experimental | ❓ API may change | Early adopters only |
 | Hooks system | Beta | ⚠️ Generally safe | Use with testing |
 | Streaming output | Stable | ✅ Works well | Safe to use |
 | Budget management | Stable | ✅ Works well | Safe to use |
+| Ledger (verify/learn/retro/release) | Beta | ⚠️ Generally safe | Use for insights |
+| Suggestions engine | Beta | ⚠️ Generally safe | Helpful for task discovery |
+| Session reconciliation | Beta | ⚠️ Generally safe | Use for post-hoc tracking |
 
 ## Reporting Issues
 

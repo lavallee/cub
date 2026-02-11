@@ -1,455 +1,341 @@
 ---
 title: Core Concepts
-description: Understand Cub's architecture - the prep and run workflow, task backends, AI harnesses, the autonomous loop, and configuration hierarchy.
+description: Mental models for understanding Cub — the two phases, the autonomous loop, harnesses, tasks, the ledger, context composition, symbiotic workflow, and budget guardrails.
 ---
 
 # Core Concepts
 
-This page explains how Cub works and how all the pieces fit together.
-
-## The Two Main Events
-
-Cub's workflow is built around two distinct phases:
-
-<div class="workflow-grid" markdown>
-
-<div class="workflow-card prep" markdown>
-
-### Prep: Vision to Tasks
-
-**When:** Starting new work, refining requirements
-
-**Purpose:** Transform ideas into structured, agent-ready tasks
-
-**Commands:** `cub prep`, `cub triage`, `cub architect`, `cub plan`, `cub bootstrap`
-
-</div>
-
-<div class="workflow-card run" markdown>
-
-### Run: Tasks to Code
-
-**When:** Executing prepared work
-
-**Purpose:** Autonomously complete tasks using AI
-
-**Commands:** `cub run`, `cub run --once`, `cub status`
-
-</div>
-
-</div>
-
-### Why Two Phases?
-
-The separation exists because different work benefits from different approaches:
-
-| Phase | You Provide | Cub Does | Result |
-|-------|-------------|----------|--------|
-| **Prep** | Ideas, requirements, context | Guided refinement, structured decomposition | Clear, agent-sized tasks |
-| **Run** | Ready tasks | Autonomous execution, monitoring | Working code |
-
-This lets you invest time *before* code starts flying, making the autonomous execution more reliable.
+Cub has a small number of ideas that, once internalized, make everything else predictable. This page teaches those mental models. Each section covers one concept with enough depth to reason about it, then points you to the full guide.
 
 ---
 
-## Task Backends
+## The Two Phases
 
-Cub supports two ways to manage tasks:
+All work in Cub flows through two distinct phases with different owners.
 
-### Beads Backend (Recommended)
+**Planning** is human-driven. You describe what you want, refine requirements, decompose work into agent-sized tasks, and arrange them into epics. This is where judgment lives — scoping, prioritization, dependency ordering. Cub's planning tools (`cub plan orient`, `cub plan architect`, `cub plan itemize`) assist, but you make the decisions.
 
-Uses the [beads](https://github.com/steveyegge/beads) CLI for advanced task management:
+**Running** is agent-driven. Once tasks exist, `cub run` takes over. It picks the next ready task, assembles a prompt, invokes an AI harness, verifies results, records outcomes, and loops. You step away. The quality of the run depends almost entirely on the quality of the planning.
 
-```bash
-# Initialize
-bd init
+```mermaid
+flowchart LR
+    subgraph Planning ["Planning (human-driven)"]
+        direction TB
+        A[Orient] --> B[Architect]
+        B --> C[Itemize]
+        C --> D[Stage Tasks]
+    end
 
-# Create tasks
-bd create "Implement feature" --type feature --priority 2
+    subgraph Running ["Running (agent-driven)"]
+        direction TB
+        E[Pick Task] --> F[Generate Prompt]
+        F --> G[Execute Harness]
+        G --> H[Verify & Record]
+        H -->|more tasks| E
+    end
 
-# View tasks
-bd list
-bd show cub-abc
-
-# Close tasks
-bd close cub-abc -r "Completed with tests"
+    D -->|"cub run"| E
 ```
 
-**Advantages:**
+The separation exists because investing time *before* code starts flying makes autonomous execution reliable. Vague instructions produce vague results. Structured tasks with clear acceptance criteria produce working code.
 
-- Rich CLI for task management
-- Built-in epic and dependency support
-- Labels for filtering and model selection
-- Branch-epic bindings
-
-**When to use:** Production projects, team workflows, complex dependency chains
-
-### JSON Backend
-
-Simple file-based storage in `prd.json`:
-
-```json
-{
-  "projectName": "my-project",
-  "prefix": "myproj",
-  "tasks": [
-    {
-      "id": "myproj-001",
-      "type": "task",
-      "title": "Add feature",
-      "description": "Description here",
-      "acceptanceCriteria": ["Tests pass"],
-      "priority": "P2",
-      "status": "open",
-      "dependsOn": []
-    }
-  ]
-}
-```
-
-**Advantages:**
-
-- No additional tools needed
-- Easy to version control
-- Simple to understand
-
-**When to use:** Quick experiments, small projects, learning Cub
-
-### Backend Auto-Detection
-
-Cub automatically selects the backend:
-
-1. If `.beads/` directory exists -> Beads backend
-2. Otherwise -> JSON backend
-
-Override with the `CUB_BACKEND` environment variable:
-
-```bash
-CUB_BACKEND=json cub run
-CUB_BACKEND=beads cub run
-```
-
----
-
-## AI Harnesses
-
-A "harness" is Cub's abstraction over AI coding CLIs. Each harness wraps a different tool:
-
-| Harness | Tool | Best For |
-|---------|------|----------|
-| `claude` | Claude Code | General coding, complex refactoring, multi-file changes |
-| `codex` | OpenAI Codex CLI | Quick fixes, OpenAI ecosystem |
-| `gemini` | Google Gemini CLI | Alternative perspective |
-| `opencode` | OpenCode CLI | Open-source option |
-
-### Harness Selection
-
-Cub selects a harness using this priority:
-
-1. **CLI flag:** `cub run --harness claude`
-2. **Environment variable:** `HARNESS=codex cub run`
-3. **Config priority:** `harness.priority` in config file
-4. **Default order:** claude > opencode > codex > gemini
-
-### Per-Task Model Selection
-
-You can route tasks to specific models using labels:
-
-```bash
-# Fast model for simple tasks
-bd label add cub-abc model:haiku
-
-# Balanced model for most tasks
-bd label add cub-xyz model:sonnet
-
-# Most capable model for complex work
-bd label add cub-123 model:opus
-```
-
-This helps manage token costs by using the right model for each task's complexity.
+:material-arrow-right: [Plan Pipeline Guide](../guide/prep-pipeline/index.md) | [Run Loop Guide](../guide/run-loop/index.md)
 
 ---
 
 ## The Autonomous Loop
 
-When you run `cub run`, here's what happens:
+The run loop is Cub's execution engine. Understanding its cycle explains most of Cub's behavior.
 
-```
-┌──────────────────────────────────────────┐
-│               cub run                     │
-│                                           │
-│  ┌─────────────────────────────────┐     │
-│  │      1. Find Ready Task          │     │
-│  │  - status == "open"              │     │
-│  │  - dependencies satisfied        │     │
-│  │  - highest priority first        │     │
-│  └───────────────┬─────────────────┘     │
-│                  │                        │
-│                  ▼                        │
-│  ┌─────────────────────────────────┐     │
-│  │      2. Generate Prompt          │     │
-│  │  - System prompt (PROMPT.md)     │     │
-│  │  - Task details + criteria       │     │
-│  │  - Agent instructions (AGENT.md) │     │
-│  └───────────────┬─────────────────┘     │
-│                  │                        │
-│                  ▼                        │
-│  ┌─────────────────────────────────┐     │
-│  │      3. Execute Harness          │     │
-│  │  - Invoke claude/codex/gemini    │     │
-│  │  - Stream or capture output      │     │
-│  │  - Track tokens                  │     │
-│  └───────────────┬─────────────────┘     │
-│                  │                        │
-│                  ▼                        │
-│  ┌─────────────────────────────────┐     │
-│  │      4. Detect Completion        │     │
-│  │  - Check task status             │     │
-│  │  - Verify acceptance criteria    │     │
-│  │  - Handle success/failure        │     │
-│  └───────────────┬─────────────────┘     │
-│                  │                        │
-│            ┌─────┴─────┐                  │
-│            ▼           ▼                  │
-│        Success      Failure              │
-│            │           │                  │
-│            ▼           ▼                  │
-│     More tasks?   Retry/Skip             │
-│            │           │                  │
-│       ┌────┴────┐      │                  │
-│       ▼         ▼      │                  │
-│      Yes       No ◄────┘                  │
-│       │         │                         │
-│       ▼         ▼                         │
-│     Loop      Done                        │
-└──────────────────────────────────────────┘
+Each iteration follows the same steps:
+
+1. **Find a ready task** — status is `open`, all dependencies are `closed`, respects priority ordering
+2. **Claim it** — set status to `in_progress` so nothing else picks it up
+3. **Generate a prompt** — assemble context from multiple layers (see [Context Composition](#context-composition) below)
+4. **Invoke the harness** — hand the prompt to the AI coding assistant and let it work
+5. **Verify the result** — did the task close? is git state clean? did tests pass?
+6. **Record the outcome** — write a ledger entry with what happened, what changed, and what it cost
+7. **Loop or exit** — continue to the next task, or stop if budget is exhausted, all tasks are done, or the circuit breaker fires
+
+```mermaid
+flowchart TB
+    start([cub run]) --> find[Find Ready Task]
+    find --> found{Task found?}
+    found -->|No| exit_done([All tasks complete or blocked])
+    found -->|Yes| claim[Claim Task]
+    claim --> prompt[Generate Prompt]
+    prompt --> invoke[Invoke Harness]
+    invoke --> verify{Success?}
+    verify -->|Yes| record[Record in Ledger]
+    verify -->|No| handle[Handle Failure]
+    handle --> record
+    record --> budget{Budget remaining?}
+    budget -->|No| exit_budget([Budget exhausted])
+    budget -->|Yes| find
+
+    style start fill:#4CAF50,color:white
+    style exit_done fill:#4CAF50,color:white
+    style exit_budget fill:#FFC107,color:black
 ```
 
-### Task Selection Algorithm
+The loop is stateless between iterations. Each cycle reads the current state of the world (task backend, git, config) and makes a fresh decision. This means you can modify tasks, change priorities, or even add new tasks while the loop is running.
 
-1. Find tasks where `status == "open"`
-2. Filter to tasks where all `dependsOn` items are `closed`
-3. Sort by priority (P0 first, then P1, P2, P3, P4)
-4. Pick the first one
-
-### Completion Detection
-
-The harness signals completion by:
-
-1. Closing the task (via `bd close` or updating `prd.json`)
-2. Outputting `<promise>COMPLETE</promise>` when all work is done
+:material-arrow-right: [Run Loop Guide](../guide/run-loop/index.md)
 
 ---
 
-## Project Structure
+## Harnesses
 
-After `cub init`, your project contains:
+A **harness** is Cub's abstraction over an AI coding CLI. Cub does not contain an AI model — it wraps tools that do.
 
+The supported harnesses are:
+
+| Harness | Wraps | Binary |
+|---------|-------|--------|
+| `claude` | Claude Code | `claude` |
+| `codex` | OpenAI Codex CLI | `codex` |
+| `gemini` | Google Gemini CLI | `gemini` |
+| `opencode` | OpenCode | `opencode` |
+
+Why the abstraction? Because harnesses differ in capabilities (streaming, token reporting, system prompts, hooks), and Cub adapts its behavior to each one. A task prompt that works with Claude Code will also work with Codex — Cub handles the translation. This lets you switch harnesses without rewriting your tasks.
+
+**Detection** works by checking which binaries are available on your system. Cub tries them in a default priority order (`claude > opencode > codex > gemini`) and uses the first one found. Override with `--harness claude` or the `harness` key in `.cub/config.json`.
+
+```bash
+# Auto-detect (uses first available)
+cub run
+
+# Explicit selection
+cub run --harness codex
 ```
-my-project/
-├── prd.json        # Task backlog (JSON backend)
-├── .beads/         # Task data (Beads backend)
-├── PROMPT.md       # System prompt template
-├── AGENT.md        # Build/run instructions
-├── AGENTS.md       # Symlink to AGENT.md (Codex compatibility)
-├── progress.txt    # Session learnings (agent appends)
-├── fix_plan.md     # Discovered issues
-├── specs/          # Detailed specifications
-└── .cub/           # Runtime data
-    ├── hooks/      # Project-specific hooks
-    └── runs/       # Run artifacts
-```
 
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `prd.json` | Task backlog (JSON backend) |
-| `PROMPT.md` | System prompt sent to the AI |
-| `AGENT.md` | Instructions on running tests, building, etc. |
-| `progress.txt` | Memory across iterations - patterns, gotchas |
-| `specs/` | Detailed specifications for complex tasks |
-
-### Artifacts Directory
-
-Each run creates artifacts in `.cub/runs/{session}/`:
-
-```
-.cub/runs/porcupine-20260111-114543/
-├── run.json                    # Run metadata
-└── tasks/
-    └── cub-abc/
-        ├── task.json           # Execution details
-        ├── summary.md          # AI-generated summary
-        └── changes.patch       # Git diff
-```
+:material-arrow-right: [AI Harnesses Guide](../guide/harnesses/index.md)
 
 ---
 
-## Configuration Hierarchy
+## Tasks and Epics
 
-Cub uses layered configuration with clear precedence:
+Tasks are the atomic unit of work. Epics group related tasks. Together they form a hierarchy that Cub navigates during execution.
+
+### Task ID Format
+
+Every task ID encodes its position in the hierarchy:
 
 ```
-Priority (highest to lowest):
-┌─────────────────────────────────────────┐
-│  1. CLI flags                            │
-│     cub run --harness claude             │
-├─────────────────────────────────────────┤
-│  2. Environment variables                │
-│     HARNESS=codex CUB_BUDGET=500000      │
-├─────────────────────────────────────────┤
-│  3. Project config                       │
-│     ./.cub.json                          │
-├─────────────────────────────────────────┤
-│  4. Global config                        │
-│     ~/.config/cub/config.json            │
-├─────────────────────────────────────────┤
-│  5. Hardcoded defaults                   │
-│     (built into Cub)                     │
-└─────────────────────────────────────────┘
+{project}-{epic}.{task}
 ```
 
-### Example Configuration
+| Component | Example | Purpose |
+|-----------|---------|---------|
+| Project | `cub` | Which project this belongs to |
+| Epic | `048a-5` | Groups related work together |
+| Task | `4` | Individual item within the epic |
 
-**Global** (`~/.config/cub/config.json`):
+Full example: `cub-048a-5.4` — task 4 in epic `048a-5` of project `cub`.
 
-```json
-{
-  "harness": {
-    "default": "auto",
-    "priority": ["claude", "codex"]
-  },
-  "budget": {
-    "default": 1000000,
-    "warn_at": 0.8
-  }
-}
+### Lifecycle
+
+Tasks move through three states:
+
+```mermaid
+stateDiagram-v2
+    [*] --> open: Created
+    open --> in_progress: Claimed
+    in_progress --> closed: Completed
+    in_progress --> open: Failed / Released
+    closed --> [*]
 ```
 
-**Project** (`.cub.json`):
+**open** — Ready for work (if dependencies are met). This is the starting state.
 
-```json
-{
-  "budget": {
-    "default": 500000
-  },
-  "loop": {
-    "max_iterations": 50
-  }
-}
-```
+**in_progress** — Claimed by a session. Only one session works a task at a time.
 
-The project config overrides global for `budget.default` and `loop.max_iterations`, but inherits `harness` settings.
+**closed** — Done. The harness completed the work and signaled closure.
+
+### Epics
+
+An epic is a task of type `epic` that serves as a parent for other tasks. The `parent` field on child tasks points to the epic's ID. Cub uses this to:
+
+- Filter runs to a specific epic (`cub run --epic cub-048a-5`)
+- Generate epic context in prompts (sibling task status, overall progress)
+- Organize ledger entries by epic for reporting
+
+:material-arrow-right: [Task Management Guide](../guide/tasks/index.md)
 
 ---
 
-## Hooks System
+## The Ledger
 
-Hooks let you run custom scripts at lifecycle points:
+The ledger is Cub's permanent record of completed work. Every time a task finishes — whether through `cub run` or a direct session — the ledger captures what happened.
+
+A ledger entry records:
+
+| Field | What it captures |
+|-------|-----------------|
+| Task ID | Which task was completed |
+| Session ID | Which execution session did the work |
+| Files changed | List of files created, modified, or deleted |
+| Git commits | Commit hashes and messages produced |
+| Cost and tokens | How much the execution cost |
+| Duration | Wall-clock time for the task |
+| Summary | What the agent actually did |
+
+Entries are stored as JSONL in `.cub/ledger/` and organized into three indices for efficient querying:
 
 ```
-Loop Start ──▶ pre-loop
-                  │
-              ┌───┴───┐
-              │ Tasks │
-              └───┬───┘
-                  │
-         ┌───────┴───────┐
-         ▼               ▼
-     pre-task        (for each)
-         │
-         ▼
-    Execute Task
-         │
-    ┌────┴────┐
-    ▼         ▼
- Success   Failure ──▶ on-error
-    │         │
-    └────┬────┘
-         ▼
-    post-task
-         │
-    └────┴────┘
-              │
-              ▼
-         post-loop
-              │
-              ▼
-         Loop End
+.cub/ledger/
+  index.jsonl              # All entries, chronological
+  by-task/{task_id}/       # Grouped by task
+  by-epic/{epic_id}/       # Grouped by epic
+  by-run/{run_id}/         # Grouped by session
+  forensics/               # Raw session event logs
 ```
 
-### Hook Locations
+The ledger matters because it closes the feedback loop. Without it, you finish a coding session and lose the context of what happened, what it cost, and what patterns are emerging. With it, you can query trends, run retrospectives (`cub retro`), and extract lessons (`cub learn extract`).
 
-| Priority | Location | Scope |
-|----------|----------|-------|
-| 1 | `~/.config/cub/hooks/{hook}.d/` | All projects |
-| 2 | `./.cub/hooks/{hook}.d/` | Current project |
+```bash
+# View recent ledger entries
+cub ledger show
 
-All executable scripts in these directories run in sorted order.
+# Search the ledger
+cub ledger search "authentication"
 
-### Context Variables
+# Get aggregate statistics
+cub ledger stats
+```
 
-Hooks receive context via environment variables:
+:material-arrow-right: [Ledger Commands](../guide/run-loop/completion.md)
 
-| Variable | Available In | Description |
-|----------|--------------|-------------|
-| `CUB_HOOK_NAME` | All | Hook being executed |
-| `CUB_PROJECT_DIR` | All | Project directory |
-| `CUB_SESSION_ID` | pre/post-loop | Unique session ID |
-| `CUB_TASK_ID` | task hooks | Current task ID |
-| `CUB_EXIT_CODE` | post-task, on-error | Task exit code |
+---
+
+## Context Composition
+
+When Cub generates a prompt for the harness, it assembles context from five layers. Understanding these layers explains why the agent behaves the way it does — and how to influence it.
+
+```
+Layer 1: Runloop (.cub/runloop.md)
+  Core workflow instructions. How to claim tasks, run tests,
+  signal completion. Managed by cub init.
+
+Layer 2: Plan Context (plans/<slug>/prompt-context.md)
+  Problem statement, requirements, technical approach.
+  Generated by cub stage from planning artifacts.
+
+Layer 3: Epic Context (generated dynamically)
+  Parent epic details, sibling task status, overall progress.
+  Helps the agent understand the bigger picture.
+
+Layer 4: Task Context (current task)
+  Task ID, title, description, acceptance criteria,
+  backend-specific closure instructions.
+
+Layer 5: Retry Context (if applicable)
+  Previous attempt summaries and failure logs.
+  Prevents the agent from repeating the same mistakes.
+```
+
+Context composition happens at **runtime**, not through file mutation. The runloop template stays the same; plan context lives in its plan directory; everything merges when the prompt is generated. This means you can customize agent behavior at the right level:
+
+- **Change how all tasks execute**: edit `.cub/runloop.md`
+- **Change context for a specific plan**: edit `plans/<slug>/prompt-context.md`
+- **Change project-wide instructions**: edit `CLAUDE.md` (symlinked to `.cub/agent.md`)
+- **Change a single task's behavior**: edit the task description or acceptance criteria
+
+:material-arrow-right: [Configuration Guide](../guide/configuration/index.md)
+
+---
+
+## Symbiotic Workflow
+
+Cub supports two ways of working with AI coding assistants, and the **symbiotic workflow** bridges them.
+
+**CLI-driven** (`cub run`): Cub controls the session. It picks tasks, generates prompts, invokes the harness, and records results. Fully autonomous.
+
+**Interactive** (direct Claude Code session): You control the session. You open Claude Code, talk to it, write code together. Cub has no visibility into what happened — unless hooks are installed.
+
+**Hooks are the bridge.** When you run `cub init`, Cub installs lightweight hooks into Claude Code's event system. These hooks observe what happens during direct sessions and feed it back into Cub's ledger:
+
+| Hook Event | What it captures |
+|------------|-----------------|
+| `SessionStart` | Injects available tasks and project context |
+| `PostToolUse` | Tracks file writes, task commands, git commits |
+| `Stop` | Finalizes the session and creates a ledger entry |
+| `PreCompact` | Checkpoints state before context compaction |
+
+The result: whether you use `cub run` or work directly in Claude Code, the ledger stays complete. Task state, file changes, and session metadata are captured either way.
+
+```bash
+# In a direct Claude Code session, claim and close tasks manually
+cub task claim cub-048a-5.4
+# ... do the work ...
+cub task close cub-048a-5.4 -r "Implemented the feature"
+```
+
+When `cub run` invokes Claude Code as a harness, hooks are automatically disabled for that session (via `CUB_RUN_ACTIVE`) to prevent double-tracking. Hooks only activate for direct, interactive sessions.
+
+:material-arrow-right: [Hooks Guide](../guide/hooks/index.md)
 
 ---
 
 ## Budget and Guardrails
 
-Cub provides safety mechanisms to prevent runaway execution:
+Autonomous AI sessions can consume significant resources. Cub provides multiple layers of protection so you can step away with confidence.
 
-### Token Budget
+### Budget Controls
 
-Track and limit token usage:
+Set spending limits in USD or tokens:
+
+```bash
+# Cap this run at $10
+cub run --budget 10
+
+# Cap at 500K tokens
+cub run --budget-tokens 500000
+```
+
+Or configure defaults in `.cub/config.json`:
 
 ```json
 {
   "budget": {
-    "default": 1000000,
-    "warn_at": 0.8
+    "max_tokens_per_task": 500000,
+    "max_total_cost": 10.0
   }
 }
 ```
 
-### Iteration Limits
+When a budget limit is reached, the current task finishes, the result is recorded, and the loop exits gracefully.
 
-Prevent infinite loops:
+### Circuit Breaker
+
+The circuit breaker detects **stagnation** — when the agent is spinning without making progress. If the same task fails repeatedly, or the agent produces no meaningful output across iterations, the circuit breaker trips and halts execution. This prevents burning budget on a task the agent cannot solve.
+
+### Clean State Requirements
+
+By default, Cub verifies git state is clean between iterations. This catches cases where the agent left uncommitted changes, merge conflicts, or other problems that would compound across tasks. Configure this in `.cub/config.json`:
 
 ```json
 {
-  "guardrails": {
-    "max_task_iterations": 3,
-    "max_run_iterations": 50
+  "state": {
+    "require_clean": true,
+    "run_tests": true,
+    "run_typecheck": false
   }
 }
 ```
 
-### Failure Handling
+Together, budgets, the circuit breaker, and clean state verification form a safety net that makes "set and forget" practical rather than reckless.
 
-Configure behavior on task failure:
-
-| Mode | Behavior |
-|------|----------|
-| `stop` | Stop immediately |
-| `move-on` | Mark failed, continue |
-| `retry` | Retry with context |
-| `triage` | Human intervention |
+:material-arrow-right: [Budget and Guardrails Guide](../guide/budget/index.md)
 
 ---
 
 ## Next Steps
 
-Now that you understand the concepts:
+Now that you have the mental models:
 
-- **[Configuration Guide](../guide/configuration/index.md)** - Customize Cub
-- **[Prep Pipeline](../guide/prep-pipeline/index.md)** - Master vision-to-tasks
-- **[Run Loop](../guide/run-loop/index.md)** - Deep dive on execution
-- **[AI Harnesses](../guide/harnesses/index.md)** - Harness details
+- **[Quick Start](quickstart.md)** — Run your first autonomous session
+- **[Configuration Guide](../guide/configuration/index.md)** — Customize Cub for your workflow
+- **[Plan Pipeline](../guide/prep-pipeline/index.md)** — Master the planning phase
+- **[Run Loop](../guide/run-loop/index.md)** — Deep dive on execution
+- **[AI Harnesses](../guide/harnesses/index.md)** — Harness capabilities and selection

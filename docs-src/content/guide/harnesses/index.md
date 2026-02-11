@@ -104,7 +104,7 @@ HARNESS=claude cub run
 
 ## Configuration
 
-Configure harness behavior in `.cub.json` or your global config:
+Configure harness behavior in `.cub/config.json` or your global config:
 
 ```json
 {
@@ -201,6 +201,16 @@ harness_get_capabilities_json
 
 - You need streaming and token tracking
 - You don't need separate system prompts
+
+---
+
+## Symbiotic Workflow
+
+When you work directly in a harness (e.g., opening Claude Code without `cub run`), Cub can still track your work through its **symbiotic workflow**. Lightweight hooks installed by `cub init` observe file writes, task commands, and git commits during direct sessions and feed them back into the ledger. This means the ledger stays complete whether you use `cub run` or work interactively.
+
+When `cub run` invokes a harness, hooks are automatically disabled (via `CUB_RUN_ACTIVE`) to prevent double-tracking.
+
+:material-arrow-right: [Hooks Guide](../hooks/index.md) for installation and configuration details.
 
 ---
 

@@ -211,6 +211,14 @@ Complete reference for all Cub commands with examples and options.
 
 <div class="feature-card" markdown>
 
+#### [Cookbook](cookbook/index.md)
+
+End-to-end workflow recipes: bug fixes, overnight batches, parallel execution, and more.
+
+</div>
+
+<div class="feature-card" markdown>
+
 #### [Troubleshooting](troubleshooting/index.md)
 
 Common issues, error reference, and frequently asked questions.
@@ -231,4 +239,5 @@ Common issues, error reference, and frequently asked questions.
 | [Task Backends](guide/tasks/index.md) | Beads vs JSON task management |
 | [AI Harnesses](guide/harnesses/index.md) | Claude, Codex, Gemini, OpenCode |
 | [Hooks System](guide/hooks/index.md) | Extend Cub with custom scripts |
+| [Cookbook](cookbook/index.md) | End-to-end workflow recipes |
 | [Contributing](contributing/index.md) | Help improve Cub |

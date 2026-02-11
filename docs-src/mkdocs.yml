@@ -228,15 +228,28 @@ nav:
       - cub monitor: cli/monitor.md
       - cub artifacts: cli/artifacts.md
     - Task Commands:
+      - cub task: cli/task.md
       - cub interview: cli/interview.md
       - cub explain-task: cli/explain-task.md
       - cub close-task: cli/close-task.md
+    - Session & Ledger:
+      - cub session: cli/session.md
+      - cub ledger: cli/ledger.md
+      - cub reconcile: cli/reconcile.md
+      - cub review: cli/review.md
     - Epic Commands:
       - cub branch: cli/branch.md
       - cub branches: cli/branches.md
       - cub pr: cli/pr.md
       - cub worktree: cli/worktree.md
       - cub merge: cli/merge.md
+    - Learning & Analysis:
+      - cub learn: cli/learn.md
+      - cub retro: cli/retro.md
+      - cub suggest: cli/suggest.md
+      - cub verify: cli/verify.md
+    - Release:
+      - cub release: cli/release.md
     - Install Commands:
       - cub doctor: cli/doctor.md
       - cub upgrade: cli/upgrade.md
@@ -246,6 +259,15 @@ nav:
       - cub captures: cli/captures.md
       - cub organize-captures: cli/organize-captures.md
       - cub investigate: cli/investigate.md
+
+  - Cookbook:
+    - cookbook/index.md
+    - Bug Fix to PR: cookbook/bug-fix-to-pr.md
+    - Feature from Spec: cookbook/feature-from-spec.md
+    - Overnight Batch: cookbook/overnight-batch.md
+    - Direct Session Tracking: cookbook/direct-session-tracking.md
+    - Add to Existing Project: cookbook/existing-project.md
+    - Parallel Epics: cookbook/parallel-epics.md
 
   - Troubleshooting:
     - troubleshooting/index.md
@@ -261,4 +283,5 @@ nav:
     - Adding Backends: contributing/backends.md
     - Roadmap: contributing/roadmap.md
 
+  - Glossary: glossary.md
   - Changelog: changelog.md
