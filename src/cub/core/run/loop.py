@@ -154,6 +154,12 @@ class RunLoop:
         self._error: str | None = None
         self._events: list[RunEvent] = []
         self._budget_warning_fired = False
+        # Per-task attempt counts for enforcing max_task_iterations
+        self._task_attempt_counts: dict[str, int] = {}
+        # Tasks skipped in last _select_task due to retry exhaustion
+        self._retries_exhausted: list[str] = []
+        # When on_task_failure="retry", holds the task ID to retry next iteration
+        self._retry_task_id: str | None = None
 
         # Generate system prompt once
         self._system_prompt = generate_system_prompt(Path(config.project_dir))
@@ -277,8 +283,14 @@ class RunLoop:
                 # Select task
                 task = self._select_task()
                 if task is None:
-                    # _select_task yields its own event via _make_event,
-                    # but we need to yield the right event here
+                    # Emit events for any tasks that exhausted retries
+                    for exhausted_id in self._retries_exhausted:
+                        yield self._make_event(
+                            RunEventType.TASK_RETRIES_EXHAUSTED,
+                            f"Task {exhausted_id} exceeded max retries "
+                            f"({self.config.max_task_iterations})",
+                            task_id=exhausted_id,
+                        )
                     event = self._handle_no_task()
                     yield event
                     break
@@ -385,9 +397,38 @@ class RunLoop:
         """
         Select the next task to execute.
 
+        Priority order:
+        1. ``_retry_task_id`` (set when on_task_failure="retry" and a task just failed)
+        2. ``config.task_id`` (explicit task requested via CLI)
+        3. Next ready task from backend (filtered by max_task_iterations)
+
+        Populates ``_retries_exhausted`` with IDs of skipped tasks.
+
         Returns:
             The selected Task, or None if no tasks are available.
         """
+        self._retries_exhausted = []
+        max_attempts = self.config.max_task_iterations
+
+        # Check for pending retry (on_task_failure="retry")
+        if self._retry_task_id:
+            retry_id = self._retry_task_id
+            self._retry_task_id = None  # Consume it
+            task = self.task_backend.get_task(retry_id)
+            if task is not None and task.status != TaskStatus.CLOSED:
+                if self._task_attempt_counts.get(task.id, 0) < max_attempts:
+                    return task
+                # Exhausted retries on this task
+                self._retries_exhausted.append(task.id)
+                try:
+                    self.task_backend.close_task(
+                        task.id,
+                        reason=f"Exceeded max retries ({max_attempts})",
+                    )
+                except Exception:
+                    pass  # Non-fatal
+                # Fall through to normal selection
+
         if self.config.task_id:
             # Specific task requested
             task = self.task_backend.get_task(self.config.task_id)
@@ -398,9 +439,13 @@ class RunLoop:
             # Reject non-executable types (epics, gates)
             if task.type in NON_EXECUTABLE_TYPES:
                 return None
+            # Check retry limit for specific task
+            if self._task_attempt_counts.get(task.id, 0) >= max_attempts:
+                self._retries_exhausted.append(task.id)
+                return None
             return task
 
-        # Get next ready task
+        # Get next ready task, filtering out exhausted retries
         ready_tasks = self.task_backend.get_ready_tasks(
             parent=self.config.epic,
             label=self.config.label,
@@ -408,7 +453,21 @@ class RunLoop:
         if not ready_tasks:
             return None
 
-        return ready_tasks[0]
+        for task in ready_tasks:
+            attempts = self._task_attempt_counts.get(task.id, 0)
+            if attempts < max_attempts:
+                return task
+            # Task has exceeded retry limit - mark it as closed/failed
+            self._retries_exhausted.append(task.id)
+            try:
+                self.task_backend.close_task(
+                    task.id,
+                    reason=f"Exceeded max retries ({max_attempts})",
+                )
+            except Exception:
+                pass  # Non-fatal
+
+        return None
 
     def _handle_no_task(self) -> RunEvent:
         """Handle the case where no task is available."""
@@ -460,6 +519,9 @@ class RunLoop:
         Yields RunEvent objects for each step of the execution.
         """
         project_dir = Path(self.config.project_dir)
+
+        # Track per-task attempt count for max_task_iterations enforcement
+        self._task_attempt_counts[task.id] = self._task_attempt_counts.get(task.id, 0) + 1
 
         # Run pre-task hooks
         if self.config.hooks_enabled:
@@ -574,6 +636,7 @@ class RunLoop:
         except CircuitBreakerTrippedError as e:
             # Circuit breaker timeout
             self._record_circuit_breaker_trip(task, attempt_number, attempt_start_time, e)
+            self._tasks_failed += 1
             # Mark task for retry so it can be picked up again
             try:
                 self.task_backend.update_task(task.id, status=TaskStatus.RETRY)
@@ -585,8 +648,11 @@ class RunLoop:
                 task_id=task.id,
                 error=e.message,
             )
-            self._phase = "failed"
-            self._error = e.message
+            if self.config.on_task_failure == "stop":
+                self._phase = "failed"
+                self._error = e.message
+            elif self.config.on_task_failure == "retry":
+                self._retry_task_id = task.id
             return
 
         except Exception as e:
@@ -609,6 +675,8 @@ class RunLoop:
             if self.config.on_task_failure == "stop":
                 self._phase = "failed"
                 self._error = str(e)
+            elif self.config.on_task_failure == "retry":
+                self._retry_task_id = task.id
             return
 
         # Process result
@@ -790,6 +858,8 @@ class RunLoop:
             if self.config.on_task_failure == "stop":
                 self._phase = "failed"
                 self._error = result.error or "Task execution failed"
+            elif self.config.on_task_failure == "retry":
+                self._retry_task_id = task.id
 
     # -----------------------------------------------------------------------
     # Harness invocation

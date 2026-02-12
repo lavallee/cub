@@ -92,8 +92,8 @@ class LoopConfig(BaseModel):
     )
     on_task_failure: str = Field(
         default="stop",
-        pattern="^(stop|continue)$",
-        description="What to do when a task fails: 'stop' or 'continue'",
+        pattern="^(stop|continue|retry)$",
+        description="What to do when a task fails: 'stop', 'continue', or 'retry'",
     )
 
 

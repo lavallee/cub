@@ -155,6 +155,7 @@ class RunEventType(str, Enum):
     ALL_TASKS_COMPLETE = "all_tasks_complete"
     MAX_ITERATIONS_REACHED = "max_iterations_reached"
     CIRCUIT_BREAKER_TRIPPED = "circuit_breaker_tripped"
+    TASK_RETRIES_EXHAUSTED = "task_retries_exhausted"
     HARNESS_ERROR = "harness_error"
     HOOK_FAILED = "hook_failed"
 

@@ -1730,8 +1730,15 @@ def _render_run_event(
             EventLevel.ERROR,
             task_id=event.task_id,
         )
-        status.mark_failed(event.error or "Circuit breaker tripped")
         status_writer.write(status)
+
+    elif et == RunEventType.TASK_RETRIES_EXHAUSTED:
+        console.print(f"[yellow]{event.message}[/yellow]")
+        status.add_event(
+            event.message,
+            EventLevel.WARNING,
+            task_id=event.task_id,
+        )
 
     elif et == RunEventType.HARNESS_ERROR:
         console.print(f"[red]Harness invocation failed: {event.error}[/red]")
@@ -2046,7 +2053,6 @@ def _run_plan(
 
             # Execute the epic
             epic_start_time = datetime.now()
-            epic_success = True
             epic_tasks_completed = 0
             epic_cost = 0.0
             epic_tokens = 0
@@ -2064,8 +2070,16 @@ def _run_plan(
                         total_tokens += event.tokens_used
                     console.print(f"[green]✓ {event.task_id}: {event.task_title}[/green]")
                 elif event.event_type == RunEventType.TASK_FAILED:
-                    epic_success = False
                     console.print(f"[red]✗ {event.task_id}: {event.error or 'Failed'}[/red]")
+                elif event.event_type == RunEventType.CIRCUIT_BREAKER_TRIPPED:
+                    console.print(
+                        f"[red]✗ {event.task_id}: Circuit breaker tripped "
+                        f"({event.error})[/red]"
+                    )
+                elif event.event_type == RunEventType.TASK_RETRIES_EXHAUSTED:
+                    console.print(
+                        f"[yellow]⚠ {event.task_id}: {event.message}[/yellow]"
+                    )
                 elif event.event_type == RunEventType.BUDGET_EXHAUSTED:
                     console.print("[yellow]Budget exhausted[/yellow]")
                     break
@@ -2078,7 +2092,6 @@ def _run_plan(
                     if debug:
                         console.print(f"[dim]No more ready tasks in {epic_id}[/dim]")
                 elif event.event_type == RunEventType.RUN_FAILED:
-                    epic_success = False
                     console.print(f"[red]Epic run failed: {event.error}[/red]")
                 elif debug and event.event_type == RunEventType.BUDGET_UPDATED:
                     tokens = event.tokens_used or 0
@@ -2094,11 +2107,11 @@ def _run_plan(
                 epic_aggregates = EpicAggregates(
                     total_tasks=len(epic_tasks),
                     tasks_completed=epic_tasks_completed,
-                    tasks_successful=epic_tasks_completed if epic_success else 0,
+                    tasks_successful=epic_tasks_completed,
                     total_cost_usd=epic_cost,
                     total_tokens=epic_tokens,
                 )
-                is_complete = epic_success and result.tasks_failed == 0
+                is_complete = result.tasks_failed == 0 and result.phase != "failed"
                 epic_entry = EpicEntry(
                     id=epic_id,
                     title=epic.title,
@@ -2113,10 +2126,28 @@ def _run_plan(
                     console.print(f"[dim]Warning: Failed to write epic entry: {e}[/dim]")
 
             # Check if epic completed
-            if not epic_success or result.tasks_failed > 0:
+            # When the run loop phase is "failed", it means on_task_failure=="stop"
+            # was in effect and the run stopped due to a task failure. In that case,
+            # stop plan execution. But if the phase is "completed" (meaning
+            # on_task_failure=="continue" and the loop ran to completion despite
+            # some task failures), continue to the next epic.
+            if result.phase == "failed":
                 failed_epic = epic_id
-                console.print(f"[red]Epic {epic_id} failed[/red]")
+                console.print(f"[red]Epic {epic_id} failed (run stopped)[/red]")
                 break
+
+            if result.tasks_failed > 0 and epic_tasks_completed == 0:
+                # All tasks in this epic failed, no point continuing this epic
+                # but don't stop the whole plan
+                console.print(
+                    f"[yellow]⚠ Epic {epic_id}: all tasks failed "
+                    f"({result.tasks_failed} failures)[/yellow]"
+                )
+            elif result.tasks_failed > 0:
+                console.print(
+                    f"[yellow]⚠ Epic {epic_id}: {epic_tasks_completed} completed, "
+                    f"{result.tasks_failed} failed[/yellow]"
+                )
 
             # Try to close epic in task backend
             closed, message = task_backend.try_close_epic(epic_id)
@@ -2124,7 +2155,13 @@ def _run_plan(
                 console.print(f"[green]{message}[/green]")
 
             processed_epics += 1
-            console.print(f"[green]✓ Epic {epic_id} complete[/green]")
+            if result.tasks_failed == 0:
+                console.print(f"[green]✓ Epic {epic_id} complete[/green]")
+            else:
+                console.print(
+                    f"[dim]Epic {epic_id} processed "
+                    f"({epic_tasks_completed} done, {result.tasks_failed} failed)[/dim]"
+                )
 
         except KeyboardInterrupt:
             console.print("\n[yellow]Interrupted by user[/yellow]")

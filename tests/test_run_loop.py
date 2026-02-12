@@ -1120,6 +1120,505 @@ class TestRunLoopMultiIteration:
 
 
 # ===========================================================================
+# RunLoop - Circuit breaker resilience tests
+# ===========================================================================
+
+
+class TestRunLoopCircuitBreaker:
+    """Tests for circuit breaker behavior with on_task_failure settings."""
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_circuit_breaker_stop_mode(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Circuit breaker with on_task_failure=stop sets phase to failed."""
+        from cub.core.circuit_breaker import CircuitBreakerTrippedError
+
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=5,
+            on_task_failure="stop",
+            circuit_breaker_enabled=True,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(
+            loop,
+            "_invoke_harness",
+            side_effect=CircuitBreakerTrippedError(30),
+        ):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.CIRCUIT_BREAKER_TRIPPED in event_types
+
+        result = loop.get_result()
+        assert result.phase == "failed"
+        assert result.tasks_failed == 1
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_circuit_breaker_continue_mode(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Circuit breaker with on_task_failure=continue does NOT stop the loop."""
+        from cub.core.circuit_breaker import CircuitBreakerTrippedError
+
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=3,
+            max_task_iterations=1,  # Only 1 attempt per task
+            on_task_failure="continue",
+            circuit_breaker_enabled=True,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        # First task trips circuit breaker, second succeeds
+        task_a = _make_task(task_id="t-a", title="Hangs")
+        task_b = _make_task(task_id="t-b", title="Works")
+        mock_task_backend.get_ready_tasks.side_effect = [
+            [task_a, task_b],
+            [task_b],
+            [],
+        ]
+        mock_task_backend.get_task_counts.return_value = _make_task_counts(
+            total=2, open_count=0, closed=2
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        call_count = 0
+
+        def invoke_side_effect(*args: object, **kwargs: object) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise CircuitBreakerTrippedError(30)
+            return _make_harness_result()
+
+        with patch.object(loop, "_invoke_harness", side_effect=invoke_side_effect):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.CIRCUIT_BREAKER_TRIPPED in event_types
+        assert RunEventType.TASK_COMPLETED in event_types
+
+        result = loop.get_result()
+        # Phase should NOT be "failed" -- loop continued past the circuit breaker
+        assert result.phase != "failed"
+        assert result.tasks_completed == 1
+        assert result.tasks_failed == 1
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_circuit_breaker_increments_tasks_failed(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Circuit breaker trip counts as a task failure."""
+        from cub.core.circuit_breaker import CircuitBreakerTrippedError
+
+        config = RunConfig(
+            once=True,
+            harness_name="test",
+            on_task_failure="stop",
+            circuit_breaker_enabled=True,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(
+            loop,
+            "_invoke_harness",
+            side_effect=CircuitBreakerTrippedError(30),
+        ):
+            list(loop.execute())
+
+        result = loop.get_result()
+        assert result.tasks_failed == 1
+
+
+# ===========================================================================
+# RunLoop - on_task_failure="retry" tests
+# ===========================================================================
+
+
+class TestRunLoopRetryMode:
+    """Tests for on_task_failure='retry' behavior."""
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_retry_mode_retries_same_task(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """With on_task_failure=retry, the same task is retried immediately."""
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=5,
+            max_task_iterations=3,
+            on_task_failure="retry",
+            circuit_breaker_enabled=False,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        task = _make_task(task_id="t-flaky", title="Flaky task")
+        # Backend returns the task for initial selection.
+        # After that, _retry_task_id bypasses get_ready_tasks for retries.
+        mock_task_backend.get_ready_tasks.return_value = [task]
+        mock_task_backend.get_task.return_value = task
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        # Fails twice, then succeeds on third attempt
+        call_count = 0
+
+        def invoke_side_effect(*args: object, **kwargs: object) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 2:
+                return _make_harness_result(success=False, error=f"fail {call_count}")
+            return _make_harness_result(success=True)
+
+        with patch.object(loop, "_invoke_harness", side_effect=invoke_side_effect):
+            events = list(loop.execute())
+
+        # Should have 2 failures then 1 success
+        task_failures = [e for e in events if e.event_type == RunEventType.TASK_FAILED]
+        task_completions = [e for e in events if e.event_type == RunEventType.TASK_COMPLETED]
+        assert len(task_failures) == 2
+        assert len(task_completions) == 1
+
+        # All attempts were for the same task
+        assert all(e.task_id == "t-flaky" for e in task_failures)
+        assert task_completions[0].task_id == "t-flaky"
+
+        result = loop.get_result()
+        assert result.tasks_completed == 1
+        assert result.tasks_failed == 2
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_retry_mode_bounded_by_max_task_iterations(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Retry mode stops retrying after max_task_iterations."""
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=10,
+            max_task_iterations=2,
+            on_task_failure="retry",
+            circuit_breaker_enabled=False,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        task = _make_task(task_id="t-hopeless", title="Always fails")
+        mock_task_backend.get_ready_tasks.side_effect = [
+            [task],  # Initial selection
+            [],  # After retry exhaustion, no more tasks
+        ]
+        mock_task_backend.get_task.return_value = task
+        mock_task_backend.get_task_counts.return_value = _make_task_counts(
+            total=1, open_count=0, closed=0
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        failed_result = _make_harness_result(success=False, error="always fails")
+        with patch.object(loop, "_invoke_harness", return_value=failed_result):
+            events = list(loop.execute())
+
+        task_failures = [e for e in events if e.event_type == RunEventType.TASK_FAILED]
+        retries_exhausted = [
+            e for e in events if e.event_type == RunEventType.TASK_RETRIES_EXHAUSTED
+        ]
+
+        # Should fail exactly max_task_iterations times then exhaust
+        assert len(task_failures) == 2
+        assert len(retries_exhausted) == 1
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_retry_mode_with_circuit_breaker(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Circuit breaker trip with retry mode retries the same task."""
+        from cub.core.circuit_breaker import CircuitBreakerTrippedError
+
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=5,
+            max_task_iterations=3,
+            on_task_failure="retry",
+            circuit_breaker_enabled=True,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        task = _make_task(task_id="t-hang", title="Hangs then works")
+        # After close_task is called, get_ready_tasks should return empty
+        ready_calls = 0
+
+        def get_ready_side_effect(**kwargs: object) -> list[MagicMock]:
+            nonlocal ready_calls
+            ready_calls += 1
+            return [task] if ready_calls == 1 else []
+
+        mock_task_backend.get_ready_tasks.side_effect = get_ready_side_effect
+        mock_task_backend.get_task.return_value = task
+        mock_task_backend.get_task_counts.return_value = _make_task_counts(
+            total=1, open_count=0, closed=1
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        call_count = 0
+
+        def invoke_side_effect(*args: object, **kwargs: object) -> MagicMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise CircuitBreakerTrippedError(30)
+            return _make_harness_result(success=True)
+
+        with patch.object(loop, "_invoke_harness", side_effect=invoke_side_effect):
+            events = list(loop.execute())
+
+        event_types = [e.event_type for e in events]
+        assert RunEventType.CIRCUIT_BREAKER_TRIPPED in event_types
+        assert RunEventType.TASK_COMPLETED in event_types
+
+        # Both events should be for the same task
+        cb_events = [e for e in events if e.event_type == RunEventType.CIRCUIT_BREAKER_TRIPPED]
+        completed_events = [e for e in events if e.event_type == RunEventType.TASK_COMPLETED]
+        assert cb_events[0].task_id == "t-hang"
+        assert completed_events[0].task_id == "t-hang"
+
+        result = loop.get_result()
+        assert result.tasks_completed == 1
+        assert result.tasks_failed == 1
+
+
+# ===========================================================================
+# RunLoop - Max task iterations tests
+# ===========================================================================
+
+
+class TestRunLoopMaxTaskIterations:
+    """Tests for per-task retry limit enforcement."""
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_task_retried_up_to_max(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Task is retried up to max_task_iterations then skipped."""
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=10,
+            max_task_iterations=2,
+            on_task_failure="continue",
+            circuit_breaker_enabled=False,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        # Same task returned each time (simulating RETRY status)
+        task = _make_task(task_id="t-retry", title="Keeps failing")
+        mock_task_backend.get_ready_tasks.side_effect = [
+            [task],  # Iteration 1: first attempt
+            [task],  # Iteration 2: second attempt
+            [task],  # Iteration 3: filtered out (max_task_iterations=2)
+        ]
+        mock_task_backend.get_task_counts.return_value = _make_task_counts(
+            total=1, open_count=0, closed=0
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        failed_result = _make_harness_result(success=False, error="keeps failing")
+        with patch.object(loop, "_invoke_harness", return_value=failed_result):
+            events = list(loop.execute())
+
+        # Should have 2 task failures then a retry exhaustion event
+        task_failures = [e for e in events if e.event_type == RunEventType.TASK_FAILED]
+        assert len(task_failures) == 2
+
+        retries_exhausted = [
+            e for e in events if e.event_type == RunEventType.TASK_RETRIES_EXHAUSTED
+        ]
+        assert len(retries_exhausted) == 1
+        assert retries_exhausted[0].task_id == "t-retry"
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    @patch("cub.core.run.loop.time.sleep")
+    def test_exhausted_task_closed_in_backend(
+        self,
+        mock_sleep: MagicMock,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Task that exceeds retry limit is closed in the backend."""
+        config = RunConfig(
+            once=False,
+            harness_name="test",
+            max_iterations=5,
+            max_task_iterations=1,
+            on_task_failure="continue",
+            circuit_breaker_enabled=False,
+            ledger_enabled=False,
+            hooks_enabled=False,
+            project_dir=str(tmp_path),
+        )
+
+        task = _make_task(task_id="t-close-me", title="Fail once")
+        mock_task_backend.get_ready_tasks.side_effect = [
+            [task],  # Iteration 1: attempt, fail
+            [task],  # Iteration 2: filtered out, close_task called
+        ]
+        mock_task_backend.get_task_counts.return_value = _make_task_counts(
+            total=1, open_count=0, closed=0
+        )
+
+        loop = RunLoop(
+            config=config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        failed_result = _make_harness_result(success=False, error="fail")
+        with patch.object(loop, "_invoke_harness", return_value=failed_result):
+            list(loop.execute())
+
+        # The task should have been closed with an "exceeded max retries" reason
+        close_calls = [
+            c for c in mock_task_backend.close_task.call_args_list
+            if c.args[0] == "t-close-me"
+        ]
+        assert len(close_calls) >= 1
+        assert "max retries" in close_calls[-1].kwargs.get("reason", "").lower()
+
+    @patch("cub.core.run.loop.generate_system_prompt", return_value="system prompt")
+    @patch("cub.core.run.loop.generate_task_prompt", return_value="task prompt")
+    def test_task_attempt_count_tracked(
+        self,
+        mock_task_prompt: MagicMock,
+        mock_sys_prompt: MagicMock,
+        mock_task_backend: MagicMock,
+        mock_harness_backend: MagicMock,
+        base_config: RunConfig,
+    ) -> None:
+        """Task attempt count is tracked after execution."""
+        loop = RunLoop(
+            config=base_config,
+            task_backend=mock_task_backend,
+            harness_backend=mock_harness_backend,
+        )
+
+        with patch.object(loop, "_invoke_harness", return_value=_make_harness_result()):
+            list(loop.execute())
+
+        assert loop._task_attempt_counts.get("test-001") == 1
+
+
+# ===========================================================================
 # RunLoop - Import and re-export tests
 # ===========================================================================
 
