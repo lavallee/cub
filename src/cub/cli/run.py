@@ -172,10 +172,14 @@ def _setup_harness(
         print_harness_not_installed_error(harness_name)
         return None
 
-    if debug:
-        console.print(f"[dim]Harness: {harness_name} (v{harness_backend.get_version()})[/dim]")
+    # Use the backend's actual name (e.g., "claude-sdk" not alias "claude")
+    # This makes it clear which implementation is being used
+    actual_name = harness_backend.name
 
-    return harness_name, harness_backend
+    if debug:
+        console.print(f"[dim]Harness: {actual_name} (v{harness_backend.get_version()})[/dim]")
+
+    return actual_name, harness_backend
 
 
 async def _invoke_harness_async(

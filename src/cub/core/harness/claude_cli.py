@@ -328,6 +328,10 @@ class ClaudeCLIBackend:
                         cost = event.get("total_cost_usd")
                         if cost is not None:
                             final_cost = cost
+                        # Result event signals completion - stop waiting for more output
+                        # Without this, we hang waiting for stdout to close even though
+                        # Claude has finished processing
+                        break
 
                 except json.JSONDecodeError:
                     # Skip malformed JSON lines
