@@ -35,8 +35,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-_EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
-_TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>[^-]+?)\s*-\s*(?P<title>.+?)\s*$")
+# Pattern matches "## Epic: <id> - <title>" where <id> can contain hyphens
+# The separator is " - " (space-hyphen-space) to distinguish from hyphens in IDs
+_EPIC_RE = re.compile(r"^##\s+Epic:\s*(?P<id>.+?)\s+-\s+(?P<title>.+?)\s*$")
+_TASK_RE = re.compile(r"^###\s+Task:\s*(?P<id>.+?)\s+-\s+(?P<title>.+?)\s*$")
 _KEY_RE = re.compile(r"^(?P<key>Priority|Labels|Blocks):\s*(?P<value>.*)$")
 
 
