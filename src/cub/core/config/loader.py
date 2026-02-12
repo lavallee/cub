@@ -214,6 +214,31 @@ def apply_env_overrides(config_dict: dict[str, Any]) -> dict[str, Any]:
             )
             print(msg)
 
+    # CUB_CIRCUIT_BREAKER_ACTIVITY_TIMEOUT overrides circuit_breaker.activity_timeout_minutes
+    if cb_activity_str := os.environ.get("CUB_CIRCUIT_BREAKER_ACTIVITY_TIMEOUT"):
+        if cb_activity_str.lower() in ("none", "disabled"):
+            if "circuit_breaker" not in result:
+                result["circuit_breaker"] = {}
+            result["circuit_breaker"]["activity_timeout_minutes"] = None
+        else:
+            try:
+                cb_activity = int(cb_activity_str)
+                if cb_activity < 1:
+                    print(
+                        f"Warning: CUB_CIRCUIT_BREAKER_ACTIVITY_TIMEOUT must be >= 1, "
+                        f"got {cb_activity}, ignoring"
+                    )
+                else:
+                    if "circuit_breaker" not in result:
+                        result["circuit_breaker"] = {}
+                    result["circuit_breaker"]["activity_timeout_minutes"] = cb_activity
+            except ValueError:
+                msg = (
+                    f"Warning: Invalid CUB_CIRCUIT_BREAKER_ACTIVITY_TIMEOUT "
+                    f"value '{cb_activity_str}', ignoring"
+                )
+                print(msg)
+
     return result
 
 

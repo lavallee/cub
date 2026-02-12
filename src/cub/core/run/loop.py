@@ -141,6 +141,7 @@ class RunLoop:
         self._circuit_breaker = CircuitBreaker(
             timeout_minutes=config.circuit_breaker_timeout_minutes,
             enabled=config.circuit_breaker_enabled,
+            activity_timeout_minutes=config.circuit_breaker_activity_timeout_minutes,
         )
 
         # Loop state
@@ -892,6 +893,7 @@ class RunLoop:
             stream=self.config.stream,
             debug=self.config.debug,
             harness_log_path=harness_log_path,
+            circuit_breaker=self._circuit_breaker if self._circuit_breaker.enabled else None,
         )
 
         if self._circuit_breaker.enabled:

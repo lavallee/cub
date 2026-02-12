@@ -188,6 +188,7 @@ async def _invoke_harness_async(
     stream: bool,
     debug: bool,
     harness_log_path: Path | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
 ) -> HarnessResult:
     """
     Async harness invocation (used for circuit breaker wrapping).
@@ -222,6 +223,10 @@ async def _invoke_harness_async(
                 _stream_callback(chunk)
                 collected += chunk
                 message_count += 1
+
+            # Signal activity to circuit breaker on every chunk
+            if circuit_breaker is not None:
+                circuit_breaker.heartbeat()
 
         sys.stdout.write("\n")
         sys.stdout.flush()
@@ -290,7 +295,9 @@ def _invoke_harness(
         CircuitBreakerTrippedError: If circuit breaker timeout is exceeded
     """
     # Create async invocation coroutine
-    coro = _invoke_harness_async(harness_backend, task_input, stream, debug, harness_log_path)
+    coro = _invoke_harness_async(
+        harness_backend, task_input, stream, debug, harness_log_path, circuit_breaker
+    )
 
     # Wrap with circuit breaker if provided
     if circuit_breaker is not None:

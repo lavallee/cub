@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from cub.core.harness.models import HarnessResult, TaskInput, TokenUsage
 
 if TYPE_CHECKING:
+    from cub.core.circuit_breaker import CircuitBreaker
     from cub.core.harness.async_backend import AsyncHarnessBackend
 
 
@@ -26,6 +27,7 @@ async def invoke_harness_async(
     stream: bool = False,
     debug: bool = False,
     harness_log_path: Path | None = None,
+    circuit_breaker: CircuitBreaker | None = None,
 ) -> HarnessResult:
     """
     Async harness invocation (used for circuit breaker wrapping).
@@ -39,6 +41,7 @@ async def invoke_harness_async(
         stream: Whether to stream output.
         debug: Enable debug logging.
         harness_log_path: Optional path to write raw harness output.
+        circuit_breaker: Optional circuit breaker for heartbeat signaling.
 
     Returns:
         HarnessResult with output, usage, and timing.
@@ -63,6 +66,10 @@ async def invoke_harness_async(
                 sys.stdout.flush()
                 collected += chunk
                 message_count += 1
+
+            # Signal activity to circuit breaker on every chunk
+            if circuit_breaker is not None:
+                circuit_breaker.heartbeat()
 
         sys.stdout.write("\n")
         sys.stdout.flush()

@@ -477,6 +477,7 @@ class RunService:
             budget_tasks=cfg.budget.max_tasks_per_session,
             circuit_breaker_enabled=circuit_breaker_enabled,
             circuit_breaker_timeout_minutes=cfg.circuit_breaker.timeout_minutes,
+            circuit_breaker_activity_timeout_minutes=cfg.circuit_breaker.activity_timeout_minutes,
             ledger_enabled=cfg.ledger.enabled,
             hooks_enabled=cfg.hooks.enabled,
             hooks_fail_fast=cfg.hooks.fail_fast,

@@ -97,6 +97,7 @@ class RunConfig:
     # Circuit breaker
     circuit_breaker_enabled: bool = True
     circuit_breaker_timeout_minutes: int = 30
+    circuit_breaker_activity_timeout_minutes: int | None = 15
 
     # Subsystems
     ledger_enabled: bool = True

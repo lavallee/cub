@@ -286,6 +286,15 @@ class CircuitBreakerConfig(BaseModel):
         ge=1,
         description="Stop if no harness activity for this many minutes",
     )
+    activity_timeout_minutes: int | None = Field(
+        default=15,
+        ge=1,
+        description=(
+            "Stop if no streaming chunks received for this many minutes. "
+            "Detects stuck subprocesses (e.g., deadlocked pytest). "
+            "Set to null/None to disable activity-based monitoring."
+        ),
+    )
 
 
 class MapConfig(BaseModel):
