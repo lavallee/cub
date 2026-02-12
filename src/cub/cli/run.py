@@ -2056,6 +2056,7 @@ def _run_plan(
             epic_tasks_completed = 0
             epic_cost = 0.0
             epic_tokens = 0
+            epic_aborted = False  # Set when budget/interrupt breaks the loop
 
             for event in run_service.execute(run_config, run_id=epic_run_id):
                 # Track metrics from events
@@ -2082,9 +2083,11 @@ def _run_plan(
                     )
                 elif event.event_type == RunEventType.BUDGET_EXHAUSTED:
                     console.print("[yellow]Budget exhausted[/yellow]")
+                    epic_aborted = True
                     break
                 elif event.event_type == RunEventType.INTERRUPT_RECEIVED:
                     console.print("[yellow]Interrupted[/yellow]")
+                    epic_aborted = True
                     break
                 elif event.event_type == RunEventType.ALL_TASKS_COMPLETE:
                     console.print(f"[green]All tasks in epic {epic_id} complete[/green]")
@@ -2131,9 +2134,10 @@ def _run_plan(
             # stop plan execution. But if the phase is "completed" (meaning
             # on_task_failure=="continue" and the loop ran to completion despite
             # some task failures), continue to the next epic.
-            if result.phase == "failed":
+            if result.phase == "failed" or epic_aborted:
                 failed_epic = epic_id
-                console.print(f"[red]Epic {epic_id} failed (run stopped)[/red]")
+                reason = "budget exhausted" if epic_aborted else "run stopped"
+                console.print(f"[red]Epic {epic_id} failed ({reason})[/red]")
                 break
 
             if result.tasks_failed > 0 and epic_tasks_completed == 0:
