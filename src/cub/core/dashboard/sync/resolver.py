@@ -151,7 +151,9 @@ class RelationshipResolver:
         entries = self._get_ledger_entries()
         return entries.get(entity_id.lower())
 
-    def _has_blockers(self, entity: DashboardEntity, entity_index: dict[str, DashboardEntity]) -> bool:
+    def _has_blockers(
+        self, entity: DashboardEntity, entity_index: dict[str, DashboardEntity]
+    ) -> bool:
         """
         Check if an entity has unresolved blockers.
 
@@ -570,8 +572,8 @@ def compute_stage(
             return Stage.COMPLETE
         elif entity.status == "in_progress":
             return Stage.IN_PROGRESS
-        elif entity.status == "open":
-            # Open tasks with blockers go to BLOCKED
+        elif entity.status in ("open", "retry"):
+            # Open/retry tasks with blockers go to BLOCKED
             if has_blockers:
                 return Stage.BLOCKED
             return Stage.READY

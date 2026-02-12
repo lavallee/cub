@@ -21,6 +21,7 @@ class ProjectStats(BaseModel):
     total_tasks: int = Field(default=0, ge=0, description="Total tasks in project")
     open_tasks: int = Field(default=0, ge=0, description="Open tasks")
     in_progress_tasks: int = Field(default=0, ge=0, description="In-progress tasks")
+    retry_tasks: int = Field(default=0, ge=0, description="Tasks awaiting retry")
     closed_tasks: int = Field(default=0, ge=0, description="Closed tasks")
     ready_tasks: int = Field(default=0, ge=0, description="Tasks ready to work (no blockers)")
     blocked_tasks: int = Field(default=0, ge=0, description="Tasks blocked by dependencies")

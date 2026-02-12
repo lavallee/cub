@@ -20,6 +20,7 @@ class TaskStatus(str, Enum):
 
     OPEN = "open"
     IN_PROGRESS = "in_progress"
+    RETRY = "retry"
     CLOSED = "closed"
 
 
@@ -54,6 +55,10 @@ class TaskType(str, Enum):
     BUGFIX = "bugfix"
     EPIC = "epic"
     GATE = "gate"
+
+
+NON_EXECUTABLE_TYPES: frozenset[TaskType] = frozenset({TaskType.EPIC, TaskType.GATE})
+"""Task types that should never be selected for harness execution."""
 
 
 class Task(BaseModel):
@@ -202,7 +207,8 @@ class Task(BaseModel):
         Check if task is ready to be worked on.
 
         A task is ready if:
-        - Status is OPEN
+        - Type is not EPIC or GATE (non-executable types)
+        - Status is OPEN or RETRY
         - Has no dependencies, OR all dependencies are complete
 
         Note: This doesn't check if dependencies actually exist,
@@ -212,7 +218,9 @@ class Task(BaseModel):
         Returns:
             True if task can be started
         """
-        return self.status == TaskStatus.OPEN and len(self.depends_on) == 0
+        if self.type in NON_EXECUTABLE_TYPES:
+            return False
+        return self.status in (TaskStatus.OPEN, TaskStatus.RETRY) and len(self.depends_on) == 0
 
     @computed_field
     @property
@@ -256,6 +264,17 @@ class Task(BaseModel):
         self.closed_at = None
         self.updated_at = datetime.now()
 
+    def mark_retry(self, reason: str | None = None) -> None:
+        """Mark task for retry after a failed execution attempt."""
+        self.status = TaskStatus.RETRY
+        self.updated_at = datetime.now()
+        if reason:
+            note = f"[Retry: {datetime.now().isoformat()}] {reason}"
+            if self.notes:
+                self.notes += f"\n{note}"
+            else:
+                self.notes = note
+
 
 class TaskCounts(BaseModel):
     """
@@ -267,6 +286,7 @@ class TaskCounts(BaseModel):
     total: int = Field(default=0, description="Total number of tasks")
     open: int = Field(default=0, description="Number of open tasks")
     in_progress: int = Field(default=0, description="Number of in-progress tasks")
+    retry: int = Field(default=0, description="Number of tasks awaiting retry")
     closed: int = Field(default=0, description="Number of closed tasks")
     blocked: int = Field(
         default=0, description="Number of blocked tasks (open with unmet dependencies)"
@@ -276,7 +296,7 @@ class TaskCounts(BaseModel):
     @property
     def remaining(self) -> int:
         """Number of non-closed tasks."""
-        return self.open + self.in_progress
+        return self.open + self.in_progress + self.retry
 
     @computed_field
     @property

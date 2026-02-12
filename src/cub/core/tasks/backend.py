@@ -68,10 +68,12 @@ class TaskBackend(Protocol):
         Get all tasks that are ready to work on.
 
         A task is ready if:
-        - Status is OPEN
+        - Type is not EPIC or GATE (non-executable types are excluded)
+        - Status is OPEN or RETRY
         - All dependencies are CLOSED
 
-        Tasks are returned sorted by priority (P0 first).
+        Tasks are returned sorted by priority (P0 first), with OPEN tasks
+        before RETRY tasks at the same priority level (fresh work first).
 
         Args:
             parent: Filter by parent epic/task ID
@@ -641,7 +643,7 @@ class TaskBackendDefaults:
         Default implementation using list_tasks and dependency checking.
 
         A task is blocked if:
-        - Status is OPEN
+        - Status is OPEN or RETRY
         - Has at least one dependency that is not CLOSED
 
         Args:
@@ -651,11 +653,12 @@ class TaskBackendDefaults:
         Returns:
             List of blocked tasks
         """
-        # Get all open tasks
-        open_tasks = self.list_tasks(status=TaskStatus.OPEN, parent=parent, label=label)
+        # Get all tasks and filter for OPEN or RETRY status
+        all_tasks = self.list_tasks(parent=parent, label=label)
+        candidate_tasks = [t for t in all_tasks if t.status in (TaskStatus.OPEN, TaskStatus.RETRY)]
 
         blocked_tasks = []
-        for task in open_tasks:
+        for task in candidate_tasks:
             # Skip tasks with no dependencies
             if not task.depends_on:
                 continue

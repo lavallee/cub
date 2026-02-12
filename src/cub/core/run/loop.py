@@ -41,7 +41,7 @@ from cub.core.run.prompt_builder import (
     generate_system_prompt,
     generate_task_prompt,
 )
-from cub.core.tasks.models import Task, TaskStatus
+from cub.core.tasks.models import NON_EXECUTABLE_TYPES, Task, TaskStatus
 
 if TYPE_CHECKING:
     from cub.core.harness.async_backend import AsyncHarnessBackend
@@ -119,8 +119,8 @@ class RunLoop:
         self.status_writer = status_writer
 
         # Generate run ID
-        self.run_id = run_id or config.session_name or (
-            f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        self.run_id = (
+            run_id or config.session_name or (f"cub-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
         )
 
         # Interrupt handling
@@ -229,9 +229,7 @@ class RunLoop:
             if self.config.hooks_enabled:
                 from cub.core.hooks.lifecycle import invoke_pre_session_hook
 
-                hook_ok = invoke_pre_session_hook(
-                    self.config, self.task_backend, self.run_id
-                )
+                hook_ok = invoke_pre_session_hook(self.config, self.task_backend, self.run_id)
                 if not hook_ok and self.config.hooks_fail_fast:
                     self._phase = "failed"
                     self._error = "Pre-session hook failed"
@@ -397,6 +395,9 @@ class RunLoop:
                 return None
             if task.status == TaskStatus.CLOSED:
                 return None
+            # Reject non-executable types (epics, gates)
+            if task.type in NON_EXECUTABLE_TYPES:
+                return None
             return task
 
         # Get next ready task
@@ -534,18 +535,14 @@ class RunLoop:
             # Write prompt audit trail
             if self.status_writer:
                 try:
-                    self.status_writer.write_prompt(
-                        task.id, self._system_prompt, task_prompt
-                    )
+                    self.status_writer.write_prompt(task.id, self._system_prompt, task_prompt)
                 except Exception:
                     pass
 
             # Record attempt start in ledger
             if self.ledger_integration and self.config.ledger_enabled:
                 try:
-                    attempt_number = (
-                        self.ledger_integration.get_attempt_count(task.id) + 1
-                    )
+                    attempt_number = self.ledger_integration.get_attempt_count(task.id) + 1
                     combined_prompt = (
                         f"# System Prompt\n\n{self._system_prompt}\n\n"
                         f"# Task Prompt\n\n{task_prompt}"
@@ -576,9 +573,12 @@ class RunLoop:
 
         except CircuitBreakerTrippedError as e:
             # Circuit breaker timeout
-            self._record_circuit_breaker_trip(
-                task, attempt_number, attempt_start_time, e
-            )
+            self._record_circuit_breaker_trip(task, attempt_number, attempt_start_time, e)
+            # Mark task for retry so it can be picked up again
+            try:
+                self.task_backend.update_task(task.id, status=TaskStatus.RETRY)
+            except Exception:
+                pass  # Non-fatal
             yield self._make_event(
                 RunEventType.CIRCUIT_BREAKER_TRIPPED,
                 f"Circuit breaker tripped after {e.timeout_minutes} minutes",
@@ -593,6 +593,11 @@ class RunLoop:
             # Harness invocation failed
             self._record_harness_error(task, attempt_number, attempt_start_time, e)
             self._tasks_failed += 1
+            # Mark task for retry so it can be picked up again
+            try:
+                self.task_backend.update_task(task.id, status=TaskStatus.RETRY)
+            except Exception:
+                pass  # Non-fatal
 
             yield self._make_event(
                 RunEventType.HARNESS_ERROR,
@@ -662,7 +667,9 @@ class RunLoop:
 
             # Finalize ledger entry BEFORE committing so it's included
             self._finalize_ledger(
-                task, success=True, task_model=task_model,
+                task,
+                success=True,
+                task_model=task_model,
                 task_start_commit=task_start_commit,
             )
 
@@ -731,6 +738,11 @@ class RunLoop:
                 )
         else:
             self._tasks_failed += 1
+            # Mark task for retry so it can be picked up again
+            try:
+                self.task_backend.update_task(task.id, status=TaskStatus.RETRY)
+            except Exception:
+                pass  # Non-fatal
 
             yield self._make_event(
                 RunEventType.TASK_FAILED,
@@ -746,7 +758,9 @@ class RunLoop:
 
             # Finalize ledger entry for failure
             self._finalize_ledger(
-                task, success=False, task_model=task_model,
+                task,
+                success=False,
+                task_model=task_model,
                 task_start_commit=task_start_commit,
             )
 

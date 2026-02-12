@@ -132,8 +132,7 @@ class StatusService:
         # Count epics
         epic_tasks = [t for t in all_tasks if t.type.value == "epic"]
         active_epics = [
-            e for e in epic_tasks
-            if e.status in (TaskStatus.OPEN, TaskStatus.IN_PROGRESS)
+            e for e in epic_tasks if e.status in (TaskStatus.OPEN, TaskStatus.IN_PROGRESS)
         ]
 
         # Get ledger metrics if available
@@ -160,6 +159,7 @@ class StatusService:
             total_tasks=counts.total,
             open_tasks=counts.open,
             in_progress_tasks=counts.in_progress,
+            retry_tasks=counts.retry,
             closed_tasks=counts.closed,
             ready_tasks=len(ready_tasks),
             blocked_tasks=blocked_count,
@@ -198,10 +198,7 @@ class StatusService:
             raise EpicNotFoundError(epic_id)
 
         # Get child tasks
-        child_tasks = [
-            t for t in self._task_backend.list_tasks()
-            if t.parent == epic_id
-        ]
+        child_tasks = [t for t in self._task_backend.list_tasks() if t.parent == epic_id]
 
         # Count tasks by status
         total = len(child_tasks)
@@ -210,10 +207,9 @@ class StatusService:
         closed = len([t for t in child_tasks if t.status == TaskStatus.CLOSED])
 
         # Get ready tasks (no blockers)
-        ready = len([
-            t for t in child_tasks
-            if t.status == TaskStatus.OPEN and len(t.depends_on) == 0
-        ])
+        ready = len(
+            [t for t in child_tasks if t.status == TaskStatus.OPEN and len(t.depends_on) == 0]
+        )
 
         # Calculate completion percentage
         completion = (closed / total * 100) if total > 0 else 0.0

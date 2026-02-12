@@ -20,7 +20,7 @@ except ImportError:
     yaml = None
 
 from .backend import TaskBackendDefaults, register_backend
-from .models import Task, TaskCounts, TaskPriority, TaskStatus
+from .models import NON_EXECUTABLE_TYPES, Task, TaskCounts, TaskPriority, TaskStatus
 
 
 class TasksFileNotFoundError(Exception):
@@ -511,10 +511,12 @@ class JsonlBackend(TaskBackendDefaults):
         Get all tasks that are ready to work on.
 
         A task is ready if:
-        - Status is OPEN
+        - Type is not EPIC or GATE (non-executable types are excluded)
+        - Status is OPEN or RETRY
         - All dependencies are CLOSED
 
-        Tasks are returned sorted by priority (P0 first).
+        Tasks are returned sorted by priority (P0 first), with OPEN tasks
+        before RETRY tasks at the same priority level (fresh work first).
 
         Args:
             parent: Filter by parent epic/task ID
@@ -541,8 +543,12 @@ class JsonlBackend(TaskBackendDefaults):
         # Filter for ready tasks
         ready_tasks = []
         for task in all_tasks:
-            # Must be open
-            if task.status != TaskStatus.OPEN:
+            # Exclude non-executable types (epics, gates)
+            if task.type in NON_EXECUTABLE_TYPES:
+                continue
+
+            # Must be open or retry
+            if task.status not in (TaskStatus.OPEN, TaskStatus.RETRY):
                 continue
 
             # All dependencies must be closed
@@ -558,8 +564,13 @@ class JsonlBackend(TaskBackendDefaults):
 
             ready_tasks.append(task)
 
-        # Sort by priority (P0 = 0 is highest priority)
-        ready_tasks.sort(key=lambda t: t.priority_numeric)
+        # Sort: OPEN before RETRY at same priority (fresh work first)
+        # status_order: OPEN=0, RETRY=1
+        def sort_key(t: Task) -> tuple[int, int]:
+            status_order = 0 if t.status == TaskStatus.OPEN else 1
+            return (t.priority_numeric, status_order)
+
+        ready_tasks.sort(key=sort_key)
 
         return ready_tasks
 
@@ -797,6 +808,7 @@ class JsonlBackend(TaskBackendDefaults):
         total = len(tasks)
         open_count = 0
         in_progress = 0
+        retry_count = 0
         closed = 0
 
         # Build set of closed task IDs for blocked count
@@ -809,6 +821,8 @@ class JsonlBackend(TaskBackendDefaults):
                 open_count += 1
             elif status == "in_progress":
                 in_progress += 1
+            elif status == "retry":
+                retry_count += 1
             elif status == "closed":
                 closed += 1
 
@@ -833,6 +847,7 @@ class JsonlBackend(TaskBackendDefaults):
             total=total,
             open=open_count,
             in_progress=in_progress,
+            retry=retry_count,
             closed=closed,
             blocked=blocked_count,
         )
@@ -1391,6 +1406,7 @@ Each line is a complete JSON object:
         # Check status of all tasks
         open_count = 0
         in_progress_count = 0
+        retry_count = 0
         closed_count = 0
 
         for task in all_epic_tasks:
@@ -1398,14 +1414,23 @@ Each line is a complete JSON object:
                 closed_count += 1
             elif task.status == TaskStatus.IN_PROGRESS:
                 in_progress_count += 1
+            elif task.status == TaskStatus.RETRY:
+                retry_count += 1
             else:
                 open_count += 1
 
         # If any tasks are not closed, don't close the epic
-        if open_count > 0 or in_progress_count > 0:
+        non_closed = open_count + in_progress_count + retry_count
+        if non_closed > 0:
+            parts = []
+            if open_count > 0:
+                parts.append(f"{open_count} open")
+            if in_progress_count > 0:
+                parts.append(f"{in_progress_count} in-progress")
+            if retry_count > 0:
+                parts.append(f"{retry_count} retry")
             return False, (
-                f"Epic '{epic_id}' has {open_count} open and "
-                f"{in_progress_count} in-progress tasks remaining "
+                f"Epic '{epic_id}' has {' and '.join(parts)} tasks remaining "
                 f"({closed_count} closed)"
             )
 

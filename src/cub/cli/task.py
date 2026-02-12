@@ -287,10 +287,7 @@ def list_tasks(
         try:
             task_status = TaskStatus(status.lower())
         except ValueError:
-            print_invalid_option_error(
-                status,
-                [s.value for s in TaskStatus]
-            )
+            print_invalid_option_error(status, [s.value for s in TaskStatus])
             raise typer.Exit(ExitCode.USER_ERROR)
 
     tasks = backend.list_tasks(status=task_status, parent=parent_filter, label=label)
@@ -304,9 +301,7 @@ def list_tasks(
         try:
             from cub.core.services.agent_format import AgentFormatter
 
-            agent_output = AgentFormatter.format_list(
-                tasks, limit=0 if show_all else None
-            )
+            agent_output = AgentFormatter.format_list(tasks, limit=0 if show_all else None)
             console.print(agent_output)
         except ImportError:
             # Fallback to simple markdown if AgentFormatter not available
@@ -353,6 +348,7 @@ def list_tasks(
         status_color = {
             TaskStatus.OPEN: "white",
             TaskStatus.IN_PROGRESS: "yellow",
+            TaskStatus.RETRY: "red",
             TaskStatus.CLOSED: "green",
         }.get(task.status, "white")
 
@@ -445,10 +441,7 @@ def update(
         try:
             task_status = TaskStatus(status.lower())
         except ValueError:
-            print_invalid_option_error(
-                status,
-                [s.value for s in TaskStatus]
-            )
+            print_invalid_option_error(status, [s.value for s in TaskStatus])
             raise typer.Exit(ExitCode.USER_ERROR)
 
     # Handle label additions
@@ -658,6 +651,8 @@ def claim(
         console.print(f"[yellow]Warning:[/yellow] Task {task_id} is already closed")
         raise typer.Exit(0)
 
+    # RETRY tasks can be silently claimed (they are being retried)
+
     # Claim the task
     try:
         updated = backend.update_task(
@@ -790,7 +785,7 @@ def ready(
                 if blocks_count == 0:
                     blocks_str = "none"
                 else:
-                    plural = 's' if blocks_count != 1 else ''
+                    plural = "s" if blocks_count != 1 else ""
                     blocks_str = f"{blocks_count} task{plural}"
                 console.print(
                     f"| {task.id} | {task.title} | {task.priority.value} | {blocks_str} |"
@@ -1164,7 +1159,7 @@ def search(
 
     if agent:
         # Agent-friendly markdown output
-        console.print(f"# Search Results: \"{query}\"\n")
+        console.print(f'# Search Results: "{query}"\n')
         console.print(f"Found {len(tasks)} matching task(s)\n")
 
         if tasks:
@@ -1198,6 +1193,7 @@ def search(
         status_color = {
             TaskStatus.OPEN: "white",
             TaskStatus.IN_PROGRESS: "yellow",
+            TaskStatus.RETRY: "red",
             TaskStatus.CLOSED: "green",
         }.get(task.status, "white")
 
@@ -1312,9 +1308,7 @@ def blocked(
     console.print(f"\n[dim]{len(blocked_tasks)} blocked tasks[/dim]")
 
 
-def _format_blocked_agent_fallback(
-    blocked_tasks: list[Task], graph: DependencyGraph
-) -> None:
+def _format_blocked_agent_fallback(blocked_tasks: list[Task], graph: DependencyGraph) -> None:
     """Format blocked tasks with dependency analysis.
 
     Fallback when AgentFormatter not available.
