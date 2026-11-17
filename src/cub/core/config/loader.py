@@ -18,6 +18,7 @@ state, loop, hooks, interview) and internal state (project_id, dev_mode, backend
 import json
 import logging
 import os
+import sys
 import warnings
 from pathlib import Path
 from typing import Any
@@ -319,10 +320,12 @@ def _warn_legacy_config(project_dir: Path | None) -> None:
         stacklevel=4,  # Point to the caller of load_config
     )
 
-    # Also print to console for visibility in CLI usage
+    # Also print for visibility in CLI usage. Use stderr so machine-readable
+    # stdout (hook JSON, --json output) is not corrupted.
     print(
         f"[Deprecated] Config file '{legacy_path.name}' is deprecated. "
-        "Run 'cub init' to migrate to '.cub/config.json'."
+        "Run 'cub init' to migrate to '.cub/config.json'.",
+        file=sys.stderr,
     )
 
 

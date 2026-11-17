@@ -811,6 +811,11 @@ class TestConfigConsolidation:
             assert len(deprecation_warnings) == 1
             assert "deprecated" in str(deprecation_warnings[0].message).lower()
 
+        # Console notice goes to stderr so stdout stays machine-readable (hook JSON)
+        captured = capsys.readouterr()
+        assert "[Deprecated]" not in captured.out
+        assert "[Deprecated]" in captured.err
+
     def test_load_config_deprecation_warning_only_once(self, tmp_path, monkeypatch, capsys):
         """Test that deprecation warning is only shown once per session."""
         # Only setup legacy config
