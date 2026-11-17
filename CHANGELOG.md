@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.29.3] - 2026-11-16
+
+### Added
+
+- Add activity-based circuit breaker for stuck subprocess detection
+
+### Changed
+
+- Update webpage for v0.29.2
+
+### Fixed
+
+- Print legacy .cub.json deprecation notice to stderr
+- Hook shim calls installed cub-hooks entry point
+- Stop plan execution on budget exhaustion and interrupts
+- Make run loop resilient to circuit breaker and task failures
+- Parse epic/task IDs containing hyphens in plan markdown
+- Prevent streaming harness hang and show actual backend name
+- Add RETRY status, exclude epics from task selection, set retry on failure
+
+---
+
 ## [0.29.2] - 2026-02-11
 
 ### Changed
