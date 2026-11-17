@@ -363,3 +363,78 @@ class TestJqFallback:
 
         # Should still work (will try to invoke Python)
         assert result.returncode in (0, 1, 127)
+
+
+class TestHandlerInvocation:
+    """The shim must call the installed `cub-hooks` entry point, not `python -m`."""
+
+    def _fake_cub_hooks(self, bin_dir: Path) -> Path:
+        """Create a fake `cub-hooks` that records its argv and stdin."""
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        fake = bin_dir / "cub-hooks"
+        fake.write_text(
+            "#!/bin/bash\n"
+            'printf "%s" "$1" > "$(dirname "$0")/argv"\n'
+            'cat > "$(dirname "$0")/stdin"\n'
+            'echo \'{"continue": true, "hookSpecificOutput": '
+            '{"hookEventName": "\'"$1"\'"}}\'\n'
+        )
+        fake.chmod(0o755)
+        return fake
+
+    def test_template_invokes_cub_hooks_entry_point(self, hook_script: Path) -> None:
+        """The generated shim calls `cub-hooks "$HOOK_EVENT"`."""
+        content = hook_script.read_text()
+        assert 'cub-hooks "$HOOK_EVENT"' in content
+        assert "python -m cub.core.harness.hooks" not in content
+
+    def test_session_start_uses_cub_hooks_on_path(self, hook_script: Path, tmp_path: Path) -> None:
+        """SessionStart is forwarded to `cub-hooks` with stdin passed through."""
+        bin_dir = tmp_path / "bin"
+        self._fake_cub_hooks(bin_dir)
+        payload = {"hook_event_name": "SessionStart", "session_id": "s-1"}
+
+        stdout, exit_code = run_hook(
+            hook_script,
+            "SessionStart",
+            payload,
+            env={"PATH": f"{bin_dir}:/usr/bin:/bin"},
+        )
+
+        assert exit_code == 0
+        assert json.loads(stdout)["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+        assert (bin_dir / "argv").read_text() == "SessionStart"
+        assert json.loads((bin_dir / "stdin").read_text()) == payload
+
+    def test_missing_handler_fails_with_clear_error(
+        self, hook_script: Path, tmp_path: Path
+    ) -> None:
+        """Without cub-hooks or an importable cub, exit 1 with a clear message."""
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        # A python3 that cannot import cub
+        fake_python = bin_dir / "python3"
+        fake_python.write_text("#!/bin/bash\nexit 1\n")
+        fake_python.chmod(0o755)
+        bash = subprocess.run(
+            ["bash", "-c", "command -v bash"], capture_output=True, text=True
+        ).stdout.strip()
+        (bin_dir / "bash").symlink_to(bash)
+        for tool in ("cat", "grep", "sed", "date"):
+            path = subprocess.run(
+                ["bash", "-c", f"command -v {tool}"], capture_output=True, text=True
+            ).stdout.strip()
+            if path:
+                (bin_dir / tool).symlink_to(path)
+
+        result = subprocess.run(
+            ["bash", str(hook_script), "SessionStart"],
+            input=json.dumps({"hook_event_name": "SessionStart"}),
+            capture_output=True,
+            text=True,
+            env={"PATH": str(bin_dir)},
+        )
+
+        assert result.returncode == 1
+        assert "cub-hooks" in result.stderr
+        assert "not found" in result.stderr

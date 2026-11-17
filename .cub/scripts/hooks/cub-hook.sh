@@ -5,7 +5,7 @@
 # This script acts as the entry point for Claude Code hooks. It performs
 # quick relevance checks to filter out 90%+ of events without invoking
 # Python, keeping latency under 50ms. Only relevant events are forwarded
-# to the Python handler at cub.core.harness.hooks.
+# to the installed `cub-hooks` entry point (cub.core.harness.hooks).
 #
 # Usage:
 #   cub-hook.sh <hook_event_name>
@@ -20,6 +20,12 @@
 #
 # Environment:
 #   CUB_RUN_ACTIVE - If set, exits immediately (double-tracking prevention)
+#
+# Handler resolution:
+#   1. `cub-hooks` on PATH (installed alongside the `cub` command)
+#   2. `python3 -m cub.core.harness.hooks`, only if the active python3
+#      already has cub installed (e.g. an activated venv)
+#   Otherwise prints an error to stderr and exits 1 (non-blocking for Claude Code).
 #
 # Fast-path filters:
 #   - If CUB_RUN_ACTIVE is set, exit 0 (no processing)
@@ -108,35 +114,17 @@ is_tracked_command() {
     return 1
 }
 
-# Detect dev_mode from config or environment
-detect_dev_mode() {
-    # Check env var first (highest priority)
-    if [[ -n "${CUB_DEV_MODE:-}" ]]; then
-        echo "$CUB_DEV_MODE"
-        return
-    fi
-
-    # Check .cub/config.json (if jq available)
-    if [[ $HAS_JQ -eq 1 ]] && [[ -f ".cub/config.json" ]]; then
-        local dev_mode=$(jq -r '.dev_mode // "false"' .cub/config.json 2>/dev/null || echo "false")
-        echo "$dev_mode"
-        return
-    fi
-
-    # Default: not in dev mode
-    echo "false"
-}
-
-# Invoke Python handler with stdin passthrough
+# Invoke the installed cub hook handler with stdin passthrough
 invoke_python_handler() {
-    local dev_mode=$(detect_dev_mode)
-
-    if [[ "$dev_mode" == "true" ]]; then
-        # Dev mode: use uv run to execute in local venv
-        echo "$STDIN_DATA" | uv run cub-hooks "$HOOK_EVENT"
-    else
-        # Production mode: use installed cub-hooks command
+    if command -v cub-hooks >/dev/null 2>&1; then
         echo "$STDIN_DATA" | cub-hooks "$HOOK_EVENT"
+    elif command -v python3 >/dev/null 2>&1 && \
+         python3 -c 'import cub.core.harness.hooks' >/dev/null 2>&1; then
+        echo "$STDIN_DATA" | python3 -m cub.core.harness.hooks "$HOOK_EVENT"
+    else
+        echo "cub-hook.sh: 'cub-hooks' not found on PATH and cub is not importable" \
+             "by python3; install cub (see https://github.com/lavallee/cub#installation)." >&2
+        exit 1
     fi
 }
 
@@ -180,24 +168,9 @@ case "$HOOK_EVENT" in
         esac
         ;;
 
-    SessionStart|PreCompact|UserPromptSubmit|SessionEnd)
+    SessionStart|Stop|PreCompact|UserPromptSubmit|SessionEnd)
         # Always pass through session lifecycle events
         invoke_python_handler
-        ;;
-
-    Stop)
-        # Pass through to Python handler
-        invoke_python_handler
-
-        # Compile routes at session end
-        if [[ -f ".cub/route-log.jsonl" ]]; then
-            local dev_mode=$(detect_dev_mode)
-            if [[ "$dev_mode" == "true" ]]; then
-                uv run cub routes compile --min-frequency 3 >/dev/null 2>&1 || true
-            else
-                cub routes compile --min-frequency 3 >/dev/null 2>&1 || true
-            fi
-        fi
         ;;
 
     *)

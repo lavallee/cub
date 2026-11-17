@@ -510,3 +510,54 @@ class TestHookInstallResult:
         assert result.success
         assert len(result.issues) == 1
         assert result.issues[0].severity == "warning"
+
+
+LEGACY_SHIM = (
+    "#!/usr/bin/env bash\n"
+    "invoke_python_handler() {\n"
+    '    echo "$STDIN_DATA" | python -m cub.core.harness.hooks "$HOOK_EVENT"\n'
+    "}\n"
+)
+
+
+class TestShimRefresh:
+    """Existing shims are refreshed from the template when stale or forced."""
+
+    @staticmethod
+    def _template() -> Path:
+        return Path(__file__).parent.parent / "templates" / "scripts" / "cub-hook.sh"
+
+    def test_legacy_shim_is_refreshed_without_force(self, temp_project: Path) -> None:
+        hook_script = temp_project / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+        hook_script.write_text(LEGACY_SHIM)
+
+        result = install_hooks(temp_project)
+
+        assert result.success
+        assert hook_script.read_text() == self._template().read_text()
+        assert 'cub-hooks "$HOOK_EVENT"' in hook_script.read_text()
+        assert hook_script.stat().st_mode & 0o111
+
+    def test_custom_shim_kept_without_force(self, temp_project: Path) -> None:
+        hook_script = temp_project / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+
+        install_hooks(temp_project)
+
+        assert hook_script.read_text() == "#!/bin/bash\necho 'hook'\n"
+
+    def test_force_refreshes_shim(self, temp_project: Path) -> None:
+        hook_script = temp_project / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+
+        install_hooks(temp_project, force=True)
+
+        assert hook_script.read_text() == self._template().read_text()
+
+    def test_validate_flags_legacy_shim(self, temp_project: Path) -> None:
+        install_hooks(temp_project)
+        hook_script = temp_project / ".cub" / "scripts" / "hooks" / "cub-hook.sh"
+        hook_script.write_text(LEGACY_SHIM)
+        hook_script.chmod(0o755)
+
+        issues = validate_hooks(temp_project)
+
+        assert any(i.severity == "error" and "legacy" in i.message for i in issues)

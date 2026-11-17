@@ -5,7 +5,7 @@
 # This script acts as the entry point for Claude Code hooks. It performs
 # quick relevance checks to filter out 90%+ of events without invoking
 # Python, keeping latency under 50ms. Only relevant events are forwarded
-# to the Python handler at cub.core.harness.hooks.
+# to the installed `cub-hooks` entry point (cub.core.harness.hooks).
 #
 # Usage:
 #   cub-hook.sh <hook_event_name>
@@ -20,6 +20,12 @@
 #
 # Environment:
 #   CUB_RUN_ACTIVE - If set, exits immediately (double-tracking prevention)
+#
+# Handler resolution:
+#   1. `cub-hooks` on PATH (installed alongside the `cub` command)
+#   2. `python3 -m cub.core.harness.hooks`, only if the active python3
+#      already has cub installed (e.g. an activated venv)
+#   Otherwise prints an error to stderr and exits 1 (non-blocking for Claude Code).
 #
 # Fast-path filters:
 #   - If CUB_RUN_ACTIVE is set, exit 0 (no processing)
@@ -108,9 +114,18 @@ is_tracked_command() {
     return 1
 }
 
-# Invoke Python handler with stdin passthrough
+# Invoke the installed cub hook handler with stdin passthrough
 invoke_python_handler() {
-    echo "$STDIN_DATA" | python -m cub.core.harness.hooks "$HOOK_EVENT"
+    if command -v cub-hooks >/dev/null 2>&1; then
+        echo "$STDIN_DATA" | cub-hooks "$HOOK_EVENT"
+    elif command -v python3 >/dev/null 2>&1 && \
+         python3 -c 'import cub.core.harness.hooks' >/dev/null 2>&1; then
+        echo "$STDIN_DATA" | python3 -m cub.core.harness.hooks "$HOOK_EVENT"
+    else
+        echo "cub-hook.sh: 'cub-hooks' not found on PATH and cub is not importable" \
+             "by python3; install cub (see https://github.com/lavallee/cub#installation)." >&2
+        exit 1
+    fi
 }
 
 # Main logic: fast-path filtering

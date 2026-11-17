@@ -49,6 +49,14 @@ class HookInstallResult(BaseModel):
     message: str | None = Field(default=None, description="Summary message")
 
 
+def _files_differ(source: Path, target: Path) -> bool:
+    """Return True if the two files have different contents."""
+    try:
+        return source.read_bytes() != target.read_bytes()
+    except OSError:
+        return True
+
+
 def _find_hook_template() -> Path | None:
     """Locate the cub-hook.sh template with fallback logic."""
     import cub
@@ -65,6 +73,23 @@ def _find_hook_template() -> Path | None:
     return None
 
 
+# Invocation used by hook shims generated before 0.29.3. It runs whatever
+# `python` is on PATH, which fails when cub is installed as a uv/pipx tool.
+LEGACY_SHIM_INVOCATION = "python -m cub.core.harness.hooks"
+
+
+def _is_legacy_shim(hook_script: Path) -> bool:
+    """Return True if an existing shim still uses the pre-0.29.3 invocation."""
+    try:
+        content = hook_script.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return any(
+        LEGACY_SHIM_INVOCATION in line and not line.lstrip().startswith("#")
+        for line in content.splitlines()
+    )
+
+
 def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallResult:
     """
     Install Claude Code hooks configuration.
@@ -74,7 +99,9 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
 
     Args:
         project_dir: Project root directory
-        force: If True, overwrite existing hook configuration
+        force: If True, overwrite existing hook configuration and refresh the
+            hook script from the template. A script that still uses the
+            legacy ``python -m`` invocation is refreshed even without force.
 
     Returns:
         HookInstallResult with installation details and any issues
@@ -115,6 +142,13 @@ def install_hooks(project_dir: Path | str, force: bool = False) -> HookInstallRe
                 issues=issues,
                 message="Hook script missing and template not found",
             )
+    elif force or _is_legacy_shim(hook_script):
+        # Refresh an existing shim from the template (forced, or known-stale)
+        template_hook = _find_hook_template()
+        if template_hook is not None and _files_differ(template_hook, hook_script):
+            shutil.copy(template_hook, hook_script)
+            hook_script.chmod(0o755)
+            logger.info(f"Refreshed hook script from template at {hook_script}")
 
     # Ensure hook script is executable
     if not hook_script.stat().st_mode & 0o111:
@@ -326,6 +360,18 @@ def validate_hooks(project_dir: Path | str) -> list[HookIssue]:
                 HookIssue(
                     severity="error",
                     message=f"Hook script is not executable: {hook_script}",
+                    file_path=str(hook_script),
+                )
+            )
+        if _is_legacy_shim(hook_script):
+            issues.append(
+                HookIssue(
+                    severity="error",
+                    message=(
+                        "Hook script cub-hook.sh uses legacy "
+                        "'python -m cub.core.harness.hooks' "
+                        "invocation; run 'cub hooks install --force' to refresh it"
+                    ),
                     file_path=str(hook_script),
                 )
             )
